@@ -13,6 +13,7 @@ __pycache__
 *.safetensors
 build/
 data/
+dist/
 package/
 .ipynb_checkpoints
 
