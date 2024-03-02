@@ -1,0 +1,99 @@
+from enum import Enum
+from pydantic import Field
+from genflow.metadata.types import (
+    CLIP,
+    GLIGEN,
+    VAE,
+    CLIPVision,
+    CLIPVisionFile,
+    CheckpointFile,
+    ControlNet,
+    ControlNetFile,
+    UNet,
+    UpscaleModel,
+    UpscaleModelFile,
+)
+from genflow.nodes.comfy import ComfyNode
+
+
+class CheckpointLoaderSimple(ComfyNode):
+    """
+    Loads a checkpoint.
+    """
+
+    ckpt_name: CheckpointFile = Field(
+        default=CheckpointFile(), description="The checkpoint to load."
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"model": UNet, "clip": CLIP, "vae": VAE}
+
+
+class CheckpointLoader(CheckpointLoaderSimple):
+    """
+    Loads a checkpoint.
+    """
+
+    pass
+
+
+class unCLIPCheckpointEnum(str, Enum):
+    WD_1_5 = "wd-1-5-beta2-unclip-h-fp16.safetensors"
+
+
+class unCLIPCheckpointLoader(ComfyNode):
+    ckpt_name: unCLIPCheckpointEnum = Field(
+        default=unCLIPCheckpointEnum.WD_1_5, description="The checkpoint to load."
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"model": UNet, "clip": CLIP, "vae": VAE, "clip_vision": CLIPVision}
+
+
+class CLIPVisionLoader(ComfyNode):
+    clip_name: CLIPVisionFile = Field(
+        default=CLIPVisionFile(),
+        description="The name of the CLIP vision model to load.",
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"clip_vision": CLIPVision}
+
+
+class ControlNetLoader(ComfyNode):
+    control_net_name: ControlNetFile = Field(
+        default=ControlNetFile(), description="The filename of the control net to load."
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"control_net": ControlNet}
+
+
+class UpscaleModelLoader(ComfyNode):
+    model_name: UpscaleModelFile = Field(
+        default=UpscaleModelFile(),
+        description="The filename of the upscale model to load.",
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"upscale_model": UpscaleModel}
+
+
+class GLIGENCheckpointEnum(str, Enum):
+    GLIGEN_SD14_TEXTBOX = "gligen_sd14_textbox_pruned_fp16.safetensors"
+
+
+class GLIGENLoader(ComfyNode):
+    gligen_name: GLIGENCheckpointEnum = Field(
+        default=GLIGENCheckpointEnum.GLIGEN_SD14_TEXTBOX,
+        description="The GLIGEN checkpoint to load.",
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"gligen": GLIGEN}

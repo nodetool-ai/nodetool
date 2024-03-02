@@ -1,0 +1,23 @@
+[MASTER]
+ignore-paths=tests,*/tests/*
+ignore-patterns=test_*.py
+
+[MESSAGES CONTROL]
+disable=
+    too-few-public-methods,
+    too-many-instance-attributes,
+    too-many-arguments,
+    missing-docstring,
+    line-too-long,
+    invalid-name,
+    no-member,
+    no-self-use
+
+[FORMAT]
+max-line-length=120
+
+[REPORTS]
+reports=no
+
+[TYPECHECK]
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__))$

@@ -1,0 +1,37 @@
+__pycache__
+*.pyc
+*.pyo
+*.dmypy.json
+*.jar
+.mypy_cache
+*.egg-info
+*.egg
+*.pth
+*.torchscript
+*.ckpt
+*.gguf
+*.safetensors
+build/
+data/
+package/
+.ipynb_checkpoints
+
+# Cache
+.cache
+.eslintcache
+
+# Testing
+/coverage
+*.lcov
+
+# Environment variables
+*.override.env
+
+# Visual Studio Code
+# https://github.com/github/gitignore/blob/master/Global/VisualStudioCode.gitignore
+.vscode/*
+# macOS
+# https://github.com/github/gitignore/blob/master/Global/macOS.gitignore
+.DS_Store
+
+.env
