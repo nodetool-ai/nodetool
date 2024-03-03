@@ -290,6 +290,7 @@ async def test_save_text_node(context: ProcessingContext, user: User):
     assert file.read() == b"Sample Text", "Asset should have the right content"
 
 
+# these tests should be resurrected at some point
 # @pytest.mark.asyncio
 # async def test_save_image_node(context: ProcessingContext, user: User):
 #     folder = Asset.create(user.id, "test", "folder", user.id)

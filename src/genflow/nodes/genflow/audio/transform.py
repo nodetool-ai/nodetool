@@ -1,14 +1,8 @@
-import librosa
-import pydub
 from pydantic import Field
 from genflow.metadata.types import AudioRef
 from genflow.metadata.types import Tensor
 from genflow.workflows.genflow_node import GenflowNode
 from genflow.workflows.processing_context import ProcessingContext
-from genflow.nodes.genflow.audio.audio_helpers import (
-    normalize_audio,
-    remove_silence,
-)
 
 
 class ConcatAudioNode(GenflowNode):
@@ -48,6 +42,8 @@ class NormalizeAudioNode(GenflowNode):
     )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
+        from .audio_helpers import normalize_audio
+
         audio = await context.to_audio_segment(self.audio)
         res = normalize_audio(audio)
         return await context.audio_from_segment(res)
@@ -91,6 +87,8 @@ class RemoveSilenceNode(GenflowNode):
     )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
+        from .audio_helpers import remove_silence
+
         audio = await context.to_audio_segment(self.audio)
         res = remove_silence(audio)
         return await context.audio_from_segment(res)
@@ -114,6 +112,8 @@ class SliceAudioNode(GenflowNode):
     end: float = Field(default=1.0, description="The end time in seconds.", ge=0.0)
 
     async def process(self, context: ProcessingContext) -> AudioRef:
+        import pydub
+
         audio = await context.to_audio_segment(self.audio)
         res = audio[(self.start * 1000) : (self.end * 1000)]
         assert isinstance(res, pydub.AudioSegment)
@@ -146,6 +146,8 @@ class ToneNode(GenflowNode):
         )
 
         async def process(self, context: ProcessingContext) -> Tensor:
+            import librosa
+
             tone_signal = librosa.tone(
                 frequency=self.frequency,
                 sr=self.sampling_rate,
@@ -166,6 +168,8 @@ class ToneNode(GenflowNode):
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
+        import librosa
+
         tone_signal = librosa.tone(
             frequency=self.frequency,
             sr=self.sampling_rate,

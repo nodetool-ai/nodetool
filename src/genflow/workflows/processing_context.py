@@ -8,12 +8,9 @@ import uuid
 import httpx
 import joblib
 import base64
-import pandas as pd
-import pydub
 import PIL.Image
 import numpy as np
 
-from sklearn.base import BaseEstimator
 from genflow.api.models.graph import Edge
 from genflow.api.models.asset import Asset, AssetCreateRequest
 from genflow.workflows.types import (
@@ -24,14 +21,15 @@ from genflow.workflows.types import (
 )
 from genflow.workflows.run_job_request import RunJobRequest
 from genflow.storage.abstract_storage import AbstractStorage
-from genflow.metadata.types import AssetRef
-from genflow.metadata.types import AudioRef
-from genflow.metadata.types import DataFrame
-from genflow.metadata.types import ImageRef
-from genflow.metadata.types import ModelRef
-from genflow.metadata.types import TextRef
-from genflow.metadata.types import VideoRef
-from genflow.common.encoding import decode_bytes_io
+from genflow.metadata.types import (
+    AssetRef,
+    AudioRef,
+    DataFrame,
+    ImageRef,
+    ModelRef,
+    TextRef,
+    VideoRef,
+)
 from genflow.common.environment import Environment
 from genflow.common.genflow_api_client import GenflowAPIClient
 from genflow.workflows.genflow_node import GenflowNode
@@ -245,6 +243,8 @@ class ProcessingContext:
         Download a file from URL.
         If url contains s3.amazonaws.com, it will be downloaded from S3.
         """
+        from genflow.common.encoding import decode_bytes_io
+
         url_parsed = urllib.parse.urlparse(url)
 
         if url_parsed.scheme == "data":
@@ -306,6 +306,8 @@ class ProcessingContext:
             asset_ref.uri = await self.get_asset_url(asset_ref.asset_id)
 
     async def to_audio_segment(self, audio_ref: AudioRef):
+        import pydub
+
         audio_bytes = await self.to_io(audio_ref)
         return pydub.AudioSegment.from_file(audio_bytes)
 
@@ -377,7 +379,9 @@ class ProcessingContext:
             s3_url = await self.create_temp_file(buffer, "mp3")
             return AudioRef(uri=s3_url)
 
-    async def to_pandas(self, df: DataFrame) -> pd.DataFrame:
+    async def to_pandas(self, df: DataFrame):
+        import pandas as pd
+
         if df.columns:
             return pd.DataFrame(df.data, columns=df.columns)
         else:
@@ -385,7 +389,7 @@ class ProcessingContext:
             return pd.read_csv(bytes_io)
 
     async def from_pandas(
-        self, data: pd.DataFrame, name: str | None = None
+        self, data: "pd.DataFrame", name: str | None = None
     ) -> "DataFrame":
         buffer = BytesIO()
         data.to_csv(buffer)
@@ -581,13 +585,13 @@ class ProcessingContext:
             s3_url = await self.create_temp_file(buffer)
             return VideoRef(uri=s3_url)
 
-    async def to_estimator(self, model_ref: ModelRef) -> BaseEstimator:
+    async def to_estimator(self, model_ref: ModelRef):
         if model_ref.asset_id is None:
             raise ValueError("ModelRef is empty")
         file = await self.to_io(model_ref)
         return joblib.load(file)
 
-    async def from_estimator(self, est: BaseEstimator, **kwargs):
+    async def from_estimator(self, est: "BaseEstimator", **kwargs):
         stream = BytesIO()
         joblib.dump(est, stream)
         stream.seek(0)

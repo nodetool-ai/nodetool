@@ -1,12 +1,10 @@
 import os
 from typing import Any
 
-
 MISSING_MESSAGE = "Missing required environment variable: {}"
 
 # Default values for environment variables
-# These are used if the environment variable is not set.
-DEFAULT = {
+DEFAULT_ENV = {
     "ASSET_BUCKET": "images",
     "TEMP_BUCKET": "temp",
     "COMFY_FOLDER": None,
@@ -15,6 +13,26 @@ DEFAULT = {
     "AWS_REGION": "us-east-1",
     "GENFLOW_API_URL": "http://localhost:8000/api",
 }
+
+SETTINGS_FILE = "settings.yaml"
+SECRETS_FILE = "secrets.yaml"
+
+SETTINGS_SETUP = [
+    {"key": "DB_PATH", "prompt": "Database path"},
+    {
+        "key": "COMFY_FOLDER",
+        "prompt": "Location of ComfyUI folder (optional)",
+    },
+]
+
+SECRETS_SETUP = [
+    {"key": "OPENAI_API_KEY", "prompt": "OpenAI API key (optional)"},
+    {"key": "HF_TOKEN", "prompt": "Hugging Face Token (optional)"},
+    {
+        "key": "REPLICATE_API_TOKEN",
+        "prompt": "Replicate API Token (optional)",
+    },
+]
 
 
 class Environment(object):
@@ -25,6 +43,117 @@ class Environment(object):
 
     test_mode: bool = False
     model_files: dict[str, list[str]] = {}
+    settings: dict[str, Any] | None = None
+    secrets: dict[str, Any] | None = None
+
+    def get_default_db_path():
+        """
+        Get the default database path.
+        """
+        import platform
+        from pathlib import Path
+
+        os_name = platform.system()
+        if os_name == "Linux" or os_name == "Darwin":
+            return Path.home() / ".local" / "share" / "genflow" / "genflow.sqlite3"
+        elif os_name == "Windows":
+            return Path(os.getenv("APPDATA")) / "genflow" / "genflow.sqlite3"
+        else:
+            return Path("data") / "genflow.sqlite3"
+
+    @classmethod
+    def get_system_file_path(cls, filename: str) -> str:
+        """
+        Returns the path to the settings file for the current OS.
+        """
+        import platform
+        from pathlib import Path
+
+        os_name = platform.system()
+        if os_name == "Linux" or os_name == "Darwin":
+            return Path.home() / ".config" / "genflow" / filename
+        elif os_name == "Windows":
+            return Path(os.getenv("APPDATA")) / "genflow" / filename
+        else:
+            return Path("data") / filename
+
+    @classmethod
+    def has_settings(cls):
+        """
+        Returns True if the settings file exists.
+        """
+        return cls.get_system_file_path(SETTINGS_FILE).exists()
+
+    @classmethod
+    def has_secrets(cls):
+        """
+        Returns True if the secrets file exists.
+        """
+        return cls.get_system_file_path(SECRETS_FILE).exists()
+
+    @classmethod
+    def load_settings(cls):
+        """
+        Load the settings from the settings file.
+        Loas the secrets from the secrets file.
+        """
+        import yaml
+
+        cls.settings = {"COMFY_FOLDER": None, "DB_PATH": cls.get_default_db_path()}
+        cls.secrets = {}
+
+        settings_file = cls.get_system_file_path(SETTINGS_FILE)
+        secrets_file = cls.get_system_file_path(SECRETS_FILE)
+
+        if settings_file.exists():
+            with open(settings_file, "r") as f:
+                cls.settings = yaml.safe_load(f)
+
+        if secrets_file.exists():
+            with open(secrets_file, "r") as f:
+                cls.secrets = yaml.safe_load(f)
+
+    @classmethod
+    def save_settings(self):
+        """
+        Save the user settings to the settings file.
+        Save the user secrets to the secrets file.
+        """
+        import yaml
+
+        settings_file = self.get_system_file_path(SETTINGS_FILE)
+        secrets_file = self.get_system_file_path(SECRETS_FILE)
+
+        print()
+        print(f"Saving settings to {settings_file}")
+        print(f"Saving secrets to {secrets_file}")
+
+        os.makedirs(os.path.dirname(settings_file), exist_ok=True)
+        os.makedirs(os.path.dirname(secrets_file), exist_ok=True)
+
+        with open(settings_file, "w") as f:
+            yaml.dump(self.settings, f)
+
+        with open(secrets_file, "w") as f:
+            yaml.dump(self.secrets, f)
+
+    @classmethod
+    def get_settings(cls):
+        """
+        Returns a dictionary of settings.
+        """
+        if cls.settings is None:
+            cls.load_settings()
+        return cls.settings
+
+    @classmethod
+    def get_secrets(cls):
+        """
+        Returns a dictionary of secrets.
+        """
+        if cls.secrets is None:
+            cls.load_settings()
+        return cls.secrets
 
     @classmethod
     def set_test_mode(cls):
@@ -34,19 +163,63 @@ class Environment(object):
         cls.test_mode = True
 
     @classmethod
-    def init_dev_env(cls):
-        import dotenv
+    def setup(cls):
+        """
+        Runs the configuration wizard to set up the environment.
+        """
+
+        # Initialize the settings and secrets
+        cls.load_settings()
+
+        print("Setting up Genflow environment")
+        print("Press enter to use the default value")
+        print("Press ctrl-c to exit")
+        print()
+
+        for step in SETTINGS_SETUP:
+            default_value = cls.settings.get(step["key"])
+            default_prompt = f" [{default_value}]: " if default_value else ": "
+            value = input(step["prompt"] + default_prompt).strip()
+            cls.settings[step["key"]] = default_value if value == "" else value
+
+        def mask_secret(prompt: str, num_chars: int = 8) -> str:
+            return "*" * num_chars + prompt[num_chars:]
+
+        for step in SECRETS_SETUP:
+            default_value = cls.secrets.get(step["key"])
+            default_prompt = (
+                f" [{mask_secret(default_value)}]: " if default_value else ": "
+            )
+            value = input(step["prompt"] + default_prompt).strip()
+            cls.secrets[step["key"]] = default_value if value == "" else value
+
+        cls.save_settings()
+
+        print()
+        print("Initializing database")
+        cls.initialize_database()
+
+        print()
+        print("Environment setup complete!")
+        print("You can now run the Genflow server using the 'genflow serve' command")
+        print()
+
+    @classmethod
+    def initialize_database(cls):
+        """
+        Initialize the database.
+        """
         from genflow.models.schema import create_all_tables
 
-        dotenv.load_dotenv(dotenv.find_dotenv())
         create_all_tables()
 
+    @classmethod
+    def init_comfy(cls):
         if cls.get_comfy_folder():
             import comfy.folder_paths
             import comfy.nodes
 
-            cls.get_logger().info(f"Comfy folder: {cls.get_comfy_folder()}")
-            comfy.folder_paths.init_folder_paths(Environment.get_comfy_folder())
+            comfy.folder_paths.init_folder_paths(cls.get_comfy_folder())
             comfy.nodes.init_custom_nodes()
 
     @classmethod
@@ -60,8 +233,12 @@ class Environment(object):
 
         if key in os.environ:
             return os.environ[key]
-        elif key in DEFAULT:
-            return DEFAULT[key]
+        elif key in cls.get_settings():
+            return cls.get_settings()[key]
+        elif key in cls.get_secrets():
+            return cls.get_secrets()[key]
+        elif key in DEFAULT_ENV:
+            return DEFAULT_ENV[key]
         else:
             raise Exception(MISSING_MESSAGE.format(key))
 
@@ -301,9 +478,9 @@ class Environment(object):
         if cls.is_production():
             return cls.model_files.get(folder, [])
         else:
-            import folder_paths
+            import comfy.folder_paths
 
-            return folder_paths.get_filename_list(folder)
+            return comfy.folder_paths.get_filename_list(folder)
 
     @classmethod
     def get_comfy_folder(cls):
