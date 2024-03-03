@@ -32,6 +32,17 @@ IGNORED_NODE_TYPES = [
     "huggingface",
 ]
 
+def add_node_classname(node_class: type["GenflowNode"]) -> None:
+    if hasattr(node_class, "comfy_class") and node_class.comfy_class != "": # type: ignore
+        class_name = node_class.comfy_class # type: ignore
+    else:
+        class_name = node_class.__name__
+
+    if class_name not in NODES_BY_CLASSNAME:
+        NODES_BY_CLASSNAME[class_name] = []
+
+    NODES_BY_CLASSNAME[class_name].append(node_class)
+
 
 def add_node_type(node_class: type["GenflowNode"]) -> None:
     """
@@ -42,17 +53,12 @@ def add_node_type(node_class: type["GenflowNode"]) -> None:
         node_class (type[Node]): The class of the node.
     """
     node_type = node_class.get_node_type()
-    class_name = node_class.__name__
 
     if node_type in IGNORED_NODE_TYPES:
         return
 
     NODE_BY_TYPE[node_type] = node_class
-
-    if class_name not in NODES_BY_CLASSNAME:
-        NODES_BY_CLASSNAME[class_name] = []
-
-    NODES_BY_CLASSNAME[class_name].append(node_class)
+    add_node_classname(node_class)
 
 
 def type_metadata(python_type: Type) -> TypeMetadata:
@@ -344,7 +350,7 @@ class GenflowNode(BaseModel):
         return [
             Property.from_field(name, type_metadata(types[name]), field)
             for name, field in fields.items()
-            if name not in ["id", "node_type", "category", "ui_properties"]
+            if name not in ["id", "ui_properties", "comfy_class"]
         ]
 
     @classmethod
@@ -404,6 +410,8 @@ def get_node_class_by_name(class_name: str) -> list[type[GenflowNode]]:
     Returns:
         list[type[Node]]: The classes matching the name.
     """
+    if not class_name in NODES_BY_CLASSNAME:
+        class_name = class_name.replace("-", "")
     return NODES_BY_CLASSNAME.get(class_name, [])
 
 

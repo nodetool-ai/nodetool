@@ -2,7 +2,7 @@ from enum import Enum
 import random
 from typing import Any
 import numpy as np
-from pydantic import Field
+from pydantic import Field, validator
 from genflow.metadata.types import ImageRef
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.metadata.types import ImageTensor, Mask
@@ -29,6 +29,12 @@ class ImageCompositeMasked(ComfyNode):
 class LoadImage(ComfyNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to load.")
     upload: str = Field(default="", description="unused")
+    
+    @validator("image", pre=True)
+    def validate_image(cls, v):
+        if isinstance(v, str):
+            v = ImageRef(uri=v)
+        return v
 
     @classmethod
     def return_type(cls):
@@ -53,6 +59,12 @@ class LoadImageMask(ComfyNode):
     channel: ColorChannel = Field(
         default=ColorChannel.ALPHA, description="The color channel to use."
     )
+    
+    @validator("image", pre=True)
+    def validate_image(cls, v):
+        if isinstance(v, str):
+            v = ImageRef(uri=v)
+        return v
 
     @classmethod
     def return_type(cls):

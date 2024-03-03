@@ -70,6 +70,8 @@ class GenflowType(BaseModel):
             add_type_name(cls, cls.type)
 
 
+asset_types = set()
+
 class AssetRef(GenflowType):
     type: str = "asset"
     uri: str = ""
@@ -83,6 +85,13 @@ class AssetRef(GenflowType):
 
     def is_empty(self):
         return self.uri == "" and self.asset_id is None
+    
+    @classmethod
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        if hasattr(cls, "type"):
+            asset_types.add(cls.type)
+    
 
 
 class FolderRef(AssetRef):
@@ -355,39 +364,10 @@ class TypeMetadata(BaseModel):
         return f"TypeMetadata(type={self.type}, optional={self.optional}, values={self.values}, type_args={self.type_args})"
 
     def is_asset_type(self):
-        return self.type in (
-            "asset",
-            "text",
-            "audio",
-            "image",
-            "video",
-            "tensor",
-            "dataframe",
-            "model",
-            "folder",
-        )
+        return self.type in asset_types
 
     def is_comfy_type(self):
-        return self.type in (
-            "clip",
-            "clip_vision",
-            "clip_vision_output",
-            "conditioning",
-            "embeds",
-            "gligen",
-            "vae",
-            "unet",
-            "lora",
-            "mask",
-            "control_net",
-            "sigmas",
-            "sampler",
-            "upscale_model",
-            "latent",
-            "ip_adapter",
-            "insight_face",
-            "image_tensor",
-        )
+        return self.type.startswith("comfy.")
 
     def get_python_type(self):
         return NameToType[self.type]

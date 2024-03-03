@@ -1,6 +1,7 @@
 from enum import Enum
 import enum
 from typing import Any
+from pydantic import Field
 from genflow.metadata import is_assignable
 
 from genflow.workflows.genflow_node import GenflowNode
@@ -22,6 +23,8 @@ class DensePoseModel(str, Enum):
 
 
 class ComfyNode(GenflowNode):
+    comfy_class: str = Field("", description="The comfy class wrapped by this node.")
+
     def assign_property(self, name: str, value: Any):
         """
         Sets the value of a property.
@@ -30,7 +33,7 @@ class ComfyNode(GenflowNode):
 
         if not is_assignable(prop.type, value):
             raise ValueError(
-                f"Invalid value for property `{name}`: {value} (expected {prop.type})"
+                f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
             )
 
         setattr(self, name, value)
@@ -38,7 +41,8 @@ class ComfyNode(GenflowNode):
     async def process(self, context: ProcessingContext):
         from comfy.nodes import NODE_CLASS_MAPPINGS as mappings  # type: ignore
 
-        name = self.__class__.__name__
+        name = self.comfy_class if self.comfy_class != "" else self.__class__.__name__
+
         if name in mappings:
             node_class = mappings[name]
             function_name = node_class.FUNCTION

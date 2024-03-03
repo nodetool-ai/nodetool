@@ -16,6 +16,7 @@
 
 # This file was modified to fit into the Genflow ecosystem
 from io import BytesIO
+import re
 import requests
 import torch
 import asyncio
@@ -1857,8 +1858,16 @@ class LoadImage:
 
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "load_image"
+    
+    VALID_URL_REGEX = re.compile(
+        r"^(http|https)://[a-zA-Z0-9.-]+.[a-zA-Z]{2,}(:[0-9]{2,5})?(/[a-zA-Z0-9.-]*)*$"
+    )
 
     def load_image(self, image, **kwargs):
+        # validate image.uri to be a proper http or https url
+        if not self.VALID_URL_REGEX.match(image.uri):
+            raise ValueError("Invalid image URL")
+
         response = requests.get(image.uri)
         response.raise_for_status()
 

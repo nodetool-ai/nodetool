@@ -197,7 +197,7 @@ class WorkflowRunner:
                 NodeUpdate(
                     node_id=node.id,
                     status="error",
-                    error=str(e),
+                    error=str(e)[:1000],
                     started_at=started_at.isoformat(),
                     completed_at=datetime.now().isoformat(),
                 )

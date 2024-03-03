@@ -72,13 +72,13 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
         # supporting comfy workflow format
         if "class_type" in node:
             classes = get_node_class_by_name(node["class_type"])
-            assert len(classes) > 0, f"Could not find node class for node {node_id}"
+            assert len(classes) > 0, f"Could not find node class {node['class_type']} for node {node_id}"
             # use name including namespace
             node_type = classes[0].get_node_type()
         elif "type" in node:
             assert get_node_class(
                 node["type"]
-            ), f"Could not find node class for node {node_id}"
+            ), f"Could not find node class {node['type']} for node {node_id}"
             node_type = node["type"]
         else:
             raise Exception(f"Node {node_id} does not have a type")

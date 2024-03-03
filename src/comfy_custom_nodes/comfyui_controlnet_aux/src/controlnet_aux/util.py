@@ -221,7 +221,9 @@ def ade_palette():
             [102, 255, 0], [92, 0, 255]]
 
 def custom_hf_download(pretrained_model_or_path, filename, cache_dir=annotator_ckpts_path, subfolder='', use_symlinks=USE_SYMLINKS):
-    local_dir = os.path.join(cache_dir, pretrained_model_or_path)
+    # Fix for Windows, added by @georgi
+    path = os.path.join(*pretrained_model_or_path.split('/'))
+    local_dir = os.path.join(cache_dir, path)
     model_path = os.path.join(local_dir, *subfolder.split('/'), filename)
     
     if not os.path.exists(model_path):

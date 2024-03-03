@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import Field
+from pydantic import Field, validator
 from genflow.metadata.types import (
     CLIP,
     GLIGEN,
@@ -271,9 +271,15 @@ class LoraLoader(ComfyNode):
         ge=-20.0,  # ge is 'greater than or equal to'
         le=20.0,  # le is 'less than or equal to'
     )
+    
+    @validator("lora_name", pre=True)
+    def validate_lora_name(cls, v):
+        if isinstance(v, str):
+            v = LORAEnum(v)
+        return v
 
     @classmethod
-    def return_types(cls):
+    def return_type(cls):
         return {
             "model": UNet,
             "clip": CLIP,
@@ -291,6 +297,12 @@ class LoraLoaderModelOnly(ComfyNode):
         ge=-20.0,  # ge is 'greater than or equal to'
         le=20.0,  # le is 'less than or equal to'
     )
+    
+    @validator("lora_name", pre=True)
+    def validate_lora_name(cls, v):
+        if isinstance(v, str):
+            v = LORAEnum(v)
+        return v
 
     @classmethod
     def return_type(cls):
@@ -307,6 +319,12 @@ class UNETLoader(ComfyNode):
         default=UNETEnum.DREAMSHAPER_XL,
         description="The name of the UNet to load.",
     )
+    
+    @validator("unet_name", pre=True)
+    def validate_unet_name(cls, v):
+        if isinstance(v, str):
+            v = UNETEnum(v)
+        return v
 
     @classmethod
     def return_type(cls):
@@ -322,6 +340,12 @@ class VAELoader(ComfyNode):
     vae_name: VAEEnum = Field(
         default=VAEEnum.VAE_FT_MSE, description="The name of the VAE to load."
     )
+    
+    @validator("vae_name", pre=True)
+    def validate_vae_name(cls, v):
+        if isinstance(v, str):
+            v = VAEEnum(v)
+        return v
 
     @classmethod
     def return_type(cls):
@@ -339,6 +363,12 @@ class CLIPLoader(ComfyNode):
         default=CLIPEnum.CLIP_VIT_LARGE_PATCH14,
         description="The name of the CLIP to load.",
     )
+    
+    @validator("clip_name", pre=True)
+    def validate_clip_name(cls, v):
+        if isinstance(v, str):
+            v = CLIPEnum(v)
+        return v
 
     @classmethod
     def return_type(cls):
@@ -354,6 +384,18 @@ class DualCLIPLoader(ComfyNode):
         default=CLIPEnum.CLIP_VIT_LARGE_PATCH14,
         description="The name of the CLIP to load.",
     )
+    
+    @validator("clip_name1", pre=True)
+    def validate_clip_name1(cls, v):
+        if isinstance(v, str):
+            v = CLIPEnum(v)
+        return v
+
+    @validator("clip_name2", pre=True)
+    def validate_clip_name2(cls, v):
+        if isinstance(v, str):
+            v = CLIPEnum(v)
+        return v
 
     @classmethod
     def return_types(cls):
@@ -376,7 +418,6 @@ class ControlNetApply(ComfyNode):
     def return_type(cls):
         return {"conditioning": Conditioning}
 
-        return {"image": ImageTensor}
 
 
 class ControlNetApplyAdvanced(ComfyNode):

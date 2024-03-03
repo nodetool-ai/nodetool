@@ -4,6 +4,7 @@ from pydantic import Field
 from genflow.metadata.types import ImageTensor, Mask
 from genflow.nodes.comfy import EnableDisable
 from genflow.nodes.comfy.controlnet import PreprocessImage
+from genflow.workflows.genflow_node import add_node_classname
 
 
 class LeReSDepthMapPreprocessor(PreprocessImage):
@@ -66,7 +67,10 @@ class MIDASDepthMapPreprocessor(PreprocessImage):
 
 
 class BAE_Normal_Map_Preprocessor(PreprocessImage):
-    pass
+    comfy_class: str = "BAE-NormalMapPreprocessor"
+
+
+add_node_classname(BAE_Normal_Map_Preprocessor)
 
 
 class ZoeDepthMapPreprocessor(PreprocessImage):

@@ -29,12 +29,11 @@ def init_folder_paths(data_dir: str):
 
     models_dir = os.path.join(data_dir, "models")
 
-    print("COMFY WORKER: init_folder_paths")
-    print("models_dir: " + models_dir)
+    print("COMFY models_dir: " + models_dir)
 
     custom_nodes_directory = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)),
-        "custom_nodes",
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        "comfy_custom_nodes",
     )
 
     def model_path(name):

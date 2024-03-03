@@ -1,6 +1,6 @@
 from enum import Enum
-from pydantic import Field
-from genflow.metadata.types import ImageTensor
+from pydantic import Field, validator
+from genflow.metadata.types import ImageTensor, UpscaleModel
 from genflow.nodes.comfy import ComfyNode
 
 
@@ -51,14 +51,14 @@ class ImageScaleBy(ComfyNode):
 
 
 class ImageUpscaleWithModel(ComfyNode):
-    upscale_model: str = Field(
+    upscale_model: UpscaleModel = Field(
         default="",
         description="The model to use for upscaling the image.",
     )
     image: ImageTensor = Field(
         default=ImageTensor(), description="The image to upscale."
     )
-
+    
     @classmethod
     def return_type(cls):
         return {"image": ImageTensor}

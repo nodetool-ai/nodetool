@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import Field
+from pydantic import Field, validator
 
 from genflow.metadata.types import (
     CLIPVision,
@@ -106,6 +106,12 @@ class IPAdapterModelLoader(ComfyNode):
         default=IPAdapterModelEnum.IP_ADAPTER_SD15,
         description="List of available IPAdapter model names.",
     )
+    
+    @validator("ipadapter_file", pre=True)
+    def validate_ipadapter_file(cls, v):
+        if isinstance(v, str):
+            v = IPAdapterModelEnum(v)
+        return v
 
     @classmethod
     def return_type(cls):

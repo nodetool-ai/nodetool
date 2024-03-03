@@ -1,0 +1,36 @@
+{
+  "number1": {
+    "inputs": {
+      "value": 0
+    },
+    "type": "genflow.input.IntInput"
+  },
+  "number2": {
+    "inputs": {
+      "value": 0
+    },
+    "type": "genflow.input.IntInput"
+  },
+  "addition": {
+    "inputs": {
+      "a": [
+        "number1",
+        "output"
+      ],
+      "b": [
+        "number2",
+        "output"
+      ]
+    },
+    "type": "genflow.math.Add"
+  },
+  "output": {
+    "inputs": {
+      "value": [
+        "addition",
+        "output"
+      ]
+    },
+    "type": "genflow.output.IntOutput"
+  }
+}

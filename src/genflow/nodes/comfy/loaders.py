@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import Field
+from pydantic import Field, validator
 from genflow.metadata.types import (
     CLIP,
     GLIGEN,
@@ -25,6 +25,14 @@ class CheckpointLoaderSimple(ComfyNode):
         default=CheckpointFile(), description="The checkpoint to load."
     )
 
+    @validator("ckpt_name", pre=True)
+    def validate_ckpt_name(cls, v):
+        if isinstance(v, str):
+            v = CheckpointFile(name=v)
+        if v.name == "":
+            raise ValueError("The checkpoint name cannot be empty.")
+        return v
+
     @classmethod
     def return_type(cls):
         return {"model": UNet, "clip": CLIP, "vae": VAE}
@@ -46,6 +54,12 @@ class unCLIPCheckpointLoader(ComfyNode):
     ckpt_name: unCLIPCheckpointEnum = Field(
         default=unCLIPCheckpointEnum.WD_1_5, description="The checkpoint to load."
     )
+    
+    @validator("ckpt_name", pre=True)
+    def validate_ckpt_name(cls, v):
+        if isinstance(v, str):
+            v = unCLIPCheckpointEnum(v)
+        return v
 
     @classmethod
     def return_type(cls):
@@ -57,6 +71,14 @@ class CLIPVisionLoader(ComfyNode):
         default=CLIPVisionFile(),
         description="The name of the CLIP vision model to load.",
     )
+    
+    @validator("clip_name", pre=True)
+    def validate_clip_name(cls, v):
+        if isinstance(v, str):
+            v = CLIPVisionFile(name=v)
+        if v.name == "":
+            raise ValueError("The CLIP vision name cannot be empty.")
+        return v
 
     @classmethod
     def return_type(cls):
@@ -67,6 +89,14 @@ class ControlNetLoader(ComfyNode):
     control_net_name: ControlNetFile = Field(
         default=ControlNetFile(), description="The filename of the control net to load."
     )
+    
+    @validator("control_net_name", pre=True)
+    def validate_control_net_name(cls, v):
+        if isinstance(v, str):
+            v = ControlNetFile(name=v)
+        if v.name == "":
+            raise ValueError("The control net name cannot be empty.")
+        return v
 
     @classmethod
     def return_type(cls):
@@ -78,6 +108,14 @@ class UpscaleModelLoader(ComfyNode):
         default=UpscaleModelFile(),
         description="The filename of the upscale model to load.",
     )
+    
+    @validator("model_name", pre=True)
+    def validate_model_name(cls, v):
+        if isinstance(v, str):
+            v = UpscaleModelFile(name=v)
+        if v.name == "":
+            raise ValueError("The model name cannot be empty.")
+        return v
 
     @classmethod
     def return_type(cls):
@@ -93,6 +131,12 @@ class GLIGENLoader(ComfyNode):
         default=GLIGENCheckpointEnum.GLIGEN_SD14_TEXTBOX,
         description="The GLIGEN checkpoint to load.",
     )
+
+    @validator("gligen_name", pre=True)
+    def validate_gligen_name(cls, v):
+        if isinstance(v, str):
+            v = GLIGENCheckpointEnum(v)
+        return v
 
     @classmethod
     def return_type(cls):

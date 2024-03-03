@@ -2581,4 +2581,4 @@ worker = []
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "799fc3575ee7d630b80842684beab97c8503e645d53c59a52ed504c8eea5b793"
+content-hash = "e8b65ca15d57772253ac240cbacfb6e0a6de4e1268d7bbbe962f7c8d1b5c7208"

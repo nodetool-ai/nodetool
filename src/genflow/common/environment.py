@@ -24,6 +24,7 @@ class Environment(object):
     """
 
     test_mode: bool = False
+    model_files: dict[str, list[str]] = {}
 
     @classmethod
     def set_test_mode(cls):
@@ -31,6 +32,22 @@ class Environment(object):
         Set the environment to test mode.
         """
         cls.test_mode = True
+
+    @classmethod
+    def init_dev_env(cls):
+        import dotenv
+        from genflow.models.schema import create_all_tables
+
+        dotenv.load_dotenv(dotenv.find_dotenv())
+        create_all_tables()
+
+        if cls.get_comfy_folder():
+            import comfy.folder_paths
+            import comfy.nodes
+
+            cls.get_logger().info(f"Comfy folder: {cls.get_comfy_folder()}")
+            comfy.folder_paths.init_folder_paths(Environment.get_comfy_folder())
+            comfy.nodes.init_custom_nodes()
 
     @classmethod
     def get(cls, key: str):
@@ -274,6 +291,19 @@ class Environment(object):
         client = chromadb.HttpClient(host=cls.get_chroma_url(), settings=settings)
 
         return client
+
+    @classmethod
+    def get_model_files(cls, folder: str):
+        """
+        Get the files in a model folder.
+        """
+
+        if cls.is_production():
+            return cls.model_files.get(folder, [])
+        else:
+            import folder_paths
+
+            return folder_paths.get_filename_list(folder)
 
     @classmethod
     def get_comfy_folder(cls):
