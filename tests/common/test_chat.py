@@ -13,6 +13,9 @@ from genflow.models.assistant import Assistant
 from genflow.models.schema import create_all_tables
 from genflow.models.thread import Thread
 
+# load all nodes
+import genflow.nodes
+
 VALID_NODE_NAME = "some.valid.node.name"
 INVALID_NODE_NAME = "invalid_node_name"
 USER_ID = "12345"

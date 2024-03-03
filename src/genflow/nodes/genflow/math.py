@@ -132,8 +132,6 @@ class MultiplyNode(BinaryOperationNode):
     - Output: (Number) The product of the multiplication of Input1 and Input2.
     """
 
-    node_type: Literal["Core.Math.Multiply"] = "Core.Math.Multiply"
-
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
         return np.multiply(a, b)
 
@@ -164,8 +162,6 @@ class DivideNode(BinaryOperationNode):
     - Result (Number): Output of the division operation.
     """
 
-    node_type: Literal["Core.Math.Divide"] = "Core.Math.Divide"
-
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
         return np.divide(a, b)
 
@@ -195,8 +191,6 @@ class ModulusNode(BinaryOperationNode):
     - Result (Number): The remainder returned from the division of 'A' by 'B'.
     """
 
-    node_type: Literal["Core.Math.Modulus"] = "Core.Math.Modulus"
-
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
         return np.mod(a, b)
 
@@ -224,7 +218,6 @@ class SineNode(GenflowNode):
     - the sine of the input angle.
     """
 
-    node_type: Literal["Core.Math.Sin"] = "Core.Math.Sin"
     angle_rad: float | int | Tensor = Field(title="Angle (Radians)", default=0.0)
 
     async def process(self, context: ProcessingContext) -> float | Tensor:
@@ -256,35 +249,6 @@ class CosineNode(GenflowNode):
     - Cosine Value (Float): The computed cosine of the given input angle.
     """
 
-    node_type: Literal["Core.Math.Cos"] = "Core.Math.Cos"
-    angle_rad: float | int | Tensor = Field(title="Angle (Radians)", default=0.0)
-
-    async def process(self, context: ProcessingContext) -> float | Tensor:
-        return await convert_output(context, np.cos(to_numpy(self.angle_rad)))
-
-
-class PowerNode(GenflowNode):
-    """
-    ## Power Node
-    ### Namespace: Core.Math
-
-    #### Description
-    The Power Tensor node performs the operation of exponentiation on its inputs.
-
-    This node takes two inputs and performs a mathematical operation which raises the first input to the power of the second input.
-
-    #### Applications
-    - Implementing mathematical formulas involving powers in a tensor-based workflow.
-
-    ##### Inputs
-    - `base`: to be used as the base in the power operation.
-    - `exponent`: to be used as the exponent in the power operation.
-
-    ##### Outputs
-    - `output`: A tensor resulting from raising the first input to the power of the second input.
-    """
-
-    node_type: Literal["Core.Math.Power"] = "Core.Math.Power"
     base: float | int | Tensor = Field(title="Base", default=1.0)
     exponent: float | int | Tensor = Field(title="Exponent", default=2.0)
 
@@ -315,7 +279,6 @@ class SqrtTensor(GenflowNode):
     - `output`: the square root of the input value.
     """
 
-    node_type: Literal["Core.Math.Sqrt"] = "Core.Math.Sqrt"
     x: int | float | Tensor = Field(title="Input", default=1.0)
 
     async def process(self, context: ProcessingContext) -> float | int | Tensor:

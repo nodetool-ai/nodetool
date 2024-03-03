@@ -394,6 +394,8 @@ class TypeMetadata(BaseModel):
             return {"type": "string"}
         if self.type == "text":
             return {"type": "string"}
+        if self.type == "tensor":
+            return {"type": "array", "items": {"type": "number"}}
         if self.type == "list":
             return {
                 "type": "array",
