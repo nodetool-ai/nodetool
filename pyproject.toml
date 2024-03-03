@@ -6,6 +6,7 @@ build-backend = "poetry.core.masonry.api"
 name = "genflow"
 version = "0.1.2"
 description = "A library for running AI workflows."
+long_description = "Genflow is a library for running AI workflows. It provides a simple and flexible way to define and run workflows, and it comes with a modern web interface for building and executing workflows."
 authors = ["Matthias Georgi <matti.georgi@gmail.com>"]
 packages = [
   { include = "genflow", from = "src" },
