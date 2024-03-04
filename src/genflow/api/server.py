@@ -2,7 +2,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from genflow.common.environment import Environment
 
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import Config, Server
 import asyncio
@@ -21,28 +21,13 @@ from . import (
 )
 from genflow.models.schema import create_all_tables
 
-log = Environment.get_logger()
-
-# log.info(f"Current IAM role: {Environment.get_aws_client().get_role()}")
-
-origins = [
+DEFAULT_ORIGINS = [
     "http://localhost",
     "http://localhost:3000",
 ]
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600,
-)
-routers = [
+DEFAULT_ROUTERS = [
     asset.router,
-    chat.router,
     job.router,
     auth.router,
     node.router,
@@ -52,29 +37,42 @@ routers = [
     model.router,
 ]
 
-for router in routers:
-    log.info(f"Adding router {router.prefix}")
-    app.include_router(router)
+
+def create_app(origins: list[str] = DEFAULT_ORIGINS, routers: list[APIRouter] = []):
+    app = FastAPI()
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+        max_age=3600,
+    )
+    for router in routers:
+        app.include_router(router)
+
+    app.websocket("/ws")(chat.websocket_endpoint)
+
+    if not Environment.is_production():
+
+        @app.exception_handler(RequestValidationError)
+        async def validation_exception_handler(
+            request: Request, exc: RequestValidationError
+        ):
+            print(f"Request validation error: {exc}")
+            return JSONResponse(
+                {"detail": exc.errors(), "body": exc.body}, status_code=422
+            )
+
+    @app.get("/")
+    async def health_check() -> str:
+        return "OK"
+
+    return app
 
 
-app.websocket("/ws")(chat.websocket_endpoint)
-
-if not Environment.is_production():
-
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(
-        request: Request, exc: RequestValidationError
-    ):
-        log.warning(f"Request validation error: {exc}")
-        return JSONResponse({"detail": exc.errors(), "body": exc.body}, status_code=422)
-
-
-@app.get("/")
-async def health_check() -> str:
-    return "OK"
-
-
-def run_uvicorn_server(host: str, port: int) -> None:
+def run_uvicorn_server(app: FastAPI, host: str, port: int) -> None:
     """
     Starts api using Uvicorn with the specified configuration.
 

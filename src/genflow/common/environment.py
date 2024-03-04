@@ -108,9 +108,6 @@ class Environment(object):
         """
         import yaml
 
-        cls.settings = {"COMFY_FOLDER": None, "DB_PATH": cls.get_default_db_path()}
-        cls.secrets = {}
-
         settings_file = cls.get_system_file_path(SETTINGS_FILE)
         secrets_file = cls.get_system_file_path(SECRETS_FILE)
 
@@ -121,6 +118,15 @@ class Environment(object):
         if secrets_file.exists():
             with open(secrets_file, "r") as f:
                 cls.secrets = yaml.safe_load(f)
+
+        if cls.settings is None:
+            cls.settings = {
+                "COMFY_FOLDER": None,
+                "DB_PATH": str(cls.get_default_db_path()),
+            }
+
+        if cls.secrets is None:
+            cls.secrets = {}
 
     @classmethod
     def save_settings(cls):
@@ -153,7 +159,7 @@ class Environment(object):
         """
         if cls.settings is None:
             cls.load_settings()
-        assert cls.settings
+        assert cls.settings is not None
         return cls.settings
 
     @classmethod
@@ -163,7 +169,7 @@ class Environment(object):
         """
         if cls.secrets is None:
             cls.load_settings()
-        assert cls.secrets
+        assert cls.secrets is not None
         return cls.secrets
 
     @classmethod
@@ -181,8 +187,8 @@ class Environment(object):
 
         # Initialize the settings and secrets
         cls.load_settings()
-        assert cls.settings
-        assert cls.secrets
+        assert cls.settings is not None
+        assert cls.secrets is not None
 
         print("Setting up Genflow environment")
         print("Press enter to use the default value")

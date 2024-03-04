@@ -1,7 +1,5 @@
 import click
 from genflow.common.environment import Environment
-from genflow.workflows.run_workflow import run_workflow
-from genflow.workflows.run_job_request import RunJobRequest
 
 # silence warnings on the command line
 import warnings
@@ -28,8 +26,10 @@ def setup():
 @click.option("--host", default="127.0.0.1", help="Host address to serve on.")
 @click.option("--port", default=8000, help="Port to serve on.", type=int)
 def serve(host: str, port: int):
-    """Serve a web application with optional reload, host, and port."""
+    """Serve the GenFlow API server."""
+
     from genflow.api.server import run_uvicorn_server
+    from genflow.api.server import create_app
 
     if not Environment.is_production():
         if not Environment.has_settings():
@@ -37,13 +37,18 @@ def serve(host: str, port: int):
             Environment.setup()
         Environment.init_comfy()
 
-    run_uvicorn_server(host, port)
+    app = create_app()
+
+    run_uvicorn_server(app, host, port)
 
 
 @click.command()
 @click.argument("workflow_file", type=click.Path(exists=True))
 def run(workflow_file: str):
     """Run a workflow from a file."""
+
+    from genflow.workflows.run_workflow import run_workflow
+    from genflow.workflows.run_job_request import RunJobRequest
     from genflow.workflows.read_graph import read_graph
     from genflow.api.models.graph import Graph
     import json
