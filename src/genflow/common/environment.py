@@ -46,7 +46,8 @@ class Environment(object):
     settings: dict[str, Any] | None = None
     secrets: dict[str, Any] | None = None
 
-    def get_default_db_path():
+    @classmethod
+    def get_default_db_path(cls):
         """
         Get the default database path.
         """
@@ -57,12 +58,16 @@ class Environment(object):
         if os_name == "Linux" or os_name == "Darwin":
             return Path.home() / ".local" / "share" / "genflow" / "genflow.sqlite3"
         elif os_name == "Windows":
-            return Path(os.getenv("APPDATA")) / "genflow" / "genflow.sqlite3"
+            appdata = os.getenv("APPDATA")
+            if appdata is not None:
+                return Path(appdata) / "genflow" / "genflow.sqlite3"
+            else:
+                return Path("data") / "genflow.sqlite3"
         else:
             return Path("data") / "genflow.sqlite3"
 
     @classmethod
-    def get_system_file_path(cls, filename: str) -> str:
+    def get_system_file_path(cls, filename: str):
         """
         Returns the path to the settings file for the current OS.
         """
@@ -73,7 +78,11 @@ class Environment(object):
         if os_name == "Linux" or os_name == "Darwin":
             return Path.home() / ".config" / "genflow" / filename
         elif os_name == "Windows":
-            return Path(os.getenv("APPDATA")) / "genflow" / filename
+            appdata = os.getenv("APPDATA")
+            if appdata is not None:
+                return Path(appdata) / "genflow" / filename
+            else:
+                return Path("data") / filename
         else:
             return Path("data") / filename
 
@@ -114,15 +123,15 @@ class Environment(object):
                 cls.secrets = yaml.safe_load(f)
 
     @classmethod
-    def save_settings(self):
+    def save_settings(cls):
         """
         Save the user settings to the settings file.
         Save the user secrets to the secrets file.
         """
         import yaml
 
-        settings_file = self.get_system_file_path(SETTINGS_FILE)
-        secrets_file = self.get_system_file_path(SECRETS_FILE)
+        settings_file = cls.get_system_file_path(SETTINGS_FILE)
+        secrets_file = cls.get_system_file_path(SECRETS_FILE)
 
         print()
         print(f"Saving settings to {settings_file}")
@@ -132,10 +141,10 @@ class Environment(object):
         os.makedirs(os.path.dirname(secrets_file), exist_ok=True)
 
         with open(settings_file, "w") as f:
-            yaml.dump(self.settings, f)
+            yaml.dump(cls.settings, f)
 
         with open(secrets_file, "w") as f:
-            yaml.dump(self.secrets, f)
+            yaml.dump(cls.secrets, f)
 
     @classmethod
     def get_settings(cls):
@@ -144,6 +153,7 @@ class Environment(object):
         """
         if cls.settings is None:
             cls.load_settings()
+        assert cls.settings
         return cls.settings
 
     @classmethod
@@ -153,6 +163,7 @@ class Environment(object):
         """
         if cls.secrets is None:
             cls.load_settings()
+        assert cls.secrets
         return cls.secrets
 
     @classmethod
@@ -170,6 +181,8 @@ class Environment(object):
 
         # Initialize the settings and secrets
         cls.load_settings()
+        assert cls.settings
+        assert cls.secrets
 
         print("Setting up Genflow environment")
         print("Press enter to use the default value")

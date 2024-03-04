@@ -49,7 +49,7 @@ def run(workflow_file: str):
     import json
 
     click.echo(f"Running workflow from {workflow_file}.")
-    Environment.init_dev_env()
+    Environment.init_comfy()
 
     with open(workflow_file, "r") as f:
         workflow = json.load(f)
