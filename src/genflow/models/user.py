@@ -135,38 +135,47 @@ class User(DBModel):
             return None
 
         return user
-
+    
     @classmethod
-    def create(cls, email: str, verified: bool = False):
+    def create(cls, 
+               email: str | None = None, 
+               verified: bool = False, 
+               auth_token: str | None = None,
+               token_valid: datetime | None = None,
+               passcode_valid: datetime | None = None,
+               user_id: str | None = None):
         """
         Create a new user in the database.
         If the user already exists, return the existing user.
         """
-        user_id = uuid.uuid4().hex
+        if email:
+            if not validate_email(email):
+                raise ValueError(f"`{email}` is invalid")
+            u = User.find_by_email(email)
+        elif user_id:
+            u = User.get(user_id)
+        else:
+            u = None
+
+        if user_id is None:
+            user_id = uuid.uuid4().hex
 
         if verified:
             auth_token = uuid.uuid4().hex
             token_valid = datetime.now() + timedelta(days=1)
-        else:
-            auth_token = None
-            token_valid = None
 
         if Environment.is_production():
             passcode = str(random.randint(100000, 999999))
         else:
             passcode = "000000"
 
-        passcode_valid = datetime.now() + timedelta(minutes=61)
-
-        if not validate_email(email):
-            raise ValueError(f"`{email}` is invalid")
-
-        u = User.find_by_email(email)
+        if passcode_valid is None:
+            passcode_valid = datetime.now() + timedelta(minutes=61)
 
         if u is None:
             user = super().create(
                 id=user_id,
-                email=email.lower(),
+                email=email.lower() if email else "",
                 passcode=passcode,
                 passcode_valid=passcode_valid,
                 created_at=datetime.now(),

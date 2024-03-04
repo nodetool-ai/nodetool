@@ -63,7 +63,7 @@ def pil_to_bytes(image: PIL.Image.Image, format="PNG") -> bytes:
 
 def make_user(verified: bool = False) -> User:
     user = User(
-        id=uuid.uuid4().hex,
+        id="1",
         email=uuid.uuid4().hex + "@a.de",
         auth_token=uuid.uuid4().hex,
         token_valid=datetime.now() + timedelta(days=1),
