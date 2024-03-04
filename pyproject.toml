@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "genflow-lib"
-version = "0.1.3"
+version = "0.1.4"
 description = "A library for running AI workflows."
 readme = "README.md"
 authors = ["Matthias Georgi <matti.georgi@gmail.com>"]

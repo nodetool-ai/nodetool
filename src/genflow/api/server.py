@@ -38,7 +38,9 @@ DEFAULT_ROUTERS = [
 ]
 
 
-def create_app(origins: list[str] = DEFAULT_ORIGINS, routers: list[APIRouter] = []):
+def create_app(
+    origins: list[str] = DEFAULT_ORIGINS, routers: list[APIRouter] = DEFAULT_ROUTERS
+):
     app = FastAPI()
     app.add_middleware(
         CORSMiddleware,
