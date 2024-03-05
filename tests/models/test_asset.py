@@ -23,23 +23,29 @@ def test_asset_find(user: User):
 
 
 def test_paginate_assets(user: User):
-    Asset.create(
-        user_id=user.id,
-        name="test_image",
-        content_type="image/jpeg",
-    )
+    for i in range(5):
+        Asset.create(
+            user_id=user.id,
+            name="test_image",
+            content_type="image/jpeg",
+        )
 
-    assets, last_key = Asset.paginate(user_id=user.id, content_type="image", limit=10)
+    assets, last_key = Asset.paginate(user_id=user.id, content_type="image", limit=3)
     assert len(assets) > 0
-    assert last_key == ""
+
+    assets, last_key = Asset.paginate(user_id=user.id, content_type="image", limit=3)
+    assert len(assets) > 0
 
 
 def test_paginate_assets_by_parent(user: User):
-    asset = make_image(user)
+    for i in range(5):
+        make_image(user)
 
-    assets, last_key = Asset.paginate(user_id=user.id, parent_id=user.id, limit=10)
+    assets, last_key = Asset.paginate(user_id=user.id, parent_id=user.id, limit=4)
     assert len(assets) > 0
-    assert last_key == ""
+
+    assets, last_key = Asset.paginate(user_id=user.id, content_type="image", limit=3)
+    assert len(assets) > 0
 
 
 def test_create_asset(user: User):

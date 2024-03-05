@@ -41,7 +41,7 @@ def test_create_job(user: User):
 
 
 def test_paginate_jobs(user: User):
-    for i in range(10):
+    for i in range(12):
         Job.create(
             workflow_id="workflow_id",
             user_id=user.id,
@@ -53,7 +53,7 @@ def test_paginate_jobs(user: User):
     jobs, last_evaluated_key = Job.paginate(
         user_id=user.id, start_key=last_evaluated_key
     )
-    assert len(jobs) == 0
+    assert len(jobs) > 0
 
 
 def test_paginate_jobs_by_workflow(user: User):

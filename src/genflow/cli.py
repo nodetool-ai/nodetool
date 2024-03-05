@@ -1,11 +1,17 @@
 import click
 from genflow.common.environment import Environment
+import dotenv
 
 # silence warnings on the command line
 import warnings
 
 warnings.filterwarnings("ignore")
 
+env_file = dotenv.find_dotenv(usecwd=True)
+
+if env_file != "":
+    print(f"Loading environment from {env_file}")
+    dotenv.load_dotenv(env_file)
 
 log = Environment.get_logger()
 

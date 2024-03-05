@@ -45,6 +45,13 @@ from genflow.models.job import Job
 from genflow.models.user import User
 
 
+@pytest.fixture(autouse=True)
+def setup_and_teardown():
+    create_all_tables()
+    yield
+    drop_all_tables()
+
+
 def pil_to_bytes(image: PIL.Image.Image, format="PNG") -> bytes:
     """
     Convert a PIL.Image.Image to bytes.
@@ -111,11 +118,9 @@ def make_job(user: User, **kwargs):
 
 @pytest.fixture(scope="function")
 def user():
-    create_all_tables()
-
-    yield make_user(verified=True)
-
-    drop_all_tables()
+    return User(
+        id="1", email="", auth_token="", token_valid=datetime.now() + timedelta(days=30)
+    )
 
 
 @pytest.fixture(scope="function")
@@ -133,10 +138,6 @@ def client():
 
     This fixture is scoped to the module, so it will only be created once for the entire test run.
     """
-
-    create_all_tables()
-
-    # Create the app
     app = FastAPI()
     app.include_router(genflow.api.assistant.router)
     app.include_router(genflow.api.asset.router)
@@ -146,10 +147,7 @@ def client():
     app.include_router(genflow.api.workflow.router)
     app.websocket("/ws")(genflow.api.chat.websocket_endpoint)
 
-    # Create a test client
-    yield TestClient(app)
-
-    drop_all_tables()
+    return TestClient(app)
 
 
 @pytest.fixture(scope="function")

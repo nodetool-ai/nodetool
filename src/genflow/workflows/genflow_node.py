@@ -32,9 +32,10 @@ IGNORED_NODE_TYPES = [
     "huggingface",
 ]
 
+
 def add_node_classname(node_class: type["GenflowNode"]) -> None:
-    if hasattr(node_class, "comfy_class") and node_class.comfy_class != "": # type: ignore
-        class_name = node_class.comfy_class # type: ignore
+    if hasattr(node_class, "comfy_class") and node_class.comfy_class != "":  # type: ignore
+        class_name = node_class.comfy_class  # type: ignore
     else:
         class_name = node_class.__name__
 

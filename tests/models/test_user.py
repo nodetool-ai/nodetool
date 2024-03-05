@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import uuid
 import pytest
 from genflow.common.environment import Environment
@@ -5,7 +6,22 @@ from genflow.models.schema import create_all_tables
 from genflow.models.user import (
     User,
 )
-from tests.conftest import make_user
+
+
+def make_user(verified: bool = False) -> User:
+    user = User(
+        id=uuid.uuid4().hex,
+        email=uuid.uuid4().hex + "@a.de",
+        auth_token=uuid.uuid4().hex,
+        token_valid=datetime.now() + timedelta(days=1),
+        passcode="123",
+        passcode_valid=datetime.now() + timedelta(days=1),
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+        verified_at=datetime.now() if verified else None,
+    )
+    user.save()
+    return user
 
 
 @pytest.fixture(autouse=True, scope="module")

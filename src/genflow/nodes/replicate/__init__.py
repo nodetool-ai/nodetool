@@ -19,7 +19,7 @@ from enum import Enum
 from replicate.prediction import Prediction as ReplicatePrediction
 from genflow.common.environment import Environment
 from genflow.workflows.types import NodeUpdate
-from genflow.workflows.genflow_node import GenflowNode
+from genflow.workflows.genflow_node import GenflowNode, add_node_type
 from genflow.metadata.types import Tensor
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.metadata.types import AudioRef
@@ -425,6 +425,7 @@ def create_model_from_schema(
                 ref = ref_type.ref  # type: ignore
                 type_ = type_lookup[ref]
                 fields[name] = (type_, field)
+
     assert schema.title
     return create_model(model_name, __base__=base, __module__=module, **fields)
 
@@ -528,7 +529,7 @@ def replicate_node(
         schema=api.components.schemas["Input"],  # type: ignore
         type_lookup=type_lookup,
         base=ReplicateNode,
-        module="genflow.common.nodes." + namespace,
+        module="genflow.nodes." + namespace,
         overrides=overrides,
         skip=skip,
     )

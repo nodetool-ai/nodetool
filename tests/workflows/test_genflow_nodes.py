@@ -344,9 +344,7 @@ async def test_save_text_node(context: ProcessingContext, user: User):
 
 
 @pytest.mark.asyncio
-async def test_save_dataframe_node(context: ProcessingContext):
-    user = User.get(context.user_id)
-    assert user
+async def test_save_dataframe_node(context: ProcessingContext, user: User):
     folder = Asset.create(user.id, "test", "folder", user.id)
     df = await context.from_pandas(pd.DataFrame({"a": [1, 2, 3]}))
     node = SaveDataFrameNode(
