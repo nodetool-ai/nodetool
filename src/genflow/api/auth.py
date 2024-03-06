@@ -22,21 +22,6 @@ class TokenResponse(BaseModel):
     valid: bool
 
 
-class LoginRequest(BaseModel):
-    email: str
-    passcode: str
-
-
-class SignupRequest(BaseModel):
-    email: str
-
-    @validator("email")
-    def validate_email(cls, email):
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            raise ValueError("Invalid email format")
-        return email
-
-
 class OAuthLoginResponse(BaseModel):
     url: str
     state: str
@@ -57,11 +42,6 @@ class OAuthAuthorizeRequest(BaseModel):
     state: str
     authorization_response: str
     redirect_uri: str
-
-
-class FakeRequest(BaseModel):
-    session: dict
-    query_params: dict
 
 
 OAUTH_AUTHORIZATION_ENDPOINT = {
@@ -89,41 +69,6 @@ async def validate(req: TokenRequest) -> TokenResponse:
     """
     user = User.find_by_auth_token(req.token)
     return TokenResponse(valid=user is not None)
-
-
-@router.post("/login")
-async def login(req: LoginRequest) -> User:
-    """
-    Logs a user in with one time passcode.
-
-    Returns an auth token that can be used for future requests.
-    """
-    user = User.login_with_passcode(req.email, req.passcode)
-    if user:
-        log.info(f"Logged in user: {req}")
-        return User(
-            email=user.email,
-            id=user.id,
-            auth_token=user.auth_token,
-        )
-    else:
-        log.info(f"Invalid passcode: {req}")
-        raise HTTPException(status_code=400, detail="Invalid passcode")
-
-
-@router.post("/signup")
-async def signup(req: SignupRequest) -> User:
-    """
-    Creates a new user for given email address.
-
-    Returns an auth token that can be used for future requests.
-    """
-    user, created = User.create(req.email)
-    if created:
-        log.info(f"Created user: {req.email}")
-    else:
-        log.info(f"User already exists: {req.email}")
-    return User(email=user.email, id=user.id, auth_token="")
 
 
 @router.post("/oauth/login")
