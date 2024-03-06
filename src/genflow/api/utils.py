@@ -12,6 +12,7 @@ from genflow.models.user import User
 
 local_user: User | None = None
 
+
 def get_local_user():
     """
     In local mode, we only need to create a single user.
@@ -31,10 +32,13 @@ async def current_user(
 ) -> User:
     if not Environment.is_production():
         return get_local_user()
-    
+
     if authorization:
-        token = authorization.split(" ")[1]
-        user = User.find_by_auth_token(token)
+        token_split = authorization.split(" ")
+        if len(token_split) != 2 or token_split[0].lower() != "bearer":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+        user = User.find_by_auth_token(token_split[1])
     elif auth_cookie:
         user = User.find_by_auth_token(auth_cookie)
     else:

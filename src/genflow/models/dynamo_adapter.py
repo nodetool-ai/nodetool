@@ -400,7 +400,7 @@ class DynamoAdapter(DatabaseAdapter):
         if start_key and start_key != "":
             query_params["ExclusiveStartKey"] = json.loads(start_key)
 
-        # log.info("Querying DynamoDB: %s", query_params)
+        log.info("Querying DynamoDB: %s", query_params)
 
         try:
             response = self.client.query(**query_params)
