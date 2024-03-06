@@ -3,7 +3,7 @@
 from enum import Enum
 import re
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, validator
 from authlib.integrations.requests_client import OAuth2Session
 
@@ -62,15 +62,6 @@ def get_user_email(client: OAuth2Session, provider: OAuthProvider) -> str:
         raise ValueError(f"Unknown provider: {provider}")
 
 
-@router.post("/validate-token")
-async def validate(req: TokenRequest) -> TokenResponse:
-    """
-    Checks if the given token is valid.
-    """
-    user = User.find_by_auth_token(req.token)
-    return TokenResponse(valid=user is not None)
-
-
 @router.post("/oauth/login")
 async def oauth_login(login: OAuthLoginRequest) -> OAuthLoginResponse:
     authorization_endpoint = OAUTH_AUTHORIZATION_ENDPOINT[login.provider]
@@ -92,7 +83,6 @@ async def oauth_callback(auth: OAuthAuthorizeRequest) -> User:
         redirect_uri=auth.redirect_uri,
         grant_type="authorization_code",
     )
-    log.info(f"OAuth token: {res}")
 
     email = get_user_email(client, auth.provider)
 

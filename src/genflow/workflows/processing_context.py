@@ -10,6 +10,7 @@ import joblib
 import base64
 import PIL.Image
 import numpy as np
+import pandas as pd
 
 from genflow.api.models.graph import Edge
 from genflow.api.models.asset import Asset, AssetCreateRequest
@@ -58,7 +59,18 @@ def parse_s3_url(url: str) -> tuple[str, str]:
 
 class ProcessingContext:
     """
-    A processing context is a context that is passed to each node when processing.
+    The processing context is the workflow's interface to the outside world.
+    It maintains the state of the workflow and provides methods for interacting with the environment.
+    For example, it can be used to download assets, upload assets, and communicate with the GenFlow API.
+
+    Args:
+        user_id (str): The ID of the user.
+        auth_token (str, optional): The authentication token. Defaults to None.
+        workflow_id (str, optional): The ID of the workflow. Defaults to None.
+        edges (list[Edge], optional): The edges of the graph. Defaults to None.
+        nodes (list[GenflowNode], optional): The nodes of the graph. Defaults to None.
+        capabilities (list[str], optional): The capabilities of the context. Defaults to [].
+        queue (Queue, optional): The message queue. Defaults to None.
     """
 
     user_id: str
@@ -126,7 +138,8 @@ class ProcessingContext:
         """
         Returns the asset url.
         """
-        asset = await self.find_asset(asset_id)
+        asset = await self.find_asset(asset_id)  # type: ignore
+
         return self.get_asset_storage().generate_presigned_url(
             "get_object", asset.file_name
         )
@@ -362,7 +375,7 @@ class ProcessingContext:
 
     async def audio_from_segment(
         self,
-        audio_segment: "pydub.AudioSegment",
+        audio_segment: "pydub.AudioSegment",  # type: ignore
         name: str | None = None,
         parent_id: str | None = None,
         **kwargs,
@@ -591,7 +604,7 @@ class ProcessingContext:
         file = await self.to_io(model_ref)
         return joblib.load(file)
 
-    async def from_estimator(self, est: "BaseEstimator", **kwargs):
+    async def from_estimator(self, est: "BaseEstimator", **kwargs):  # type: ignore
         stream = BytesIO()
         joblib.dump(est, stream)
         stream.seek(0)

@@ -23,6 +23,12 @@ log = Environment.get_logger()
 
 
 class WorkflowRunner:
+    """
+    The WorkflowRunner is responsible for executing a graph of nodes in a topological order.
+    Nodes will be executed asynchronously in parallel, and the results will be collected and returned.
+    If the workflow requires gpu, it will be executed on a worker.
+    """
+
     status: str = "running"
     current_node: str | None = None
 
