@@ -61,7 +61,9 @@ async def index(
 
 
 @router.post("/")
-async def run(req: RunJobRequest, user: User = Depends(current_user)):
+async def run(
+    req: RunJobRequest, execute: bool = True, user: User = Depends(current_user)
+):
     from genflow.workflows.workflow_runner import WorkflowRunner
     from genflow.workflows.processing_context import (
         ProcessingContext,
@@ -76,16 +78,13 @@ async def run(req: RunJobRequest, user: User = Depends(current_user)):
         status="running",
     )
 
-    capabilities = ["db"]
-
-    if not Environment.is_production():
-        capabilities.append("comfy")
+    if execute is False:
+        return job
 
     context = ProcessingContext(
         user_id=user.id,
         auth_token=user.auth_token,
         workflow_id=req.workflow_id,
-        capabilities=capabilities,
     )
 
     runner = WorkflowRunner()

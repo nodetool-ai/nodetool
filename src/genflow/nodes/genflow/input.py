@@ -9,7 +9,6 @@ from genflow.metadata.types import AudioRef
 from genflow.metadata.types import ImageRef
 from genflow.metadata.types import TextRef
 from genflow.workflows.genflow_node import InputNode
-from typing import Literal
 from genflow.metadata.types import VideoRef
 
 

@@ -8,6 +8,7 @@ DEFAULT_ENV = {
     "ASSET_BUCKET": "images",
     "TEMP_BUCKET": "temp",
     "COMFY_FOLDER": None,
+    "DB_PATH": None,
     "ENV": "development",
     "LOG_LEVEL": "INFO",
     "AWS_REGION": "us-east-1",
@@ -37,14 +38,66 @@ SECRETS_SETUP = [
 
 class Environment(object):
     """
-    A wrapper around the environment variables that provides
-    default values and type conversions.
+    A class that manages environment variables and provides default values and type conversions.
+
+    This class acts as a central place to manage environment variables and settings for the application.
+    It provides methods to retrieve and set various configuration values, such as AWS credentials, API keys,
+    database paths, and more.
+
+    Settings and Secrets:
+    The class supports loading and saving settings and secrets from/to YAML files. The settings file
+    (`settings.yaml`) stores general configuration options, while the secrets file (`secrets.yaml`)
+    stores sensitive information like API keys.
+
+    Local Mode:
+    In local mode (non-production environment), the class uses default values or prompts the user for
+    input during the setup process. It also supports local file storage and SQLite database for
+    development purposes.
+
+    Cloud Setup:
+    In production mode, the class expects environment variables to be set for various services like
+    AWS, OpenAI, and others. It uses AWS services like S3 and DynamoDB for storage and database,
+    respectively.
+
+    Test Mode:
+    The class provides a `set_test_mode` method to enable test mode, which uses in-memory storage
+    and other test-specific configurations.
+
+    Initialization:
+    The class is designed to be used as a singleton, with class methods providing access to various
+    configuration values and services. The `setup` method guides the user through the initial setup
+    process, prompting for required values and saving the settings and secrets.
+
+    Usage:
+    To access configuration values or services, simply call the corresponding class method, e.g.,
+    `Environment.get_aws_region()`, `Environment.get_openai_client()`, etc. These methods handle
+    the logic of retrieving the appropriate value based on the environment (local or production)..
     """
 
     test_mode: bool = False
     model_files: dict[str, list[str]] = {}
     settings: dict[str, Any] | None = None
     secrets: dict[str, Any] | None = None
+
+    @classmethod
+    def get_capabilities(cls):
+        """
+        Get the capabilities of the environment.
+        """
+        capabilities = []
+
+        if cls.get_comfy_folder():
+            capabilities.append("comfy")
+
+        # TODO: configure dynamodb presence in the environment
+        if cls.get_aws_execution_env() or cls.get_db_path():
+            capabilities.append("db")
+
+        return capabilities
+
+    @classmethod
+    def get_aws_execution_env(cls):
+        return os.getenv("AWS_EXECUTION_ENV", None)
 
     @classmethod
     def get_default_db_path(cls):
@@ -113,11 +166,11 @@ class Environment(object):
 
         if settings_file.exists():
             with open(settings_file, "r") as f:
-                cls.settings = yaml.safe_load(f)
+                cls.settings = yaml.safe_load(f)  # type: ignore
 
         if secrets_file.exists():
             with open(secrets_file, "r") as f:
-                cls.secrets = yaml.safe_load(f)
+                cls.secrets = yaml.safe_load(f)  # type: ignore
 
         if cls.settings is None:
             cls.settings = {
@@ -343,7 +396,7 @@ class Environment(object):
         """
         The database url is the url of the database.
         """
-        return os.environ.get("DB_PATH", "./data/genflow.db")
+        return cls.get("DB_PATH")
 
     @classmethod
     def get_database_adapter(cls, fields: dict[str, Any], table_schema: dict[str, Any]):

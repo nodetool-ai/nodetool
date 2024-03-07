@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 
-from typing import Any, Literal, Type
+from typing import Any, Type
 from genflow.metadata.types import TypeToName
 from genflow.metadata import (
     is_assignable,
@@ -19,6 +19,8 @@ from genflow.metadata.utils import (
     is_optional_type,
     is_union_type,
 )
+
+from genflow.workflows.run_job_request import RunJobRequest
 
 
 NODE_BY_TYPE: dict[str, type["GenflowNode"]] = {}
@@ -104,6 +106,7 @@ class GenflowNode(BaseModel):
 
     id: str = ""
     ui_properties: dict[str, Any] = {}
+    requires_capabilities: list[str] = []
 
     @classmethod
     def __init_subclass__(cls):
@@ -351,7 +354,7 @@ class GenflowNode(BaseModel):
         return [
             Property.from_field(name, type_metadata(types[name]), field)
             for name, field in fields.items()
-            if name not in ["id", "ui_properties", "comfy_class"]
+            if name not in ["id", "ui_properties", "comfy_class", "requires_capabilities"]
         ]
 
     @classmethod
@@ -440,3 +443,22 @@ def get_registered_node_classes() -> list[type[GenflowNode]]:
         list[type[Node]]: The registered node classes.
     """
     return list(NODE_BY_TYPE.values())
+
+
+def requires_capabilities(nodes: list[GenflowNode]):
+    capabilities = set()
+    for node in nodes:
+        for cap in node.requires_capabilities:
+            capabilities.add(cap)
+    return list(capabilities)
+
+
+def requires_capabilities_from_request(req: RunJobRequest):
+    capabilities = set()
+    for node in req.graph.nodes:
+        node_class = get_node_class(node.type)
+        if node_class is None:
+            raise ValueError(f"Node class not found: {node.type}")
+        for cap in node_class().requires_capabilities:
+            capabilities.add(cap)
+    return list(capabilities)

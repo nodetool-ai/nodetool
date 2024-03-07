@@ -24,6 +24,7 @@ class DensePoseModel(str, Enum):
 
 class ComfyNode(GenflowNode):
     comfy_class: str = Field("", description="The comfy class wrapped by this node.")
+    requires_capabilities: list[str] = ["comfy"]
 
     def assign_property(self, name: str, value: Any):
         """

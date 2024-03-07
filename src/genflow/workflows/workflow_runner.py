@@ -10,7 +10,10 @@ from genflow.workflows.run_job_request import RunJobRequest
 from genflow.workflows.processing_context import (
     ProcessingContext,
 )
-from genflow.workflows.genflow_node import GenflowNode
+from genflow.workflows.genflow_node import (
+    GenflowNode,
+    requires_capabilities_from_request,
+)
 from genflow.workflows.genflow_node import get_node_class
 from genflow.nodes.comfy import ComfyNode
 from genflow.nodes.genflow.loop import LoopOutputNode
@@ -55,24 +58,11 @@ class WorkflowRunner:
         context.edges = graph.edges
         context.nodes = graph.nodes
 
-        # TODO: Nodes should request capabilities
-        has_comfy_nodes = False
-        for node in req.graph.nodes:
-            node_class = get_node_class(node.type)
-            if node_class is None:
-                raise ValueError("Invalid node type: " + str(node.type))
-            if issubclass(node_class, ComfyNode):
-                has_comfy_nodes = True
-                break
+        req_capabilities = requires_capabilities_from_request(req)
 
-        if has_comfy_nodes:
-            if Environment.get_worker_url():
-                return await context.run_worker(req)
-            else:
-                if not "comfy" in context.capabilities:
-                    raise ValueError(
-                        "Comfy nodes are not supported in this environment"
-                    )
+        if "comfy" in req_capabilities:
+            if not "comfy" in context.capabilities:
+                raise ValueError("Comfy nodes are not supported in this environment")
 
             import comfy.model_management
             import comfy.utils

@@ -61,16 +61,30 @@ class ProcessingContext:
     """
     The processing context is the workflow's interface to the outside world.
     It maintains the state of the workflow and provides methods for interacting with the environment.
-    For example, it can be used to download assets, upload assets, and communicate with the GenFlow API.
 
-    Args:
-        user_id (str): The ID of the user.
-        auth_token (str, optional): The authentication token. Defaults to None.
-        workflow_id (str, optional): The ID of the workflow. Defaults to None.
-        edges (list[Edge], optional): The edges of the graph. Defaults to None.
-        nodes (list[GenflowNode], optional): The nodes of the graph. Defaults to None.
-        capabilities (list[str], optional): The capabilities of the context. Defaults to [].
-        queue (Queue, optional): The message queue. Defaults to None.
+    Initialization and State Management:
+    - Initializes the context with user ID, authentication token, workflow ID, graph edges, nodes, capabilities, and a message queue.
+    - Manages the results of processed nodes and keeps track of processed nodes.
+    - Provides methods for popping and posting messages to the message queue.
+
+    Asset Management:
+    - Provides methods for finding, downloading, and creating assets (images, audio, text, video, dataframes, models).
+    - Handles conversions between different asset formats (e.g., PIL Image to ImageRef, numpy array to ImageRef).
+    - Generates presigned URLs for accessing assets.
+
+    API and Storage Integration:
+    - Interacts with the GenFlow API client for asset-related operations.
+    - Retrieves and manages asset storage and temporary storage instances.
+    - Handles file uploads and downloads to/from storage services.
+
+    Workflow Execution:
+    - Runs the workflow by sending a RunJobRequest to a remote worker.
+    - Processes and handles various types of messages received from the worker (node progress, updates, errors).
+
+    Utility Methods:
+    - Provides helper methods for converting values for prediction, handling enums, and parsing S3 URLs.
+    - Supports data conversion between different formats (e.g., TextRef to string, DataFrame to pandas DataFrame).
+
     """
 
     user_id: str
@@ -90,8 +104,8 @@ class ProcessingContext:
         workflow_id: str | None = None,
         edges: list[Edge] | None = None,
         nodes: list[GenflowNode] | None = None,
-        capabilities: list[str] = [],
         queue: Queue | asyncio.Queue | None = None,
+        capabilities: list[str] | None = None,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -100,8 +114,10 @@ class ProcessingContext:
         self.nodes = nodes if nodes is not None else []
         self.results = {}
         self.processed_nodes = set()
-        self.capabilities = capabilities
         self.message_queue = queue if queue is not None else asyncio.Queue()
+        self.capabilities = Environment.get_capabilities()
+        if capabilities is not None:
+            self.capabilities += capabilities
 
     async def pop_message_async(self) -> ProcessingMessage:
         assert isinstance(self.message_queue, asyncio.Queue)

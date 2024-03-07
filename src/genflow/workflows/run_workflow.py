@@ -1,4 +1,6 @@
+from queue import Queue
 from genflow.common.environment import Environment
+from genflow.workflows.genflow_node import requires_capabilities_from_request
 from genflow.workflows.run_job_request import RunJobRequest
 
 import asyncio
@@ -15,13 +17,11 @@ def run_workflow(req: RunJobRequest):
         ProcessingContext,
     )
     from genflow.workflows.workflow_runner import WorkflowRunner
-    from queue import Queue
 
     context = ProcessingContext(
         user_id=req.user_id,
         auth_token=req.auth_token,
         workflow_id=req.workflow_id,
-        capabilities=["comfy", "db"],
         queue=Queue(),
     )
 

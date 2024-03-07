@@ -49,6 +49,36 @@ def test_index_limit(client: TestClient, headers: dict[str, str], user: User):
 
 
 @pytest.mark.asyncio
+async def test_create(
+    client: TestClient,
+    workflow: Workflow,
+    user: User,
+    headers: dict[str, str],
+):
+
+    req = RunJobRequest(
+        workflow_id=workflow.id,
+        auth_token=str(user.auth_token),
+        graph=Graph(nodes=[], edges=[]),
+        params={},
+    )
+
+    response = client.post(
+        "/api/jobs/",
+        params={"execute": "false"},
+        json=req.model_dump(),
+        headers=headers,
+    )
+    assert response.status_code == 200
+    job = response.json()
+
+    assert job["status"] == "running"
+    assert job["workflow_id"] == workflow.id
+    assert job["user_id"] == user.id
+    assert job["graph"] == {"nodes": [], "edges": []}
+
+
+@pytest.mark.asyncio
 async def test_run(
     client: TestClient,
     workflow: Workflow,
