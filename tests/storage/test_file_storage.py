@@ -75,7 +75,7 @@ async def test_download_async(storage: FileStorage):
     assert bytes_io.read() == data
 
 
-def test_delete(storage: S3Storage):
+def test_delete(storage: FileStorage):
     with open(file_path, "wb") as f:
         f.write(data)
     storage.delete(file_name)

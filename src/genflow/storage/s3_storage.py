@@ -32,8 +32,7 @@ class S3Storage(AbstractStorage):
         """
         Generate a presigned URL for the given S3 object.
         """
-        if self.endpoint_url:
-            # If an endpoint URL is provided, we are in local mode
+        if self.endpoint_url and self.endpoint_url.startswith("http://localhost"):
             return f"{self.endpoint_url}/{self.bucket_name}/{object_name}"
 
         response = self.client.generate_presigned_url(
