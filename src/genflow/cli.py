@@ -53,6 +53,7 @@ def serve(host: str, port: int):
 def run(workflow_file: str):
     """Run a workflow from a file."""
 
+    import genflow.nodes
     from genflow.workflows.run_workflow import run_workflow
     from genflow.workflows.run_job_request import RunJobRequest
     from genflow.workflows.read_graph import read_graph
@@ -62,19 +63,24 @@ def run(workflow_file: str):
     click.echo(f"Running workflow from {workflow_file}.")
     Environment.init_comfy()
 
+    capabilities = ["db"]
+
+    if Environment.get_comfy_folder():
+        capabilities.append("comfy")
+
     with open(workflow_file, "r") as f:
         workflow = json.load(f)
         edges, nodes = read_graph(workflow)
 
         req = RunJobRequest(
-            user_id="",
+            user_id="1",
             auth_token="",
             graph=Graph(
                 edges=edges,
                 nodes=nodes,
             ),
         )
-        for msg in run_workflow(req):
+        for msg in run_workflow(req, capabilities):
             print(msg, end="")
 
 

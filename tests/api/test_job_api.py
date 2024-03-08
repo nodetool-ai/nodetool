@@ -4,6 +4,7 @@ import os
 import pytest
 from genflow.api.models.graph import Edge
 from genflow.api.models.graph import Graph
+from genflow.models.job import Job
 from genflow.workflows.run_job_request import RunJobRequest
 from tests.conftest import make_job
 from fastapi.testclient import TestClient
@@ -26,6 +27,23 @@ def test_get(client: TestClient, headers: dict[str, str], user: User):
     assert isinstance(data, dict)
     assert data["id"] == job.id
     assert data["status"] == job.status
+
+
+def test_put(client: TestClient, headers: dict[str, str], user: User):
+    job = make_job(user)
+    job.save()
+    response = client.put(
+        f"/api/jobs/{job.id}", headers=headers, json={"status": "completed"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data["id"] == job.id
+    assert data["status"] == "completed"
+
+    job = Job.get(job.id)
+    assert job is not None
+    assert job.status == "completed"
 
 
 def test_index(client: TestClient, headers: dict[str, str], user: User):

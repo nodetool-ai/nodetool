@@ -80,22 +80,6 @@ class Environment(object):
     secrets: dict[str, Any] | None = None
 
     @classmethod
-    def get_capabilities(cls):
-        """
-        Get the capabilities of the environment.
-        """
-        capabilities = []
-
-        if cls.get_comfy_folder():
-            capabilities.append("comfy")
-
-        # TODO: configure dynamodb presence in the environment
-        if cls.get_aws_execution_env() or cls.get_db_path():
-            capabilities.append("db")
-
-        return capabilities
-
-    @classmethod
     def get_aws_execution_env(cls):
         return os.getenv("AWS_EXECUTION_ENV", None)
 
@@ -491,10 +475,7 @@ class Environment(object):
         """
         The genflow api url is the url of the genflow api server.
         """
-        if cls.is_production():
-            return "https://genflow.run/api"
-        else:
-            return cls.get("GENFLOW_API_URL")
+        return cls.get("GENFLOW_API_URL")
 
     @classmethod
     def get_genflow_api_client(cls, auth_token: str):

@@ -60,6 +60,24 @@ async def index(
     return JobList(next=next_cursor, jobs=jobs)
 
 
+@router.put("/{id}")
+async def update(id: str, req: JobUpdate, user: User = Depends(current_user)) -> Job:
+    """
+    Update a job.
+    """
+    job = Job.find(user.id, id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    else:
+        if job.user_id != user.id:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        else:
+            job.status = req.status
+            job.error = req.error
+            job.save()
+            return job
+
+
 @router.post("/")
 async def run(
     req: RunJobRequest, execute: bool = True, user: User = Depends(current_user)

@@ -11,7 +11,7 @@ from sys import stdout
 log = Environment.get_logger()
 
 
-def run_workflow(req: RunJobRequest):
+def run_workflow(req: RunJobRequest, capabilities: list[str]):
     from genflow.workflows.types import Error, WorkflowUpdate
     from genflow.workflows.processing_context import (
         ProcessingContext,
@@ -23,6 +23,7 @@ def run_workflow(req: RunJobRequest):
         auth_token=req.auth_token,
         workflow_id=req.workflow_id,
         queue=Queue(),
+        capabilities=capabilities,
     )
 
     loop = asyncio.get_event_loop()

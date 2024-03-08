@@ -135,15 +135,17 @@ class User(DBModel):
             return None
 
         return user
-    
+
     @classmethod
-    def create(cls, 
-               email: str | None = None, 
-               verified: bool = False, 
-               auth_token: str | None = None,
-               token_valid: datetime | None = None,
-               passcode_valid: datetime | None = None,
-               user_id: str | None = None):
+    def create(
+        cls,
+        email: str | None = None,
+        verified: bool = False,
+        auth_token: str | None = None,
+        token_valid: datetime | None = None,
+        passcode_valid: datetime | None = None,
+        user_id: str | None = None,
+    ):
         """
         Create a new user in the database.
         If the user already exists, return the existing user.

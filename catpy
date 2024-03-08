@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Check if a directory path is provided as a parameter
+if [ -z "$1" ]; then
+  echo "Usage: $0 <directory>"
+  exit 1
+fi
+
+directory="$1"
+
+# Check if the specified directory exists
+if [ ! -d "$directory" ]; then
+  echo "Directory $directory not found."
+  exit 1
+fi
+
+# Concatenate all Python files in the specified directory and its subfolders
+for file in $(find "$directory" -type f -name "*.py"); do
+  echo "# file: " $file
+  echo ""
+  cat "$file"
+done
+

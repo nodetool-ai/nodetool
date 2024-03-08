@@ -88,9 +88,9 @@ class ProcessingContext:
     """
 
     user_id: str
-    auth_token: str | None = None
-    workflow_id: str | None = None
-    capabilities: list[str] = []
+    auth_token: str
+    workflow_id: str
+    capabilities: list[str]
     edges: list[Edge]
     nodes: list[GenflowNode]
     results: dict[str, Any]
@@ -100,8 +100,8 @@ class ProcessingContext:
     def __init__(
         self,
         user_id: str,
-        auth_token: str | None = None,
-        workflow_id: str | None = None,
+        auth_token: str = "",
+        workflow_id: str = "",
         edges: list[Edge] | None = None,
         nodes: list[GenflowNode] | None = None,
         queue: Queue | asyncio.Queue | None = None,
@@ -115,9 +115,7 @@ class ProcessingContext:
         self.results = {}
         self.processed_nodes = set()
         self.message_queue = queue if queue is not None else asyncio.Queue()
-        self.capabilities = Environment.get_capabilities()
-        if capabilities is not None:
-            self.capabilities += capabilities
+        self.capabilities = capabilities if capabilities is not None else [] 
 
     async def pop_message_async(self) -> ProcessingMessage:
         assert isinstance(self.message_queue, asyncio.Queue)
