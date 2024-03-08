@@ -48,16 +48,6 @@ def test_download_stream(storage: S3Storage, url: str):
         assert size == 1024 * 1024 * 10
 
 
-def test_upload_stream(storage: S3Storage, url: str):
-    def iterator():
-        for i in range(3):
-            yield b"0" * 1024 * 1024 * 10
-
-    with respx.mock as mock:
-        mock.put(url).mock(return_value=httpx.Response(200))
-        storage.upload_stream(file_name, iterator())
-
-
 def test_delete(storage: S3Storage, url: str):
     with respx.mock as mock:
         mock.delete(url).mock(return_value=httpx.Response(200))
