@@ -10,6 +10,17 @@ from genflow.models.asset import Asset
 
 
 class S3Storage(AbstractStorage):
+    """
+    This class, named `S3Storage`, is an implementation of the `AbstractStorage` class
+    specifically designed to interact with Amazon S3 (Simple Storage Service) or
+    compatible storage systems.
+
+    The main purpose of this class is to provide methods for uploading, downloading,
+    and deleting files (referred to as "objects" in S3 terminology) from an S3 bucket.
+    It uses presigned URLs to perform these operations securely without exposing the
+    actual S3 credentials.
+    """
+
     bucket_name: str
     client: Any
     log: Logger
@@ -77,15 +88,12 @@ class S3Storage(AbstractStorage):
         )
 
     def upload(self, key: str, content: IO):
+        """
+        Uploads a blob to the bucket.
+        """
         url = self.generate_presigned_url("put_object", key)
         with httpx.Client() as client:
-            # Ensure the source file is read in chunks to avoid loading it entirely into memory
-            content_generator = (chunk for chunk in content)
-
-            # Perform a PUT request with the content generator as the body
-            response = client.put(url, content=content_generator)
-
-            # Ensure the request was successful
+            response = client.put(url, content=content.read())
             response.raise_for_status()
 
             self.log.info(
@@ -94,6 +102,9 @@ class S3Storage(AbstractStorage):
             return self.generate_presigned_url("get_object", key)
 
     async def download_async(self, key: str, stream: IO):
+        """
+        Downloads a blob from the bucket.
+        """
         url = self.generate_presigned_url("get_object", key)
         async with httpx.AsyncClient() as client:
             async with client.stream("GET", url) as response:
@@ -103,22 +114,13 @@ class S3Storage(AbstractStorage):
                     stream.write(chunk)
 
     async def upload_async(self, key: str, content: IO):
-        # Generate the presigned URL for the object
+        """
+        Uploads a blob to the bucket.
+        """
         url = self.generate_presigned_url("put_object", key)
 
         async with httpx.AsyncClient() as client:
-            # Use an asynchronous generator to read the file in chunks
-            async def content_generator():
-                while True:
-                    chunk = content.read(1024 * 1024)  # Read in 1MB chunks
-                    if not chunk:
-                        break
-                    yield chunk
-
-            # Perform an asynchronous PUT request with the content generator
-            response = await client.put(url, content=content_generator())
-
-            # Ensure the request was successful
+            response = await client.put(url, content=content.read())
             response.raise_for_status()
 
         self.log.info("Uploaded object {} to bucket {}.".format(key, self.bucket_name))
@@ -126,6 +128,9 @@ class S3Storage(AbstractStorage):
         return self.generate_presigned_url("get_object", key)
 
     def download_stream(self, key: str) -> Iterator[bytes]:
+        """
+        Downloads a blob from the bucket as a stream.
+        """
         url = self.generate_presigned_url("get_object", key)
 
         with httpx.Client() as client:
@@ -138,14 +143,6 @@ class S3Storage(AbstractStorage):
         self.log.info(
             "Downloaded storage object {} from bucket {}.".format(key, self.bucket_name)
         )
-
-    def upload_stream(self, key: str, content: Iterator[bytes]):
-        url = self.generate_presigned_url("put_object", key)
-
-        with httpx.Client() as client:
-            response = client.put(url, content=content)
-
-        response.raise_for_status()
 
     def delete(self, file_name: str):
         url = self.generate_presigned_url("delete_object", file_name)
