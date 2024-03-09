@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from enum import Enum
 import json
 from queue import Queue
@@ -14,6 +15,8 @@ import pandas as pd
 
 from genflow.api.models.graph import Edge
 from genflow.api.models.asset import Asset, AssetCreateRequest
+from genflow.api.models.models import Prediction
+from genflow.models.prediction import Prediction as PredictionModel
 from genflow.workflows.types import (
     NodeProgress,
     NodeUpdate,
@@ -115,7 +118,7 @@ class ProcessingContext:
         self.results = {}
         self.processed_nodes = set()
         self.message_queue = queue if queue is not None else asyncio.Queue()
-        self.capabilities = capabilities if capabilities is not None else [] 
+        self.capabilities = capabilities if capabilities is not None else []
 
     async def pop_message_async(self) -> ProcessingMessage:
         assert isinstance(self.message_queue, asyncio.Queue)
@@ -217,6 +220,82 @@ class ProcessingContext:
             if node.id == node_id:
                 return node
         raise ValueError(f"Node with ID {node_id} does not exist")
+
+    async def update_prediction(
+        self,
+        id: str,
+        status: str | None = None,
+        error: str | None = None,
+        logs: str | None = None,
+        metrics: dict[str, Any] | None = None,
+        completed_at: datetime | None = None,
+    ) -> Prediction:
+        """
+        Updates the prediction.
+        """
+        if "db" in self.capabilities:
+            pred = PredictionModel.find(self.user_id, id)
+            if pred is None:
+                raise ValueError(f"Prediction with ID {id} does not exist")
+            if status:
+                pred.status = status
+            if error:
+                pred.error = error
+            if logs:
+                pred.logs = logs
+            if metrics:
+                pred.metrics = metrics
+            if completed_at:
+                pred.completed_at = completed_at
+            return Prediction.from_model(pred)
+        else:
+            res = await self.api_client().put(
+                f"predictions/{id}",
+                {
+                    "status": status,
+                    "error": error,
+                    "logs": logs,
+                    "metrics": metrics,
+                    "completed_at": (
+                        completed_at.isoformat() if completed_at else None
+                    ),
+                },
+            )
+            return Prediction(**res)
+
+    async def create_prediction(
+        self,
+        node_id: str,
+        node_type: str | None = None,
+        model: str | None = None,
+        version: str | None = None,
+        workflow_id: str | None = None,
+        status: str | None = None,
+    ) -> Prediction:
+        if "db" in self.capabilities:
+            pred = PredictionModel.create(
+                user_id=self.user_id,
+                node_id=node_id,
+                node_type=node_type if node_type else "",
+                model=model if model else "",
+                version=version if version else "",
+                workflow_id=workflow_id if workflow_id else "",
+                status=status if status else "",
+            )
+            return Prediction.from_model(pred)
+        else:
+            res = await self.api_client().post(
+                "predictions/",
+                {
+                    "node_id": node_id,
+                    "node_type": node_type if node_type else "",
+                    "model": model if model else "",
+                    "workflow_id": workflow_id if workflow_id else "",
+                    "version": version if version else "",
+                    "status": status if status else "",
+                },
+            )
+            return Prediction(**res)
 
     async def create_asset(
         self,

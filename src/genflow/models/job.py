@@ -25,8 +25,6 @@ class Job(DBModel):
     workflow_id: str = DBField(default="")
     started_at: datetime = DBField(default_factory=datetime.now)
     finished_at: datetime | None = DBField(default=None)
-    output: dict | None = DBField(default_factory=dict)
-    params: dict | None = DBField(default_factory=dict)
     graph: dict = DBField(default_factory=dict)
     error: str | None = DBField(default=None)
 

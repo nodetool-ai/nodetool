@@ -61,10 +61,8 @@ class Workflow(BaseModel):
         if workflow.thumbnail and workflow.thumbnail != "":
             asset = AssetModel.get(workflow.thumbnail)
             if asset:
-                thumbnail_url = (
-                    Environment.get_asset_storage().generate_presigned_url(
-                        "get_object", asset.file_name
-                    )
+                thumbnail_url = Environment.get_asset_storage().generate_presigned_url(
+                    "get_object", asset.file_name
                 )
 
         return cls(
@@ -89,38 +87,49 @@ class WorkflowList(BaseModel):
     workflows: List[Workflow]
 
 
+class PredictionCreateRequest(BaseModel):
+    """
+    The request body for creating a prediction.
+    """
+
+    node_id: str
+    node_type: str
+    model: str
+    version: str | None = None
+    workflow_id: str | None = None
+    status: str | None = None
+
 
 class Prediction(BaseModel):
     """
     A prediction made by a remote model.
     """
 
-    type: Literal["prediction"] = "prediction"
-
     id: str
+    user_id: str
     node_id: str
-    version: Optional[str]
-    node_type: Optional[str]
+    workflow_id: str | None = None
+    model: str | None = None
+    version: str | None = None
+    node_type: str | None = None
     status: str
-    input: Optional[dict[str, Any]]
-    output: Optional[Any]
-    logs: Optional[str]
-    error: Optional[str]
-    metrics: Optional[dict[str, Any]]
-    created_at: Optional[str]
-    started_at: Optional[str]
-    completed_at: Optional[str]
+    logs: str | None = None
+    error: str | None = None
+    metrics: dict[str, Any] | None = None
+    created_at: str | None = None
+    started_at: str | None = None
+    completed_at: str | None = None
 
     @classmethod
     def from_model(cls, prediction: PredictionModel):
         return cls(
             id=prediction.id,
+            user_id=prediction.user_id,
             node_id=prediction.node_id,
+            workflow_id=prediction.workflow_id,
             node_type=prediction.node_type,
             version=prediction.version,
             status=prediction.status,
-            input=prediction.input,
-            output=prediction.output,
             logs=prediction.logs,
             error=prediction.error,
             metrics=prediction.metrics,
@@ -141,6 +150,18 @@ class PredictionList(BaseModel):
     predictions: List[Prediction]
 
 
+class PredictionUpdateRequest(BaseModel):
+    """
+    The request body for updating a prediction.
+    """
+
+    status: str | None = None
+    error: str | None = None
+    logs: str | None = None
+    metrics: dict[str, Any] | None = None
+    completed_at: str | None = None
+
+
 class Assistant(BaseModel):
     """
     An assistant is a tool that can be used to perform a specific task.
@@ -148,11 +169,11 @@ class Assistant(BaseModel):
 
     id: str
     created_at: str
-    description: Optional[str]
-    instructions: Optional[str]
-    workflows: Optional[set[str]]
-    nodes: Optional[set[str]]
-    assets: Optional[set[str]]
+    description: str | None = None
+    instructions: str | None = None
+    workflows: set[str] | None = None
+    nodes: set[str] | None = None
+    assets: set[str] | None = None
     name: str
 
     @classmethod
@@ -175,8 +196,8 @@ class AssistantCreateRequest(BaseModel):
     """
 
     name: str
-    description: Optional[str]
-    instructions: Optional[str]
+    description: str | None = None
+    instructions: str | None = None
 
 
 class AssistantUpdateRequest(BaseModel):
@@ -184,12 +205,12 @@ class AssistantUpdateRequest(BaseModel):
     The request body for updating an assistant.
     """
 
-    name: Optional[str]
-    description: Optional[str]
-    instructions: Optional[str]
-    workflows: Optional[set[str]]
-    nodes: Optional[set[str]]
-    assets: Optional[set[str]]
+    name: str | None = None
+    description: str | None = None
+    instructions: str | None = None
+    workflows: set[str] | None = None
+    nodes: set[str] | None = None
+    assets: set[str] | None = None
 
 
 class AssistantList(BaseModel):

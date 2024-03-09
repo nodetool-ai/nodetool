@@ -91,7 +91,6 @@ async def run(
         job_type=req.job_type,
         workflow_id=req.workflow_id,
         user_id=user.id,
-        params=req.params,
         graph=req.graph.model_dump(),
         status="running",
     )
@@ -99,10 +98,19 @@ async def run(
     if execute is False:
         return job
 
+    assert user.auth_token
+
+    capabilities = []
+    # capabilities = ["db"]
+
+    if Environment.get_comfy_folder():
+        capabilities.append("comfy")
+
     context = ProcessingContext(
         user_id=user.id,
         auth_token=user.auth_token,
         workflow_id=req.workflow_id,
+        capabilities=capabilities,
     )
 
     runner = WorkflowRunner()
@@ -128,8 +136,6 @@ async def run(
                     if isinstance(msg, WorkflowUpdate):
                         job.finished_at = datetime.now()
                         job.status = "completed"
-                        # too much data to store in the database
-                        # job.output = msg["result"]
                         job.save()
                     if isinstance(msg, Error):
                         raise Exception(msg.error)

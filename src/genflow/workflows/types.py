@@ -3,8 +3,8 @@ from pydantic import BaseModel
 
 from typing import Any, Literal
 
+from genflow.api.models.models import Prediction
 from genflow.metadata.types import ThreadMessage
-from genflow.models.prediction import Prediction
 
 
 class NodeUpdate(BaseModel):

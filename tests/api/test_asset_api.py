@@ -1,4 +1,3 @@
-import PIL.Image
 from fastapi.testclient import TestClient
 from genflow.common.environment import Environment
 from genflow.models.asset import Asset

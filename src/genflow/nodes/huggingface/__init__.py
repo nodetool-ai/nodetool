@@ -1,16 +1,14 @@
-import uuid
 import httpx
 import asyncio
 
 from datetime import datetime
-from typing import Any, Optional, Type
+from typing import Any, Type
 from genflow.common.environment import Environment
 from genflow.workflows.types import NodeUpdate
 from genflow.workflows.genflow_node import GenflowNode
 from genflow.nodes.replicate import convert_enum_value, convert_output_value
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.common.environment import Environment
-from genflow.workflows.genflow_node import GenflowNode
 from genflow.models.prediction import Prediction
 
 
@@ -23,7 +21,6 @@ async def run_huggingface(
     node_type: str,
     node_id: str,
     model_id: str,
-    raw_inputs: dict,
     input_params: dict,
     data: bytes | None = None,
 ):
@@ -38,22 +35,12 @@ async def run_huggingface(
         )
     )
 
-    prediction = Prediction.create(
-        id=uuid.uuid4().hex,
+    prediction = await context.create_prediction(
         model=model_id,
         version="",
         node_id=node_id,
         node_type=node_type,
-        user_id=context.user_id,
         workflow_id=context.workflow_id if context.workflow_id != "" else None,
-        input=raw_inputs,
-        output=None,
-        error=None,
-        status="starting",
-        created_at=datetime.now(),
-        started_at=None,
-        completed_at=None,
-        metrics={},
     )
 
     context.post_message(prediction)
@@ -96,9 +83,11 @@ async def run_huggingface(
                         result = response.content
                     break
 
-            prediction.status = "completed"
-            prediction.completed_at = datetime.now()
-            prediction.save()
+            await context.update_prediction(
+                prediction.id,
+                status="completed",
+                completed_at=datetime.now(),
+            )
 
             context.post_message(prediction)
 
@@ -106,10 +95,12 @@ async def run_huggingface(
 
     except Exception as e:
         log.exception(e)
-        prediction.status = "failed"
-        prediction.error = str(e)
-        prediction.completed_at = datetime.now()
-        prediction.save()
+        await context.update_prediction(
+            prediction.id,
+            status="failed",
+            error=str(e),
+            completed_at=datetime.now(),
+        )
         context.post_message(prediction)
         raise e
 
@@ -145,7 +136,6 @@ class HuggingfaceNode(GenflowNode):
             node_id=self.id,
             node_type=self.get_node_type(),
             model_id=model_id,
-            raw_inputs=raw_inputs,
             input_params=input_params,
             data=data,
         )

@@ -11,6 +11,7 @@ import genflow.api.assistant
 import genflow.api.asset
 import genflow.api.chat
 import genflow.api.models.graph
+import genflow.api.prediction
 import genflow.api.job
 import genflow.api.node
 import genflow.api.workflow
@@ -142,6 +143,7 @@ def client():
     app.include_router(genflow.api.assistant.router)
     app.include_router(genflow.api.asset.router)
     app.include_router(genflow.api.auth.router)
+    app.include_router(genflow.api.prediction.router)
     app.include_router(genflow.api.job.router)
     app.include_router(genflow.api.node.router)
     app.include_router(genflow.api.workflow.router)

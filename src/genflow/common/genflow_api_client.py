@@ -1,10 +1,11 @@
 import httpx
 from typing import Dict, Any
 
+
 class GenflowAPIClient:
     auth_token: str
     base_url: str
-    
+
     def __init__(self, auth_token: str, base_url: str):
         print("GenflowAPIClient")
         print("base_url: ", base_url)
@@ -42,6 +43,7 @@ class GenflowAPIClient:
 
         async with httpx.AsyncClient() as client:
             response = await client.put(url, headers=headers, json=data)
+            print(response.json())
             response.raise_for_status()
             return response.json()
 

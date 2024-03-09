@@ -147,7 +147,10 @@ def convert_from_dynamodb_format(item: Dict[str, Any], py_type: Type) -> Any:
             return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f%z")
     elif py_type == Any:
         json_str = item.get("S", "{}")
-        return json.loads(json_str) if json_str else {}
+        try:
+            return json.loads(json_str) if json_str else {}
+        except json.JSONDecodeError:
+            return json_str
     else:
         raise TypeError(f"Unsupported type for conversion from DynamoDB: {py_type}")
 

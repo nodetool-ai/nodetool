@@ -25,7 +25,6 @@ from genflow.workflows.processing_context import ProcessingContext
 from genflow.metadata.types import AudioRef
 from genflow.metadata.types import ImageRef
 from genflow.metadata.types import VideoRef
-from genflow.models.prediction import Prediction
 
 
 log = Environment.get_logger()
@@ -40,7 +39,6 @@ async def run_replicate(
     node_type: str,
     node_id: str,
     model_id: str,
-    raw_inputs: dict,
     input_params: dict,
 ):
     replicate = Environment.get_replicate_client()
@@ -64,30 +62,18 @@ async def run_replicate(
     owner = match.group("owner")
     name = match.group("name")
     version_id = match.group("version")
-    # api_url = Environment.get_replicate_webhook_url()
 
     replicate_pred = replicate.predictions.create(
         version=version_id,
         input=input_params,
-        # webhook=f"{api_url}/api/predictions/",
     )
 
-    prediction = Prediction.create(
-        id=replicate_pred.id,
+    prediction = await context.create_prediction(
         model=f"{owner}/{name}",
         version=version_id,
         node_id=node_id,
         node_type=node_type,
-        user_id=context.user_id,
         workflow_id=context.workflow_id if context.workflow_id != "" else None,
-        input=raw_inputs,
-        output=None,
-        error=None,
-        status="starting",
-        created_at=datetime.now(),
-        started_at=None,
-        completed_at=None,
-        metrics={},
     )
 
     context.post_message(prediction)
@@ -101,9 +87,9 @@ async def run_replicate(
             log.info(f"Prediction status: {replicate_pred.status}")
             current_status = replicate_pred.status
 
-        prediction.update(
+        await context.update_prediction(
+            id=prediction.id,
             completed_at=datetime.now(),
-            output=replicate_pred.output,
             error=replicate_pred.error,
             status=replicate_pred.status,
             metrics=replicate_pred.metrics,
@@ -204,7 +190,6 @@ class ReplicateNode(GenflowNode):
             node_id=self.id,
             node_type=self.get_node_type(),
             model_id=self.replicate_model_id(),
-            raw_inputs=raw_inputs,
             input_params=input_params,
         )
 

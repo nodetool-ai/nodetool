@@ -74,7 +74,7 @@ class Asset(DBModel):
         **kwargs,
     ):
         return super().create(
-            id=uuid.uuid4().hex,
+            id=str(uuid.uuid4()),
             status=status,
             name=name,
             user_id=user_id,

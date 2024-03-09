@@ -1,5 +1,6 @@
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from genflow.api import prediction
 from genflow.common.environment import Environment
 
 from fastapi import APIRouter, FastAPI, Request
@@ -32,6 +33,7 @@ DEFAULT_ROUTERS = [
     auth.router,
     node.router,
     assistant.router,
+    prediction.router,
     workflow.router,
     storage.router,
     model.router,
