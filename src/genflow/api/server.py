@@ -1,5 +1,6 @@
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from genflow.api import prediction
 from genflow.common.environment import Environment
 
@@ -41,7 +42,9 @@ DEFAULT_ROUTERS = [
 
 
 def create_app(
-    origins: list[str] = DEFAULT_ORIGINS, routers: list[APIRouter] = DEFAULT_ROUTERS
+    origins: list[str] = DEFAULT_ORIGINS,
+    routers: list[APIRouter] = DEFAULT_ROUTERS,
+    static_folder: str | None = None,
 ):
     app = FastAPI()
     app.add_middleware(
@@ -69,9 +72,12 @@ def create_app(
                 {"detail": exc.errors(), "body": exc.body}, status_code=422
             )
 
-    @app.get("/")
+    @app.get("/health")
     async def health_check() -> str:
         return "OK"
+
+    if static_folder:
+        app.mount("/", StaticFiles(directory=static_folder, html=True), name="static")
 
     return app
 

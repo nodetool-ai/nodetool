@@ -271,12 +271,11 @@ class Environment(object):
 
     @classmethod
     def init_comfy(cls):
-        if cls.get_comfy_folder():
-            import comfy.folder_paths
-            import comfy.nodes
+        import comfy.folder_paths
+        import comfy.nodes
 
-            comfy.folder_paths.init_folder_paths(cls.get_comfy_folder())
-            comfy.nodes.init_custom_nodes()
+        comfy.folder_paths.init_folder_paths(cls.get_comfy_folder())
+        comfy.nodes.init_custom_nodes()
 
     @classmethod
     def get(cls, key: str):

@@ -31,16 +31,26 @@ def setup():
 @click.command()
 @click.option("--host", default="127.0.0.1", help="Host address to serve on.")
 @click.option("--port", default=8000, help="Port to serve on.", type=int)
-def serve(host: str, port: int):
+@click.option(
+    "--static-folder",
+    default=None,
+    help="Path to the static folder to serve.",
+    type=click.Path(exists=True, resolve_path=True, file_okay=False, dir_okay=True),
+)
+@click.option("--skip-setup", is_flag=True, help="Skip the setup process.")
+def serve(
+    host: str, port: int, static_folder: str | None = None, skip_setup: bool = False
+):
     """Serve the GenFlow API server."""
 
     from genflow.api.server import run_uvicorn_server
     from genflow.api.server import create_app
 
-    if not Environment.is_production():
-        if not Environment.has_settings():
-            print("No settings found. Running setup.")
-            Environment.setup()
+    if not Environment.has_settings() and not skip_setup:
+        print("No settings found. Running setup.")
+        Environment.setup()
+
+    if Environment.get_comfy_folder():
         Environment.init_comfy()
 
     app = create_app()
