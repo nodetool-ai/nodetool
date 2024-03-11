@@ -34,6 +34,7 @@ def test_pagination(client: TestClient, headers: dict[str, str], user: User):
     )
     assert response.status_code == 200
     assert len(response.json()["assets"]) == 2
+    assert response.json()["next"] == ""
 
 
 def test_get(client: TestClient, headers: dict[str, str], user: User):

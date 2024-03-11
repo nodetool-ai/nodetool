@@ -19,12 +19,12 @@ class GenflowAPIClient:
             "Content-Type": "application/json",
         }
 
-    async def get(self, endpoint: str) -> Dict[str, Any]:
+    async def get(self, endpoint: str, params: dict | None = None) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint}"
         headers = self._get_headers()
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers=headers)
+            response = await client.get(url, headers=headers, params=params)
             response.raise_for_status()
             return response.json()
 

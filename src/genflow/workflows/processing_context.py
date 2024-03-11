@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from genflow.api.models.graph import Edge
-from genflow.api.models.asset import Asset, AssetCreateRequest
+from genflow.api.models.asset import Asset, AssetCreateRequest, AssetList
 from genflow.api.models.models import Prediction
 from genflow.models.prediction import Prediction as PredictionModel
 from genflow.workflows.types import (
@@ -296,6 +296,15 @@ class ProcessingContext:
                 },
             )
             return Prediction(**res)
+
+    async def paginate_assets(self, parent_id: str | None = None, page_size: int = 100, cursor: str | None = None) -> AssetList:
+        """
+        Lists assets.
+        """
+        res = await self.api_client().get(
+            "assets/", {"parent_id": parent_id, page_size: page_size, "cursor": cursor}
+        )
+        return AssetList(**res)
 
     async def create_asset(
         self,
@@ -835,3 +844,28 @@ class ProcessingContext:
                     log.error("Error decoding message: " + str(e))
 
         return result
+
+    def get_chroma_client(self):
+        import chromadb
+        from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
+        
+        settings = Environment.get_chroma_settings()
+        # admin = chromadb.AdminClient()
+        # tenant = f"tenant_{self.user_id}"
+        # try:
+        #     admin.get_tenant(tenant)
+        # except Exception:
+        #     admin.create_tenant(tenant)
+        #     admin.create_database(DEFAULT_DATABASE, tenant)
+
+        if Environment.is_production():
+            return chromadb.HttpClient(host=Environment.get_chroma_url(), settings=settings)
+        else:
+            return chromadb.PersistentClient(
+                path="multitenant", 
+                # tenant=tenant,
+                tenant=DEFAULT_TENANT,
+                database=DEFAULT_DATABASE
+            )
+
+

@@ -1,7 +1,7 @@
 import json
 import re
 from jsonpath_ng import parse
-from typing import Any, Literal
+from typing import Any
 from pydantic import Field
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.metadata.types import TextRef

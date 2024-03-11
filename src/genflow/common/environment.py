@@ -8,9 +8,28 @@ DEFAULT_ENV = {
     "ASSET_BUCKET": "images",
     "TEMP_BUCKET": "temp",
     "COMFY_FOLDER": None,
+    "LM_STUDIO_FOLDER": os.path.join(os.path.expanduser("~/.cache/lm-studio/models")),
+    "REPLICATE_API_TOKEN": None,
+    "OPENAI_API_KEY": None,
+    "HF_TOKEN": None,
     "DB_PATH": None,
     "ENV": "development",
     "LOG_LEVEL": "INFO",
+    "AWS_REGION": "us-east-1",
+    "GENFLOW_API_URL": "http://localhost:8000/api",
+}
+
+TEST_ENV = {
+    "ASSET_BUCKET": "test-images",
+    "TEMP_BUCKET": "test-temp",
+    "COMFY_FOLDER": None,
+    "LM_STUDIO_FOLDER": None,
+    "REPLICATE_API_TOKEN": None,
+    "OPENAI_API_KEY": None,
+    "HF_TOKEN": None,
+    "DB_PATH": "test.sqlite3",
+    "ENV": "test",
+    "LOG_LEVEL": "DEBUG",
     "AWS_REGION": "us-east-1",
     "GENFLOW_API_URL": "http://localhost:8000/api",
 }
@@ -19,7 +38,7 @@ SETTINGS_FILE = "settings.yaml"
 SECRETS_FILE = "secrets.yaml"
 
 SETTINGS_SETUP = [
-    {"key": "DB_PATH", "prompt": "Database path"},
+    {"key": "DB_PATH", "prompt": "GenFlow Database path (for storing metadata)"},
     {
         "key": "COMFY_FOLDER",
         "prompt": "Location of ComfyUI folder (optional)",
@@ -286,6 +305,9 @@ class Environment(object):
         default values, raise an exception.
         """
 
+        if cls.test_mode:
+            return TEST_ENV[key]
+
         if key in os.environ:
             return os.environ[key]
         elif key in cls.get_settings():
@@ -508,18 +530,23 @@ class Environment(object):
         return cls.get("CHROMA_URL")
 
     @classmethod
-    def get_chroma_client(cls):
+    def get_chroma_settings(cls):
         import chromadb
         from chromadb.config import Settings
+        if cls.is_production():
+            return Settings(
+                chroma_api_impl="chromadb.api.fastapi.FastAPI",
+                chroma_client_auth_provider="token",
+                chroma_client_auth_credentials=cls.get_chroma_token(),
+                chroma_server_host=cls.get_chroma_url()
+            )
+        else:
+            return Settings(
+                chroma_api_impl="chromadb.api.segment.SegmentAPI",
+                is_persistent=True,
+                persist_directory="multitenant",
+            )
 
-        settings = Settings(
-            chroma_client_auth_provider="token",
-            chroma_client_auth_credentials=cls.get_chroma_token(),
-        )
-
-        client = chromadb.HttpClient(host=cls.get_chroma_url(), settings=settings)
-
-        return client
 
     @classmethod
     def get_model_files(cls, folder: str):
@@ -540,6 +567,13 @@ class Environment(object):
         The comfy folder is the folder where ComfyUI is located.
         """
         return cls.get("COMFY_FOLDER")
+
+    @classmethod
+    def get_lm_studio_folder(cls):
+        """
+        The LM Studio folder is the folder where LM Studio is located.
+        """
+        return cls.get("LM_STUDIO_FOLDER")
 
     @classmethod
     def get_replicate_api_token(cls):
