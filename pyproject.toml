@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "genflow-lib"
-version = "0.1.12"
+version = "0.1.13"
 description = "A library for orchestrating AI workflows."
 readme = "README.md"
 authors = ["Matthias Georgi <matti.georgi@gmail.com>"]
@@ -62,6 +62,7 @@ worker = [
   "aiohttp",
   "annotated-types",
   "av",
+  "chromadb",
   "einops",
   "filelock",
   "freezegun",
@@ -74,6 +75,7 @@ worker = [
   "modal",
   "omegaconf",
   "opencv-python-headless",
+  "open-clip-torch",
   "protobuf",
   "psutil",
   "python-dateutil",
@@ -81,6 +83,7 @@ worker = [
   "safetensors",
   "scikit-image",
   "scipy",
+  "sentence-transformers",
   "svglib",
   "torch",
   "torchsde",

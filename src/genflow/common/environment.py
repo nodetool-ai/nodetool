@@ -1,18 +1,60 @@
 import os
 from typing import Any
 
+def get_default_db_path(filename: str):
+    """
+    Get the default database path.
+    """
+    import platform
+    from pathlib import Path
+
+    os_name = platform.system()
+    if os_name == "Linux" or os_name == "Darwin":
+        return Path.home() / ".local" / "share" / "genflow" / filename
+    elif os_name == "Windows":
+        appdata = os.getenv("APPDATA")
+        if appdata is not None:
+            return Path(appdata) / "genflow" / filename
+        else:
+            return Path("data") / filename
+    else:
+        return Path("data") / filename
+
+
+def get_system_file_path(filename: str):
+    """
+    Returns the path to the settings file for the current OS.
+    """
+    import platform
+    from pathlib import Path
+
+    os_name = platform.system()
+    if os_name == "Linux" or os_name == "Darwin":
+        return Path.home() / ".config" / "genflow" / filename
+    elif os_name == "Windows":
+        appdata = os.getenv("APPDATA")
+        if appdata is not None:
+            return Path(appdata) / "genflow" / filename
+        else:
+            return Path("data") / filename
+    else:
+        return Path("data") / filename
+
+
 MISSING_MESSAGE = "Missing required environment variable: {}"
 
 # Default values for environment variables
 DEFAULT_ENV = {
     "ASSET_BUCKET": "images",
     "TEMP_BUCKET": "temp",
+    "CHROMA_URL": None,
+    "CHROMA_PATH": str(get_default_db_path("chroma")),
     "COMFY_FOLDER": None,
+    "DB_PATH": str(get_default_db_path("genflow.sqlite3")),
     "LM_STUDIO_FOLDER": os.path.join(os.path.expanduser("~/.cache/lm-studio/models")),
     "REPLICATE_API_TOKEN": None,
     "OPENAI_API_KEY": None,
     "HF_TOKEN": None,
-    "DB_PATH": None,
     "ENV": "development",
     "LOG_LEVEL": "INFO",
     "AWS_REGION": "us-east-1",
@@ -38,7 +80,6 @@ SETTINGS_FILE = "settings.yaml"
 SECRETS_FILE = "secrets.yaml"
 
 SETTINGS_SETUP = [
-    {"key": "DB_PATH", "prompt": "GenFlow Database path (for storing metadata)"},
     {
         "key": "COMFY_FOLDER",
         "prompt": "Location of ComfyUI folder (optional)",
@@ -103,58 +144,18 @@ class Environment(object):
         return os.getenv("AWS_EXECUTION_ENV", None)
 
     @classmethod
-    def get_default_db_path(cls):
-        """
-        Get the default database path.
-        """
-        import platform
-        from pathlib import Path
-
-        os_name = platform.system()
-        if os_name == "Linux" or os_name == "Darwin":
-            return Path.home() / ".local" / "share" / "genflow" / "genflow.sqlite3"
-        elif os_name == "Windows":
-            appdata = os.getenv("APPDATA")
-            if appdata is not None:
-                return Path(appdata) / "genflow" / "genflow.sqlite3"
-            else:
-                return Path("data") / "genflow.sqlite3"
-        else:
-            return Path("data") / "genflow.sqlite3"
-
-    @classmethod
-    def get_system_file_path(cls, filename: str):
-        """
-        Returns the path to the settings file for the current OS.
-        """
-        import platform
-        from pathlib import Path
-
-        os_name = platform.system()
-        if os_name == "Linux" or os_name == "Darwin":
-            return Path.home() / ".config" / "genflow" / filename
-        elif os_name == "Windows":
-            appdata = os.getenv("APPDATA")
-            if appdata is not None:
-                return Path(appdata) / "genflow" / filename
-            else:
-                return Path("data") / filename
-        else:
-            return Path("data") / filename
-
-    @classmethod
     def has_settings(cls):
         """
         Returns True if the settings file exists.
         """
-        return cls.get_system_file_path(SETTINGS_FILE).exists()
+        return get_system_file_path(SETTINGS_FILE).exists()
 
     @classmethod
     def has_secrets(cls):
         """
         Returns True if the secrets file exists.
         """
-        return cls.get_system_file_path(SECRETS_FILE).exists()
+        return get_system_file_path(SECRETS_FILE).exists()
 
     @classmethod
     def load_settings(cls):
@@ -164,8 +165,8 @@ class Environment(object):
         """
         import yaml
 
-        settings_file = cls.get_system_file_path(SETTINGS_FILE)
-        secrets_file = cls.get_system_file_path(SECRETS_FILE)
+        settings_file = get_system_file_path(SETTINGS_FILE)
+        secrets_file = get_system_file_path(SECRETS_FILE)
 
         if settings_file.exists():
             with open(settings_file, "r") as f:
@@ -176,10 +177,7 @@ class Environment(object):
                 cls.secrets = yaml.safe_load(f)  # type: ignore
 
         if cls.settings is None:
-            cls.settings = {
-                "COMFY_FOLDER": None,
-                "DB_PATH": str(cls.get_default_db_path()),
-            }
+            cls.settings = {}
 
         if cls.secrets is None:
             cls.secrets = {}
@@ -192,8 +190,8 @@ class Environment(object):
         """
         import yaml
 
-        settings_file = cls.get_system_file_path(SETTINGS_FILE)
-        secrets_file = cls.get_system_file_path(SECRETS_FILE)
+        settings_file = get_system_file_path(SETTINGS_FILE)
+        secrets_file = get_system_file_path(SECRETS_FILE)
 
         print()
         print(f"Saving settings to {settings_file}")
@@ -252,7 +250,7 @@ class Environment(object):
         print()
 
         for step in SETTINGS_SETUP:
-            default_value = cls.settings.get(step["key"])
+            default_value = cls.get(step["key"])
             default_prompt = f" [{default_value}]: " if default_value else ": "
             value = input(step["prompt"] + default_prompt).strip()
             cls.settings[step["key"]] = default_value if value == "" else value
@@ -530,10 +528,17 @@ class Environment(object):
         return cls.get("CHROMA_URL")
 
     @classmethod
+    def get_chroma_path(cls):
+        """
+        The chroma path is the path of the chroma server.
+        """
+        return cls.get("CHROMA_PATH")
+
+    @classmethod
     def get_chroma_settings(cls):
         import chromadb
         from chromadb.config import Settings
-        if cls.is_production():
+        if True or cls.is_production():
             return Settings(
                 chroma_api_impl="chromadb.api.fastapi.FastAPI",
                 chroma_client_auth_provider="token",

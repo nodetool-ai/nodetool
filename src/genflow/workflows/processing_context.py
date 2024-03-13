@@ -850,20 +850,19 @@ class ProcessingContext:
         from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
         
         settings = Environment.get_chroma_settings()
-        # admin = chromadb.AdminClient()
-        # tenant = f"tenant_{self.user_id}"
-        # try:
-        #     admin.get_tenant(tenant)
-        # except Exception:
-        #     admin.create_tenant(tenant)
-        #     admin.create_database(DEFAULT_DATABASE, tenant)
 
-        if Environment.is_production():
+        if True or Environment.is_production():
+            admin = chromadb.AdminClient()
+            tenant = f"tenant_{self.user_id}"
+            try:
+                admin.get_tenant(tenant)
+            except Exception:
+                admin.create_tenant(tenant)
+                admin.create_database(DEFAULT_DATABASE, tenant)
             return chromadb.HttpClient(host=Environment.get_chroma_url(), settings=settings)
         else:
             return chromadb.PersistentClient(
-                path="multitenant", 
-                # tenant=tenant,
+                path=Environment.get_chroma_path(), 
                 tenant=DEFAULT_TENANT,
                 database=DEFAULT_DATABASE
             )

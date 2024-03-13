@@ -22,7 +22,8 @@ import genflow.nodes.genflow.tensor
 import genflow.nodes.genflow.text
 import genflow.nodes.genflow.text.extract
 import genflow.nodes.genflow.text.generate
-import genflow.nodes.genflow.vector
+import genflow.nodes.genflow.multimodal.vector
+import genflow.nodes.genflow.text.vector
 import genflow.nodes.genflow.video
 
 
