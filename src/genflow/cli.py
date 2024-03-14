@@ -71,7 +71,9 @@ def run(workflow_file: str):
     import json
 
     click.echo(f"Running workflow from {workflow_file}.")
-    Environment.init_comfy()
+
+    if Environment.get_comfy_folder():
+        Environment.init_comfy()
 
     capabilities = ["db"]
 

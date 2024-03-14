@@ -297,7 +297,12 @@ class ProcessingContext:
             )
             return Prediction(**res)
 
-    async def paginate_assets(self, parent_id: str | None = None, page_size: int = 100, cursor: str | None = None) -> AssetList:
+    async def paginate_assets(
+        self,
+        parent_id: str | None = None,
+        page_size: int = 100,
+        cursor: str | None = None,
+    ) -> AssetList:
         """
         Lists assets.
         """
@@ -848,7 +853,7 @@ class ProcessingContext:
     def get_chroma_client(self):
         import chromadb
         from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
-        
+
         settings = Environment.get_chroma_settings()
 
         if True or Environment.is_production():
@@ -859,12 +864,12 @@ class ProcessingContext:
             except Exception:
                 admin.create_tenant(tenant)
                 admin.create_database(DEFAULT_DATABASE, tenant)
-            return chromadb.HttpClient(host=Environment.get_chroma_url(), settings=settings)
+            return chromadb.HttpClient(
+                host=Environment.get_chroma_url(), settings=settings
+            )
         else:
             return chromadb.PersistentClient(
-                path=Environment.get_chroma_path(), 
+                path=Environment.get_chroma_path(),
                 tenant=DEFAULT_TENANT,
-                database=DEFAULT_DATABASE
+                database=DEFAULT_DATABASE,
             )
-
-

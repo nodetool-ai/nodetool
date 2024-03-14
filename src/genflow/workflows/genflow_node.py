@@ -27,11 +27,12 @@ NODE_BY_TYPE: dict[str, type["GenflowNode"]] = {}
 NODES_BY_CLASSNAME: dict[str, list[type["GenflowNode"]]] = {}
 
 IGNORED_NODE_TYPES = [
-    "input",
-    "output",
-    "constant",
-    "replicate",
-    "huggingface",
+    "genflow.workflows.InputNode",
+    "genflow.workflows.OutputNode",
+    "genflow.workflows.ConstantNode",
+    "replicate.ReplicateNode",
+    "huggingface.HuggingfaceNode",
+    "genflow.workflows.WorkflowNode",
 ]
 
 
@@ -354,7 +355,8 @@ class GenflowNode(BaseModel):
         return [
             Property.from_field(name, type_metadata(types[name]), field)
             for name, field in fields.items()
-            if name not in ["id", "ui_properties", "comfy_class", "requires_capabilities"]
+            if name
+            not in ["id", "ui_properties", "comfy_class", "requires_capabilities"]
         ]
 
     @classmethod

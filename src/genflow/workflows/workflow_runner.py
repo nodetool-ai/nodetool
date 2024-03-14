@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime
-from queue import Queue
 
 from pydantic import BaseModel
 
@@ -14,8 +13,6 @@ from genflow.workflows.genflow_node import (
     GenflowNode,
     requires_capabilities_from_request,
 )
-from genflow.workflows.genflow_node import get_node_class
-from genflow.nodes.comfy import ComfyNode
 from genflow.nodes.genflow.loop import LoopOutputNode
 from genflow.common.environment import Environment
 from genflow.workflows.graph import Graph, subgraph, topological_sort
@@ -38,7 +35,7 @@ class WorkflowRunner:
     def is_running(self):
         return self.status == "running"
 
-    async def run(self, req: RunJobRequest, context: ProcessingContext) -> dict:
+    async def run(self, req: RunJobRequest, context: ProcessingContext):
         """
         Evaluates graph nodes in topological order.
 
@@ -103,8 +100,6 @@ class WorkflowRunner:
         context.post_message(WorkflowUpdate(result=output))
 
         self.status = "completed"
-
-        return output
 
     async def process_graph(self, context: ProcessingContext):
         """

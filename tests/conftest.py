@@ -1,3 +1,4 @@
+import os
 import sys
 
 sys.path.append("src")
@@ -48,6 +49,10 @@ from genflow.models.user import User
 
 @pytest.fixture(autouse=True)
 def setup_and_teardown():
+    Environment.settings = {
+        "ENV": "test",
+        "DB_PATH": "/tmp/genflow_test.db",
+    }
     create_all_tables()
     yield
     drop_all_tables()

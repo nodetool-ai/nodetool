@@ -48,7 +48,7 @@ def run_workflow(req: RunJobRequest, capabilities: list[str]):
                 if isinstance(msg, Error):
                     break
                 elif isinstance(msg, WorkflowUpdate):
-                    break
+                    pass
             else:
                 time.sleep(0.1)
 
@@ -56,7 +56,7 @@ def run_workflow(req: RunJobRequest, capabilities: list[str]):
             msg = context.pop_message()
             yield msg.model_dump_json() + "\n"
 
-        stdout.flush()
+        thread.join()
 
     except Exception as e:
         log.exception(e)

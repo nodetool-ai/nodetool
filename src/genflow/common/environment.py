@@ -1,7 +1,8 @@
 import os
 from typing import Any
 
-def get_default_db_path(filename: str):
+
+def get_data_path(filename: str):
     """
     Get the default database path.
     """
@@ -48,30 +49,16 @@ DEFAULT_ENV = {
     "ASSET_BUCKET": "images",
     "TEMP_BUCKET": "temp",
     "CHROMA_URL": None,
-    "CHROMA_PATH": str(get_default_db_path("chroma")),
+    "CHROMA_PATH": str(get_data_path("chroma")),
     "COMFY_FOLDER": None,
-    "DB_PATH": str(get_default_db_path("genflow.sqlite3")),
+    "ASSET_FOLDER": str(get_data_path("assets")),
+    "DB_PATH": str(get_data_path("genflow.sqlite3")),
     "LM_STUDIO_FOLDER": os.path.join(os.path.expanduser("~/.cache/lm-studio/models")),
     "REPLICATE_API_TOKEN": None,
     "OPENAI_API_KEY": None,
     "HF_TOKEN": None,
     "ENV": "development",
     "LOG_LEVEL": "INFO",
-    "AWS_REGION": "us-east-1",
-    "GENFLOW_API_URL": "http://localhost:8000/api",
-}
-
-TEST_ENV = {
-    "ASSET_BUCKET": "test-images",
-    "TEMP_BUCKET": "test-temp",
-    "COMFY_FOLDER": None,
-    "LM_STUDIO_FOLDER": None,
-    "REPLICATE_API_TOKEN": None,
-    "OPENAI_API_KEY": None,
-    "HF_TOKEN": None,
-    "DB_PATH": "test.sqlite3",
-    "ENV": "test",
-    "LOG_LEVEL": "DEBUG",
     "AWS_REGION": "us-east-1",
     "GENFLOW_API_URL": "http://localhost:8000/api",
 }
@@ -119,9 +106,6 @@ class Environment(object):
     AWS, OpenAI, and others. It uses AWS services like S3 and DynamoDB for storage and database,
     respectively.
 
-    Test Mode:
-    The class provides a `set_test_mode` method to enable test mode, which uses in-memory storage
-    and other test-specific configurations.
 
     Initialization:
     The class is designed to be used as a singleton, with class methods providing access to various
@@ -134,7 +118,6 @@ class Environment(object):
     the logic of retrieving the appropriate value based on the environment (local or production)..
     """
 
-    test_mode: bool = False
     model_files: dict[str, list[str]] = {}
     settings: dict[str, Any] | None = None
     secrets: dict[str, Any] | None = None
@@ -227,13 +210,6 @@ class Environment(object):
         return cls.secrets
 
     @classmethod
-    def set_test_mode(cls):
-        """
-        Set the environment to test mode.
-        """
-        cls.test_mode = True
-
-    @classmethod
     def setup(cls):
         """
         Runs the configuration wizard to set up the environment.
@@ -303,9 +279,6 @@ class Environment(object):
         default values, raise an exception.
         """
 
-        if cls.test_mode:
-            return TEST_ENV[key]
-
         if key in os.environ:
             return os.environ[key]
         elif key in cls.get_settings():
@@ -351,6 +324,13 @@ class Environment(object):
         Is the environment production?
         """
         return cls.get_env() == "production"
+
+    @classmethod
+    def is_test(cls):
+        """
+        Is the environment test?
+        """
+        return cls.get_env() == "test"
 
     @classmethod
     def get_log_level(cls):
@@ -417,7 +397,8 @@ class Environment(object):
         else:
             from genflow.models.sqlite_adapter import SQLiteAdapter
 
-            os.makedirs(os.path.dirname(cls.get_db_path()), exist_ok=True)
+            if cls.get_db_path() != ":memory:":
+                os.makedirs(os.path.dirname(cls.get_db_path()), exist_ok=True)
 
             return SQLiteAdapter(
                 db_path=cls.get_db_path(),
@@ -536,14 +517,14 @@ class Environment(object):
 
     @classmethod
     def get_chroma_settings(cls):
-        import chromadb
         from chromadb.config import Settings
-        if True or cls.is_production():
+
+        if cls.is_production():
             return Settings(
                 chroma_api_impl="chromadb.api.fastapi.FastAPI",
                 chroma_client_auth_provider="token",
                 chroma_client_auth_credentials=cls.get_chroma_token(),
-                chroma_server_host=cls.get_chroma_url()
+                chroma_server_host=cls.get_chroma_url(),
             )
         else:
             return Settings(
@@ -551,7 +532,6 @@ class Environment(object):
                 is_persistent=True,
                 persist_directory="multitenant",
             )
-
 
     @classmethod
     def get_model_files(cls, folder: str):
@@ -572,6 +552,13 @@ class Environment(object):
         The comfy folder is the folder where ComfyUI is located.
         """
         return cls.get("COMFY_FOLDER")
+
+    @classmethod
+    def get_asset_folder(cls):
+        """
+        The asset folder is the folder where assets are located.
+        """
+        return cls.get("ASSET_FOLDER")
 
     @classmethod
     def get_lm_studio_folder(cls):
@@ -671,7 +658,7 @@ class Environment(object):
             from genflow.storage.file_storage import FileStorage
 
             if not hasattr(cls, "asset_storage"):
-                if cls.test_mode:
+                if cls.is_test():
                     from genflow.storage.memory_storage import MemoryStorage
 
                     cls.asset_storage = MemoryStorage(
@@ -681,7 +668,7 @@ class Environment(object):
                 else:
                     cls.get_logger().info(f"Using local file storage for asset storage")
                     cls.asset_storage = FileStorage(
-                        base_path="data/assets",
+                        base_path=cls.get_asset_folder(),
                         base_url=f"{cls.get_genflow_api_url()}/storage/"
                         + cls.get_asset_bucket(),
                     )

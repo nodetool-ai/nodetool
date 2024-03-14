@@ -24,13 +24,6 @@ def make_user(verified: bool = False) -> User:
     return user
 
 
-@pytest.fixture(autouse=True, scope="module")
-def setup_module():
-    Environment.set_test_mode()
-    create_all_tables()
-    yield
-
-
 def test_user_exists():
     user = make_user()
 

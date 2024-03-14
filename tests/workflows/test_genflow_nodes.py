@@ -2,8 +2,7 @@ import io
 import pandas as pd
 import pytest
 import os
-import pydub
-from genflow.metadata.types import AudioRef, DataFrame
+from genflow.metadata.types import DataFrame
 from genflow.metadata.types import FolderRef
 from genflow.common.environment import Environment
 
@@ -62,7 +61,6 @@ def pil_image():
 
 @pytest.fixture(scope="function")
 def image(pil_image: PIL.Image.Image, user: User):
-    Environment.set_test_mode()
     buffer = io.BytesIO()
     pil_image.save(buffer, format="PNG")
     buffer.seek(0)

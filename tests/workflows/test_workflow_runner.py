@@ -6,6 +6,7 @@ from genflow.workflows.run_job_request import RunJobRequest
 from genflow.workflows.run_job_request import RunJobRequest
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.metadata.types import ImageRef
+from genflow.workflows.types import WorkflowUpdate
 from genflow.workflows.workflow_runner import WorkflowRunner
 from genflow.models.user import User
 from genflow.workflows.graph import Graph
@@ -69,6 +70,15 @@ async def test_process_node_with_input_edges(
     await workflow_runner.process_node(context, graph.find_node("3"))
 
     assert context.get_result("3", "output") == 3
+
+
+async def get_workflow_updates(context: ProcessingContext):
+    messages = []
+
+    while context.has_messages():
+        messages.append(await context.pop_message_async())
+
+    return list(filter(lambda x: isinstance(x, WorkflowUpdate), messages))
 
 
 @pytest.mark.asyncio
@@ -180,9 +190,10 @@ async def test_process_node_image_blend(
 
     out = await workflow_runner.run(req, context)
 
-    assert type(out) == dict
-    assert "output" in out
-    assert type(out["output"]) == ImageRef
+    workflow_updates = await get_workflow_updates(context)
+
+    assert len(workflow_updates) == 1
+    assert type(workflow_updates[0].result["output"]) == ImageRef
 
 
 @pytest.mark.asyncio
@@ -249,10 +260,12 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
     )
     context = ProcessingContext(user_id=user.id)
 
-    output = await workflow_runner.run(req, context)
+    await workflow_runner.run(req, context)
 
-    assert "output" in output
-    assert output["output"] == 3
+    workflow_updates = await get_workflow_updates(context)
+
+    assert len(workflow_updates) == 1
+    assert workflow_updates[0].result["output"] == 3
 
 
 @pytest.mark.asyncio

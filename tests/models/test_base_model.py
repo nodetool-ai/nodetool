@@ -39,7 +39,6 @@ def model():
     """
     Mock DynamoDB for unit tests.
     """
-    Environment.set_test_mode()
     try:
         TestModel.create_table()
     except Exception as e:

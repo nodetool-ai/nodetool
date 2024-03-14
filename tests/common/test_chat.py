@@ -10,7 +10,6 @@ from genflow.common.chat import (
 )
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.models.assistant import Assistant
-from genflow.models.schema import create_all_tables
 from genflow.models.thread import Thread
 
 # load all nodes
@@ -64,7 +63,6 @@ async def test_process_node_function_invalid():
 
 @pytest.mark.asyncio
 async def test_process_message_valid():
-    create_all_tables()
     assistant = Assistant.create(
         id="assistant123",
         user_id=USER_ID,

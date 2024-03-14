@@ -1,4 +1,4 @@
-
+import os
 from genflow.common.environment import Environment
 
 # import genflow.nodes.genflow.database
@@ -25,6 +25,7 @@ import genflow.nodes.genflow.text.generate
 import genflow.nodes.genflow.multimodal.vector
 import genflow.nodes.genflow.text.vector
 import genflow.nodes.genflow.video
+from genflow.workflows.workflow_node import WorkflowNode
 
 
 if Environment.get_comfy_folder():

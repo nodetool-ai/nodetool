@@ -8,7 +8,6 @@ from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import Config, Server
 import asyncio
-from typing import Any
 
 from . import (
     asset,
@@ -21,7 +20,6 @@ from . import (
     chat,
     model,
 )
-from genflow.models.schema import create_all_tables
 
 DEFAULT_ORIGINS = [
     "http://localhost",

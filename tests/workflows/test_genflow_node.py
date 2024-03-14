@@ -84,3 +84,55 @@ def test_node_output_type():
 def test_string_node_output_type():
     node = StringNode()
     assert node.outputs() == [OutputSlot(type=TypeMetadata(type="str"), name="output")]
+
+
+def test_node_set_node_properties():
+    node = DummyClass()
+    node.set_node_properties({"prop": 789})
+    assert node.prop == 789
+
+
+def test_node_set_node_properties_fail():
+    node = DummyClass()
+    with pytest.raises(ValueError):
+        node.set_node_properties({"prop": "test"})
+
+
+def test_node_set_node_properties_skip_errors():
+    node = DummyClass()
+    node.set_node_properties({"prop": "test"}, skip_errors=True)
+    assert node.prop == 123
+
+
+def test_node_properties_dict():
+    node = DummyClass()
+    assert "prop" in node.properties_dict()
+
+
+def test_node_properties():
+    node = DummyClass()
+    assert any(prop.name == "prop" for prop in node.properties())
+
+
+def test_node_node_properties():
+    node = DummyClass(prop=123)
+    assert node.node_properties() == {"prop": 123}
+
+
+@pytest.mark.asyncio
+async def test_node_process_not_implemented(context: ProcessingContext):
+    node = GenflowNode()
+    with pytest.raises(NotImplementedError):
+        await node.process(context)
+
+@pytest.mark.asyncio
+async def test_node_convert_output_dict(context: ProcessingContext):
+    node = DummyClass()
+    assert await node.convert_output(context, {"prop": 123}) == {"prop": 123}
+
+
+@pytest.mark.asyncio
+async def test_node_convert_output_value(context: ProcessingContext):
+    node = DummyClass()
+    output = 123
+    assert await node.convert_output(context, output) == {"output": 123}

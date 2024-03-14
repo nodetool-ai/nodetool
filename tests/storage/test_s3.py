@@ -6,7 +6,6 @@ import respx
 from moto import mock_aws
 from genflow.common.environment import Environment
 from genflow.storage.s3_storage import S3Storage
-from PIL import Image
 
 file_name = "test_asset.jpg"
 data = b"0" * 1024 * 1024 * 10
@@ -14,7 +13,6 @@ data = b"0" * 1024 * 1024 * 10
 
 @pytest.fixture(scope="module")
 def storage():
-    Environment.set_test_mode()
     mock = mock_aws()
     mock.start()
     s3_temp = Environment.get_asset_storage(use_s3=True)
