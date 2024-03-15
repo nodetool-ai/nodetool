@@ -73,6 +73,7 @@ worker = [
   "importlib_metadata",
   "mediapipe",
   "modal",
+  "kornia",
   "omegaconf",
   "opencv-python-headless",
   "open-clip-torch",

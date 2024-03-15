@@ -72,7 +72,9 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
         # supporting comfy workflow format
         if "class_type" in node:
             classes = get_node_class_by_name(node["class_type"])
-            assert len(classes) > 0, f"Could not find node class {node['class_type']} for node {node_id}"
+            assert (
+                len(classes) > 0
+            ), f"Could not find node class {node['class_type']} for node {node_id}"
             # use name including namespace
             node_type = classes[0].get_node_type()
         elif "type" in node:
@@ -117,13 +119,19 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
                 # supporting comfy workflow format, which uses index instead of handle
                 # the index will be resolved in the workflow runner
                 if isinstance(source_handle, int):
+                    source_node = node_by_id.get(source_id)
+                    assert source_node
+                    source_node_class = get_node_class(source_node.type)
+                    assert source_node_class
+                    source_handle = source_node_class.find_output_by_index(
+                        source_handle
+                    )
                     edge = Edge(
                         id=uuid.uuid4().hex,
                         source=source_id,
-                        sourceHandle="",
+                        sourceHandle=source_handle.name,
                         target=node_id,
                         targetHandle=input_name,
-                        source_index=source_handle,
                     )
                 else:
                     edge = Edge(

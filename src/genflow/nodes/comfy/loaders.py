@@ -29,6 +29,8 @@ class CheckpointLoaderSimple(ComfyNode):
     def validate_ckpt_name(cls, v):
         if isinstance(v, str):
             v = CheckpointFile(name=v)
+        if isinstance(v, dict):
+            v = CheckpointFile(**v)
         if v.name == "":
             raise ValueError("The checkpoint name cannot be empty.")
         return v
@@ -54,7 +56,7 @@ class unCLIPCheckpointLoader(ComfyNode):
     ckpt_name: unCLIPCheckpointEnum = Field(
         default=unCLIPCheckpointEnum.WD_1_5, description="The checkpoint to load."
     )
-    
+
     @validator("ckpt_name", pre=True)
     def validate_ckpt_name(cls, v):
         if isinstance(v, str):
@@ -71,7 +73,7 @@ class CLIPVisionLoader(ComfyNode):
         default=CLIPVisionFile(),
         description="The name of the CLIP vision model to load.",
     )
-    
+
     @validator("clip_name", pre=True)
     def validate_clip_name(cls, v):
         if isinstance(v, str):
@@ -89,7 +91,7 @@ class ControlNetLoader(ComfyNode):
     control_net_name: ControlNetFile = Field(
         default=ControlNetFile(), description="The filename of the control net to load."
     )
-    
+
     @validator("control_net_name", pre=True)
     def validate_control_net_name(cls, v):
         if isinstance(v, str):
@@ -108,7 +110,7 @@ class UpscaleModelLoader(ComfyNode):
         default=UpscaleModelFile(),
         description="The filename of the upscale model to load.",
     )
-    
+
     @validator("model_name", pre=True)
     def validate_model_name(cls, v):
         if isinstance(v, str):

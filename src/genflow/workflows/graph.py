@@ -60,19 +60,7 @@ class Graph(BaseModel):
         return cls(
             nodes=[GenflowNode.from_dict(node) for node in graph["nodes"]],
             edges=graph["edges"],
-        ).resolve_edges()
-
-    def resolve_edges(self):
-        """
-        For each edge, if the source index is a number, resolve it to the sourceHandle.
-        This is useful for compatibility with ComfyUI.
-        """
-        for edge in self.edges:
-            if isinstance(edge.source_index, int):
-                source_node = self.find_node(edge.source)
-                slot = source_node.find_output_by_index(edge.source_index)
-                edge.sourceHandle = slot.name
-        return self
+        )
 
     def inputs(self) -> List[InputNode]:
         """

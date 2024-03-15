@@ -590,7 +590,10 @@ class CheckpointLoaderSimple:
 
     def load_checkpoint(self, ckpt_name, output_vae=True, output_clip=True):
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-        return load_checkpoint_cached(ckpt_path)
+        if ckpt_path:
+            return load_checkpoint_cached(ckpt_path)
+        else:
+            raise ValueError(f"The checkpoint {ckpt_name} could not be found.")
 
 
 class unCLIPCheckpointLoader:
@@ -1858,7 +1861,7 @@ class LoadImage:
 
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "load_image"
-    
+
     VALID_URL_REGEX = re.compile(
         r"^(http|https)://[a-zA-Z0-9.-]+.[a-zA-Z]{2,}(:[0-9]{2,5})?(/[a-zA-Z0-9.-]*)*$"
     )

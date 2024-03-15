@@ -18,7 +18,6 @@ class Edge(BaseModel):
     target: str
     targetHandle: str
     ui_properties: dict[str, str] | None = None
-    source_index: int | None = None  # ephemeral field to support comfy
 
 
 class Graph(BaseModel):

@@ -38,19 +38,28 @@ def setup():
     type=click.Path(exists=True, resolve_path=True, file_okay=False, dir_okay=True),
 )
 @click.option("--skip-setup", is_flag=True, help="Skip the setup process.")
+@click.option("--force-fp16", is_flag=True, help="Force FP16.")
 def serve(
-    host: str, port: int, static_folder: str | None = None, skip_setup: bool = False
+    host: str,
+    port: int,
+    static_folder: str | None = None,
+    skip_setup: bool = False,
+    force_fp16: bool = False,
 ):
     """Serve the GenFlow API server."""
 
     from genflow.api.server import run_uvicorn_server
     from genflow.api.server import create_app
+    import genflow.nodes
 
     if not Environment.has_settings() and not skip_setup:
         print("No settings found. Running setup.")
         Environment.setup()
 
     if Environment.get_comfy_folder():
+        import comfy.cli_args
+
+        comfy.cli_args.args.force_fp16 = force_fp16
         Environment.init_comfy()
 
     app = create_app()
