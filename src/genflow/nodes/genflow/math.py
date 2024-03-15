@@ -287,13 +287,3 @@ class SqrtTensor(GenflowNode):
         return await convert_output(
             context, np.sqrt(to_numpy(self.x).astype(np.float32))
         )
-
-
-current_dir = os.path.dirname(os.path.realpath(__file__))
-math_json = os.path.join(current_dir, "math_workflow.json")
-
-
-class MathWorkflowNode(WorkflowNode):
-    @classmethod
-    def get_workflow_file(cls) -> str:
-        return math_json

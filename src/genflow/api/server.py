@@ -80,7 +80,7 @@ def create_app(
     return app
 
 
-def run_uvicorn_server(app: FastAPI, host: str, port: int) -> None:
+def run_uvicorn_server(app: str, host: str, port: int) -> None:
     """
     Starts api using Uvicorn with the specified configuration.
 
@@ -91,6 +91,4 @@ def run_uvicorn_server(app: FastAPI, host: str, port: int) -> None:
     reload = not Environment.is_production()
     config = Config(app=app, reload=reload, host=host, port=port)
     server = Server(config=config)
-
-    # Run the server in an asyncio event loop
-    asyncio.run(server.serve())
+    server.run()

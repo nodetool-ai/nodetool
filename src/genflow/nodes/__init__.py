@@ -13,6 +13,7 @@ import genflow.nodes.genflow.constant
 import genflow.nodes.genflow.http
 import genflow.nodes.genflow.image.source
 import genflow.nodes.genflow.image.transform
+import genflow.nodes.genflow.image.generate
 import genflow.nodes.genflow.input
 import genflow.nodes.genflow.list
 import genflow.nodes.genflow.loop

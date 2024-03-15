@@ -17,7 +17,14 @@ from genflow.workflows.types import WorkflowUpdate
 
 def properties_from_input_nodes(nodes: list[GenflowNode]):
     return [
-        Property(name=node.name, type=type_metadata(node.return_type()))  # type: ignore
+        Property(
+            name=node.name,
+            title=node.name,
+            default=node.value,  # type: ignore
+            min=node.min if hasattr(node, "min") else None,  # type: ignore
+            max=node.max if hasattr(node, "max") else None,  # type: ignore
+            type=type_metadata(node.return_type()),  # type: ignore
+        )
         for node in nodes
         if isinstance(node, InputNode)
     ]
@@ -25,6 +32,12 @@ def properties_from_input_nodes(nodes: list[GenflowNode]):
 
 class WorkflowNode(GenflowNode):
     inputs: dict[str, Any] | None = None
+
+    def __init__(self, **kwargs):
+        id = kwargs.pop("id", "")
+        ui_properties = kwargs.pop("ui_properties", {})
+        super().__init__(id=id, ui_properties=ui_properties)
+        self.inputs = kwargs
 
     @classmethod
     def get_workflow_file(cls) -> str:
@@ -63,14 +76,9 @@ class WorkflowNode(GenflowNode):
     def outputs(cls):
         graph = cls.load_graph()
         return [
-            OutputSlot(type=type_metadata(type(output.value)), name=output.name)  # type: ignore
+            OutputSlot(type=type_metadata(output.return_type()), name=output.name)  # type: ignore
             for output in graph.outputs()
         ]
-
-    def assign_property(self, name: str, value: Any):
-        if self.inputs is None:
-            self.inputs = {}
-        self.inputs[name] = value
 
     def get_api_graph(self) -> APIGraph:
         edges, nodes = self.load_workflow()
@@ -83,14 +91,16 @@ class WorkflowNode(GenflowNode):
             capabilities.append("comfy")
 
         req = RunJobRequest(
-            user_id="1",
-            auth_token="",
+            user_id=context.user_id,
+            auth_token=context.auth_token,
             graph=self.get_api_graph(),
             params=self.inputs or {},
         )
         output = {}
         for msg_json in run_workflow(req, capabilities):
             msg = json.loads(msg_json)
+            if msg["type"] == "error":
+                raise Exception(msg["error"])
             if msg["type"] == "workflow_update":
                 output = msg["result"]
 

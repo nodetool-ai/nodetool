@@ -1,5 +1,7 @@
 from typing import Any, Literal
-from genflow.metadata.types import Tensor
+
+from pydantic import Field
+from genflow.metadata.types import ImageTensor, Tensor
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.metadata.types import AudioRef
 from genflow.metadata.types import DataFrame
@@ -15,89 +17,104 @@ from genflow.metadata.types import VideoRef
 class ListOutputNode(OutputNode):
     value: list[Any] = []
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> list:
         return self.value
 
 
 class IntOutputNode(OutputNode):
     value: int = 0
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> int:
         return self.value
 
 
 class FloatOutputNode(OutputNode):
     value: float = 0
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> float:
         return self.value
 
 
 class BoolOutputNode(OutputNode):
     value: bool = False
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> bool:
         return self.value
 
 
 class StringOutputNode(OutputNode):
     value: str = ""
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> str:
         return self.value
 
 
 class TextOutputNode(OutputNode):
     value: TextRef = TextRef()
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> TextRef:
         return self.value
 
 
 class ImageOutputNode(OutputNode):
     value: ImageRef = ImageRef()
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> ImageRef:
         return self.value
+
+
+class ComfyImageOutputNode(OutputNode):
+    value: ImageTensor = Field(default=ImageTensor(), description="A raw image tensor.")
+
+    def assign_property(self, name: str, value: Any):
+        setattr(self, name, value)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        import numpy as np
+
+        image = self.value[0]  # type: ignore
+        i = 255.0 * image.cpu().detach().numpy()  # type: ignore
+        img = np.clip(i, 0, 255).astype(np.uint8)
+        return await context.image_from_numpy(img)
 
 
 class VideoOutputNode(OutputNode):
     value: VideoRef = VideoRef()
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> VideoRef:
         return self.value
 
 
 class TensorOutputNode(OutputNode):
     value: Tensor = Tensor()
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> Tensor:
         return self.value
 
 
 class ModelOutputNode(OutputNode):
     value: ModelRef = ModelRef()
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> ModelRef:
         return self.value
 
 
 class AudioOutputNode(OutputNode):
     value: AudioRef = AudioRef()
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> AudioRef:
         return self.value
 
 
 class DataframeOutputNode(OutputNode):
     value: DataFrame = DataFrame()
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> DataFrame:
         return self.value
 
 
 class DictOutputNode(OutputNode):
     value: dict[str, Any] = {}
 
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> dict[str, Any]:
         return self.value

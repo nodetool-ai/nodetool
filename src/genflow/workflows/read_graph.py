@@ -67,6 +67,12 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
     edges: list[Edge] = []
     node_by_id: dict[str, Node] = {}
 
+    def generate_edge_id():
+        """
+        Finds the highest ID in the list of edges and returns a new ID that is one higher.
+        """
+        return str(max([int(edge.id or "0", 16) for edge in edges], default=0) + 1)
+
     # we loop through the nodes twice to make sure all nodes are created before we try to connect them
     for node_id, node in json.items():
         # supporting comfy workflow format
@@ -123,24 +129,17 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
                     assert source_node
                     source_node_class = get_node_class(source_node.type)
                     assert source_node_class
-                    source_handle = source_node_class.find_output_by_index(
-                        source_handle
+                    source_handle = str(
+                        source_node_class.find_output_by_index(source_handle).name
                     )
-                    edge = Edge(
-                        id=uuid.uuid4().hex,
-                        source=source_id,
-                        sourceHandle=source_handle.name,
-                        target=node_id,
-                        targetHandle=input_name,
-                    )
-                else:
-                    edge = Edge(
-                        id=uuid.uuid4().hex,
-                        source=source_id,
-                        sourceHandle=source_handle,
-                        target=node_id,
-                        targetHandle=input_name,
-                    )
+
+                edge = Edge(
+                    id=generate_edge_id(),
+                    source=source_id,
+                    sourceHandle=source_handle,
+                    target=node_id,
+                    targetHandle=input_name,
+                )
 
                 edges.append(edge)
 

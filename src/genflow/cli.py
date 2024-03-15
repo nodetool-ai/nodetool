@@ -1,4 +1,6 @@
 import click
+from genflow.api.server import run_uvicorn_server
+from genflow.api.server import create_app
 from genflow.common.environment import Environment
 import dotenv
 
@@ -14,6 +16,8 @@ if env_file != "":
     dotenv.load_dotenv(env_file)
 
 log = Environment.get_logger()
+
+app = create_app()
 
 
 @click.group()
@@ -47,9 +51,6 @@ def serve(
     force_fp16: bool = False,
 ):
     """Serve the GenFlow API server."""
-
-    from genflow.api.server import run_uvicorn_server
-    from genflow.api.server import create_app
     import genflow.nodes
 
     if not Environment.has_settings() and not skip_setup:
@@ -62,9 +63,7 @@ def serve(
         comfy.cli_args.args.force_fp16 = force_fp16
         Environment.init_comfy()
 
-    app = create_app()
-
-    run_uvicorn_server(app, host, port)
+    run_uvicorn_server("genflow.cli:app", host, port)
 
 
 @click.command()
