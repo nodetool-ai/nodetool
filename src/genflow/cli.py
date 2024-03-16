@@ -61,7 +61,6 @@ def serve(
         import comfy.cli_args
 
         comfy.cli_args.args.force_fp16 = force_fp16
-        Environment.init_comfy()
 
     run_uvicorn_server("genflow.cli:app", host, port)
 
@@ -79,9 +78,6 @@ def run(workflow_file: str):
     import json
 
     click.echo(f"Running workflow from {workflow_file}.")
-
-    if Environment.get_comfy_folder():
-        Environment.init_comfy()
 
     capabilities = ["db"]
 

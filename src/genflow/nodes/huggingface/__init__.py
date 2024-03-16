@@ -31,7 +31,10 @@ async def run_huggingface(
 
     context.post_message(
         NodeUpdate(
-            node_id=node_id, status="starting", started_at=started_at.isoformat()
+            node_id=node_id,
+            node_name=model_id,
+            status="starting",
+            started_at=started_at.isoformat(),
         )
     )
 

@@ -10,6 +10,7 @@ from genflow.metadata.types import ThreadMessage
 class NodeUpdate(BaseModel):
     type: Literal["node_update"] = "node_update"
     node_id: str
+    node_name: str
     status: str
     error: str | None = None
     logs: str | None = None

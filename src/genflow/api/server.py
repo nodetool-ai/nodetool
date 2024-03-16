@@ -1,3 +1,4 @@
+import os
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -6,7 +7,7 @@ from genflow.common.environment import Environment
 
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from uvicorn import Config, Server
+from uvicorn import run as uvicorn
 import asyncio
 
 from . import (
@@ -88,7 +89,14 @@ def run_uvicorn_server(app: str, host: str, port: int) -> None:
     - host: The host address on which to run the Uvicorn server.
     - port: The port number on which to run the Uvicorn server.
     """
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    parent_dir = os.path.dirname(current_dir)
     reload = not Environment.is_production()
-    config = Config(app=app, reload=reload, host=host, port=port)
-    server = Server(config=config)
-    server.run()
+    uvicorn(
+        app=app,
+        host=host,
+        port=port,
+        reload=reload,
+        reload_dirs=[parent_dir] if reload else None,
+        reload_includes=["*.py", "*.yaml", "*.json"] if reload else None,
+    )

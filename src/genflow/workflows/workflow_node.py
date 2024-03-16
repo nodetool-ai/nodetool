@@ -12,7 +12,7 @@ from genflow.workflows.genflow_node import InputNode, OutputNode
 from genflow.workflows.graph import Graph
 from typing import Any, Type
 
-from genflow.workflows.types import WorkflowUpdate
+from genflow.workflows.types import NodeProgress, NodeUpdate, WorkflowUpdate
 
 
 def properties_from_input_nodes(nodes: list[GenflowNode]):
@@ -23,7 +23,7 @@ def properties_from_input_nodes(nodes: list[GenflowNode]):
             default=node.value,  # type: ignore
             min=node.min if hasattr(node, "min") else None,  # type: ignore
             max=node.max if hasattr(node, "max") else None,  # type: ignore
-            type=type_metadata(node.return_type()),  # type: ignore
+            type=node.properties_dict()["value"].type,
         )
         for node in nodes
         if isinstance(node, InputNode)
@@ -31,13 +31,16 @@ def properties_from_input_nodes(nodes: list[GenflowNode]):
 
 
 class WorkflowNode(GenflowNode):
-    inputs: dict[str, Any] | None = None
+    inputs: dict[str, Any] = {}
 
     def __init__(self, **kwargs):
         id = kwargs.pop("id", "")
         ui_properties = kwargs.pop("ui_properties", {})
         super().__init__(id=id, ui_properties=ui_properties)
         self.inputs = kwargs
+
+    def assign_property(self, name: str, value: Any):
+        self.inputs[name] = value
 
     @classmethod
     def get_workflow_file(cls) -> str:
@@ -86,6 +89,7 @@ class WorkflowNode(GenflowNode):
 
     async def process(self, context: ProcessingContext):
         capabilities = ["db"]
+        logs = ""
 
         if Environment.get_comfy_folder():
             capabilities.append("comfy")
@@ -99,6 +103,24 @@ class WorkflowNode(GenflowNode):
         output = {}
         for msg_json in run_workflow(req, capabilities):
             msg = json.loads(msg_json)
+            if msg["type"] == "node_progress":
+                context.post_message(
+                    NodeProgress(
+                        node_id=self.id,
+                        progress=msg["progress"],
+                        total=msg["total"],
+                    )
+                )
+            if msg["type"] == "node_update":
+                logs += f"{msg['node_name']} -> {msg['status']}\n"
+                context.post_message(
+                    NodeUpdate(
+                        node_id=self.id,
+                        node_name=self.get_title(),
+                        status="running",
+                        logs=logs,
+                    )
+                )
             if msg["type"] == "error":
                 raise Exception(msg["error"])
             if msg["type"] == "workflow_update":

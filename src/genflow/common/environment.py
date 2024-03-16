@@ -263,14 +263,6 @@ class Environment(object):
         create_all_tables()
 
     @classmethod
-    def init_comfy(cls):
-        import comfy.folder_paths
-        import comfy.nodes
-
-        comfy.folder_paths.init_folder_paths(cls.get_comfy_folder())
-        comfy.nodes.init_custom_nodes()
-
-    @classmethod
     def get(cls, key: str):
         """
         Get the value of an environment variable, or a default value.

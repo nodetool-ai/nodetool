@@ -1,0 +1,28 @@
+{
+  "5": {
+    "type": "comfy.controlnet.line_extractors.CannyEdgePreprocessor",
+    "inputs": {
+      "low_threshold": 100,
+      "high_threshold": 200,
+      "resolution": 512,
+      "image": ["6", "output"]
+    }
+  },
+  "6": {
+    "type": "genflow.input.ComfyInputImage",
+    "inputs": {
+      "name": "Image",
+      "value": {
+        "uri": "",
+        "type": "image"
+      }
+    }
+  },
+  "7": {
+    "type": "genflow.output.ComfyImageOutput",
+    "inputs": {
+      "name": "Output Label",
+      "value": ["5", "image"]
+    }
+  }
+}

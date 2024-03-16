@@ -1,5 +1,5 @@
 from pydantic import Field
-from genflow.metadata.types import Tensor
+from genflow.metadata.types import ImageTensor, Mask, Tensor
 from genflow.metadata.types import asset_to_ref
 from genflow.models.asset import Asset
 from genflow.metadata.types import FolderRef
@@ -175,3 +175,42 @@ class TextFolderNode(FolderNode):
         assets = await super().process(context)
         texts = [asset for asset in assets if isinstance(asset, TextRef)]
         return texts
+
+
+class ComfyInputImageNode(InputNode):
+    """
+    Input for comfy image values.
+    """
+
+    value: ImageRef = Field(ImageRef(), description="The image to use as input.")
+
+    async def process(self, context: ProcessingContext) -> ImageTensor:
+        from PIL import Image, ImageOps, ImageSequence
+        import torch
+        import numpy as np
+
+        img = await context.to_pil(self.value)
+
+        output_images = []
+        output_masks = []
+        for i in ImageSequence.Iterator(img):
+            i = ImageOps.exif_transpose(i)
+            image = i.convert("RGB")
+            image = np.array(image).astype(np.float32) / 255.0
+            image = torch.from_numpy(image)[None,]
+            if "A" in i.getbands():
+                mask = np.array(i.getchannel("A")).astype(np.float32) / 255.0
+                mask = 1.0 - torch.from_numpy(mask)
+            else:
+                mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")
+            output_images.append(image)
+            output_masks.append(mask.unsqueeze(0))
+
+        if len(output_images) > 1:
+            output_image = torch.cat(output_images, dim=0)
+            output_mask = torch.cat(output_masks, dim=0)
+        else:
+            output_image = output_images[0]
+            output_mask = output_masks[0]
+
+        return output_image

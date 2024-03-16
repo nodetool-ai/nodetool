@@ -105,6 +105,8 @@ class Prediction(BaseModel):
     A prediction made by a remote model.
     """
 
+    type: Literal["prediction"] = "prediction"
+
     id: str
     user_id: str
     node_id: str

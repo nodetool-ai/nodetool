@@ -142,6 +142,7 @@ class WorkflowRunner:
                 context.post_message(
                     NodeUpdate(
                         node_id=node.id,
+                        node_name=node.get_title(),
                         status="completed",
                         result=context.results[node.id],
                         started_at=datetime.now().isoformat(),
@@ -176,6 +177,7 @@ class WorkflowRunner:
             context.post_message(
                 NodeUpdate(
                     node_id=node.id,
+                    node_name=node.get_title(),
                     status="running",
                     started_at=started_at.isoformat(),
                 )
@@ -187,6 +189,7 @@ class WorkflowRunner:
             context.post_message(
                 NodeUpdate(
                     node_id=node.id,
+                    node_name=node.get_title(),
                     status="error",
                     error=str(e)[:1000],
                     started_at=started_at.isoformat(),
@@ -210,6 +213,7 @@ class WorkflowRunner:
                 context.post_message(
                     NodeUpdate(
                         node_id=node.id,
+                        node_name=node.get_title(),
                         status="completed",
                         result=res_for_update,
                         started_at=started_at.isoformat(),
@@ -283,6 +287,7 @@ class WorkflowRunner:
             context.post_message(
                 NodeUpdate(
                     node_id=loop_output_node.id,
+                    node_name=loop_output_node.get_title(),
                     status="completed",
                     result={"output": results},
                     started_at=started_at.isoformat(),
