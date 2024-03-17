@@ -60,9 +60,10 @@ async def create(
 async def index(
     user: User = Depends(current_user),
     cursor: Optional[str] = None,
+    limit: int = 100,
 ) -> WorkflowList:
     workflows, cursor = WorkflowModel.paginate(
-        user_id=user.id, limit=100, start_key=cursor
+        user_id=user.id, limit=limit, start_key=cursor
     )
     workflows = [Workflow.from_model(workflow) for workflow in workflows]
     return WorkflowList(workflows=workflows, next=cursor)

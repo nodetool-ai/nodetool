@@ -116,6 +116,17 @@ class AudioRef(AssetRef):
     type: Literal["audio"] = "audio"
 
 
+class ImageRef(AssetRef):
+    """A reference to an image asset."""
+
+    type: Literal["image"] = "image"
+
+
+class WorkflowRef(GenflowType):
+    type: Literal["workflow"] = "workflow"
+    id: str = ""
+
+
 class AssistantRef(GenflowType):
     type: Literal["assistant"] = "assistant"
     id: str = ""
@@ -228,12 +239,6 @@ class Embeds(GenflowType):
 class MessageTextContent(GenflowType):
     type: Literal["message_text_content"] = "message_text_content"
     text: str = ""
-
-
-class ImageRef(AssetRef):
-    """A reference to an image asset."""
-
-    type: Literal["image"] = "image"
 
 
 class MessageImageContent(GenflowType):

@@ -5,6 +5,7 @@ from genflow.common.environment import Environment
 # import genflow.nodes.genflow.dataframe
 import genflow.nodes.genflow.dictionary
 import genflow.nodes.genflow.image
+import genflow.nodes.genflow.assistant
 import genflow.nodes.genflow.audio
 import genflow.nodes.genflow.audio.analysis
 import genflow.nodes.genflow.audio.conversion
@@ -24,7 +25,7 @@ import genflow.nodes.genflow.tensor
 import genflow.nodes.genflow.text
 import genflow.nodes.genflow.text.extract
 import genflow.nodes.genflow.text.generate
-import genflow.nodes.genflow.multimodal.vector
+import genflow.nodes.genflow.vector
 import genflow.nodes.genflow.text.vector
 import genflow.nodes.genflow.video
 from genflow.workflows.workflow_node import WorkflowNode
