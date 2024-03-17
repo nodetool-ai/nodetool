@@ -47,7 +47,7 @@ validate_email = "*"
 websockets = "*"
 zipp = "*"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.test.dependencies]
 pytest = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
@@ -55,48 +55,46 @@ pytest-env = "*"
 pytest-xdist = "*"
 
 
-[tool.poetry.extras]
-worker = [
-  "accelerate",
-  "addict",
-  "aiohttp",
-  "annotated-types",
-  "av",
-  "chromadb",
-  "einops",
-  "filelock",
-  "freezegun",
-  "ftfy",
-  "fvcore",
-  "huggingface_hub",
-  "imageio",
-  "importlib_metadata",
-  "mediapipe",
-  "modal",
-  "kornia",
-  "omegaconf",
-  "opencv-python-headless",
-  "open-clip-torch",
-  "protobuf",
-  "psutil",
-  "python-dateutil",
-  "pyyaml",
-  "safetensors",
-  "scikit-image",
-  "scipy",
-  "sentence-transformers",
-  "svglib",
-  "torch",
-  "torchsde",
-  "torchvision",
-  "tqdm",
-  "transformers",
-  "trimesh",
-  "websocket-client",
-  "xformers",
-  "yacs",
-  "yapf",
-]
+[tool.poetry.group.worker.dependencies]
+accelerate = "*"
+addict = "*"
+aiohttp = "*"
+annotated-types = "*"
+av = "*"
+chromadb = "*"
+einops = "*"
+filelock = "*"
+freezegun = "*"
+ftfy = "*"
+fvcore = "*"
+huggingface_hub = "*"
+imageio = "*"
+importlib_metadata = "*"
+mediapipe = "*"
+modal = "*"
+kornia = "*"
+omegaconf = "*"
+opencv-python-headless = "*"
+open-clip-torch = "*"
+protobuf = "*"
+psutil = "*"
+python-dateutil = "*"
+pyyaml = "*"
+safetensors = "*"
+scikit-image = "*"
+scipy = "*"
+sentence-transformers = "*"
+svglib = "*"
+torch = "*"
+torchsde = "*"
+torchvision = "*"
+tqdm = "*"
+transformers = "*"
+trimesh = "*"
+websocket-client = "*"
+xformers = "*"
+yacs = "*"
+yapf = "*"
 
 [tool.poetry.scripts]
 genflow = "genflow.cli:cli"
