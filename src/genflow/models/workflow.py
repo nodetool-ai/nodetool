@@ -1,6 +1,7 @@
 from datetime import datetime
 import uuid
 from typing import Any, Optional
+from genflow.api.models.models import Graph as APIGraph
 from genflow.workflows.graph import Graph
 from genflow.workflows.genflow_node import GenflowNode
 
@@ -99,6 +100,15 @@ class Workflow(DBModel):
                 limit=limit,
                 start_key=start_key,
             )
+
+    def get_api_graph(self) -> APIGraph:
+        """
+        Returns the graph object for the workflow.
+        """
+        return APIGraph(
+            nodes=self.graph["nodes"],
+            edges=self.graph["edges"],
+        )
 
     def get_graph(self) -> Graph:
         """

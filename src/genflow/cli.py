@@ -17,8 +17,6 @@ if env_file != "":
 
 log = Environment.get_logger()
 
-app = create_app()
-
 
 @click.group()
 def cli():
@@ -62,7 +60,7 @@ def serve(
 
         comfy.cli_args.args.force_fp16 = force_fp16
 
-    run_uvicorn_server("genflow.cli:app", host, port)
+    run_uvicorn_server("genflow.api.app:app", host, port)
 
 
 @click.command()
@@ -98,6 +96,54 @@ def run(workflow_file: str):
         )
         for msg in run_workflow(req, capabilities):
             print(msg, end="")
+
+
+@click.command()
+def chat():
+    """Chat with the GenFlow bot."""
+    import argparse
+    import uuid
+    import asyncio
+    from genflow.common.chat import process_message
+    from genflow.models.assistant import Assistant
+    from genflow.models.thread import Thread
+    from genflow.workflows.processing_context import ProcessingContext
+    import argparse
+
+    from genflow.models.assistant import Assistant
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("assistant_id", type=str)
+    args = parser.parse_args()
+
+    assistant = Assistant.get(args.assistant_id)
+
+    if assistant is None:
+        assistant = Assistant.create(
+            id=args.assistant_id,
+            user_id="test",
+            instructions="You are an assistant",
+        )
+
+    thread = Thread.create(
+        id=uuid.uuid4().hex,
+        user_id="test",
+        assistant_id=assistant.id,
+    )
+
+    context = ProcessingContext(
+        user_id="test",
+        auth_token="",
+    )
+
+    while True:
+        try:
+            user_input = input("> ")
+            reply = asyncio.run(process_message(context, thread, user_input))
+            print(reply.content)
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            break
 
 
 cli.add_command(setup)

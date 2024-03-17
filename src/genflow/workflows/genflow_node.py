@@ -388,12 +388,7 @@ class GenflowNode(BaseModel):
 
 class InputNode(GenflowNode):
     name: str = Field("Input Label", description="The label for this input node.")
-
-    def get_json_schema(self):
-        """
-        Returns a JSON schema for the node.
-        """
-        return self.properties_dict()["value"].get_json_schema()
+    description: str = Field("", description="The description for this input node.")
 
 
 class OutputNode(GenflowNode):

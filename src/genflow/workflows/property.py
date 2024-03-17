@@ -24,7 +24,9 @@ class Property(BaseModel):
         """
         Returns a JSON schema for the self.
         """
-        return self.type.get_json_schema()
+        schema = self.type.get_json_schema()
+        schema["description"] = self.description
+        return schema
 
     @staticmethod
     def from_field(name: str, type_: TypeMetadata, field: FieldInfo):

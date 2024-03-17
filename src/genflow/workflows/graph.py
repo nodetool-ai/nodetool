@@ -72,12 +72,16 @@ class Graph(BaseModel):
         """
         Returns a JSON schema for the graph.
         """
+
+        def schema_for_input_node(node: InputNode):
+            schema = node.properties_dict()["value"].type.get_json_schema()
+            schema["description"] = node.description
+            return schema
+
         return {
             "type": "object",
             "properties": {
-                node.id: node.get_json_schema()
-                for node in self.nodes
-                if isinstance(node, InputNode)
+                node.name: schema_for_input_node(node) for node in self.inputs()
             },
         }
 

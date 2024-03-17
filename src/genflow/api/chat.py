@@ -3,6 +3,7 @@
 import uuid
 from fastapi import APIRouter, WebSocket
 from starlette.websockets import WebSocketDisconnect
+from genflow.api.utils import get_local_user
 from genflow.common.chat import process_message
 from genflow.metadata.types import MessageTextContent, ThreadMessage
 from genflow.models.thread import Thread
@@ -30,18 +31,22 @@ async def websocket_endpoint(ws: WebSocket):
         await ws.send_json({"error": "Assistant ID not found"})
         return
 
-    if "auth_token" not in msg:
-        log.info("Auth token not found")
-        await ws.send_json({"error": "Auth token not found"})
-        return
-
     assistant_id = msg["assistant_id"]
-    user = User.find_by_auth_token(msg["auth_token"])
 
-    if user is None:
-        log.info("User not found")
-        await ws.send_json({"error": "User not found"})
-        return
+    if not Environment.is_production():
+        user = get_local_user()
+    else:
+        if "auth_token" not in msg:
+            log.info("Auth token not found")
+            await ws.send_json({"error": "Auth token not found"})
+            return
+
+        user = User.find_by_auth_token(msg["auth_token"])
+
+        if user is None:
+            log.info("User not found")
+            await ws.send_json({"error": "User not found"})
+            return
 
     log.info(f"User {user.id} connected to assistant {assistant_id}")
 
@@ -58,7 +63,7 @@ async def websocket_endpoint(ws: WebSocket):
 
     await ws.send_json({"thread_id": thread.id})
 
-    context = ProcessingContext(user_id=user.id, auth_token=user.auth_token)
+    context = ProcessingContext(user_id=user.id, auth_token=user.auth_token or "")
 
     try:
         while True:

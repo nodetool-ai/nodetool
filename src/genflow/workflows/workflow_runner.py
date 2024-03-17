@@ -78,6 +78,7 @@ class WorkflowRunner:
             comfy.utils.set_progress_bar_global_hook(hook)
 
         log.info("===== Run workflow ====")
+        log.info("Request: " + str(req))
         log.info("Input nodes: " + str(input_nodes))
         log.info("Output nodes: " + str(output_nodes))
 
@@ -85,8 +86,10 @@ class WorkflowRunner:
             for key, value in req.params.items():
                 if key not in input_nodes:
                     raise ValueError("No input node found for param: " + str(key))
+
                 node = input_nodes[key]
                 node.assign_property("value", value)
+                print("Assigned value to input node: " + str(node))
 
         await self.process_graph(context)
 

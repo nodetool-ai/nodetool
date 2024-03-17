@@ -4,6 +4,7 @@ import uuid
 
 from pydantic import BaseModel
 from genflow.common.environment import Environment
+from genflow.models.workflow import Workflow
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.models.assistant import Assistant
 from genflow.models.thread import Thread
@@ -11,7 +12,8 @@ from genflow.models.message import Message
 from openai.types.shared_params import FunctionDefinition
 from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
 
-from genflow.workflows.genflow_node import get_node_class
+from genflow.workflows.run_job_request import RunJobRequest
+from genflow.workflows.run_workflow import run_workflow
 
 
 def sanitize_node_name(node_name: str) -> str:
@@ -40,42 +42,42 @@ def desanitize_node_name(node_name: str) -> str:
     return node_name.replace("_", ".")
 
 
-def function_tool_from_node(node_name: str):
-    """
-    Create a function tool from a node definition.
+# def function_tool_from_node(node_name: str):
+#     """
+#     Create a function tool from a node definition.
 
-    A node is technically a function, where the parameters are the properties of the node.
-    The interface of the function is the JSON schema of the node.
+#     A node is technically a function, where the parameters are the properties of the node.
+#     The interface of the function is the JSON schema of the node.
 
-    Args:
-        node_name (str): The name of the node.
-    """
-    node_type = get_node_class(node_name)
-    if node_type is None:
-        raise ValueError(f"Node {node_name} does not exist")
-
-    function_definition = FunctionDefinition(
-        name=sanitize_node_name(node_name),
-        description=node_type.get_description(),
-        parameters=node_type.get_json_schema(),
-    )
-    return ChatCompletionToolParam(function=function_definition, type="function")
-
-
-# def function_tool_from_workflow(workflow_id: str):
-#     workflow = Workflow.get(workflow_id)
-
-#     if workflow is None:
-#         return None
-
-#     parameters = workflow.get_graph().get_json_schema()
+#     Args:
+#         node_name (str): The name of the node.
+#     """
+#     node_type = get_node_class(node_name)
+#     if node_type is None:
+#         raise ValueError(f"Node {node_name} does not exist")
 
 #     function_definition = FunctionDefinition(
-#         name=workflow.name,
-#         description=workflow.description or "",
-#         parameters=parameters,
+#         name=sanitize_node_name(node_name),
+#         description=node_type.get_description(),
+#         parameters=node_type.get_json_schema(),
 #     )
-#     return ToolAssistantToolsFunction(function=function_definition, type="function")
+#     return ChatCompletionToolParam(function=function_definition, type="function")
+
+
+def function_tool_from_workflow(workflow_id: str):
+    workflow = Workflow.get(workflow_id)
+
+    if workflow is None:
+        raise ValueError(f"Workflow {workflow_id} does not exist")
+
+    parameters = workflow.get_graph().get_json_schema()
+
+    function_definition = FunctionDefinition(
+        name=workflow.id,
+        description=workflow.description or "",
+        parameters=parameters,
+    )
+    return ChatCompletionToolParam(function=function_definition, type="function")
 
 
 def default_serializer(obj: Any) -> dict:
@@ -84,26 +86,47 @@ def default_serializer(obj: Any) -> dict:
     raise TypeError("Type not serializable")
 
 
-async def process_node_function(
-    context: ProcessingContext, name: str, params: dict
-) -> Any:
+async def process_function(context: ProcessingContext, name: str, params: dict) -> Any:
     """
-    Process a node with the given parameters.
+    Process a workflow with the given parameters.
     If the node returns a prediction, wait for the prediction to complete.
 
     Args:
         context (ProcessingContext): The processing context.
-        name (str): The sanitizied name of the node.
-        params (dict): The parameters passed to the node processing.
+        name (str): The workflow_id
+        params (dict): The parameters passed to the workflow.
     """
-    node_type = get_node_class(desanitize_node_name(name))
-    if node_type is None:
-        raise ValueError(f"Invalid node type {name}")
-    node = node_type(**params)
+    workflow = Workflow.get(name)
+    if workflow is None:
+        raise ValueError(f"Workflow {name} does not exist")
 
-    res = await node.process(context)
-    res = await node.convert_output(context, res)
-    return res
+    req = RunJobRequest(
+        user_id=context.user_id,
+        auth_token=context.auth_token,
+        graph=workflow.get_api_graph(),
+        params=params,
+    )
+    capabilities = ["db"]
+
+    if Environment.get_comfy_folder():
+        capabilities.append("comfy")
+
+    output = {}
+
+    for msg_json in run_workflow(req, capabilities):
+        msg = json.loads(msg_json)
+        if msg["type"] == "node_progress":
+            print(f"{msg['node_id']} -> {msg['progress']}\n")
+        if msg["type"] == "node_update":
+            print(f"{msg['node_name']} -> {msg['status']}\n")
+        if msg["type"] == "error":
+            raise Exception(msg["error"])
+        if msg["type"] == "workflow_update":
+            output = msg["result"]
+
+    return {
+        k: v.model_dump() if isinstance(v, BaseModel) else v for k, v in output.items()
+    }
 
 
 async def process_message(context: ProcessingContext, thread: Thread, content: str):
@@ -133,7 +156,7 @@ async def process_message(context: ProcessingContext, thread: Thread, content: s
         thread_id=thread.id,
         user_id=context.user_id,
         role="user",
-        content=content,
+        content=str(content),
     )
     messages.append(message)
 
@@ -141,17 +164,13 @@ async def process_message(context: ProcessingContext, thread: Thread, content: s
         {"role": "system", "content": assistant.instructions},
     ] + [{"role": message.role, "content": message.content} for message in messages]
 
-    assistant.nodes = set(
-        [
-            "genflow.math.Add",
-            "genflow.math.Subtract",
-        ]
-    )
-
     completion = await client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=json_messages,  # type: ignore
-        tools=[function_tool_from_node(node_type) for node_type in assistant.nodes],
+        tools=[
+            function_tool_from_workflow(workflow_id)
+            for workflow_id in assistant.workflows
+        ],
     )
 
     response_message = completion.choices[0].message
@@ -180,11 +199,13 @@ async def process_message(context: ProcessingContext, thread: Thread, content: s
 
     if tool_calls:
         for tool_call in tool_calls:
+            print(tool_call)
             function_name = tool_call.function.name
             function_args = json.loads(tool_call.function.arguments)
-            function_response = await process_node_function(
+            function_response = await process_function(
                 context, function_name, function_args
             )
+            print(function_response)
             content = json.dumps(function_response, default=default_serializer)
             json_messages.append(response_message)  # type: ignore
             json_messages.append(

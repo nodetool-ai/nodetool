@@ -72,6 +72,7 @@ class GenflowType(BaseModel):
 
 asset_types = set()
 
+
 class AssetRef(GenflowType):
     type: str = "asset"
     uri: str = ""
@@ -85,13 +86,12 @@ class AssetRef(GenflowType):
 
     def is_empty(self):
         return self.uri == "" and self.asset_id is None
-    
+
     @classmethod
     def __init_subclass__(cls):
         super().__init_subclass__()
         if hasattr(cls, "type"):
             asset_types.add(cls.type)
-    
 
 
 class FolderRef(AssetRef):
@@ -372,7 +372,7 @@ class TypeMetadata(BaseModel):
     def get_python_type(self):
         return NameToType[self.type]
 
-    def get_json_schema(self):
+    def get_json_schema(self) -> dict[str, Any]:
         """
         Returns a JSON schema for the type.
         """
