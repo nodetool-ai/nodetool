@@ -78,6 +78,8 @@ class CLIPVisionLoader(ComfyNode):
     def validate_clip_name(cls, v):
         if isinstance(v, str):
             v = CLIPVisionFile(name=v)
+        if isinstance(v, dict):
+            v = CLIPVisionFile(**v)
         if v.name == "":
             raise ValueError("The CLIP vision name cannot be empty.")
         return v
@@ -96,6 +98,8 @@ class ControlNetLoader(ComfyNode):
     def validate_control_net_name(cls, v):
         if isinstance(v, str):
             v = ControlNetFile(name=v)
+        if isinstance(v, dict):
+            v = ControlNetFile(**v)
         if v.name == "":
             raise ValueError("The control net name cannot be empty.")
         return v
@@ -115,6 +119,8 @@ class UpscaleModelLoader(ComfyNode):
     def validate_model_name(cls, v):
         if isinstance(v, str):
             v = UpscaleModelFile(name=v)
+        if isinstance(v, dict):
+            v = UpscaleModelFile(**v)
         if v.name == "":
             raise ValueError("The model name cannot be empty.")
         return v
@@ -138,6 +144,10 @@ class GLIGENLoader(ComfyNode):
     def validate_gligen_name(cls, v):
         if isinstance(v, str):
             v = GLIGENCheckpointEnum(v)
+        if isinstance(v, dict):
+            v = GLIGENCheckpointEnum(**v)
+        if v.name == "":
+            raise ValueError("The GLIGEN name cannot be empty.")
         return v
 
     @classmethod
