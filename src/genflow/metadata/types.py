@@ -127,6 +127,11 @@ class WorkflowRef(GenflowType):
     id: str = ""
 
 
+class NodeRef(GenflowType):
+    type: Literal["node"] = "node"
+    id: str = ""
+
+
 class AssistantRef(GenflowType):
     type: Literal["assistant"] = "assistant"
     id: str = ""

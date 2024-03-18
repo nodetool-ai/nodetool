@@ -7,7 +7,7 @@ from genflow.api.models.models import (
 )
 from genflow.api.models.models import Prediction
 from genflow.metadata.node_metadata import NodeMetadata
-from genflow.metadata.types import AssetRef
+from genflow.metadata.types import AssetRef, NodeRef, WorkflowRef
 from genflow.metadata.types import AudioRef
 from genflow.metadata.types import DataFrame
 from genflow.metadata.types import FolderRef
@@ -50,6 +50,8 @@ UnionType = (
     | ThreadMessage
     | ModelRef
     | TextRef
+    | WorkflowRef
+    | NodeRef
     | MessageList
     | Prediction
     | Run

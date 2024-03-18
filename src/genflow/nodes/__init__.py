@@ -5,7 +5,7 @@ from genflow.common.environment import Environment
 # import genflow.nodes.genflow.dataframe
 import genflow.nodes.genflow.dictionary
 import genflow.nodes.genflow.image
-import genflow.nodes.genflow.assistant
+import genflow.nodes.genflow.agents
 import genflow.nodes.genflow.audio
 import genflow.nodes.genflow.audio.analysis
 import genflow.nodes.genflow.audio.conversion
