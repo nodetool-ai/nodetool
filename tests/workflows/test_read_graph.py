@@ -1,4 +1,4 @@
-from genflow.api.models.graph import Node
+from genflow.api.types.graph import Node
 from genflow.nodes.comfy.conditioning import CLIPTextEncode
 from genflow.nodes.comfy.image import SaveImage
 from genflow.nodes.comfy.latent import EmptyLatentImage, VAEDecode

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import uuid
 import random
 
-from genflow.models.base_model import DBModel, DBField
+from genflow.models.base_model import DBModel, DBField, create_time_ordered_uuid
 
 log = logging.getLogger(__name__)
 
@@ -160,7 +160,7 @@ class User(DBModel):
             u = None
 
         if user_id is None:
-            user_id = uuid.uuid4().hex
+            user_id = create_time_ordered_uuid()
 
         if verified:
             auth_token = uuid.uuid4().hex

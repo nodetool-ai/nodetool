@@ -2,7 +2,6 @@
 from genflow.common.environment import Environment
 
 from genflow.models.asset import Asset
-from genflow.models.assistant import Assistant
 from genflow.models.job import Job
 from genflow.models.message import Message
 from genflow.models.prediction import Prediction
@@ -56,7 +55,7 @@ def generate_terraform_config(schema):
     return config
 
 
-models = [Asset, Assistant, Job, Message, Prediction, Thread, User, Workflow]
+models = [Asset, Job, Message, Prediction, Thread, User, Workflow]
 
 
 def write_all_configs_to_file(fname: str):

@@ -2,16 +2,18 @@
 
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from genflow.api.models.models import (
-    Prediction,
-    PredictionCreateRequest,
-    PredictionList,
+from genflow.api.types.prediction import (
     PredictionUpdateRequest,
+    Prediction,
+    PredictionList,
 )
 from genflow.api.utils import current_user, User
 from genflow.common.environment import Environment
 from typing import Optional
-from genflow.models.prediction import Prediction as PredictionModel
+from genflow.models.prediction import (
+    Prediction as PredictionModel,
+    PredictionCreateRequest,
+)
 from genflow.models.workflow import Workflow
 
 log = Environment.get_logger()

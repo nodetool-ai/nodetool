@@ -2,8 +2,8 @@ import json
 import os
 
 import pytest
-from genflow.api.models.graph import Edge
-from genflow.api.models.graph import Graph
+from genflow.api.types.graph import Edge
+from genflow.api.types.graph import Graph
 from genflow.models.job import Job
 from genflow.workflows.run_job_request import RunJobRequest
 from tests.conftest import make_job

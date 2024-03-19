@@ -5,7 +5,7 @@ import copy
 import uuid
 
 from pydantic import BaseModel, Field
-from genflow.api.models.graph import Edge
+from genflow.api.types.graph import Edge
 from genflow.workflows.genflow_node import InputNode, GenflowNode, OutputNode
 from genflow.metadata.types import TypeMetadata
 
@@ -90,76 +90,6 @@ class Graph(BaseModel):
         Returns a list of nodes that have no outgoing edges.
         """
         return [node for node in self.nodes if isinstance(node, OutputNode)]
-
-    def gen_node_id(self):
-        """
-        Returns the next available node ID.
-        """
-        return uuid.uuid4().hex
-
-    def add_node(self, node: GenflowNode):
-        """
-        Adds a node to the graph.
-        Assign an ID to the node if it does not have one.
-        """
-        if node.id == "":
-            node.id = self.gen_node_id()
-        self.nodes.append(node)
-
-    def find_node(self, node_id: str) -> GenflowNode:
-        """
-        Finds a node by its ID.
-        Throws ValueError if no node is found.
-        """
-        for node in self.nodes:
-            if node.id == node_id:
-                return node
-        raise ValueError(f"Node with ID {node_id} does not exist")
-
-    def add_edge(
-        self, source: str, source_handle: str, target: str, target_handle: str
-    ):
-        """
-        Adds an edge to the graph.
-
-        The edge is added from the source node to the target node.
-        The nodes are identified by their IDs.
-        Source slot must have an output type that matches the input type of the target node.
-        """
-        source_node = self.find_node(source)
-        target_node = self.find_node(target)
-
-        target_property = target_node.find_property(target_handle)
-        source_output = source_node.find_output(source_handle)
-
-        if not is_connectable(source_output.type, target_property.type):
-            raise ValueError(
-                f"""
-                Connecting edge from {source} to {target} failed.
-                Source output type {source_output.type.type} does not
-                match target property type {target_property.type.type}
-                """
-            )
-
-        self.edges.append(
-            Edge(
-                source=source,
-                sourceHandle=source_handle,
-                target=target,
-                targetHandle=target_handle,
-            )
-        )
-
-    def find_input_edge(self, node_id: str, handle: str) -> Optional[Edge]:
-        """
-        Finds an input edge by node ID and handle name.
-
-        Returns None if no edge is found.
-        """
-        for edge in self.edges:
-            if edge.target == node_id and edge.targetHandle == handle:
-                return edge
-        return None
 
 
 def topological_sort(edges: list[Edge], nodes: list[GenflowNode]) -> List[List[str]]:

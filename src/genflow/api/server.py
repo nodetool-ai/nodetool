@@ -12,7 +12,6 @@ import asyncio
 
 from . import (
     asset,
-    assistant,
     job,
     auth,
     node,
@@ -32,7 +31,6 @@ DEFAULT_ROUTERS = [
     job.router,
     auth.router,
     node.router,
-    assistant.router,
     prediction.router,
     workflow.router,
     storage.router,

@@ -1,4 +1,4 @@
-from genflow.api.models.graph import Edge, Node
+from genflow.api.types.graph import Edge, Node
 import uuid
 
 from genflow.workflows.genflow_node import get_node_class, get_node_class_by_name

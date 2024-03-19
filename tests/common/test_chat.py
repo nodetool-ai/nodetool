@@ -2,14 +2,15 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from genflow.metadata.types import TextRef
 from genflow.common.chat import (
+    process_node_function,
     sanitize_node_name,
     desanitize_node_name,
     function_tool_from_node,
-    process_node_function,
-    process_message,
+    process_workflow_function,
+    process_messages,
 )
+from genflow.models.message import Message
 from genflow.workflows.processing_context import ProcessingContext
-from genflow.models.assistant import Assistant
 from genflow.models.thread import Thread
 
 # load all nodes
@@ -19,7 +20,6 @@ VALID_NODE_NAME = "some.valid.node.name"
 INVALID_NODE_NAME = "invalid_node_name"
 USER_ID = "12345"
 THREAD_ID = "thread123"
-CONTENT = "Test message content"
 
 
 def test_sanitize_node_name():
@@ -37,7 +37,11 @@ def test_function_tool_from_node_valid():
     assert result["function"]["parameters"] == {
         "type": "object",
         "properties": {
-            "value": {"properties": {"url": {"type": "string"}}, "type": "object"}
+            "value": {
+                "description": None,
+                "properties": {"url": {"type": "string"}},
+                "type": "object",
+            }
         },
     }
 
@@ -49,6 +53,8 @@ def test_function_tool_from_node_invalid():
 
 @pytest.mark.asyncio
 async def test_process_node_function_valid():
+    import genflow.nodes
+
     context = ProcessingContext(user_id=USER_ID)
     result = await process_node_function(context, "genflow.constant.Text", {})
     assert result == {"output": TextRef(uri="", type="text")}
@@ -58,18 +64,12 @@ async def test_process_node_function_valid():
 async def test_process_node_function_invalid():
     context = ProcessingContext(user_id=USER_ID)
     with pytest.raises(ValueError):
-        await process_node_function(context, INVALID_NODE_NAME, {})
+        await process_workflow_function(context, INVALID_NODE_NAME, {})
 
 
 @pytest.mark.asyncio
 async def test_process_message_valid():
-    assistant = Assistant.create(
-        id="assistant123",
-        user_id=USER_ID,
-        name="Test Assistant",
-        instructions="Test instructions",
-    )
-    thread = Thread.create(id=THREAD_ID, user_id=USER_ID, assistant_id=assistant.id)
+    thread = Thread.create(user_id=USER_ID)
     context = ProcessingContext(user_id=USER_ID)
     with patch(
         "genflow.common.chat.Environment.get_openai_client"
@@ -81,5 +81,12 @@ async def test_process_message_valid():
                 completions=MagicMock(create=AsyncMock(return_value=completion))
             )
         )
-        result = await process_message(context, thread, CONTENT)
+        messages = [
+            Message(
+                id="1",
+                role="user",
+                content="Hello",
+            )
+        ]
+        result = await process_messages(context, thread.id, messages)
         assert result is not None

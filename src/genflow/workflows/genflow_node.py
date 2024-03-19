@@ -206,6 +206,14 @@ class GenflowNode(BaseModel):
         """
         prop = self.find_property(name)
 
+        # if prop.type.is_enum_type():
+        #     try:
+        #         value = type(value)
+        #     except ValueError:
+        #         raise ValueError(
+        #             f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
+        #         )
+
         if not is_assignable(prop.type, value):
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"

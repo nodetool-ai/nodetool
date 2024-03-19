@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
-from genflow.api.models.graph import Edge, Graph as APIGraph, Node
-from genflow.api.models.models import (
+from genflow.api.types.workflow import WorkflowRequest
+from genflow.api.types.graph import Edge, Graph as APIGraph, Node
+from genflow.api.types.workflow import (
     WorkflowList,
-    WorkflowRequest,
 )
 from genflow.models.user import User
 from genflow.models.workflow import Workflow

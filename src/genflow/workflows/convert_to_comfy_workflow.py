@@ -1,5 +1,5 @@
 from typing import Any
-from genflow.api.models.graph import Edge
+from genflow.api.types.graph import Edge
 from genflow.workflows.genflow_node import GenflowNode
 
 

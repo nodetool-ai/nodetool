@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 from typing import Any, Literal
 
-from genflow.api.models.models import Prediction
+from genflow.api.types.prediction import Prediction
 from genflow.metadata.types import ThreadMessage
 
 

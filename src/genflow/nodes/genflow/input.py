@@ -60,6 +60,17 @@ class StringInputNode(InputNode):
         return self.value
 
 
+class ChatInputNode(InputNode):
+    """
+    Input for chat messages.
+    """
+
+    value: str = ""
+
+    async def process(self, context: ProcessingContext) -> str:
+        return self.value
+
+
 class TextInputNode(InputNode):
     """
     Input for text values.
@@ -213,4 +224,4 @@ class ComfyInputImageNode(InputNode):
             output_image = output_images[0]
             output_mask = output_masks[0]
 
-        return output_image
+        return output_image  # type: ignore

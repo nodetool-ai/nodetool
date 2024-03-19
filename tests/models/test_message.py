@@ -5,7 +5,6 @@ from genflow.models.user import User
 
 def test_find_message(user: User):
     message = Message.create(
-        id="msg1",
         user_id=user.id,
         thread_id="th1",
     )
@@ -23,7 +22,7 @@ def test_find_message(user: User):
 
 
 def test_paginate_messages(user: User):
-    Message.create(id="msg", user_id=user.id, thread_id="th1")
+    Message.create(user_id=user.id, thread_id="th1")
 
     messages, last_key = Message.paginate(thread_id="th1", limit=10)
     assert len(messages) > 0
@@ -32,7 +31,6 @@ def test_paginate_messages(user: User):
 
 def test_create_message(user: User):
     message = Message.create(
-        id="msg1",
         user_id=user.id,
         thread_id="th1",
     )

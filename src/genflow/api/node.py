@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
 from fastapi import APIRouter
-from genflow.api.models.models import (
+from genflow.api.types.job import (
     JobUpdate,
-    Run,
 )
-from genflow.api.models.models import Prediction
+from genflow.api.types.prediction import Prediction
 from genflow.metadata.node_metadata import NodeMetadata
 from genflow.metadata.types import AssetRef, NodeRef, WorkflowRef
 from genflow.metadata.types import AudioRef
@@ -23,7 +22,6 @@ from genflow.workflows.types import (
 
 from genflow.common.environment import Environment
 from genflow.metadata.types import (
-    AssistantRef,
     FileRef,
     Thread,
     ThreadMessage,
@@ -44,7 +42,6 @@ UnionType = (
     | ImageRef
     | Tensor
     | VideoRef
-    | AssistantRef
     | FileRef
     | Thread
     | ThreadMessage
@@ -54,7 +51,6 @@ UnionType = (
     | NodeRef
     | MessageList
     | Prediction
-    | Run
     | JobUpdate
     | NodeUpdate
     | NodeProgress

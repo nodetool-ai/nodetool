@@ -1,11 +1,11 @@
 from datetime import datetime
 import uuid
 from typing import Any, Optional
-from genflow.api.models.models import Graph as APIGraph
+from genflow.api.types.graph import Graph as APIGraph
 from genflow.workflows.graph import Graph
 from genflow.workflows.genflow_node import GenflowNode
 
-from genflow.models.base_model import DBModel, DBField
+from genflow.models.base_model import DBModel, DBField, create_time_ordered_uuid
 
 
 class Workflow(DBModel):
@@ -18,13 +18,11 @@ class Workflow(DBModel):
             "attribute_definitions": {
                 "id": "S",
                 "user_id": "S",
-                "assistant_id": "S",
                 "access": "S",
                 "updated_at": "S",
             },
             "global_secondary_indexes": {
                 "genflow_workflow_user_index": {"user_id": "HASH"},
-                "genflow_workflow_assistant_index": {"assistant_id": "HASH"},
                 "genflow_workflow_access_index": {
                     "access": "HASH",
                     "updated_at": "RANGE",
@@ -70,7 +68,7 @@ class Workflow(DBModel):
         """
 
         return super().create(
-            id=uuid.uuid4().hex,
+            id=create_time_ordered_uuid(),
             user_id=user_id,
             name=name,
             graph=graph,

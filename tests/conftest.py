@@ -8,17 +8,15 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
 import genflow.api.auth
-import genflow.api.assistant
 import genflow.api.asset
 import genflow.api.chat
-import genflow.api.models.graph
+import genflow.api.types.graph
 import genflow.api.prediction
 import genflow.api.job
 import genflow.api.node
 import genflow.api.workflow
-from genflow.api.models.graph import Node, Edge
+from genflow.api.types.graph import Node, Edge
 from genflow.common.environment import Environment
-from genflow.models.assistant import Assistant
 from genflow.models.schema import (
     create_all_tables,
     drop_all_tables,
@@ -145,7 +143,6 @@ def client():
     This fixture is scoped to the module, so it will only be created once for the entire test run.
     """
     app = FastAPI()
-    app.include_router(genflow.api.assistant.router)
     app.include_router(genflow.api.asset.router)
     app.include_router(genflow.api.auth.router)
     app.include_router(genflow.api.prediction.router)
@@ -155,18 +152,6 @@ def client():
     app.websocket("/ws")(genflow.api.chat.websocket_endpoint)
 
     return TestClient(app)
-
-
-@pytest.fixture(scope="function")
-def assistant(user: User):
-    return Assistant.create(
-        id="1",
-        user_id=user.id,
-        name="Test Assistant",
-        description="Test Assistant Description",
-        instructions="Test Assistant Instructions",
-        function_mapping={},
-    )
 
 
 @pytest.fixture(scope="function")

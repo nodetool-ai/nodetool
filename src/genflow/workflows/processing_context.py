@@ -13,10 +13,13 @@ import PIL.Image
 import numpy as np
 import pandas as pd
 
-from genflow.api.models.graph import Edge
-from genflow.api.models.asset import Asset, AssetCreateRequest, AssetList
-from genflow.api.models.models import Prediction
+from genflow.api.types.graph import Edge
+from genflow.api.types.asset import Asset, AssetCreateRequest, AssetList
+from genflow.api.types.prediction import Prediction
+from genflow.models.base_model import create_time_ordered_uuid
+from genflow.models.message import Message
 from genflow.models.prediction import Prediction as PredictionModel
+from genflow.models.thread import Thread
 from genflow.workflows.types import (
     NodeProgress,
     NodeUpdate,
@@ -311,6 +314,79 @@ class ProcessingContext:
         )
         return AssetList(**res)
 
+    def create_thread(self):
+        return Thread.create(user_id=self.user_id)
+
+    def get_latest_thread(self):
+        """
+        Gets the latest thread.
+        """
+        if "db" in self.capabilities:
+            threads, _ = Thread.paginate(self.user_id, limit=1, reverse=True)
+            if len(threads) > 0:
+                return threads[0]
+            else:
+                return self.create_thread()
+
+        else:
+            raise NotImplementedError()
+
+    async def find_thread(self, thread_id: str):
+        """
+        Finds a thread by id.
+        """
+        if "db" in self.capabilities:
+            thread = Thread.find(self.user_id, thread_id)
+            if thread is None:
+                raise ValueError(f"Thread with ID {thread_id} does not exist")
+            return thread
+        else:
+            raise NotImplementedError()
+            # res = await self.api_client().get(f"threads/{thread_id}")
+            # return Thread(**res)
+
+    async def create_message(
+        self, thread_id: str, role: str, content: str | None = None
+    ):
+        """
+        Creates a message for a thread.
+        """
+        if "db" in self.capabilities:
+            message = Message.create(
+                thread_id=thread_id,
+                user_id=self.user_id,
+                role=role,
+                content=content,
+            )
+            return message
+        else:
+            raise NotImplementedError()
+            # res = await self.api_client().post(
+            #     f"threads/{thread_id}/messages",
+            #     {"role": role, "content": content},
+            # )
+            # return Message(**res)
+
+    async def get_messages(
+        self,
+        thread_id: str,
+        limit: int = 10,
+        start_key: str | None = None,
+        reverse: bool = False,
+    ):
+        """
+        Gets messages for a thread.
+        """
+        if "db" in self.capabilities:
+            return Message.paginate(thread_id, limit, start_key, reverse)
+        else:
+            raise NotImplementedError()
+            # res = await self.api_client().get(
+            #     f"threads/{thread_id}/messages",
+            #     {"limit": limit, "start_key": start_key},
+            # )
+            # return res
+
     async def create_asset(
         self,
         name: str,
@@ -342,7 +418,7 @@ class ProcessingContext:
         return asset, url
 
     async def create_temp_file(self, content: IO, ext: str = "") -> str:
-        key = uuid.uuid4().hex
+        key = create_time_ordered_uuid()
         if ext != "":
             key += "." + ext
 

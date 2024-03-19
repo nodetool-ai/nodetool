@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from fastapi import APIRouter, Depends, HTTPException
-from genflow.api.models.asset import (
+from genflow.api.types.asset import (
     Asset,
     AssetCreateRequest,
     AssetList,

@@ -4,7 +4,7 @@ from datetime import datetime
 from genflow.common.content_types import CONTENT_TYPE_TO_EXTENSION
 from genflow.common.environment import Environment
 
-from genflow.models.base_model import DBModel, DBField
+from genflow.models.base_model import DBModel, DBField, create_time_ordered_uuid
 
 log = Environment.get_logger()
 
@@ -74,7 +74,7 @@ class Asset(DBModel):
         **kwargs,
     ):
         return super().create(
-            id=str(uuid.uuid4()),
+            id=create_time_ordered_uuid(),
             status=status,
             name=name,
             user_id=user_id,

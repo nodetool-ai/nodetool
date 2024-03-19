@@ -3,17 +3,12 @@
 from datetime import datetime
 import time
 from fastapi import APIRouter, Depends, HTTPException, Body
-from genflow.api.models.convert import node_from_model
-from genflow.api.models.graph import Edge
-from genflow.api.models.graph import Node
-from genflow.api.models.models import WorkflowRequest, WorkflowList
+from genflow.api.types.workflow import WorkflowList, Workflow, WorkflowRequest
 from genflow.api.utils import current_user, User
 from genflow.common.environment import Environment
 from typing import Optional
-from genflow.api.models.models import Workflow
 from genflow.workflows.read_graph import read_graph
 from genflow.models.workflow import Workflow as WorkflowModel
-import traceback
 
 
 log = Environment.get_logger()

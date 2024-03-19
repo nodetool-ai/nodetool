@@ -1,7 +1,7 @@
 import PIL.Image
 import PIL.ImageChops
 import pytest
-from genflow.api.models.graph import Node, Edge
+from genflow.api.types.graph import Node, Edge
 from genflow.workflows.run_job_request import RunJobRequest
 from genflow.workflows.run_job_request import RunJobRequest
 from genflow.workflows.processing_context import ProcessingContext
@@ -10,7 +10,7 @@ from genflow.workflows.types import WorkflowUpdate
 from genflow.workflows.workflow_runner import WorkflowRunner
 from genflow.models.user import User
 from genflow.workflows.graph import Graph
-from genflow.api.models.graph import (
+from genflow.api.types.graph import (
     Graph as APIGraph,
 )
 from genflow.nodes.genflow.constant import NumberNode, StringNode
@@ -65,10 +65,7 @@ async def test_process_node_with_input_edges(
         user_id="", workflow_id="", edges=graph.edges, nodes=graph.nodes
     )
 
-    await workflow_runner.process_node(context, graph.find_node("1"))
-    await workflow_runner.process_node(context, graph.find_node("2"))
-    await workflow_runner.process_node(context, graph.find_node("3"))
-
+    await workflow_runner.process_graph(context)
     assert context.get_result("3", "output") == 3
 
 

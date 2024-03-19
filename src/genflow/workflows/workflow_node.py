@@ -2,7 +2,7 @@ from genflow.metadata.types import OutputSlot
 from genflow.workflows.genflow_node import GenflowNode, type_metadata
 from genflow.workflows.property import Property
 from genflow.workflows.read_graph import read_graph
-from genflow.api.models.graph import Graph as APIGraph
+from genflow.api.types.graph import Graph as APIGraph
 import json
 from genflow.workflows.run_workflow import run_workflow
 from genflow.workflows.run_job_request import RunJobRequest

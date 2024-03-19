@@ -1,6 +1,8 @@
 from datetime import datetime
 import uuid
-from genflow.models.base_model import DBModel, DBField
+
+from pydantic import BaseModel
+from genflow.models.base_model import DBModel, DBField, create_time_ordered_uuid
 from typing import Any
 
 
@@ -48,7 +50,7 @@ class Prediction(DBModel):
         input: dict[str, Any] = {},
     ):
         prediction = cls(
-            id=str(uuid.uuid4()),
+            id=create_time_ordered_uuid(),
             user_id=user_id,
             node_id=node_id,
             node_type=node_type,
@@ -92,3 +94,16 @@ class Prediction(DBModel):
                 limit=limit,
                 start_key=start_key,
             )
+
+
+class PredictionCreateRequest(BaseModel):
+    """
+    The request body for creating a prediction.
+    """
+
+    node_id: str
+    node_type: str
+    model: str
+    version: str | None = None
+    workflow_id: str | None = None
+    status: str | None = None

@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
-import uuid
 from fastapi import APIRouter, WebSocket
-from starlette.websockets import WebSocketDisconnect
 from genflow.api.utils import get_local_user
-from genflow.common.chat import process_message
-from genflow.metadata.types import MessageTextContent, ThreadMessage
+from genflow.common.chat import process_messages
 from genflow.models.thread import Thread
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.models.user import User
@@ -26,13 +23,6 @@ async def websocket_endpoint(ws: WebSocket):
 
     msg = await ws.receive_json()
 
-    if "assistant_id" not in msg:
-        log.info("Assistant ID not found")
-        await ws.send_json({"error": "Assistant ID not found"})
-        return
-
-    assistant_id = msg["assistant_id"]
-
     if not Environment.is_production():
         user = get_local_user()
     else:
@@ -48,8 +38,6 @@ async def websocket_endpoint(ws: WebSocket):
             await ws.send_json({"error": "User not found"})
             return
 
-    log.info(f"User {user.id} connected to assistant {assistant_id}")
-
     if "thread_id" in msg and msg["thread_id"] is not None:
         thread = Thread.get(msg["thread_id"])
         if thread is None:
@@ -57,23 +45,21 @@ async def websocket_endpoint(ws: WebSocket):
             await ws.send_json({"error": "Thread not found"})
             return
     else:
-        thread = Thread.create(
-            id=uuid.uuid4().hex, assistant_id=assistant_id, user_id=user.id
-        )
+        thread = Thread.create(user_id=user.id)
 
     await ws.send_json({"thread_id": thread.id})
 
     context = ProcessingContext(user_id=user.id, auth_token=user.auth_token or "")
 
-    try:
-        while True:
-            data = await ws.receive_json()
-            res = await process_message(context, thread, data["text"])
-            assert res.content
-            content = MessageTextContent(text=res.content)
-            await ws.send_json(
-                ThreadMessage(role=res.role, content=[content]).model_dump()
-            )
+    # try:
+    #     while True:
+    #         data = await ws.receive_json()
+    #         res = await process_messages(context, thread, data["text"])
+    #         assert res.content
+    #         content = MessageTextContent(text=res.content)
+    #         await ws.send_json(
+    #             ThreadMessage(role=res.role, content=[content]).model_dump()
+    #         )
 
-    except WebSocketDisconnect:
-        log.info("Chat WebSocket disconnected")
+    # except WebSocketDisconnect:
+    #     log.info("Chat WebSocket disconnected")

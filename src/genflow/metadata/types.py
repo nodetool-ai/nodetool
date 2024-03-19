@@ -132,11 +132,6 @@ class NodeRef(GenflowType):
     id: str = ""
 
 
-class AssistantRef(GenflowType):
-    type: Literal["assistant"] = "assistant"
-    id: str = ""
-
-
 class FileRef(GenflowType):
     type: Literal["file"] = "file"
 
@@ -257,7 +252,8 @@ MessageContent = MessageTextContent | MessageImageContent
 class ThreadMessage(GenflowType):
     type: Literal["thread_message"] = "thread_message"
     id: str = ""
-    role: Literal["user", "assistant"] = "user"
+    thread_id: str = ""
+    role: str = ""
     content: list[MessageContent] = []
 
 
@@ -378,6 +374,12 @@ class TypeMetadata(BaseModel):
 
     def is_comfy_type(self):
         return self.type.startswith("comfy.")
+
+    def is_enum_type(self):
+        return self.type == "enum"
+
+    def is_union_type(self):
+        return self.type == "union"
 
     def get_python_type(self):
         return NameToType[self.type]

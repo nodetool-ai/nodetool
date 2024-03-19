@@ -1,6 +1,8 @@
 from typing import Any
+import uuid
+import struct
+import time
 from pydantic import BaseModel, Field
-from typing import Any
 
 from genflow.common.environment import Environment
 from genflow.models.sqlite_adapter import SQLiteAdapter
@@ -8,6 +10,29 @@ from .dynamo_adapter import DynamoAdapter
 
 
 log = Environment.get_logger()
+
+
+def create_time_ordered_uuid() -> str:
+    # Generate a standard Version 1 UUID
+    uuid1 = uuid.uuid1()
+
+    # Extract components
+    time_low, time_mid, time_hi_version, clock_seq_hi_variant, clock_seq_low, node = (
+        uuid1.fields
+    )
+
+    # Reorder the time components to the front and convert to bytes
+    # This ensures the UUID starts with the time component for sorting
+    ordered_uuid_bytes = struct.pack(
+        ">QQ",
+        (time_low << 32) | (time_mid << 16) | time_hi_version,
+        (clock_seq_hi_variant << 8) | clock_seq_low | (node << 16),
+    )
+
+    # Convert the ordered bytes back to a UUID
+    ordered_uuid = uuid.UUID(bytes=ordered_uuid_bytes)
+
+    return str(ordered_uuid)
 
 
 def DBField(hash_key: bool = False, **kwargs: Any):

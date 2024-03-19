@@ -2,7 +2,7 @@ from typing import Optional, Any
 from datetime import datetime
 import uuid
 from pydantic import BaseModel
-from genflow.models.base_model import DBModel, DBField
+from genflow.models.base_model import DBModel, DBField, create_time_ordered_uuid
 
 
 class Job(DBModel):
@@ -36,7 +36,10 @@ class Job(DBModel):
     @classmethod
     def create(cls, workflow_id: str, user_id: str, **kwargs):
         return super().create(
-            id=str(uuid.uuid4()), workflow_id=workflow_id, user_id=user_id, **kwargs
+            id=create_time_ordered_uuid(),
+            workflow_id=workflow_id,
+            user_id=user_id,
+            **kwargs
         )
 
     @classmethod

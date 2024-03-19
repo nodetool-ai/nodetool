@@ -1,7 +1,7 @@
 from typing import Any, Literal
 
 from pydantic import Field
-from genflow.metadata.types import ImageTensor, Tensor
+from genflow.metadata.types import ImageTensor, Tensor, ThreadMessage
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.metadata.types import AudioRef
 from genflow.metadata.types import DataFrame
@@ -17,7 +17,17 @@ from genflow.metadata.types import VideoRef
 class ListOutputNode(OutputNode):
     value: list[Any] = []
 
-    async def process(self, context: ProcessingContext) -> list:
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        return self.value
+
+
+class ChatOutputNode(OutputNode):
+    value: list[ThreadMessage] = Field(
+        default=[],
+        description="The messages to display in the chat.",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[ThreadMessage]:
         return self.value
 
 

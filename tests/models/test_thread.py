@@ -5,8 +5,6 @@ from genflow.models.user import User
 
 def test_find_thread(user: User):
     thread = Thread.create(
-        id="th1",
-        assistant_id="ast",
         user_id=user.id,
     )
 
@@ -23,17 +21,15 @@ def test_find_thread(user: User):
 
 
 def test_paginate_threads(user: User):
-    Thread.create(id="th", assistant_id="ast", user_id=user.id)
+    Thread.create(user_id=user.id)
 
-    threads, last_key = Thread.paginate(assistant_id="ast", user_id=user.id, limit=10)
+    threads, last_key = Thread.paginate(user_id=user.id, limit=10)
     assert len(threads) > 0
     assert last_key == ""
 
 
 def test_create_thread(user: User):
     thread = Thread.create(
-        id="th1",
-        assistant_id="ast",
         user_id=user.id,
     )
 

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from genflow.api.utils import current_user, User
 
-from genflow.api.models.models import (
+from genflow.api.types.job import (
     JobList,
     JobUpdate,
 )
@@ -17,7 +17,7 @@ from genflow.common.environment import Environment
 
 from genflow.models.job import Job
 from genflow.models.prediction import Prediction
-from genflow.api.models.models import Prediction as APIPrediction
+from genflow.api.types.prediction import Prediction as APIPrediction
 from genflow.workflows.types import Error, WorkflowUpdate
 
 
@@ -100,8 +100,7 @@ async def run(
 
     assert user.auth_token
 
-    capabilities = []
-    # capabilities = ["db"]
+    capabilities = ["db"]
 
     if Environment.get_comfy_folder():
         capabilities.append("comfy")

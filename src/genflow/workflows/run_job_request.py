@@ -1,4 +1,4 @@
-from genflow.api.models.graph import Graph
+from genflow.api.types.graph import Graph
 
 
 from pydantic import BaseModel

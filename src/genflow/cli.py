@@ -72,7 +72,7 @@ def run(workflow_file: str):
     from genflow.workflows.run_workflow import run_workflow
     from genflow.workflows.run_job_request import RunJobRequest
     from genflow.workflows.read_graph import read_graph
-    from genflow.api.models.graph import Graph
+    from genflow.api.types.graph import Graph
     import json
 
     click.echo(f"Running workflow from {workflow_file}.")
@@ -104,31 +104,16 @@ def chat():
     import argparse
     import uuid
     import asyncio
-    from genflow.common.chat import process_message
-    from genflow.models.assistant import Assistant
+    from genflow.common.chat import process_messages
     from genflow.models.thread import Thread
     from genflow.workflows.processing_context import ProcessingContext
     import argparse
 
-    from genflow.models.assistant import Assistant
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("assistant_id", type=str)
     args = parser.parse_args()
 
-    assistant = Assistant.get(args.assistant_id)
-
-    if assistant is None:
-        assistant = Assistant.create(
-            id=args.assistant_id,
-            user_id="test",
-            instructions="You are an assistant",
-        )
-
     thread = Thread.create(
-        id=uuid.uuid4().hex,
         user_id="test",
-        assistant_id=assistant.id,
     )
 
     context = ProcessingContext(
@@ -139,8 +124,8 @@ def chat():
     while True:
         try:
             user_input = input("> ")
-            reply = asyncio.run(process_message(context, thread, user_input))
-            print(reply.content)
+            # reply = asyncio.run(process_messages(context, thread, user_input))
+            # print(reply.content)
         except KeyboardInterrupt:
             print("\nExiting...")
             break

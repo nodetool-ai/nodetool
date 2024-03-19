@@ -94,3 +94,7 @@ async def oauth_callback(auth: OAuthAuthorizeRequest) -> User:
         log.info(f"User already exists: {user.email}")
 
     return User(email=user.email, id=user.id, auth_token=user.auth_token)
+
+
+class AuthRequest(BaseModel):
+    token: str

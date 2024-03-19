@@ -1,6 +1,6 @@
 import PIL.Image
 import pytest
-from genflow.api.models.graph import Edge
+from genflow.api.types.graph import Edge
 from genflow.metadata.types import ImageRef
 from genflow.workflows.genflow_node import InputNode, GenflowNode
 from genflow.nodes.genflow.constant import ImageNode, NumberNode
@@ -22,61 +22,11 @@ def graph():
     return Graph()
 
 
-def test_add_node(graph: Graph):
-    node = GenflowNode(id="1")
-    graph.add_node(node)
-    assert graph.nodes == [node]
-
-
-def test_find_node(graph: Graph):
-    node = GenflowNode(id="1")
-    graph.add_node(node)
-    assert graph.find_node("1") == node
-
-
 class FooNode(GenflowNode):
     value: str = "test"
 
     async def process(self) -> str:
         return self.value
-
-
-def test_add_edge(graph: Graph):
-    node = FooNode(id="1")
-    another_node = FooNode(id="2")
-    graph.add_node(node)
-    graph.add_node(another_node)
-    edge = Edge(source="1", sourceHandle="output", target="2", targetHandle="value")
-    graph.add_edge(edge.source, "output", edge.target, "value")
-    assert graph.edges[0].source == edge.source
-    assert graph.edges[0].sourceHandle == edge.sourceHandle
-    assert graph.edges[0].target == edge.target
-    assert graph.edges[0].targetHandle == edge.targetHandle
-
-
-def test_add_edge_with_wrong_type(graph: Graph):
-    node = NumberNode(id="1")
-    another_node = FooNode(id="2")
-    graph.add_node(node)
-    graph.add_node(another_node)
-    edge = Edge(source="1", sourceHandle="output", target="2", targetHandle="value")
-    with pytest.raises(ValueError):
-        graph.add_edge(edge.source, "output", edge.target, "value")
-
-
-def test_find_input_edge(graph: Graph):
-    node = FooNode(id="1")
-    another_node = FooNode(id="2")
-    graph.add_node(node)
-    graph.add_node(another_node)
-    edge = Edge(source="1", sourceHandle="output", target="2", targetHandle="value")
-    graph.add_edge(edge.source, "output", edge.target, "value")
-    found_edge = graph.find_input_edge("2", "value")
-    assert found_edge is not None
-    assert found_edge.source == edge.source
-    assert found_edge.sourceHandle == edge.sourceHandle
-    assert found_edge.target == edge.target
-    assert found_edge.targetHandle == edge.targetHandle
 
 
 def test_topological_sort_empty_graph(graph):
@@ -86,7 +36,7 @@ def test_topological_sort_empty_graph(graph):
 
 def test_topological_sort_single_node(graph):
     node = GenflowNode(id="1")
-    graph.add_node(node)
+    graph.nodes = [node]
     sorted_nodes = topological_sort(graph.edges, graph.nodes)
     assert sorted_nodes == [
         ["1"],
@@ -115,13 +65,21 @@ def test_topological_sort(graph: Graph):
     node2 = FooNode(id="2")
     node3 = FooNode(id="3")
 
-    graph.add_node(node1)
-    graph.add_node(node2)
-    graph.add_node(node3)
-
-    graph.add_edge(node1.id, "output", node2.id, "value")
-    graph.add_edge(node2.id, "output", node3.id, "value")
-
+    graph.nodes = [node1, node2, node3]
+    graph.edges = [
+        Edge(
+            source=node1.id,
+            sourceHandle="output",
+            target=node2.id,
+            targetHandle="value",
+        ),
+        Edge(
+            source=node2.id,
+            sourceHandle="output",
+            target=node3.id,
+            targetHandle="value",
+        ),
+    ]
     sorted_nodes = topological_sort(graph.edges, graph.nodes)
 
     assert sorted_nodes == [
@@ -165,30 +123,65 @@ def test_topological_sort_2(graph: Graph):
 
 
 def test_topological_sort_complex_graph(graph: Graph):
-    node1 = FooNode(id="1")
-    node2 = FooNode(id="2")
-    node3 = FooNode(id="3")
-    node4 = FooNode(id="4")
-    node5 = FooNode(id="5")
-    node6 = FooNode(id="6")
-    node7 = FooNode(id="7")
-
-    graph.add_node(node1)
-    graph.add_node(node2)
-    graph.add_node(node3)
-    graph.add_node(node4)
-    graph.add_node(node5)
-    graph.add_node(node6)
-    graph.add_node(node7)
-
-    graph.add_edge(node1.id, "output", node2.id, "value")
-    graph.add_edge(node1.id, "output", node3.id, "value")
-    graph.add_edge(node2.id, "output", node4.id, "value")
-    graph.add_edge(node2.id, "output", node5.id, "value")
-    graph.add_edge(node3.id, "output", node6.id, "value")
-    graph.add_edge(node3.id, "output", node7.id, "value")
-    graph.add_edge(node4.id, "output", node5.id, "value")
-    graph.add_edge(node6.id, "output", node7.id, "value")
+    graph.nodes = [
+        FooNode(id="1"),
+        FooNode(id="2"),
+        FooNode(id="3"),
+        FooNode(id="4"),
+        FooNode(id="5"),
+        FooNode(id="6"),
+        FooNode(id="7"),
+    ]
+    graph.edges = [
+        Edge(
+            source="1",
+            sourceHandle="output",
+            target="2",
+            targetHandle="value",
+        ),
+        Edge(
+            source="1",
+            sourceHandle="output",
+            target="3",
+            targetHandle="value",
+        ),
+        Edge(
+            source="2",
+            sourceHandle="output",
+            target="4",
+            targetHandle="value",
+        ),
+        Edge(
+            source="2",
+            sourceHandle="output",
+            target="5",
+            targetHandle="value",
+        ),
+        Edge(
+            source="3",
+            sourceHandle="output",
+            target="6",
+            targetHandle="value",
+        ),
+        Edge(
+            source="3",
+            sourceHandle="output",
+            target="7",
+            targetHandle="value",
+        ),
+        Edge(
+            source="4",
+            sourceHandle="output",
+            target="5",
+            targetHandle="value",
+        ),
+        Edge(
+            source="6",
+            sourceHandle="output",
+            target="7",
+            targetHandle="value",
+        ),
+    ]
 
     sorted_nodes = topological_sort(graph.edges, graph.nodes)
 
@@ -201,20 +194,17 @@ def test_topological_sort_complex_graph(graph: Graph):
 
 
 def test_json_schema(graph: Graph):
-    a = TestInputNode(id="1", name="a")
-    b = TestInputNode(id="2", name="b")
+    a = TestInputNode(id="1", name="a", description="Test input node")
+    b = TestInputNode(id="2", name="b", description="Test input node")
 
-    graph.add_node(a)
-    graph.add_node(b)
+    graph.nodes = [a, b]
 
     json_schema = graph.get_json_schema()
 
     assert json_schema == {
         "type": "object",
         "properties": {
-            "1": {
-                "type": "string",
-            },
-            "2": {"type": "string"},
+            "a": {"type": "string", "description": "Test input node"},
+            "b": {"type": "string", "description": "Test input node"},
         },
     }, "Should return JSON schema for graph"
