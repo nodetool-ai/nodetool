@@ -17,7 +17,6 @@ from . import (
     node,
     storage,
     workflow,
-    chat,
     model,
 )
 
@@ -55,8 +54,6 @@ def create_app(
     )
     for router in routers:
         app.include_router(router)
-
-    app.websocket("/ws")(chat.websocket_endpoint)
 
     if not Environment.is_production():
 

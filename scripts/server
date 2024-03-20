@@ -2,4 +2,4 @@
 
 export PYTHONPATH=$PYTHONPATH:src
 
-python -m genflow.cli serve
+python -m genflow.cli serve $@

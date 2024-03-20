@@ -39,7 +39,6 @@ class Workflow(DBModel):
     description: str | None = DBField(default="")
     thumbnail: str | None = DBField(default=None)
     graph: dict = DBField(default_factory=dict)
-    workflow_type: str | None = DBField(default=None)
 
     def before_save(self):
         self.updated_at = datetime.now()

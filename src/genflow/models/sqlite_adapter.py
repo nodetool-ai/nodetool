@@ -246,7 +246,8 @@ class SQLiteAdapter(DatabaseAdapter):
 
     def get(self, key: Any) -> Dict[str, Any] | None:
         primary_key = self.get_primary_key()
-        query = f"SELECT * FROM {self.table_name} WHERE {primary_key} = ?"
+        cols = ", ".join(self.fields.keys())
+        query = f"SELECT {cols} FROM {self.table_name} WHERE {primary_key} = ?"
         cursor = self.connection.execute(query, (key,))
         item = cursor.fetchone()
         if item is None:
@@ -277,7 +278,8 @@ class SQLiteAdapter(DatabaseAdapter):
         if start_key:
             condition += f" AND {pk} > :start_key"
             values_without_prefix["start_key"] = start_key
-        query = f"SELECT * FROM {self.table_name} WHERE {condition} ORDER BY {order_by} LIMIT {limit}"
+        cols = ", ".join(self.fields.keys())
+        query = f"SELECT {cols} FROM {self.table_name} WHERE {condition} ORDER BY {order_by} LIMIT {limit}"
         cursor = self.connection.execute(query, values_without_prefix)
         res = [
             convert_from_sqlite_attributes(dict(row), self.fields)  # type: ignore

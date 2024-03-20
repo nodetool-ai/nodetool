@@ -7,6 +7,7 @@ from genflow.api.types.workflow import WorkflowList, Workflow, WorkflowRequest
 from genflow.api.utils import current_user, User
 from genflow.common.environment import Environment
 from typing import Optional
+from genflow.workflows.examples import get_examples
 from genflow.workflows.read_graph import read_graph
 from genflow.models.workflow import Workflow as WorkflowModel
 
@@ -15,7 +16,6 @@ log = Environment.get_logger()
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
 
-# Endpoint to create a new workflow
 @router.post("/")
 async def create(
     workflow_request: WorkflowRequest, user: User = Depends(current_user)
@@ -50,7 +50,6 @@ async def create(
         raise HTTPException(status_code=400, detail="Invalid workflow")
 
 
-# Endpoint to retrieve all workflows
 @router.get("/")
 async def index(
     user: User = Depends(current_user),
@@ -64,7 +63,6 @@ async def index(
     return WorkflowList(workflows=workflows, next=cursor)
 
 
-# Endpoint to retrieve public workflows
 @router.get("/public")
 async def public(limit: int = 100, cursor: Optional[str] = None) -> WorkflowList:
     workflows, cursor = WorkflowModel.paginate(limit=limit, start_key=cursor)
@@ -72,7 +70,22 @@ async def public(limit: int = 100, cursor: Optional[str] = None) -> WorkflowList
     return WorkflowList(workflows=workflows, next=cursor)
 
 
-# Endpoint to retrieve a specific workflow by ID
+@router.get("/user/{user_id}")
+async def user_workflows(
+    user_id: str, limit: int = 100, cursor: Optional[str] = None
+) -> WorkflowList:
+    workflows, cursor = WorkflowModel.paginate(
+        user_id=user_id, limit=limit, start_key=cursor
+    )
+    workflows = [Workflow.from_model(workflow) for workflow in workflows]
+    return WorkflowList(workflows=workflows, next=cursor)
+
+
+@router.get("/examples")
+async def examples() -> WorkflowList:
+    return WorkflowList(workflows=get_examples(), next=None)
+
+
 @router.get("/{id}")
 async def get_workflow(id: str, user: User = Depends(current_user)) -> Workflow:
     workflow = WorkflowModel.get(id)
@@ -83,7 +96,6 @@ async def get_workflow(id: str, user: User = Depends(current_user)) -> Workflow:
     return Workflow.from_model(workflow)
 
 
-# Endpoint to update a specific workflow by ID
 @router.put("/{id}")
 async def update_workflow(
     id: str,

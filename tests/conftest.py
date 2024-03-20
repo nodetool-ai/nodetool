@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 import pytest
 import genflow.api.auth
 import genflow.api.asset
-import genflow.api.chat
 import genflow.api.types.graph
 import genflow.api.prediction
 import genflow.api.job
@@ -149,7 +148,6 @@ def client():
     app.include_router(genflow.api.job.router)
     app.include_router(genflow.api.node.router)
     app.include_router(genflow.api.workflow.router)
-    app.websocket("/ws")(genflow.api.chat.websocket_endpoint)
 
     return TestClient(app)
 

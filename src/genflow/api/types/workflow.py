@@ -12,7 +12,6 @@ class Workflow(BaseModel):
     access: str
     created_at: str
     updated_at: str
-    workflow_type: str | None = "workflow"
     name: str
     description: str
     thumbnail: str | None = None
@@ -32,7 +31,6 @@ class Workflow(BaseModel):
         return cls(
             id=workflow.id,
             access=workflow.access,
-            workflow_type=workflow.workflow_type,
             created_at=workflow.created_at.isoformat(),
             updated_at=workflow.updated_at.isoformat(),
             name=workflow.name,
