@@ -50,4 +50,14 @@ def get_examples() -> list[Workflow]:
             thumbnail_url="/examples/lora.png",
             graph=load_example("lora"),
         ),
+        Workflow(
+            id="ipadapter_15",
+            access="private",
+            created_at="2021-01-01T00:00:00",
+            updated_at="2021-01-01T00:00:00",
+            name="IPAdapter",
+            description="Comfy workflow for applying IPAdapter to models",
+            thumbnail_url="/examples/ip_adapter.png",
+            graph=load_example("ipadapter_15"),
+        ),
     ]

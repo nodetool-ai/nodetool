@@ -12,6 +12,7 @@ from openapi_pydantic.v3 import (
     Schema,
     Reference,
 )
+from openapi_pydantic.v3.parser import OpenAPIv3
 from importlib import import_module
 from enum import Enum
 from pydantic import BaseModel, Field, create_model
@@ -418,13 +419,15 @@ def create_model_from_schema(
     return create_model(model_name, __base__=base, __module__=module, **fields)
 
 
-def get_model_api(model_id: str, model_version: str):
+def get_model_api(
+    model_id: str, model_version: str | None = None
+) -> tuple[OpenAPIv3, str, str]:
     """
     Retrieves the API specification for a specific model and version from the Replicate API.
 
     Args:
         model_id (str): The ID of the model.
-        model_version (str): The version of the model.
+        model_version (str, optional): The version of the model. Defaults to None.
 
     Returns:
         OpenAPIv3: The API specification
@@ -432,7 +435,7 @@ def get_model_api(model_id: str, model_version: str):
     model_name = model_id.replace("/", "_").replace("-", "_").replace(".", "_")
     try:
         mod = import_module(f"genflow.nodes.replicate.models.{model_name}")
-        return parse_obj(mod.schema)
+        return parse_obj(mod.schema), mod.model_id, mod.model_version
     except ImportError as e:
         print(e)
 
@@ -443,26 +446,41 @@ def get_model_api(model_id: str, model_version: str):
             "Authorization": "Token " + Environment.get_replicate_api_token(),
         }
 
-        log.info("Getting model API: %s:%s", model_id, model_version)
+        log.info("Getting model API: %s", model_id)
 
-        url = f"https://api.replicate.com/v1/models/{model_id}/versions/{model_version}"
-        res = httpx.get(url, headers=headers).json()
-        api = parse_obj(res["openapi_schema"])
+        if model_version is None:
+            url = f"https://api.replicate.com/v1/models/{model_id}/versions"
+            res = httpx.get(url, headers=headers)
+            res.raise_for_status()
+            data = res.json()
+            schema = data["results"][0]["openapi_schema"]
+            api = parse_obj(schema)
+            model_version = data["results"][0]["id"]
+            assert model_version, "Model version not found"
+        else:
+            url = f"https://api.replicate.com/v1/models/{model_id}/versions/{model_version}"
+            res = httpx.get(url, headers=headers)
+            res.raise_for_status()
+            data = res.json()
+            schema = data["openapi_schema"]
+            api = parse_obj(schema)
 
         # Save the API specification to the cache file
         cache_file = os.path.join(model_cache_folder, f"{model_name}.py")
         with open(cache_file, "w", encoding="utf-8") as f:
-            f.write(f"schema = {res['openapi_schema']}")
+            f.write(f"schema = {schema}\n")
+            f.write(f"model_id = '{model_id}'\n")
+            f.write(f"model_version = '{model_version}'\n")
 
-        return api
+        return api, model_id, model_version
 
 
 def replicate_node(
     node_name: str,
     namespace: str,
     model_id: str,
-    model_version: str,
     return_type: Type,
+    model_version: str | None = None,
     overrides: dict[str, tuple[type, Any]] = {},  # type: ignore
     skip: list[str] = [],
 ) -> type[ReplicateNode]:
@@ -475,7 +493,7 @@ def replicate_node(
         node_name (str): The name of the node.
         namespace (str): The namespace of the node.
         model_id (str): The ID of the model on replicate.
-        model_version (str): The version of the model.
+        model_version (str, optional): The version of the model. Defaults to None.
         overrides (dict[str, type]): A dictionary of overrides for the node fields.
         process (Callable[[Node, ProcessingContext], Any]): A callable function for processing the node.
 
@@ -488,7 +506,7 @@ def replicate_node(
 
     type_lookup = {}
 
-    api = get_model_api(model_id, model_version)
+    api, model_id, model_version = get_model_api(model_id, model_version)
 
     assert api.components
     assert api.components.schemas
@@ -508,7 +526,7 @@ def replicate_node(
         ):
             continue
 
-        if hasattr(schema, "enum"):
+        if hasattr(schema, "enum") and schema.enum is not None:  # type: ignore
             model = create_enum_from_schema(name, schema)  # type: ignore
             type_lookup[f"#/components/schemas/{name}"] = model
 
@@ -543,7 +561,6 @@ replicate_node(
     node_name="AdInpaintNode",
     namespace="replicate.image.generate",
     model_id="logerzhu/ad-inpaint",
-    model_version="b1c17d148455c1fda435ababe9ab1e03bc0d917cc3cf4251916f22c45c83c7df",
     return_type=ImageRef,
     overrides={
         "image_path": (
@@ -554,10 +571,26 @@ replicate_node(
 )
 
 replicate_node(
+    model_id="lucataco/proteus-v0.4",
+    node_name="ProteusNode",
+    namespace="replicate.image.generate",
+    return_type=ImageRef,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to process"),
+        ),
+        "mask": (
+            ImageRef,
+            Field(ImageRef(), description="mask to apply"),
+        ),
+    },
+)
+
+replicate_node(
     node_name="SDXLClipInterrogatorNode",
     namespace="replicate.image.analyze",
     model_id="lucataco/sdxl-clip-interrogator",
-    model_version="d90ed1292165dbad1fc3fc8ce26c3a695d6a211de00e2bb5f5fec4815ea30e4c",
     return_type=str,
     overrides={
         "image": (
@@ -568,10 +601,88 @@ replicate_node(
 )
 
 replicate_node(
+    model_id="lucataco/moondream2",
+    namespace="replicate.image.analyze",
+    node_name="Moondream2Node",
+    return_type=str,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to analyze"),
+        ),
+    },
+)
+
+replicate_node(
+    model_id="abiruyt/text-extract-ocr",
+    node_name="TextExtractOCRNode",
+    namespace="replicate.image.ocr",
+    return_type=str,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to process"),
+        ),
+    },
+)
+
+replicate_node(
+    model_id="mickeybeurskens/latex-ocr",
+    node_name="LatexOCRNode",
+    namespace="replicate.image.ocr",
+    return_type=str,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to process"),
+        ),
+    },
+)
+
+replicate_node(
+    model_id="fofr/face-to-many",
+    node_name="FaceToManyNode",
+    namespace="replicate.image.face",
+    return_type=ImageRef,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to process"),
+        ),
+    },
+)
+
+replicate_node(
+    model_id="tencentarc/photomaker",
+    node_name="PhotoMakerNode",
+    namespace="replicate.image.face",
+    return_type=ImageRef,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to process"),
+        ),
+    },
+)
+
+replicate_node(
+    model_id="fofr/face-to-sticker",
+    node_name="FaceToStickerNode",
+    namespace="replicate.image.face",
+    return_type=ImageRef,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to process"),
+        ),
+    },
+)
+
+
+replicate_node(
     node_name="Blip2Node",
     namespace="replicate.image.analyze",
     model_id="andreasjansson/blip-2",
-    model_version="4b32258c42e9efd4288bb9910bc532a69727f9acd26aa08e175713a0a857a608",
     return_type=str,
     overrides={
         "image": (
@@ -585,7 +696,6 @@ replicate_node(
     node_name="Llava13bNode",
     namespace="replicate.image.analyze",
     model_id="yorickvp/llava-13b",
-    model_version="2facb4a474a0462c15041b78b1ad70952ea46b5ec6ad29583c0b29dbd4249591",
     return_type=str,
     overrides={
         "image": (
@@ -599,7 +709,19 @@ replicate_node(
     node_name="RealEsrGanNode",
     namespace="replicate.image.upscale",
     model_id="nightmareai/real-esrgan",
-    model_version="42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
+    return_type=ImageRef,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to enhance"),
+        ),
+    },
+)
+
+replicate_node(
+    node_name="Maxim",
+    model_id="google-research/maxim",
+    namespace="replicate.image.enhance",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -613,7 +735,6 @@ replicate_node(
     node_name="SwinIRNode",
     namespace="replicate.image.upscale",
     model_id="jingyunliang/swinir",
-    model_version="660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -624,10 +745,54 @@ replicate_node(
 )
 
 replicate_node(
+    node_name="BecomeImageNode",
+    namespace="replicate.image.generate",
+    model_id="fofr/become-image",
+    return_type=ImageRef,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to transform"),
+        ),
+        "image_to_become": (
+            ImageRef,
+            Field(ImageRef(), description="image to become"),
+        ),
+    },
+)
+
+replicate_node(
+    model_id="lucataco/sdxl-inpainting",
+    node_name="StableDiffusionInpaintingNode",
+    namespace="replicate.image.generate",
+    return_type=ImageRef,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to inpaint"),
+        ),
+    },
+)
+
+replicate_node(
+    model_id="lucataco/juggernaut-xl-v9",
+    node_name="JuggernautXLV9Node",
+    namespace="replicate.image.generate",
+    return_type=ImageRef,
+)
+
+replicate_node(
+    model_id="lucataco/dreamshaper-xl-lightning",
+    node_name="DreamshaperXLLightningNode",
+    namespace="replicate.image.generate",
+    return_type=ImageRef,
+)
+
+
+replicate_node(
     node_name="OldPhotosRestorationNode",
     namespace="replicate.image.enhance",
     model_id="microsoft/bringing-old-photos-back-to-life",
-    model_version="c75db81db6cbd809d93cc3b7e7a088a351a3349c9fa02b6d393e35e0d51ba799",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -641,7 +806,6 @@ replicate_node(
     node_name="KandinskyNode",
     namespace="replicate.image.generate",
     model_id="ai-forever/kandinsky-2.2",
-    model_version="ea1addaab376f4dc227f5368bbd8eff901820fd1cc14ed8cad63b29249e9d463",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -652,27 +816,17 @@ replicate_node(
 )
 
 replicate_node(
-    node_name="StableDiffusionHighResolutionNode",
+    node_name="StableDiffusionXLLightningNode",
     namespace="replicate.image.generate",
-    model_id="cjwbw/stable-diffusion-high-resolution",
-    model_version="231e401da17b34aac8f8b3685f662f7fdad9ce1cf504ec0828ba4aac19f7882f",
+    model_id="lucataco/sdxl-lightning-4step",
     return_type=ImageRef,
-    overrides={
-        "image": (
-            ImageRef,
-            Field(
-                ImageRef(),
-                description="image for stable diffusion high resolution",
-            ),
-        ),
-    },
 )
+
 
 replicate_node(
     node_name="PlaygroundV2Node",
     namespace="replicate.image.generate",
     model_id="playgroundai/playground-v2-1024px-aesthetic",
-    model_version="42fe626e41cc811eaf02c94b892774839268ce1994ea778eba97103fe1ef51b8",
     return_type=ImageRef,
 )
 
@@ -680,7 +834,6 @@ replicate_node(
     node_name="HotshotXLNode",
     namespace="replicate.video.generate",
     model_id="lucataco/hotshot-xl",
-    model_version="b57dddff6ae2029be57eab3d17e0de5f1c83b822f0defd8ce49bee44d7b52ee6",
     return_type=VideoRef,
 )
 
@@ -688,7 +841,6 @@ replicate_node(
     node_name="AnimateDiffNode",
     namespace="replicate.video.generate",
     model_id="zsxkib/animate-diff",
-    model_version="269a616c8b0c2bbc12fc15fd51bb202b11e94ff0f7786c026aa905305c4ed9fb",
     return_type=VideoRef,
 )
 
@@ -696,7 +848,6 @@ replicate_node(
     node_name="ControlNetNode",
     namespace="replicate.image.generate",
     model_id="rossjillian/controlnet",
-    model_version="795433b19458d0f4fa172a7ccf93178d2adb1cb8ab2ad6c8fdc33fdbcd49f477",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -710,7 +861,6 @@ replicate_node(
     node_name="IllusionNode",
     namespace="replicate.image.generate",
     model_id="andreasjansson/illusion",
-    model_version="75d51a73fce3c00de31ed9ab4358c73e8fc0f627dc8ce975818e653317cb919b",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -721,10 +871,44 @@ replicate_node(
 )
 
 replicate_node(
+    model_id="daanelson/minigpt-4",
+    node_name="MiniGPT4Node",
+    namespace="replicate.text.generate",
+    return_type=str,
+)
+
+replicate_node(
+    model_id="yorickvp/llava-v1.6-34b",
+    node_name="Llava34BNode",
+    namespace="replicate.image.analyze",
+    return_type=str,
+)
+
+replicate_node(
+    model_id="lucataco/qwen-vl-chat",
+    node_name="QwenVLChatNode",
+    namespace="replicate.text.generate",
+    return_type=str,
+)
+
+replicate_node(
+    model_id="cjwbw/internlm-xcomposer",
+    node_name="InternLMXComposerNode",
+    namespace="replicate.text.generate",
+    return_type=str,
+)
+
+replicate_node(
+    model_id="yorickvp/llava-v1.6-mistral-7b",
+    node_name="LlavaMistral7BNode",
+    namespace="replicate.text.generate",
+    return_type=str,
+)
+
+replicate_node(
     node_name="MaterialStableDiffusionNode",
     namespace="replicate.image.generate",
     model_id="tommoore515/material_stable_diffusion",
-    model_version="3b5c0242f8925a4ab6c79b4c51e9b4ce6374e9b07b5e8461d89e692fd0faa449",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -738,15 +922,33 @@ replicate_node(
     node_name="LlamaEmbeddingsNode",
     namespace="replicate.text.embedding",
     model_id="andreasjansson/llama-2-13b-embeddings",
-    model_version="7115a4c65b86815e31412e53de1211c520164c190945a84c425b59dccbc47148",
     return_type=Tensor,
+)
+
+replicate_node(
+    node_name="Gemma7BNode",
+    namespace="replicate.text.generate",
+    model_id="google-deepmind/gemma-7b-it",
+    return_type=str,
+)
+
+replicate_node(
+    model_id="openai/whisper",
+    node_name="WhisperNode",
+    namespace="replicate.audio.transcribe",
+    return_type=AudioRef,
+    overrides={
+        "audio": (
+            AudioRef,
+            Field(AudioRef(), description="audio to analyze"),
+        ),
+    },
 )
 
 replicate_node(
     node_name="AudioSuperResolutionNode",
     namespace="replicate.audio.enhance",
     model_id="nateraw/audio-super-resolution",
-    model_version="9c3d3e39fb0cb6aea677264881d8073f835336137b39fdea4e94093319379535",
     return_type=AudioRef,
     overrides={
         "input_file": (
@@ -760,7 +962,6 @@ replicate_node(
     node_name="Fuyu8BNode",
     namespace="replicate.image.analyze",
     model_id="lucataco/fuyu-8b",
-    model_version="42f23bc876570a46f5a90737086fbc4c3f79dd11753a28eaa39544dd391815e9",
     return_type=str,
 )
 
@@ -768,7 +969,6 @@ replicate_node(
     node_name="LatentConsistencyModelNode",
     namespace="replicate.image.generate",
     model_id="luosiallen/latent-consistency-model",
-    model_version="553803fd018b3cf875a8bc774c99da9b33f36647badfd88a6eec90d61c5f62fc",
     skip=["num_images"],
     return_type=ImageRef,
     overrides={
@@ -783,7 +983,6 @@ replicate_node(
     node_name="RemoveBackgroundNode",
     namespace="replicate.image.process",
     model_id="cjwbw/rembg",
-    model_version="fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -797,7 +996,6 @@ replicate_node(
     node_name="ModNetNode",
     namespace="replicate.image.process",
     model_id="pollinations/modnet",
-    model_version="da7d45f3b836795f945f221fc0b01a6d3ab7f5e163f13208948ad436001e2255",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -807,25 +1005,11 @@ replicate_node(
     },
 )
 
-replicate_node(
-    node_name="T2IAdapterSDXLOpenPoseNode",
-    namespace="replicate.image.generate",
-    model_id="alaradirik/t2i-adapter-sdxl-openpose",
-    model_version="ff250494f7328552c64ee50ae3ed9b61e09ca18c7aa51f77ed187a3fb9ec9093",
-    return_type=ImageRef,
-    overrides={
-        "image": (
-            ImageRef,
-            Field(ImageRef(), description="image input"),
-        ),
-    },
-)
 
 replicate_node(
     node_name="CodeFormerNode",
     namespace="replicate.image.enhance",
     model_id="lucataco/codeformer",
-    model_version="78f2bab438ab0ffc85a68cdfd316a2ecd3994b5dd26aa6b3d203357b45e5eb1b",
     return_type=ImageRef,
     overrides={
         "image": (
@@ -839,7 +1023,6 @@ replicate_node(
     node_name="RealisticVoiceCloningNode",
     namespace="replicate.audio.generate",
     model_id="zsxkib/realistic-voice-cloning",
-    model_version="0a9c7c558af4c0f20667c1bd1260ce32a2879944a0b9e44e1398660c077b1550",
     return_type=AudioRef,
     overrides={
         "song_input": (
@@ -850,24 +1033,9 @@ replicate_node(
 )
 
 replicate_node(
-    node_name="StableVideoDiffusionNode",
-    namespace="replicate.video.generate",
-    model_id="stability-ai/stable-video-diffusion",
-    model_version="3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438",
-    return_type=VideoRef,
-    overrides={
-        "input_image": (
-            ImageRef,
-            Field(ImageRef(), description="image input"),
-        ),
-    },
-)
-
-replicate_node(
     node_name="VideoLlavaNode",
     namespace="replicate.video.analyze",
     model_id="nateraw/video-llava",
-    model_version="a494250c04691c458f57f2f8ef5785f25bc851e0c91fd349995081d4362322dd",
     return_type=str,
     overrides={
         "video_path": (
@@ -885,7 +1053,6 @@ replicate_node(
     node_name="Yi34BChatNode",
     namespace="replicate.text.generate",
     model_id="01-ai/yi-34b-chat",
-    model_version="914692bbe8a8e2b91a4e44203e70d170c9c5ccc1359b283c84b0ec8d47819a46",
     return_type=str,
 )
 
@@ -923,6 +1090,5 @@ replicate_node(
     node_name="Mixtral8X7BInstructNode",
     namespace="replicate.text.generate",
     model_id="mistralai/mixtral-8x7b-instruct-v0.1",
-    model_version="2b56576fcfbe32fa0526897d8385dd3fb3d36ba6fd0dbe033c72886b81ade93e",
     return_type=str,
 )
