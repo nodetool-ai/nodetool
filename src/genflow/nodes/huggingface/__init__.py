@@ -81,7 +81,6 @@ async def run_huggingface(
                 else:
                     if response.headers.get("content-type") == "application/json":
                         result = response.json()
-                        prediction.output = result
                     else:
                         result = response.content
                     break

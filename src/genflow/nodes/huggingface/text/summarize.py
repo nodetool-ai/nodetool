@@ -17,12 +17,13 @@ class Summarize(HuggingfaceNode):
         description="The model ID to use for the summarization",
     )
     inputs: str = Field(
+        default="",
         title="Inputs",
         description="The input text to the model",
     )
 
     async def process(self, context: ProcessingContext) -> str:
         result = await self.run_huggingface(
-            model_id=self.model, context=context, params={"inputs": self.inputs}
+            model_id=self.model.value, context=context, params={"inputs": self.inputs}
         )
         return result[0]["summary_text"]  # type: ignore

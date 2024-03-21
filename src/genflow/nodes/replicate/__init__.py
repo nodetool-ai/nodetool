@@ -600,6 +600,7 @@ replicate_node(
     },
 )
 
+
 replicate_node(
     model_id="lucataco/moondream2",
     namespace="replicate.image.analyze",
@@ -788,6 +789,12 @@ replicate_node(
     return_type=ImageRef,
 )
 
+replicate_node(
+    node_name="RealVisXLV3Node",
+    namespace="replicate.image.generate",
+    model_id="fofr/realvisxl-v3-multi-controlnet-lora",
+    return_type=ImageRef,
+)
 
 replicate_node(
     node_name="OldPhotosRestorationNode",

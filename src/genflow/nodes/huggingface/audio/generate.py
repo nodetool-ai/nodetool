@@ -24,7 +24,40 @@ class TextToSpeech(HuggingfaceNode):
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         result = await self.run_huggingface(
-            model_id=self.model, context=context, params={"inputs": self.inputs}
+            model_id=self.model.value, context=context, params={"inputs": self.inputs}
+        )
+        audio = await context.audio_from_bytes(result)  # type: ignore
+        return audio
+
+
+class TextToAudioModel(str, Enum):
+    MUSICGEN_SMALL = "facebook/musicgen-small"
+    MUSICGEN_MEDIUM = "facebook/musicgen-medium"
+    MUSICGEN_LARGE = "facebook/musicgen-large"
+    MUSICGEN_MELODY = "facebook/musicgen-melody"
+    MUSICGEN_STEREO_SMALL = "facebook/musicgen-stereo-small"
+    MUSICGEN_STEREO_LARGE = "facebook/musicgen-stereo-large"
+
+
+class TextToAudio(HuggingfaceNode):
+    model: TextToAudioModel = Field(
+        default=TextToAudioModel.MUSICGEN_SMALL,
+        title="Model ID on Huggingface",
+        description="The model ID to use for the audio generation",
+    )
+    inputs: str = Field(
+        default="",
+        title="Inputs",
+        description="The input text to the model",
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        result = await self.run_huggingface(
+            model_id=self.model.value,
+            context=context,
+            params={
+                "inputs": self.inputs,
+            },
         )
         audio = await context.audio_from_bytes(result)  # type: ignore
         return audio
