@@ -32,7 +32,7 @@ def convert_to_sqlite_format(
         _type = next(t for t in get_args(py_type) if t is not type(None))
         return convert_to_sqlite_format(value, _type)
 
-    if py_type is str:
+    if py_type in (str, int, float):
         return value
     elif py_type is set or origin is set:
         return json.dumps(list(value))
@@ -71,7 +71,7 @@ def convert_from_sqlite_format(value: Any, py_type: Type) -> Any:
         _type = next(t for t in get_args(py_type) if t is not type(None))
         return convert_from_sqlite_format(value, _type)
 
-    if py_type is str:
+    if py_type in (str, int, float):
         return value
     elif py_type is Any:
         return json.loads(value)
@@ -190,6 +190,7 @@ class SQLiteAdapter(DatabaseAdapter):
         self.table_name = table_schema["table_name"]
         self.table_schema = table_schema
         self.fields = fields
+        self.migrate_table()
 
     @property
     def connection(self):
@@ -211,10 +212,26 @@ class SQLiteAdapter(DatabaseAdapter):
                 return field_name
         raise Exception(f"Hash key not found for {self.table_name}")
 
-    def create_table(self) -> None:
+    def get_current_schema(self) -> set[str]:
+        """
+        Retrieves the current schema of the table from the database.
+        """
+        cursor = self.connection.execute(f"PRAGMA table_info({self.table_name})")
+        current_schema = {row[1] for row in cursor.fetchall()}
+        return current_schema
+
+    def get_desired_schema(self) -> set[str]:
+        """
+        Retrieves the desired schema based on the defined fields.
+        """
+        desired_schema = set(self.fields.keys())
+        return desired_schema
+
+    def create_table(self, suffix: str = "") -> None:
+        table_name = f"{self.table_name}{suffix}"
         fields = self.fields
         primary_key = self.get_primary_key()
-        sql = f"CREATE TABLE IF NOT EXISTS {self.table_name} ("
+        sql = f"CREATE TABLE IF NOT EXISTS {table_name} ("
         for field_name, field in fields.items():
             field_type = field.annotation
             sql += f"{field_name} {get_sqlite_type(field_type)}, "
@@ -225,11 +242,49 @@ class SQLiteAdapter(DatabaseAdapter):
             self.connection.commit()
         except sqlite3.Error as e:
             print(f"SQLite error during table creation: {e}")
-            raise
+            raise e
 
     def drop_table(self) -> None:
         sql = f"DROP TABLE IF EXISTS {self.table_name}"
         self.connection.execute(sql)
+        self.connection.commit()
+
+    def migrate_table(self) -> None:
+        """
+        Inspects the current schema of the database and migrates the table to the desired schema.
+        """
+        current_schema = self.get_current_schema()
+        desired_schema = self.get_desired_schema()
+
+        # Compare current and desired schemas
+        fields_to_add = desired_schema - current_schema
+        fields_to_remove = current_schema - desired_schema
+
+        # Alter table to add new fields
+        for field_name in fields_to_add:
+            field_type = get_sqlite_type(self.fields[field_name].annotation)
+            self.connection.execute(
+                f"ALTER TABLE {self.table_name} ADD COLUMN {field_name} {field_type}"
+            )
+
+        # Alter table to remove fields (SQLite doesn't support dropping columns directly)
+        if fields_to_remove:
+            # Create a new table with the desired schema
+            self.create_table(suffix="_new")
+
+            # Copy data from the old table to the new table
+            columns = ", ".join(desired_schema)
+            self.connection.execute(
+                f"INSERT INTO {self.table_name}_new ({columns}) SELECT {columns} FROM {self.table_name}"
+            )
+
+            self.connection.execute(f"DROP TABLE {self.table_name}")
+
+            # Rename the new table to the original table name
+            self.connection.execute(
+                f"ALTER TABLE {self.table_name}_new RENAME TO {self.table_name}"
+            )
+
         self.connection.commit()
 
     def save(self, item: Dict[str, Any]) -> None:

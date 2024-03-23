@@ -36,6 +36,7 @@ class Prediction(DBModel):
     started_at: datetime | None = DBField(default=None)
     completed_at: datetime | None = DBField(default=None)
     metrics: dict = DBField(default_factory=dict)
+    cost: float | None = DBField(default=None)
 
     @classmethod
     def create(
@@ -48,6 +49,7 @@ class Prediction(DBModel):
         workflow_id: str | None = None,
         status: str = "starting",
         input: dict[str, Any] = {},
+        cost: float | None = None,
     ):
         prediction = cls(
             id=create_time_ordered_uuid(),
@@ -59,6 +61,7 @@ class Prediction(DBModel):
             workflow_id=workflow_id,
             status=status,
             input=input,
+            cost=cost,
         )
         prediction.save()
         return prediction
