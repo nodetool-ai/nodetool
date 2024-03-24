@@ -42,6 +42,7 @@ replicate = "*"
 respx = "*"
 seaborn = "*"
 scikit-learn = "*"
+tiktoken = "*"
 uvicorn = { version = "*", extras = ["standard"] }
 validate_email = "*"
 websockets = "*"

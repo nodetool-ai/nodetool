@@ -1,4 +1,6 @@
 from enum import Enum
+import pydub
+from genflow.nodes.openai import calculate_cost
 from genflow.workflows.genflow_node import GenflowNode
 from typing import Literal
 from pydantic import Field
@@ -45,6 +47,15 @@ class CreateSpeech(GenflowNode):
             speed=self.speed,
             response_format="mp3",
         )
+        cost = calculate_cost(self.model.value, len(self.input), 0)
+
+        await context.create_prediction(
+            provider="openai",
+            node_id=self.id,
+            node_type=self.get_node_type(),
+            model=self.model.value,
+            cost=cost,
+        )
         segment = AudioSegment.from_mp3(BytesIO(res.content))
         audio = await context.audio_from_segment(segment)  # type: ignore
         return audio
@@ -67,9 +78,22 @@ class TranscribeNode(GenflowNode):
     )
 
     async def process(self, context: ProcessingContext) -> str:
-        audio = await context.to_io(self.audio)
+        audio_bytes = await context.to_io(self.audio)
+        audio: pydub.AudioSegment = pydub.AudioSegment.from_file(audio_bytes)
+        audio.duration_seconds
+        audio_bytes.seek(0)
         client = Environment.get_openai_client()
-        res = await client.audio.transcriptions.create(model="whisper-1", file=audio)
+        res = await client.audio.transcriptions.create(
+            model="whisper-1", file=audio_bytes
+        )
+        cost = calculate_cost("whisper-1", int(audio.duration_seconds))
+        await context.create_prediction(
+            provider="openai",
+            node_id=self.id,
+            node_type=self.get_node_type(),
+            model="whisper-1",
+            cost=cost,
+        )
         return res.text
 
 
@@ -86,9 +110,20 @@ class TranslateNode(GenflowNode):
     )
 
     async def process(self, context: ProcessingContext) -> str:
-        audio = await context.to_io(self.audio)
+        audio_bytes = await context.to_io(self.audio)
+        audio: pydub.AudioSegment = pydub.AudioSegment.from_file(audio_bytes)
+        audio.duration_seconds
+        audio_bytes.seek(0)
         client = Environment.get_openai_client()
         res = await client.audio.translations.create(
-            model="whisper-1", file=audio, temperature=self.temperature
+            model="whisper-1", file=audio_bytes, temperature=self.temperature
+        )
+        cost = calculate_cost("whisper-1", int(audio.duration_seconds))
+        await context.create_prediction(
+            provider="openai",
+            node_id=self.id,
+            node_type=self.get_node_type(),
+            model="whisper-1",
+            cost=cost,
         )
         return res.text

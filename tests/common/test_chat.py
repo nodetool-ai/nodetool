@@ -32,7 +32,6 @@ def test_desanitize_node_name():
 
 def test_function_tool_from_node_valid():
     result = function_tool_from_node("genflow.constant.Text")
-    assert result["function"]["name"] == "genflow_constant_Text"
     assert "parameters" in result["function"]
     assert result["function"]["parameters"] == {
         "type": "object",

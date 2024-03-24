@@ -1,7 +1,5 @@
-from typing import Optional, Any
+from typing import Optional
 from datetime import datetime
-import uuid
-from pydantic import BaseModel
 from genflow.models.base_model import DBModel, DBField, create_time_ordered_uuid
 
 
@@ -27,6 +25,7 @@ class Job(DBModel):
     finished_at: datetime | None = DBField(default=None)
     graph: dict = DBField(default_factory=dict)
     error: str | None = DBField(default=None)
+    cost: float | None = DBField(default=None)
 
     @classmethod
     def find(cls, user_id: str, job_id: str):

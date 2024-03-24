@@ -2,14 +2,16 @@ import numpy as np
 from genflow.metadata.types import Tensor
 from genflow.metadata.types import TextRef
 from genflow.common.environment import Environment
+from genflow.nodes.openai import (
+    calculate_cost_for_completion_usage,
+    calculate_cost_for_embedding_usage,
+)
 from genflow.workflows.genflow_node import GenflowNode
-from genflow.common.openai_helpers import GPTModel
+from genflow.nodes.openai import GPTModel
 from genflow.workflows.processing_context import ProcessingContext
-
 
 from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 from pydantic import Field
-
 
 from enum import Enum
 
@@ -51,6 +53,19 @@ class CreateEmbedding(GenflowNode):
             return Tensor.from_numpy(avg)
 
         res = await client.embeddings.create(input=input, model=self.model)
+
+        assert len(res.data) == 1
+
+        cost = calculate_cost_for_embedding_usage(self.model, res.usage)
+
+        await context.create_prediction(
+            provider="openai",
+            node_id=self.id,
+            node_type=self.get_node_type(),
+            model=self.model,
+            cost=cost,
+        )
+
         return Tensor(value=res.data[0].embedding)
 
 
@@ -108,6 +123,17 @@ class GPTNode(GenflowNode):
             frequency_penalty=self.frequency_penalty,
             response_format={"type": self.response_format.value},
         )
+        assert res.usage
+        cost = calculate_cost_for_completion_usage(self.model.value, res.usage)
+
+        await context.create_prediction(
+            provider="openai",
+            node_id=self.id,
+            node_type=self.get_node_type(),
+            model=self.model.value,
+            cost=cost,
+        )
+
         assert len(res.choices) > 0
         assert res.choices[0].message.content is not None
         return res.choices[0].message.content

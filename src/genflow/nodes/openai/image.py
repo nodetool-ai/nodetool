@@ -2,6 +2,7 @@ from base64 import b64decode
 import PIL.Image
 from io import BytesIO
 from genflow.common.environment import Environment
+from genflow.nodes.openai import calculate_cost
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.metadata.types import ImageRef
 from genflow.workflows.genflow_node import GenflowNode
@@ -14,10 +15,6 @@ from enum import Enum
 class CreateImageNode(GenflowNode):
     """
     This node generates images from textual descriptions using DALL-E, a technology by OpenAI.
-
-    First, you feed a textual description to the node. This description helps DALL-E understand what kind of image you want to produce. For example, you can describe a sunset or a rare animal – the node will generate an image accordingly.
-
-    The node allows you to set the size of the output image. This feature provides flexibility, enabling you to fit the image into different layouts. You can choose from three sizes: 1024x1024, 512x512, or 256x256 pixels.
 
     #### Applications
     - Generate custom graphics for presentations: Describe the scenario you need to visualize, and get the original image.
@@ -50,12 +47,24 @@ class CreateImageNode(GenflowNode):
     async def process(self, context: ProcessingContext) -> ImageRef:
         client = Environment.get_openai_client()
         image = await client.images.generate(
+            model="dalle-3",
             prompt=self.prompt,
             size=self.size.value,
             quality=self.quality.value,
             style=self.style.value,
             response_format="b64_json",
         )
+        model = f"dalle-3 {self.quality.value} {self.size.value}"
+        cost = calculate_cost(model, len(self.prompt), 0)
+
+        await context.create_prediction(
+            provider="openai",
+            node_id=self.id,
+            node_type=self.get_node_type(),
+            model=model,
+            cost=cost,
+        )
+
         assert len(image.data) > 0
         b64 = image.data[0].b64_json
         assert b64 is not None

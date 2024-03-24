@@ -1,8 +1,8 @@
-import json
 import os
 import httpx
 import asyncio
 import re
+from bs4 import BeautifulSoup
 
 from datetime import datetime
 from typing import Any, List, Optional, Type, Union, get_origin
@@ -35,12 +35,56 @@ current_folder = os.path.dirname(os.path.abspath(__file__))
 model_cache_folder = os.path.join(current_folder, "models")
 
 
+def calculate_llm_cost(model: str, input_tokens: int, output_tokens: int) -> float:
+    pricing = {
+        "meta/llama-2-70b": (0.65, 2.75),
+        "meta/llama-2-13b": (0.10, 0.50),
+        "meta/llama-2-7b": (0.05, 0.25),
+        "meta/llama-2-70b-chat": (0.65, 2.75),
+        "meta/llama-2-13b-chat": (0.10, 0.50),
+        "meta/llama-2-7b-chat": (0.05, 0.25),
+        "mistralai/mistral-7b-v0.1": (0.05, 0.25),
+        "mistralai/mistral-7b-instruct-v0.2": (0.05, 0.25),
+        "mistralai/mixtral-8x7b-instruct-v0.1": (0.30, 1.00),
+    }
+
+    if model not in pricing:
+        raise ValueError(f"Unsupported model: {model}")
+
+    input_cost_per_million, output_cost_per_million = pricing[model]
+
+    input_cost = input_tokens * input_cost_per_million / 1_000_000
+    output_cost = output_tokens * output_cost_per_million / 1_000_000
+
+    return input_cost + output_cost
+
+
+def calculate_price(hardware: str, duration: float):
+    pricing = {
+        "CPU": 0.000100,
+        "Nvidia T4 GPU": 0.000225,
+        "Nvidia A40 GPU": 0.000575,
+        "Nvidia A40 (Large) GPU": 0.000725,
+        "Nvidia A100 (40GB) GPU": 0.001150,
+        "Nvidia A100 (80GB) GPU": 0.001400,
+        "8x Nvidia A40 (Large) GPU": 0.005800,
+    }
+
+    if hardware in pricing:
+        price_per_second = pricing[hardware]
+        total_price = price_per_second * duration
+        return total_price
+    else:
+        return 0.0
+
+
 async def run_replicate(
     context: ProcessingContext,
     node_type: str,
     node_id: str,
     model_id: str,
     input_params: dict,
+    hardware: str,
 ):
     replicate = Environment.get_replicate_client()
 
@@ -73,38 +117,42 @@ async def run_replicate(
     )
 
     prediction = await context.create_prediction(
+        provider="replicate",
         model=f"{owner}/{name}",
         version=version_id,
         node_id=node_id,
         node_type=node_type,
-        workflow_id=context.workflow_id if context.workflow_id != "" else None,
     )
-
-    context.post_message(prediction)
 
     current_status = "starting"
 
-    for i in range(12 * 3600):
+    for i in range(1800):
         replicate_pred = replicate.predictions.get(replicate_pred.id)
+
+        print(replicate_pred)
 
         if replicate_pred.status != current_status:
             log.info(f"Prediction status: {replicate_pred.status}")
             current_status = replicate_pred.status
+
+        if replicate_pred.metrics:
+            predict_time = replicate_pred.metrics["predict_time"]
+            cost = calculate_price(hardware, predict_time)
+        else:
+            predict_time = 0
+            cost = 0
 
         await context.update_prediction(
             id=prediction.id,
             completed_at=datetime.now(),
             error=replicate_pred.error,
             status=replicate_pred.status,
-            metrics=replicate_pred.metrics,
             logs=replicate_pred.logs,
+            duration=predict_time,
+            cost=cost,
         )
 
-        if replicate_pred.status != "starting":
-            context.post_message(prediction)
-
         if replicate_pred.status in ("succeeded", "failed", "canceled"):
-            log.info(f"Prediction logs: {replicate_pred.logs}")
             return replicate_pred
 
         await asyncio.sleep(1)
@@ -165,6 +213,9 @@ class ReplicateNode(GenflowNode):
     def replicate_model_id(self) -> str:
         raise NotImplementedError()
 
+    def get_hardware(self) -> str:
+        return ""
+
     async def run_replicate(
         self, context: ProcessingContext, params: Optional[dict[(str, Any)]] = None
     ) -> ReplicatePrediction | None:
@@ -195,6 +246,7 @@ class ReplicateNode(GenflowNode):
             node_type=self.get_node_type(),
             model_id=self.replicate_model_id(),
             input_params=input_params,
+            hardware=self.get_hardware(),
         )
 
     async def extra_params(self, context: ProcessingContext) -> dict:
@@ -419,23 +471,47 @@ def create_model_from_schema(
     return create_model(model_name, __base__=base, __module__=module, **fields)
 
 
+def parse_model_info(url: str):
+    # Fetch the HTML content
+    response = httpx.get(url)
+    response.raise_for_status()
+    html_content = response.content
+
+    # Parse the HTML content with BeautifulSoup
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # Find the section titled "Run time and cost"
+    runtime_section = soup.find("div", {"id": "performance"})
+
+    if runtime_section:
+        # Extract the hardware information
+        hardware_info = runtime_section.find("p", string=lambda text: "hardware" in text.lower())  # type: ignore
+        if hardware_info:
+            match = re.search(
+                r"This model runs on (.+?) hardware", hardware_info.text.strip()
+            )
+            if match:
+                hardware = match.group(1)
+            else:
+                hardware = hardware_info.text.strip()
+        else:
+            hardware = "None"
+
+        return {"hardware": hardware}
+    else:
+        return {}
+
+
 def get_model_api(
     model_id: str, model_version: str | None = None
-) -> tuple[OpenAPIv3, str, str]:
+) -> tuple[OpenAPIv3, str, str, dict[str, Any]]:
     """
     Retrieves the API specification for a specific model and version from the Replicate API.
-
-    Args:
-        model_id (str): The ID of the model.
-        model_version (str, optional): The version of the model. Defaults to None.
-
-    Returns:
-        OpenAPIv3: The API specification
     """
     model_name = model_id.replace("/", "_").replace("-", "_").replace(".", "_")
     try:
         mod = import_module(f"genflow.nodes.replicate.models.{model_name}")
-        return parse_obj(mod.schema), mod.model_id, mod.model_version
+        return parse_obj(mod.schema), mod.model_id, mod.model_version, mod.model_info
     except ImportError as e:
         print(e)
 
@@ -448,9 +524,13 @@ def get_model_api(
 
         log.info("Getting model API: %s", model_id)
 
+        model_info = parse_model_info(f"https://replicate.com/{model_id}")
+
         if model_version is None:
-            url = f"https://api.replicate.com/v1/models/{model_id}/versions"
-            res = httpx.get(url, headers=headers)
+            res = httpx.get(
+                f"https://api.replicate.com/v1/models/{model_id}/versions",
+                headers=headers,
+            )
             res.raise_for_status()
             data = res.json()
             schema = data["results"][0]["openapi_schema"]
@@ -458,8 +538,10 @@ def get_model_api(
             model_version = data["results"][0]["id"]
             assert model_version, "Model version not found"
         else:
-            url = f"https://api.replicate.com/v1/models/{model_id}/versions/{model_version}"
-            res = httpx.get(url, headers=headers)
+            res = httpx.get(
+                f"https://api.replicate.com/v1/models/{model_id}/versions/{model_version}",
+                headers=headers,
+            )
             res.raise_for_status()
             data = res.json()
             schema = data["openapi_schema"]
@@ -471,8 +553,9 @@ def get_model_api(
             f.write(f"schema = {schema}\n")
             f.write(f"model_id = '{model_id}'\n")
             f.write(f"model_version = '{model_version}'\n")
+            f.write(f"model_info = {model_info}\n")
 
-        return api, model_id, model_version
+        return api, model_id, model_version, model_info
 
 
 def replicate_node(
@@ -506,7 +589,7 @@ def replicate_node(
 
     type_lookup = {}
 
-    api, model_id, model_version = get_model_api(model_id, model_version)
+    api, model_id, model_version, model_info = get_model_api(model_id, model_version)
 
     assert api.components
     assert api.components.schemas
@@ -546,6 +629,9 @@ def replicate_node(
     def ret_type(cls):
         return return_type
 
+    def get_hardware(cls):
+        return model_info.get("hardware", "None")
+
     # define method on the model class
     def replicate_model_id(self) -> str:
         return f"{model_id}:{model_version}"
@@ -553,6 +639,7 @@ def replicate_node(
     model.replicate_model_id = replicate_model_id  # type: ignore
     model.return_type = classmethod(ret_type)  # type: ignore
     model.get_namespace = classmethod(get_namespace)  # type: ignore
+    model.get_hardware = classmethod(get_hardware)  # type: ignore
 
     return model  # type: ignore
 
@@ -565,7 +652,7 @@ replicate_node(
     overrides={
         "image_path": (
             ImageRef,
-            Field(ImageRef(), description="Path to the image to inpaint"),
+            Field(ImageRef(), description="Image to inpaint"),
         ),
     },
 )
@@ -825,7 +912,7 @@ replicate_node(
 replicate_node(
     node_name="StableDiffusionXLLightningNode",
     namespace="replicate.image.generate",
-    model_id="lucataco/sdxl-lightning-4step",
+    model_id="bytedance/sdxl-lightning-4step",
     return_type=ImageRef,
 )
 
@@ -1057,13 +1144,6 @@ replicate_node(
 )
 
 replicate_node(
-    node_name="Yi34BChatNode",
-    namespace="replicate.text.generate",
-    model_id="01-ai/yi-34b-chat",
-    return_type=str,
-)
-
-replicate_node(
     node_name="StableDiffusionXLLCMControlnetNode",
     namespace="replicate.image.generate",
     model_id="fofr/sdxl-lcm-multi-controlnet-lora",
@@ -1092,10 +1172,28 @@ replicate_node(
         ),
     },
 )
+MODEL_VERSIONS = {}
 
-replicate_node(
-    node_name="Mixtral8X7BInstructNode",
-    namespace="replicate.text.generate",
-    model_id="mistralai/mixtral-8x7b-instruct-v0.1",
-    return_type=str,
-)
+
+def get_model_version(model: str) -> str:
+    version = MODEL_VERSIONS.get(model, None)
+    if version:
+        return version
+
+    headers = {
+        "Authorization": "Token " + Environment.get_replicate_api_token(),
+    }
+
+    res = httpx.get(
+        f"https://api.replicate.com/v1/models/{model}/versions",
+        headers=headers,
+    )
+    res.raise_for_status()
+    data = res.json()
+    model_version = data["results"][0]["id"]
+
+    assert model_version, "Model version not found"
+
+    MODEL_VERSIONS[model] = model_version
+
+    return model_version

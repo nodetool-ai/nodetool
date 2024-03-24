@@ -99,6 +99,7 @@ class ProcessingContext:
     capabilities: list[str]
     edges: list[Edge]
     nodes: list[GenflowNode]
+    cost: float = 0.0
     results: dict[str, Any]
     processed_nodes: set[str]
     message_queue: Queue | asyncio.Queue
@@ -230,7 +231,8 @@ class ProcessingContext:
         status: str | None = None,
         error: str | None = None,
         logs: str | None = None,
-        metrics: dict[str, Any] | None = None,
+        cost: float | None = None,
+        duration: float | None = None,
         completed_at: datetime | None = None,
     ) -> Prediction:
         """
@@ -246,11 +248,14 @@ class ProcessingContext:
                 pred.error = error
             if logs:
                 pred.logs = logs
-            if metrics:
-                pred.metrics = metrics
+            if duration:
+                pred.duration = duration
             if completed_at:
                 pred.completed_at = completed_at
-            return Prediction.from_model(pred)
+            if cost:
+                pred.cost = cost
+            pred.save()
+            ret = Prediction.from_model(pred)
         else:
             res = await self.api_client().put(
                 f"predictions/{id}",
@@ -258,47 +263,62 @@ class ProcessingContext:
                     "status": status,
                     "error": error,
                     "logs": logs,
-                    "metrics": metrics,
+                    "cost": cost,
+                    "duration": duration,
                     "completed_at": (
                         completed_at.isoformat() if completed_at else None
                     ),
                 },
             )
-            return Prediction(**res)
+            ret = Prediction(**res)
+        self.post_message(ret)
+        return ret
 
     async def create_prediction(
         self,
+        provider: str,
         node_id: str,
         node_type: str | None = None,
         model: str | None = None,
         version: str | None = None,
-        workflow_id: str | None = None,
         status: str | None = None,
+        cost: float | None = None,
+        hardware: str | None = None,
     ) -> Prediction:
+        if cost:
+            self.cost += cost
         if "db" in self.capabilities:
             pred = PredictionModel.create(
+                provider=provider,
                 user_id=self.user_id,
                 node_id=node_id,
                 node_type=node_type if node_type else "",
                 model=model if model else "",
                 version=version if version else "",
-                workflow_id=workflow_id if workflow_id else "",
+                workflow_id=self.workflow_id if self.workflow_id else "",
                 status=status if status else "",
+                cost=cost if cost else 0.0,
+                hardware=hardware if hardware else "",
             )
-            return Prediction.from_model(pred)
+            ret = Prediction.from_model(pred)
         else:
             res = await self.api_client().post(
                 "predictions/",
                 {
                     "node_id": node_id,
                     "node_type": node_type if node_type else "",
+                    "provider": provider,
                     "model": model if model else "",
-                    "workflow_id": workflow_id if workflow_id else "",
+                    "workflow_id": self.workflow_id if self.workflow_id else "",
                     "version": version if version else "",
                     "status": status if status else "",
+                    "cost": cost if cost else 0.0,
+                    "hardware": hardware if hardware else "",
                 },
             )
-            return Prediction(**res)
+            ret = Prediction(**res)
+        self.post_message(ret)
+        return ret
 
     async def paginate_assets(
         self,

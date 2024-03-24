@@ -39,14 +39,12 @@ async def run_huggingface(
     )
 
     prediction = await context.create_prediction(
+        provider="huggingface",
         model=model_id,
         version="",
         node_id=node_id,
         node_type=node_type,
-        workflow_id=context.workflow_id if context.workflow_id != "" else None,
     )
-
-    context.post_message(prediction)
 
     headers = {
         "Authorization": f"Bearer {Environment.get_huggingface_token()}",
@@ -91,8 +89,6 @@ async def run_huggingface(
                 completed_at=datetime.now(),
             )
 
-            context.post_message(prediction)
-
             return result
 
     except Exception as e:
@@ -103,7 +99,6 @@ async def run_huggingface(
             error=str(e),
             completed_at=datetime.now(),
         )
-        context.post_message(prediction)
         raise e
 
 

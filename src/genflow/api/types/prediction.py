@@ -14,13 +14,14 @@ class Prediction(BaseModel):
     user_id: str
     node_id: str
     workflow_id: str | None = None
+    provider: str | None = None
     model: str | None = None
     version: str | None = None
     node_type: str | None = None
     status: str
     logs: str | None = None
     error: str | None = None
-    metrics: dict[str, Any] | None = None
+    duration: float | None = None
     created_at: str | None = None
     started_at: str | None = None
     completed_at: str | None = None
@@ -33,11 +34,13 @@ class Prediction(BaseModel):
             node_id=prediction.node_id,
             workflow_id=prediction.workflow_id,
             node_type=prediction.node_type,
+            provider=prediction.provider,
+            model=prediction.model,
             version=prediction.version,
             status=prediction.status,
             logs=prediction.logs,
             error=prediction.error,
-            metrics=prediction.metrics,
+            duration=prediction.duration,
             created_at=(
                 prediction.created_at.isoformat() if prediction.created_at else None
             ),
@@ -65,3 +68,18 @@ class PredictionUpdateRequest(BaseModel):
     logs: str | None = None
     metrics: dict[str, Any] | None = None
     completed_at: str | None = None
+
+
+class PredictionCreateRequest(BaseModel):
+    """
+    The request body for creating a prediction.
+    """
+
+    node_id: str
+    node_type: str
+    provider: str
+    model: str
+    cost: float | None = None
+    version: str | None = None
+    workflow_id: str | None = None
+    status: str | None = None

@@ -3,6 +3,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from genflow.api.types.prediction import (
+    PredictionCreateRequest,
     PredictionUpdateRequest,
     Prediction,
     PredictionList,
@@ -12,7 +13,6 @@ from genflow.common.environment import Environment
 from typing import Optional
 from genflow.models.prediction import (
     Prediction as PredictionModel,
-    PredictionCreateRequest,
 )
 from genflow.models.workflow import Workflow
 
@@ -86,8 +86,9 @@ async def create(
     pred = PredictionModel.create(
         user_id=user.id,
         node_id=req.node_id,
-        node_type=req.node_type if req.node_type else "",
-        model=req.model if req.model else "",
+        node_type=req.node_type,
+        provider=req.provider,
+        model=req.model,
         workflow_id=req.workflow_id if req.workflow_id else "",
         status=req.status if req.status else "",
     )

@@ -135,6 +135,7 @@ async def run(
                     if isinstance(msg, WorkflowUpdate):
                         job.finished_at = datetime.now()
                         job.status = "completed"
+                        job.cost = context.cost
                         job.save()
                     if isinstance(msg, Error):
                         raise Exception(msg.error)
@@ -151,6 +152,7 @@ async def run(
             job.finished_at = datetime.now()
             job.status = "failed"
             job.error = str(e)[:256]
+            job.cost = context.cost
             job.save()
             yield json.dumps(
                 JobUpdate(status="failed", error=str(e)).model_dump()

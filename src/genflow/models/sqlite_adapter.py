@@ -190,16 +190,26 @@ class SQLiteAdapter(DatabaseAdapter):
         self.table_name = table_schema["table_name"]
         self.table_schema = table_schema
         self.fields = fields
-        self.migrate_table()
+        if self.table_exists():
+            self.migrate_table()
 
     @property
     def connection(self):
         if not hasattr(self, "_connection"):
-            self._connection = sqlite3.connect(self.db_path, timeout=30)
+            self._connection = sqlite3.connect(
+                self.db_path, timeout=30, check_same_thread=False
+            )
             self._connection.row_factory = sqlite3.Row
             self._connection.set_trace_callback(print)
 
         return self._connection
+
+    def table_exists(self) -> bool:
+        cursor = self.connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (self.table_name,),
+        )
+        return cursor.fetchone() is not None
 
     def get_primary_key(self) -> str:
         """
