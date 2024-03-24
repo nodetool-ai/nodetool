@@ -3,6 +3,11 @@ from genflow.workflows.genflow_node import GenflowNode
 
 
 class HTTPGet(GenflowNode):
+    """
+    Make a HTTP GET request to a URL.
+    http, get, request, url
+    """
+
     url: str = Field(
         default="",
         description="The URL to make the GET request to.",
@@ -14,6 +19,11 @@ class HTTPGet(GenflowNode):
 
 
 class HTTPPost(GenflowNode):
+    """
+    Make a HTTP POST request to a URL.
+    http, post, request, url
+    """
+
     url: str = Field(
         default="",
         description="The URL to make the POST request to.",
@@ -29,6 +39,11 @@ class HTTPPost(GenflowNode):
 
 
 class HTTPPut(GenflowNode):
+    """
+    Make a HTTP PUT request to a URL.
+    http, put, request, url
+    """
+
     url: str = Field(
         default="",
         description="The URL to make the PUT request to.",
@@ -41,9 +56,14 @@ class HTTPPut(GenflowNode):
     async def process(self, context) -> str:
         async with context.http_session.put(self.url, data=self.data) as response:
             return await response.text()
-        
+
 
 class HTTPDelete(GenflowNode):
+    """
+    Make a HTTP DELETE request to a URL.
+    http, delete, request, url
+    """
+
     url: str = Field(
         default="",
         description="The URL to make the DELETE request to.",
