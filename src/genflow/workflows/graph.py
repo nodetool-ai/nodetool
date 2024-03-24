@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from genflow.api.types.graph import Edge
 from genflow.workflows.genflow_node import InputNode, GenflowNode, OutputNode
 from genflow.metadata.types import TypeMetadata
+from genflow.workflows.genflow_node import get_node_class
 
 
 def any_type_in_union(union_type: TypeMetadata, other_type: TypeMetadata):

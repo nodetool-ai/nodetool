@@ -1,6 +1,5 @@
 from queue import Queue
 from genflow.common.environment import Environment
-from genflow.workflows.genflow_node import requires_capabilities_from_request
 from genflow.workflows.run_job_request import RunJobRequest
 
 import asyncio

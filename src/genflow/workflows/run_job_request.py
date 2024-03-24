@@ -15,4 +15,4 @@ class RunJobRequest(BaseModel):
     user_id: str = ""
     auth_token: str = ""
     env: dict[str, Any] | None = None
-    graph: Graph
+    graph: Graph | None = None

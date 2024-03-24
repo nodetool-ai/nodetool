@@ -163,24 +163,19 @@ def make_node(id, type: str, data: dict[str, Any]):
     return Node(id=id, type=type, data=data)
 
 
-def make_edge(id: str, source: Node, target: Node):
-    return Edge(
-        id=id,
-        source=source.id,
-        target=target.id,
-        sourceHandle="output",
-        targetHandle="input",
-    )
-
-
 @pytest.fixture(scope="function")
 def workflow(user: User):
     nodes = [
         make_node("1", "genflow.input.FloatInput", {"name": "in1", "value": 10}),
-        make_node("2", "genflow.math.Add", {}),
+        make_node("2", "genflow.math.Add", { "b": 1 }),
     ]
     edges = [
-        make_edge("1", nodes[0], nodes[1]),
+        Edge(
+            source=nodes[0].id,
+            target=nodes[1].id,
+            sourceHandle="output",
+            targetHandle="a",
+        ),
     ]
 
     yield Workflow.create(

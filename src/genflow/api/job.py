@@ -16,6 +16,7 @@ from genflow.workflows.run_job_request import RunJobRequest
 from genflow.common.environment import Environment
 
 from genflow.models.job import Job
+from genflow.models.workflow import Workflow
 from genflow.models.prediction import Prediction
 from genflow.api.types.prediction import Prediction as APIPrediction
 from genflow.workflows.types import Error, WorkflowUpdate
@@ -86,6 +87,14 @@ async def run(
     from genflow.workflows.processing_context import (
         ProcessingContext,
     )
+    if req.graph is None:
+        workflow = Workflow.find(user.id, req.workflow_id)
+        if workflow is None:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        else:
+            req.graph = workflow.get_api_graph()
+
+    assert req.graph is not None, "Graph is required"
 
     job = Job.create(
         job_type=req.job_type,

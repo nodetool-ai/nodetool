@@ -152,7 +152,7 @@ class AssetSchemaMixin:
         }
 
 
-class ImageInputNode(InputNode, AssetSchemaMixin):
+class ImageInputNode(AssetSchemaMixin, InputNode):
     """
     Represents an image parameter for the workflow.
     input, parameter, image
@@ -164,7 +164,7 @@ class ImageInputNode(InputNode, AssetSchemaMixin):
         return self.value
 
 
-class VideoInputNode(InputNode, AssetSchemaMixin):
+class VideoInputNode(AssetSchemaMixin, InputNode):
     """
     Represents a video parameter for the workflow.
     input, parameter, video
@@ -176,7 +176,7 @@ class VideoInputNode(InputNode, AssetSchemaMixin):
         return self.value
 
 
-class AudioInputNode(InputNode, AssetSchemaMixin):
+class AudioInputNode(AssetSchemaMixin, InputNode):
     """
     Represents an audio parameter for the workflow.
     input, parameter, audio
@@ -188,7 +188,7 @@ class AudioInputNode(InputNode, AssetSchemaMixin):
         return self.value
 
 
-class FolderNode(InputNode, AssetSchemaMixin):
+class FolderNode(AssetSchemaMixin, InputNode):
     """
     Represents a folder parameter for the workflow.
     input, parameter, folder
@@ -258,7 +258,7 @@ class TextFolderNode(FolderNode):
         return texts
 
 
-class ComfyInputImageNode(InputNode, AssetSchemaMixin):
+class ComfyInputImageNode(AssetSchemaMixin, InputNode):
     """
     Represents an image parameter for the workflow.
     input, parameter, image
