@@ -9,6 +9,11 @@ from genflow.workflows.processing_context import ProcessingContext
 
 
 class AgentNode(GenflowNode):
+    """
+    LLM Agent with access to workflows and nodes.
+    llm, language model, agent, chat, conversation
+    """
+
     system_prompt: str = Field(
         default="You are a helpful assistant.",
         description="The system prompt",

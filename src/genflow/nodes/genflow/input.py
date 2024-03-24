@@ -1,5 +1,5 @@
 from pydantic import Field
-from genflow.metadata.types import ImageTensor, Mask, Tensor
+from genflow.metadata.types import ImageTensor
 from genflow.metadata.types import asset_to_ref
 from genflow.models.asset import Asset
 from genflow.metadata.types import FolderRef
@@ -14,7 +14,8 @@ from genflow.metadata.types import VideoRef
 
 class FloatInputNode(InputNode):
     """
-    Input for float values.
+    Represents a float parameter for the workflow.
+    input, parameter, float, number
     """
 
     value: float = 0.0
@@ -36,7 +37,8 @@ class FloatInputNode(InputNode):
 
 class BoolInputNode(InputNode):
     """
-    Input for boolean values.
+    Represents a boolean parameter for the workflow.
+    input, parameter, boolean, bool
     """
 
     value: bool = False
@@ -54,7 +56,8 @@ class BoolInputNode(InputNode):
 
 class IntInputNode(InputNode):
     """
-    Input for integer values.
+    Represents an integer parameter for the workflow.
+    input, parameter, integer, number
     """
 
     value: int = 0
@@ -76,7 +79,8 @@ class IntInputNode(InputNode):
 
 class StringInputNode(InputNode):
     """
-    Input for string values.
+    Represents a string parameter for the workflow.
+    input, parameter, string, text
     """
 
     value: str = ""
@@ -94,7 +98,8 @@ class StringInputNode(InputNode):
 
 class ChatInputNode(InputNode):
     """
-    Input for chat messages.
+    Represents a chat message parameter for the workflow.
+    input, parameter, chat, message
     """
 
     value: str = ""
@@ -112,7 +117,8 @@ class ChatInputNode(InputNode):
 
 class TextInputNode(InputNode):
     """
-    Input for text values.
+    Represents a text parameter for the workflow.
+    input, parameter, text
     """
 
     value: TextRef = Field(TextRef(), description="The text to use as input.")
@@ -148,7 +154,8 @@ class AssetSchemaMixin:
 
 class ImageInputNode(InputNode, AssetSchemaMixin):
     """
-    Input for image values.
+    Represents an image parameter for the workflow.
+    input, parameter, image
     """
 
     value: ImageRef = Field(ImageRef(), description="The image to use as input.")
@@ -159,7 +166,8 @@ class ImageInputNode(InputNode, AssetSchemaMixin):
 
 class VideoInputNode(InputNode, AssetSchemaMixin):
     """
-    Input for video values.
+    Represents a video parameter for the workflow.
+    input, parameter, video
     """
 
     value: VideoRef = Field(VideoRef(), description="The video to use as input.")
@@ -170,7 +178,8 @@ class VideoInputNode(InputNode, AssetSchemaMixin):
 
 class AudioInputNode(InputNode, AssetSchemaMixin):
     """
-    Input for audio values.
+    Represents an audio parameter for the workflow.
+    input, parameter, audio
     """
 
     value: AudioRef = Field(AudioRef(), description="The audio to use as input.")
@@ -181,7 +190,8 @@ class AudioInputNode(InputNode, AssetSchemaMixin):
 
 class FolderNode(InputNode, AssetSchemaMixin):
     """
-    Input for folder values.
+    Represents a folder parameter for the workflow.
+    input, parameter, folder
     """
 
     folder: FolderRef = Field(FolderRef(), description="The folder to use as input.")
@@ -202,7 +212,8 @@ class FolderNode(InputNode, AssetSchemaMixin):
 
 class ImageFolderNode(FolderNode):
     """
-    Input for image folder values.
+    Represents an image folder parameter for the workflow.
+    input, parameter, folder, image
     """
 
     async def process(self, context: ProcessingContext) -> list[ImageRef]:
@@ -213,7 +224,8 @@ class ImageFolderNode(FolderNode):
 
 class AudioFolderNode(FolderNode):
     """
-    Input for audio folder values.
+    Repesents an audio folder parameter for the workflow.
+    input, parameter, folder, audio
     """
 
     async def process(self, context: ProcessingContext) -> list[AudioRef]:
@@ -224,7 +236,8 @@ class AudioFolderNode(FolderNode):
 
 class VideoFolderNode(FolderNode):
     """
-    Input for video folder values.
+    Represents a video folder parameter for the workflow.
+    input, parameter, folder, video
     """
 
     async def process(self, context: ProcessingContext) -> list[VideoRef]:
@@ -235,7 +248,8 @@ class VideoFolderNode(FolderNode):
 
 class TextFolderNode(FolderNode):
     """
-    Input for text folder values.
+    Represents a text folder parameter for the workflow.
+    input, parameter, folder, text
     """
 
     async def process(self, context: ProcessingContext) -> list[TextRef]:
@@ -246,7 +260,8 @@ class TextFolderNode(FolderNode):
 
 class ComfyInputImageNode(InputNode, AssetSchemaMixin):
     """
-    Input for comfy image values.
+    Represents an image parameter for the workflow.
+    input, parameter, image
     """
 
     value: ImageRef = Field(ImageRef(), description="The image to use as input.")

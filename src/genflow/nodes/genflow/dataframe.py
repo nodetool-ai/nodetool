@@ -17,48 +17,32 @@ from typing import Any, Literal
 from genflow.metadata.types import Dataset
 
 
-class CreateDataFrameNode(GenflowNode):
+class CreateNode(GenflowNode):
     """
-    ## CreateDataFrameNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that creates an empty dataframe.
-
-    #### Inputs
-    - `columns`: commas separated list of column names
-
-    #### Outputs
-    - Returns a new DataFrame with the specified columns.
+    Create an empty data frame.
+    csv, columns
+    Outputs a DataFrame object with the specified columns.
     """
 
-    columns: str = Field(title="Columns", default="")
+    columns: str = Field(
+        title="Columns", default="", description="comma separated list of column names"
+    )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         return DataFrame(columns=self.columns.split(","), data=[])
 
 
-class SaveDataFrameNode(GenflowNode):
+class SaveNode(GenflowNode):
     """
-    ## Save Data Frame Node
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that saves a DataFrame to a CSV file and uploads it to cloud storage.
-
-    #### Inputs
-    - value: DataFrame - the DataFrame to be saved
-    - name: str - the name of the file to be saved
-
-    #### Outputs
-    Returns the saved DataFrame.
+    Save data frame as a CSV file in a folder.
+    csv, folder
     """
 
     df: DataFrame = DataFrame()
     folder: FolderRef = Field(
         default=FolderRef(), description="Name of the output folder."
     )
-    name: str = ""
+    name: str = Field(default="output.csv", description="Name of the output file.")
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df = await context.to_pandas(self.df)
@@ -67,27 +51,16 @@ class SaveDataFrameNode(GenflowNode):
 
 class SelectColumnNode(GenflowNode):
     """
-    ## SelectColumnNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that selects specific columns from a dataframe.
-
-    #### Applications
-    - Data analysis
-    - Data manipulation
-    - Feature selection
-
-    ##### Inputs
-    - `dataframe`: DataFrame, a dataframe from which specific columns are to be selected.
-    - `columns`: comma separated list of column names
-
-    ##### Outputs
-    Returns a new DataFrame that includes only the selected columns.
+    Select specific columns from a dataframe.
+    dataframe, columns
+    Outputs a DataFrame object with only the selected columns.
     """
 
-    dataframe: DataFrame = Field(default_factory=DataFrame)
-    columns: str = Field("", description="columns to select")
+    dataframe: DataFrame = Field(
+        default_factory=DataFrame,
+        description="a dataframe from which columns are to be selected",
+    )
+    columns: str = Field("", description="comma separated list of column names")
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         columns = self.columns.split(",")
@@ -97,27 +70,17 @@ class SelectColumnNode(GenflowNode):
 
 class ColumnToListNode(GenflowNode):
     """
-    ## ColumnToListNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that converts a column in a dataframe to a list.
-
-    #### Applications
-    - Data manipulation and conversion
-    - Working with dataframes
-    - Condensing DataFrames to simpler list structures.
-
-    ##### Inputs
-    - `dataframe`:(DataFrame) The input dataframe.
-    - `column_name`: (str) The name of the column to be converted to a list.
-
-    ##### Outputs
-    - Returns a list of objects representing data of a specified column from the input dataframe.
+    Convert a column in a dataframe to a list.
+    dataframe, column
+    Outputs a list of values from the specified column in the input dataframe.
     """
 
-    dataframe: DataFrame = DataFrame()
-    column_name: str = ""
+    dataframe: DataFrame = Field(
+        default_factory=DataFrame, description="The input dataframe."
+    )
+    column_name: str = Field(
+        default="", description="The name of the column to be converted to a list."
+    )
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         df = await context.to_pandas(self.dataframe)
@@ -126,28 +89,23 @@ class ColumnToListNode(GenflowNode):
 
 class ListToColumnNode(GenflowNode):
     """
-    ## ListToColumnNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    This node converts a list of objects into a column in a dataframe.
-
-    #### Applications
-    - Data manipulation in dataframes
-    - Adding new data to existing dataframes
-
-    ##### Inputs
-    - `dataframe`: A DataFrame object to add a new column to.
-    - `column_name`: A string that defines the name of the new column.
-    - `values`: A list of any type of elements which will be the new column's values.
-
-    ##### Outputs
-    - Outputs a DataFrame object with an added column based on the input list.
+    Convert a list of objects into a column in a dataframe.
+    dataframe, column, values
+    Outputs a DataFrame object with an added column based on the input list.
     """
 
-    dataframe: DataFrame = DataFrame()
-    column_name: str = ""
-    values: list[Any] = []
+    dataframe: DataFrame = Field(
+        default_factory=DataFrame,
+        description="Dataframe object to add a new column to.",
+    )
+    column_name: str = Field(
+        default="",
+        description="The name of the new column to be added to the dataframe.",
+    )
+    values: list[Any] = Field(
+        default_factory=list,
+        description="A list of any type of elements which will be the new column's values.",
+    )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df = await context.to_pandas(self.dataframe)
@@ -157,27 +115,14 @@ class ListToColumnNode(GenflowNode):
 
 class ListToDataFrameNode(GenflowNode):
     """
-    ## ListToDataFrameNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    This node converts a list of values to a dataframe.
-
-    #### Applications
-    - Converting a list of dictionary values into a structured data form using a dataframe.
-    - Useful when the input data is in list format and needs to be processed in data analysis or machine learning tasks which work better with dataframes.
-
-    ##### Inputs
-    - `values`: a list of objects to be converted to a dataframe. supported types: `dict`, `int`, `float`, `str`, `bool`, `list`, `tuple`
-
-    ##### Outputs
-    - A single output which is a `DataFrame`, a two-dimensional size-mutable, potentially heterogeneous tabular data structure with labeled axes (rows and columns).
-    - For dicts: rows correspond to the dictionaries in the input list `values` with each key representing a column in the dataframe.
-    - For lists and tuples: rows correspond to the lists/tuples in the input list `values` with each element representing a column in the dataframe.
-    - For other types: rows correspond to the values in the input list `values` with each value representing a column in the dataframe.
+    Convert a list of values to a dataframe.
+    list, dataframe
+    Outputs a DataFrame object with the list values as a single column.
     """
 
-    values: list[Any] = []
+    values: list[Any] = Field(
+        title="Values", default=[], description="List of values to be converted."
+    )
     columns: str = Field(
         title="Columns", default="", description="Comma separated list of column names"
     )
@@ -216,25 +161,8 @@ class ListToDataFrameNode(GenflowNode):
 
 class CSVToDataframeNode(GenflowNode):
     """
-    ## CSV To DataFrame Node
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    This node converts CSV data into a DataFrame.
-
-    The CSV To DataFrame Node provides a convenient way to convert CSV formatted data into a pandas DataFrame. This can be especially useful in data analysis workflows where CSV data needs to be quickly turned into a structured format.
-
-    #### Applications
-    - Converting CSV data for analysis: Data in CSV format can be imported into a DataFrame, allowing for complex data transformations, cleaning, and analysis to be performed.
-
-    #### Example
-    A CSV string containing user information can be converted into a DataFrame. Each row in the DataFrame represents a user, and each column represents an aspect of user data such as name, email, etc.
-
-    ##### Inputs
-    - csv_data (str): A string of CSV data.
-
-    ##### Outputs
-    - A DataFrame containing the structured CSV data.
+    Converts CSV data into a DataFrame.
+    csv, dataframe
     """
 
     csv_data: str = Field(
@@ -246,29 +174,19 @@ class CSVToDataframeNode(GenflowNode):
         return await context.from_pandas(df)
 
 
-class ConcatDataframesNode(GenflowNode):
+class ConcatNode(GenflowNode):
     """
-    ## MergeDataframesNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that merges two dataframes along their columns.
-
-    #### Applications
-    - Combining data from different sources
-    - Feature engineering in machine learning
-    - Data pre-processing
-
-    ##### Inputs
-    - `dataframe_a` (DataFrame): First DataFrame to be merged.
-    - `dataframe_b` (DataFrame): Second DataFrame to be merged.
-
-    ##### Outputs
-    - A single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
+    Merge two dataframes along their columns.
+    merge
+    Outputs a single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
     """
 
-    dataframe_a: DataFrame = DataFrame()
-    dataframe_b: DataFrame = DataFrame()
+    dataframe_a: DataFrame = Field(
+        default_factory=DataFrame, description="First DataFrame to be merged."
+    )
+    dataframe_b: DataFrame = Field(
+        default_factory=DataFrame, description="Second DataFrame to be merged."
+    )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df_a = await context.to_pandas(self.dataframe_a)
@@ -277,29 +195,19 @@ class ConcatDataframesNode(GenflowNode):
         return await context.from_pandas(df)
 
 
-class AppendDataframesNode(GenflowNode):
+class AppendNode(GenflowNode):
     """
-    ## AppendDataframesNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that appends two dataframes along their rows.
-
-    #### Applications
-    - Combining two dataframes vertically.
-    - Data pre-processing.
-    - Feature consolidation.
-
-    ##### Inputs
-    - **dataframe_a**: DataFrame. DataFrame A to be appended.
-    - **dataframe_b**: DataFrame. DataFrame B to be appended.
-
-    ##### Outputs
-    - A DataFrame which is the result of appending DataFrame A and DataFrame B.
+    Append two dataframes along their rows.
+    row, concat, merge
+    Outputs a DataFrame object that is the result of appending DataFrame A and DataFrame B.
     """
 
-    dataframe_a: DataFrame = DataFrame()
-    dataframe_b: DataFrame = DataFrame()
+    dataframe_a: DataFrame = Field(
+        default_factory=DataFrame, description="First DataFrame to be appended."
+    )
+    dataframe_b: DataFrame = Field(
+        default_factory=DataFrame, description="Second DataFrame to be appended."
+    )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df_a = await context.to_pandas(self.dataframe_a)
@@ -312,31 +220,23 @@ class AppendDataframesNode(GenflowNode):
         return await context.from_pandas(df)
 
 
-class JoinDataframesNode(GenflowNode):
+class JoinNode(GenflowNode):
     """
-    ## JoinDataframesNode
-
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that merges two dataframes along their columns.
-
-    #### Applications
-    - Combining data from different sources
-    - Feature engineering in machine learning
-    - Data pre-processing
-
-    ##### Inputs
-    - `dataframe_a` (DataFrame): First DataFrame to be merged.
-    - `dataframe_b` (DataFrame): Second DataFrame to be merged.
-
-    ##### Outputs
-    - A single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
+    Merges two dataframes along their columns.
+    merge, join
+    Outputs a single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
     """
 
-    dataframe_a: DataFrame = DataFrame()
-    dataframe_b: DataFrame = DataFrame()
-    join_on: str = "id"
+    dataframe_a: DataFrame = Field(
+        default_factory=DataFrame, description="First DataFrame to be merged."
+    )
+    dataframe_b: DataFrame = Field(
+        default_factory=DataFrame, description="Second DataFrame to be merged."
+    )
+    join_on: str = Field(
+        default="",
+        description="The column name on which to join the two dataframes.",
+    )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df_a = await context.to_pandas(self.dataframe_a)
@@ -349,53 +249,37 @@ class JoinDataframesNode(GenflowNode):
         return await context.from_pandas(df)
 
 
-class DataframeToTensorNode(GenflowNode):
+class ToTensorNode(GenflowNode):
     """
-    ## DataframeToTensorNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that converts a dataframe to a tensor.
-
-    #### Applications
-    - Converting dataframes to tensors for further processing.
-    - Preparing input for machine learning models that require tensor inputs.
-
-    #### Inputs
-    - `dataframe` (DataFrame): A dataframe to be converted to a tensor.
-
-    #### Outputs
-    - `Tensor` (Tensor): The tensor converted from the input dataframe.
+    Convert a dataframe to a tensor.
+    dataframe, tensor
+    Outputs a Tensor object.
     """
 
-    dataframe: DataFrame = DataFrame()
+    dataframe: DataFrame = Field(
+        default_factory=DataFrame, description="The input dataframe."
+    )
 
     async def process(self, context: ProcessingContext) -> Tensor:
         df = await context.to_pandas(self.dataframe)
         return Tensor.from_numpy(df.to_numpy())
 
 
-class TensorToDataframeNode(GenflowNode):
+class FromTensorNode(GenflowNode):
     """
-    ## TensorToDataframeNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that converts a tensor to a dataframe.
-
-    #### Applications
-    - Converting tensor data into structured tabular data for easier processing and analysis.
-
-    ##### Inputs
-    - tensor (Tensor): A tensor object that is to be converted into a dataframe.
-    - columns (list[str]): A list of strings specifying the column names for the resulting dataframe.
-
-    ##### Outputs
-    - Returns a DataFrame which is a pandas based dataframe.
+    Convert a tensor to a dataframe.
+    dataframe, tensor
+    Outputs a new DataFrame.
     """
 
-    tensor: Tensor = Tensor()
-    columns: list[str] = []
+    tensor: Tensor = Field(
+        default=Tensor(),
+        description="A tensor object to be converted into a dataframe.",
+    )
+    columns: list[str] = Field(
+        default=[],
+        description="A list of strings specifying the column names for the resulting dataframe.",
+    )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         array = self.tensor.to_numpy()
@@ -407,47 +291,11 @@ class TensorToDataframeNode(GenflowNode):
         return await context.from_pandas(df)
 
 
-class FilterRowsNode(GenflowNode):
+class PlotNode(GenflowNode):
     """
-    ## FilterRowsNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    A node that filters rows in a dataframe based on a condition.
-
-    #### Applications
-    - Filtering unnecessary information in a DataFrame.
-    - Selecting specific information in a DataFrame based on some condition.
-
-    ##### Inputs
-    - **dataframe** (DataFrame): The dataframe to filter.
-    - **condition** (str): The filtering condition.
-
-    ##### Outputs
-    - **DataFrame**: The dataframe after being filtered based on the given condition.
-    """
-
-    dataframe: DataFrame = DataFrame()
-    condition: str = ""
-
-    async def process(self, context: ProcessingContext) -> DataFrame:
-        df = await context.to_pandas(self.dataframe)
-        res = df.query(self.condition)
-        return await context.from_pandas(res)
-
-
-class PlotDataframeNode(GenflowNode):
-    """
-    ## PlotDataframeNode\n### NodeCategory - DATAFRAME
-    ### Namespace: Core.Dataframe
-
-    #### Description\nA node that plots a dataframe and returns the image.
-
-    #### Applications\n- Visualizing data in the form of line, bar, or scatter plots.\n- Analyzing trends or patterns in data.
-
-    ##### Inputs\n- dataframe: A DataFrame input for the node.\n- x_column: A string input representing the name of the x column to be used in the plot.\n- y_column: A string input representing the name of the y column to be used in the plot.\n- plot_type: An Enum input representing the type of plot to be created. Can be "line", "bar", or "scatter".
-
-    ##### Outputs\n- ImageRef: Returns an ImageRef object that contains the plotted image of the dataframe. This can be used as an output to display the generated plot.
+    Plots a dataframe as a line, bar, or scatter plot.
+    plot, dataframe, line, bar, scatter
+    Outputs an image of the plot.
     """
 
     class PlotType(str, Enum):
@@ -455,10 +303,21 @@ class PlotDataframeNode(GenflowNode):
         BAR = "bar"
         SCATTER = "scatter"
 
-    dataframe: DataFrame = DataFrame()
-    x_column: str = ""
-    y_column: str = ""
-    plot_type: PlotType = PlotType.LINE
+    dataframe: DataFrame = Field(
+        default_factory=DataFrame, description="The input dataframe."
+    )
+    x_column: str = Field(
+        default="",
+        description="The name of the x column to be used in the plot.",
+    )
+    y_column: str = Field(
+        default="",
+        description="The name of the y column to be used in the plot.",
+    )
+    plot_type: PlotType = Field(
+        default=PlotType.LINE,
+        description="The type of plot to be created. Can be 'line', 'bar', or 'scatter'.",
+    )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         df = await context.to_pandas(self.dataframe)
@@ -485,20 +344,15 @@ class PlotDataframeNode(GenflowNode):
 
 class PlotHistogramNode(GenflowNode):
     """
-    ## PlotHistogramNode
-    ### Namespace: Core.Dataframe
-
-    #### Description\nA node that plots a histogram of a dataframe column and returns the image.
-
-    #### Applications\n- Data Visualization\n- Data Analysis\n- Exploratory Data Analysis (EDA)
-
-    ##### Inputs\n- `dataframe`: The input dataframe where the histogram will be plotted from. Type: DataFrame.\n- `column`: The specific column in the dataframe to plot a histogram of. Type: str, default: '' (empty string).
-
-    ##### Outputs\n- It returns an `ImageRef` object which is a histogram image of the specified dataframe column. Type: ImageRef.
+    Plot a histogram of a dataframe column.
+    histogram
+    Outputs an image of the histogram.
     """
 
-    dataframe: DataFrame = DataFrame()
-    column: str = Field(title="Column", default="")
+    dataframe: DataFrame = Field(
+        default_factory=DataFrame, description="The input dataframe."
+    )
+    column: str = Field(title="Column", default="", description="The column to plot.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         df = await context.to_pandas(self.dataframe)
@@ -515,19 +369,14 @@ class PlotHistogramNode(GenflowNode):
 
 class PlotHeatmapNode(GenflowNode):
     """
-    ## PlotHeatmapNode
-    ### Namespace: Core.Dataframe
-
-    #### Description\nA node that plots a heatmap of a dataframe and returns the image.
-
-    #### Applications\n- Visualizing data patterns\n- Data analysis\n- Exploratory data analysis
-
-    ##### Inputs\n- dataframe (DataFrame): Input dataframe to plot as a heatmap.
-
-    ##### Outputs\n- A PNG format image (ImageRef), which is a heatmap representation of the input dataframe.
+    Plot a heatmap of a dataframe.
+    heatmap
+    Outputs a heatmap representation of the input dataframe.
     """
 
-    dataframe: DataFrame = DataFrame()
+    dataframe: DataFrame = Field(
+        default_factory=DataFrame, description="The input dataframe."
+    )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         df = await context.to_pandas(self.dataframe)
@@ -540,21 +389,20 @@ class PlotHeatmapNode(GenflowNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class FilterDataframeNode(GenflowNode):
+class FilterNode(GenflowNode):
     """
-    ## DataFrame Filter Node
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    This node filters a DataFrame based on a condition.
-
-    #### Inputs
-    - `df`: The DataFrame to be filtered.
-    - `condition`: The condition to filter the DataFrame.
+    Filter DataFrame based on a condition.
+    dataframe, condition, query
+    Outputs a DataFrame object that is the result of filtering the input DataFrame based on the given condition.
     """
 
-    df: DataFrame = Field(default_factory=DataFrame)
-    condition: str = ""
+    df: DataFrame = Field(
+        default_factory=DataFrame, description="The DataFrame to filter."
+    )
+    condition: str = Field(
+        default="",
+        description="The filtering condition to be applied to the DataFrame, e.g. column_name > 5.",
+    )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df = await context.to_pandas(self.df)
@@ -564,10 +412,6 @@ class FilterDataframeNode(GenflowNode):
 
 class DataFrameSortNode(GenflowNode):
     """
-    ## DataFrame Sort Node
-    ### Namespace: Core.Dataframe
-
-    #### Description
     This node sorts a DataFrame based on a column.
 
     #### Inputs
@@ -584,19 +428,14 @@ class DataFrameSortNode(GenflowNode):
         return await context.from_pandas(res)
 
 
-class DataFrameDropDuplicatesNode(GenflowNode):
+class DropDuplicatesNode(GenflowNode):
     """
-    ## DataFrame Drop Duplicates Node
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    This node drops duplicate rows from a DataFrame.
-
-    #### Inputs
-    - `df`: The DataFrame to drop duplicates from.
+    Drop duplicate rows from a DataFrame.
+    duplicate, dataframe
+    Outputs a DataFrame object with duplicate rows removed.
     """
 
-    df: DataFrame = Field(default_factory=DataFrame)
+    df: DataFrame = Field(default_factory=DataFrame, description="The input DataFrame.")
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df = await context.to_pandas(self.df)
@@ -604,19 +443,14 @@ class DataFrameDropDuplicatesNode(GenflowNode):
         return await context.from_pandas(res)
 
 
-class DataFrameDropNA(GenflowNode):
+class DropNA(GenflowNode):
     """
-    ## DataFrame Drop NA Node
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    This node drops NA values from a DataFrame.
-
-    #### Inputs
-    - `df`: The DataFrame to drop NA values from.
+    Drop NA values from a DataFrame.
+    na, dataframe
+    Outputs a DataFrame object with NA values removed.
     """
 
-    df: DataFrame = Field(default_factory=DataFrame)
+    df: DataFrame = Field(default_factory=DataFrame, description="The input DataFrame.")
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df = await context.to_pandas(self.df)
@@ -626,27 +460,9 @@ class DataFrameDropNA(GenflowNode):
 
 class IrisDataFrameNode(GenflowNode):
     """
-    ## IrisDataFrameNode
-    ### Namespace: Core.Dataframe
-
-    #### Description
-    This node loads the Iris dataset.
-
-    The Iris dataset is a well-known multivariate dataset used for various data science tasks. It contains 150 samples of iris flowers from three different species (setosa, versicolor, or virginica). The iris dataset is a favorite example of many because it requires very little knowledge of the data to get started with machine learning or data science.
-
-    #### Applications
-    - Exploratory Data Analysis: The Iris dataset is an excellent choice to learn and experiment with different data exploration techniques.
-    - Beginner's ML Tasks: Since it's a well-known dataset, it provides a good starting point for beginners in Machine Learning.
-    - Algorithm Testing: Perfect for trying out different classification algorithms.
-
-    #### Example
-    To use the IrisDataFrameNode in a workflow, add it to your workflow and connect its output to the input of your next node, which could be a data pre-processing node or a machine learning algorithm node.
-
-    ##### Inputs
-    This node does not have any input fields.
-
-    ##### Outputs
-    - 'Dataset': The loaded Iris dataset, which includes a dataframe of features and a dataframe of targets. The features include Sepal Length, Sepal Width, Petal Length, and Petal Width. The target is the species of the Iris flower. All values are returned as pandas dataframes.
+    Load the Iris dataset.
+    ml, training, dataset, test
+    Outputs a two DataFrames containing the features, targets of the Iris dataset.
     """
 
     async def process(self, context: ProcessingContext) -> Dataset:
