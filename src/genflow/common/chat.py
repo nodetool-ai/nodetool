@@ -74,7 +74,7 @@ def function_tool_from_workflow(workflow_id: str):
     if workflow is None:
         raise ValueError(f"Workflow {workflow_id} does not exist")
 
-    parameters = workflow.get_graph().get_json_schema()
+    parameters = workflow.get_graph().get_input_schema()
 
     function_definition = FunctionDefinition(
         name=WORKFLOW_PREFIX + workflow_id,
@@ -106,9 +106,6 @@ async def process_node_function(
         raise ValueError(f"Node {node_type} does not exist")
 
     node = node_class()
-
-    print("********* NODE")
-    print(params)
 
     for key, value in params.items():
         node.assign_property(key, value)
@@ -191,9 +188,6 @@ async def process_messages(
 
     tools = [function_tool_from_workflow(workflow_id) for workflow_id in workflow_ids]
     tools += [function_tool_from_node(node_type) for node_type in node_types]
-
-    print("********* TOOLS")
-    print(tools)
 
     completion = await client.chat.completions.create(
         model="gpt-3.5-turbo",

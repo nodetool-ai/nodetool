@@ -2,19 +2,13 @@ import PIL.Image
 import pytest
 from genflow.api.types.graph import Edge
 from genflow.metadata.types import ImageRef
+from genflow.nodes.genflow.input import FloatInputNode
 from genflow.workflows.genflow_node import InputNode, GenflowNode
 from genflow.nodes.genflow.constant import ImageNode, NumberNode
 
 from genflow.workflows.graph import Graph, topological_sort
 from genflow.nodes.genflow.image.transform import ContrastNode
 from genflow.nodes.genflow.output import ImageOutputNode
-
-
-class TestInputNode(InputNode):
-    value: str = "test"
-
-    async def process(self) -> str:
-        return self.value
 
 
 @pytest.fixture(scope="function")
@@ -194,17 +188,21 @@ def test_topological_sort_complex_graph(graph: Graph):
 
 
 def test_json_schema(graph: Graph):
-    a = TestInputNode(id="1", name="a", description="Test input node")
-    b = TestInputNode(id="2", name="b", description="Test input node")
+    a = FloatInputNode(id="1", name="a", description="Test input node", value=10.0)
+    b = FloatInputNode(id="2", name="b", description="Test input node", value=10.0)
 
     graph.nodes = [a, b]
 
-    json_schema = graph.get_json_schema()
+    json_schema = graph.get_input_schema()
 
-    assert json_schema == {
-        "type": "object",
-        "properties": {
-            "a": {"type": "string", "description": "Test input node"},
-            "b": {"type": "string", "description": "Test input node"},
-        },
-    }, "Should return JSON schema for graph"
+    assert json_schema["type"] == "object"
+    assert json_schema["properties"]["a"]["type"] == "number"
+    assert json_schema["properties"]["a"]["description"] == "Test input node"
+    assert json_schema["properties"]["a"]["minimum"] == 0
+    assert json_schema["properties"]["a"]["maximum"] == 100
+    assert json_schema["properties"]["a"]["default"] == 10.0
+    assert json_schema["properties"]["b"]["type"] == "number"
+    assert json_schema["properties"]["b"]["description"] == "Test input node"
+    assert json_schema["properties"]["b"]["minimum"] == 0
+    assert json_schema["properties"]["b"]["maximum"] == 100
+    assert json_schema["properties"]["b"]["default"] == 10.0

@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 
 from typing import Any, Type
+from genflow.common.environment import Environment
 from genflow.metadata.types import TypeToName
 from genflow.metadata import (
     is_assignable,
@@ -34,6 +35,8 @@ IGNORED_NODE_TYPES = [
     "huggingface.HuggingfaceNode",
     "genflow.workflows.WorkflowNode",
 ]
+
+log = Environment.get_logger()
 
 
 def add_node_classname(node_class: type["GenflowNode"]) -> None:
@@ -192,6 +195,7 @@ class GenflowNode(BaseModel):
     def get_json_schema(cls):
         """
         Returns a JSON schema for the node.
+        Used as tool description for agents.
         """
         return {
             "type": "object",
@@ -206,13 +210,14 @@ class GenflowNode(BaseModel):
         """
         prop = self.find_property(name)
 
-        # if prop.type.is_enum_type():
-        #     try:
-        #         value = type(value)
-        #     except ValueError:
-        #         raise ValueError(
-        #             f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
-        #         )
+        if prop.type.is_enum_type():
+            try:
+                value = type(value)
+            except ValueError:
+                log.warn(
+                    f"[{self.get_node_type()}] Invalid value for property `{name}`: {value} (expected {prop.type})"
+                )
+                return
 
         if not is_assignable(prop.type, value):
             raise ValueError(
@@ -402,6 +407,9 @@ class InputNode(GenflowNode):
 class OutputNode(GenflowNode):
     name: str = Field(
         default="Output Label", description="The label for this output node."
+    )
+    description: str = Field(
+        default="", description="The description for this output node."
     )
 
 

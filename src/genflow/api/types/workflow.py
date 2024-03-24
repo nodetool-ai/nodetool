@@ -17,6 +17,8 @@ class Workflow(BaseModel):
     thumbnail: str | None = None
     thumbnail_url: str | None = None
     graph: Graph
+    input_schema: dict[str, Any] | None = None
+    output_schema: dict[str, Any] | None = None
 
     @classmethod
     def from_model(cls, workflow: WorkflowModel):
@@ -27,6 +29,8 @@ class Workflow(BaseModel):
                 thumbnail_url = Environment.get_asset_storage().generate_presigned_url(
                     "get_object", asset.file_name
                 )
+
+        graph = workflow.get_graph()
 
         return cls(
             id=workflow.id,
@@ -41,6 +45,8 @@ class Workflow(BaseModel):
                 nodes=workflow.graph["nodes"],
                 edges=workflow.graph["edges"],
             ),
+            input_schema=graph.get_input_schema(),
+            output_schema=graph.get_output_schema(),
         )
 
 

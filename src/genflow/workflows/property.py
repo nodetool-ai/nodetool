@@ -26,6 +26,10 @@ class Property(BaseModel):
         """
         schema = self.type.get_json_schema()
         schema["description"] = self.description
+        if self.min:
+            schema["minimum"] = self.min
+        if self.max:
+            schema["maximum"] = self.max
         return schema
 
     @staticmethod

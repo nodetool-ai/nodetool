@@ -68,28 +68,31 @@ class Graph(BaseModel):
         """
         return [node for node in self.nodes if isinstance(node, InputNode)]
 
-    def get_json_schema(self):
-        """
-        Returns a JSON schema for the graph.
-        """
-
-        def schema_for_input_node(node: InputNode):
-            schema = node.properties_dict()["value"].type.get_json_schema()
-            schema["description"] = node.description
-            return schema
-
-        return {
-            "type": "object",
-            "properties": {
-                node.name: schema_for_input_node(node) for node in self.inputs()
-            },
-        }
-
     def outputs(self) -> List[OutputNode]:
         """
         Returns a list of nodes that have no outgoing edges.
         """
         return [node for node in self.nodes if isinstance(node, OutputNode)]
+
+    def get_input_schema(self):
+        """
+        Returns a JSON schema for input nodes of the graph.
+        """
+        return {
+            "type": "object",
+            "properties": {node.name: node.get_json_schema() for node in self.inputs()},
+        }
+
+    def get_output_schema(self):
+        """
+        Returns a JSON schema for the output nodes of the graph.
+        """
+        return {
+            "type": "object",
+            "properties": {
+                node.name: node.get_json_schema() for node in self.outputs()
+            },
+        }
 
 
 def topological_sort(edges: list[Edge], nodes: list[GenflowNode]) -> List[List[str]]:

@@ -24,6 +24,15 @@ class FloatInputNode(InputNode):
     async def process(self, context: ProcessingContext) -> float:
         return min(max(self.value, self.min), self.max)
 
+    def get_json_schema(self):
+        return {
+            "type": "number",
+            "description": self.description,
+            "default": self.value,
+            "minimum": self.min,
+            "maximum": self.max,
+        }
+
 
 class BoolInputNode(InputNode):
     """
@@ -34,6 +43,13 @@ class BoolInputNode(InputNode):
 
     async def process(self, context: ProcessingContext) -> bool:
         return self.value
+
+    def get_json_schema(self):
+        return {
+            "type": "boolean",
+            "description": self.description,
+            "default": self.value,
+        }
 
 
 class IntInputNode(InputNode):
@@ -48,6 +64,15 @@ class IntInputNode(InputNode):
     async def process(self, context: ProcessingContext) -> int:
         return min(max(self.value, self.min), self.max)
 
+    def get_json_schema(self):
+        return {
+            "type": "integer",
+            "description": self.description,
+            "default": self.value,
+            "minimum": self.min,
+            "maximum": self.max,
+        }
+
 
 class StringInputNode(InputNode):
     """
@@ -58,6 +83,13 @@ class StringInputNode(InputNode):
 
     async def process(self, context: ProcessingContext) -> str:
         return self.value
+
+    def get_json_schema(self):
+        return {
+            "type": "string",
+            "description": self.description,
+            "default": self.value,
+        }
 
 
 class ChatInputNode(InputNode):
@@ -70,6 +102,13 @@ class ChatInputNode(InputNode):
     async def process(self, context: ProcessingContext) -> str:
         return self.value
 
+    def get_json_schema(self):
+        return {
+            "type": "string",
+            "description": self.description,
+            "default": self.value,
+        }
+
 
 class TextInputNode(InputNode):
     """
@@ -81,8 +120,33 @@ class TextInputNode(InputNode):
     async def process(self, context: ProcessingContext) -> TextRef:
         return self.value
 
+    def get_json_schema(self):
+        return {
+            "type": "string",
+            "description": self.description,
+            "default": self.value,
+        }
 
-class ImageInputNode(InputNode):
+
+class AssetSchemaMixin:
+    def get_json_schema(self):
+        return {
+            "type": "object",
+            "properties": {
+                "uri": {
+                    "type": "string",
+                    "description": "The URI of the image.",
+                    "format": "uri",
+                },
+                "asset_id": {
+                    "type": "string",
+                    "description": "The Asset ID of the image.",
+                },
+            },
+        }
+
+
+class ImageInputNode(InputNode, AssetSchemaMixin):
     """
     Input for image values.
     """
@@ -93,7 +157,7 @@ class ImageInputNode(InputNode):
         return self.value
 
 
-class VideoInputNode(InputNode):
+class VideoInputNode(InputNode, AssetSchemaMixin):
     """
     Input for video values.
     """
@@ -104,15 +168,7 @@ class VideoInputNode(InputNode):
         return self.value
 
 
-class TensorInputNode(InputNode):
-    """
-    Input for tensor values.
-    """
-
-    value: Tensor = Tensor()
-
-
-class AudioInputNode(InputNode):
+class AudioInputNode(InputNode, AssetSchemaMixin):
     """
     Input for audio values.
     """
@@ -123,7 +179,7 @@ class AudioInputNode(InputNode):
         return self.value
 
 
-class FolderNode(InputNode):
+class FolderNode(InputNode, AssetSchemaMixin):
     """
     Input for folder values.
     """
@@ -188,7 +244,7 @@ class TextFolderNode(FolderNode):
         return texts
 
 
-class ComfyInputImageNode(InputNode):
+class ComfyInputImageNode(InputNode, AssetSchemaMixin):
     """
     Input for comfy image values.
     """

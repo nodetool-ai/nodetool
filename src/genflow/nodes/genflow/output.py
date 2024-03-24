@@ -20,6 +20,15 @@ class ListOutputNode(OutputNode):
     async def process(self, context: ProcessingContext) -> list[Any]:
         return self.value
 
+    def get_json_schema(self):
+        return {
+            "type": "array",
+            "items": {
+                "type": "object",
+            },
+            "description": self.description,
+        }
+
 
 class ChatOutputNode(OutputNode):
     value: list[ThreadMessage] = Field(
@@ -30,12 +39,33 @@ class ChatOutputNode(OutputNode):
     async def process(self, context: ProcessingContext) -> list[ThreadMessage]:
         return self.value
 
+    def get_json_schema(self):
+        return {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "thread_id": {"type": "string"},
+                    "role": {"type": "string"},
+                    "content": {"type": "string"},
+                },
+            },
+            "description": self.description,
+        }
+
 
 class IntOutputNode(OutputNode):
     value: int = 0
 
     async def process(self, context: ProcessingContext) -> int:
         return self.value
+
+    def get_json_schema(self):
+        return {
+            "type": "integer",
+            "description": self.description,
+        }
 
 
 class FloatOutputNode(OutputNode):
@@ -44,12 +74,24 @@ class FloatOutputNode(OutputNode):
     async def process(self, context: ProcessingContext) -> float:
         return self.value
 
+    def get_json_schema(self):
+        return {
+            "type": "number",
+            "description": self.description,
+        }
+
 
 class BoolOutputNode(OutputNode):
     value: bool = False
 
     async def process(self, context: ProcessingContext) -> bool:
         return self.value
+
+    def get_json_schema(self):
+        return {
+            "type": "boolean",
+            "description": self.description,
+        }
 
 
 class StringOutputNode(OutputNode):
@@ -58,6 +100,12 @@ class StringOutputNode(OutputNode):
     async def process(self, context: ProcessingContext) -> str:
         return self.value
 
+    def get_json_schema(self):
+        return {
+            "type": "string",
+            "description": self.description,
+        }
+
 
 class TextOutputNode(OutputNode):
     value: TextRef = TextRef()
@@ -65,12 +113,34 @@ class TextOutputNode(OutputNode):
     async def process(self, context: ProcessingContext) -> TextRef:
         return self.value
 
+    def get_json_schema(self):
+        return {
+            "type": "string",
+            "description": self.description,
+        }
+
 
 class ImageOutputNode(OutputNode):
     value: ImageRef = ImageRef()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         return self.value
+
+    def get_json_schema(self):
+        return {
+            "type": "object",
+            "description": self.description,
+            "properties": {
+                "uri": {
+                    "type": "string",
+                    "description": "The URI of the image.",
+                },
+                "asset_type": {
+                    "type": "string",
+                    "description": "The type of the asset.",
+                },
+            },
+        }
 
 
 class ComfyImageOutputNode(OutputNode):

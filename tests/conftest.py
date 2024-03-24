@@ -1,8 +1,4 @@
-import os
 import sys
-
-sys.path.append("src")
-
 from typing import Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -42,6 +38,7 @@ from genflow.common.environment import Environment
 from genflow.models.asset import Asset
 from genflow.models.job import Job
 from genflow.models.user import User
+import genflow.nodes
 
 
 @pytest.fixture(autouse=True)
@@ -179,8 +176,8 @@ def make_edge(id: str, source: Node, target: Node):
 @pytest.fixture(scope="function")
 def workflow(user: User):
     nodes = [
-        make_node("1", "float_input", {"value": 10}),
-        make_node("2", "add", {}),
+        make_node("1", "genflow.input.FloatInput", {"name": "in1", "value": 10}),
+        make_node("2", "genflow.math.Add", {}),
     ]
     edges = [
         make_edge("1", nodes[0], nodes[1]),

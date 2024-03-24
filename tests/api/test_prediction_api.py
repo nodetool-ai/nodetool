@@ -11,6 +11,7 @@ def test_prediction(user: User, client: TestClient):
         node_id="test_node_id",
         node_type="test_node_type",
         model="test_model",
+        provider="test_provider",
     )
 
 
@@ -82,6 +83,7 @@ def test_create_prediction(client: TestClient, user: User):
         "model": "test_model",
         "workflow_id": "test_workflow_id",
         "status": "pending",
+        "provider": "test_provider",
     }
     response = client.post(
         "/api/predictions/",
