@@ -50,6 +50,19 @@ async def create(
         raise HTTPException(status_code=400, detail="Invalid workflow")
 
 
+def load_workflows_ignoring_exceptions(workflows: list[WorkflowModel]):
+    """
+    Load workflows ignoring exceptions from missing nodes or old versions.
+    """
+    loaded_workflows = []
+    for workflow in workflows:
+        try:
+            loaded_workflows.append(Workflow.from_model(workflow))
+        except Exception as e:
+            log.error(f"Error loading workflow {workflow.id}: {e}")
+    return loaded_workflows
+
+
 @router.get("/")
 async def index(
     user: User = Depends(current_user),
@@ -59,15 +72,17 @@ async def index(
     workflows, cursor = WorkflowModel.paginate(
         user_id=user.id, limit=limit, start_key=cursor
     )
-    workflows = [Workflow.from_model(workflow) for workflow in workflows]
-    return WorkflowList(workflows=workflows, next=cursor)
+    return WorkflowList(
+        workflows=load_workflows_ignoring_exceptions(workflows), next=cursor
+    )
 
 
 @router.get("/public")
 async def public(limit: int = 100, cursor: Optional[str] = None) -> WorkflowList:
     workflows, cursor = WorkflowModel.paginate(limit=limit, start_key=cursor)
-    workflows = [Workflow.from_model(workflow) for workflow in workflows]
-    return WorkflowList(workflows=workflows, next=cursor)
+    return WorkflowList(
+        workflows=load_workflows_ignoring_exceptions(workflows), next=cursor
+    )
 
 
 @router.get("/public/{id}")
