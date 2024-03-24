@@ -52,7 +52,8 @@ class BinaryOperationNode(GenflowNode):
 
 class AddNode(BinaryOperationNode):
     """
-    The Add Node performs a basic arithmetic operation, which is the addition of two inputs.
+    Performs addition on two inputs.
+    math, plus, add, addition, sum, +
     """
 
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -61,7 +62,8 @@ class AddNode(BinaryOperationNode):
 
 class SubtractNode(BinaryOperationNode):
     """
-    Subtract Node is a basic arithmetic node that performs subtraction operation.
+    Subtracts the second input from the first.
+    math, minus, difference, -
     """
 
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -70,7 +72,8 @@ class SubtractNode(BinaryOperationNode):
 
 class MultiplyNode(BinaryOperationNode):
     """
-    The Multiply Node is a node that performs a multiplication operation.
+    Multiplies two inputs.
+    math, product, times, *
     """
 
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -79,7 +82,8 @@ class MultiplyNode(BinaryOperationNode):
 
 class DivideNode(BinaryOperationNode):
     """
-    The Divide Node is a mathematical node that performs division on two inputs.
+    Divides the first input by the second.
+    math, division, arithmetic, quotient
     """
 
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -88,7 +92,8 @@ class DivideNode(BinaryOperationNode):
 
 class ModulusNode(BinaryOperationNode):
     """
-    The Modulus Node is used to perform the modulus operation which returns the remainder of a division calculation.
+    Calculates the remainder of division of the first input by the second.
+    math, mod, modulus, remainder, %, modulo, division
     """
 
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -97,7 +102,9 @@ class ModulusNode(BinaryOperationNode):
 
 class SineNode(GenflowNode):
     """
-    The Sine Node is a mathematical function node that computes the sine of an input angle in radians.
+    Computes the sine of an input angle in radians.
+    math, sine, radians, angle
+    Returns a float value between -1 and 1.
     """
 
     angle_rad: float | int | Tensor = Field(title="Angle (Radians)", default=0.0)
@@ -109,7 +116,9 @@ class SineNode(GenflowNode):
 
 class CosineNode(GenflowNode):
     """
-    The Cosine Node calculates the cosine of a given input angle, which is expected to be in radians.
+    Calculates the cosine of a given angle in radians.
+    math, cosine, radians, angle
+    Returns a float value between -1 and 1.
     """
 
     base: float | int | Tensor = Field(title="Base", default=1.0)
@@ -125,7 +134,8 @@ class CosineNode(GenflowNode):
 
 class SqrtTensor(GenflowNode):
     """
-    This node calculates the square root of the inputtensor.
+    Calculates the square root of the input.
+    math, power, sqrt, square, root
     """
 
     x: int | float | Tensor = Field(title="Input", default=1.0)

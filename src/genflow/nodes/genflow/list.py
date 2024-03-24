@@ -9,9 +9,10 @@ from genflow.workflows.genflow_node import GenflowNode
 from typing import Any, Literal
 
 
-class ListLengthNode(GenflowNode):
+class LengthNode(GenflowNode):
     """
-    This node calculates and returns the length of a list.
+    Calculates and outputs the length of a given list.
+    list, count, size
     """
 
     values: list[Any] = []
@@ -22,7 +23,8 @@ class ListLengthNode(GenflowNode):
 
 class RangeNode(GenflowNode):
     """
-    Range Node is a node that generates a list of integers within a specified range.
+    Generates a list of integers within a specified range.
+    list, range, int, index, count, sequence, numbers
     """
 
     start: int = 0
@@ -35,7 +37,8 @@ class RangeNode(GenflowNode):
 
 class SliceNode(GenflowNode):
     """
-    This node extracts a subset or 'slice' of a list.
+    Extracts a subset from a list based on start, stop, and step indices.
+    list, slice, extract, subset, reduce, filter, select, range, get
     """
 
     values: list[Any] = []
@@ -49,7 +52,8 @@ class SliceNode(GenflowNode):
 
 class SelectNode(GenflowNode):
     """
-    This node selects specific values from a list.
+    Selects specific values from a list using index positions.
+    list, select, index, get, pick, extract, subset
     """
 
     values: list[Any] = []
@@ -61,7 +65,8 @@ class SelectNode(GenflowNode):
 
 class IndexNode(GenflowNode):
     """
-    The Node is used to retrieve a value from a list.
+    Retrieve a single value from a list at a specific index.
+    list, get, pick, extract, value
     """
 
     values: list[Any] = []
@@ -73,7 +78,8 @@ class IndexNode(GenflowNode):
 
 class AppendNode(GenflowNode):
     """
-    This node adds a value to the end of a list.
+    Adds a value to the end of a list.
+    list, add, insert, push, extend, concatenate
     """
 
     values: list[Any] = []
@@ -86,7 +92,8 @@ class AppendNode(GenflowNode):
 
 class ExtendNode(GenflowNode):
     """
-    This node is designed to extend a list with another list.
+    Merges one list into another, extending the original list.
+    list, merge, concatenate, append, add, insert, push
     """
 
     values: list[Any] = []
@@ -99,7 +106,8 @@ class ExtendNode(GenflowNode):
 
 class DedupeNode(GenflowNode):
     """
-    This node removes duplicate elements from a list.
+    Removes duplicate elements from a list, ensuring uniqueness.
+    list, unique, distinct, deduplicate, remove, filter
     """
 
     values: list[Any] = []
@@ -110,7 +118,8 @@ class DedupeNode(GenflowNode):
 
 class FilterNode(GenflowNode):
     """
-    This node filters a list based on a user-provided Python code string.
+    Filters a list based on a custom Python condition. Example: {value} % 2 == 0
+    list, filter, python, condition
     """
 
     values: list[Any] = Field(default_factory=list, description="The list to filter.")
@@ -134,7 +143,8 @@ class FilterNode(GenflowNode):
 
 class ReduceNode(GenflowNode):
     """
-    The Reduce Node is designed to perform reduction operation on a list using user-provided Python code.
+    Performs a custom reduction operation on a list using Python code. Example: {value} + {acc}
+    list, remove, filter, reduce, python
     """
 
     values: list[Any] = Field(default_factory=list, description="The list to reduce.")
@@ -166,19 +176,12 @@ class ReduceNode(GenflowNode):
 
 class MapNode(GenflowNode):
     """
-    This node allows mapping of a list using user-specified Python code.
-
-    #### Example
-    Imagine you have a list of numbers and you want to create a new list where each number is multiplied by its index in the original list. You would:
-
-    1. Provide the numbers list to the 'values' field.
-    2. Write the Python code: '{value} * {index}', and feed it into the 'map_code' field.
-
-    The MapListNode would then output a new list with each value being the original value multiplied by its index.
+    Transforms each element in a list based on custom Python code. Example: {value} * {index}
+    list, python, change
     """
 
     values: list[Any] = Field(default_factory=list, description="The list to map.")
-    code: str = Field("", description="The Python code to use for the mapping.")
+    code: str = Field("", description="Python code to use for mapping.")
 
     async def process(self, context: ProcessingContext) -> list[Any]:
         def safe_eval(expr: str, value: Any, index: int) -> Any:
@@ -195,7 +198,8 @@ class MapNode(GenflowNode):
 
 class ReverseNode(GenflowNode):
     """
-    This node reverses a list.
+    Inverts the order of elements in a list.
+    list, reverse, order, invert, flip
     """
 
     values: list[Any] = []
@@ -206,8 +210,8 @@ class ReverseNode(GenflowNode):
 
 class SaveListNode(GenflowNode):
     """
-    This node saves a list to a text file.
-    Each item in the list is saved on a separate line.
+    Saves a list to a text file, placing each element on a new line.
+    list, save, file, serialize, text, toString
     """
 
     values: list[Any] = Field(default_factory=list, description="The list to save.")

@@ -85,20 +85,9 @@ class ExtractVideoFramesNode(GenflowNode):
 
 class VideoFpsNode(GenflowNode):
     """
-    ## Video FPS Node
-    ### Namespace: Video
-
-    #### Description
-    This node returns the FPS of a video.
-
-    #### Applications
-    - Getting the FPS of a video.
-
-    ##### Inputs
-    - `video`: The video to get the FPS of.
-
-    ##### Outputs
-    - `output`: The FPS of the video.
+    Returns the frames per second (FPS) of a video file.
+    video, analysis, frames, fps
+    Outputs the numerical FPS value of the input video.
     """
 
     video: VideoRef = Field(description="The input video to adjust the brightness for.")
@@ -115,14 +104,9 @@ class VideoFpsNode(GenflowNode):
 
 class FramesToVideoNode(GenflowNode):
     """
-    ## Frames to Video Node
-    ### Namespace: Video
-
-    #### Description
-    This node combines a series of frames into a video.
-
-    #### Inputs
-    - `frames`: The frames to be combined into a video.
+    Combines a sequence of frames into a single video file.
+    video, frames, combine, sequence
+    Returns a video file from the provided frame sequence.
     """
 
     frames: list[ImageRef] = []

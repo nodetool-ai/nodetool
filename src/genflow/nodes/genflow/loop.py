@@ -7,8 +7,7 @@ from typing import Any
 
 class LoopNode(GenflowNode):
     """
-    A loop node will loop over a list of items and process the
-    remaining nodes for each item.
+    Loops over a list of items and processes the remaining nodes for each item.
     """
 
     items: list[Any] = []
