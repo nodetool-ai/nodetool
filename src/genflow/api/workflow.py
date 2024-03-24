@@ -70,6 +70,16 @@ async def public(limit: int = 100, cursor: Optional[str] = None) -> WorkflowList
     return WorkflowList(workflows=workflows, next=cursor)
 
 
+@router.get("/public/{id}")
+async def get_public_workflow(id: str) -> Workflow:
+    workflow = WorkflowModel.get(id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    if workflow.access != "public":
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    return Workflow.from_model(workflow)
+
+
 @router.get("/user/{user_id}")
 async def user_workflows(
     user_id: str, limit: int = 100, cursor: Optional[str] = None

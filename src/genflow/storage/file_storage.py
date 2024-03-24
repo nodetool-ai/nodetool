@@ -13,6 +13,7 @@ class FileStorage(AbstractStorage):
     def __init__(self, base_path: str, base_url: str):
         self.base_path = base_path
         self.base_url = base_url
+        print(self.base_url)
         os.makedirs(base_path, exist_ok=True)
 
     def generate_presigned_url(

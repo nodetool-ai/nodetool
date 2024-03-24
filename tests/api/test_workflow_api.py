@@ -59,13 +59,27 @@ def test_get_workflow(client: TestClient, workflow: Workflow, headers: dict[str,
     }
 
 
-def test_get_public_workflow(
-    client: TestClient, workflow: Workflow, headers: dict[str, str]
-):
-    workflow.update(access="public", user_id="another-user-id")
-    response = client.get(f"/api/workflows/{workflow.id}", headers=headers)
+def test_get_public_workflow(client: TestClient, workflow: Workflow, headers: dict[str, str]):
+    workflow.save()
+    response = client.get(f"/api/workflows/public/{workflow.id}", headers=headers)
+    assert response.status_code == 404
+    workflow.access = "public"
+    workflow.save()
+    response = client.get(f"/api/workflows/public/{workflow.id}", headers=headers)
     assert response.status_code == 200
     assert response.json()["id"] == workflow.id
+    assert response.json()["input_schema"] == {
+        "type": "object",
+        "properties": {
+            "in1": {
+                "type": "number",
+                "default": 10,
+                "minimum": 0,
+                "maximum": 100,
+                "description": "",
+            },
+        },
+    }
 
 
 def test_index(client: TestClient, workflow: Workflow, headers: dict[str, str]):
