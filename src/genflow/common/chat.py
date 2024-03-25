@@ -1,10 +1,12 @@
 import json
 from typing import Any
-import uuid
 
 from pydantic import BaseModel
 from genflow.common.environment import Environment
+from genflow.metadata.types import Task
+from genflow.models.task import Task as TaskModel
 from genflow.models.workflow import Workflow
+from genflow.nodes.openai import GPTModel
 from genflow.workflows.genflow_node import get_node_class
 from genflow.workflows.processing_context import ProcessingContext
 from genflow.models.message import Message
@@ -80,6 +82,35 @@ def function_tool_from_workflow(workflow_id: str):
         name=WORKFLOW_PREFIX + workflow_id,
         description=workflow.description or "",
         parameters=parameters,
+    )
+    return ChatCompletionToolParam(function=function_definition, type="function")
+
+
+def create_task_tool():
+    function_definition = FunctionDefinition(
+        name="create_task",
+        description="Create a task for an agent to be executed.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the task.",
+                },
+                "instructions": {
+                    "type": "string",
+                    "description": "Specific instructions for the agent to execute.",
+                },
+                "dependencies": {
+                    "type": "array",
+                    "description": "The dependencies of the task.",
+                    "items": {
+                        "type": "string",
+                        "description": "The name of the dependent task.",
+                    },
+                },
+            },
+        },
     )
     return ChatCompletionToolParam(function=function_definition, type="function")
 
@@ -160,13 +191,38 @@ async def process_workflow_function(
     }
 
 
+def create_task(thread_id: str, user_id: str, params: dict):
+    """
+    Create a task for an agent to be executed.
+
+    Args:
+        context (ProcessingContext): The processing context.
+        params (dict): The parameters of the task.
+    """
+    task = TaskModel.create(
+        thread_id=thread_id,
+        user_id=user_id,
+        name=params["name"],
+        instructions=params["instructions"],
+        dependencies=params.get("dependencies", []),
+    )
+    return {
+        "type": "task",
+        "id": task.id,
+        "name": task.name,
+        "instructions": task.instructions,
+        "dependencies": task.dependencies,
+    }
+
+
 async def process_messages(
     context: ProcessingContext,
     thread_id: str,
     messages: list[Message],
     workflow_ids: list[str] = [],
     node_types: list[str] = [],
-    model: str = "gpt-3.5-turbo",
+    model: GPTModel = GPTModel.GPT3,
+    can_create_tasks: bool = True,
 ):
     """
     Process a message in a thread.
@@ -177,7 +233,7 @@ async def process_messages(
         messages (list[Message]): The messages in the thread.
         workflow_ids (list[str]): The workflow IDs to use as tools.
         node_types (list[str]): The node types to use as tools.
-        model (str): The model to use for the completion.
+        model (GPTModel): The model to use for the completion.
     """
 
     client = Environment.get_openai_client()
@@ -185,12 +241,15 @@ async def process_messages(
     json_messages = [
         {"role": message.role, "content": str(message.content)} for message in messages
     ]
-
-    tools = [function_tool_from_workflow(workflow_id) for workflow_id in workflow_ids]
+    tasks = []
+    tools = []
+    if can_create_tasks:
+        tools.append(create_task_tool())
+    tools += [function_tool_from_workflow(workflow_id) for workflow_id in workflow_ids]
     tools += [function_tool_from_node(node_type) for node_type in node_types]
 
     completion = await client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model=model.value,
         messages=json_messages,  # type: ignore
         tools=tools if len(tools) > 0 else NotGiven(),
     )
@@ -198,6 +257,7 @@ async def process_messages(
     response_message = completion.choices[0].message
     tool_calls = response_message.tool_calls
     new_messages = []
+    json_messages.append(response_message)  # type: ignore
 
     new_messages.append(
         Message.create(
@@ -229,7 +289,12 @@ async def process_messages(
             function_name = tool_call.function.name
             function_args = json.loads(tool_call.function.arguments)
 
-            if function_name.startswith(WORKFLOW_PREFIX):
+            if function_name == "create_task":
+                function_response = create_task(
+                    thread_id, context.user_id, function_args
+                )
+                tasks.append(Task(id=function_response["id"]))
+            elif function_name.startswith(WORKFLOW_PREFIX):
                 function_response = await process_workflow_function(
                     context, function_name[len(WORKFLOW_PREFIX) :], function_args
                 )
@@ -245,7 +310,6 @@ async def process_messages(
             print("***** TOOL RESPONSE")
             print(function_response)
             content = json.dumps(function_response, default=default_serializer)
-            json_messages.append(response_message)  # type: ignore
             json_messages.append(
                 {
                     "tool_call_id": tool_call.id,
@@ -265,7 +329,7 @@ async def process_messages(
                 )
             )
         second_response = await client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=model,
             messages=json_messages,  # type: ignore
         )
         second_message = second_response.choices[0].message
@@ -277,4 +341,4 @@ async def process_messages(
                 content=second_message.content,
             )
         )
-    return new_messages
+    return new_messages, tasks

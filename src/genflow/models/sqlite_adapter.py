@@ -192,6 +192,8 @@ class SQLiteAdapter(DatabaseAdapter):
         self.fields = fields
         if self.table_exists():
             self.migrate_table()
+        else:
+            self.create_table()
 
     @property
     def connection(self):

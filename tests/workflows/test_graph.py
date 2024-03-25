@@ -3,8 +3,8 @@ import pytest
 from genflow.api.types.graph import Edge
 from genflow.metadata.types import ImageRef
 from genflow.nodes.genflow.input import FloatInputNode
-from genflow.workflows.genflow_node import InputNode, GenflowNode
-from genflow.nodes.genflow.constant import ImageNode, NumberNode
+from genflow.workflows.genflow_node import GenflowNode
+from genflow.nodes.genflow.constant import ImageNode
 
 from genflow.workflows.graph import Graph, topological_sort
 from genflow.nodes.genflow.image.transform import ContrastNode

@@ -13,7 +13,7 @@ from genflow.workflows.graph import Graph
 from genflow.api.types.graph import (
     Graph as APIGraph,
 )
-from genflow.nodes.genflow.constant import NumberNode, StringNode
+from genflow.nodes.genflow.constant import FloatNode, StringNode
 from genflow.nodes.genflow.image import BlendNode
 from genflow.nodes.genflow.input import FloatInputNode, ImageInputNode, IntInputNode
 from genflow.nodes.genflow.loop import LoopNode, LoopOutputNode
@@ -38,8 +38,8 @@ async def test_process_node(user: User, workflow_runner: WorkflowRunner):
 async def test_process_node_with_input_edges(
     user: User, workflow_runner: WorkflowRunner
 ):
-    input_a = {"id": "1", "type": NumberNode.get_node_type(), "data": {"value": 1}}
-    input_b = {"id": "2", "type": NumberNode.get_node_type(), "data": {"value": 2}}
+    input_a = {"id": "1", "type": FloatNode.get_node_type(), "data": {"value": 1}}
+    input_b = {"id": "2", "type": FloatNode.get_node_type(), "data": {"value": 2}}
     add_node = {"id": "3", "type": AddNode.get_node_type()}
     nodes = [input_a, input_b, add_node]
     edges = [

@@ -262,6 +262,11 @@ class Thread(GenflowType):
     id: str = ""
 
 
+class Task(GenflowType):
+    type: Literal["task"] = "task"
+    id: str = ""
+
+
 class Tensor(GenflowType):
     type: Literal["tensor"] = "tensor"
     value: list[Any] = []
