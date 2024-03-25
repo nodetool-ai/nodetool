@@ -1,8 +1,8 @@
-# GenFlow
+# Nodetool.ai
 
 ## Description
 
-GenFlow is an innovative AI workflow engine, designed to integrate seamlessly with a node-based web interface. It enables users to orchestrate complex workflows involving various AI models for generating multimedia content, including images, text, audio, and video, all within a single, unified platform.
+Nodetool is an innovative AI workflow engine, designed to integrate seamlessly with a node-based web interface. It enables users to orchestrate complex workflows involving various AI models for generating multimedia content, including images, text, audio, and video, all within a single, unified platform.
 
 ## Features
 
@@ -17,7 +17,7 @@ GenFlow is an innovative AI workflow engine, designed to integrate seamlessly wi
 
 ## Installation
 
-GenFlow supports various Python environments, including CPython and PyPy. The installation instructions provided below cater to both environments for maximum compatibility.
+Nodetool supports various Python environments, including CPython and PyPy. The installation instructions provided below cater to both environments for maximum compatibility.
 
 ### For CPython (default Python implementation)
 
@@ -40,7 +40,7 @@ nodetool setup
 
 ## Implementing Nodes
 
-New nodes can be added by subclassing GenflowNode.
+New nodes can be added by subclassing BaseNode.
 
 Node properties are defined using class fields with type annotations.
 
@@ -178,11 +178,11 @@ If the files don't exist, default values will be used.
 
 ## Contribution
 
-We welcome contributions from the community! To contribute to GenFlow, please adhere to our contribution guidelines. Your efforts help us improve and evolve this project.
+We welcome contributions from the community! To contribute to Nodetool, please adhere to our contribution guidelines. Your efforts help us improve and evolve this project.
 
 ## License
 
-GenFlow is made available under the terms of the [GPL3 License](LICENSE.txt), promoting open-source collaboration and sharing.
+Nodetool is made available under the terms of the [GPL3 License](LICENSE.txt), promoting open-source collaboration and sharing.
 
 ## Contact
 

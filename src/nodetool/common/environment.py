@@ -60,7 +60,7 @@ DEFAULT_ENV = {
     "ENV": "development",
     "LOG_LEVEL": "INFO",
     "AWS_REGION": "us-east-1",
-    "GENFLOW_API_URL": "http://localhost:8000/api",
+    "NODETOOL_API_URL": "http://localhost:8000/api",
 }
 
 SETTINGS_FILE = "settings.yaml"
@@ -467,7 +467,7 @@ class Environment(object):
         """
         The nodetool api url is the url of the nodetool api server.
         """
-        return cls.get("GENFLOW_API_URL")
+        return cls.get("NODETOOL_API_URL")
 
     @classmethod
     def get_nodetool_api_client(cls, auth_token: str):

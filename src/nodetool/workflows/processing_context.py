@@ -908,7 +908,7 @@ class ProcessingContext:
 
         if not Environment.is_production():
             api_tunnel_url = Environment.get_api_tunnel_url()
-            req.env["GENFLOW_API_URL"] = api_tunnel_url
+            req.env["NODETOOL_API_URL"] = api_tunnel_url
             req.env["S3_ENDPOINT_URL"] = f"{api_tunnel_url}/storage"
 
         log.info("===== Run remote worker ====")

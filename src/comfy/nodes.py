@@ -14,7 +14,7 @@
 # Copyright (c) @comfyanonymous
 # Project Repository: https://github.com/comfyanonymous/ComfyUI
 
-# This file was modified to fit into the Genflow ecosystem
+# This file was modified to fit into the Nodetool ecosystem
 from io import BytesIO
 import re
 import requests
