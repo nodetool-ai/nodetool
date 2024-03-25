@@ -12,17 +12,9 @@ from typing import Any, Type
 
 class IncrediblyFastWhisperNode(ReplicateNode):
     """
-    The Incredibly Fast Whisper Node provides real-time speech transcription capabilities. It employs OpenAI's Whisper model to transcribe spoken language into text accurately. This node is capable of handling various languages, accents, and can perform well even in noisy environments.
-
-    #### Applications
-    - Transcription of podcasts, interviews, and meetings.
-    - Real-time subtitling or captioning videos or live streams.
-    - Voice command processing and transcription in multilingual applications.
-
-    #### Example
-    For example, to transcribe a podcast episode, simply provide the audio file to the
-    Incredibly Fast Whisper Node. It will process the audio and return the transcribed text,
-    which can be used for subtitles, content analysis, or accessibility features.
+    Transcribes spoken language into text, fast.
+    speech, s2t, speech-to-text, transcribe, transcription, real-time, multilingual, language
+    Outputs text containing the transcription from the provided audio. Handles different languages, accents and background noises.
     """
 
 

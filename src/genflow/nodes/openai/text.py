@@ -24,16 +24,9 @@ class EmbeddingModel(str, Enum):
 
 class CreateEmbedding(GenflowNode):
     """
-    OpenAI’s text embeddings measure the relatedness of text strings. Embeddings are commonly used for:
-
-    ## Applications
-    - Search (where results are ranked by relevance to a query string)
-    - Clustering (where text strings are grouped by similarity)
-    - Recommendations (where items with related text strings are recommended)
-    - Anomaly detection (where outliers with little relatedness are identified)
-    - Diversity measurement (where similarity distributions are analyzed)
-    - Classification (where text strings are classified by their most similar label)
-    An embedding is a vector (list) of floating point numbers. The distance between two vectors measures their relatedness. Small distances suggest high relatedness and large distances suggest low relatedness.
+    Generates a vector representation of text for measuring relatedness.
+    text, analyse, transform, embeddings, relatedness, search, classification, clustering, recommendations
+    Outputs a text embedding vector that quantifies the semantic similarity of the input text to other text strings. An embedding is a vector (list) of floating point numbers. The distance between two vectors measures their relatedness. Small distances suggest high relatedness and large distances suggest low relatedness. Use cases: Search, Clustering, Recommendations, Anomaly detection, Diversity measurement, Classification
     """
 
     input: str | TextRef = Field(title="Input", default="")
@@ -71,20 +64,9 @@ class CreateEmbedding(GenflowNode):
 
 class GPTNode(GenflowNode):
     """
-    This node uses OpenAI's GPT (generative pre-trained transformer) models to understand and generate natural language responses.
-
-    The ChatNode provides outputs based on provided input prompts. These prompts are considered the way of "programming" the GPT model. Typically, the model is given a set of instructions or examples of a task to be completed.
-
-    #### Applications
-    - Drafting documents: can be used to draft content automatically.
-    - Writing computer code: can generate computer code text.
-    - Answering questions about a knowledge base: can respond to inquiries about specific subjects.
-    - Analyzing texts: can analyze and provide insights on given texts.
-    - Creating conversational agents: can be used to build chatbots or other interactive systems.
-    - Giving software a natural language interface: enables software to understand and respond to human language.
-    - Tutoring in various subjects: can create responses and explanations for teaching purposes.
-    - Translating languages: can translate text between different languages.
-    - Simulating characters for games: can be used to generate dialogues for game characters.
+    Use GPT models for generating natural language responses based on input prompts.
+    text, llm, t2t, ttt, text-to-text, generate, gpt, chat, chatgpt
+    Produces natural language text as a response to the input query, leveraging the capabilities of GPT models for various applications.
     """
 
     class ResponseFormat(str, Enum):

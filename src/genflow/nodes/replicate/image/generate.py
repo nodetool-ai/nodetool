@@ -7,10 +7,9 @@ from genflow.nodes.replicate import ReplicateNode, get_model_version
 
 class StableDiffusionNode(ReplicateNode):
     """
-    The Stable Diffusion Node is used for creating new images or modifying existing images.
-
-    #### Example
-    To generate a new natural landscape image, you can use a text description like "a sunny day in a forest with wild animals". For modifying an existing image, suppose you have a photo of a house, and you want to add a car in the driveway. Simply use a text prompt describing the desired addition, like "red car in the driveway", and the node will redraw the image to include this new element.
+    Generates images based on textual descriptions.
+    image, generate, sd, stable, diffusion
+    Returns an image based on the provided textual prompt.
     """
 
     class Scheduler(str, Enum):
@@ -48,10 +47,9 @@ class StableDiffusionNode(ReplicateNode):
 
 class StableDiffusionXLNode(ReplicateNode):
     """
-    Stable Diffusion XL Node is a powerful tool for complex image generation and modification.
-    This node adopts the Stable Diffusion XL model to perform tasks like creating images from text prompts,
-    adjusting existing images, as well as providing data anonymization and augmentation through a diffusion-denoising mechanism.
-    The model supports a variety of artistic styles and themes, allowing users to tailor the output to their aesthetic preferences.
+    Generates images based on textual descriptions. SDXL
+    image, generate, sd, sdxl, stable, diffusion
+    Returns an image based on the provided textual prompt. SDXL supports higher resolutions and more complex prompts.
     """
 
     class Model(str, Enum):
@@ -103,12 +101,9 @@ class StableDiffusionXLNode(ReplicateNode):
 
 class StableDiffusionXLControlnetNode(ReplicateNode):
     """
-    This node also employs controlnet conditioning, adding an extra layer of control over the image generation process.
-    This enables users to guide the image generation or modification according to their needs. The model is efficient at
-    taking a text prompt and an image, then modifying that image in line with the provided text description.
-    Its novel approach proves useful when users need to translate image-to-image or generate an image from text.
-    The degree of control achieved allows for a more balanced output, maintaining image quality while consistently
-    following the provided instructional prompt.
+    Utilizes Stable Diffusion XL with controlnet for precise image generation and editing, enhancing user control over the output.
+    image, generate, transform, controlnet, sdxl, stable, diffusion
+    Modifies images or generates new ones based on textual prompts, offering high-quality outputs that closely adhere to user specifications.
     """
 
     prompt: str = Field(
@@ -150,14 +145,9 @@ class StableDiffusionXLControlnetNode(ReplicateNode):
 
 class StableDiffusionXLLCMNode(ReplicateNode):
     """
-    The Stable Diffusion XL LCM node uses an extended version of the Stable Diffusion XL model
-    to generate or modify images. This node enhances the abilities of the model through
-    Latent Constant Modulation (LCM), which improves the quality and resolution of the outputs.
-
-    #### Applications
-    - Generating high-resolution, detailed images from textual prompts.
-    - Editing and enhancing images to match specific descriptions, potentially adding or altering elements.
-    - Allowing for high levels of control and creativity in image generation or modification tasks.
+    Stable Diffusion XL with Latent Constant Modulation. Low steps, fast results, not as high quality as SDXL.
+    image, generate, LCM, sdxl, stable, diffusion
+    Returns an image based on the provided textual prompt.
     """
 
     class Scheduler(str, Enum):
