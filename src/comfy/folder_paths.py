@@ -19,7 +19,7 @@ import time
 from typing import Optional, Union
 import os
 
-from genflow.common.environment import Environment
+from nodetool.common.environment import Environment
 
 supported_pt_extensions = set([".ckpt", ".pt", ".bin", ".pth", ".safetensors"])
 filename_list_cache: dict[str, tuple[list[str], dict[str, float], float]] = {}

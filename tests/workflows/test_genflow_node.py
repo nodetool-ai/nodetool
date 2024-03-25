@@ -1,26 +1,26 @@
 import os
 import pytest
-from genflow.metadata.node_metadata import NodeMetadata
-from genflow.workflows.processing_context import ProcessingContext
-from genflow.workflows.property import Property
-from genflow.metadata.types import TypeMetadata
+from nodetool.metadata.node_metadata import NodeMetadata
+from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.workflows.property import Property
+from nodetool.metadata.types import TypeMetadata
 
-from genflow.workflows.genflow_node import GenflowNode
-from genflow.metadata.types import OutputSlot
+from nodetool.workflows.base_node import BaseNode
+from nodetool.metadata.types import OutputSlot
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 test_file = os.path.join(current_dir, "test.jpg")
 
 
-class DummyClass(GenflowNode):
+class DummyClass(BaseNode):
     prop: int = 123
 
     def process(self, context: ProcessingContext) -> int:
         return self.prop
 
 
-class StringNode(GenflowNode):
+class StringNode(BaseNode):
     value: str = "test"
 
     def process(self, context: ProcessingContext) -> str:
@@ -28,7 +28,7 @@ class StringNode(GenflowNode):
 
 
 def test_node_creation():
-    node = GenflowNode()
+    node = BaseNode()
     assert node.id == ""
 
 
@@ -121,9 +121,10 @@ def test_node_node_properties():
 
 @pytest.mark.asyncio
 async def test_node_process_not_implemented(context: ProcessingContext):
-    node = GenflowNode()
+    node = BaseNode()
     with pytest.raises(NotImplementedError):
         await node.process(context)
+
 
 @pytest.mark.asyncio
 async def test_node_convert_output_dict(context: ProcessingContext):

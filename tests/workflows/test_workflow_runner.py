@@ -1,24 +1,24 @@
 import PIL.Image
 import PIL.ImageChops
 import pytest
-from genflow.api.types.graph import Node, Edge
-from genflow.workflows.run_job_request import RunJobRequest
-from genflow.workflows.run_job_request import RunJobRequest
-from genflow.workflows.processing_context import ProcessingContext
-from genflow.metadata.types import ImageRef
-from genflow.workflows.types import WorkflowUpdate
-from genflow.workflows.workflow_runner import WorkflowRunner
-from genflow.models.user import User
-from genflow.workflows.graph import Graph
-from genflow.api.types.graph import (
+from nodetool.api.types.graph import Node, Edge
+from nodetool.workflows.run_job_request import RunJobRequest
+from nodetool.workflows.run_job_request import RunJobRequest
+from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.metadata.types import ImageRef
+from nodetool.workflows.types import WorkflowUpdate
+from nodetool.workflows.workflow_runner import WorkflowRunner
+from nodetool.models.user import User
+from nodetool.workflows.graph import Graph
+from nodetool.api.types.graph import (
     Graph as APIGraph,
 )
-from genflow.nodes.genflow.constant import FloatNode, StringNode
-from genflow.nodes.genflow.image import BlendNode
-from genflow.nodes.genflow.input import FloatInputNode, ImageInputNode, IntInputNode
-from genflow.nodes.genflow.loop import LoopNode, LoopOutputNode
-from genflow.nodes.genflow.math import AddNode, MultiplyNode
-from genflow.nodes.genflow.output import ImageOutputNode, IntOutputNode
+from nodetool.nodes.nodetool.constant import FloatNode, StringNode
+from nodetool.nodes.nodetool.image import BlendNode
+from nodetool.nodes.nodetool.input import FloatInputNode, ImageInputNode, IntInputNode
+from nodetool.nodes.nodetool.loop import LoopNode, LoopOutputNode
+from nodetool.nodes.nodetool.math import AddNode, MultiplyNode
+from nodetool.nodes.nodetool.output import ImageOutputNode, IntOutputNode
 
 
 @pytest.fixture

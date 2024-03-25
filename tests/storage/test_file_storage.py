@@ -2,8 +2,8 @@
 import os
 import pytest
 import io
-from genflow.storage.file_storage import FileStorage
-from genflow.storage.s3_storage import S3Storage
+from nodetool.storage.file_storage import FileStorage
+from nodetool.storage.s3_storage import S3Storage
 from PIL import Image
 
 

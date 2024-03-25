@@ -2,17 +2,17 @@ import json
 import os
 
 import pytest
-from genflow.api.types.graph import Edge
-from genflow.api.types.graph import Graph
-from genflow.models.job import Job
-from genflow.workflows.run_job_request import RunJobRequest
+from nodetool.api.types.graph import Edge
+from nodetool.api.types.graph import Graph
+from nodetool.models.job import Job
+from nodetool.workflows.run_job_request import RunJobRequest
 from tests.conftest import make_job
 from fastapi.testclient import TestClient
-from genflow.models.user import User
-from genflow.models.workflow import Workflow
-from genflow.nodes.genflow.input import IntInputNode
-from genflow.nodes.genflow.math import AddNode
-from genflow.nodes.genflow.output import IntOutputNode
+from nodetool.models.user import User
+from nodetool.models.workflow import Workflow
+from nodetool.nodes.nodetool.input import IntInputNode
+from nodetool.nodes.nodetool.math import AddNode
+from nodetool.nodes.nodetool.output import IntOutputNode
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 test_file = os.path.join(current_dir, "test.jpg")

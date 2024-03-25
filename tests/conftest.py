@@ -3,49 +3,49 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
-import genflow.api.auth
-import genflow.api.asset
-import genflow.api.types.graph
-import genflow.api.prediction
-import genflow.api.job
-import genflow.api.node
-import genflow.api.workflow
-from genflow.api.types.graph import Node, Edge
-from genflow.common.environment import Environment
-from genflow.models.schema import (
+import nodetool.api.auth
+import nodetool.api.asset
+import nodetool.api.types.graph
+import nodetool.api.prediction
+import nodetool.api.job
+import nodetool.api.node
+import nodetool.api.workflow
+from nodetool.api.types.graph import Node, Edge
+from nodetool.common.environment import Environment
+from nodetool.models.schema import (
     create_all_tables,
     drop_all_tables,
 )
-from genflow.models.user import User
+from nodetool.models.user import User
 
-from genflow.common.environment import Environment
-from genflow.models.user import User
-from genflow.models.workflow import Workflow
+from nodetool.common.environment import Environment
+from nodetool.models.user import User
+from nodetool.models.workflow import Workflow
 import PIL.ImageChops
 import pytest
-from genflow.workflows.processing_context import ProcessingContext
-from genflow.common.environment import Environment
-from genflow.models.asset import Asset
-from genflow.models.schema import create_all_tables, drop_all_tables
-from genflow.models.user import User
-from genflow.models.workflow import Workflow
+from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.common.environment import Environment
+from nodetool.models.asset import Asset
+from nodetool.models.schema import create_all_tables, drop_all_tables
+from nodetool.models.user import User
+from nodetool.models.workflow import Workflow
 from datetime import datetime, timedelta
 import io
 import uuid
 
 import PIL.Image
-from genflow.common.environment import Environment
-from genflow.models.asset import Asset
-from genflow.models.job import Job
-from genflow.models.user import User
-import genflow.nodes
+from nodetool.common.environment import Environment
+from nodetool.models.asset import Asset
+from nodetool.models.job import Job
+from nodetool.models.user import User
+import nodetool.nodes
 
 
 @pytest.fixture(autouse=True)
 def setup_and_teardown():
     Environment.settings = {
         "ENV": "test",
-        "DB_PATH": "/tmp/genflow_test.db",
+        "DB_PATH": "/tmp/nodetool_test.db",
     }
     create_all_tables()
     yield
@@ -139,12 +139,12 @@ def client():
     This fixture is scoped to the module, so it will only be created once for the entire test run.
     """
     app = FastAPI()
-    app.include_router(genflow.api.asset.router)
-    app.include_router(genflow.api.auth.router)
-    app.include_router(genflow.api.prediction.router)
-    app.include_router(genflow.api.job.router)
-    app.include_router(genflow.api.node.router)
-    app.include_router(genflow.api.workflow.router)
+    app.include_router(nodetool.api.asset.router)
+    app.include_router(nodetool.api.auth.router)
+    app.include_router(nodetool.api.prediction.router)
+    app.include_router(nodetool.api.job.router)
+    app.include_router(nodetool.api.node.router)
+    app.include_router(nodetool.api.workflow.router)
 
     return TestClient(app)
 
@@ -166,8 +166,8 @@ def make_node(id, type: str, data: dict[str, Any]):
 @pytest.fixture(scope="function")
 def workflow(user: User):
     nodes = [
-        make_node("1", "genflow.input.FloatInput", {"name": "in1", "value": 10}),
-        make_node("2", "genflow.math.Add", { "b": 1 }),
+        make_node("1", "nodetool.input.FloatInput", {"name": "in1", "value": 10}),
+        make_node("2", "nodetool.math.Add", {"b": 1}),
     ]
     edges = [
         Edge(

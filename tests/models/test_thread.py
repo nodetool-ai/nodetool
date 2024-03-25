@@ -1,6 +1,6 @@
 import pytest
-from genflow.models.thread import Thread
-from genflow.models.user import User
+from nodetool.models.thread import Thread
+from nodetool.models.user import User
 
 
 def test_find_thread(user: User):

@@ -1,14 +1,14 @@
 import PIL.Image
 import pytest
-from genflow.api.types.graph import Edge
-from genflow.metadata.types import ImageRef
-from genflow.nodes.genflow.input import FloatInputNode
-from genflow.workflows.genflow_node import GenflowNode
-from genflow.nodes.genflow.constant import ImageNode
+from nodetool.api.types.graph import Edge
+from nodetool.metadata.types import ImageRef
+from nodetool.nodes.nodetool.input import FloatInputNode
+from nodetool.workflows.base_node import BaseNode
+from nodetool.nodes.nodetool.constant import ImageNode
 
-from genflow.workflows.graph import Graph, topological_sort
-from genflow.nodes.genflow.image.transform import ContrastNode
-from genflow.nodes.genflow.output import ImageOutputNode
+from nodetool.workflows.graph import Graph, topological_sort
+from nodetool.nodes.nodetool.image.transform import ContrastNode
+from nodetool.nodes.nodetool.output import ImageOutputNode
 
 
 @pytest.fixture(scope="function")
@@ -16,7 +16,7 @@ def graph():
     return Graph()
 
 
-class FooNode(GenflowNode):
+class FooNode(BaseNode):
     value: str = "test"
 
     async def process(self) -> str:
@@ -29,7 +29,7 @@ def test_topological_sort_empty_graph(graph):
 
 
 def test_topological_sort_single_node(graph):
-    node = GenflowNode(id="1")
+    node = BaseNode(id="1")
     graph.nodes = [node]
     sorted_nodes = topological_sort(graph.edges, graph.nodes)
     assert sorted_nodes == [
@@ -188,8 +188,12 @@ def test_topological_sort_complex_graph(graph: Graph):
 
 
 def test_json_schema(graph: Graph):
-    a = FloatInputNode(id="1", name="a", description="Test input node", value=10.0)
-    b = FloatInputNode(id="2", name="b", description="Test input node", value=10.0)
+    a = FloatInputNode(
+        id="1", name="a", label="", description="Test input node", value=10.0
+    )
+    b = FloatInputNode(
+        id="2", name="b", label="", description="Test input node", value=10.0
+    )
 
     graph.nodes = [a, b]
 

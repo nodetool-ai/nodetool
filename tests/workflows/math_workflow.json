@@ -4,27 +4,27 @@
       "name": "number1",
       "value": 1
     },
-    "type": "genflow.input.IntInput"
+    "type": "nodetool.input.IntInput"
   },
   "number2": {
     "inputs": {
       "name": "number2",
       "value": 2
     },
-    "type": "genflow.input.IntInput"
+    "type": "nodetool.input.IntInput"
   },
   "addition": {
     "inputs": {
       "a": ["number1", "output"],
       "b": ["number2", "output"]
     },
-    "type": "genflow.math.Add"
+    "type": "nodetool.math.Add"
   },
   "output": {
     "inputs": {
       "name": "output",
       "value": ["addition", "output"]
     },
-    "type": "genflow.output.IntOutput"
+    "type": "nodetool.output.IntOutput"
   }
 }

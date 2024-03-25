@@ -1,9 +1,9 @@
 from datetime import datetime
 import pytest
-from genflow.models.asset import (
+from nodetool.models.asset import (
     Asset,
 )
-from genflow.models.user import User
+from nodetool.models.user import User
 from tests.conftest import make_image
 
 

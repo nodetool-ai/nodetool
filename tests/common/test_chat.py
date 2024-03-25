@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
-from genflow.metadata.types import TextRef
-from genflow.common.chat import (
+from nodetool.metadata.types import TextRef
+from nodetool.common.chat import (
     process_node_function,
     sanitize_node_name,
     desanitize_node_name,
@@ -9,12 +9,12 @@ from genflow.common.chat import (
     process_workflow_function,
     process_messages,
 )
-from genflow.models.message import Message
-from genflow.workflows.processing_context import ProcessingContext
-from genflow.models.thread import Thread
+from nodetool.models.message import Message
+from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.models.thread import Thread
 
 # load all nodes
-import genflow.nodes
+import nodetool.nodes
 
 VALID_NODE_NAME = "some.valid.node.name"
 INVALID_NODE_NAME = "invalid_node_name"
@@ -31,7 +31,7 @@ def test_desanitize_node_name():
 
 
 def test_function_tool_from_node_valid():
-    result = function_tool_from_node("genflow.constant.Text")
+    result = function_tool_from_node("nodetool.constant.Text")
     assert "parameters" in result["function"]
     assert result["function"]["parameters"] == {
         "type": "object",
@@ -52,10 +52,10 @@ def test_function_tool_from_node_invalid():
 
 @pytest.mark.asyncio
 async def test_process_node_function_valid():
-    import genflow.nodes
+    import nodetool.nodes
 
     context = ProcessingContext(user_id=USER_ID)
-    result = await process_node_function(context, "genflow.constant.Text", {})
+    result = await process_node_function(context, "nodetool.constant.Text", {})
     assert result == {"output": TextRef(uri="", type="text")}
 
 
@@ -71,7 +71,7 @@ async def test_process_message_valid():
     thread = Thread.create(user_id=USER_ID)
     context = ProcessingContext(user_id=USER_ID)
     with patch(
-        "genflow.common.chat.Environment.get_openai_client"
+        "nodetool.common.chat.Environment.get_openai_client"
     ) as get_openai_client_mock:
         response_message = MagicMock(tool_calls=None, content="Hello world")
         completion = AsyncMock(choices=[MagicMock(message=response_message)])

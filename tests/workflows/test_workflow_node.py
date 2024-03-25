@@ -1,9 +1,9 @@
 import pytest
 import os
-from genflow.workflows.genflow_node import type_metadata
-from genflow.workflows.processing_context import ProcessingContext
-from genflow.workflows.workflow_node import WorkflowNode
-import genflow.nodes
+from nodetool.workflows.base_node import type_metadata
+from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.workflows.workflow_node import WorkflowNode
+import nodetool.nodes
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))

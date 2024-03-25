@@ -1,7 +1,7 @@
 from datetime import datetime
 import pytest
-from genflow.models.prediction import Prediction
-from genflow.models.user import User
+from nodetool.models.prediction import Prediction
+from nodetool.models.user import User
 
 
 def test_prediction_find(user: User):

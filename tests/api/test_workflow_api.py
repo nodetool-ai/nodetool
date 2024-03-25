@@ -1,11 +1,11 @@
 from fastapi.testclient import TestClient
-from genflow.api.types.workflow import WorkflowRequest
-from genflow.api.types.graph import Edge, Graph as APIGraph, Node
-from genflow.api.types.workflow import (
+from nodetool.api.types.workflow import WorkflowRequest
+from nodetool.api.types.graph import Edge, Graph as APIGraph, Node
+from nodetool.api.types.workflow import (
     WorkflowList,
 )
-from genflow.models.user import User
-from genflow.models.workflow import Workflow
+from nodetool.models.user import User
+from nodetool.models.workflow import Workflow
 
 
 def test_create_workflow(
@@ -59,7 +59,9 @@ def test_get_workflow(client: TestClient, workflow: Workflow, headers: dict[str,
     }
 
 
-def test_get_public_workflow(client: TestClient, workflow: Workflow, headers: dict[str, str]):
+def test_get_public_workflow(
+    client: TestClient, workflow: Workflow, headers: dict[str, str]
+):
     workflow.save()
     response = client.get(f"/api/workflows/public/{workflow.id}", headers=headers)
     assert response.status_code == 404

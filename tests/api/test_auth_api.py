@@ -1,10 +1,10 @@
-from genflow.api.auth import (
+from nodetool.api.auth import (
     OAuthAuthorizeRequest,
     OAuthLoginRequest,
     OAuthProvider,
     get_user_email,
 )
-from genflow.models.user import User
+from nodetool.models.user import User
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 def test_oauth_login(mocker, client: TestClient):
     # Test successful OAuth login
     mock_session = mocker.patch(
-        "genflow.api.auth.Environment.get_google_oauth2_session"
+        "nodetool.api.auth.Environment.get_google_oauth2_session"
     )
     mock_session.return_value.create_authorization_url.return_value = (
         "http://localhost:8000/auth",
@@ -32,9 +32,9 @@ def test_oauth_login(mocker, client: TestClient):
 def test_oauth_callback(mocker, client: TestClient):
     # Mock the OAuth2Session and get_user_email function
     mock_session = mocker.patch(
-        "genflow.api.auth.Environment.get_google_oauth2_session"
+        "nodetool.api.auth.Environment.get_google_oauth2_session"
     )
-    mock_get_user_email = mocker.patch("genflow.api.auth.get_user_email")
+    mock_get_user_email = mocker.patch("nodetool.api.auth.get_user_email")
     mock_get_user_email.return_value = "test@example.com"
 
     # Test successful OAuth callback

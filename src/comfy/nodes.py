@@ -51,7 +51,7 @@ import importlib.util
 import comfy.folder_paths as folder_paths
 import comfy.latent_preview as latent_preview
 
-from genflow.common.environment import Environment
+from nodetool.common.environment import Environment
 
 
 def before_node_execution():

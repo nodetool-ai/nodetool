@@ -2,25 +2,24 @@ import io
 import pandas as pd
 import pytest
 import os
-from genflow.metadata.types import DataFrame
-from genflow.metadata.types import FolderRef
-from genflow.common.environment import Environment
+from nodetool.metadata.types import DataFrame
+from nodetool.metadata.types import FolderRef
+from nodetool.common.environment import Environment
 
-from genflow.workflows.graph import Graph
-from genflow.metadata.types import ImageRef
-from genflow.workflows.processing_context import ProcessingContext
+from nodetool.workflows.graph import Graph
+from nodetool.metadata.types import ImageRef
+from nodetool.workflows.processing_context import ProcessingContext
 import PIL.Image
-from genflow.models.asset import (
+from nodetool.models.asset import (
     Asset,
 )
 
-from genflow.models.user import User
-from genflow.nodes.genflow.constant import ImageNode
-from genflow.nodes.genflow.dataframe import SaveDataFrameNode
-from genflow.nodes.genflow.image import BlendNode, CompositeNode
-from genflow.nodes.genflow.image.source import BackgroundNode, RenderTextNode
-from genflow.nodes.genflow.image.transform import (
-    AdaptiveContrastNode,
+from nodetool.models.user import User
+from nodetool.nodes.nodetool.constant import ImageNode
+from nodetool.nodes.nodetool.dataframe import SaveNode
+from nodetool.nodes.nodetool.image import BlendNode, CompositeNode
+from nodetool.nodes.nodetool.image.source import BackgroundNode
+from nodetool.nodes.nodetool.image.transform import (
     AutoContrastNode,
     BlurNode,
     BrightnessNode,
@@ -46,7 +45,7 @@ from genflow.nodes.genflow.image.transform import (
     SolarizeNode,
     UnsharpMaskNode,
 )
-from genflow.nodes.genflow.text import SaveTextNode
+from nodetool.nodes.nodetool.text import SaveTextNode
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -345,7 +344,7 @@ async def test_save_text_node(context: ProcessingContext, user: User):
 async def test_save_dataframe_node(context: ProcessingContext, user: User):
     folder = Asset.create(user.id, "test", "folder", user.id)
     df = await context.from_pandas(pd.DataFrame({"a": [1, 2, 3]}))
-    node = SaveDataFrameNode(
+    node = SaveNode(
         name="TestDataFrameNode",
         df=df,
         folder=FolderRef(asset_id=folder.id),

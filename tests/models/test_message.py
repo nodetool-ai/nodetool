@@ -1,6 +1,6 @@
 import pytest
-from genflow.models.message import Message
-from genflow.models.user import User
+from nodetool.models.message import Message
+from nodetool.models.user import User
 
 
 def test_find_message(user: User):

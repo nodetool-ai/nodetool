@@ -1,10 +1,10 @@
-from genflow.api.types.graph import Node
-from genflow.nodes.comfy.conditioning import CLIPTextEncode
-from genflow.nodes.comfy.image import SaveImage
-from genflow.nodes.comfy.latent import EmptyLatentImage, VAEDecode
-from genflow.nodes.comfy.loaders import CheckpointLoaderSimple
-from genflow.nodes.comfy.sampling import KSampler
-from genflow.workflows.read_graph import read_graph
+from nodetool.api.types.graph import Node
+from nodetool.nodes.comfy.conditioning import CLIPTextEncode
+from nodetool.nodes.comfy.image import SaveImage
+from nodetool.nodes.comfy.latent import EmptyLatentImage, VAEDecode
+from nodetool.nodes.comfy.loaders import CheckpointLoaderSimple
+from nodetool.nodes.comfy.sampling import KSampler
+from nodetool.workflows.read_graph import read_graph
 
 
 def test_read_graph():

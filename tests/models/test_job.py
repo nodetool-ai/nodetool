@@ -1,8 +1,8 @@
 import datetime
 import pytest
 from tests.conftest import make_job
-from genflow.models.job import Job
-from genflow.models.user import User
+from nodetool.models.job import Job
+from nodetool.models.user import User
 
 
 def test_find_job(user: User):

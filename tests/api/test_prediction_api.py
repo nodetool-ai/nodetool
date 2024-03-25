@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
-from genflow.models.prediction import Prediction as PredictionModel
-from genflow.models.user import User
+from nodetool.models.prediction import Prediction as PredictionModel
+from nodetool.models.user import User
 
 
 @pytest.fixture
