@@ -61,6 +61,11 @@ class Workflow(DBModel):
         )
 
     @classmethod
+    def find(cls, user_id: str, workflow_id: str):
+        workflow = cls.get(workflow_id)
+        return workflow if workflow and (workflow.user_id == user_id or workflow.access == "public") else None
+
+    @classmethod
     def create(cls, user_id: str, name: str, graph: dict[str, Any], **kwargs):
         """
         Create a new image in the database.

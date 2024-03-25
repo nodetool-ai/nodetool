@@ -11,8 +11,8 @@ from genflow.workflows.processing_context import (
 )
 from genflow.workflows.genflow_node import (
     GenflowNode,
-    requires_capabilities_from_request,
 )
+from genflow.workflows.genflow_node import requires_capabilities_from_request
 from genflow.nodes.genflow.loop import LoopOutputNode
 from genflow.common.environment import Environment
 from genflow.workflows.graph import Graph, subgraph, topological_sort
@@ -43,6 +43,10 @@ class WorkflowRunner:
 
         Output nodes are collected and returned as a dictionary.
         """
+        assert req.graph is not None, "Graph is required"
+
+        graph_capabilities = requires_capabilities_from_request(req)
+
         graph = Graph.from_dict(
             {
                 "nodes": [node.model_dump() for node in req.graph.nodes],
@@ -55,9 +59,7 @@ class WorkflowRunner:
         context.edges = graph.edges
         context.nodes = graph.nodes
 
-        req_capabilities = requires_capabilities_from_request(req)
-
-        if "comfy" in req_capabilities:
+        if "comfy" in graph_capabilities:
             if not "comfy" in context.capabilities:
                 raise ValueError("Comfy nodes are not supported in this environment")
 

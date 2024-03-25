@@ -191,8 +191,7 @@ class GenflowNode(BaseModel):
             outputs=cls.outputs(),
         )
 
-    @classmethod
-    def get_json_schema(cls):
+    def get_json_schema(self):
         """
         Returns a JSON schema for the node.
         Used as tool description for agents.
@@ -200,7 +199,7 @@ class GenflowNode(BaseModel):
         return {
             "type": "object",
             "properties": {
-                prop.name: prop.get_json_schema() for prop in cls.properties()
+                prop.name: prop.get_json_schema() for prop in self.properties()
             },
         }
 
@@ -400,14 +399,16 @@ class GenflowNode(BaseModel):
 
 
 class InputNode(GenflowNode):
-    name: str = Field("Input Label", description="The label for this input node.")
+    label: str = Field("Input Label", description="The label for this input node.")
+    name: str = Field("", description="The parameter name for the workflow.")
     description: str = Field("", description="The description for this input node.")
 
 
 class OutputNode(GenflowNode):
-    name: str = Field(
+    label: str = Field(
         default="Output Label", description="The label for this output node."
     )
+    name: str = Field("", description="The parameter name for the workflow.")
     description: str = Field(
         default="", description="The description for this output node."
     )
@@ -467,6 +468,7 @@ def requires_capabilities(nodes: list[GenflowNode]):
 
 
 def requires_capabilities_from_request(req: RunJobRequest):
+    assert req.graph is not None, "Graph is required"
     capabilities = set()
     for node in req.graph.nodes:
         node_class = get_node_class(node.type)

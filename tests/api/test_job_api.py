@@ -150,3 +150,59 @@ async def test_run(
         assert any(
             m.get("node_id") == i and m.get("status") == "completed" for m in messages
         )
+
+
+@pytest.mark.asyncio
+async def test_run_without_graph_param(
+    client: TestClient,
+    workflow: Workflow,
+    user: User,
+    headers: dict[str, str],
+):
+
+    req = RunJobRequest(
+        workflow_id=workflow.id,
+        auth_token=str(user.auth_token),
+        params={},
+    )
+
+    response = client.post("/api/jobs/", json=req.model_dump(), headers=headers)
+    assert response.status_code == 200
+
+    # read response body line by line and convert to a list of dicts
+    messages = [json.loads(line) for line in response.iter_lines()]
+
+    assert len(messages) > 0
+
+    for i in ["1", "2"]:
+        assert any(
+            m.get("node_id") == i and m.get("status") == "running" for m in messages
+        )
+        assert any(
+            m.get("node_id") == i and m.get("status") == "completed" for m in messages
+        )
+
+
+@pytest.mark.asyncio
+async def test_run_with_access(
+    client: TestClient,
+    workflow: Workflow,
+    user: User,
+    headers: dict[str, str],
+):
+
+    req = RunJobRequest(
+        workflow_id=workflow.id,
+        auth_token=str(user.auth_token),
+        params={},
+    )
+
+    workflow.user_id = "other"
+    workflow.save()
+    response = client.post("/api/jobs/", json=req.model_dump(), headers=headers)
+    assert response.status_code == 404
+
+    workflow.access = "public"
+    workflow.save()
+    response = client.post("/api/jobs/", json=req.model_dump(), headers=headers)
+    assert response.status_code == 200

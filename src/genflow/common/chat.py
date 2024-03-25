@@ -63,7 +63,7 @@ def function_tool_from_node(node_name: str):
     function_definition = FunctionDefinition(
         name=NODE_PREFIX + sanitize_node_name(node_name),
         description=node_type.get_description(),
-        parameters=node_type.get_json_schema(),
+        parameters=node_type().get_json_schema(),
     )
     return ChatCompletionToolParam(function=function_definition, type="function")
 
