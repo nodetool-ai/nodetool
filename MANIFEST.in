@@ -1,4 +1,3 @@
 include LICENSE.txt
 include README.md
 include *.json
-recursive-include src/genflow/node/replicate *.json

@@ -2,5 +2,5 @@
 
 export PYTHONPATH=$PYTHONPATH:src
 
-python -m genflow.cli setup $@
+python -m nodetool.cli setup $@
 
