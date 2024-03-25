@@ -8,6 +8,7 @@ from typing import Any
 class LoopNode(GenflowNode):
     """
     Loops over a list of items and processes the remaining nodes for each item.
+    loop, itereate, repeat, for, each, batch
     """
 
     items: list[Any] = []
@@ -18,7 +19,8 @@ class LoopNode(GenflowNode):
 
 class LoopOutputNode(GenflowNode):
     """
-    A loop output node will output the result of a loop.
+    Output the result of a loop.
+    loop, result, return
     """
 
     input: Any = None

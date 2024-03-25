@@ -14,12 +14,9 @@ from enum import Enum
 
 class CreateImageNode(GenflowNode):
     """
-    This node generates images from textual descriptions using DALL-E, a technology by OpenAI.
-
-    #### Applications
-    - Generate custom graphics for presentations: Describe the scenario you need to visualize, and get the original image.
-    - Concept development: Visualize your ideas instantly without drawing skills.
-    - Content creation: Generate unique visuals for posts, articles, or covers.
+    Generates images from textual descriptions using DALLE-3.
+    image, t2i, tti, text-to-image, create, generate, dall-e, picture, photo, art, drawing, illustration
+    Returns an image based on the provided textual prompt.
     """
 
     class Size(str, Enum):

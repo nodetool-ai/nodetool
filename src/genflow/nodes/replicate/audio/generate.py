@@ -9,17 +9,10 @@ from genflow.workflows.processing_context import ProcessingContext
 
 class RiffusionNode(ReplicateNode):
     """
-    The model, Riffusion, is derived from an existing open-source stable diffusion model. It uses the technical concept of 'spectrograms' - visual representation of sound - to generate images based on user's text prompts. These images are then transformed back into audio files resulting in a novel piece of music. Special feature of this model is merging two audio files by interpolating the latent space between them, leading to a richer and more complex audio output.
-
-    #### Applications
-    - Creating unique music compositions for experimental music projects.
-    - Generating audio based on visual elements for multimedia projects.
-    - Crafting unique sounds for use in films, games, or digital art.
-
-    #### Example
-    Imagine you are creating a short film and need a unique soundtrack. You can input text prompts that describe the film's mood into the Riffusion Node. For instance, you can input 'dystopian city' as the first prompt and 'hopeful sunrise' as the second. Using interpolation, the Riffusion Node will generate an audio file that transitions between these two themes, providing you with a unique soundtrack for your film.
+    Generates novel music by transforming text prompts into audio through a spectrogram-based diffusion model.
+    music, generate,synthesis
+    Produces an audio file that reflects the transition between conceptual themes described in the input prompts, creating a unique musical piece.
     """
-
     class SeedImageId(Enum):
         AGILE = "agile"
         MARIM = "marim"
@@ -83,22 +76,10 @@ class RiffusionNode(ReplicateNode):
 
 class MusicGenNode(ReplicateNode):
     """
-    MusicGen is a handy tool for easy music creation. It utilizes a straightforward system to generate music in a single step, making it a fast and less complicated process.
-    Trained to comprehend and generate music without any additional information, MusicGen is your go-to for simple but efficient music creation.
-
-    Its key features include the ability to generate music based on text prompts or existing audio, an option to continue the melody from a specified time in the input audio,
-      and the use of different normalizing strategies.
-
-    #### Applications
-    - **Creative Music Production:** Generate unique music compositions from scratch based on text prompts or using an existing audio file as a guide.
-    - **Music Education:** Use in understanding musical structures, patterns, and improvisation.
-    - **Audio Analysis:** It can be used to study the impact of different musical elements through the encode-decode model version.
-
-    #### Example
-    You can create a unique and innovative music piece by providing a text prompt describing your desired sound. With the continuation function, you can even generate
-    music that continues from a specified point in an existing song or audio file. The generated music can be normalized depending on your chosen strategy.
+    Generates music from a text prompt or input audio. Can create music from scratch or continue an existing audio file.
+    music generation, audio synthesis, creativity
+    Outputs audio influenced by provided text prompts or existing audio, incorporating specified model and normalization strategies.
     """
-
     class ModelVersion(str, Enum):
         MELODY = "melody"
         LARGE = "large"
@@ -187,17 +168,9 @@ class MusicGenNode(ReplicateNode):
 
 class BarkNode(ReplicateNode):
     """
-    The Bark Node is a text-prompted generative audio model that creates audio based on given text inputs.
-    It is designed to produce diverse and creative audio outputs, including speech and sounds, based on the text prompt provided.
-    The model can use a range of history prompts for audio cloning to create a more specific audio style or accent.
-
-    #### Applications
-    - Generating creative audio or speech from text prompts.
-    - Audio cloning using predefined history prompts for different accents or styles.
-    - Diverse applications in entertainment, education, and media production.
-
-    #### Example
-    Use the Bark Node to generate a unique audio clip by providing a text prompt like "Hello, my name is Suno. And, uh — and I like pizza. [laughs] But I also have other interests such as playing tic tac toe."
+    Creates audio from text prompts, capable of simulating various accents or styles through audio cloning.
+    audio, generate, tta, t2a, text-to-audio, clone, voice, speech, speak
+    Generates a unique audio output, including speech and sounds, tailored to the specificities of the input text and chosen history prompt for style or accent.
     """
 
     class HistoryPromptEnum(str, Enum):

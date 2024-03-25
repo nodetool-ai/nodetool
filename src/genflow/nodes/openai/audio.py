@@ -10,14 +10,11 @@ from genflow.workflows.processing_context import ProcessingContext
 from genflow.common.environment import Environment
 
 
-class CreateSpeech(GenflowNode):
+class TextToSpeech(GenflowNode):
     """
-    This node converts text to speech using OpenAI's TTS model.
-
-    ### Applications
-    - Creating voiceovers for videos.
-    - Creating voiceovers for presentations.
-    - Creating voiceovers for podcasts.
+    Converts text into spoken voice using OpenAI TTS models.
+    audio, tts, t2s, text-to-speech, voiceover, speak, voice, read
+    Returns an audio file from the provided text.
     """
 
     class TtsModel(str, Enum):
@@ -62,14 +59,9 @@ class CreateSpeech(GenflowNode):
 
 class TranscribeNode(GenflowNode):
     """
-    Transcribes an audio file.
-
-    The TranscribeAudioNode converts spoken words in an audio file to written text. It is used for creating written records from audio data and is particularly useful in applications involving data analysis, accessibility, and content creation.
-
-    #### Applications
-    - Data Analysis: Transcribed text can be further analyzed to derive insights.
-    - Accessibility: Helps in making content available to those with hearing impairments.
-    - Content Creation: Useful in creating transcripts for podcasts or interviews.
+    Converts spoken words in an audio file to written text.
+    audio, stt, s2t, speech-to-text, transcription, audio-to-text, analysis
+    Returns a text of the detected words from the input audio file.
     """
 
     audio: AudioRef = Field(
@@ -98,11 +90,13 @@ class TranscribeNode(GenflowNode):
 
 class TranslateNode(GenflowNode):
     """
-    Translates an audio to english.
+    Translates spoken words in an audio file to English text.
+    audio, stt, s2t, speech-to-text, translation, english
+    Outputs the english translation of an audio file as text.
     """
 
     audio: AudioRef = Field(
-        default=AudioRef(), description="The audio file to transcribe."
+        default=AudioRef(), description="The audio file to translate."
     )
     temperature: float = Field(
         default=0.0, description="The temperature to use for the translation."
