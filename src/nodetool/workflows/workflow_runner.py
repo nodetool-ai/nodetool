@@ -272,6 +272,7 @@ class WorkflowRunner:
                 edges=subgraph_edges,
                 nodes=subgraph_nodes,
                 queue=context.message_queue,
+                capabilities=context.capabilities,
             )
             # Mark the loop node as processed so it doesn't get processed again.
             # We only need it to get the input data.

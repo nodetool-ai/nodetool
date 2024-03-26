@@ -118,7 +118,7 @@ class TaskNode(BaseNode):
         description="The prompt template",
     )
     task: Task = Field(
-        default=[],
+        default=Task(),
         description="The task to be executed by this agent.",
     )
     history_length: int = Field(
@@ -128,14 +128,7 @@ class TaskNode(BaseNode):
         description="The number of messages to use for the completion.",
     )
 
-    @classmethod
-    def return_type(cls):
-        return {
-            "messages": list[ThreadMessage],
-            "tasks": list[Task],
-        }
-
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> str:
         thread = context.get_latest_thread()
 
         history, _ = await context.get_messages(
@@ -169,12 +162,8 @@ class TaskNode(BaseNode):
             ],
             model=self.model,
         )
-        return [
-            ThreadMessage(
-                id=m.id,
-                thread_id=m.thread_id,
-                role=m.role,
-                content=[{"text": m.content}] if m.content else [],  # type: ignore
-            )
-            for m in history + messages
-        ]
+
+        task.result = messages[0].content
+        task.save()
+
+        return task.result

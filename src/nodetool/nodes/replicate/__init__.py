@@ -920,7 +920,7 @@ replicate_node(
 replicate_node(
     node_name="PlaygroundV2Node",
     namespace="replicate.image.generate",
-    model_id="playgroundai/playground-v2-1024px-aesthetic",
+    model_id="playgroundai/playground-v2.5-1024px-aesthetic",
     return_type=ImageRef,
 )
 
