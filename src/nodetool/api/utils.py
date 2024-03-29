@@ -30,7 +30,7 @@ async def current_user(
     authorization: Optional[str] = Header(None),
     auth_cookie: Optional[str] = Cookie(None),
 ) -> User:
-    if Environment.use_local_auth():
+    if not Environment.use_remote_auth():
         return get_local_user()
 
     if authorization:
