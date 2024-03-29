@@ -166,10 +166,10 @@ class User(DBModel):
             auth_token = uuid.uuid4().hex
             token_valid = datetime.now() + timedelta(days=1)
 
-        if Environment.is_production():
-            passcode = str(random.randint(100000, 999999))
-        else:
+        if Environment.use_local_auth():
             passcode = "000000"
+        else:
+            passcode = str(random.randint(100000, 999999))
 
         if passcode_valid is None:
             passcode_valid = datetime.now() + timedelta(minutes=61)

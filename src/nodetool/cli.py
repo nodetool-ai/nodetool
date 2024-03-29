@@ -41,12 +41,14 @@ def setup():
 )
 @click.option("--skip-setup", is_flag=True, help="Skip the setup process.")
 @click.option("--force-fp16", is_flag=True, help="Force FP16.")
+@click.option("--local-auth", is_flag=True, help="Use single local user with id 1 for authentication. Will be ingnored on production.")
 def serve(
     host: str,
     port: int,
     static_folder: str | None = None,
     skip_setup: bool = False,
     force_fp16: bool = False,
+    local_auth: bool = False,
 ):
     """Serve the Nodetool API server."""
     import nodetool.nodes
@@ -59,6 +61,8 @@ def serve(
         import comfy.cli_args
 
         comfy.cli_args.args.force_fp16 = force_fp16
+
+    Environment.set_local_auth(local_auth)
 
     run_uvicorn_server("nodetool.api.app:app", host, port)
 

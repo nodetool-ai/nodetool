@@ -121,6 +121,7 @@ class Environment(object):
     model_files: dict[str, list[str]] = {}
     settings: dict[str, Any] | None = None
     secrets: dict[str, Any] | None = None
+    local_auth: bool = False
 
     @classmethod
     def get_aws_execution_env(cls):
@@ -323,6 +324,19 @@ class Environment(object):
         Is the environment test?
         """
         return cls.get_env() == "test"
+
+    @classmethod
+    def set_local_auth(cls, local_auth: bool):
+        cls.get_settings()["LOCAL_AUTH"] = local_auth
+        cls.save_settings()
+
+    @classmethod
+    def use_local_auth(cls):
+        """
+        A single local user with id 1 is used for authentication when this evaluates to True.
+        It always evaluates to False in production or if the the server is started with the `--local-auth` flag.
+        """
+        return not cls.is_production() and cls.get("LOCAL_AUTH")
 
     @classmethod
     def get_log_level(cls):
