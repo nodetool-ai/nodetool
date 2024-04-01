@@ -12,6 +12,8 @@ from nodetool.models.user import User
 
 local_user: User | None = None
 
+log = Environment.get_logger()
+
 
 def get_local_user():
     """

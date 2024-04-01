@@ -41,7 +41,11 @@ def setup():
 )
 @click.option("--skip-setup", is_flag=True, help="Skip the setup process.")
 @click.option("--force-fp16", is_flag=True, help="Force FP16.")
-@click.option("--remote-auth", is_flag=True, help="Use single local user with id 1 for authentication. Will be ingnored on production.")
+@click.option(
+    "--remote-auth",
+    is_flag=True,
+    help="Use single local user with id 1 for authentication. Will be ingnored on production.",
+)
 def serve(
     host: str,
     port: int,
@@ -61,6 +65,11 @@ def serve(
         import comfy.cli_args
 
         comfy.cli_args.args.force_fp16 = force_fp16
+
+    if remote_auth:
+        print("Using remote auth.")
+    else:
+        print("Disable auth.")
 
     Environment.set_remote_auth(remote_auth)
 

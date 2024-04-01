@@ -4,6 +4,7 @@ from nodetool.api.auth import (
     OAuthProvider,
     get_user_email,
 )
+from nodetool.common.environment import Environment
 from nodetool.models.user import User
 
 import pytest
@@ -23,10 +24,13 @@ def test_oauth_login(mocker, client: TestClient):
         redirect_uri="http://localhost:8000/callback", provider=OAuthProvider.google
     )
     response = client.post("/api/auth/oauth/login", json=login_request.model_dump())
-    assert mock_session.return_value.create_authorization_url.called
-    assert response.status_code == 200
-    assert "url" in response.json()
-    assert "state" in response.json()
+
+    assert (
+        mock_session.return_value.create_authorization_url.called
+    ), "create_authorization_url not called"
+    assert response.status_code == 200, "response status code is not 200"
+    assert "url" in response.json(), "url is not in response"
+    assert "state" in response.json(), "state is not in response"
 
 
 def test_oauth_callback(mocker, client: TestClient):
@@ -46,11 +50,11 @@ def test_oauth_callback(mocker, client: TestClient):
     )
     response = client.post("/api/auth/oauth/callback", json=auth_request.model_dump())
 
-    assert mock_session.return_value.fetch_token.called
-    assert response.status_code == 200
-    assert response.json()["email"] == "test@example.com"
-    assert "id" in response.json()
-    assert "auth_token" in response.json()
+    assert mock_session.return_value.fetch_token.called, "fetch_token not called"
+    assert response.status_code == 200, "response status code is not 200"
+    assert response.json()["email"] == "test@example.com", "email is not correct"
+    assert "id" in response.json(), "id is not in response"
+    assert "auth_token" in response.json(), "auth_token is not in response"
 
     # Verify that the user is created or retrieved correctly
     user = User.find_by_email("test@example.com")
@@ -66,4 +70,4 @@ def test_get_user_email(mocker):
 
     # Test getting user email for Google provider
     email = get_user_email(mock_session, OAuthProvider.google)
-    assert email == "test@example.com"
+    assert email == "test@example.com", "email is not correct"

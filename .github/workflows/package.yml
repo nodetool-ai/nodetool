@@ -32,8 +32,7 @@ jobs:
           conda-pack -n nodetool -o nodetool.tar.gz
 
       - name: Create Release
-        id: create_release
-        uses: ncipollo/create-release@v1
+        uses: ncipollo/release-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

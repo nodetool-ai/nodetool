@@ -59,6 +59,7 @@ DEFAULT_ENV = {
     "HF_TOKEN": None,
     "ENV": "development",
     "LOG_LEVEL": "INFO",
+    "REMOTE_AUTH": "0",
     "AWS_REGION": "us-east-1",
     "NODETOOL_API_URL": "http://localhost:8000/api",
 }
@@ -327,15 +328,14 @@ class Environment(object):
 
     @classmethod
     def set_remote_auth(cls, remote_auth: bool):
-        cls.get_settings()["remote_auth"] = remote_auth
-        cls.save_settings()
+        os.environ["REMOTE_AUTH"] = "1" if remote_auth else "0"
 
     @classmethod
     def use_remote_auth(cls):
         """
         A single local user with id 1 is used for authentication when this evaluates to True.
         """
-        return cls.is_production() or cls.get("remote_auth")
+        return cls.is_production() or cls.get("REMOTE_AUTH") == "1"
 
     @classmethod
     def get_log_level(cls):

@@ -1,4 +1,3 @@
-import sys
 from typing import Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -118,9 +117,7 @@ def make_job(user: User, **kwargs):
 
 @pytest.fixture(scope="function")
 def user():
-    return User(
-        id="1", email="", auth_token="", token_valid=datetime.now() + timedelta(days=30)
-    )
+    return make_user(verified=True)
 
 
 @pytest.fixture(scope="function")
@@ -145,6 +142,8 @@ def client():
     app.include_router(nodetool.api.job.router)
     app.include_router(nodetool.api.node.router)
     app.include_router(nodetool.api.workflow.router)
+
+    Environment.set_remote_auth(True)
 
     return TestClient(app)
 

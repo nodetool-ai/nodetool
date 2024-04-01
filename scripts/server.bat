@@ -3,4 +3,4 @@
 set PYTHONPATH=src
 set PYTHONUNBUFFERED=1
 
-python -m nodetool.cli serve
+python -m nodetool.cli serve %*
