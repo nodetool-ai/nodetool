@@ -19,12 +19,12 @@ jobs:
       - name: Install Poetry and Conda-Pack
         shell: bash -el {0}
         run: |
-          conda install -c conda-forge poetry conda-pack
+          conda install -c conda-forge conda-pack
 
-      - name: Install dependencies with Poetry
+      - name: Install Packages
         shell: bash -el {0}
         run: |
-          poetry install
+          pip install 'nodetool[worker]'
 
       - name: Pack Conda Environment
         shell: bash -el {0}
