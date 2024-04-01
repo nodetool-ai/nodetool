@@ -10,12 +10,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
-          miniconda-version: "latest"
           python-version: 3.11
           activate-environment: nodetool
 
