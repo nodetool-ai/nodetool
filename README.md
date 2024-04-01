@@ -1,25 +1,23 @@
-# Nodetool.ai
+# nodetool api
 
-## Description
+## Overview
+Nodetool is a no-code development environment for Artificial Intelligence, enabling the simple and intuitive creation of powerful AI workflows and their integration into existing applications. Utilizing a node-based user interface, users can construct complex, multimodal applications without any programming knowledge. Nodetool facilitates the seamless integration of state-of-the-art AI models, allowing the generation and editing of multimedia content such as images, texts, audio, and video within a single workflow. It is model agnostic, allowing easy integration of new nodes, and uses inputs/outputs for nodes to exchange information, thereby creating new datasets and more.
 
-Nodetool is an innovative AI workflow engine, designed to integrate seamlessly with a node-based web interface. It enables users to orchestrate complex workflows involving various AI models for generating multimedia content, including images, text, audio, and video, all within a single, unified platform.
+Nodetool opens up a creative and playful access to current technologies, supporting both beginners and experienced developers in the fields of content creation, data analysis, and automation. It enables a broad audience to benefit from the advantages of artificial intelligence by visualizing workflows and simplifying complex installation requirements, making AI application development accessible to novices and seasoned users alike.
 
-## Features
 
-- **Diverse AI Model Integration:** Effortlessly combine a broad spectrum of AI models.
-- **Multimedia Content Generation:** Create images, text, audio, and video within the same workflow.
-- **Flexible Execution Environments:** Supports both local and remote execution options.
-- **Comprehensive Platform Support:** Utilize models from leading platforms like Huggingface, Replicate, and OpenAI.
-- **Advanced Database Integration:** Leverage support for vector databases to enhance your workflows.
-- **ComfyUI Workflows:** Incorporate ComfyUI workflows for enhanced user interaction.
-- **Retrieval Augmented Generation:** Implement RAG for sophisticated data retrieval and generation.
-- **Serverless GPU Deployment:** Easily deploy workflows on serverless GPU platforms, including modal.com, for scalable processing power.
+![nodetool](nodetool.png)
+
+## Key Features
+* No-Code AI Development: Create AI workflows without deep programming knowledge.
+* Model Agnostic: Easily integrate new nodes and state-of-the-art AI models from OpenAI, Anthropic, Replicate, HuggingFace, ComfyUI, Llama, Mistral, and more.
+* Multimedia Content Handling: Generate and edit images, texts, audio, and video in one workflow.
+* Open and Transparent: Aims to make the execution and training of AI models more transparent and accessible.
+* Asset management: Manage and organize your assets (images, videos, audio files) within the application
+
 
 ## Installation
 
-Nodetool supports various Python environments, including CPython and PyPy. The installation instructions provided below cater to both environments for maximum compatibility.
-
-### For CPython (default Python implementation)
 
 ```bash
 pip install nodetool
