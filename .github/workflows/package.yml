@@ -1,0 +1,45 @@
+name: Package and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          miniconda-version: "latest"
+          python-version: 3.11
+          activate-environment: nodetool
+
+      - name: Install Poetry and Conda-Pack
+        shell: bash
+        run: |
+          conda install -c conda-forge poetry conda-pack
+
+      - name: Install dependencies with Poetry
+        shell: bash
+        run: |
+          poetry install
+
+      - name: Pack Conda Environment
+        shell: bash
+        run: |
+          conda-pack -n nodetool -o nodetool.tar.gz
+
+      - name: Upload packed environment as release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }} # This is the endpoint for uploading assets to the release
+          asset_path: ./nodetool.tar.gz
+          asset_name: nodetool.tar.gz
+          asset_content_type: application/gzip
