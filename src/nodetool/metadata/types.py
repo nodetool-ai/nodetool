@@ -161,6 +161,10 @@ class IPAdapterFile(ModelFile):
     type: Literal["comfy.ip_adapter_file"] = "comfy.ip_adapter_file"
 
 
+class LORAFile(ModelFile):
+    type: Literal["comfy.lora_file"] = "comfy.lora_file"
+
+
 class UpscaleModelFile(ModelFile):
     type: Literal["comfy.upscale_model_file"] = "comfy.upscale_model_file"
 
@@ -368,13 +372,13 @@ def is_output_type(type):
 
 
 ModelFileEnums = (
-    "checkpoint_file",
-    "clip_file",
-    "clip_vision_file",
-    "control_net_file",
-    "upscale_model_file",
-    "lora_file",
-    "ip_adapter_file",
+    "comfy.checkpoint_file",
+    "comfy.clip_file",
+    "comfy.clip_vision_file",
+    "comfy.control_net_file",
+    "comfy.upscale_model_file",
+    "comfy.lora_file",
+    "comfy.ip_adapter_file",
 )
 
 

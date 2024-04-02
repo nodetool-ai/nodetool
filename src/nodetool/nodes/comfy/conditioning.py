@@ -9,6 +9,7 @@ from nodetool.metadata.types import (
     Conditioning,
     ControlNet,
     ImageTensor,
+    LORAFile,
     Mask,
     UNet,
 )
@@ -256,8 +257,8 @@ class LORAEnum(str, Enum):
 class LoraLoader(ComfyNode):
     model: UNet = Field(default=UNet(), description="The model to apply Lora to.")
     clip: CLIP = Field(default=CLIP(), description="The CLIP model to apply Lora to.")
-    lora_name: LORAEnum = Field(
-        default=LORAEnum.ADD_DETAIL, description="The name of the LoRA to load."
+    lora_name: LORAFile = Field(
+        default=LORAFile(), description="The name of the LoRA to load."
     )
     strength_model: float = Field(
         default=1.0,
