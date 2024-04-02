@@ -5,6 +5,8 @@ from types import UnionType
 from typing import Any, Dict, List, get_args
 from pydantic.fields import FieldInfo
 
+from nodetool.common.environment import Environment
+
 from .database_adapter import DatabaseAdapter
 from typing import Any, Type, Union, get_origin, get_args
 import json
@@ -202,7 +204,8 @@ class SQLiteAdapter(DatabaseAdapter):
                 self.db_path, timeout=30, check_same_thread=False
             )
             self._connection.row_factory = sqlite3.Row
-            self._connection.set_trace_callback(print)
+            if Environment.is_debug():
+                self._connection.set_trace_callback(print)
 
         return self._connection
 

@@ -60,6 +60,7 @@ DEFAULT_ENV = {
     "ENV": "development",
     "LOG_LEVEL": "INFO",
     "REMOTE_AUTH": "0",
+    "DEBUG": None,
     "AWS_REGION": "us-east-1",
     "NODETOOL_API_URL": "http://localhost:8000/api",
 }
@@ -336,6 +337,13 @@ class Environment(object):
         A single local user with id 1 is used for authentication when this evaluates to True.
         """
         return cls.is_production() or cls.get("REMOTE_AUTH") == "1"
+
+    @classmethod
+    def is_debug(cls):
+        """
+        Is debug flag on?
+        """
+        return cls.get("DEBUG")
 
     @classmethod
     def get_log_level(cls):

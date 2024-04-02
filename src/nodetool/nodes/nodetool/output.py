@@ -55,6 +55,29 @@ class ChatOutputNode(OutputNode):
         }
 
 
+class ImageListOutputNode(OutputNode):
+    value: list[ImageRef] = Field(
+        default=[],
+        description="The images to display.",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[ImageRef]:
+        return self.value
+
+    def get_json_schema(self):
+        return {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "uri": {"type": "string"},
+                    "type": {"type": "string"},
+                },
+            },
+            "description": self.description,
+        }
+
+
 class IntOutputNode(OutputNode):
     value: int = 0
 

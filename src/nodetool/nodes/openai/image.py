@@ -44,7 +44,7 @@ class CreateImageNode(BaseNode):
     async def process(self, context: ProcessingContext) -> ImageRef:
         client = Environment.get_openai_client()
         image = await client.images.generate(
-            model="dalle-3",
+            model="dall-e-3",
             prompt=self.prompt,
             size=self.size.value,
             quality=self.quality.value,

@@ -9,6 +9,7 @@ from typing import Any, Literal, Optional, Type, Union
 from pydantic_core import CoreSchema
 from pydantic_core.core_schema import StringSchema
 from nodetool.models.asset import Asset
+from nodetool.models.message import Message
 
 
 # Mapping of python types to their string representation
@@ -256,6 +257,15 @@ class ThreadMessage(BaseType):
     role: str = ""
     content: list[MessageContent] = []
 
+    @classmethod
+    def from_message(cls, message: Message):
+        return cls(
+            id=message.id,
+            thread_id=message.thread_id,
+            role=message.role,
+            content=[MessageTextContent(text=message.content or "")],
+        )
+
 
 class Thread(BaseType):
     type: Literal["thread"] = "thread"
@@ -265,6 +275,13 @@ class Thread(BaseType):
 class Task(BaseType):
     type: Literal["task"] = "task"
     id: str = ""
+
+
+class ToolCall(BaseType):
+    type: Literal["tool_call"] = "tool_call"
+    function_name: str = ""
+    function_args: dict[str, Any] = {}
+    function_response: Any = None
 
 
 class Tensor(BaseType):
@@ -370,6 +387,7 @@ class TypeMetadata(BaseModel):
     optional: bool = False
     values: Optional[list[str | int]] = None
     type_args: list["TypeMetadata"] = []
+    type_name: Optional[str] = None
 
     def __repr__(self):
         return f"TypeMetadata(type={self.type}, optional={self.optional}, values={self.values}, type_args={self.type_args})"
@@ -387,7 +405,10 @@ class TypeMetadata(BaseModel):
         return self.type == "union"
 
     def get_python_type(self):
-        return NameToType[self.type]
+        if self.is_enum_type():
+            return NameToType[self.type_name]
+        else:
+            return NameToType[self.type]
 
     def get_json_schema(self) -> dict[str, Any]:
         """

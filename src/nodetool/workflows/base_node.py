@@ -3,7 +3,7 @@ from pydantic.fields import FieldInfo
 
 from typing import Any, Type
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import TypeToName
+from nodetool.metadata.types import NameToType, TypeToName
 from nodetool.metadata import (
     is_assignable,
 )
@@ -91,7 +91,13 @@ def type_metadata(python_type: Type) -> TypeMetadata:
             type_args=[type_metadata(t) for t in python_type.__args__],  # type: ignore
         )
     elif is_enum_type(python_type):
-        return TypeMetadata(type="enum", values=[e.value for e in python_type])  # type: ignore
+        # hacky...
+        NameToType[python_type.__name__] = python_type
+        return TypeMetadata(
+            type="enum",
+            type_name=python_type.__name__,
+            values=[e.value for e in python_type],
+        )
     elif is_optional_type(python_type):
         res = type_metadata(python_type.__args__[0])  # type: ignore
         res.optional = True
@@ -211,22 +217,23 @@ class BaseNode(BaseModel):
 
         if prop.type.is_enum_type():
             try:
-                value = type(value)
+                v = prop.type.get_python_type()(value)
             except ValueError:
                 log.warn(
                     f"[{self.get_node_type()}] Invalid value for property `{name}`: {value} (expected {prop.type})"
                 )
                 return
 
-        if not is_assignable(prop.type, value):
+        elif not is_assignable(prop.type, value):
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
             )
+        elif hasattr(prop.type.get_python_type(), "model_validate"):
+            v = prop.type.get_python_type().model_validate(value)  # type: ignore
+        else:
+            v = value
 
-        if hasattr(prop.type.get_python_type(), "model_validate"):
-            value = prop.type.get_python_type().model_validate(value)  # type: ignore
-
-        setattr(self, name, value)
+        setattr(self, name, v)
 
     def set_node_properties(
         self, properties: dict[str, Any], skip_errors: bool = False

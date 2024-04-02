@@ -922,6 +922,12 @@ replicate_node(
     namespace="replicate.image.generate",
     model_id="playgroundai/playground-v2.5-1024px-aesthetic",
     return_type=ImageRef,
+    overrides={
+        "image": (
+            ImageRef,
+            Field(ImageRef(), description="image to process"),
+        ),
+    },
 )
 
 replicate_node(

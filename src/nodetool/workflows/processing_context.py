@@ -859,7 +859,7 @@ class ProcessingContext:
             elif isinstance(value, Enum):
                 return value.value
             else:
-                raise ValueError(f"Invalid enum value {value}")
+                raise ValueError(f"Invalid enum value {value} : {type(value)}")
         else:
             return value
 

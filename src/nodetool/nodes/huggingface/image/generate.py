@@ -36,6 +36,7 @@ class StableDiffusionXL(HuggingfaceNode):
         description="The model ID to use for the image generation",
     )
     inputs: str = Field(
+        default="A photo of a cat.",
         title="Inputs",
         description="The input text to the model",
     )
@@ -50,7 +51,7 @@ class StableDiffusionXL(HuggingfaceNode):
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         result = await self.run_huggingface(
-            model_id=self.model, context=context, params={"inputs": self.inputs}
+            model_id=self.model.value, context=context, params={"inputs": self.inputs}
         )
         img = await context.image_from_bytes(result)  # type: ignore
         return img
