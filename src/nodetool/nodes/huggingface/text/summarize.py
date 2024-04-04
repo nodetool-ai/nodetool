@@ -11,6 +11,17 @@ class ModelId(str, Enum):
 
 
 class Summarize(HuggingfaceNode):
+    """
+    Summarization is the task of producing a shorter version of a document while preserving its important information. Some models can extract text from the original input, while other models can generate entirely new text.
+
+    ### Use Cases
+    Research papers can be summarized to allow researchers to spend less time selecting which articles to read. There are several approaches you can take for a task like this:
+
+    Use an existing extractive summarization model on the Hub to do inference.
+    Pick an existing language model trained for academic papers. This model can then be trained in a process called fine-tuning so it can solve the summarization task.
+    Use a sequence-to-sequence model like T5 for abstractive text summarization.
+    """
+
     model: ModelId = Field(
         default=ModelId.FALCONSAI_TEXT_SUMMARIZATION,
         title="Model ID on Huggingface",

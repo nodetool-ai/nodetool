@@ -12,6 +12,12 @@ class ModelId(str, Enum):
 
 
 class AutomaticSpeechRecognition(HuggingfaceNode):
+    """
+    Automatic Speech Recognition (ASR), also known as Speech to Text (STT),
+    is the task of transcribing a given audio to text. It has many applications,
+    such as voice user interfaces.
+    """
+
     model: ModelId = Field(
         default=ModelId.OPENAI_WHISPER_LARGE_V3,
         title="Model ID on Huggingface",

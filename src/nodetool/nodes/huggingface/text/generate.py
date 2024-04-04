@@ -13,6 +13,17 @@ class ModelId(str, Enum):
 
 
 class TextGeneration(HuggingfaceNode):
+    """
+    Generating text is the task of generating new text given another text. These models can, for example, fill in incomplete text or paraphrase.
+
+    Use Cases
+    * A model trained for text generation can be later adapted to follow instructions. One of the most used open-source models for instruction is OpenAssistant, which you can try at Hugging Chat.
+
+    * A Text Generation model, also known as a causal language model, can be trained on code from scratch to help the programmers in their repetitive coding tasks. One of the most popular open-source models for code generation is StarCoder, which can generate code in 80+ languages. You can try it here.
+
+    * A story generation model can receive an input like "Once upon a time" and proceed to create a story-like text based on those first words. You can try this application which contains a model trained on story generation, by MosaicML.
+    """
+
     model: ModelId = Field(
         default=ModelId.MICROSOFT_PHI_2,
         title="Model ID on Huggingface",

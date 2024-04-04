@@ -30,6 +30,17 @@ class ModelId(str, Enum):
 
 
 class StableDiffusionXL(HuggingfaceNode):
+    """
+    Generates images from input text. These models can be used to generate and
+    modify images based on text prompts.
+
+    ### Use Cases
+    * Businesses can generate data for their their use cases by inputting text and getting image outputs.
+    * Chatbots can be made more immersive if they provide contextual images based on the input provided by the user.
+    * Different patterns can be generated to obtain unique pieces of fashion. Text-to-image models make creations easier for designers to conceptualize their design before actually implementing it.
+    * Architects can utilise the models to construct an environment based out on the requirements of the floor plan. This can also include the furniture that has to be placed in that environment.
+    """
+
     model: ModelId = Field(
         default=ModelId.STABLE_DIFFUSION_XL_BASE_1_0,
         title="Model ID on Huggingface",

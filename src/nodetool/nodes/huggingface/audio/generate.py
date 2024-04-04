@@ -12,6 +12,18 @@ class ModelId(str, Enum):
 
 
 class TextToSpeech(HuggingfaceNode):
+    """
+    Text-to-Speech (TTS) is the task of generating natural sounding
+    speech given text input. TTS models can be extended to have a single model
+    that generates speech for multiple speakers and multiple languages.
+
+    ### Use Cases
+    * Text-to-Speech (TTS) models can be used in any speech-enabled application that requires converting text to speech imitating human voice.
+    * TTS models are used to create voice assistants on smart devices. These models are a better alternative compared to concatenative methods where the assistant is built by recording sounds and mapping them, since the outputs in TTS models contain elements in natural speech such as emphasis.
+    * TTS models are widely used in airport and public transportation announcement systems to convert the announcement of a given text into speech.
+
+    """
+
     model: ModelId = Field(
         default=ModelId.SUNO_BARK,
         title="Model ID on Huggingface",
@@ -40,6 +52,7 @@ class TextToAudioModel(str, Enum):
 
 
 class TextToAudio(HuggingfaceNode):
+
     model: TextToAudioModel = Field(
         default=TextToAudioModel.MUSICGEN_SMALL,
         title="Model ID on Huggingface",
