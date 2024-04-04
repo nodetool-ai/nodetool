@@ -399,6 +399,7 @@ def default_for(datatype: DataType | list[DataType] | None) -> Any:
 
 def create_model_from_schema(
     model_name: str,
+    description: str,
     schema: Schema,
     type_lookup: dict[str, type],
     base: type[BaseNode],
@@ -468,7 +469,9 @@ def create_model_from_schema(
                 fields[name] = (type_, field)
 
     assert schema.title
-    return create_model(model_name, __base__=base, __module__=module, **fields)
+    return create_model(
+        model_name, __base__=base, __module__=module, __doc__=description, **fields
+    )
 
 
 def parse_model_info(url: str):
@@ -523,8 +526,13 @@ def get_model_api(
         }
 
         log.info("Getting model API: %s", model_id)
-
-        model_info = parse_model_info(f"https://replicate.com/{model_id}")
+        res = httpx.get(
+            f"https://api.replicate.com/v1/models/{model_id}",
+            headers=headers,
+        )
+        res.raise_for_status()
+        model_info = res.json()
+        model_info.update(parse_model_info(f"https://replicate.com/{model_id}"))
 
         if model_version is None:
             res = httpx.get(
@@ -615,6 +623,7 @@ def replicate_node(
 
     model = create_model_from_schema(
         model_name=node_name,
+        description=model_info.get("description", ""),
         schema=api.components.schemas["Input"],  # type: ignore
         type_lookup=type_lookup,
         base=ReplicateNode,
