@@ -547,7 +547,7 @@ def load_checkpoint_cached(ckpt_path, config_path=None):
             output_clip=True,
             embedding_directory=folder_paths.get_folder_paths("embeddings"),
         )
-    ckpt_cache[ckpt_path] = res
+    # ckpt_cache[ckpt_path] = res
     return res
 
 
@@ -571,7 +571,7 @@ class CheckpointLoader:
     ):
         config_path = folder_paths.get_full_path("configs", config_name)
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-        load_checkpoint_cached(ckpt_path, config_path)
+        return load_checkpoint_cached(ckpt_path, config_path)
 
 
 class CheckpointLoaderSimple:

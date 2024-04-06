@@ -1,28 +1,10 @@
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Copyright (c) @comfyanonymous
-# Project Repository: https://github.com/comfyanonymous/ComfyUI
-
 from abc import abstractmethod
-import math
 
-import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
-from functools import partial
+import logging
 
 from .util import (
     checkpoint,
@@ -378,7 +360,7 @@ def apply_control(h, control, name):
             try:
                 h += ctrl
             except:
-                print("warning control could not be applied", h.shape, ctrl.shape)
+                logging.warning("warning control could not be applied {} {}".format(h.shape, ctrl.shape))
     return h
 
 class UNetModel(nn.Module):
@@ -453,9 +435,6 @@ class UNetModel(nn.Module):
         operations=ops,
     ):
         super().__init__()
-        assert use_spatial_transformer == True, "use_spatial_transformer has to be true"
-        if use_spatial_transformer:
-            assert context_dim is not None, 'Fool!! You forgot to include the dimension of your cross-attention conditioning...'
 
         if context_dim is not None:
             assert use_spatial_transformer, 'Fool!! You forgot to use the spatial transformer for your cross-attention conditioning...'
@@ -472,7 +451,6 @@ class UNetModel(nn.Module):
         if num_head_channels == -1:
             assert num_heads != -1, 'Either num_heads or num_head_channels has to be set'
 
-        self.image_size = image_size
         self.in_channels = in_channels
         self.model_channels = model_channels
         self.out_channels = out_channels
@@ -507,7 +485,6 @@ class UNetModel(nn.Module):
         self.predict_codebook_ids = n_embed is not None
 
         self.default_num_video_frames = None
-        self.default_image_only_indicator = None
 
         time_embed_dim = model_channels * 4
         self.time_embed = nn.Sequential(
@@ -518,9 +495,9 @@ class UNetModel(nn.Module):
 
         if self.num_classes is not None:
             if isinstance(self.num_classes, int):
-                self.label_emb = nn.Embedding(num_classes, time_embed_dim)
+                self.label_emb = nn.Embedding(num_classes, time_embed_dim, dtype=self.dtype, device=device)
             elif self.num_classes == "continuous":
-                print("setting up linear c_adm embedding layer")
+                logging.debug("setting up linear c_adm embedding layer")
                 self.label_emb = nn.Linear(1, time_embed_dim)
             elif self.num_classes == "sequential":
                 assert adm_in_channels is not None
@@ -731,27 +708,30 @@ class UNetModel(nn.Module):
                 device=device,
                 operations=operations
             )]
-        if transformer_depth_middle >= 0:
-            mid_block += [get_attention_layer(  # always uses a self-attn
-                            ch, num_heads, dim_head, depth=transformer_depth_middle, context_dim=context_dim,
-                            disable_self_attn=disable_middle_self_attn, use_checkpoint=use_checkpoint
-                        ),
-            get_resblock(
-                merge_factor=merge_factor,
-                merge_strategy=merge_strategy,
-                video_kernel_size=video_kernel_size,
-                ch=ch,
-                time_embed_dim=time_embed_dim,
-                dropout=dropout,
-                out_channels=None,
-                dims=dims,
-                use_checkpoint=use_checkpoint,
-                use_scale_shift_norm=use_scale_shift_norm,
-                dtype=self.dtype,
-                device=device,
-                operations=operations
-            )]
-        self.middle_block = TimestepEmbedSequential(*mid_block)
+
+        self.middle_block = None
+        if transformer_depth_middle >= -1:
+            if transformer_depth_middle >= 0:
+                mid_block += [get_attention_layer(  # always uses a self-attn
+                                ch, num_heads, dim_head, depth=transformer_depth_middle, context_dim=context_dim,
+                                disable_self_attn=disable_middle_self_attn, use_checkpoint=use_checkpoint
+                            ),
+                get_resblock(
+                    merge_factor=merge_factor,
+                    merge_strategy=merge_strategy,
+                    video_kernel_size=video_kernel_size,
+                    ch=ch,
+                    time_embed_dim=time_embed_dim,
+                    dropout=dropout,
+                    out_channels=None,
+                    dims=dims,
+                    use_checkpoint=use_checkpoint,
+                    use_scale_shift_norm=use_scale_shift_norm,
+                    dtype=self.dtype,
+                    device=device,
+                    operations=operations
+                )]
+            self.middle_block = TimestepEmbedSequential(*mid_block)
         self._feature_size += ch
 
         self.output_blocks = nn.ModuleList([])
@@ -850,7 +830,7 @@ class UNetModel(nn.Module):
         transformer_patches = transformer_options.get("patches", {})
 
         num_video_frames = kwargs.get("num_video_frames", self.default_num_video_frames)
-        image_only_indicator = kwargs.get("image_only_indicator", self.default_image_only_indicator)
+        image_only_indicator = kwargs.get("image_only_indicator", None)
         time_context = kwargs.get("time_context", None)
 
         assert (y is not None) == (
@@ -881,7 +861,8 @@ class UNetModel(nn.Module):
                     h = p(h, transformer_options)
 
         transformer_options["block"] = ("middle", 0)
-        h = forward_timestep_embed(self.middle_block, h, emb, context, transformer_options, time_context=time_context, num_video_frames=num_video_frames, image_only_indicator=image_only_indicator)
+        if self.middle_block is not None:
+            h = forward_timestep_embed(self.middle_block, h, emb, context, transformer_options, time_context=time_context, num_video_frames=num_video_frames, image_only_indicator=image_only_indicator)
         h = apply_control(h, control, 'middle')
 
 

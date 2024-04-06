@@ -1,5 +1,7 @@
 import asyncio
+from contextlib import contextmanager
 from datetime import datetime
+import gc
 
 from pydantic import BaseModel
 
@@ -56,33 +58,13 @@ class WorkflowRunner:
         input_nodes = {node.name: node for node in graph.inputs()}
         output_nodes = graph.outputs()
 
-        context.edges = graph.edges
-        context.nodes = graph.nodes
-
-        if "comfy" in graph_capabilities:
-            if not "comfy" in context.capabilities:
-                raise ValueError("Comfy nodes are not supported in this environment")
-
-            import comfy.model_management
-            import comfy.utils
-
-            def hook(value, total, preview_image):
-                comfy.model_management.throw_exception_if_processing_interrupted()
-                context.post_message(
-                    NodeProgress(
-                        node_id=self.current_node or "",
-                        progress=value,
-                        total=total,
-                        # preview_image=self.encode_image(preview_image),
-                    )
-                )
-
-            comfy.utils.set_progress_bar_global_hook(hook)
-
         log.info("===== Run workflow ====")
         log.info("Request: " + str(req))
         log.info("Input nodes: " + str(input_nodes))
         log.info("Output nodes: " + str(output_nodes))
+
+        context.edges = graph.edges
+        context.nodes = graph.nodes
 
         if req.params:
             for key, value in req.params.items():
@@ -93,16 +75,17 @@ class WorkflowRunner:
                 node.assign_property("value", value)
                 print("Assigned value to input node: " + str(node))
 
-        await self.process_graph(context)
+        with self.torch_capabilities(graph_capabilities, context):
+            await self.process_graph(context)
 
         output = {}
         for node in output_nodes:
             output[node.name] = context.get_result(node.id, "output")
 
+        context.post_message(WorkflowUpdate(result=output))
+
         log.info("Graph processing complete")
         log.info("Output: " + str(output))
-
-        context.post_message(WorkflowUpdate(result=output))
 
         self.status = "completed"
 
@@ -306,3 +289,38 @@ class WorkflowRunner:
             context.processed_nodes.add(n.id)
 
         log.info("Loop results: " + str(results))
+
+    @contextmanager
+    def torch_capabilities(self, capabilities: list[str], context: ProcessingContext):
+        if "comfy" in capabilities:
+            if not "comfy" in context.capabilities:
+                raise ValueError("Comfy nodes are not supported in this environment")
+
+            import comfy.model_management
+            import comfy.utils
+            import torch
+
+            def hook(value, total, preview_image):
+                comfy.model_management.throw_exception_if_processing_interrupted()
+                context.post_message(
+                    NodeProgress(
+                        node_id=self.current_node or "",
+                        progress=value,
+                        total=total,
+                        # preview_image=self.encode_image(preview_image),
+                    )
+                )
+
+            comfy.utils.set_progress_bar_global_hook(hook)
+
+            # comfy.model_management.unload_all_models()
+            log.info(f"VRAM: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}")
+            with torch.inference_mode():
+                comfy.model_management.cleanup_models()
+                yield
+                # gc.collect()
+                # comfy.model_management.soft_empty_cache()
+                log.info(f"VRAM: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}")
+
+        else:
+            yield

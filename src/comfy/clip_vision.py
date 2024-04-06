@@ -1,24 +1,8 @@
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Copyright (c) @comfyanonymous
-# Project Repository: https://github.com/comfyanonymous/ComfyUI
-
-from .utils import load_torch_file, transformers_convert, common_upscale
+from .utils import load_torch_file, transformers_convert, state_dict_prefix_replace
 import os
 import torch
-import contextlib
 import json
+import logging
 
 import comfy.ops
 import comfy.model_patcher
@@ -57,8 +41,12 @@ class ClipVisionModel():
         self.model.eval()
 
         self.patcher = comfy.model_patcher.ModelPatcher(self.model, load_device=self.load_device, offload_device=offload_device)
+
     def load_sd(self, sd):
         return self.model.load_state_dict(sd, strict=False)
+
+    def get_sd(self):
+        return self.model.state_dict()
 
     def encode_image(self, image):
         comfy.model_management.load_model_gpu(self.patcher)
@@ -92,6 +80,9 @@ def convert_to_transformers(sd, prefix):
             sd['visual_projection.weight'] = sd.pop("{}proj".format(prefix)).transpose(0, 1)
 
         sd = transformers_convert(sd, prefix, "vision_model.", 48)
+    else:
+        replace_prefix = {prefix: ""}
+        sd = state_dict_prefix_replace(sd, replace_prefix)
     return sd
 
 def load_clipvision_from_sd(sd, prefix="", convert_keys=False):
@@ -109,7 +100,7 @@ def load_clipvision_from_sd(sd, prefix="", convert_keys=False):
     clip = ClipVisionModel(json_config)
     m, u = clip.load_sd(sd)
     if len(m) > 0:
-        print("missing clip vision:", m)
+        logging.warning("missing clip vision: {}".format(m))
     u = set(u)
     keys = list(sd.keys())
     for k in keys:

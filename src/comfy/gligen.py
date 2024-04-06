@@ -1,24 +1,9 @@
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Copyright (c) @comfyanonymous
-# Project Repository: https://github.com/comfyanonymous/ComfyUI
-
 import torch
-from torch import nn, einsum
+from torch import nn
 from .ldm.modules.attention import CrossAttention
 from inspect import isfunction
-
+import comfy.ops
+ops = comfy.ops.manual_cast
 
 def exists(val):
     return val is not None
@@ -38,7 +23,7 @@ def default(val, d):
 class GEGLU(nn.Module):
     def __init__(self, dim_in, dim_out):
         super().__init__()
-        self.proj = nn.Linear(dim_in, dim_out * 2)
+        self.proj = ops.Linear(dim_in, dim_out * 2)
 
     def forward(self, x):
         x, gate = self.proj(x).chunk(2, dim=-1)
@@ -51,14 +36,14 @@ class FeedForward(nn.Module):
         inner_dim = int(dim * mult)
         dim_out = default(dim_out, dim)
         project_in = nn.Sequential(
-            nn.Linear(dim, inner_dim),
+            ops.Linear(dim, inner_dim),
             nn.GELU()
         ) if not glu else GEGLU(dim, inner_dim)
 
         self.net = nn.Sequential(
             project_in,
             nn.Dropout(dropout),
-            nn.Linear(inner_dim, dim_out)
+            ops.Linear(inner_dim, dim_out)
         )
 
     def forward(self, x):
@@ -73,11 +58,12 @@ class GatedCrossAttentionDense(nn.Module):
             query_dim=query_dim,
             context_dim=context_dim,
             heads=n_heads,
-            dim_head=d_head)
+            dim_head=d_head,
+            operations=ops)
         self.ff = FeedForward(query_dim, glu=True)
 
-        self.norm1 = nn.LayerNorm(query_dim)
-        self.norm2 = nn.LayerNorm(query_dim)
+        self.norm1 = ops.LayerNorm(query_dim)
+        self.norm2 = ops.LayerNorm(query_dim)
 
         self.register_parameter('alpha_attn', nn.Parameter(torch.tensor(0.)))
         self.register_parameter('alpha_dense', nn.Parameter(torch.tensor(0.)))
@@ -103,17 +89,18 @@ class GatedSelfAttentionDense(nn.Module):
 
         # we need a linear projection since we need cat visual feature and obj
         # feature
-        self.linear = nn.Linear(context_dim, query_dim)
+        self.linear = ops.Linear(context_dim, query_dim)
 
         self.attn = CrossAttention(
             query_dim=query_dim,
             context_dim=query_dim,
             heads=n_heads,
-            dim_head=d_head)
+            dim_head=d_head,
+            operations=ops)
         self.ff = FeedForward(query_dim, glu=True)
 
-        self.norm1 = nn.LayerNorm(query_dim)
-        self.norm2 = nn.LayerNorm(query_dim)
+        self.norm1 = ops.LayerNorm(query_dim)
+        self.norm2 = ops.LayerNorm(query_dim)
 
         self.register_parameter('alpha_attn', nn.Parameter(torch.tensor(0.)))
         self.register_parameter('alpha_dense', nn.Parameter(torch.tensor(0.)))
@@ -142,14 +129,14 @@ class GatedSelfAttentionDense2(nn.Module):
 
         # we need a linear projection since we need cat visual feature and obj
         # feature
-        self.linear = nn.Linear(context_dim, query_dim)
+        self.linear = ops.Linear(context_dim, query_dim)
 
         self.attn = CrossAttention(
-            query_dim=query_dim, context_dim=query_dim, dim_head=d_head)
+            query_dim=query_dim, context_dim=query_dim, dim_head=d_head, operations=ops)
         self.ff = FeedForward(query_dim, glu=True)
 
-        self.norm1 = nn.LayerNorm(query_dim)
-        self.norm2 = nn.LayerNorm(query_dim)
+        self.norm1 = ops.LayerNorm(query_dim)
+        self.norm2 = ops.LayerNorm(query_dim)
 
         self.register_parameter('alpha_attn', nn.Parameter(torch.tensor(0.)))
         self.register_parameter('alpha_dense', nn.Parameter(torch.tensor(0.)))
@@ -217,11 +204,11 @@ class PositionNet(nn.Module):
         self.position_dim = fourier_freqs * 2 * 4  # 2 is sin&cos, 4 is xyxy
 
         self.linears = nn.Sequential(
-            nn.Linear(self.in_dim + self.position_dim, 512),
+            ops.Linear(self.in_dim + self.position_dim, 512),
             nn.SiLU(),
-            nn.Linear(512, 512),
+            ops.Linear(512, 512),
             nn.SiLU(),
-            nn.Linear(512, out_dim),
+            ops.Linear(512, out_dim),
         )
 
         self.null_positive_feature = torch.nn.Parameter(
@@ -231,16 +218,15 @@ class PositionNet(nn.Module):
 
     def forward(self, boxes, masks, positive_embeddings):
         B, N, _ = boxes.shape
-        dtype = self.linears[0].weight.dtype
-        masks = masks.unsqueeze(-1).to(dtype)
-        positive_embeddings = positive_embeddings.to(dtype)
+        masks = masks.unsqueeze(-1)
+        positive_embeddings = positive_embeddings
 
         # embedding position (it may includes padding as placeholder)
-        xyxy_embedding = self.fourier_embedder(boxes.to(dtype))  # B*N*4 --> B*N*C
+        xyxy_embedding = self.fourier_embedder(boxes)  # B*N*4 --> B*N*C
 
         # learnable null embedding
-        positive_null = self.null_positive_feature.view(1, 1, -1)
-        xyxy_null = self.null_position_feature.view(1, 1, -1)
+        positive_null = self.null_positive_feature.to(device=boxes.device, dtype=boxes.dtype).view(1, 1, -1)
+        xyxy_null = self.null_position_feature.to(device=boxes.device, dtype=boxes.dtype).view(1, 1, -1)
 
         # replace padding with learnable null embedding
         positive_embeddings = positive_embeddings * \
@@ -267,7 +253,7 @@ class Gligen(nn.Module):
         def func(x, extra_options):
             key = extra_options["transformer_index"]
             module = self.module_list[key]
-            return module(x, objs)
+            return module(x, objs.to(device=x.device, dtype=x.dtype))
         return func
 
     def set_position(self, latent_image_shape, position_params, device):

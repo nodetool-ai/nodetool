@@ -1,19 +1,3 @@
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Copyright (c) @comfyanonymous
-# Project Repository: https://github.com/comfyanonymous/ComfyUI
-
 import torch
 import torch.nn as nn
 import numpy as np
@@ -57,8 +41,12 @@ class AbstractLowScaleModel(nn.Module):
         self.register_buffer('sqrt_recip_alphas_cumprod', to_torch(np.sqrt(1. / alphas_cumprod)))
         self.register_buffer('sqrt_recipm1_alphas_cumprod', to_torch(np.sqrt(1. / alphas_cumprod - 1)))
 
-    def q_sample(self, x_start, t, noise=None):
-        noise = default(noise, lambda: torch.randn_like(x_start))
+    def q_sample(self, x_start, t, noise=None, seed=None):
+        if noise is None:
+            if seed is None:
+                noise = torch.randn_like(x_start)
+            else:
+                noise = torch.randn(x_start.size(), dtype=x_start.dtype, layout=x_start.layout, generator=torch.manual_seed(seed)).to(x_start.device)
         return (extract_into_tensor(self.sqrt_alphas_cumprod.to(x_start.device), t, x_start.shape) * x_start +
                 extract_into_tensor(self.sqrt_one_minus_alphas_cumprod.to(x_start.device), t, x_start.shape) * noise)
 
@@ -85,12 +73,12 @@ class ImageConcatWithNoiseAugmentation(AbstractLowScaleModel):
         super().__init__(noise_schedule_config=noise_schedule_config)
         self.max_noise_level = max_noise_level
 
-    def forward(self, x, noise_level=None):
+    def forward(self, x, noise_level=None, seed=None):
         if noise_level is None:
             noise_level = torch.randint(0, self.max_noise_level, (x.shape[0],), device=x.device).long()
         else:
             assert isinstance(noise_level, torch.Tensor)
-        z = self.q_sample(x, noise_level)
+        z = self.q_sample(x, noise_level, seed=seed)
         return z, noise_level
 
 
