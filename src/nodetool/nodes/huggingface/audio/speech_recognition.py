@@ -13,9 +13,8 @@ class ModelId(str, Enum):
 
 class AutomaticSpeechRecognition(HuggingfaceNode):
     """
-    Automatic Speech Recognition (ASR), also known as Speech to Text (STT),
-    is the task of transcribing a given audio to text. It has many applications,
-    such as voice user interfaces.
+    Automatic Speech Recognition (ASR), also known as Speech to Text (STT), is the task of transcribing a given audio to text. It has many applications, such as voice user interfaces.
+    asr, speech, audio, huggingface
     """
 
     model: ModelId = Field(

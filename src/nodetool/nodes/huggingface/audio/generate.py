@@ -52,6 +52,10 @@ class TextToAudioModel(str, Enum):
 
 
 class TextToAudio(HuggingfaceNode):
+    """
+    Generate audio from a text input using a Huggingface model.
+    audio, text, huggingface
+    """
 
     model: TextToAudioModel = Field(
         default=TextToAudioModel.MUSICGEN_SMALL,

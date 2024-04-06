@@ -15,6 +15,7 @@ class ModelId(str, Enum):
 class TextGeneration(HuggingfaceNode):
     """
     Generating text is the task of generating new text given another text. These models can, for example, fill in incomplete text or paraphrase.
+    text, generation, huggingface, llm, language model
 
     Use Cases
     * A model trained for text generation can be later adapted to follow instructions. One of the most used open-source models for instruction is OpenAssistant, which you can try at Hugging Chat.

@@ -21,6 +21,7 @@ class ModelId(str, Enum):
 class Classifier(HuggingfaceNode):
     """
     Text Classification is the task of assigning a label or class to a given text. Some use cases are sentiment analysis, natural language inference, and assessing grammatical correctness.
+    classifier, text, huggingface
 
     ### Use Cases
     * You can track the sentiments of your customers from the product reviews using sentiment analysis models. This can help understand churn and retention by grouping reviews by sentiment, to later analyze the text and make strategic decisions based on this knowledge.
