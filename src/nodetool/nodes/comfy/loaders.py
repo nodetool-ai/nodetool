@@ -9,9 +9,11 @@ from nodetool.metadata.types import (
     CheckpointFile,
     ControlNet,
     ControlNetFile,
+    GLIGENFile,
     UNet,
     UpscaleModel,
     UpscaleModelFile,
+    unCLIPFile,
 )
 from nodetool.nodes.comfy import ComfyNode
 
@@ -48,19 +50,19 @@ class CheckpointLoader(CheckpointLoaderSimple):
     pass
 
 
-class unCLIPCheckpointEnum(str, Enum):
-    WD_1_5 = "wd-1-5-beta2-unclip-h-fp16.safetensors"
-
-
 class unCLIPCheckpointLoader(ComfyNode):
-    ckpt_name: unCLIPCheckpointEnum = Field(
-        default=unCLIPCheckpointEnum.WD_1_5, description="The checkpoint to load."
+    ckpt_name: unCLIPFile = Field(
+        default=unCLIPFile(), description="The checkpoint to load."
     )
 
     @validator("ckpt_name", pre=True)
     def validate_ckpt_name(cls, v):
         if isinstance(v, str):
-            v = unCLIPCheckpointEnum(v)
+            v = unCLIPFile(name=v)
+        if isinstance(v, dict):
+            v = unCLIPFile(**v)
+        if v == "":
+            raise ValueError("The checkpoint name cannot be empty.")
         return v
 
     @classmethod
@@ -130,22 +132,18 @@ class UpscaleModelLoader(ComfyNode):
         return {"upscale_model": UpscaleModel}
 
 
-class GLIGENCheckpointEnum(str, Enum):
-    GLIGEN_SD14_TEXTBOX = "gligen_sd14_textbox_pruned_fp16.safetensors"
-
-
 class GLIGENLoader(ComfyNode):
-    gligen_name: GLIGENCheckpointEnum = Field(
-        default=GLIGENCheckpointEnum.GLIGEN_SD14_TEXTBOX,
+    gligen_name: GLIGENFile = Field(
+        default=GLIGENFile(),
         description="The GLIGEN checkpoint to load.",
     )
 
     @validator("gligen_name", pre=True)
     def validate_gligen_name(cls, v):
         if isinstance(v, str):
-            v = GLIGENCheckpointEnum(v)
+            v = GLIGENFile(name=v)
         if isinstance(v, dict):
-            v = GLIGENCheckpointEnum(**v)
+            v = GLIGENFile(**v)
         if v.name == "":
             raise ValueError("The GLIGEN name cannot be empty.")
         return v

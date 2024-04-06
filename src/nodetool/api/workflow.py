@@ -41,8 +41,8 @@ async def create(
                 access=workflow_request.access,
                 user_id=user.id,
                 graph={
-                    "nodes": nodes,
-                    "edges": edges,
+                    "nodes": [node.model_dump() for node in nodes],
+                    "edges": [edge.model_dump() for edge in edges],
                 },
             )
         )

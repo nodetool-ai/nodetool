@@ -6,6 +6,7 @@ from nodetool.metadata.types import (
     CLIPVision,
     Embeds,
     IPAdapter,
+    IPAdapterFile,
     ImageTensor,
     InsightFace,
     Mask,
@@ -85,32 +86,18 @@ class PrepImageForClipVision(ComfyNode):
         return {"image": ImageTensor}
 
 
-class IPAdapterModelEnum(str, Enum):
-    IP_ADAPTER_FACEID_PLUS_SD15 = "ip-adapter-faceid-plus_sd15.bin"
-    IP_ADAPTER_PLUS_SDXL_VIT_H = "ip-adapter-plus_sdxl_vit-h.safetensors"
-    IP_ADAPTER_FACEID_PLUSV2_SD15 = "ip-adapter-faceid-plusv2_sd15.bin"
-    IP_ADAPTER_FACEID_SD15 = "ip-adapter-faceid_sd15.bin"
-    IP_ADAPTER_FULL_FACE_SD15 = "ip-adapter-full-face_sd15.safetensors"
-    IP_ADAPTER_SD15_LIGHT = "ip-adapter_sd15_light.safetensors"
-    IP_ADAPTER_SD15 = "ip-adapter_sd15.safetensors"
-    IP_ADAPTER_SD15_VIT_G = "ip-adapter_sd15_vit-G.safetensors"
-    IP_ADAPTER_SDXL = "ip-adapter_sdxl.safetensors"
-    IP_ADAPTER_SDXL_VIT_H = "ip-adapter_sdxl_vit-h.safetensors"
-    IP_ADAPTER_PLUS_FACE_SD15 = "ip-adapter-plus-face_sd15.safetensors"
-    IP_ADAPTER_PLUS_FACE_SDXL_VIT_H = "ip-adapter-plus-face_sdxl_vit-h.safetensors"
-    IP_ADAPTER_PLUS_SD15 = "ip-adapter-plus_sd15.safetensors"
-
-
 class IPAdapterModelLoader(ComfyNode):
-    ipadapter_file: IPAdapterModelEnum = Field(
-        default=IPAdapterModelEnum.IP_ADAPTER_SD15,
+    ipadapter_file: IPAdapterFile = Field(
+        default=IPAdapterFile(),
         description="List of available IPAdapter model names.",
     )
 
     @validator("ipadapter_file", pre=True)
     def validate_ipadapter_file(cls, v):
         if isinstance(v, str):
-            v = IPAdapterModelEnum(v)
+            v = IPAdapterFile(file=v)
+        if isinstance(v, dict):
+            v = IPAdapterFile(**v)
         return v
 
     @classmethod

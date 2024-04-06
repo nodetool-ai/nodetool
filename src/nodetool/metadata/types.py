@@ -145,8 +145,20 @@ class CheckpointFile(ModelFile):
     type: Literal["comfy.checkpoint_file"] = "comfy.checkpoint_file"
 
 
+class VAEFile(ModelFile):
+    type: Literal["comfy.vae_file"] = "comfy.vae_file"
+
+
 class CLIPFile(ModelFile):
     type: Literal["comfy.clip_file"] = "comfy.clip_file"
+
+
+class unCLIPFile(ModelFile):
+    type: Literal["comfy.unclip_file"] = "comfy.unclip_file"
+
+
+class GLIGENFile(ModelFile):
+    type: Literal["comfy.gligen_file"] = "comfy.gligen_file"
 
 
 class CLIPVisionFile(ModelFile):
@@ -373,7 +385,10 @@ def is_output_type(type):
 
 ModelFileEnums = (
     "comfy.checkpoint_file",
+    "comfy.vae_file",
     "comfy.clip_file",
+    "comfy.unclip_file",
+    "comfy.gligen_file",
     "comfy.clip_vision_file",
     "comfy.control_net_file",
     "comfy.upscale_model_file",

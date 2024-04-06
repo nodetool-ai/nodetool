@@ -4,6 +4,7 @@ from nodetool.metadata.types import (
     CLIP,
     GLIGEN,
     VAE,
+    CLIPFile,
     CLIPVision,
     CLIPVisionOutput,
     Conditioning,
@@ -12,6 +13,7 @@ from nodetool.metadata.types import (
     LORAFile,
     Mask,
     UNet,
+    VAEFile,
 )
 from nodetool.nodes.comfy import MAX_RESOLUTION, ComfyNode
 
@@ -237,23 +239,6 @@ class CLIPSetLastLayer(ComfyNode):
         return {"clip": CLIP}
 
 
-class LORAEnum(str, Enum):
-    ADD_DETAIL = "add_detail.safetensors"
-    BLONDE_HAIR = "blonde_hair.safetensors"
-    BRUNETTE = "brunette.safetensors"
-    PARTYING = "partying.safetensors"
-    MAGICAL_ENCHANTED = "magical_enchanted.safetensors"
-    HAPPY_CRYING = "happy_crying.safetensors"
-    FEARFUL = "fearful.safetensors"
-    BEGGING = "begging.safetensors"
-    SCARED = "scared.safetensors"
-    JOY = "joy.safetensors"
-    MAGICAL_ENERGY_SWIRLING_AROUND = "magical_energy_swirling_around.safetensors"
-    CHARACTER_DESIGN = "character_design.safetensors"
-    VERY_VERY_VERY_CUTE = "very_very_very_cute.safetensors"
-    AWARD_WINNING_FILM = "award_winning_film.safetensors"
-
-
 class LoraLoader(ComfyNode):
     model: UNet = Field(default=UNet(), description="The model to apply Lora to.")
     clip: CLIP = Field(default=CLIP(), description="The CLIP model to apply Lora to.")
@@ -276,7 +261,11 @@ class LoraLoader(ComfyNode):
     @validator("lora_name", pre=True)
     def validate_lora_name(cls, v):
         if isinstance(v, str):
-            v = LORAEnum(v)
+            v = LORAFile(name=v)
+        if isinstance(v, dict):
+            v = LORAFile(**v)
+        if v.name == "":
+            raise ValueError("The checkpoint name cannot be empty.")
         return v
 
     @classmethod
@@ -289,8 +278,8 @@ class LoraLoader(ComfyNode):
 
 class LoraLoaderModelOnly(ComfyNode):
     model: UNet = Field(default=UNet(), description="The model to apply Lora to.")
-    lora_name: LORAEnum = Field(
-        default=LORAEnum.ADD_DETAIL, description="The name of the LoRA to load."
+    lora_name: LORAFile = Field(
+        default=LORAFile(), description="The name of the LoRA to load."
     )
     strength_model: float = Field(
         default=1.0,
@@ -302,50 +291,31 @@ class LoraLoaderModelOnly(ComfyNode):
     @validator("lora_name", pre=True)
     def validate_lora_name(cls, v):
         if isinstance(v, str):
-            v = LORAEnum(v)
+            v = LORAFile(name=v)
+        if isinstance(v, dict):
+            v = LORAFile(**v)
+        if v.name == "":
+            raise ValueError("The checkpoint name cannot be empty.")
         return v
 
     @classmethod
     def return_type(cls):
         return {"unet": UNet}
-
-
-class UNETEnum(str, Enum):
-    DREAMSHAPER_XL = "dreamshaper-xl-1.0.safetensors"
-
-
-class UNETLoader(ComfyNode):
-    model: UNet = Field(default=UNet(), description="The model to load.")
-    unet_name: UNETEnum = Field(
-        default=UNETEnum.DREAMSHAPER_XL,
-        description="The name of the UNet to load.",
-    )
-
-    @validator("unet_name", pre=True)
-    def validate_unet_name(cls, v):
-        if isinstance(v, str):
-            v = UNETEnum(v)
-        return v
-
-    @classmethod
-    def return_type(cls):
-        return {"unet": UNet}
-
-
-class VAEEnum(str, Enum):
-    VAE_FT_MSE = "vae-ft-mse-840000-ema-pruned.safetensors"
-    SDXL_VAE = "sdxl_vae.safetensor"
 
 
 class VAELoader(ComfyNode):
-    vae_name: VAEEnum = Field(
-        default=VAEEnum.VAE_FT_MSE, description="The name of the VAE to load."
+    vae_name: VAEFile = Field(
+        default=VAEFile(), description="The name of the VAE to load."
     )
 
     @validator("vae_name", pre=True)
     def validate_vae_name(cls, v):
         if isinstance(v, str):
-            v = VAEEnum(v)
+            v = VAEFile(name=v)
+        if isinstance(v, dict):
+            v = VAEFile(**v)
+        if v.name == "":
+            raise ValueError("The file name cannot be empty.")
         return v
 
     @classmethod
@@ -353,22 +323,20 @@ class VAELoader(ComfyNode):
         return {"vae": VAE}
 
 
-class CLIPEnum(str, Enum):
-    CLIP_VIT_LARGE_PATCH14 = "clip-vit-large-patch14.bin"
-    CLIP_VIT_LARGE_PATCH32 = "clip-vit-large-patch32.bin"
-    CLIP_VIT_H = "clip_vit_h.bin"
-
-
 class CLIPLoader(ComfyNode):
-    clip_name: CLIPEnum = Field(
-        default=CLIPEnum.CLIP_VIT_LARGE_PATCH14,
+    clip_name: CLIPFile = Field(
+        default=CLIPFile(),
         description="The name of the CLIP to load.",
     )
 
     @validator("clip_name", pre=True)
     def validate_clip_name(cls, v):
         if isinstance(v, str):
-            v = CLIPEnum(v)
+            v = CLIPFile(name=v)
+        if isinstance(v, dict):
+            v = CLIPFile(**v)
+        if v.name == "":
+            raise ValueError("The file name cannot be empty.")
         return v
 
     @classmethod
@@ -377,25 +345,33 @@ class CLIPLoader(ComfyNode):
 
 
 class DualCLIPLoader(ComfyNode):
-    clip_name1: CLIPEnum = Field(
-        default=CLIPEnum.CLIP_VIT_LARGE_PATCH14,
+    clip_name1: CLIPFile = Field(
+        default=CLIPFile(),
         description="The name of the CLIP to load.",
     )
-    clip_name2: CLIPEnum = Field(
-        default=CLIPEnum.CLIP_VIT_LARGE_PATCH14,
+    clip_name2: CLIPFile = Field(
+        default=CLIPFile(),
         description="The name of the CLIP to load.",
     )
 
     @validator("clip_name1", pre=True)
     def validate_clip_name1(cls, v):
         if isinstance(v, str):
-            v = CLIPEnum(v)
+            v = CLIPFile(name=v)
+        if isinstance(v, dict):
+            v = CLIPFile(**v)
+        if v.name == "":
+            raise ValueError("The file name cannot be empty.")
         return v
 
     @validator("clip_name2", pre=True)
     def validate_clip_name2(cls, v):
         if isinstance(v, str):
-            v = CLIPEnum(v)
+            v = CLIPFile(name=v)
+        if isinstance(v, dict):
+            v = CLIPFile(**v)
+        if v.name == "":
+            raise ValueError("The file name cannot be empty.")
         return v
 
     @classmethod
