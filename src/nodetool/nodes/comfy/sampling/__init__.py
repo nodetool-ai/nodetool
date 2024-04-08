@@ -39,6 +39,10 @@ class SchedulerEnum(str, Enum):
 
 
 class KSampler(ComfyNode):
+    """
+    The KSampler uses the provided model and positive and negative conditioning to generate a new version of the given latent. First the latent is noised up according to the given seed and denoise strength, erasing some of the latent image. then this noise is removed using the given Model and the positive and negative conditioning as guidance, "dreaming" up new details in places where the image was erased by noise.
+    """
+
     model: UNet = Field(default=UNet(), description="The model to use.")
     seed: int = Field(default=0, description="The seed to use.")
     steps: int = Field(default=20, description="The number of steps to use.")
@@ -66,6 +70,10 @@ class KSampler(ComfyNode):
 
 
 class KSamplerAdvanced(ComfyNode):
+    """
+    The KSampler Advanced node is the more advanced version of the KSampler node. While the KSampler node always adds noise to the latent followed by completely denoising the noised up latent, the KSampler Advanced node provides extra settings to control this behavior. The KSampler Advanced node can be told not to add noise into the latent with the add_noise setting. It can also be made to return partially denoised images via the return_with_leftover_noise setting. Unlike the KSampler node, this node does not have a denoise setting but this process is instead controlled by the start_at_step and end_at_step settings. This makes it possible to e.g. hand over a partially denoised latent to a separate KSampler Advanced node to finish the process.
+    """
+
     model: UNet = Field(default=UNet(), description="The model to use.")
     add_noise: EnableDisable = Field(
         default=EnableDisable.ENABLE, description="Enable or disable noise addition."

@@ -4,6 +4,10 @@ from nodetool.nodes.comfy import ComfyNode
 
 
 class LatentFromBatch(ComfyNode):
+    """
+    The Latent From Batch node can be used to pick a slice from a batch of latents. This is useful when a specific latent image or images inside the batch need to be isolated in the workflow.
+    """
+
     samples: Latent = Field(
         default=Latent(), description="The batch of latent samples."
     )
@@ -20,6 +24,10 @@ class LatentFromBatch(ComfyNode):
 
 
 class RepeatLatentBatch(ComfyNode):
+    """
+    The Repeat Latent Batch node can be used to repeat a batch of latent images. This can e.g. be used to create multiple variations of an image in an image to image workflow.
+    """
+
     samples: Latent = Field(
         default=Latent(), description="The latent samples to repeat."
     )

@@ -5,6 +5,10 @@ from nodetool.nodes.comfy import MAX_RESOLUTION, ComfyNode
 
 
 class LatentCompositeMasked(ComfyNode):
+    """
+    The Latent Composite Masked node can be used to paste a masked latent into another.
+    """
+
     destination: Latent = Field(default=Latent(), description="The destination latent.")
     source: Latent = Field(default=Latent(), description="The source latent.")
     x: int = Field(default=0, description="The x position.")
@@ -20,6 +24,10 @@ class LatentCompositeMasked(ComfyNode):
 
 
 class EmptyLatentImage(ComfyNode):
+    """
+    The Empty Latent Image node can be used to create a new set of empty latent images. These latents can then be used inside e.g. a text2image workflow by noising and denoising them with a sampler node.
+    """
+
     width: int = Field(
         default=512,
         description="The width of the latent image to generate.",
@@ -45,10 +53,18 @@ class EmptyLatentImage(ComfyNode):
 
 
 class VAEEncode(ComfyNode):
+    """
+    The VAE Encode node can be used to encode pixel space images into latent space images, using the provided VAE.
+    """
+
     pixels: ImageTensor = Field(
         default=ImageTensor(), description="The image to encode."
     )
     vae: VAE = Field(default=VAE(), description="The VAE to use.")
+
+    @classmethod
+    def get_title(cls):
+        return "VAE Encode"
 
     @classmethod
     def return_type(cls):
@@ -92,10 +108,18 @@ class VAEEncodeForInpaint(ComfyNode):
 
 
 class VAEDecode(ComfyNode):
+    """
+    The VAE Decode node can be used to decode latent space images back into pixel space images, using the provided VAE.
+    """
+
     samples: Latent = Field(
         default=Latent(), description="The latent samples to decode."
     )
     vae: VAE = Field(default=VAE(), description="The VAE to use.")
+
+    @classmethod
+    def get_title(cls):
+        return "VAE Decode"
 
     @classmethod
     def return_type(cls):
@@ -103,6 +127,11 @@ class VAEDecode(ComfyNode):
 
 
 class VAEDecodeTiled(ComfyNode):
+    """
+    The VAE Decode node can be used to decode latent space images back into pixel space images, using the provided VAE.
+    The tiled version of the node is useful for decoding large images that would otherwise exceed the memory limits of the system.
+    """
+
     samples: Latent = Field(
         default=Latent(), description="The latent samples to decode."
     )
@@ -120,23 +149,23 @@ class VAEDecodeTiled(ComfyNode):
         return {"image": ImageTensor}
 
 
-class SaveLatent(ComfyNode):
-    samples: Latent = Field(default=Latent(), description="The latent samples to save.")
-    filename_prefix: str = Field(
-        default="ComfyUI",
-        description="The prefix for the filename where the latents will be saved.",
-    )
+# class SaveLatent(ComfyNode):
+#     samples: Latent = Field(default=Latent(), description="The latent samples to save.")
+#     filename_prefix: str = Field(
+#         default="ComfyUI",
+#         description="The prefix for the filename where the latents will be saved.",
+#     )
 
-    # prompt: PromptRef = Field(
-    #     default=PromptRef(),
-    #     description="A hidden input for the prompt information.",
-    #     include_in_schema=False,
-    # )
-    # extra_pnginfo: ExtraPNGInfoRef = Field(
-    #     default=ExtraPNGInfoRef(),
-    #     description="Additional PNG information to be saved with the latent.",
-    #     include_in_schema=False,
-    # )j
+# prompt: PromptRef = Field(
+#     default=PromptRef(),
+#     description="A hidden input for the prompt information.",
+#     include_in_schema=False,
+# )
+# extra_pnginfo: ExtraPNGInfoRef = Field(
+#     default=ExtraPNGInfoRef(),
+#     description="Additional PNG information to be saved with the latent.",
+#     include_in_schema=False,
+# )j
 
 
 class UpScaleMethod(str, Enum):
@@ -152,15 +181,19 @@ class CropMethod(str, Enum):
     CENTER = "center"
 
 
-class LoadLatent(ComfyNode):
-    latent: Latent = Field(description="The latent file to load.")
+# class LoadLatent(ComfyNode):
+#     latent: Latent = Field(description="The latent file to load.")
 
-    @classmethod
-    def return_type(cls):
-        return {"latent": Latent}
+#     @classmethod
+#     def return_type(cls):
+#         return {"latent": Latent}
 
 
 class LatentUpscale(ComfyNode):
+    """
+    The Upscale Latent node can be used to resize latent images.
+    """
+
     samples: Latent = Field(
         default=Latent(), description="The latent samples to upscale."
     )
@@ -187,11 +220,19 @@ class LatentUpscale(ComfyNode):
     )
 
     @classmethod
+    def get_title(cls):
+        return "Upscale Latent"
+
+    @classmethod
     def return_type(cls):
         return {"latent": Latent}
 
 
 class LatentUpscaleBy(ComfyNode):
+    """
+    The Upscale Latent node can be used to resize latent images.
+    """
+
     samples: Latent = Field(
         default=Latent(), description="The latent samples to upscale."
     )
@@ -208,11 +249,19 @@ class LatentUpscaleBy(ComfyNode):
     )
 
     @classmethod
+    def get_title(cls):
+        return "Upscale Latent By"
+
+    @classmethod
     def return_type(cls):
         return {"latent": Latent}
 
 
 class LatentComposite(ComfyNode):
+    """
+    The Latent Composite node can be used to paste one latent into another.
+    """
+
     samples_to: Latent = Field(default=Latent(), description="The first latent sample.")
     samples_from: Latent = Field(
         default=Latent(), description="The second latent sample."

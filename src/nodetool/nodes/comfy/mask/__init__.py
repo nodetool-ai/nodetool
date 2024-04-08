@@ -22,7 +22,15 @@ class OperationEnum(str, Enum):
 
 
 class MaskToImage(ComfyNode):
+    """
+    The Convert Mask to Image node can be used to convert a mask to a grey scale image.
+    """
+
     mask: Mask = Field(default=Mask(), description="The mask to convert.")
+
+    @classmethod
+    def get_title(cls):
+        return "Convert Mask to Image"
 
     @classmethod
     def return_type(cls):
@@ -30,12 +38,20 @@ class MaskToImage(ComfyNode):
 
 
 class ImageToMask(ComfyNode):
+    """
+    The Convert Image yo Mask node can be used to convert a specific channel of an image into a mask.
+    """
+
     image: ImageTensor = Field(
         default=ImageTensor(), description="The image to extract the mask."
     )
     channel: ChannelEnum = Field(
         default=ChannelEnum.RED, description="The channel to use for the mask."
     )
+
+    @classmethod
+    def get_title(cls):
+        return "Convert Image to Mask"
 
     @classmethod
     def return_type(cls):
@@ -54,6 +70,10 @@ class ImageColorToMask(ComfyNode):
 
 
 class SolidMask(ComfyNode):
+    """
+    The Solid Mask node can be used to create a solid masking containing a single value.
+    """
+
     value: float = Field(default=1.0, description="The value for the solid mask.")
     width: int = Field(default=512, description="Width of the solid mask.")
     height: int = Field(default=512, description="Height of the solid mask.")
@@ -64,6 +84,10 @@ class SolidMask(ComfyNode):
 
 
 class InvertMask(ComfyNode):
+    """
+    The Invert Mask node can be used to invert a mask.
+    """
+
     mask: Mask = Field(default=Mask(), description="The mask to invert.")
 
     @classmethod
@@ -72,6 +96,10 @@ class InvertMask(ComfyNode):
 
 
 class CropMask(ComfyNode):
+    """
+    The Crop Mask node can be used to crop a mask to a new shape.
+    """
+
     mask: Mask = Field(default=Mask(), description="The mask to crop.")
     x: int = Field(default=0, description="The x position for cropping.")
     y: int = Field(default=0, description="The y position for cropping.")
@@ -84,6 +112,10 @@ class CropMask(ComfyNode):
 
 
 class MaskComposite(ComfyNode):
+    """
+    The Mask Composite node can be used to paste one mask into another.
+    """
+
     destination: Mask = Field(default=Mask(), description="The destination mask.")
     source: Mask = Field(default=Mask(), description="The source mask.")
     x: int = Field(default=0, description="The x position.")
@@ -98,6 +130,10 @@ class MaskComposite(ComfyNode):
 
 
 class FeatherMask(ComfyNode):
+    """
+    The Feather Mask node can be used to feather a mask.
+    """
+
     mask: Mask = Field(default=Mask(), description="The mask to feather.")
     left: int = Field(default=0, description="Feather amount on the left.")
     top: int = Field(default=0, description="Feather amount on the top.")

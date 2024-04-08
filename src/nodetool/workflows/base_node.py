@@ -173,7 +173,11 @@ class BaseNode(BaseModel):
         """
         Returns the node title.
         """
-        return cls.get_node_type().split(".")[-1]
+        class_name = cls.__name__
+        if class_name.endswith("Node"):
+            return class_name[:-4]
+        else:
+            return class_name
 
     @classmethod
     def get_description(cls) -> str:

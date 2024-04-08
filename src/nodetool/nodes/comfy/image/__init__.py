@@ -27,6 +27,10 @@ class ImageCompositeMasked(ComfyNode):
 
 
 class LoadImage(ComfyNode):
+    """
+    The Load Image node can be used to to load an image. Images can be uploaded in the asset manager or by dropping an image onto the node. Once the image has been uploaded they can be selected inside the node.
+    """
+
     image: ImageRef = Field(default=ImageRef(), description="The image to load.")
     upload: str = Field(default="", description="unused")
 
@@ -72,6 +76,10 @@ class LoadImageMask(ComfyNode):
 
 
 class SaveImage(ComfyNode):
+    """
+    The Save Image node can be used to save images. To simply preview an image inside the node graph use the Preview Image node. It can be hard to keep track of all the images that you generate. To help with organizing your images you can pass specially formatted strings to an output node with a file_prefix widget. For more information about how to format your string see this page.
+    """
+
     images: ImageTensor = Field(default=ImageTensor(), description="The image to save.")
     filename_prefix: str = Field(
         default="",
@@ -93,13 +101,25 @@ class SaveImage(ComfyNode):
 
 
 class PreviewImage(SaveImage):
+    """
+    The Preview Image node can be used to preview images inside the node graph.
+    """
+
     pass
 
 
 class ImageInvert(ComfyNode):
+    """
+    The Invert Image node can be used to to invert the colors of an image.
+    """
+
     image: ImageTensor = Field(
         default=ImageTensor(), description="The image to invert."
     )
+
+    @classmethod
+    def get_title(cls):
+        return "Invert Image"
 
     @classmethod
     def return_type(cls):
@@ -120,6 +140,10 @@ class ImageBatch(ComfyNode):
 
 
 class ImagePadForOutpaint(ComfyNode):
+    """
+    The Pad Image for Outpainting node can be used to to add padding to an image for outpainting. This image can then be given to an inpaint diffusion model via the VAE Encode for Inpainting.
+    """
+
     image: ImageTensor = Field(default=ImageTensor(), description="The image to pad.")
     left: int = Field(default=0, description="The padding size on the left side.")
     top: int = Field(default=0, description="The padding size on the top side.")
@@ -129,6 +153,10 @@ class ImagePadForOutpaint(ComfyNode):
         default=40,
         description="The feathering value for softening the edges of the padding.",
     )
+
+    @classmethod
+    def get_title(cls):
+        return "Pad Image for Outpainting"
 
     @classmethod
     def return_type(cls):
