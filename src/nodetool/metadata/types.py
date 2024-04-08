@@ -141,6 +141,10 @@ class ModelFile(BaseType):
     name: str = ""
 
 
+class LlamaFile(ModelFile):
+    type: Literal["llama_file"] = "llama_file"
+
+
 class CheckpointFile(ModelFile):
     type: Literal["comfy.checkpoint_file"] = "comfy.checkpoint_file"
 
@@ -365,6 +369,12 @@ class TrainTestOutput(OutputType):
     train_y: DataFrame = DataFrame()
     test_X: DataFrame = DataFrame()
     test_y: DataFrame = DataFrame()
+
+
+class RankingResult(BaseType):
+    type: Literal["ranking_result"] = "ranking_result"
+    score: float
+    text: str
 
 
 class Dataset(OutputType):

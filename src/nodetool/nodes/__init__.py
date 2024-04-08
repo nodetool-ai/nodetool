@@ -12,6 +12,7 @@ import nodetool.nodes.nodetool.audio.conversion
 import nodetool.nodes.nodetool.audio.transform
 import nodetool.nodes.nodetool.constant
 import nodetool.nodes.nodetool.http
+import nodetool.nodes.nodetool.image.classify
 import nodetool.nodes.nodetool.image.source
 import nodetool.nodes.nodetool.image.transform
 import nodetool.nodes.nodetool.image.generate
@@ -24,6 +25,7 @@ import nodetool.nodes.nodetool.tensor
 import nodetool.nodes.nodetool.text
 import nodetool.nodes.nodetool.text.extract
 import nodetool.nodes.nodetool.text.generate
+import nodetool.nodes.nodetool.text.rerank
 import nodetool.nodes.nodetool.vector
 import nodetool.nodes.nodetool.text.vector
 import nodetool.nodes.nodetool.video

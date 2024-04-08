@@ -547,6 +547,17 @@ class Environment(object):
             )
 
     @classmethod
+    def get_llama_models(cls):
+        """
+        Recursively search model folders for llama models.
+        """
+        import glob
+
+        folder = cls.get_lm_studio_folder()
+
+        return glob.glob(f"{folder}/**/*.gguf", recursive=True)
+
+    @classmethod
     def get_model_files(cls, folder: str):
         """
         Get the files in a model folder.
@@ -554,6 +565,8 @@ class Environment(object):
 
         if cls.is_production():
             return cls.model_files.get(folder, [])
+        elif folder == "llama":
+            return cls.get_llama_models()
         else:
             import comfy.folder_paths
 
@@ -806,3 +819,23 @@ class Environment(object):
             state=state,
             scope="openid email",
         )
+
+    @classmethod
+    def get_torch_device(cls):
+        import torch
+
+        try:
+            if torch.backends.mps.is_available():
+                import torch.mps
+
+                return torch.device("mps")
+        except:
+            pass
+
+        try:
+            import torch.cuda
+
+            if torch.cuda.device_count() > 0:
+                return torch.device("cuda")
+        except:
+            return torch.device("cpu")

@@ -1,12 +1,6 @@
 from enum import Enum
-import os
-from pydantic import Field
-from nodetool.common.environment import Environment
-from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.workflows.base_node import BaseNode
-
-
-from pydantic import Field
+from pydantic import Field, validator
+from nodetool.metadata.types import LlamaFile
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import BaseNode
 
@@ -127,33 +121,12 @@ llama_models = {
 cached_models = {}
 
 
-def find_model_in_cache(model_id: str):
-    """
-    Tries to find the model in common cached folders, such as LM Studio.
-
-    Args:
-        model_id (str): The model ID.
-
-    Returns:
-        str | None: The path to the model file, or None if the model is not found.
-    """
-    cache_path = Environment.get_lm_studio_folder()
-    model_dir = os.path.join(cache_path, model_id)
-    if os.path.isdir(model_dir):
-        files = os.listdir(model_dir)
-        if len(files) > 0:
-            return os.path.join(model_dir, files[0])
-    return None
-
-
 class LlamaCppNode(BaseNode):
     """
     Run Llama models.
     """
 
-    model: LlamaModel = Field(
-        default=LlamaModel.Qwen_0_5, description="The Llama model to use."
-    )
+    model: LlamaFile = Field(default=LlamaFile(), description="The Llama model to use.")
     prompt: str = Field(default="", description="Prompt to send to the model.")
     system_prompt: str = Field(
         default="You are an assistant.",
@@ -198,24 +171,18 @@ class LlamaCppNode(BaseNode):
         description="Whether the grammar is a JSON schema. If true, the grammar is used as a JSON schema.",
     )
 
-    def load_model(self, repo_id: str, filename: str):
-        from llama_cpp import Llama
-
-        model_path = find_model_in_cache(repo_id)
-        if model_path:
-            llm = Llama(model_path=model_path, n_gpu_layers=self.n_gpu_layers)
-        else:
-            llm = Llama.from_pretrained(
-                repo_id=repo_id, filename=filename, n_gpu_layers=self.n_gpu_layers
-            )
-        cached_models[self.model] = llm
-        return llm
+    @validator("model", pre=True)
+    def validate_model(cls, v):
+        if isinstance(v, str):
+            v = LlamaFile(name=v)
+        if isinstance(v, dict):
+            v = LlamaFile(**v)
+        if v.name == "":
+            raise ValueError("The model cannot be empty.")
+        return v
 
     async def process(self, context: ProcessingContext) -> str:
         from llama_cpp import LlamaGrammar
-
-        repo_id = llama_models[self.model]["repo_id"]
-        filename = llama_models[self.model]["filename"]
 
         if self.grammar != "":
             if self.is_json_schema:
@@ -225,13 +192,9 @@ class LlamaCppNode(BaseNode):
         else:
             grammar = None
 
-        if self.model in cached_models:
-            llm = cached_models[self.model]
-            gpu_layers = 0x7FFFFFFF if self.n_gpu_layers == -1 else self.n_gpu_layers
-            if llm.model_params.n_gpu_layers != gpu_layers:
-                llm = self.load_model(repo_id, filename)
-        else:
-            llm = self.load_model(repo_id, filename)
+        llm = context.load_model(
+            "llama", self.model.name, n_gpu_layers=self.n_gpu_layers
+        )
 
         res = llm.create_chat_completion(
             messages=[

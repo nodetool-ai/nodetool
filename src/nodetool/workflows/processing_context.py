@@ -47,10 +47,13 @@ from nodetool.common.environment import Environment
 
 
 from io import BytesIO
-from typing import IO, Any
+from typing import IO, Any, Literal
 
 
 log = Environment.get_logger()
+
+
+model_cache = {}
 
 
 def parse_s3_url(url: str) -> tuple[str, str]:
@@ -952,7 +955,7 @@ class ProcessingContext:
 
         settings = Environment.get_chroma_settings()
 
-        if True or Environment.is_production():
+        if Environment.is_production():
             admin = chromadb.AdminClient()
             tenant = f"tenant_{self.user_id}"
             try:
@@ -969,3 +972,12 @@ class ProcessingContext:
                 tenant=DEFAULT_TENANT,
                 database=DEFAULT_DATABASE,
             )
+
+    def load_model(self, model_type: Literal["llama"], model_name: str, **kwargs):
+        if model_name in model_cache:
+            return model_cache[model_name]
+        from llama_cpp import Llama
+
+        llm = Llama(model_path=model_name, **kwargs)
+        model_cache[model_name] = llm
+        return llm
