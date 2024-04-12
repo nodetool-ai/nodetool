@@ -32,7 +32,10 @@ from nodetool.metadata.types import (
     AssetRef,
     AudioRef,
     DataFrame,
+    FunctionModel,
     ImageRef,
+    LanguageModel,
+    LlamaModel,
     ModelRef,
     TextRef,
     VideoRef,
@@ -51,9 +54,6 @@ from typing import IO, Any, Literal
 
 
 log = Environment.get_logger()
-
-
-model_cache = {}
 
 
 def parse_s3_url(url: str) -> tuple[str, str]:
@@ -973,11 +973,31 @@ class ProcessingContext:
                 database=DEFAULT_DATABASE,
             )
 
-    def load_model(self, model_type: Literal["llama"], model_name: str, **kwargs):
-        if model_name in model_cache:
-            return model_cache[model_name]
+    def load_model(self, model: FunctionModel | LlamaModel, **kwargs):
         from llama_cpp import Llama
 
-        llm = Llama(model_path=model_name, **kwargs)
-        model_cache[model_name] = llm
-        return llm
+        if isinstance(model, FunctionModel):
+            from llama_cpp.llama_tokenizer import LlamaHFTokenizer
+
+            found_model = Environment.find_function_model(model.name)
+            if found_model is None:
+                raise ValueError(f"Model {model.name} not found")
+
+            print("found model: ", found_model)
+
+            return Llama.from_pretrained(
+                repo_id=found_model.repo_id,
+                chat_format="functionary-v2",
+                tokenizer=LlamaHFTokenizer.from_pretrained(found_model.repo_id),
+                filename=found_model.filename,
+                **kwargs,
+            )
+        elif isinstance(model, LlamaModel):
+            if model.repo_id is None:
+                return Llama(model_path=model.filename, **kwargs)
+            else:
+                return Llama.from_pretrained(
+                    repo_id=model.repo_id,
+                    filename=model.filename,
+                    **kwargs,
+                )

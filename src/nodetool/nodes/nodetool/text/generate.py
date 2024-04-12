@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import Field, validator
-from nodetool.metadata.types import LlamaFile
+from nodetool.metadata.types import LlamaModel
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import BaseNode
 
@@ -57,76 +57,14 @@ class GPT2Node(BaseNode):
         return res[0]["generated_text"]  # type: ignore
 
 
-class LlamaModel(str, Enum):
-    PHI_2 = "Phi-2"
-    GEMMA_2B = "Gemma-2B"
-    Qwen_0_5 = "Qwen1.5-0.5B-Chat"
-    Qwen_1_8 = "Qwen1.5-1.8B-Chat"
-    Qwen_4_0 = "Qwen1.5-4.0B-Chat"
-    Qwen_7_0 = "Qwen1.5-7.0B-Chat"
-    Mistral_7B_Instruct = "Mistral_7B_Instruct"
-    Mistral_8x_7B_Instruct = "Mistral_8x_7B_Instruct"
-    CapybaraHermes_2_5_Mistral_7B = "CapybaraHermes-2.5-Mistral-7B"
-    Dolphin_2_5_Mixtral_8x7B = "dolphin-2.5-mixtral-8x7b"
-    Zephyr_7B = "Zephyr-7B"
-
-
-llama_models = {
-    LlamaModel.PHI_2: {
-        "repo_id": "TheBloke/phi-2-GGUF",
-        "filename": "*Q4_K_S.gguf",
-    },
-    LlamaModel.GEMMA_2B: {
-        "repo_id": "lmstudio-ai/gemma-2b-it-GGUF",
-        "filename": "*q8_0.gguf",
-    },
-    LlamaModel.Qwen_0_5: {
-        "repo_id": "Qwen/Qwen1.5-0.5B-Chat-GGUF",
-        "filename": "*q8_0.gguf",
-    },
-    LlamaModel.Qwen_1_8: {
-        "repo_id": "Qwen/Qwen1.5-1.8B-Chat-GGUF",
-        "filename": "*q8_0.gguf",
-    },
-    LlamaModel.Qwen_4_0: {
-        "repo_id": "Qwen/Qwen1.5-4.0B-Chat-GGUF",
-        "filename": "*q8_0.gguf",
-    },
-    LlamaModel.Qwen_7_0: {
-        "repo_id": "Qwen/Qwen1.5-7.0B-Chat-GGUF",
-        "filename": "*q4_0.gguf",
-    },
-    LlamaModel.Mistral_7B_Instruct: {
-        "repo_id": "TheBloke/Mistral-7B-Instruct-v0.1-GGUF",
-        "filename": "*Q4_0.gguf",
-    },
-    LlamaModel.Mistral_8x_7B_Instruct: {
-        "repo_id": "TheBloke/Mistral-8x-7B-Instruct-v0.1-GGUF",
-        "filename": "*Q2_K.gguf",
-    },
-    LlamaModel.CapybaraHermes_2_5_Mistral_7B: {
-        "repo_id": "TheBloke/CapybaraHermes-2.5-Mistral-7B-GGUF",
-        "filename": "*Q4_0.gguf",
-    },
-    LlamaModel.Dolphin_2_5_Mixtral_8x7B: {
-        "repo_id": "TheBloke/Dolphin-2.5-Mixtral-8x7B-GGUF",
-        "filename": "*Q2_K.gguf",
-    },
-    LlamaModel.Zephyr_7B: {
-        "repo_id": "TheBloke/zephyr-7B-beta-GGUF",
-        "filename": "*Q4_0.gguf",
-    },
-}
-
-cached_models = {}
-
-
 class LlamaCppNode(BaseNode):
     """
     Run Llama models.
     """
 
-    model: LlamaFile = Field(default=LlamaFile(), description="The Llama model to use.")
+    model: LlamaModel = Field(
+        default=LlamaModel(), description="The Llama model to use."
+    )
     prompt: str = Field(default="", description="Prompt to send to the model.")
     system_prompt: str = Field(
         default="You are an assistant.",
@@ -174,9 +112,9 @@ class LlamaCppNode(BaseNode):
     @validator("model", pre=True)
     def validate_model(cls, v):
         if isinstance(v, str):
-            v = LlamaFile(name=v)
+            v = LlamaModel(name=v)
         if isinstance(v, dict):
-            v = LlamaFile(**v)
+            v = LlamaModel(**v)
         if v.name == "":
             raise ValueError("The model cannot be empty.")
         return v
@@ -192,9 +130,10 @@ class LlamaCppNode(BaseNode):
         else:
             grammar = None
 
-        llm = context.load_model(
-            "llama", self.model.name, n_gpu_layers=self.n_gpu_layers
-        )
+        llm = context.load_model(self.model, n_gpu_layers=self.n_gpu_layers)
+
+        if llm is None:
+            raise ValueError(f"Model {self.model.name} not found.")
 
         res = llm.create_chat_completion(
             messages=[

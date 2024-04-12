@@ -5,7 +5,9 @@ import uuid
 from pydantic import Field
 from nodetool.common.chat import process_messages
 from nodetool.metadata.types import (
+    FunctionModel,
     ImageRef,
+    LanguageModel,
     NodeRef,
     Task,
     ThreadMessage,
@@ -14,7 +16,7 @@ from nodetool.metadata.types import (
 )
 from nodetool.models.message import Message
 from nodetool.models.task import Task as TaskModel
-from nodetool.nodes.openai import GPTModel
+from nodetool.metadata.types import GPTModel
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
@@ -25,8 +27,8 @@ class AgentNode(BaseNode):
     llm, language model, agent, chat, conversation
     """
 
-    model: GPTModel = Field(
-        default=GPTModel.GPT4,
+    model: FunctionModel = Field(
+        default=FunctionModel(name=GPTModel.GPT4.value),
         description="The language model to use.",
     )
     goal: str = Field(
@@ -86,8 +88,8 @@ class TaskNode(BaseNode):
     llm, language model, agent, chat, conversation
     """
 
-    model: GPTModel = Field(
-        default=GPTModel.GPT4,
+    model: FunctionModel = Field(
+        default=FunctionModel(name=GPTModel.GPT4.value),
         description="The language model to use.",
     )
     tasks: list[Task] = Field(
@@ -113,6 +115,7 @@ class TaskNode(BaseNode):
 
         messages, _, tool_calls = await process_messages(
             context=context,
+            model_name=self.model.name,
             thread_id=thread.id,
             can_create_tasks=False,
             # workflow_ids=[w.id for w in self.workflows],

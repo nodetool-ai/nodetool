@@ -1,13 +1,12 @@
 from enum import Enum
+import enum
 from types import NoneType
 import numpy as np
-from pydantic import BaseModel, Field, GetCoreSchemaHandler
+from pydantic import BaseModel, Field
 
 
 from typing import Any, Literal, Optional, Type, Union
 
-from pydantic_core import CoreSchema
-from pydantic_core.core_schema import StringSchema
 from nodetool.models.asset import Asset
 from nodetool.models.message import Message
 
@@ -141,8 +140,26 @@ class ModelFile(BaseType):
     name: str = ""
 
 
-class LlamaFile(ModelFile):
-    type: Literal["llama_file"] = "llama_file"
+class GPTModel(str, enum.Enum):
+    GPT3 = "gpt-3.5-turbo-0125"
+    GPT4 = "gpt-4-1106-preview"
+    GPT4_VISION = "gpt-4-1106-vision-preview"
+
+
+class LanguageModel(ModelFile):
+    type: Literal["language_model"] = "language_model"
+
+
+class FunctionModel(LanguageModel):
+    type: Literal["function_model"] = "function_model"
+    repo_id: str = ""
+    filename: str = ""
+
+
+class LlamaModel(LanguageModel):
+    type: Literal["llama_model"] = "llama_model"
+    repo_id: str = ""
+    filename: str = ""
 
 
 class CheckpointFile(ModelFile):

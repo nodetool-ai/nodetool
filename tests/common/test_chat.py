@@ -87,5 +87,11 @@ async def test_process_message_valid():
                 content="Hello",
             )
         ]
-        result = await process_messages(context, thread.id, messages)
+        model = MagicMock(name="gpt")
+        result = await process_messages(
+            model=model,
+            context=context,
+            thread_id=thread.id,
+            messages=messages,
+        )
         assert result is not None

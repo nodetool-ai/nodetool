@@ -1,5 +1,4 @@
 from typing import Optional, Literal
-import uuid
 from datetime import datetime
 from nodetool.common.content_types import CONTENT_TYPE_TO_EXTENSION
 from nodetool.common.environment import Environment

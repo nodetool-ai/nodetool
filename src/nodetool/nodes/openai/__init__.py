@@ -1,13 +1,6 @@
-import enum
 from typing import Any
 from openai.types.completion_usage import CompletionUsage
 from openai.types.create_embedding_response import Usage
-
-
-class GPTModel(str, enum.Enum):
-    GPT3 = "gpt-3.5-turbo-0125"
-    GPT4 = "gpt-4-1106-preview"
-    GPT4_VISION = "gpt-4-1106-vision-preview"
 
 
 def calculate_cost(

@@ -547,15 +547,141 @@ class Environment(object):
             )
 
     @classmethod
-    def get_llama_models(cls):
+    def find_function_model(cls, name: str):
         """
-        Recursively search model folders for llama models.
+        Find a function model by name.
+        """
+        from nodetool.metadata.types import FunctionModel
+
+        for model in cls.get_function_models():
+            if model.name == name:
+                return model
+
+        return FunctionModel(name=name)
+
+    @classmethod
+    def get_function_models(cls):
+        from nodetool.metadata.types import FunctionModel, GPTModel
+
+        return [
+            FunctionModel(
+                name=GPTModel.GPT3.value,
+                type="function_model",
+            ),
+            FunctionModel(
+                name=GPTModel.GPT4.value,
+                type="function_model",
+            ),
+            FunctionModel(
+                name="meetkai/unctionary-small-v2.4.Q4_0.gguf",
+                repo_id="meetkai/functionary-small-v2.4-GGUF",
+                filename="functionary-small-v2.4.Q4_0.gguf",
+            ),
+            FunctionModel(
+                name="meetkai/functionary-medium-v2.4-GGUF",
+                repo_id="meetkai/functionary-medium-v2.4-GGUF",
+                filename="functionary-medium-v2.4.q4_0.gguf",
+            ),
+        ]
+
+    @classmethod
+    def get_llama_models(cls):
+        from nodetool.metadata.types import LlamaModel
+
+        models = [
+            LlamaModel(
+                repo_id="TheBloke/phi-2-GGUF",
+                filename="*Q4_K_S.gguf",
+                name="phi-2-GGUF",
+            ),
+            LlamaModel(
+                repo_id="lmstudio-ai/gemma-2b-it-GGUF",
+                filename="*q8_0.gguf",
+                name="gemma-2b-it-GGUF",
+            ),
+            LlamaModel(
+                repo_id="Qwen/Qwen1.5-0.5B-Chat-GGUF",
+                filename="*q8_0.gguf",
+                name="Qwen1.5-0.5B-Chat-GGUF",
+            ),
+            LlamaModel(
+                repo_id="Qwen/Qwen1.5-1.8B-Chat-GGUF",
+                filename="*q8_0.gguf",
+                name="Qwen1.5-1.8B-Chat-GGUF",
+            ),
+            LlamaModel(
+                repo_id="Qwen/Qwen1.5-4.0B-Chat-GGUF",
+                filename="*q8_0.gguf",
+                name="Qwen1.5-4.0B-Chat-GGUF",
+            ),
+            LlamaModel(
+                repo_id="Qwen/Qwen1.5-7.0B-Chat-GGUF",
+                filename="*q4_0.gguf",
+                name="Qwen1.5-7.0B-Chat-GGUF",
+            ),
+            LlamaModel(
+                repo_id="TheBloke/Mistral-7B-Instruct-v0.1-GGUF",
+                filename="*Q4_0.gguf",
+                name="Mistral-7B-Instruct-v0.1-GGUF",
+            ),
+            LlamaModel(
+                repo_id="TheBloke/Mistral-8x-7B-Instruct-v0.1-GGUF",
+                filename="*Q2_K.gguf",
+                name="Mistral-8x-7B-Instruct-v0.1-GGUF",
+            ),
+            LlamaModel(
+                repo_id="TheBloke/CapybaraHermes-2.5-Mistral-7B-GGUF",
+                filename="*Q4_0.gguf",
+                name="CapybaraHermes-2.5-Mistral-7B-GGUF",
+            ),
+            LlamaModel(
+                repo_id="TheBloke/Dolphin-2.5-Mixtral-8x7B-GGUF",
+                filename="*Q2_K.gguf",
+                name="Dolphin-2.5-Mixtral-8x7B-GGUF",
+            ),
+            LlamaModel(
+                repo_id="TheBloke/zephyr-7B-beta-GGUF",
+                filename="*Q4_0.gguf",
+                name="zephyr-7B-beta-GGUF",
+            ),
+        ]
+
+        return models + cls.get_lm_studio_models()
+
+    @classmethod
+    def get_lm_studio_models(cls):
+        """
+        Find all llama models in known folders.
+        Currently it only looks in the LM Studio folder.
         """
         import glob
+        from nodetool.metadata.types import LlamaModel
 
         folder = cls.get_lm_studio_folder()
+        files = glob.glob(f"{folder}/**/*.gguf", recursive=True)
+        return [
+            LlamaModel(
+                filename=file,
+                name=os.path.basename(file),
+            )
+            for file in files
+        ]
 
-        return glob.glob(f"{folder}/**/*.gguf", recursive=True)
+    @classmethod
+    def get_language_models(cls):
+        """
+        Find all language models.
+        """
+        from nodetool.metadata.types import LanguageModel, GPTModel
+
+        return [
+            LanguageModel(
+                name=GPTModel.GPT3.value,
+            ),
+            LanguageModel(
+                name=GPTModel.GPT4.value,
+            ),
+        ] + [LanguageModel(**model.model_dump()) for model in cls.get_llama_models()]
 
     @classmethod
     def get_model_files(cls, folder: str):
@@ -563,10 +689,14 @@ class Environment(object):
         Get the files in a model folder.
         """
 
-        if cls.is_production():
+        if folder == "language_model":
+            return [m.name for m in cls.get_language_models()]
+        elif folder == "function_model":
+            return [m.name for m in cls.get_function_models()]
+        elif folder == "llama_model":
+            return [m.name for m in cls.get_llama_models()]
+        elif cls.is_production():
             return cls.model_files.get(folder, [])
-        elif folder == "llama":
-            return cls.get_llama_models()
         else:
             import comfy.folder_paths
 

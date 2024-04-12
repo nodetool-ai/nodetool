@@ -7,7 +7,7 @@ from nodetool.nodes.openai import (
     calculate_cost_for_embedding_usage,
 )
 from nodetool.workflows.base_node import BaseNode
-from nodetool.nodes.openai import GPTModel
+from nodetool.metadata.types import GPTModel
 from nodetool.workflows.processing_context import ProcessingContext
 
 from openai.types.chat import ChatCompletion, ChatCompletionMessageParam

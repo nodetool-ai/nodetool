@@ -1,18 +1,23 @@
 import asyncio
 import json
-from typing import Any
+from typing import Any, Iterator, Union
 
+from llama_cpp import (
+    ChatCompletionRequestMessage,
+    ChatCompletionTool,
+)
 from pydantic import BaseModel
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import Task, ToolCall
+from nodetool.metadata.types import FunctionModel, Task, ToolCall
 from nodetool.models.task import Task as TaskModel
 from nodetool.models.workflow import Workflow
-from nodetool.nodes.openai import GPTModel
+from nodetool.metadata.types import GPTModel
 from nodetool.workflows.base_node import get_node_class
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.models.message import Message
 from openai.types.shared_params import FunctionDefinition
 from openai.types.chat.chat_completion import ChatCompletion
+from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai._types import NotGiven
 from openai.types.chat.completion_create_params import ResponseFormat
 from openai.types.chat.chat_completion_message_tool_call import (
@@ -230,13 +235,46 @@ def create_task(thread_id: str, user_id: str, params: dict):
     }
 
 
+async def create_completion(
+    context: ProcessingContext,
+    model: FunctionModel,
+    messages: list[ChatCompletionMessageParam | ChatCompletionRequestMessage],
+    tools: list[ChatCompletionTool | ChatCompletionToolParam],
+    **kwargs,
+) -> ChatCompletion:
+    print(f"Creating completion with model {model.name}")
+
+    if model.name.startswith("gpt"):
+        client = Environment.get_openai_client()
+        completion = await client.chat.completions.create(
+            model=model.name, messages=messages, tools=tools if len(tools) > 0 else NotGiven()  # type: ignore
+        )
+    else:
+        llm = context.load_model(
+            model=model,
+            n_gpu_layers=kwargs.pop("n_gpu_layers", 0),
+        )
+
+        assert llm is not None, f"Model {model.name} not found."
+
+        completion = ChatCompletion(
+            **llm.create_chat_completion(
+                messages=messages,  # type: ignore
+                tools=tools,  # type: ignore
+                **kwargs,
+            )
+        )
+
+    return completion
+
+
 async def process_messages(
     context: ProcessingContext,
     thread_id: str,
     messages: list[Message],
+    model: FunctionModel,
     workflow_ids: list[str] = [],
     node_types: list[str] = [],
-    model: GPTModel = GPTModel.GPT3,
     can_create_tasks: bool = True,
     **kwargs,
 ) -> tuple[list[Message], list[Task], list[ToolCall]]:
@@ -247,16 +285,16 @@ async def process_messages(
         context (ProcessingContext): The processing context.
         thread_id (str): The ID of the thread.
         messages (list[Message]): The messages in the thread.
+        model (str): The model to use for the completion.
         workflow_ids (list[str]): The workflow IDs to use as tools.
         node_types (list[str]): The node types to use as tools.
-        model (GPTModel): The model to use for the completion.
     """
 
-    client = Environment.get_openai_client()
-
     messages_for_request = [
-        {"role": message.role, "content": str(message.content)} for message in messages
+        {"role": str(message.role), "content": str(message.content)}
+        for message in messages
     ]
+
     tasks = []
     tools = []
     messages_to_return = []
@@ -266,14 +304,15 @@ async def process_messages(
     tools += [function_tool_from_workflow(workflow_id) for workflow_id in workflow_ids]
     tools += [function_tool_from_node(node_type) for node_type in node_types]
 
-    completion: ChatCompletion = await client.chat.completions.create(
-        model=model.value,
-        messages=messages_for_request,  # type: ignore
-        tools=tools if len(tools) > 0 else NotGiven(),
+    completion = await create_completion(
+        context,
+        model,
+        messages_for_request,  # type: ignore
+        tools,
         **kwargs,
     )
 
-    response_message = completion.choices[0].message
+    response_message = completion.choices[0].message  # type: ignore
     messages_for_request.append(response_message)  # type: ignore
 
     messages_to_return.append(
@@ -351,9 +390,11 @@ async def process_messages(
                     "content": tool_message.content or "",
                 }
             )
-        second_response = await client.chat.completions.create(
+        second_response = await create_completion(
+            context=context,
             model=model,
             messages=messages_for_request,  # type: ignore
+            tools=[],
             **kwargs,
         )
         print("SECOND RESPONSE", second_response)
