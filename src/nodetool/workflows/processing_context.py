@@ -993,11 +993,15 @@ class ProcessingContext:
                 **kwargs,
             )
         elif isinstance(model, LlamaModel):
-            if model.repo_id is None:
-                return Llama(model_path=model.filename, **kwargs)
+            found_model = Environment.find_llama_model(model.name)
+            if found_model is None:
+                raise ValueError(f"Model {model.name} not found")
+
+            if found_model.repo_id is None:
+                return Llama(model_path=found_model.filename, **kwargs)
             else:
                 return Llama.from_pretrained(
-                    repo_id=model.repo_id,
-                    filename=model.filename,
+                    repo_id=found_model.repo_id,
+                    filename=found_model.filename,
                     **kwargs,
                 )

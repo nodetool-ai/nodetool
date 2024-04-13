@@ -560,6 +560,19 @@ class Environment(object):
         return FunctionModel(name=name)
 
     @classmethod
+    def find_llama_model(cls, name: str):
+        """
+        Find a llama model by name.
+        """
+        from nodetool.metadata.types import LlamaModel
+
+        for model in cls.get_llama_models():
+            if model.name == name:
+                return model
+
+        return LlamaModel(name=name)
+
+    @classmethod
     def get_function_models(cls):
         from nodetool.metadata.types import FunctionModel, GPTModel
 
