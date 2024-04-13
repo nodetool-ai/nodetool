@@ -340,7 +340,7 @@ async def process_messages(
     async def run_tool(tool_call: ChatCompletionMessageToolCall):
         print(f"******* [[TOOL]] {tool_call.function.name} *******")
 
-        function_name = tool_call.function.name
+        function_name = tool_call.function.name.strip()
         function_args = json.loads(tool_call.function.arguments)
 
         if function_name == "create_task":
