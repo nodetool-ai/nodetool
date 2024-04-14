@@ -6,6 +6,7 @@ from typing import Any, List
 
 class Node(BaseModel):
     id: str
+    parent_id: str | None = None
     type: str = "default"
     data: Any = {}
     ui_properties: Any = {}

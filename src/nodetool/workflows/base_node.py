@@ -115,6 +115,7 @@ class BaseNode(BaseModel):
     """
 
     id: str = ""
+    parent_id: str | None = None
     ui_properties: dict[str, Any] = {}
     requires_capabilities: list[str] = []
 
