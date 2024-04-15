@@ -2,11 +2,17 @@ from typing import Any, Optional
 from collections import deque
 from typing import List
 import copy
-import uuid
 
 from pydantic import BaseModel, Field
 from nodetool.api.types.graph import Edge
-from nodetool.workflows.base_node import InputNode, BaseNode, OutputNode
+from nodetool.workflows.base_node import (
+    GroupInputNode,
+    GroupNode,
+    GroupOutputNode,
+    InputNode,
+    BaseNode,
+    OutputNode,
+)
 from nodetool.metadata.types import TypeMetadata
 from nodetool.workflows.base_node import get_node_class
 
@@ -46,8 +52,120 @@ def is_connectable(source: TypeMetadata, target: TypeMetadata) -> bool:
 
 
 class Graph(BaseModel):
+    """
+    This class represents a graph data structure containing nodes and edges.
+    It supports operations to manipulate and transform the graph, particularly
+    in terms of handling subgraphs and their connections.
+    """
+
     nodes: list[BaseNode] = Field(default_factory=list)  # type: ignore
     edges: list[Edge] = Field(default_factory=list)
+
+    def build_sub_graphs(self):
+        """
+        This method organizes nodes into their respective subgraphs based on the
+        group node they belong to and reconnects the edges accordingly. It also
+        ensures that only nodes that are not part of any group remain in the
+        main graph node list after the subgraphs are formed.
+
+        Process:
+        1. Identify Group Nodes: It first identifies all nodes that are
+        instances of GroupNode .
+
+        2. Assign Children to Groups: Each node is checked if it belongs
+        to a group (i.e., if its parent_id is in the dictionary of group nodes).
+        If so, it is added to the corresponding group node.
+
+        3. Reconnect Edges: Calls reconnect_edges to update the edges based on the
+        new structure of group nodes.
+
+        4. Filter Nodes: Removes all nodes from the main graph's node list that are
+        children of any group node.
+
+        """
+        group_nodes: dict[str, GroupNode] = {
+            node.id: node for node in self.nodes if isinstance(node, GroupNode)
+        }
+        group_children = {
+            node.id: node for node in self.nodes if node.parent_id in group_nodes
+        }
+        for node in self.nodes:
+            if node.parent_id in group_nodes:
+                group_nodes[node.parent_id].nodes.append(node)
+
+        for edge in self.edges:
+            if edge.source in group_children and edge.target in group_children:
+                source_parent = group_children[edge.source].parent_id
+                target_parent = group_children[edge.target].parent_id
+                if source_parent == target_parent and source_parent:
+                    group_nodes[source_parent].edges.append(edge)
+
+        self.reconnect_edges(group_nodes)
+
+        # Remove child nodes from groups
+        self.nodes = [node for node in self.nodes if node.parent_id is None]
+
+    def reconnect_edges(self, group_nodes: dict[str, GroupNode]):
+        """
+        Revises the graph's edge connections after nodes have been structured
+        into groups.
+
+        Process:
+        1. Create a new list of edges.
+        2. For each edge in the original list, check if the source and target
+        nodes are part of a group. If they are, the edge is updated to connect
+        to the group node instead.
+        3. Add the updated edge to the new list.
+        4. Replace the original list of edges with the new list.
+        """
+        new_edges = []
+        for edge in self.edges:
+            source_node = self.find_node(edge.source)
+            target_node = self.find_node(edge.target)
+
+            # Skip edges that are not connected to any node
+            if not source_node or not target_node:
+                continue
+
+            if (
+                source_node.parent_id
+                and target_node.parent_id
+                and source_node.parent_id == target_node.parent_id
+            ):
+                # Edge within the same group, skip it.
+                continue
+
+            if isinstance(source_node, GroupOutputNode):
+                assert source_node.parent_id, "Group output node must have a parent"
+                new_edge = Edge(
+                    source=source_node.parent_id,
+                    sourceHandle=source_node.name,
+                    target=edge.target,
+                    targetHandle=edge.targetHandle,
+                )
+            elif isinstance(target_node, GroupInputNode):
+                assert target_node.parent_id, "Group input node must have a parent"
+                new_edge = Edge(
+                    source=edge.source,
+                    sourceHandle=edge.sourceHandle,
+                    target=target_node.parent_id,
+                    targetHandle=target_node.name,
+                )
+            else:
+                new_edge = edge
+
+            new_edges.append(new_edge)
+
+        self.edges = new_edges
+
+    def find_node(self, node_id: str) -> BaseNode | None:
+        """
+        Find a node by its id.
+        """
+        for node in self.nodes:
+            if node.id == node_id:
+                return node
+        return None
 
     @classmethod
     def from_dict(cls, graph: dict[str, Any]):
@@ -139,64 +257,3 @@ def topological_sort(edges: list[Edge], nodes: list[BaseNode]) -> List[List[str]
     #     raise ValueError("Graph contains at least one cycle")
 
     return sorted_nodes
-
-
-def subgraph(
-    edges: list[Edge],
-    nodes: list[BaseNode],
-    start_node: BaseNode,
-    stop_node: BaseNode | None = None,
-) -> tuple[list[Edge], list[BaseNode]]:
-    """
-    Finds a subgraph within a given graph, starting from a specified start node and optionally stopping at a specified stop node.
-
-    Args:
-        edges (list[Edge]): A list of edges in the graph.
-        nodes (list[Node]): A list of nodes in the graph.
-        start_node (Node): The node to start the subgraph from.
-        stop_node (Node | None, optional): The node at which to stop the subgraph. Defaults to None.
-
-    Returns:
-        tuple[list[Edge], list[Node]]: A tuple containing the edges and nodes that form the subgraph.
-
-    Assumptions:
-        - The graph is represented by a list of edges and a list of nodes.
-        - The `start_node` and `stop_node` arguments are valid nodes in the graph.
-        - The graph is a connected graph, meaning there is a path between any two nodes in the graph.
-    """
-
-    # Keep track of visited nodes
-    visited = set()
-    # Use a stack to perform a depth-first search
-    stack = [start_node.id]
-    result_edges: list[Edge] = []
-    result_nodes: list[BaseNode] = []
-
-    while stack:
-        current_node_id = stack.pop()
-
-        if current_node_id in visited:
-            continue
-
-        visited.add(current_node_id)
-
-        if stop_node and current_node_id == stop_node.id:
-            break
-
-        # Find and collect connected nodes
-        for edge in edges:
-            if edge.source == current_node_id:
-                if edge.target not in visited:
-                    stack.append(edge.target)
-
-    # Add nodes to result based on visited nodes
-    for node in nodes:
-        if node.id in visited:
-            result_nodes.append(node)
-
-    # Add edges to result based on visited nodes
-    for edge in edges:
-        if edge.source in visited and edge.target in visited:
-            result_edges.append(edge)
-
-    return result_edges, result_nodes

@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 
 from typing import Any, Type
+from nodetool.api.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import NameToType, TypeToName
 from nodetool.metadata import (
@@ -34,6 +35,17 @@ IGNORED_NODE_TYPES = [
     "nodetool.workflows.WorkflowNode",
     "replicate.ReplicateNode",
     "huggingface.HuggingfaceNode",
+]
+IGNORED_FIELD_NAMES = [
+    "id",
+    "parent_id",
+    "_properties",
+    "_value",
+    "ui_properties",
+    "comfy_class",
+    "requires_capabilities",
+    "nodes",
+    "edges",
 ]
 
 log = Environment.get_logger()
@@ -149,6 +161,7 @@ class BaseNode(BaseModel):
             raise ValueError("Node must have an id")
         return node_type(
             id=node["id"],
+            parent_id=node.get("parent_id"),
             ui_properties=node.get("ui_properties", {}),
             **node.get("data", {}),
         )
@@ -379,8 +392,7 @@ class BaseNode(BaseModel):
         return [
             Property.from_field(name, type_metadata(types[name]), field)
             for name, field in fields.items()
-            if name
-            not in ["id", "ui_properties", "comfy_class", "requires_capabilities"]
+            if name not in IGNORED_FIELD_NAMES
         ]
 
     @classmethod
@@ -424,6 +436,51 @@ class OutputNode(BaseNode):
     description: str = Field(
         default="", description="The description for this output node."
     )
+
+
+class GroupInputNode(BaseNode):
+    """
+    Input node for any group node.
+    """
+
+    items: list[Any] = []
+    name: str = ""
+    _value: Any = None
+
+    async def process(self, context: Any) -> Any:
+        return self._value
+
+
+class GroupOutputNode(BaseNode):
+    """
+    Output node for any group node.
+    """
+
+    input: Any = None
+    name: str = ""
+
+    async def process(self, context: Any) -> list[Any]:
+        return self.input
+
+
+class GroupNode(BaseNode):
+    """
+    A group node is a special type of node that contains a subgraph.
+    """
+
+    nodes: list[BaseNode] = []
+    edges: list[Edge] = []
+    _properties: dict[str, Any] = {}
+
+    def assign_property(self, name: str, value: Any):
+        self._properties[name] = value
+
+    async def process_subgraph(
+        self,
+        context: Any,
+        runner: Any,
+    ):
+        pass
 
 
 class ConstantNode(BaseNode):

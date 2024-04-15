@@ -2,6 +2,7 @@ import PIL.Image
 import PIL.ImageChops
 import pytest
 from nodetool.api.types.graph import Node, Edge
+from nodetool.workflows.base_node import GroupInputNode, GroupOutputNode
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
@@ -16,7 +17,7 @@ from nodetool.api.types.graph import (
 from nodetool.nodes.nodetool.constant import FloatNode, StringNode
 from nodetool.nodes.nodetool.image import BlendNode
 from nodetool.nodes.nodetool.input import FloatInputNode, ImageInputNode, IntInputNode
-from nodetool.nodes.nodetool.loop import LoopNode, LoopOutputNode
+from nodetool.nodes.nodetool.loop import LoopNode
 from nodetool.nodes.nodetool.math import AddNode, MultiplyNode
 from nodetool.nodes.nodetool.output import ImageOutputNode, IntOutputNode
 
@@ -268,51 +269,63 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
 @pytest.mark.asyncio
 async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
     loop_node = {
-        "id": "1",
+        "id": "loop",
         "type": LoopNode.get_node_type(),
+    }
+    input_node = {
+        "id": "in",
+        "parent_id": "loop",
+        "type": GroupInputNode.get_node_type(),
         "data": {
-            "items": [1, 2, 3],
+            "name": "input",
         },
     }
     output_node = {
-        "id": "3",
-        "type": LoopOutputNode.get_node_type(),
-        "data": {},
+        "id": "out",
+        "parent_id": "loop",
+        "type": GroupOutputNode.get_node_type(),
+        "data": {"name": "output"},
     }
     multiply_node = {
-        "id": "2",
+        "id": "mul",
+        "parent_id": "loop",
         "type": MultiplyNode.get_node_type(),
         "data": {},
     }
-    nodes = [loop_node, multiply_node, output_node]
+    nodes = [loop_node, input_node, multiply_node, output_node]
     edges = [
         Edge(
             id="1",
-            source="1",
-            target="2",
+            source="in",
+            target="mul",
             sourceHandle="output",
             targetHandle="a",
         ),
         Edge(
             id="2",
-            source="1",
-            target="2",
+            source="in",
+            target="mul",
             sourceHandle="output",
             targetHandle="b",
         ),
         Edge(
             id="3",
-            source="2",
-            target="3",
+            source="mul",
+            target="out",
             sourceHandle="output",
             targetHandle="input",
         ),
     ]
     graph = Graph.from_dict({"nodes": nodes, "edges": edges})
+    graph.build_sub_graphs()
+
     context = ProcessingContext(
         user_id="", workflow_id="", edges=graph.edges, nodes=graph.nodes
     )
+    node = graph.find_node("loop")
+    assert node is not None
+    node.assign_property("input", [1, 2, 3])
 
     await workflow_runner.process_graph(context)
 
-    assert context.get_result("3", "output") == [1, 4, 9]
+    assert context.get_result("loop", "output") == [1, 4, 9]
