@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import Field
 from nodetool.metadata.types import ImageTensor
 from nodetool.metadata.types import asset_to_ref
@@ -8,7 +9,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import ImageRef
 from nodetool.metadata.types import TextRef
-from nodetool.workflows.base_node import InputNode
+from nodetool.workflows.base_node import BaseNode, InputNode
 from nodetool.metadata.types import VideoRef
 
 
@@ -296,3 +297,16 @@ class ComfyInputImageNode(AssetSchemaMixin, InputNode):
             output_mask = output_masks[0]
 
         return output_image  # type: ignore
+
+
+class GroupInputNode(BaseNode):
+    """
+    Input node for any group node.
+    """
+
+    items: list[Any] = []
+    name: str = ""
+    _value: Any = None
+
+    async def process(self, context: Any) -> Any:
+        return self._value

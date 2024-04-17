@@ -28,14 +28,7 @@ from nodetool.workflows.run_job_request import RunJobRequest
 NODE_BY_TYPE: dict[str, type["BaseNode"]] = {}
 NODES_BY_CLASSNAME: dict[str, list[type["BaseNode"]]] = {}
 
-IGNORED_NODE_TYPES = [
-    "nodetool.workflows.InputNode",
-    "nodetool.workflows.OutputNode",
-    "nodetool.workflows.ConstantNode",
-    "nodetool.workflows.WorkflowNode",
-    "replicate.ReplicateNode",
-    "huggingface.HuggingfaceNode",
-]
+INVISIBLE_NODE_TYPES = set()
 IGNORED_FIELD_NAMES = [
     "id",
     "parent_id",
@@ -72,9 +65,6 @@ def add_node_type(node_class: type["BaseNode"]) -> None:
         node_class (type[Node]): The class of the node.
     """
     node_type = node_class.get_node_type()
-
-    if node_type in IGNORED_NODE_TYPES:
-        return
 
     NODE_BY_TYPE[node_type] = node_class
     add_node_classname(node_class)
@@ -130,6 +120,10 @@ class BaseNode(BaseModel):
     parent_id: str | None = None
     ui_properties: dict[str, Any] = {}
     requires_capabilities: list[str] = []
+
+    @classmethod
+    def invisible(cls):
+        INVISIBLE_NODE_TYPES.add(cls.get_node_type())
 
     @classmethod
     def __init_subclass__(cls):
@@ -428,6 +422,9 @@ class InputNode(BaseNode):
     description: str = Field("", description="The description for this input node.")
 
 
+InputNode.invisible()
+
+
 class OutputNode(BaseNode):
     label: str = Field(
         default="Output Label", description="The label for this output node."
@@ -438,53 +435,14 @@ class OutputNode(BaseNode):
     )
 
 
-class GroupInputNode(BaseNode):
-    """
-    Input node for any group node.
-    """
-
-    items: list[Any] = []
-    name: str = ""
-    _value: Any = None
-
-    async def process(self, context: Any) -> Any:
-        return self._value
+OutputNode.invisible()
 
 
-class GroupOutputNode(BaseNode):
-    """
-    Output node for any group node.
-    """
-
-    input: Any = None
-    name: str = ""
-
-    async def process(self, context: Any) -> list[Any]:
-        return self.input
+class CommentNode(BaseNode):
+    comment: list[str] = Field(default=[""], description="The comment for this node.")
 
 
-class GroupNode(BaseNode):
-    """
-    A group node is a special type of node that contains a subgraph.
-    """
-
-    nodes: list[BaseNode] = []
-    edges: list[Edge] = []
-    _properties: dict[str, Any] = {}
-
-    def assign_property(self, name: str, value: Any):
-        self._properties[name] = value
-
-    async def process_subgraph(
-        self,
-        context: Any,
-        runner: Any,
-    ):
-        pass
-
-
-class ConstantNode(BaseNode):
-    pass
+CommentNode.invisible()
 
 
 def get_node_class_by_name(class_name: str) -> list[type[BaseNode]]:
@@ -525,7 +483,11 @@ def get_registered_node_classes() -> list[type[BaseNode]]:
     Returns:
         list[type[Node]]: The registered node classes.
     """
-    return list(NODE_BY_TYPE.values())
+    return [
+        c
+        for c in NODE_BY_TYPE.values()
+        if c.get_node_type() not in INVISIBLE_NODE_TYPES
+    ]
 
 
 def requires_capabilities(nodes: list[BaseNode]):
@@ -546,3 +508,23 @@ def requires_capabilities_from_request(req: RunJobRequest):
         for cap in node_class().requires_capabilities:
             capabilities.add(cap)
     return list(capabilities)
+
+
+class GroupNode(BaseNode):
+    """
+    A group node is a special type of node that contains a subgraph.
+    """
+
+    nodes: list[BaseNode] = []
+    edges: list[Edge] = []
+    _properties: dict[str, Any] = {}
+
+    def assign_property(self, name: str, value: Any):
+        self._properties[name] = value
+
+    async def process_subgraph(
+        self,
+        context: Any,
+        runner: Any,
+    ):
+        pass

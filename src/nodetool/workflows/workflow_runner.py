@@ -5,6 +5,7 @@ import gc
 
 from pydantic import BaseModel
 
+from nodetool.workflows.base_node import GroupNode
 from nodetool.workflows.types import NodeProgress, NodeUpdate, WorkflowUpdate
 from nodetool.workflows.run_job_request import RunJobRequest
 
@@ -13,9 +14,6 @@ from nodetool.workflows.processing_context import (
 )
 from nodetool.workflows.base_node import (
     BaseNode,
-    GroupInputNode,
-    GroupNode,
-    GroupOutputNode,
 )
 from nodetool.workflows.base_node import requires_capabilities_from_request
 from nodetool.common.environment import Environment

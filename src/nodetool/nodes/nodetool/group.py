@@ -1,13 +1,8 @@
 from datetime import datetime
-from nodetool.api.types.graph import Edge
-from nodetool.workflows.base_node import (
-    BaseNode,
-    GroupInputNode,
-    GroupNode,
-    GroupOutputNode,
-)
+from nodetool.nodes.nodetool.input import GroupInputNode
+from nodetool.nodes.nodetool.output import GroupOutputNode
+from nodetool.workflows.base_node import GroupNode
 from nodetool.workflows.processing_context import ProcessingContext
-
 
 from typing import Any
 

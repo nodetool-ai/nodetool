@@ -8,6 +8,7 @@ from nodetool.metadata.types import DataFrame
 from nodetool.metadata.types import ModelRef
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import (
+    BaseNode,
     OutputNode,
 )
 from nodetool.metadata.types import TextRef
@@ -221,3 +222,15 @@ class DictOutputNode(OutputNode):
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
         return self.value
+
+
+class GroupOutputNode(BaseNode):
+    """
+    Output node for any group node.
+    """
+
+    input: Any = None
+    name: str = ""
+
+    async def process(self, context: Any) -> list[Any]:
+        return self.input

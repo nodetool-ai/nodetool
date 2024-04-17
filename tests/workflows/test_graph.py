@@ -1,16 +1,15 @@
 import pytest
 from nodetool.api.types.graph import Edge
-from nodetool.nodes.nodetool.input import FloatInputNode
-from nodetool.workflows.base_node import BaseNode, GroupNode
+from nodetool.workflows.base_node import GroupNode
+from nodetool.nodes.nodetool.input import FloatInputNode, GroupInputNode
+from nodetool.nodes.nodetool.output import GroupOutputNode
+from nodetool.workflows.base_node import BaseNode
 
 from nodetool.workflows.graph import Graph, topological_sort
 import pytest
 from nodetool.workflows.graph import Graph
 from nodetool.workflows.base_node import (
     BaseNode,
-    GroupNode,
-    GroupInputNode,
-    GroupOutputNode,
 )
 from nodetool.api.types.graph import Edge
 

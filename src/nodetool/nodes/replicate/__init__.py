@@ -270,6 +270,9 @@ class ReplicateNode(BaseNode):
         }
 
 
+ReplicateNode.invisible()
+
+
 class ValidationError(BaseModel):
     loc: List[Union[str, int]] = Field(..., title="Location")
     msg: str = Field(..., title="Message")

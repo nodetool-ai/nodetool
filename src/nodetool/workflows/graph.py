@@ -5,10 +5,8 @@ import copy
 
 from pydantic import BaseModel, Field
 from nodetool.api.types.graph import Edge
+from nodetool.workflows.base_node import GroupNode
 from nodetool.workflows.base_node import (
-    GroupInputNode,
-    GroupNode,
-    GroupOutputNode,
     InputNode,
     BaseNode,
     OutputNode,
@@ -118,6 +116,9 @@ class Graph(BaseModel):
         3. Add the updated edge to the new list.
         4. Replace the original list of edges with the new list.
         """
+        from nodetool.nodes.nodetool.input import GroupInputNode
+        from nodetool.nodes.nodetool.output import GroupOutputNode
+
         new_edges = []
         for edge in self.edges:
             source_node = self.find_node(edge.source)

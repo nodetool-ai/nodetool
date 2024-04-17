@@ -18,7 +18,7 @@ import nodetool.nodes.nodetool.image.transform
 import nodetool.nodes.nodetool.image.generate
 import nodetool.nodes.nodetool.input
 import nodetool.nodes.nodetool.list
-import nodetool.nodes.nodetool.loop
+import nodetool.nodes.nodetool.group
 import nodetool.nodes.nodetool.math
 import nodetool.nodes.nodetool.output
 import nodetool.nodes.nodetool.tensor

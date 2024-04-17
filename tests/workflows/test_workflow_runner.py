@@ -2,7 +2,7 @@ import PIL.Image
 import PIL.ImageChops
 import pytest
 from nodetool.api.types.graph import Node, Edge
-from nodetool.workflows.base_node import GroupInputNode, GroupOutputNode
+from nodetool.nodes.nodetool.output import GroupOutputNode
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
@@ -16,8 +16,13 @@ from nodetool.api.types.graph import (
 )
 from nodetool.nodes.nodetool.constant import FloatNode, StringNode
 from nodetool.nodes.nodetool.image import BlendNode
-from nodetool.nodes.nodetool.input import FloatInputNode, ImageInputNode, IntInputNode
-from nodetool.nodes.nodetool.loop import LoopNode
+from nodetool.nodes.nodetool.input import (
+    FloatInputNode,
+    GroupInputNode,
+    ImageInputNode,
+    IntInputNode,
+)
+from nodetool.nodes.nodetool.group import LoopNode
 from nodetool.nodes.nodetool.math import AddNode, MultiplyNode
 from nodetool.nodes.nodetool.output import ImageOutputNode, IntOutputNode
 

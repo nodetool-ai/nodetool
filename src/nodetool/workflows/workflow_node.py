@@ -127,3 +127,6 @@ class WorkflowNode(BaseNode):
                 output = msg["result"]
 
         return output
+
+
+WorkflowNode.invisible()

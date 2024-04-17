@@ -1,13 +1,17 @@
 from typing import Any, Literal
 from nodetool.metadata.types import Tensor
+from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import DataFrame
 from nodetool.metadata.types import ModelRef
 from nodetool.metadata.types import ImageRef
-from nodetool.workflows.base_node import ConstantNode
 from nodetool.metadata.types import TextRef
 from nodetool.metadata.types import VideoRef
+
+
+class ConstantNode(BaseNode):
+    pass
 
 
 class AudioNode(ConstantNode):
