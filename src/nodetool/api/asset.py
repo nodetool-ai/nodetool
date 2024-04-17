@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from nodetool.api.types.asset import (
     Asset,
     AssetCreateRequest,
     AssetList,
     AssetUpdateRequest,
+    TempAsset,
 )
 from nodetool.api.utils import current_user, User
 from nodetool.common.environment import Environment
@@ -45,6 +47,19 @@ async def index(
     assets = [Asset.from_model(asset) for asset in assets]
 
     return AssetList(next=next_cursor, assets=assets)
+
+
+@router.get("/temp")
+async def create_temp(extension: str, user: User = Depends(current_user)) -> TempAsset:
+    """
+    Create a new temporary asset.
+    """
+    s3 = Environment.get_temp_storage()
+    uuid = uuid4().hex
+    return TempAsset(
+        get_url=s3.generate_presigned_url("get_object", f"{uuid}.{extension}"),
+        put_url=s3.generate_presigned_url("put_object", f"{uuid}.{extension}"),
+    )
 
 
 @router.get("/{id}")
