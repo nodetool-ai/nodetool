@@ -77,3 +77,8 @@ class AssetCreateRequest(BaseModel):
 class AssetList(BaseModel):
     next: str | None
     assets: list[Asset]
+
+
+class TempAsset(BaseModel):
+    get_url: str
+    put_url: str
