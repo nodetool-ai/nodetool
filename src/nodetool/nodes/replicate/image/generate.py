@@ -56,7 +56,6 @@ class StableDiffusionXLNode(ReplicateNode):
         BASE = "stability-ai/sdxl"
         JUGGERNAUT = "lucataco/juggernaut-xl-v9"
         PIXAR = "swartype/sdxl-pixar"
-        CINEMATIC_REDMOND = "fofr/cinematic-redmond"
 
     class Scheduler(str, Enum):
         DDIM = "DDIM"
