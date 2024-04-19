@@ -37,12 +37,13 @@ model_cache_folder = os.path.join(current_folder, "models")
 
 def calculate_llm_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     pricing = {
-        "meta/llama-2-70b": (0.65, 2.75),
-        "meta/llama-2-13b": (0.10, 0.50),
-        "meta/llama-2-7b": (0.05, 0.25),
-        "meta/llama-2-70b-chat": (0.65, 2.75),
-        "meta/llama-2-13b-chat": (0.10, 0.50),
-        "meta/llama-2-7b-chat": (0.05, 0.25),
+        "meta/meta-llama-3-70b": (0.65, 2.75),
+        "meta/meta-llama-3-13b": (0.10, 0.50),
+        "meta/meta-llama-3-8b": (0.05, 0.25),
+        "meta/meta-llama-3-70b-instruct": (0.65, 2.75),
+        "meta/meta-llama-3-13b-instruct": (0.10, 0.50),
+        "meta/meta-llama-3-8b-instruct": (0.05, 0.25),
+        "meta/meta-llama-3-70b-instruct": (0.65, 2.75),
         "mistralai/mistral-7b-v0.1": (0.05, 0.25),
         "mistralai/mistral-7b-instruct-v0.2": (0.05, 0.25),
         "mistralai/mixtral-8x7b-instruct-v0.1": (0.30, 1.00),
