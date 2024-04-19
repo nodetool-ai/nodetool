@@ -34,8 +34,6 @@ class LlamaNode(ReplicateNode):
         llama_2_13b_chat = "meta/llama-2-13b-chat"
         llama_2_70b_chat = "meta/llama-2-70b-chat"
         mistral_7b = "mistralai/mistral-7b-v0.1"
-        mistral_7b_instruct = "mistralai/mistral-7b-instruct-v0.1"
-        mistral_8x7b_instruct = "mistralai/mistral-8x7b-instruct-v0.1"
 
     model: Model = Field(
         default=Model.llama_2_7b,
