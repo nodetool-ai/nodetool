@@ -1,18 +1,19 @@
 from typing import Any
-import uuid
-from datetime import datetime
 from pydantic import BaseModel, Field
 
 from nodetool.common.environment import Environment
-from nodetool.models.sqlite_adapter import SQLiteAdapter
-from .dynamo_adapter import DynamoAdapter
+from uuid import uuid1
+from random import randint
 
 
 log = Environment.get_logger()
 
 
 def create_time_ordered_uuid() -> str:
-    return datetime.now().strftime("%Y-%m-%d_%H-%M-%S_") + uuid.uuid4().hex
+    """
+    Create an uuid that is ordered by time.
+    """
+    return uuid1(randint(0, 2**31)).hex
 
 
 def DBField(hash_key: bool = False, **kwargs: Any):
