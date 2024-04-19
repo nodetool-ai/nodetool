@@ -14,6 +14,7 @@ from nodetool.common.environment import Environment
 from typing import Optional
 from nodetool.models.asset import Asset as AssetModel
 from nodetool.models.workflow import Workflow
+from nodetool.common.media_utils import get_media_duration
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/assets", tags=["assets"])
@@ -26,6 +27,7 @@ async def index(
     cursor: Optional[str] = None,
     page_size: Optional[int] = None,
     user: User = Depends(current_user),
+    duration: Optional[int] = None,
 ) -> AssetList:
     """
     Returns all assets for a given user or workflow.
@@ -99,6 +101,12 @@ async def update(
     asset = AssetModel.find(user.id, id)
     if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found")
+    if asset.file_id and asset.content_type in ["video/mp4", "audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/flac", "audio/aac"]:
+        file_path = f"temp/{asset.file_name}"
+        with open(file_path, "wb+") as file_object:
+            file_object.write(asset.file.read())
+        asset.duration = get_media_duration(file_path)
+
     if req.status:
         asset.status = req.status
     if req.content_type:

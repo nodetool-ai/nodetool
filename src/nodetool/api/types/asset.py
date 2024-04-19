@@ -16,6 +16,7 @@ class Asset(BaseModel):
     created_at: str
     get_url: str | None
     put_url: str | None
+    duration: float | None = None
 
     @property
     def file_extension(self) -> str:
@@ -57,6 +58,7 @@ class Asset(BaseModel):
             created_at=asset.created_at.isoformat(),
             get_url=get_url,
             put_url=put_url,
+            duration=asset.duration,
         )
 
 
@@ -65,6 +67,7 @@ class AssetUpdateRequest(BaseModel):
     parent_id: str | None
     status: str | None
     content_type: str | None
+    duration: float | None = None
 
 
 class AssetCreateRequest(BaseModel):
@@ -72,6 +75,7 @@ class AssetCreateRequest(BaseModel):
     parent_id: str | None = None
     name: str
     content_type: str
+    duration: float | None = None
 
 
 class AssetList(BaseModel):

@@ -20,6 +20,7 @@ class Asset(DBModel):
                 "user_id": "S",
                 "parent_id": "S",
                 "content_type": "S",
+                "duration": "N",
             },
             "global_secondary_indexes": {
                 "nodetool_asset_user_content_type_index": {
@@ -43,6 +44,8 @@ class Asset(DBModel):
     status: str = DBField(default="pending")
     content_type: str = DBField(default="")
     created_at: datetime = DBField(default_factory=datetime.now)
+    duration: Optional[float] = DBField(default=None)
+
 
     @property
     def file_extension(self) -> str:
@@ -73,6 +76,7 @@ class Asset(DBModel):
         parent_id: str | None = None,
         workflow_id: str | None = None,
         status: str = "pending",
+        duration: float | None = None,
         **kwargs,
     ):
         return super().create(
@@ -83,6 +87,7 @@ class Asset(DBModel):
             parent_id=parent_id or user_id,
             workflow_id=workflow_id,
             content_type=content_type,
+            duration=duration,
             created_at=datetime.now(),
         )
 
