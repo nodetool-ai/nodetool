@@ -31,6 +31,7 @@ class Workflow(BaseModel):
                 )
 
         graph = workflow.get_graph()
+        api_graph = workflow.get_api_graph()
 
         return cls(
             id=workflow.id,
@@ -41,10 +42,7 @@ class Workflow(BaseModel):
             description=workflow.description or "",
             thumbnail=workflow.thumbnail or "",
             thumbnail_url=thumbnail_url,
-            graph=Graph(
-                nodes=workflow.graph["nodes"],
-                edges=workflow.graph["edges"],
-            ),
+            graph=api_graph,
             input_schema=graph.get_input_schema(),
             output_schema=graph.get_output_schema(),
         )
