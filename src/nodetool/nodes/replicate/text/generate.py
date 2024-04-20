@@ -4,7 +4,6 @@ from nodetool.nodes.replicate import ReplicateNode, calculate_llm_cost
 from pydantic import Field
 from enum import Enum
 
-from nodetool.nodes.replicate import get_model_version
 from nodetool.workflows.processing_context import ProcessingContext
 
 
@@ -26,9 +25,8 @@ class LlamaNode(ReplicateNode):
         llama_3_13b = "meta/meta-llama-3-13b"
         llama_3_70b = "meta/meta-llama-3-70b"
         llama_3_8b_chat = "meta/meta-llama-3-8b-instruct"
-        llama_3_13b_chat = "meta/meta-llama-3-13b-chat"
-        llama_3_70b_chat = "meta/meta-llama-3-70b-chat"
-        mistral_7b = "mistralai/mistral-7b-v0.1"
+        llama_3_13b_chat = "meta/meta-llama-3-13b-instruct"
+        llama_3_70b_chat = "meta/meta-llama-3-70b-instruct"
 
     model: Model = Field(
         default=Model.llama_3_8b,
@@ -37,7 +35,7 @@ class LlamaNode(ReplicateNode):
 
     prompt: str = Field(default="", description="Prompt to send to the model.")
     system_prompt: str = Field(
-        default="",
+        default="You are a helpful assistant",
         description="Prompt to instruct the model. Only works for instruct models.",
     )
     max_new_tokens: int = Field(
@@ -64,30 +62,20 @@ class LlamaNode(ReplicateNode):
         le=1,
         description="When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens (maximum: 1)",
     )
-    stop_sequences: str = Field(
-        default="<end>,<stop>",
-        description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
-    )
 
     async def process(self, context: ProcessingContext) -> str:
-        enc = tiktoken.encoding_for_model("gpt-4")
-        input_tokens = enc.encode(self.prompt)
-
-        if self.system_prompt == "":
-            prompt_template = "{prompt}"
-        else:
-            prompt_template = """
-                <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-                You are a helpful assistant<|eot_id|><|start_header_id|>user<|end_header_id|>
-                {prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-            """
-
-        pred = await self.run_replicate(context, {"prompt_template": prompt_template})
+        pred = await self.run_replicate(context)
         if pred is None:
             raise ValueError("Prediction failed")
+
+        assert pred.metrics is not None, "Metrics are missing from the prediction"
+
+        input_token_count = pred.metrics["input_token_count"]
+        output_token_count = pred.metrics["output_token_count"]
+
         output_tokens = pred.output or []
         cost = calculate_llm_cost(
-            self.model.value, len(input_tokens), len(output_tokens)
+            self.model.value, input_token_count, output_token_count
         )
         await context.create_prediction(
             provider="replicate",
@@ -99,4 +87,4 @@ class LlamaNode(ReplicateNode):
         return "".join(output_tokens)
 
     def replicate_model_id(self) -> str:
-        return f"{self.model.value}:{get_model_version(self.model.value)}"
+        return self.model.value

@@ -37,14 +37,13 @@ model_cache_folder = os.path.join(current_folder, "models")
 
 def calculate_llm_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     pricing = {
-        "meta/meta-llama-3-70b": (0.65, 2.75),
-        "meta/meta-llama-3-13b": (0.10, 0.50),
         "meta/meta-llama-3-8b": (0.05, 0.25),
-        "meta/meta-llama-3-70b-instruct": (0.65, 2.75),
-        "meta/meta-llama-3-13b-instruct": (0.10, 0.50),
+        "meta/meta-llama-3-13b": (0.10, 0.50),
+        "meta/meta-llama-3-70b": (0.65, 2.75),
         "meta/meta-llama-3-8b-instruct": (0.05, 0.25),
+        "meta/meta-llama-3-13b-instruct": (0.10, 0.50),
         "meta/meta-llama-3-70b-instruct": (0.65, 2.75),
-        "mistralai/mistral-7b-v0.1": (0.05, 0.25),
+        "mistralai/mistral-7b-v0.2": (0.05, 0.25),
         "mistralai/mistral-7b-instruct-v0.2": (0.05, 0.25),
         "mistralai/mixtral-8x7b-instruct-v0.1": (0.30, 1.00),
     }
@@ -89,7 +88,7 @@ async def run_replicate(
 ):
     replicate = Environment.get_replicate_client()
 
-    log.info(f"Running model {model_id} with input {input_params}")
+    log.info(f"Running model {model_id}")
     started_at = datetime.now()
 
     context.post_message(
@@ -101,21 +100,36 @@ async def run_replicate(
         )
     )
 
-    # Split model_version into owner, name, version in format owner/name:version
-    match = re.match(r"^(?P<owner>[^/]+)/(?P<name>[^:]+):(?P<version>.+)$", model_id)
-    if not match:
-        raise ValueError(
-            f"Invalid model_version: {model_id}. Expected format: owner/name:version"
+    # Split model_version into owner, name in format owner/name
+    match = re.match(r"^(?P<owner>[^/]+)/(?P<name>[^:]+)$", model_id)
+
+    if match:
+        owner = match.group("owner")
+        name = match.group("name")
+        version_id = None
+    else:
+        # Split model_version into owner, name, version in format owner/name:version
+        match = re.match(
+            r"^(?P<owner>[^/]+)/(?P<name>[^:]+):(?P<version>.+)$", model_id
         )
+        if not match:
+            raise ValueError(
+                f"Invalid model_version: {model_id}. Expected format: owner/name:version"
+            )
+        owner = match.group("owner")
+        name = match.group("name")
+        version_id = match.group("version")
 
-    owner = match.group("owner")
-    name = match.group("name")
-    version_id = match.group("version")
-
-    replicate_pred = replicate.predictions.create(
-        version=version_id,
-        input=input_params,
-    )
+    if version_id:
+        replicate_pred = replicate.predictions.create(
+            version=version_id,
+            input=input_params,
+        )
+    else:
+        replicate_pred = replicate.models.predictions.create(
+            model=(owner, name),
+            input=input_params,
+        )
 
     prediction = await context.create_prediction(
         provider="replicate",
@@ -130,13 +144,11 @@ async def run_replicate(
     for i in range(1800):
         replicate_pred = replicate.predictions.get(replicate_pred.id)
 
-        print(replicate_pred)
-
         if replicate_pred.status != current_status:
             log.info(f"Prediction status: {replicate_pred.status}")
             current_status = replicate_pred.status
 
-        if replicate_pred.metrics:
+        if replicate_pred.metrics and "predict_time" in replicate_pred.metrics:
             predict_time = replicate_pred.metrics["predict_time"]
             cost = calculate_price(hardware, predict_time)
         else:
