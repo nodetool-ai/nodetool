@@ -109,22 +109,28 @@ async def update(
     print(f"Updating asset with ID: {id} for user: {user.id}")
   
     asset = AssetModel.find(user.id, id)
-    if asset is None:
-        raise HTTPException(status_code=404, detail="Asset not found")
     storage = FileStorage(Environment.get_asset_folder(), Environment.get_nodetool_api_url() + "/storage")
-    if asset.id and match(r'^(audio|video)/', asset.content_type):
+
+    if asset.id and re.match(r'^(audio|video)/', asset.content_type):
         file_path = os.path.join(storage.base_path, asset.file_name)
         if os.path.exists(file_path):
-            try:
-                asset.duration = get_media_duration(file_path)
-            except Exception as e:
-                print(f"Initial attempt to get duration failed: {e}")
-                # Try repackaging and getting duration
-                asset.duration = repackage_and_get_duration(file_path)
-                #print(f"RETRY WITH REPACKAGE: {asset.duration}")
+            if asset.duration is None:
+                try:
+                    print("Attempting to get media duration...")
+                    asset.duration = get_media_duration(file_path)
+                    if asset.duration is None:
+                        print("Asset duration was None, attempting to repackage...")
+                        asset.duration = repackage_and_get_duration(file_path)
+                    print(f"Setting asset duration: {asset.duration}")
+                except Exception as e:
+                    print(f"Error obtaining duration, trying repackaging: {e}")
+                    asset.duration = repackage_and_get_duration(file_path)
+                    print(f"Setting asset duration after repackaging: {asset.duration}")
+            else:
+                print(f"Duration already set to: {asset.duration}")
         else:
             print(f"File does not exist at {file_path}")
-      
+
     if req.status:
         asset.status = req.status
     if req.content_type:
@@ -135,36 +141,6 @@ async def update(
         asset.parent_id = req.parent_id
     asset.save()
     return Asset.from_model(asset)
-
-# @router.put("/{id}")
-# async def update(
-#     id: str,
-#     req: AssetUpdateRequest,
-#     user: User = Depends(current_user),
-# ) -> Asset:
-#     """
-#     Updates the asset for the given id.
-#     """
-#     asset = AssetModel.find(user.id, id)
-#     if asset is None:
-#         raise HTTPException(status_code=404, detail="Asset not found")
-#     storage = FileStorage(Environment.get_asset_folder(), Environment.get_nodetool_api_url() + "/storage")
-    
-#     if asset.file_id and re.match(r'^(audio|video)/', asset.content_type):
-#         file_path = os.path.join(storage.base_path, asset.file_name)
-#         with open(file_path, "wb+") as file_object:
-#             file_object.write(asset.file.read())
-#         asset.duration = get_media_duration(file_path) 
-#     if req.status:
-#         asset.status = req.status
-#     if req.content_type:
-#         asset.content_type = req.content_type
-#     if req.name:
-#         asset.name = req.name.strip()
-#     if req.parent_id:
-#         asset.parent_id = req.parent_id
-#     asset.save()
-#     return Asset.from_model(asset)
 
 
 @router.delete("/{id}")
