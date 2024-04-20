@@ -14,7 +14,13 @@ from nodetool.common.environment import Environment
 from typing import Optional
 from nodetool.models.asset import Asset as AssetModel
 from nodetool.models.workflow import Workflow
+#
+import os
+from nodetool.storage.file_storage import FileStorage
+from nodetool.common.environment import Environment
 from nodetool.common.media_utils import get_media_duration
+from nodetool.common.media_utils import repackage_and_get_duration
+import re
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/assets", tags=["assets"])
@@ -89,6 +95,8 @@ async def get(id: str, user: User = Depends(current_user)) -> Asset:
     return Asset.from_model(asset)
 
 
+from re import match
+
 @router.put("/{id}")
 async def update(
     id: str,
@@ -98,15 +106,25 @@ async def update(
     """
     Updates the asset for the given id.
     """
+    print(f"Updating asset with ID: {id} for user: {user.id}")
+  
     asset = AssetModel.find(user.id, id)
     if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found")
-    if asset.file_id and asset.content_type in ["video/mp4", "audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/flac", "audio/aac"]:
-        file_path = f"temp/{asset.file_name}"
-        with open(file_path, "wb+") as file_object:
-            file_object.write(asset.file.read())
-        asset.duration = get_media_duration(file_path)
-
+    storage = FileStorage(Environment.get_asset_folder(), Environment.get_nodetool_api_url() + "/storage")
+    if asset.id and match(r'^(audio|video)/', asset.content_type):
+        file_path = os.path.join(storage.base_path, asset.file_name)
+        if os.path.exists(file_path):
+            try:
+                asset.duration = get_media_duration(file_path)
+            except Exception as e:
+                print(f"Initial attempt to get duration failed: {e}")
+                # Try repackaging and getting duration
+                asset.duration = repackage_and_get_duration(file_path)
+                #print(f"RETRY WITH REPACKAGE: {asset.duration}")
+        else:
+            print(f"File does not exist at {file_path}")
+      
     if req.status:
         asset.status = req.status
     if req.content_type:
@@ -117,6 +135,36 @@ async def update(
         asset.parent_id = req.parent_id
     asset.save()
     return Asset.from_model(asset)
+
+# @router.put("/{id}")
+# async def update(
+#     id: str,
+#     req: AssetUpdateRequest,
+#     user: User = Depends(current_user),
+# ) -> Asset:
+#     """
+#     Updates the asset for the given id.
+#     """
+#     asset = AssetModel.find(user.id, id)
+#     if asset is None:
+#         raise HTTPException(status_code=404, detail="Asset not found")
+#     storage = FileStorage(Environment.get_asset_folder(), Environment.get_nodetool_api_url() + "/storage")
+    
+#     if asset.file_id and re.match(r'^(audio|video)/', asset.content_type):
+#         file_path = os.path.join(storage.base_path, asset.file_name)
+#         with open(file_path, "wb+") as file_object:
+#             file_object.write(asset.file.read())
+#         asset.duration = get_media_duration(file_path) 
+#     if req.status:
+#         asset.status = req.status
+#     if req.content_type:
+#         asset.content_type = req.content_type
+#     if req.name:
+#         asset.name = req.name.strip()
+#     if req.parent_id:
+#         asset.parent_id = req.parent_id
+#     asset.save()
+#     return Asset.from_model(asset)
 
 
 @router.delete("/{id}")
