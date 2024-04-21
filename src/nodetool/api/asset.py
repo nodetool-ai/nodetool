@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
+from io import BytesIO
 from uuid import uuid4
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from nodetool.api.types.asset import (
     Asset,
     AssetCreateRequest,
@@ -14,6 +15,7 @@ from nodetool.common.environment import Environment
 from typing import Optional
 from nodetool.models.asset import Asset as AssetModel
 from nodetool.models.workflow import Workflow
+
 #
 import os
 from nodetool.storage.file_storage import FileStorage
@@ -97,6 +99,7 @@ async def get(id: str, user: User = Depends(current_user)) -> Asset:
 
 from re import match
 
+
 @router.put("/{id}")
 async def update(
     id: str,
@@ -107,29 +110,26 @@ async def update(
     Updates the asset for the given id.
     """
     print(f"Updating asset with ID: {id} for user: {user.id}")
-  
-    asset = AssetModel.find(user.id, id)
-    storage = FileStorage(Environment.get_asset_folder(), Environment.get_nodetool_api_url() + "/storage")
 
-    if asset.id and re.match(r'^(audio|video)/', asset.content_type):
-        file_path = os.path.join(storage.base_path, asset.file_name)
-        if os.path.exists(file_path):
-            if asset.duration is None:
-                try:
-                    print("Attempting to get media duration...")
-                    asset.duration = get_media_duration(file_path)
-                    if asset.duration is None:
-                        print("Asset duration was None, attempting to repackage...")
-                        asset.duration = repackage_and_get_duration(file_path)
-                    print(f"Setting asset duration: {asset.duration}")
-                except Exception as e:
-                    print(f"Error obtaining duration, trying repackaging: {e}")
-                    asset.duration = repackage_and_get_duration(file_path)
-                    print(f"Setting asset duration after repackaging: {asset.duration}")
-            else:
-                print(f"Duration already set to: {asset.duration}")
-        else:
-            print(f"File does not exist at {file_path}")
+    asset = AssetModel.find(user.id, id)
+
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    # storage = Environment.get_asset_storage()
+
+    # if re.match(r"^(audio|video)/", asset.content_type) and asset.duration is None:
+    #     try:
+    #         print("Attempting to get media duration...")
+    #         asset.duration = get_media_duration(file_path)
+    #         if asset.duration is None:
+    #             print("Asset duration was None, attempting to repackage...")
+    #             asset.duration = repackage_and_get_duration(file_path)
+    #         print(f"Setting asset duration: {asset.duration}")
+    #     except Exception as e:
+    #         print(f"Error obtaining duration, trying repackaging: {e}")
+    #         asset.duration = repackage_and_get_duration(file_path)
+    #         print(f"Setting asset duration after repackaging: {asset.duration}")
 
     if req.status:
         asset.status = req.status
@@ -158,10 +158,19 @@ async def delete(id: str, user: User = Depends(current_user)):
 
 
 @router.post("/")
-async def create(req: AssetCreateRequest, user: User = Depends(current_user)) -> Asset:
+async def create(
+    file: UploadFile,
+    json: Optional[str] = Form(None),
+    user: User = Depends(current_user),
+) -> Asset:
     """
     Create a new asset.
     """
+    if json is None:
+        raise HTTPException(status_code=400, detail="Missing JSON body")
+
+    req = AssetCreateRequest.model_validate_json(json)
+
     if req.workflow_id:
         workflow = Workflow.get(req.workflow_id)
         if workflow is None:
@@ -176,4 +185,14 @@ async def create(req: AssetCreateRequest, user: User = Depends(current_user)) ->
         name=req.name,
         content_type=req.content_type,
     )
+    try:
+        file_content = await file.read()
+        file_io = BytesIO(file_content)
+        storage = Environment.get_asset_storage()
+        await storage.upload_async(asset.file_name, file_io)
+    except Exception as e:
+        log.exception(e)
+        asset.delete()
+        raise HTTPException(status_code=500, detail="Error uploading asset")
+
     return Asset.from_model(asset)

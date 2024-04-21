@@ -63,9 +63,7 @@ def create_app(
             request: Request, exc: RequestValidationError
         ):
             print(f"Request validation error: {exc}")
-            return JSONResponse(
-                {"detail": exc.errors(), "body": exc.body}, status_code=422
-            )
+            return JSONResponse({"detail": exc.errors()}, status_code=422)
 
     @app.get("/health")
     async def health_check() -> str:
