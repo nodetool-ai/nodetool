@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from io import BytesIO
+import re
 from uuid import uuid4
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from nodetool.api.types.asset import (
@@ -16,13 +17,8 @@ from typing import Optional
 from nodetool.models.asset import Asset as AssetModel
 from nodetool.models.workflow import Workflow
 
-#
-import os
-from nodetool.storage.file_storage import FileStorage
 from nodetool.common.environment import Environment
-from nodetool.common.media_utils import get_media_duration
-from nodetool.common.media_utils import repackage_and_get_duration
-import re
+from nodetool.common.media_utils import get_audio_duration, get_video_duration
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/assets", tags=["assets"])
@@ -115,22 +111,6 @@ async def update(
 
     if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found")
-
-    # storage = Environment.get_asset_storage()
-
-    # if re.match(r"^(audio|video)/", asset.content_type) and asset.duration is None:
-    #     try:
-    #         print("Attempting to get media duration...")
-    #         asset.duration = get_media_duration(file_path)
-    #         if asset.duration is None:
-    #             print("Asset duration was None, attempting to repackage...")
-    #             asset.duration = repackage_and_get_duration(file_path)
-    #         print(f"Setting asset duration: {asset.duration}")
-    #     except Exception as e:
-    #         print(f"Error obtaining duration, trying repackaging: {e}")
-    #         asset.duration = repackage_and_get_duration(file_path)
-    #         print(f"Setting asset duration after repackaging: {asset.duration}")
-
     if req.status:
         asset.status = req.status
     if req.content_type:
@@ -178,17 +158,27 @@ async def create(
         if workflow.user_id != user.id:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
-    asset = AssetModel.create(
-        workflow_id=req.workflow_id,
-        user_id=user.id,
-        parent_id=req.parent_id,
-        name=req.name,
-        content_type=req.content_type,
-    )
     try:
         file_content = await file.read()
         file_io = BytesIO(file_content)
         storage = Environment.get_asset_storage()
+
+        if "video" in req.content_type:
+            duration = get_video_duration(file_io)
+        elif "audio" in req.content_type:
+            duration = get_audio_duration(file_io)
+        else:
+            duration = None
+        print(f"Setting asset duration: {duration}")
+
+        asset = AssetModel.create(
+            workflow_id=req.workflow_id,
+            user_id=user.id,
+            parent_id=req.parent_id,
+            name=req.name,
+            content_type=req.content_type,
+            duration=duration,
+        )
         await storage.upload_async(asset.file_name, file_io)
     except Exception as e:
         log.exception(e)

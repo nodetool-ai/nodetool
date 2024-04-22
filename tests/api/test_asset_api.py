@@ -1,8 +1,13 @@
+import json
+import os
 from fastapi.testclient import TestClient
 from nodetool.common.environment import Environment
 from nodetool.models.asset import Asset
 from nodetool.models.user import User
 from tests.conftest import make_image
+
+
+test_mp4 = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test.mp4")
 
 
 def test_index(client: TestClient, headers: dict[str, str], user: User):
@@ -65,11 +70,16 @@ def test_put(client: TestClient, headers: dict[str, str], user: User):
 def test_create(client: TestClient, headers: dict[str, str], user: User):
     response = client.post(
         "/api/assets",
-        json={
-            "parent_id": user.id,
-            "status": "processed",
-            "name": "bild.jpeg",
-            "content_type": "image/jpeg",
+        files={"file": ("test.jpg", open(test_mp4, "rb"), "image/jpeg")},
+        data={
+            "json": json.dumps(
+                {
+                    "parent_id": user.id,
+                    "status": "processed",
+                    "name": "bild.jpeg",
+                    "content_type": "image/jpeg",
+                }
+            )
         },
         headers=headers,
     )

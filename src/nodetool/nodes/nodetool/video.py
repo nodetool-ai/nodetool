@@ -14,18 +14,8 @@ import tempfile
 
 class SaveVideoNode(BaseNode):
     """
-    ## Save Video Node
-    ### Namespace: Video
-
-    #### Description
-    This node saves a video to the workspace.
-
-    #### Applications
-    - Saving a video for later use in the workflow.
-
-    #### Inputs
-    - `video`: The video to save.
-    - `name`: The name of the video.
+    Save a video to a file.
+    video, save, file, output
     """
 
     value: VideoRef = VideoRef()
@@ -45,22 +35,8 @@ class SaveVideoNode(BaseNode):
 
 class ExtractVideoFramesNode(BaseNode):
     """
-    ## Extract Video Frames Node
-    ### Namespace: Video
-
-    #### Description
-    Extracts frames from a video.
-
-    #### Applications
-    - Extracting frames from a video for working on individual frames.
-
-    ##### Inputs
-    - `video`: Video to extract frames from.
-    - `start`: The frame to start extracting from.
-    - `end`: The frame to stop extracting from.
-
-    ##### Outputs
-    - `output`: The extracted frames.
+    Extracts frames from a video file.
+    video, frames, extract, sequence
     """
 
     video: VideoRef = Field(description="The input video to adjust the brightness for.")
