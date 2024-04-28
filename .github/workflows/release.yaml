@@ -1,4 +1,4 @@
-name: API
+name: PyPi Release
 
 on:
   push:
