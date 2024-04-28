@@ -10,9 +10,9 @@ from tests.conftest import make_job
 from fastapi.testclient import TestClient
 from nodetool.models.user import User
 from nodetool.models.workflow import Workflow
-from nodetool.nodes.nodetool.input import IntInputNode
-from nodetool.nodes.nodetool.math import AddNode
-from nodetool.nodes.nodetool.output import IntOutputNode
+from nodetool.nodes.nodetool.input import IntInput
+from nodetool.nodes.nodetool.math import Add
+from nodetool.nodes.nodetool.output import IntOutput
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 test_file = os.path.join(current_dir, "test.jpg")
@@ -103,19 +103,19 @@ async def test_run(
     user: User,
     headers: dict[str, str],
 ):
-    int_a = {"id": "1", "type": IntInputNode.get_node_type(), "data": {"value": 10}}
+    int_a = {"id": "1", "type": IntInput.get_node_type(), "data": {"value": 10}}
     int_b = {
         "id": "2",
-        "type": IntInputNode.get_node_type(),
+        "type": IntInput.get_node_type(),
         "data": {"value": 5},
     }
     add = {
         "id": "3",
-        "type": AddNode.get_node_type(),
+        "type": Add.get_node_type(),
     }
     int_output = {
         "id": "4",
-        "type": IntOutputNode.get_node_type(),
+        "type": IntOutput.get_node_type(),
     }
 
     nodes = [int_a, int_b, add, int_output]

@@ -15,37 +15,37 @@ from nodetool.models.asset import (
 )
 
 from nodetool.models.user import User
-from nodetool.nodes.nodetool.constant import ImageNode
-from nodetool.nodes.nodetool.dataframe import SaveNode
-from nodetool.nodes.nodetool.image import BlendNode, CompositeNode
-from nodetool.nodes.nodetool.image.source import BackgroundNode
+from nodetool.nodes.nodetool.constant import Image
+from nodetool.nodes.nodetool.dataframe import Save
+from nodetool.nodes.nodetool.image import Blend, Composite
+from nodetool.nodes.nodetool.image.source import Background
 from nodetool.nodes.nodetool.image.transform import (
-    AutoContrastNode,
-    BlurNode,
-    BrightnessNode,
-    ColorNode,
-    ContourNode,
-    ContrastNode,
-    DetailNode,
-    EdgeEnhanceNode,
-    EmbossNode,
-    EqualizeNode,
-    ExpandNode,
-    FindEdgesNode,
-    FitNode,
-    GetChannelNode,
-    InvertNode,
-    PosterizeNode,
-    RankFilterNode,
-    ResizeNode,
-    ScaleNode,
-    SharpenNode,
-    SharpnessNode,
-    SmoothNode,
-    SolarizeNode,
-    UnsharpMaskNode,
+    AutoContrast,
+    Blur,
+    Brightness,
+    Color,
+    Contour,
+    Contrast,
+    Detail,
+    EdgeEnhance,
+    Emboss,
+    Equalize,
+    Expand,
+    FindEdges,
+    Fit,
+    GetChannel,
+    Invert,
+    Posterize,
+    RankFilter,
+    Resize,
+    Scale,
+    Sharpen,
+    Sharpness,
+    Smooth,
+    Solarize,
+    UnsharpMask,
 )
-from nodetool.nodes.nodetool.text import SaveTextNode
+from nodetool.nodes.nodetool.text import SaveText
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -74,78 +74,78 @@ def graph():
 
 @pytest.fixture(scope="function")
 def input_image(image: ImageRef):
-    return ImageNode(value=image)
+    return Image(value=image)
 
 
 @pytest.mark.asyncio
 async def test_background_node(context: ProcessingContext):
-    res = await BackgroundNode().process(context)
+    res = await Background().process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_get_channel_node(image: ImageRef, context: ProcessingContext):
-    res = await GetChannelNode(image=image).process(context)
+    res = await GetChannel(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_contrast_node(image: ImageRef, context: ProcessingContext):
-    res = await ContrastNode(image=image, factor=1.0).process(context)
+    res = await Contrast(image=image, factor=1.0).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_brightness_node(image: ImageRef, context: ProcessingContext):
-    res = await BrightnessNode(image=image, factor=1.0).process(context)
+    res = await Brightness(image=image, factor=1.0).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_color_node(image: ImageRef, context: ProcessingContext):
-    res = await ColorNode(image=image, factor=1.0).process(context)
+    res = await Color(image=image, factor=1.0).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_sharpness_node(image: ImageRef, context: ProcessingContext):
-    res = await SharpnessNode(image=image, factor=1.0).process(context)
+    res = await Sharpness(image=image, factor=1.0).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_autocontrast_node(image: ImageRef, context: ProcessingContext):
-    res = await AutoContrastNode(image=image).process(context)
+    res = await AutoContrast(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_invert_node(image: ImageRef, context: ProcessingContext):
-    res = await InvertNode(image=image).process(context)
+    res = await Invert(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_solarize_node(image: ImageRef, context: ProcessingContext):
-    res = await SolarizeNode(image=image, threshold=128).process(context)
+    res = await Solarize(image=image, threshold=128).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_posterize_node(image: ImageRef, context: ProcessingContext):
-    res = await PosterizeNode(image=image, bits=4).process(context)
+    res = await Posterize(image=image, bits=4).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_equalize_node(image: ImageRef, context: ProcessingContext):
-    res = await EqualizeNode(image=image).process(context)
+    res = await Equalize(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_fit_node(image: ImageRef, context: ProcessingContext):
-    res = await FitNode(image=image, width=100, height=100).process(context)
+    res = await Fit(image=image, width=100, height=100).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
@@ -153,7 +153,7 @@ async def test_fit_node(image: ImageRef, context: ProcessingContext):
 async def test_expand_node(
     pil_image: PIL.Image.Image, image: ImageRef, context: ProcessingContext
 ):
-    res = await ExpandNode(image=image, border=10).process(context)
+    res = await Expand(image=image, border=10).process(context)
     res_img = await context.to_pil(res)
     assert res_img.width == pil_image.width + 20, "Should have border"
     assert res_img.height == pil_image.height + 20, "Should have border"
@@ -161,69 +161,69 @@ async def test_expand_node(
 
 @pytest.mark.asyncio
 async def test_blur_node(image: ImageRef, context: ProcessingContext):
-    res = await BlurNode(image=image).process(context)
+    res = await Blur(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_contour_node(image: ImageRef, context: ProcessingContext):
-    res = await ContourNode(image=image).process(context)
+    res = await Contour(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_detail_node(image: ImageRef, context: ProcessingContext):
-    res = await DetailNode(image=image).process(context)
+    res = await Detail(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_edge_enhance_node(image: ImageRef, context: ProcessingContext):
-    res = await EdgeEnhanceNode(image=image).process(context)
+    res = await EdgeEnhance(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_emboss_node(image: ImageRef, context: ProcessingContext):
-    res = await EmbossNode(image=image).process(context)
+    res = await Emboss(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_find_edges_node(image: ImageRef, context: ProcessingContext):
-    res = await FindEdgesNode(image=image).process(context)
+    res = await FindEdges(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_smooth_node(image: ImageRef, context: ProcessingContext):
-    res = await SmoothNode(image=image).process(context)
+    res = await Smooth(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_sharpen_node(image: ImageRef, context: ProcessingContext):
-    res = await SharpenNode(image=image).process(context)
+    res = await Sharpen(image=image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_rank_filter_node(image: ImageRef, context: ProcessingContext):
-    res = await RankFilterNode(image=image, size=3, rank=3).process(context)
+    res = await RankFilter(image=image, size=3, rank=3).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_unsharp_mask_node(image: ImageRef, context: ProcessingContext):
-    res = await UnsharpMaskNode(
-        image=image, radius=3, percent=150, threshold=3
-    ).process(context)
+    res = await UnsharpMask(image=image, radius=3, percent=150, threshold=3).process(
+        context
+    )
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_blend(image: ImageRef, context: ProcessingContext):
-    res = await BlendNode(
+    res = await Blend(
         image1=image,
         image2=image,
         alpha=0.5,
@@ -233,7 +233,7 @@ async def test_blend(image: ImageRef, context: ProcessingContext):
 
 @pytest.mark.asyncio
 async def test_resize(image: ImageRef, context: ProcessingContext):
-    res = await ResizeNode(
+    res = await Resize(
         image=image,
         width=100,
         height=100,
@@ -247,18 +247,14 @@ async def test_composite(
     pil_image: PIL.Image.Image, image: ImageRef, context: ProcessingContext
 ):
     mask_image = await context.image_from_pil(PIL.Image.new("L", pil_image.size, 255))
-    res = await CompositeNode(image1=image, image2=image, mask=mask_image).process(
-        context
-    )
+    res = await Composite(image1=image, image2=image, mask=mask_image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_composite_different_size(image: ImageRef, context: ProcessingContext):
     mask_image = await context.image_from_pil(PIL.Image.new("L", (100, 100), 255))
-    res = await CompositeNode(image1=image, image2=image, mask=mask_image).process(
-        context
-    )
+    res = await Composite(image1=image, image2=image, mask=mask_image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
@@ -266,7 +262,7 @@ async def test_composite_different_size(image: ImageRef, context: ProcessingCont
 async def test_scale(
     pil_image: PIL.Image.Image, image: ImageRef, context: ProcessingContext
 ):
-    res = await ScaleNode(image=image, scale=2.0).process(context)
+    res = await Scale(image=image, scale=2.0).process(context)
     res_img = await context.to_pil(res)
     assert res_img.size == (
         pil_image.size[0] * 2,
@@ -277,7 +273,7 @@ async def test_scale(
 @pytest.mark.asyncio
 async def test_save_text_node(context: ProcessingContext, user: User):
     text_ref = await context.text_from_str("Sample Text")
-    node = SaveTextNode(name="TestTextNode", value=text_ref)
+    node = SaveText(name="TestText", value=text_ref)
     res = await node.process(context)
     assert res.asset_id, "TextRef should have an asset_id"
     asset = Asset.find(user.id, res.asset_id)
@@ -292,8 +288,8 @@ async def test_save_text_node(context: ProcessingContext, user: User):
 # async def test_save_image_node(context: ProcessingContext, user: User):
 #     folder = Asset.create(user.id, "test", "folder", user.id)
 #     image_ref = await context.image_from_pil(PIL.Image.open(test_file))
-#     node = SaveImageNode(
-#         name="TestImageNode",
+#     node = SaveImage(
+#         name="TestImage",
 #         image=image_ref,
 #         folder=FolderRef(asset_id=folder.id),
 #     )
@@ -309,8 +305,8 @@ async def test_save_text_node(context: ProcessingContext, user: User):
 # @pytest.mark.asyncio
 # async def test_save_tensor_node(context: ProcessingContext, user: User):
 #     folder = Asset.create(user.id, "test", "folder")
-#     node = SaveTensorNode(
-#         name="TestTensorNode",
+#     node = SaveTensor(
+#         name="TestTensor",
 #         value=Tensor.from_numpy(np.array([1, 2, 3], dtype=np.float32)),
 #         folder=FolderRef(asset_id=folder.id),
 #     )
@@ -325,8 +321,8 @@ async def test_save_text_node(context: ProcessingContext, user: User):
 #     folder = Asset.create(user.id, "test", "folder", user.id)
 #     audio_segment = pydub.AudioSegment.silent(duration=1000)
 #     audio_ref = await context.audio_from_segment(audio_segment)
-#     node = SaveAudioNode(
-#         name="TestAudioNode",
+#     node = SaveAudio(
+#         name="TestAudio",
 #         value=audio_ref,
 #         folder=FolderRef(asset_id=folder.id),
 #     )
@@ -344,8 +340,8 @@ async def test_save_text_node(context: ProcessingContext, user: User):
 async def test_save_dataframe_node(context: ProcessingContext, user: User):
     folder = Asset.create(user.id, "test", "folder", user.id)
     df = await context.from_pandas(pd.DataFrame({"a": [1, 2, 3]}))
-    node = SaveNode(
-        name="TestDataFrameNode",
+    node = Save(
+        name="TestDataFrame",
         df=df,
         folder=FolderRef(asset_id=folder.id),
     )

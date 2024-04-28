@@ -1,7 +1,7 @@
 import pytest
 from nodetool.api.types.graph import Edge
 from nodetool.workflows.base_node import GroupNode
-from nodetool.nodes.nodetool.input import FloatInputNode, GroupInput
+from nodetool.nodes.nodetool.input import FloatInput, GroupInput
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.workflows.base_node import BaseNode
 
@@ -183,10 +183,10 @@ def test_topological_sort_complex_graph(complex_graph: Graph):
 
 
 def test_json_schema(graph: Graph):
-    a = FloatInputNode(
+    a = FloatInput(
         id="1", name="a", label="", description="Test input node", value=10.0
     )
-    b = FloatInputNode(
+    b = FloatInput(
         id="2", name="b", label="", description="Test input node", value=10.0
     )
 

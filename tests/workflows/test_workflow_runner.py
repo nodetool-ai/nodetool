@@ -14,17 +14,17 @@ from nodetool.workflows.graph import Graph
 from nodetool.api.types.graph import (
     Graph as APIGraph,
 )
-from nodetool.nodes.nodetool.constant import FloatNode, StringNode
-from nodetool.nodes.nodetool.image import BlendNode
+from nodetool.nodes.nodetool.constant import Float, String
+from nodetool.nodes.nodetool.image import Blend
 from nodetool.nodes.nodetool.input import (
-    FloatInputNode,
+    FloatInput,
     GroupInput,
-    ImageInputNode,
-    IntInputNode,
+    ImageInput,
+    IntInput,
 )
-from nodetool.nodes.nodetool.group import LoopNode
-from nodetool.nodes.nodetool.math import AddNode, MultiplyNode
-from nodetool.nodes.nodetool.output import ImageOutputNode, IntOutputNode
+from nodetool.nodes.nodetool.group import Loop
+from nodetool.nodes.nodetool.math import Add, Multiply
+from nodetool.nodes.nodetool.output import ImageOutput, IntOutput
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def workflow_runner(user: User):
 
 @pytest.mark.asyncio
 async def test_process_node(user: User, workflow_runner: WorkflowRunner):
-    node = StringNode(id="1", value="test")
+    node = String(id="1", value="test")
     context = ProcessingContext(user_id="", workflow_id="", edges=[], nodes=[node])
     await workflow_runner.process_node(context, node)
     assert context.get_result("1", "output") == "test"
@@ -44,9 +44,9 @@ async def test_process_node(user: User, workflow_runner: WorkflowRunner):
 async def test_process_node_with_input_edges(
     user: User, workflow_runner: WorkflowRunner
 ):
-    input_a = {"id": "1", "type": FloatNode.get_node_type(), "data": {"value": 1}}
-    input_b = {"id": "2", "type": FloatNode.get_node_type(), "data": {"value": 2}}
-    add_node = {"id": "3", "type": AddNode.get_node_type()}
+    input_a = {"id": "1", "type": Float.get_node_type(), "data": {"value": 1}}
+    input_b = {"id": "2", "type": Float.get_node_type(), "data": {"value": 2}}
+    add_node = {"id": "3", "type": Add.get_node_type()}
     nodes = [input_a, input_b, add_node]
     edges = [
         {
@@ -97,7 +97,7 @@ async def test_process_node_image_blend(
 
     image_input_a = {
         "id": "1",
-        "type": ImageInputNode.get_node_type(),
+        "type": ImageInput.get_node_type(),
         "data": {
             "name": "image_a",
             "value": {
@@ -108,7 +108,7 @@ async def test_process_node_image_blend(
     }
     image_input_b = {
         "id": "2",
-        "type": ImageInputNode.get_node_type(),
+        "type": ImageInput.get_node_type(),
         "data": {
             "name": "image_b",
             "value": {
@@ -119,16 +119,16 @@ async def test_process_node_image_blend(
     }
     alpha_input = {
         "id": "3",
-        "type": FloatInputNode.get_node_type(),
+        "type": FloatInput.get_node_type(),
         "data": {"name": "alpha", "value": 0.5},
     }
     blend_node = {
         "id": "4",
-        "type": BlendNode.get_node_type(),
+        "type": Blend.get_node_type(),
     }
     image_output = {
         "id": "5",
-        "type": ImageOutputNode.get_node_type(),
+        "type": ImageOutput.get_node_type(),
         "data": {
             "name": "output",
             "image": {"type": "image", "uri": "", "asset_id": None},
@@ -204,18 +204,18 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
     input_a = {
         "id": "1",
         "data": {"name": "input_1"},
-        "type": IntInputNode.get_node_type(),
+        "type": IntInput.get_node_type(),
     }
     input_b = {
         "id": "2",
         "data": {"name": "input_2"},
-        "type": IntInputNode.get_node_type(),
+        "type": IntInput.get_node_type(),
     }
-    add_node = {"id": "3", "type": AddNode.get_node_type()}
+    add_node = {"id": "3", "type": Add.get_node_type()}
     out_node = {
         "id": "4",
         "data": {"name": "output"},
-        "type": IntOutputNode.get_node_type(),
+        "type": IntOutput.get_node_type(),
     }
 
     nodes = [
@@ -275,7 +275,7 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
 async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
     loop_node = {
         "id": "loop",
-        "type": LoopNode.get_node_type(),
+        "type": Loop.get_node_type(),
     }
     input_node = {
         "id": "in",
@@ -294,7 +294,7 @@ async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
     multiply_node = {
         "id": "mul",
         "parent_id": "loop",
-        "type": MultiplyNode.get_node_type(),
+        "type": Multiply.get_node_type(),
         "data": {},
     }
     nodes = [loop_node, input_node, multiply_node, output_node]
