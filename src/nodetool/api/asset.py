@@ -139,8 +139,8 @@ async def delete(id: str, user: User = Depends(current_user)):
 
 @router.post("/")
 async def create(
-    file: UploadFile,
-    json: Optional[str] = Form(None),
+    file: UploadFile | None = None,
+    json: str | None = Form(None),
     user: User = Depends(current_user),
 ) -> Asset:
     """
@@ -159,17 +159,20 @@ async def create(
             raise HTTPException(status_code=404, detail="Workflow not found")
 
     try:
-        file_content = await file.read()
-        file_io = BytesIO(file_content)
-        storage = Environment.get_asset_storage()
+        if file:
+            file_content = await file.read()
+            file_io = BytesIO(file_content)
+            storage = Environment.get_asset_storage()
 
-        if "video" in req.content_type:
-            duration = get_video_duration(file_io)
-        elif "audio" in req.content_type:
-            duration = get_audio_duration(file_io)
+            if "video" in req.content_type:
+                duration = get_video_duration(file_io)
+            elif "audio" in req.content_type:
+                duration = get_audio_duration(file_io)
+            else:
+                duration = None
         else:
             duration = None
-        print(f"Setting asset duration: {duration}")
+            file_io = None
 
         asset = AssetModel.create(
             workflow_id=req.workflow_id,
@@ -179,7 +182,8 @@ async def create(
             content_type=req.content_type,
             duration=duration,
         )
-        await storage.upload_async(asset.file_name, file_io)
+        if file_io:
+            await storage.upload_async(asset.file_name, file_io)
     except Exception as e:
         log.exception(e)
         asset.delete()
