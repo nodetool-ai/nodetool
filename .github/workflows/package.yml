@@ -6,14 +6,13 @@ on:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
-  build-and-release:
-    runs-on: windows-latest
+  release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macOS-latest]
     steps:
       - uses: actions/checkout@v2
-      - uses: FedericoCarboni/setup-ffmpeg@v3
-        id: setup-ffmpeg
-        with:
-          ffmpeg-version: release
       - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
@@ -42,4 +41,4 @@ jobs:
         with:
           draft: false
           prerelease: false
-          artifacts: nodetool.tar.gz
+          artifacts: nodetool-${{matrix.os}}.tar.gz
