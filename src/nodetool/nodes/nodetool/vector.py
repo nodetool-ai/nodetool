@@ -1,12 +1,45 @@
 from pydantic import Field
 import PIL.Image
 import numpy as np
-from nodetool.metadata.types import AssetRef, TextRef
+from nodetool.metadata.types import AssetRef, Tensor, TextRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import ImageRef
 from nodetool.metadata.types import FolderRef
 from nodetool.workflows.types import NodeProgress
+
+
+class NearestNeighbors(BaseNode):
+    """
+    Stores input embeddings in a database and retrieves the nearest neighbors for a query embedding.
+    """
+
+    documents: list[Tensor] = Field(
+        default=[], description="The list of documents to search"
+    )
+    query: Tensor = Field(
+        default=Tensor(),
+        description="The query to search for",
+    )
+    n_neighbors: int = Field(default=1, description="The number of neighbors to return")
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "distances": list[float],
+            "indices": list[int],
+        }
+
+    async def process(self, context: ProcessingContext):
+        from sklearn.neighbors import NearestNeighbors
+
+        embeddings = np.array([e.to_numpy() for e in self.documents])
+        nbrs = NearestNeighbors(n_neighbors=self.n_neighbors).fit(embeddings)
+        distances, indices = nbrs.kneighbors(self.query.to_numpy().reshape(1, -1))
+        return {
+            "distances": distances[0].tolist(),
+            "indices": indices[0].tolist(),
+        }
 
 
 class ChromaNode(BaseNode):

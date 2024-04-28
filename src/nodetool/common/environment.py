@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any
 
 
@@ -564,13 +565,15 @@ class Environment(object):
         """
         Find a llama model by name.
         """
-        from nodetool.metadata.types import LlamaModel
-
         for model in cls.get_llama_models():
             if model.name == name:
                 return model
 
-        return LlamaModel(name=name)
+        for model in cls.get_functionary_models():
+            if model.name == name:
+                return model
+
+        return None
 
     @classmethod
     def get_function_models(cls):
@@ -579,26 +582,47 @@ class Environment(object):
         return [
             FunctionModel(
                 name=GPTModel.GPT3.value,
-                type="function_model",
             ),
             FunctionModel(
                 name=GPTModel.GPT4.value,
-                type="function_model",
             ),
+        ] + cls.get_functionary_models()
+
+    @classmethod
+    def get_functionary_models(cls):
+        import huggingface_hub
+        from nodetool.metadata.types import FunctionModel
+
+        return [
             FunctionModel(
-                name="meetkai/unctionary-small-v2.4.Q4_0.gguf",
-                repo_id="meetkai/functionary-small-v2.4-GGUF",
-                filename="functionary-small-v2.4.Q4_0.gguf",
-            ),
-            FunctionModel(
-                name="meetkai/functionary-medium-v2.4-GGUF",
-                repo_id="meetkai/functionary-medium-v2.4-GGUF",
-                filename="functionary-medium-v2.4.q4_0.gguf",
-            ),
+                repo_id=repo.repo_id, filename=file.file_name, local_path=file.file_path
+            )
+            for repo in huggingface_hub.scan_cache_dir().repos
+            for rev in repo.revisions
+            for file in rev.files
+            if "functionary" in file.file_name
         ]
 
     @classmethod
     def get_llama_models(cls):
+        import huggingface_hub
+        from nodetool.metadata.types import LlamaModel
+
+        return [
+            LlamaModel(
+                name=file.file_name,
+                repo_id=repo.repo_id,
+                filename=file.file_name,
+                local_path=file.file_path,
+            )
+            for repo in huggingface_hub.scan_cache_dir().repos
+            for rev in repo.revisions
+            for file in rev.files
+            if file.file_name.endswith(".gguf")
+        ] + cls.get_lm_studio_models()
+
+    @classmethod
+    def get_all_llama_models(cls):
         from nodetool.metadata.types import LlamaModel
 
         models = [
@@ -659,7 +683,7 @@ class Environment(object):
             ),
         ]
 
-        return models + cls.get_lm_studio_models()
+        return models
 
     @classmethod
     def get_lm_studio_models(cls):
@@ -674,8 +698,9 @@ class Environment(object):
         files = glob.glob(f"{folder}/**/*.gguf", recursive=True)
         return [
             LlamaModel(
-                filename=file,
+                filename=os.path.basename(file),
                 name=os.path.basename(file),
+                local_path=Path(file),
             )
             for file in files
         ]

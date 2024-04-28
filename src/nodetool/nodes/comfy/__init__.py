@@ -71,3 +71,6 @@ class ComfyNode(BaseNode):
             return {o.name: v for o, v in zip(self.outputs(), value)}
         else:
             return value
+
+
+ComfyNode.invisible()

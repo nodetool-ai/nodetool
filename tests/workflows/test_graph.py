@@ -1,8 +1,8 @@
 import pytest
 from nodetool.api.types.graph import Edge
 from nodetool.workflows.base_node import GroupNode
-from nodetool.nodes.nodetool.input import FloatInputNode, GroupInputNode
-from nodetool.nodes.nodetool.output import GroupOutputNode
+from nodetool.nodes.nodetool.input import FloatInputNode, GroupInput
+from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.workflows.base_node import BaseNode
 
 from nodetool.workflows.graph import Graph, topological_sort
@@ -40,8 +40,8 @@ def complex_group_graph():
     node3 = FooNode(id="node3")  # connected to output
 
     # Add group-specific nodes
-    input_node = GroupInputNode(id="input1", parent_id="group1")
-    output_node = GroupOutputNode(id="output1", parent_id="group1")
+    input_node = GroupInput(id="input1", parent_id="group1")
+    output_node = GroupOutput(id="output1", parent_id="group1")
 
     # Add edges
     edge1 = Edge(

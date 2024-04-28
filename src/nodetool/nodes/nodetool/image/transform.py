@@ -17,7 +17,7 @@ from pydantic import Field
 from typing import Literal
 
 
-class SharpnessNode(BaseNode):
+class Sharpness(BaseNode):
     """
     The Sharpness Node is used to apply a sharpness filter to images.
 
@@ -41,7 +41,7 @@ class SharpnessNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class BrightnessNode(BaseNode):
+class Brightness(BaseNode):
     """
     The Brightness Node is designed to adjust the brightness of an image.
 
@@ -66,7 +66,7 @@ class BrightnessNode(BaseNode):
         )
 
 
-class ContrastNode(BaseNode):
+class Contrast(BaseNode):
     """
     The Contrast Node is a simple tool that adjust the contrast of an image.
 
@@ -91,7 +91,7 @@ class ContrastNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class AutoContrastNode(BaseNode):
+class AutoContrast(BaseNode):
     """
     This node automatically adjusts the contrast of an image.
 
@@ -114,7 +114,7 @@ class AutoContrastNode(BaseNode):
         return await context.image_from_pil(img)
 
 
-class AdaptiveContrastNode(BaseNode):
+class AdaptiveContrast(BaseNode):
     """
     The Adaptive Contrast Node is used to adjust the contrasting visual aspects of an image.
 
@@ -144,7 +144,7 @@ class AdaptiveContrastNode(BaseNode):
         return await context.image_from_pil(img)
 
 
-class EqualizeNode(BaseNode):
+class Equalize(BaseNode):
     """
     The Equalize Node is used to apply an equalizing filter to an image.
 
@@ -163,7 +163,7 @@ class EqualizeNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class ColorNode(BaseNode):
+class Color(BaseNode):
     """
     The ColorNode is a simple tool that applies a color filter to an image.
 
@@ -188,7 +188,7 @@ class ColorNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class InvertNode(BaseNode):
+class Invert(BaseNode):
     """
     The Invert Node is a filter node that inverts the colors of an image.
 
@@ -210,7 +210,7 @@ class InvertNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class SolarizeNode(BaseNode):
+class Solarize(BaseNode):
     """
     The Solarize Node is a filter node that applies a special solarize effect to an image.
 
@@ -232,7 +232,7 @@ class SolarizeNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class PosterizeNode(BaseNode):
+class Posterize(BaseNode):
     """
     The Posterize Node is used for applying a "posterization" effect to an image.
 
@@ -255,7 +255,7 @@ class PosterizeNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class FitNode(BaseNode):
+class Fit(BaseNode):
     """
     The FitNode is a workflow component that resizes an image to fit within a specified size.
 
@@ -277,7 +277,7 @@ class FitNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class ExpandNode(BaseNode):
+class Expand(BaseNode):
     """
     This node expands images, by adding a border around them.
 
@@ -298,7 +298,7 @@ class ExpandNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class BlurNode(BaseNode):
+class Blur(BaseNode):
     """
     The Blur Node is used to apply a blur effect to an image.
 
@@ -319,7 +319,7 @@ class BlurNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class ContourNode(BaseNode):
+class Contour(BaseNode):
     """
     This node is essentially an image contour filter.
 
@@ -341,7 +341,7 @@ class ContourNode(BaseNode):
         return await context.image_from_pil(image.filter(PIL.ImageFilter.CONTOUR))
 
 
-class DetailNode(BaseNode):
+class Detail(BaseNode):
     """
     The DetailNode is an image detail filter.
 
@@ -359,7 +359,7 @@ class DetailNode(BaseNode):
         return await context.image_from_pil(image.filter(PIL.ImageFilter.DETAIL))
 
 
-class EdgeEnhanceNode(BaseNode):
+class EdgeEnhance(BaseNode):
     """
     This is a node that applies an edge enhance filter to an image.
 
@@ -380,7 +380,7 @@ class EdgeEnhanceNode(BaseNode):
         return await context.image_from_pil(image.filter(PIL.ImageFilter.EDGE_ENHANCE))
 
 
-class EmbossNode(BaseNode):
+class Emboss(BaseNode):
     """
     The Emboss Node applies an embossing effect to an image.
 
@@ -399,7 +399,7 @@ class EmbossNode(BaseNode):
         return await context.image_from_pil(image.filter(PIL.ImageFilter.EMBOSS))
 
 
-class FindEdgesNode(BaseNode):
+class FindEdges(BaseNode):
     """
     This node is a "Find Edges" filter. It identifies edges within an image.
 
@@ -418,7 +418,7 @@ class FindEdgesNode(BaseNode):
         return await context.image_from_pil(image.filter(PIL.ImageFilter.FIND_EDGES))
 
 
-class SharpenNode(BaseNode):
+class Sharpen(BaseNode):
     """
     The Sharpen Node is a tool that applies a sharpening filter to an image.
 
@@ -436,7 +436,7 @@ class SharpenNode(BaseNode):
         return await context.image_from_pil(image.filter(PIL.ImageFilter.SHARPEN))
 
 
-class SmoothNode(BaseNode):
+class Smooth(BaseNode):
     """
     Smooth Node is a computational function designed to smooth images.
 
@@ -455,7 +455,7 @@ class SmoothNode(BaseNode):
         return await context.image_from_pil(image.filter(PIL.ImageFilter.SMOOTH))
 
 
-class RankFilterNode(BaseNode):
+class RankFilter(BaseNode):
     """
     The Rank Filter Node is used to apply a rank filter to a given image.
 
@@ -479,7 +479,7 @@ class RankFilterNode(BaseNode):
         )
 
 
-class UnsharpMaskNode(BaseNode):
+class UnsharpMask(BaseNode):
     """
     The Unsharp Mask Node is responsible for performing the unsharp mask filter on an image.
 
@@ -509,7 +509,7 @@ class UnsharpMaskNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class CannyNode(BaseNode):
+class Canny(BaseNode):
     """
     The Canny Node applies the Canny filter to an image.
 
@@ -536,7 +536,7 @@ class CannyNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class ScaleNode(BaseNode):
+class Scale(BaseNode):
     """
     The Scale Node let's you enlarge or shrink an image.
 
@@ -558,7 +558,7 @@ class ScaleNode(BaseNode):
         return await context.image_from_pil(image)
 
 
-class ResizeNode(BaseNode):
+class Resize(BaseNode):
     """
     The Resize Node is a tool that modifies the size of an image.
 
@@ -579,7 +579,7 @@ class ResizeNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class CropNode(BaseNode):
+class Crop(BaseNode):
     """
     The Crop Node is used to trim an image.
 
@@ -605,7 +605,7 @@ class CropNode(BaseNode):
         return await context.image_from_pil(res)
 
 
-class ConvertToGrayscaleNode(BaseNode):
+class ConvertToGrayscale(BaseNode):
     """
     This node converts an image to grayscale.
 
@@ -624,7 +624,7 @@ class ConvertToGrayscaleNode(BaseNode):
         return await context.image_from_pil(image.convert("L"))
 
 
-class GetChannelNode(BaseNode):
+class GetChannel(BaseNode):
     """
     This node is useful for extracting a specific color channel from an image.
 

@@ -116,8 +116,8 @@ class Graph(BaseModel):
         3. Add the updated edge to the new list.
         4. Replace the original list of edges with the new list.
         """
-        from nodetool.nodes.nodetool.input import GroupInputNode
-        from nodetool.nodes.nodetool.output import GroupOutputNode
+        from nodetool.nodes.nodetool.input import GroupInput
+        from nodetool.nodes.nodetool.output import GroupOutput
 
         new_edges = []
         for edge in self.edges:
@@ -136,7 +136,7 @@ class Graph(BaseModel):
                 # Edge within the same group, skip it.
                 continue
 
-            if isinstance(source_node, GroupOutputNode):
+            if isinstance(source_node, GroupOutput):
                 assert source_node.parent_id, "Group output node must have a parent"
                 new_edge = Edge(
                     source=source_node.parent_id,
@@ -144,7 +144,7 @@ class Graph(BaseModel):
                     target=edge.target,
                     targetHandle=edge.targetHandle,
                 )
-            elif isinstance(target_node, GroupInputNode):
+            elif isinstance(target_node, GroupInput):
                 assert target_node.parent_id, "Group input node must have a parent"
                 new_edge = Edge(
                     source=edge.source,

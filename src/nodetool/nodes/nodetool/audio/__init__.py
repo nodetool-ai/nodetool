@@ -7,7 +7,7 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 
-class SaveAudioNode(BaseNode):
+class SaveAudio(BaseNode):
     """
     Save an audio file to a specified folder.
     """

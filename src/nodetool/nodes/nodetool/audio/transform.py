@@ -5,7 +5,7 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 
-class ConcatAudioNode(BaseNode):
+class ConcatAudio(BaseNode):
     """
     The ConcatAudio Node concatenates two audio files together.
 
@@ -26,7 +26,7 @@ class ConcatAudioNode(BaseNode):
         return await context.audio_from_segment(res)
 
 
-class NormalizeAudioNode(BaseNode):
+class NormalizeAudio(BaseNode):
     """
     This node normalizes the volume of an audio file.
 
@@ -49,7 +49,7 @@ class NormalizeAudioNode(BaseNode):
         return await context.audio_from_segment(res)
 
 
-class OverlayAudioNode(BaseNode):
+class OverlayAudio(BaseNode):
     """
     The OverlayAudioNode is used to overlay two audio files together.
 
@@ -70,7 +70,7 @@ class OverlayAudioNode(BaseNode):
         return await context.audio_from_segment(res)
 
 
-class RemoveSilenceNode(BaseNode):
+class RemoveSilence(BaseNode):
     """
     Removes silence from an audio file.
 
@@ -94,7 +94,7 @@ class RemoveSilenceNode(BaseNode):
         return await context.audio_from_segment(res)
 
 
-class SliceAudioNode(BaseNode):
+class SliceAudio(BaseNode):
     """
     This node halves an audio file into two audio files.
 
@@ -120,8 +120,8 @@ class SliceAudioNode(BaseNode):
         return await context.audio_from_segment(res)
 
 
-class ToneNode(BaseNode):
-    class ToneNode(BaseNode):
+class Tone(BaseNode):
+    class Tone(BaseNode):
         """
         This node generates a constant tone.
 

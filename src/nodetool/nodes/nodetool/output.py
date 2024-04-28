@@ -15,7 +15,7 @@ from nodetool.metadata.types import TextRef
 from nodetool.metadata.types import VideoRef
 
 
-class ListOutputNode(OutputNode):
+class ListOutput(OutputNode):
     value: list[Any] = []
 
     async def process(self, context: ProcessingContext) -> list[Any]:
@@ -31,7 +31,7 @@ class ListOutputNode(OutputNode):
         }
 
 
-class ChatOutputNode(OutputNode):
+class ChatOutput(OutputNode):
     value: list[ThreadMessage] = Field(
         default=[],
         description="The messages to display in the chat.",
@@ -56,7 +56,7 @@ class ChatOutputNode(OutputNode):
         }
 
 
-class ImageListOutputNode(OutputNode):
+class ImageListOutput(OutputNode):
     value: list[ImageRef] = Field(
         default=[],
         description="The images to display.",
@@ -79,7 +79,7 @@ class ImageListOutputNode(OutputNode):
         }
 
 
-class IntOutputNode(OutputNode):
+class IntOutput(OutputNode):
     value: int = 0
 
     async def process(self, context: ProcessingContext) -> int:
@@ -92,7 +92,7 @@ class IntOutputNode(OutputNode):
         }
 
 
-class FloatOutputNode(OutputNode):
+class FloatOutput(OutputNode):
     value: float = 0
 
     async def process(self, context: ProcessingContext) -> float:
@@ -105,7 +105,7 @@ class FloatOutputNode(OutputNode):
         }
 
 
-class BoolOutputNode(OutputNode):
+class BoolOutput(OutputNode):
     value: bool = False
 
     async def process(self, context: ProcessingContext) -> bool:
@@ -118,7 +118,7 @@ class BoolOutputNode(OutputNode):
         }
 
 
-class StringOutputNode(OutputNode):
+class StringOutput(OutputNode):
     value: str = ""
 
     async def process(self, context: ProcessingContext) -> str:
@@ -131,7 +131,7 @@ class StringOutputNode(OutputNode):
         }
 
 
-class TextOutputNode(OutputNode):
+class TextOutput(OutputNode):
     value: TextRef = TextRef()
 
     async def process(self, context: ProcessingContext) -> TextRef:
@@ -144,7 +144,7 @@ class TextOutputNode(OutputNode):
         }
 
 
-class ImageOutputNode(OutputNode):
+class ImageOutput(OutputNode):
     value: ImageRef = ImageRef()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -167,7 +167,7 @@ class ImageOutputNode(OutputNode):
         }
 
 
-class ComfyImageOutputNode(OutputNode):
+class ComfyImageOutput(OutputNode):
     value: ImageTensor = Field(default=ImageTensor(), description="A raw image tensor.")
 
     def assign_property(self, name: str, value: Any):
@@ -182,49 +182,49 @@ class ComfyImageOutputNode(OutputNode):
         return await context.image_from_numpy(img)
 
 
-class VideoOutputNode(OutputNode):
+class VideoOutput(OutputNode):
     value: VideoRef = VideoRef()
 
     async def process(self, context: ProcessingContext) -> VideoRef:
         return self.value
 
 
-class TensorOutputNode(OutputNode):
+class TensorOutput(OutputNode):
     value: Tensor = Tensor()
 
     async def process(self, context: ProcessingContext) -> Tensor:
         return self.value
 
 
-class ModelOutputNode(OutputNode):
+class ModelOutput(OutputNode):
     value: ModelRef = ModelRef()
 
     async def process(self, context: ProcessingContext) -> ModelRef:
         return self.value
 
 
-class AudioOutputNode(OutputNode):
+class AudioOutput(OutputNode):
     value: AudioRef = AudioRef()
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         return self.value
 
 
-class DataframeOutputNode(OutputNode):
+class DataframeOutput(OutputNode):
     value: DataFrame = DataFrame()
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         return self.value
 
 
-class DictOutputNode(OutputNode):
+class DictOutput(OutputNode):
     value: dict[str, Any] = {}
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
         return self.value
 
 
-class GroupOutputNode(BaseNode):
+class GroupOutput(BaseNode):
     """
     Output node for any group node.
     """

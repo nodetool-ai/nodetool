@@ -12,7 +12,7 @@ from typing import Literal
 from enum import Enum
 
 
-class CreateImageNode(BaseNode):
+class CreateImage(BaseNode):
     """
     Generates images from textual descriptions using DALLE-3.
     image, t2i, tti, text-to-image, create, generate, dall-e, picture, photo, art, drawing, illustration

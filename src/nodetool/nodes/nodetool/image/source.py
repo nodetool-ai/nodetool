@@ -17,7 +17,7 @@ current_dir = os.path.dirname(os.path.realpath(__file__))
 fonts_dir = os.path.join(current_dir, "..", "..", "..", "..", "fonts")
 
 
-class BackgroundNode(BaseNode):
+class Background(BaseNode):
     """
     The Background Node creates a blank background.
 
@@ -38,7 +38,7 @@ class BackgroundNode(BaseNode):
         return await context.image_from_pil(img)
 
 
-class RenderTextNode(BaseNode):
+class RenderText(BaseNode):
     """
     This node allows you to add text to images.
 
@@ -87,7 +87,7 @@ class RenderTextNode(BaseNode):
         return await context.image_from_pil(image)
 
 
-class GaussianNoiseNode(BaseNode):
+class GaussianNoise(BaseNode):
     """
     This node creates and adds Gaussian noise to an image.
 

@@ -13,7 +13,7 @@ from nodetool.workflows.base_node import BaseNode, InputNode
 from nodetool.metadata.types import VideoRef
 
 
-class FloatInputNode(InputNode):
+class FloatInput(InputNode):
     """
     Represents a float parameter for the workflow.
     input, parameter, float, number
@@ -36,7 +36,7 @@ class FloatInputNode(InputNode):
         }
 
 
-class BoolInputNode(InputNode):
+class BoolInput(InputNode):
     """
     Represents a boolean parameter for the workflow.
     input, parameter, boolean, bool
@@ -55,7 +55,7 @@ class BoolInputNode(InputNode):
         }
 
 
-class IntInputNode(InputNode):
+class IntInput(InputNode):
     """
     Represents an integer parameter for the workflow.
     input, parameter, integer, number
@@ -78,7 +78,7 @@ class IntInputNode(InputNode):
         }
 
 
-class StringInputNode(InputNode):
+class StringInput(InputNode):
     """
     Represents a string parameter for the workflow.
     input, parameter, string, text
@@ -97,7 +97,7 @@ class StringInputNode(InputNode):
         }
 
 
-class ChatInputNode(InputNode):
+class ChatInput(InputNode):
     """
     Represents a chat message parameter for the workflow.
     input, parameter, chat, message
@@ -116,7 +116,7 @@ class ChatInputNode(InputNode):
         }
 
 
-class TextInputNode(InputNode):
+class TextInput(InputNode):
     """
     Represents a text parameter for the workflow.
     input, parameter, text
@@ -153,7 +153,7 @@ class AssetSchemaMixin:
         }
 
 
-class ImageInputNode(AssetSchemaMixin, InputNode):
+class ImageInput(AssetSchemaMixin, InputNode):
     """
     Represents an image parameter for the workflow.
     input, parameter, image
@@ -165,7 +165,7 @@ class ImageInputNode(AssetSchemaMixin, InputNode):
         return self.value
 
 
-class VideoInputNode(AssetSchemaMixin, InputNode):
+class VideoInput(AssetSchemaMixin, InputNode):
     """
     Represents a video parameter for the workflow.
     input, parameter, video
@@ -177,7 +177,7 @@ class VideoInputNode(AssetSchemaMixin, InputNode):
         return self.value
 
 
-class AudioInputNode(AssetSchemaMixin, InputNode):
+class AudioInput(AssetSchemaMixin, InputNode):
     """
     Represents an audio parameter for the workflow.
     input, parameter, audio
@@ -189,7 +189,7 @@ class AudioInputNode(AssetSchemaMixin, InputNode):
         return self.value
 
 
-class FolderNode(AssetSchemaMixin, InputNode):
+class Folder(AssetSchemaMixin, InputNode):
     """
     Represents a folder parameter for the workflow.
     input, parameter, folder
@@ -211,7 +211,7 @@ class FolderNode(AssetSchemaMixin, InputNode):
         return [asset_to_ref(asset) for asset in assets]
 
 
-class ImageFolderNode(FolderNode):
+class ImageFolder(Folder):
     """
     Represents an image folder parameter for the workflow.
     input, parameter, folder, image
@@ -223,7 +223,7 @@ class ImageFolderNode(FolderNode):
         return images
 
 
-class AudioFolderNode(FolderNode):
+class AudioFolder(Folder):
     """
     Repesents an audio folder parameter for the workflow.
     input, parameter, folder, audio
@@ -235,7 +235,7 @@ class AudioFolderNode(FolderNode):
         return audios
 
 
-class VideoFolderNode(FolderNode):
+class VideoFolder(Folder):
     """
     Represents a video folder parameter for the workflow.
     input, parameter, folder, video
@@ -247,7 +247,7 @@ class VideoFolderNode(FolderNode):
         return videos
 
 
-class TextFolderNode(FolderNode):
+class TextFolder(Folder):
     """
     Represents a text folder parameter for the workflow.
     input, parameter, folder, text
@@ -259,7 +259,7 @@ class TextFolderNode(FolderNode):
         return texts
 
 
-class ComfyInputImageNode(AssetSchemaMixin, InputNode):
+class ComfyInputImage(AssetSchemaMixin, InputNode):
     """
     Represents an image parameter for the workflow.
     input, parameter, image
@@ -299,7 +299,7 @@ class ComfyInputImageNode(AssetSchemaMixin, InputNode):
         return output_image  # type: ignore
 
 
-class GroupInputNode(BaseNode):
+class GroupInput(BaseNode):
     """
     Input node for any group node.
     """

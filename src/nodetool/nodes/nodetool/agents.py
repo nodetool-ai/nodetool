@@ -21,14 +21,14 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 
-class AgentNode(BaseNode):
+class Agent(BaseNode):
     """
     LLM Agent with access to workflows and nodes.
     llm, language model, agent, chat, conversation
     """
 
     model: FunctionModel = Field(
-        default=FunctionModel(name=GPTModel.GPT4.value),
+        default=FunctionModel(),
         description="The language model to use.",
     )
     goal: str = Field(
@@ -39,6 +39,7 @@ class AgentNode(BaseNode):
         default="",
         description="The user input",
     )
+    n_gpu_layers: int = Field(default=0, description="Number of layers on the GPU")
 
     @classmethod
     def return_type(cls):
@@ -75,6 +76,7 @@ class AgentNode(BaseNode):
             thread_id=thread.id,
             model=self.model,
             messages=input_messages,
+            n_gpu_layers=self.n_gpu_layers,
         )
         return {
             "messages": [ThreadMessage.from_message(m) for m in messages],
@@ -139,7 +141,7 @@ class TaskNode(BaseNode):
         return messages, tool_calls
 
 
-class TextTasksNode(TaskNode):
+class TextTasks(TaskNode):
     """
     LLM Text Task agent with access to workflows and nodes.
     llm, language model, agent, chat, conversation
@@ -178,7 +180,7 @@ class TextTasksNode(TaskNode):
         }
 
 
-class ImageTaskNode(TaskNode):
+class ImageTask(TaskNode):
     """
     LLM Image Task agent with access to workflows and nodes.
     llm, language model, agent, chat, conversation

@@ -5,7 +5,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import BaseNode
 
 
-class GPT2Node(BaseNode):
+class GPT2(BaseNode):
     """
     GPT-2 is a transformer-based language model. This node uses the GPT-2 model to generate text based on a prompt.
 
@@ -57,7 +57,7 @@ class GPT2Node(BaseNode):
         return res[0]["generated_text"]  # type: ignore
 
 
-class LlamaCppNode(BaseNode):
+class LlamaCpp(BaseNode):
     """
     Run Llama models.
     """
@@ -130,7 +130,7 @@ class LlamaCppNode(BaseNode):
         else:
             grammar = None
 
-        llm = context.load_model(self.model, n_gpu_layers=self.n_gpu_layers)
+        llm = context.load_llama_model(self.model, n_gpu_layers=self.n_gpu_layers)
 
         if llm is None:
             raise ValueError(f"Model {self.model.name} not found.")

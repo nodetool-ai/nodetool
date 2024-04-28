@@ -27,7 +27,6 @@ import nodetool.nodes.nodetool.text.extract
 import nodetool.nodes.nodetool.text.generate
 import nodetool.nodes.nodetool.text.rerank
 import nodetool.nodes.nodetool.vector
-import nodetool.nodes.nodetool.text.vector
 import nodetool.nodes.nodetool.video
 from nodetool.workflows.workflow_node import WorkflowNode
 
@@ -75,7 +74,19 @@ import nodetool.nodes.openai.audio
 import nodetool.nodes.openai.image
 import nodetool.nodes.openai.text
 
+import nodetool.nodes.replicate.audio.enhance
 import nodetool.nodes.replicate.audio.generate
 import nodetool.nodes.replicate.audio.transcribe
+
+import nodetool.nodes.replicate.image.analyze
+import nodetool.nodes.replicate.image.enhance
+import nodetool.nodes.replicate.image.face
 import nodetool.nodes.replicate.image.generate
+import nodetool.nodes.replicate.image.ocr
+import nodetool.nodes.replicate.image.process
+import nodetool.nodes.replicate.image.upscale
+
 import nodetool.nodes.replicate.text.generate
+
+import nodetool.nodes.replicate.video.analyze
+import nodetool.nodes.replicate.video.generate

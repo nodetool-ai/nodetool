@@ -6,7 +6,7 @@ from typing import Any, Type
 from nodetool.common.environment import Environment
 from nodetool.workflows.types import NodeUpdate
 from nodetool.workflows.base_node import BaseNode
-from nodetool.nodes.replicate import convert_enum_value, convert_output_value
+from nodetool.common.replicate_node import convert_enum_value, convert_output_value
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.common.environment import Environment
 

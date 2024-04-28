@@ -3,6 +3,7 @@ from nodetool.metadata.types import Tensor
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
+
 from nodetool.metadata.types import DataFrame
 from nodetool.metadata.types import ModelRef
 from nodetool.metadata.types import ImageRef
@@ -10,11 +11,11 @@ from nodetool.metadata.types import TextRef
 from nodetool.metadata.types import VideoRef
 
 
-class ConstantNode(BaseNode):
+class Constant(BaseNode):
     pass
 
 
-class AudioNode(ConstantNode):
+class Audio(Constant):
     """
     Represents an audio file in the workflow.
     mp3, wav
@@ -27,7 +28,7 @@ class AudioNode(ConstantNode):
         return self.value
 
 
-class BoolNode(ConstantNode):
+class Bool(Constant):
     """
     Represents a fixed boolean value in the workflow.
     boolean
@@ -39,19 +40,7 @@ class BoolNode(ConstantNode):
         return self.value
 
 
-class DataFrameNode(ConstantNode):
-    """
-    Represents a fixed DataFrame in the workflow.
-    data, table
-    """
-
-    value: DataFrame = DataFrame()
-
-    async def process(self, context: ProcessingContext) -> DataFrame:
-        return self.value
-
-
-class DictNode(ConstantNode):
+class Dict(Constant):
     """
     Represents a fixed dictionary in the workflow.
     dictionary, key, value
@@ -63,7 +52,7 @@ class DictNode(ConstantNode):
         return self.value
 
 
-class ImageNode(ConstantNode):
+class Image(Constant):
     """
     Represents a fixed image in the workflow.
     picture, photo
@@ -76,7 +65,7 @@ class ImageNode(ConstantNode):
         return self.value
 
 
-class ListNode(ConstantNode):
+class List(Constant):
     """
     Represents a fixed list in the workflow.
     array
@@ -88,7 +77,7 @@ class ListNode(ConstantNode):
         return self.value
 
 
-class FloatNode(ConstantNode):
+class Float(Constant):
     """
     Represents a fixed float number in the workflow.
     number
@@ -100,7 +89,7 @@ class FloatNode(ConstantNode):
         return self.value
 
 
-class StringNode(ConstantNode):
+class String(Constant):
     """
     Represents a fixed string in the workflow.
     text
@@ -112,7 +101,7 @@ class StringNode(ConstantNode):
         return self.value
 
 
-class TextNode(ConstantNode):
+class Text(Constant):
     """
     Represents a text document in the workflow.
     document, markdown
@@ -124,7 +113,7 @@ class TextNode(ConstantNode):
         return self.value
 
 
-class VideoNode(ConstantNode):
+class Video(Constant):
     """
     Represents a fixed video file in the workflow.
     movie, mp4, file

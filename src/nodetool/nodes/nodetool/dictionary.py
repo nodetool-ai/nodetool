@@ -5,7 +5,7 @@ from nodetool.metadata.types import DataFrame
 from nodetool.workflows.base_node import BaseNode
 
 
-class AccessNode(BaseNode):
+class Access(BaseNode):
     """
     Retrieves a specific value from a dictionary using a key.
     dictionary, dict, select, get, value, access, key
@@ -19,7 +19,7 @@ class AccessNode(BaseNode):
         return self.dictionary[self.key]
 
 
-class UpdateNode(BaseNode):
+class Update(BaseNode):
     """
     Updates a dictionary with one or more new key-value pairs.
     dictionary, dict, add, insert
@@ -34,7 +34,7 @@ class UpdateNode(BaseNode):
         return self.dictionary
 
 
-class DeleteNode(BaseNode):
+class Delete(BaseNode):
     """
     Removes a key-value pair from a dictionary based on the specified key.
     dictionary, dict, remove
@@ -48,7 +48,7 @@ class DeleteNode(BaseNode):
         return self.dictionary
 
 
-class CreateNode(BaseNode):
+class Create(BaseNode):
     """
     Generates a dictionary by pairing lists of keys and values.
     dictionary, create, keys, values
@@ -62,7 +62,7 @@ class CreateNode(BaseNode):
         return dict(zip(self.keys, self.values))
 
 
-class MergeNode(BaseNode):
+class Merge(BaseNode):
     """
     Combines two dictionaries into one.
     dictionary, merge, combine
@@ -76,7 +76,7 @@ class MergeNode(BaseNode):
         return {**self.dict_a, **self.dict_b}
 
 
-class SelectKeysNode(BaseNode):
+class SelectKeys(BaseNode):
     """
     Filters a dictionary to include only specified keys.
     dictionary, keys, filter
@@ -90,7 +90,7 @@ class SelectKeysNode(BaseNode):
         return {key: self.dictionary[key] for key in self.keys}
 
 
-class DictToDataframeNode(BaseNode):
+class DictToDataframe(BaseNode):
     """
     Converts a dictionary into a dataframe
     dictionary, dataframe, pandas

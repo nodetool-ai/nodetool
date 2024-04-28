@@ -126,6 +126,10 @@ class BaseNode(BaseModel):
         INVISIBLE_NODE_TYPES.add(cls.get_node_type())
 
     @classmethod
+    def is_visible(cls):
+        return cls.get_node_type() not in INVISIBLE_NODE_TYPES
+
+    @classmethod
     def __init_subclass__(cls):
         """
         This method is called when a subclass of this class is created.
@@ -365,13 +369,17 @@ class BaseNode(BaseModel):
         """
         Returns the input slots of the node.
         """
-        types = cls.model_fields
+        fields = {
+            name: field
+            for name, field in cls.__fields__.items()
+            if name not in IGNORED_FIELD_NAMES
+        }
         super_fields = (
             cls.__base__.inherited_fields()  # type: ignore
             if hasattr(cls.__base__, "inherited_fields")
             else {}
         )
-        return {**super_fields, **types}
+        return {**super_fields, **fields}
 
     @classmethod
     def properties(cls):
@@ -386,7 +394,6 @@ class BaseNode(BaseModel):
         return [
             Property.from_field(name, type_metadata(types[name]), field)
             for name, field in fields.items()
-            if name not in IGNORED_FIELD_NAMES
         ]
 
     @classmethod

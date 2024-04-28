@@ -1,90 +1,213 @@
-import tiktoken
-from nodetool.nodes.replicate import ReplicateNode, calculate_llm_cost
-
-from pydantic import Field
+from pydantic import BaseModel, Field
+from nodetool.metadata.types import *
+from nodetool.dsl.graph import GraphNode
+from nodetool.common.replicate_node import ReplicateNode
 from enum import Enum
 
-from nodetool.workflows.processing_context import ProcessingContext
 
+class Llama3_8B(ReplicateNode):
+    """Base version of Llama 3, an 8 billion parameter language model from Meta."""
 
-class LlamaNode(ReplicateNode):
-    """
-    Llama is a tool for generating text based on a given prompt.
+    def replicate_model_id(self):
+        return "meta/meta-llama-3-8b:9a9e68fc8695f5847ce944a5cecf9967fd7c64d0fb8c8af1d5bdcc71f03c5e47"
 
-    This model, developed by Meta, creates vivid and context-specific textual outputs.
+    def get_hardware(self):
+        return "None"
 
-    #### Applications
-    - Story writing: Create high-quality stories, articles or scripts.
-    - Dialogue system: Develop advanced customer service chatbots or characters for video games.
-    - Education: Craft personalized learning resources or assist with homework.
-    - Business: Generate market analysis reports or help with technical writing.
-    """
+    @classmethod
+    def return_type(cls):
+        return str
 
-    class Model(str, Enum):
-        llama_3_8b = "meta/meta-llama-3-8b"
-        llama_3_13b = "meta/meta-llama-3-13b"
-        llama_3_70b = "meta/meta-llama-3-70b"
-        llama_3_8b_chat = "meta/meta-llama-3-8b-instruct"
-        llama_3_13b_chat = "meta/meta-llama-3-13b-instruct"
-        llama_3_70b_chat = "meta/meta-llama-3-70b-instruct"
-
-    model: Model = Field(
-        default=Model.llama_3_8b,
-        description="The version of the model to use.",
-    )
-
-    prompt: str = Field(default="", description="Prompt to send to the model.")
-    system_prompt: str = Field(
-        default="You are a helpful assistant",
-        description="Prompt to instruct the model. Only works for instruct models.",
-    )
-    max_new_tokens: int = Field(
-        default=128,
-        ge=1,
-        le=1024,
-        description="Maximum number of tokens to generate. A word is generally 2-3 tokens (minimum: 1)",
-    )
-    min_new_tokens: int = Field(
-        default=(-1),
-        ge=(-1),
-        le=10,
-        description="Minimum number of tokens to generate. To disable, set to -1. A word is generally 2-3 tokens. (minimum: -1)",
-    )
-    temperature: float = Field(
-        default=0.75,
-        ge=0.01,
-        le=5,
-        description="Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value. (minimum: 0.01; maximum: 5)",
+    top_k: int = Field(
+        title="Top K",
+        description="The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering).",
+        default=50,
     )
     top_p: float = Field(
+        title="Top P",
+        description="A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751).",
         default=0.9,
-        ge=0,
-        le=1,
-        description="When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens (maximum: 1)",
+    )
+    prompt: str = Field(title="Prompt", description="Prompt", default="")
+    max_tokens: int = Field(
+        title="Max Tokens",
+        description="The maximum number of tokens the model should generate as output.",
+        default=512,
+    )
+    min_tokens: int = Field(
+        title="Min Tokens",
+        description="The minimum number of tokens the model should generate as output.",
+        default=0,
+    )
+    temperature: float = Field(
+        title="Temperature",
+        description="The value used to modulate the next token probabilities.",
+        default=0.6,
+    )
+    prompt_template: str = Field(
+        title="Prompt Template",
+        description="Prompt template. The string `{prompt}` will be substituted for the input prompt. If you want to generate dialog output, use this template as a starting point and construct the prompt string manually, leaving `prompt_template={prompt}`.",
+        default="{prompt}",
+    )
+    presence_penalty: float = Field(
+        title="Presence Penalty", description="Presence penalty", default=1.15
+    )
+    frequency_penalty: float = Field(
+        title="Frequency Penalty", description="Frequency penalty", default=0.2
     )
 
-    async def process(self, context: ProcessingContext) -> str:
-        pred = await self.run_replicate(context)
-        if pred is None:
-            raise ValueError("Prediction failed")
 
-        assert pred.metrics is not None, "Metrics are missing from the prediction"
+class Llama3_70B(ReplicateNode):
+    """Base version of Llama 3, a 70 billion parameter language model from Meta."""
 
-        input_token_count = pred.metrics["input_token_count"]
-        output_token_count = pred.metrics["output_token_count"]
+    def replicate_model_id(self):
+        return "meta/meta-llama-3-70b:83c5bdea9941e83be68480bd06ad792f3f295612a24e4678baed34083083a87f"
 
-        output_tokens = pred.output or []
-        cost = calculate_llm_cost(
-            self.model.value, input_token_count, output_token_count
-        )
-        await context.create_prediction(
-            provider="replicate",
-            node_id=self.id,
-            node_type=self.get_node_type(),
-            model=self.model.value,
-            cost=cost,
-        )
-        return "".join(output_tokens)
+    def get_hardware(self):
+        return "None"
 
-    def replicate_model_id(self) -> str:
-        return self.model.value
+    @classmethod
+    def return_type(cls):
+        return str
+
+    top_k: int = Field(
+        title="Top K",
+        description="The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering).",
+        default=50,
+    )
+    top_p: float = Field(
+        title="Top P",
+        description="A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751).",
+        default=0.9,
+    )
+    prompt: str = Field(title="Prompt", description="Prompt", default="")
+    max_tokens: int = Field(
+        title="Max Tokens",
+        description="The maximum number of tokens the model should generate as output.",
+        default=512,
+    )
+    min_tokens: int = Field(
+        title="Min Tokens",
+        description="The minimum number of tokens the model should generate as output.",
+        default=0,
+    )
+    temperature: float = Field(
+        title="Temperature",
+        description="The value used to modulate the next token probabilities.",
+        default=0.6,
+    )
+    prompt_template: str = Field(
+        title="Prompt Template",
+        description="Prompt template. The string `{prompt}` will be substituted for the input prompt. If you want to generate dialog output, use this template as a starting point and construct the prompt string manually, leaving `prompt_template={prompt}`.",
+        default="{prompt}",
+    )
+    presence_penalty: float = Field(
+        title="Presence Penalty", description="Presence penalty", default=1.15
+    )
+    frequency_penalty: float = Field(
+        title="Frequency Penalty", description="Frequency penalty", default=0.2
+    )
+
+
+class Llama3_8B_Instruct(ReplicateNode):
+    """An 8 billion parameter language model from Meta, fine tuned for chat completions"""
+
+    def replicate_model_id(self):
+        return "meta/meta-llama-3-8b-instruct:5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8"
+
+    def get_hardware(self):
+        return "None"
+
+    @classmethod
+    def return_type(cls):
+        return str
+
+    top_k: int = Field(
+        title="Top K",
+        description="The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering).",
+        default=50,
+    )
+    top_p: float = Field(
+        title="Top P",
+        description="A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751).",
+        default=0.9,
+    )
+    prompt: str = Field(title="Prompt", description="Prompt", default="")
+    max_tokens: int = Field(
+        title="Max Tokens",
+        description="The maximum number of tokens the model should generate as output.",
+        default=512,
+    )
+    min_tokens: int = Field(
+        title="Min Tokens",
+        description="The minimum number of tokens the model should generate as output.",
+        default=0,
+    )
+    temperature: float = Field(
+        title="Temperature",
+        description="The value used to modulate the next token probabilities.",
+        default=0.6,
+    )
+    prompt_template: str = Field(
+        title="Prompt Template",
+        description="Prompt template. The string `{prompt}` will be substituted for the input prompt. If you want to generate dialog output, use this template as a starting point and construct the prompt string manually, leaving `prompt_template={prompt}`.",
+        default="{prompt}",
+    )
+    presence_penalty: float = Field(
+        title="Presence Penalty", description="Presence penalty", default=1.15
+    )
+    frequency_penalty: float = Field(
+        title="Frequency Penalty", description="Frequency penalty", default=0.2
+    )
+
+
+class Llama3_70B_Instruct(ReplicateNode):
+    """A 70 billion parameter language model from Meta, fine tuned for chat completions"""
+
+    def replicate_model_id(self):
+        return "meta/meta-llama-3-70b-instruct:fbfb20b472b2f3bdd101412a9f70a0ed4fc0ced78a77ff00970ee7a2383c575d"
+
+    def get_hardware(self):
+        return "None"
+
+    @classmethod
+    def return_type(cls):
+        return str
+
+    top_k: int = Field(
+        title="Top K",
+        description="The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering).",
+        default=50,
+    )
+    top_p: float = Field(
+        title="Top P",
+        description="A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751).",
+        default=0.9,
+    )
+    prompt: str = Field(title="Prompt", description="Prompt", default="")
+    max_tokens: int = Field(
+        title="Max Tokens",
+        description="The maximum number of tokens the model should generate as output.",
+        default=512,
+    )
+    min_tokens: int = Field(
+        title="Min Tokens",
+        description="The minimum number of tokens the model should generate as output.",
+        default=0,
+    )
+    temperature: float = Field(
+        title="Temperature",
+        description="The value used to modulate the next token probabilities.",
+        default=0.6,
+    )
+    prompt_template: str = Field(
+        title="Prompt Template",
+        description="Prompt template. The string `{prompt}` will be substituted for the input prompt. If you want to generate dialog output, use this template as a starting point and construct the prompt string manually, leaving `prompt_template={prompt}`.",
+        default="{prompt}",
+    )
+    presence_penalty: float = Field(
+        title="Presence Penalty", description="Presence penalty", default=1.15
+    )
+    frequency_penalty: float = Field(
+        title="Frequency Penalty", description="Frequency penalty", default=0.2
+    )

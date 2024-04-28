@@ -12,7 +12,7 @@ from nodetool.metadata.types import VideoRef
 import tempfile
 
 
-class SaveVideoNode(BaseNode):
+class SaveVideo(BaseNode):
     """
     Save a video to a file.
     video, save, file, output
@@ -33,7 +33,7 @@ class SaveVideoNode(BaseNode):
         )
 
 
-class ExtractVideoFramesNode(BaseNode):
+class ExtractVideoFrames(BaseNode):
     """
     Extracts frames from a video file.
     video, frames, extract, sequence
@@ -59,7 +59,7 @@ class ExtractVideoFramesNode(BaseNode):
         return images
 
 
-class VideoFpsNode(BaseNode):
+class VideoFps(BaseNode):
     """
     Returns the frames per second (FPS) of a video file.
     video, analysis, frames, fps
@@ -78,7 +78,7 @@ class VideoFpsNode(BaseNode):
             return iio.immeta(temp.name, plugin="pyav")["fps"]
 
 
-class FramesToVideoNode(BaseNode):
+class FramesToVideo(BaseNode):
     """
     Combines a sequence of frames into a single video file.
     video, frames, combine, sequence

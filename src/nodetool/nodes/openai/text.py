@@ -22,7 +22,12 @@ class EmbeddingModel(str, Enum):
     TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
 
 
-class CreateEmbedding(BaseNode):
+class ResponseFormat(str, Enum):
+    JSON_OBJECT = "json_object"
+    TEXT = "text"
+
+
+class Embedding(BaseNode):
     """
     Generates a vector representation of text for measuring relatedness.
     text, analyse, transform, embeddings, relatedness, search, classification, clustering, recommendations
@@ -33,22 +38,17 @@ class CreateEmbedding(BaseNode):
     model: EmbeddingModel = Field(
         title="Model", default=EmbeddingModel.TEXT_EMBEDDING_3_SMALL
     )
+    chunk_size: int = 4096
 
     async def process(self, context: ProcessingContext) -> Tensor:
         client = Environment.get_openai_client()
         input = await context.to_str(self.input)
-        if len(input) > 8192:
-            # chunk the input into smaller pieces
-            chunks = [input[i : i + 8192] for i in range(0, len(input), 8192)]
-            res = await client.embeddings.create(input=chunks, model=self.model)
-            all = [i.embedding for i in res.data]
-            avg = np.mean(all, axis=0)
-            return Tensor.from_numpy(avg)
-
-        res = await client.embeddings.create(input=input, model=self.model)
-
-        assert len(res.data) == 1
-
+        # chunk the input into smaller pieces
+        chunks = [
+            input[i : i + self.chunk_size]
+            for i in range(0, len(input), self.chunk_size)
+        ]
+        res = await client.embeddings.create(input=chunks, model=self.model)
         cost = calculate_cost_for_embedding_usage(self.model, res.usage)
 
         await context.create_prediction(
@@ -59,19 +59,17 @@ class CreateEmbedding(BaseNode):
             cost=cost,
         )
 
-        return Tensor(value=res.data[0].embedding)
+        all = [i.embedding for i in res.data]
+        avg = np.mean(all, axis=0)
+        return Tensor.from_numpy(avg)
 
 
-class GPTNode(BaseNode):
+class GPT(BaseNode):
     """
     Use GPT models for generating natural language responses based on input prompts.
     text, llm, t2t, ttt, text-to-text, generate, gpt, chat, chatgpt
     Produces natural language text as a response to the input query, leveraging the capabilities of GPT models for various applications.
     """
-
-    class ResponseFormat(str, Enum):
-        JSON_OBJECT = "json_object"
-        TEXT = "text"
 
     model: GPTModel = Field(title="Model", default=GPTModel.GPT3)
     system: str = Field(title="System", default="You are a friendly assistant.")

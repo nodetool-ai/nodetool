@@ -1,6 +1,6 @@
 from datetime import datetime
-from nodetool.nodes.nodetool.input import GroupInputNode
-from nodetool.nodes.nodetool.output import GroupOutputNode
+from nodetool.nodes.nodetool.input import GroupInput
+from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.workflows.base_node import GroupNode
 from nodetool.workflows.processing_context import ProcessingContext
 
@@ -10,7 +10,7 @@ from nodetool.workflows.types import NodeUpdate
 from nodetool.workflows.workflow_runner import WorkflowRunner
 
 
-class LoopNode(GroupNode):
+class Loop(GroupNode):
     """
     Loops over a list of items and processes the remaining nodes for each item.
     loop, itereate, repeat, for, each, batch
@@ -30,8 +30,8 @@ class LoopNode(GroupNode):
         Each iteration of the loop will run the subgraph with the input data from the input nodes.
         The output will be collected and stored in the output nodes.
         """
-        input_nodes = [n for n in self.nodes if isinstance(n, GroupInputNode)]
-        output_nodes = [n for n in self.nodes if isinstance(n, GroupOutputNode)]
+        input_nodes = [n for n in self.nodes if isinstance(n, GroupInput)]
+        output_nodes = [n for n in self.nodes if isinstance(n, GroupOutput)]
 
         if len(input_nodes) == 0:
             raise ValueError("Loop node must have at least one input node.")

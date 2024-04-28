@@ -34,7 +34,7 @@ async def convert_output(
         return Tensor.from_numpy(output)
 
 
-class BinaryOperationNode(BaseNode):
+class BinaryOperation(BaseNode):
     a: int | float | Tensor = Field(title="A", default=0.0)
     b: int | float | Tensor = Field(title="B", default=0.0)
 
@@ -50,7 +50,7 @@ class BinaryOperationNode(BaseNode):
         raise NotImplementedError()
 
 
-class AddNode(BinaryOperationNode):
+class Add(BinaryOperation):
     """
     Performs addition on two inputs.
     math, plus, add, addition, sum, +
@@ -60,7 +60,7 @@ class AddNode(BinaryOperationNode):
         return np.add(a, b)
 
 
-class SubtractNode(BinaryOperationNode):
+class Subtract(BinaryOperation):
     """
     Subtracts the second input from the first.
     math, minus, difference, -
@@ -70,7 +70,7 @@ class SubtractNode(BinaryOperationNode):
         return np.subtract(a, b)
 
 
-class MultiplyNode(BinaryOperationNode):
+class Multiply(BinaryOperation):
     """
     Multiplies two inputs.
     math, product, times, *
@@ -80,7 +80,7 @@ class MultiplyNode(BinaryOperationNode):
         return np.multiply(a, b)
 
 
-class DivideNode(BinaryOperationNode):
+class Divide(BinaryOperation):
     """
     Divides the first input by the second.
     math, division, arithmetic, quotient
@@ -90,7 +90,7 @@ class DivideNode(BinaryOperationNode):
         return np.divide(a, b)
 
 
-class ModulusNode(BinaryOperationNode):
+class Modulus(BinaryOperation):
     """
     Calculates the remainder of division of the first input by the second.
     math, mod, modulus, remainder, %, modulo, division
@@ -100,7 +100,7 @@ class ModulusNode(BinaryOperationNode):
         return np.mod(a, b)
 
 
-class SineNode(BaseNode):
+class Sine(BaseNode):
     """
     Computes the sine of an input angle in radians.
     math, sine, radians, angle
@@ -114,7 +114,7 @@ class SineNode(BaseNode):
         return await convert_output(context, res)
 
 
-class CosineNode(BaseNode):
+class Cosine(BaseNode):
     """
     Calculates the cosine of a given angle in radians.
     math, cosine, radians, angle

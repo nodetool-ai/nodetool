@@ -973,35 +973,23 @@ class ProcessingContext:
                 database=DEFAULT_DATABASE,
             )
 
-    def load_model(self, model: FunctionModel | LlamaModel, **kwargs):
+    def load_llama_model(self, name, **kwargs):
         from llama_cpp import Llama
+        from llama_cpp.llama_tokenizer import LlamaHFTokenizer
 
-        if isinstance(model, FunctionModel):
-            from llama_cpp.llama_tokenizer import LlamaHFTokenizer
+        model = Environment.find_llama_model(name)
+        assert model, "model not found"
 
-            found_model = Environment.find_function_model(model.name)
-            if found_model is None:
-                raise ValueError(f"Model {model.name} not found")
+        if model.local_path is None:
+            raise Exception("model path is None")
 
-            print("found model: ", found_model)
+        if not model.local_path.exists():
+            raise Exception(f"path doesn not exist {model.local_path}")
 
-            return Llama.from_pretrained(
-                repo_id=found_model.repo_id,
-                chat_format="functionary-v2",
-                tokenizer=LlamaHFTokenizer.from_pretrained(found_model.repo_id),
-                filename=found_model.filename,
-                **kwargs,
-            )
-        elif isinstance(model, LlamaModel):
-            found_model = Environment.find_llama_model(model.name)
-            if found_model is None:
-                raise ValueError(f"Model {model.name} not found")
-
-            if found_model.repo_id is None:
-                return Llama(model_path=found_model.filename, **kwargs)
-            else:
-                return Llama.from_pretrained(
-                    repo_id=found_model.repo_id,
-                    filename=found_model.filename,
-                    **kwargs,
-                )
+        return Llama(
+            verbose=True,
+            model_path=str(model.local_path),
+            chat_format="functionary-v2" if isinstance(model, FunctionModel) else None,
+            # tokenizer=LlamaHFTokenizer.from_pretrained(found_model.repo_id),
+            **kwargs,
+        )

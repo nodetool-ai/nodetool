@@ -17,7 +17,7 @@ from typing import Any, Literal
 from nodetool.metadata.types import Dataset
 
 
-class CreateNode(BaseNode):
+class Create(BaseNode):
     """
     Create an empty data frame.
     csv, columns
@@ -32,7 +32,7 @@ class CreateNode(BaseNode):
         return DataFrame(columns=self.columns.split(","), data=[])
 
 
-class SaveNode(BaseNode):
+class Save(BaseNode):
     """
     Save data frame as a CSV file in a folder.
     csv, folder
@@ -49,7 +49,7 @@ class SaveNode(BaseNode):
         return await context.from_pandas(df, self.name)
 
 
-class SelectColumnNode(BaseNode):
+class SelectColumn(BaseNode):
     """
     Select specific columns from a dataframe.
     dataframe, columns
@@ -68,7 +68,7 @@ class SelectColumnNode(BaseNode):
         return await context.from_pandas(df[columns])
 
 
-class ColumnToListNode(BaseNode):
+class ColumnToList(BaseNode):
     """
     Convert a column in a dataframe to a list.
     dataframe, column
@@ -87,7 +87,7 @@ class ColumnToListNode(BaseNode):
         return df[self.column_name].tolist()
 
 
-class ListToColumnNode(BaseNode):
+class ListToColumn(BaseNode):
     """
     Convert a list of objects into a column in a dataframe.
     dataframe, column, values
@@ -113,7 +113,7 @@ class ListToColumnNode(BaseNode):
         return await context.from_pandas(df)
 
 
-class ListToDataFrameNode(BaseNode):
+class ListToDataFrame(BaseNode):
     """
     Convert a list of values to a dataframe.
     list, dataframe
@@ -159,7 +159,7 @@ class ListToDataFrameNode(BaseNode):
         return await context.from_pandas(df)
 
 
-class CSVToDataframeNode(BaseNode):
+class CSVToDataframe(BaseNode):
     """
     Converts CSV data into a DataFrame.
     csv, dataframe
@@ -174,7 +174,7 @@ class CSVToDataframeNode(BaseNode):
         return await context.from_pandas(df)
 
 
-class ConcatNode(BaseNode):
+class Concat(BaseNode):
     """
     Merge two dataframes along their columns.
     merge
@@ -195,7 +195,7 @@ class ConcatNode(BaseNode):
         return await context.from_pandas(df)
 
 
-class AppendNode(BaseNode):
+class Append(BaseNode):
     """
     Append two dataframes along their rows.
     row, concat, merge
@@ -220,7 +220,7 @@ class AppendNode(BaseNode):
         return await context.from_pandas(df)
 
 
-class JoinNode(BaseNode):
+class Join(BaseNode):
     """
     Merges two dataframes along their columns.
     merge, join
@@ -249,7 +249,7 @@ class JoinNode(BaseNode):
         return await context.from_pandas(df)
 
 
-class ToTensorNode(BaseNode):
+class ToTensor(BaseNode):
     """
     Convert a dataframe to a tensor.
     dataframe, tensor
@@ -265,7 +265,7 @@ class ToTensorNode(BaseNode):
         return Tensor.from_numpy(df.to_numpy())
 
 
-class FromTensorNode(BaseNode):
+class FromTensor(BaseNode):
     """
     Convert a tensor to a dataframe.
     dataframe, tensor
@@ -291,7 +291,7 @@ class FromTensorNode(BaseNode):
         return await context.from_pandas(df)
 
 
-class PlotNode(BaseNode):
+class Plot(BaseNode):
     """
     Plots a dataframe as a line, bar, or scatter plot.
     plot, dataframe, line, bar, scatter
@@ -342,7 +342,7 @@ class PlotNode(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class PlotHistogramNode(BaseNode):
+class PlotHistogram(BaseNode):
     """
     Plot a histogram of a dataframe column.
     histogram
@@ -367,7 +367,7 @@ class PlotHistogramNode(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class PlotHeatmapNode(BaseNode):
+class PlotHeatmap(BaseNode):
     """
     Plot a heatmap of a dataframe.
     heatmap
@@ -389,7 +389,7 @@ class PlotHeatmapNode(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class FilterNode(BaseNode):
+class Filter(BaseNode):
     """
     Filter DataFrame based on a condition.
     dataframe, condition, query
@@ -410,7 +410,7 @@ class FilterNode(BaseNode):
         return await context.from_pandas(res)
 
 
-class DataFrameSortNode(BaseNode):
+class DataFrameSort(BaseNode):
     """
     This node sorts a DataFrame based on a column.
 
@@ -428,7 +428,7 @@ class DataFrameSortNode(BaseNode):
         return await context.from_pandas(res)
 
 
-class DropDuplicatesNode(BaseNode):
+class DropDuplicates(BaseNode):
     """
     Drop duplicate rows from a DataFrame.
     duplicate, dataframe
@@ -458,7 +458,7 @@ class DropNA(BaseNode):
         return await context.from_pandas(res)
 
 
-class IrisDataFrameNode(BaseNode):
+class IrisDataFrame(BaseNode):
     """
     Load the Iris dataset.
     ml, training, dataset, test

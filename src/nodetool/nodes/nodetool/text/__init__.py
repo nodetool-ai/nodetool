@@ -42,7 +42,7 @@ class TextID(BaseNode):
         return self.text.asset_id
 
 
-class ConcatNode(BaseNode):
+class Concat(BaseNode):
     """
     Concat Node is a function that combines the output from several nodes into a single output.
 
@@ -61,7 +61,7 @@ class ConcatNode(BaseNode):
         return await convert_result(context, [self.a, self.b], res)
 
 
-class JoinNode(BaseNode):
+class Join(BaseNode):
     """
     This node joins a list of strings into a single string.
     """
@@ -79,7 +79,7 @@ class JoinNode(BaseNode):
         return await convert_result(context, self.strings, res)
 
 
-class TemplateNode(BaseNode):
+class Template(BaseNode):
     """
     This node replaces placeholders in a string with values.
     """
@@ -93,7 +93,7 @@ class TemplateNode(BaseNode):
         return await convert_result(context, [self.string], res)
 
 
-class ReplaceNode(BaseNode):
+class Replace(BaseNode):
     """
     This node replaces a substring in a string with another substring.
     """
@@ -108,7 +108,7 @@ class ReplaceNode(BaseNode):
         return await convert_result(context, [self.text], res)
 
 
-class JSONToDataframeNode(BaseNode):
+class JSONToDataframe(BaseNode):
     """
     This node transforms a list of JSON strings into a dataframe.
 
@@ -124,7 +124,7 @@ class JSONToDataframeNode(BaseNode):
         return await context.from_pandas(df)
 
 
-class SaveTextNode(BaseNode):
+class SaveText(BaseNode):
     """
     This node saves a text file to the assets folder.
 
@@ -141,7 +141,7 @@ class SaveTextNode(BaseNode):
         return TextRef(uri=s3_uri, asset_id=asset.id)
 
 
-class SplitNode(BaseNode):
+class Split(BaseNode):
     """
     The Split Node separates a given text into a list of strings based on a specified delimiter.
 
@@ -159,29 +159,3 @@ class SplitNode(BaseNode):
         text = await to_string(context, self.text)
         res = text.split(self.delimiter)
         return res
-
-
-class EmbeddingNode(BaseNode):
-    """
-    This node creates a vector representation of input text.
-
-    The purpose of this node is to convert raw text into a more structured and useful format, namely embeddings. These embeddings are vector representations of the text that capture its semantic content. They are created using pre-trained transformers which have learned to understand the meaning of text from large amounts of data. This node is essential for natural language processing and can support several tasks including text classification, information retrieval, and similarity measurement.
-
-    #### Applications
-    - Text Classification: The embeddings can be fed into a classifier to categorize the text.
-    - Information Retrieval: The embeddings can be used to find relevant information in a dataset.
-    - Similarity Measurement: The embeddings can be used to find similar texts based on their content.
-    """
-
-    text: str = Field(title="Text", default="")
-
-    async def process(self, context: ProcessingContext) -> Tensor:
-        client = Environment.get_openai_client()
-        res = await client.embeddings.create(
-            model="text-embedding-ada-002",
-            input=self.text,
-        )
-        assert len(res.data) > 0
-        embeddings = [np.array(i.embedding) for i in res.data]
-        assert len(embeddings) > 0
-        return Tensor.from_numpy(np.array(embeddings[0]))

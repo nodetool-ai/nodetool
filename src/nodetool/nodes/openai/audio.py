@@ -57,7 +57,7 @@ class TextToSpeech(BaseNode):
         return audio
 
 
-class TranscribeNode(BaseNode):
+class Transcribe(BaseNode):
     """
     Converts spoken words in an audio file to written text.
     audio, stt, s2t, speech-to-text, transcription, audio-to-text, analysis
@@ -88,7 +88,7 @@ class TranscribeNode(BaseNode):
         return res.text
 
 
-class TranslateNode(BaseNode):
+class Translate(BaseNode):
     """
     Translates spoken words in an audio file to English text.
     audio, stt, s2t, speech-to-text, translation, english

@@ -250,12 +250,10 @@ async def create_completion(
             model=model.name, messages=messages, tools=tools if len(tools) > 0 else NotGiven()  # type: ignore
         )
     else:
-        llm = context.load_model(
-            model=model,
+        llm = context.load_llama_model(
+            name=model.name,
             n_gpu_layers=kwargs.pop("n_gpu_layers", 0),
         )
-
-        assert llm is not None, f"Model {model.name} not found."
 
         completion = ChatCompletion(
             **llm.create_chat_completion(

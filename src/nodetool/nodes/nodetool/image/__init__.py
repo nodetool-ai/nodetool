@@ -13,7 +13,7 @@ from pydantic import Field
 from typing import Literal
 
 
-# class SaveImageNode(Node):
+# class SaveImage(Node):
 #     """
 #     ## Save Image Node
 #     ### Category: Image
@@ -50,7 +50,7 @@ from typing import Literal
 #         )
 
 
-class ImageToTensorNode(BaseNode):
+class ImageToTensor(BaseNode):
     """
     This node converts an image into a tensor.
 
@@ -75,7 +75,7 @@ class ImageToTensorNode(BaseNode):
         return Tensor.from_numpy(tensor_data)
 
 
-class TensorToImageNode(BaseNode):
+class TensorToImage(BaseNode):
     """
     This node converts a tensor (a generic geometric object) into an image.
 
@@ -105,7 +105,7 @@ class TensorToImageNode(BaseNode):
         return await context.image_from_pil(output_image)
 
 
-class PasteNode(BaseNode):
+class Paste(BaseNode):
     """
     The PasteNode is used to paste one image onto another.
 
@@ -129,7 +129,7 @@ class PasteNode(BaseNode):
         return await context.image_from_pil(image)
 
 
-class BlendNode(BaseNode):
+class Blend(BaseNode):
     """
     BlendNode is a tool for perfectly merging two images.
 
@@ -158,7 +158,7 @@ class BlendNode(BaseNode):
         return await context.image_from_pil(image)
 
 
-class CompositeNode(BaseNode):
+class Composite(BaseNode):
     """
     The Composite Node is used to combine two images into a single output image.
 

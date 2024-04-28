@@ -9,7 +9,7 @@ from nodetool.workflows.base_node import BaseNode
 from typing import Any, Literal
 
 
-class LengthNode(BaseNode):
+class Length(BaseNode):
     """
     Calculates and outputs the length of a given list.
     list, count, size
@@ -21,7 +21,7 @@ class LengthNode(BaseNode):
         return len(self.values)
 
 
-class RangeNode(BaseNode):
+class Range(BaseNode):
     """
     Generates a list of integers within a specified range.
     list, range, int, index, count, sequence, numbers
@@ -35,7 +35,7 @@ class RangeNode(BaseNode):
         return list(range(self.start, self.stop, self.step))
 
 
-class SliceNode(BaseNode):
+class Slice(BaseNode):
     """
     Extracts a subset from a list based on start, stop, and step indices.
     list, slice, extract, subset, reduce, filter, select, range, get
@@ -50,7 +50,7 @@ class SliceNode(BaseNode):
         return self.values[self.start : self.stop : self.step]
 
 
-class SelectNode(BaseNode):
+class Select(BaseNode):
     """
     Selects specific values from a list using index positions.
     list, select, index, get, pick, extract, subset
@@ -63,7 +63,7 @@ class SelectNode(BaseNode):
         return [self.values[index] for index in self.indices]
 
 
-class IndexNode(BaseNode):
+class Index(BaseNode):
     """
     Retrieve a single value from a list at a specific index.
     list, get, pick, extract, value
@@ -76,7 +76,7 @@ class IndexNode(BaseNode):
         return self.values[self.index]
 
 
-class AppendNode(BaseNode):
+class Append(BaseNode):
     """
     Adds a value to the end of a list.
     list, add, insert, push, extend, concatenate
@@ -90,7 +90,7 @@ class AppendNode(BaseNode):
         return self.values
 
 
-class ExtendNode(BaseNode):
+class Extend(BaseNode):
     """
     Merges one list into another, extending the original list.
     list, merge, concatenate, append, add, insert, push
@@ -104,7 +104,7 @@ class ExtendNode(BaseNode):
         return self.values
 
 
-class DedupeNode(BaseNode):
+class Dedupe(BaseNode):
     """
     Removes duplicate elements from a list, ensuring uniqueness.
     list, unique, distinct, deduplicate, remove, filter
@@ -116,7 +116,7 @@ class DedupeNode(BaseNode):
         return list(set(self.values))
 
 
-class FilterNode(BaseNode):
+class Filter(BaseNode):
     """
     Filters a list based on a custom Python condition. Example: {value} % 2 == 0
     list, filter, python, condition
@@ -141,7 +141,7 @@ class FilterNode(BaseNode):
         ]
 
 
-class ReduceNode(BaseNode):
+class Reduce(BaseNode):
     """
     Performs a custom reduction operation on a list using Python code. Example: {value} + {acc}
     list, remove, filter, reduce, python
@@ -174,7 +174,7 @@ class ReduceNode(BaseNode):
         )
 
 
-class MapNode(BaseNode):
+class Map(BaseNode):
     """
     Transforms each element in a list based on custom Python code. Example: {value} * {index}
     list, python, change
@@ -196,7 +196,7 @@ class MapNode(BaseNode):
         ]
 
 
-class ReverseNode(BaseNode):
+class Reverse(BaseNode):
     """
     Inverts the order of elements in a list.
     list, reverse, order, invert, flip
@@ -208,7 +208,7 @@ class ReverseNode(BaseNode):
         return self.values[::(-1)]
 
 
-class SaveListNode(BaseNode):
+class SaveList(BaseNode):
     """
     Saves a list to a text file, placing each element on a new line.
     list, save, file, serialize, text, toString

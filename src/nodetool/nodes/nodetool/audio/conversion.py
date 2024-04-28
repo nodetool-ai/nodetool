@@ -9,7 +9,7 @@ from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 
 
-class AudioToTensorNode(BaseNode):
+class AudioToTensor(BaseNode):
     """
     AudioToTensor node transforms an audio file into a tensor, a data structure that can be understood by machine learning algorithms.
 
@@ -30,7 +30,7 @@ class AudioToTensorNode(BaseNode):
         return Tensor.from_numpy(samples)
 
 
-class TensorToAudioNode(BaseNode):
+class TensorToAudio(BaseNode):
     """
     This node converts a numerical tensor object to an audio file.
 

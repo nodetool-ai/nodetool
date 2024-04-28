@@ -2,7 +2,7 @@ import PIL.Image
 import PIL.ImageChops
 import pytest
 from nodetool.api.types.graph import Node, Edge
-from nodetool.nodes.nodetool.output import GroupOutputNode
+from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
@@ -18,7 +18,7 @@ from nodetool.nodes.nodetool.constant import FloatNode, StringNode
 from nodetool.nodes.nodetool.image import BlendNode
 from nodetool.nodes.nodetool.input import (
     FloatInputNode,
-    GroupInputNode,
+    GroupInput,
     ImageInputNode,
     IntInputNode,
 )
@@ -280,7 +280,7 @@ async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
     input_node = {
         "id": "in",
         "parent_id": "loop",
-        "type": GroupInputNode.get_node_type(),
+        "type": GroupInput.get_node_type(),
         "data": {
             "name": "input",
         },
@@ -288,7 +288,7 @@ async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
     output_node = {
         "id": "out",
         "parent_id": "loop",
-        "type": GroupOutputNode.get_node_type(),
+        "type": GroupOutput.get_node_type(),
         "data": {"name": "output"},
     }
     multiply_node = {

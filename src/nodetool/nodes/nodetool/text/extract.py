@@ -4,12 +4,12 @@ from jsonpath_ng import parse
 from typing import Any
 from pydantic import Field
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import TextRef
+from nodetool.metadata.types import LlamaModel, Tensor, TextRef
 from nodetool.workflows.base_node import BaseNode
 from nodetool.nodes.nodetool.text import convert_result, to_string
 
 
-class ExtractNode(BaseNode):
+class Extract(BaseNode):
     """
     This node extracts a substring from a string.
 
@@ -29,7 +29,7 @@ class ExtractNode(BaseNode):
         return await convert_result(context, [self.text], res)
 
 
-class ChunkNode(BaseNode):
+class Chunk(BaseNode):
     """
     This node chunks a string into substrings of a specified number of words.
     """
@@ -49,7 +49,7 @@ class ChunkNode(BaseNode):
         return [" ".join(chunk) for chunk in chunks]
 
 
-class ExtractRegexNode(BaseNode):
+class ExtractRegex(BaseNode):
     """
     This node extracts a list of substrings from a string using a regular expression.
     Each group in the regular expression is extracted as a separate substring.
@@ -83,7 +83,7 @@ class ExtractRegexNode(BaseNode):
         return list(match.groups())
 
 
-class FindAllRegexNode(BaseNode):
+class FindAllRegex(BaseNode):
     """
     This node extracts a list of substrings from a string using a regular expression.
     Each match in the regular expression is extracted as a separate substring.
@@ -108,7 +108,7 @@ class FindAllRegexNode(BaseNode):
         return list(matches)
 
 
-class ParseJSONNode(BaseNode):
+class ParseJSON(BaseNode):
     """
     This node parses a JSON string into a Python object.
 
@@ -123,7 +123,7 @@ class ParseJSONNode(BaseNode):
         return json.loads(json_string)
 
 
-class ExtractJSONNode(BaseNode):
+class ExtractJSON(BaseNode):
     """
     This node uses a JSONPath to extract a specific object from a JSON object.
 
@@ -153,3 +153,43 @@ class ExtractJSONNode(BaseNode):
             return [match.value for match in jsonpath_expr.find(parsed_json)]
         else:
             return jsonpath_expr.find(parsed_json)[0].value
+
+
+class Embedding(BaseNode):
+    """
+    Generates a vector representation of text for measuring relatedness.
+    text, analyse, transform, embeddings, relatedness, search, classification, clustering, recommendations
+    Outputs a text embedding vector that quantifies the semantic similarity of the input text to other text strings. An embedding is a vector (list) of floating point numbers. The distance between two vectors measures their relatedness. Small distances suggest high relatedness and large distances suggest low relatedness. Use cases: Search, Clustering, Recommendations, Anomaly detection, Diversity measurement, Classification
+    """
+
+    input: str | TextRef = Field(title="Input", default="")
+    model: LlamaModel = Field(title="Model", default=LlamaModel())
+    n_gpu_layers: int = Field(
+        title="Number of GPU Layers",
+        default=0,
+        ge=-1,
+        description="The number of layers on the GPU",
+    )
+    chunk_size: int = Field(
+        title="Chunk Size",
+        default=4096,
+        ge=64,
+        description="The size of the chunks to split the input into",
+    )
+
+    async def process(self, context: ProcessingContext) -> Tensor:
+        import numpy as np
+
+        model = context.load_llama_model(
+            self.model.name, embedding=True, n_gpu_layers=self.n_gpu_layers
+        )
+        input = await context.to_str(self.input)
+        # chunk the input into smaller pieces
+        chunks = [
+            input[i : i + self.chunk_size]
+            for i in range(0, len(input), self.chunk_size)
+        ]
+        res = model.create_embedding(input=chunks)
+        all = [i["embedding"] for i in res["data"]]
+        avg = np.mean(all, axis=0)
+        return Tensor.from_numpy(avg)

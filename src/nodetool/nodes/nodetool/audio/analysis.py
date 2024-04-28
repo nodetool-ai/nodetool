@@ -14,7 +14,7 @@ from pydantic import Field
 from typing import Literal, Optional
 
 
-class AmplitudeToDBNode(BaseNode):
+class AmplitudeToDB(BaseNode):
     """
     Converts an amplitude spectrogram to a dB-scaled spectrogram.
 
@@ -32,7 +32,7 @@ class AmplitudeToDBNode(BaseNode):
         return Tensor.from_numpy(db_tensor)
 
 
-class ChromaSTFTNode(BaseNode):
+class ChromaSTFT(BaseNode):
     """
     This node creates a chromagram from a waveform or power spectrogram to identify different pitch classes in an audio signal.
 
@@ -63,7 +63,7 @@ class ChromaSTFTNode(BaseNode):
         return Tensor.from_numpy(chromagram)
 
 
-class DBToAmplitudeNode(BaseNode):
+class DBToAmplitude(BaseNode):
     """
     The DBToAmplitude node Converts a dB-scaled spectrogram to an amplitude spectrogram.
 
@@ -81,7 +81,7 @@ class DBToAmplitudeNode(BaseNode):
         return Tensor.from_numpy(amplitude_tensor)
 
 
-class DBToPowerNode(BaseNode):
+class DBToPower(BaseNode):
     """
     This node converts a decibel (dB) spectrogram back to power scale.
     """
@@ -95,7 +95,7 @@ class DBToPowerNode(BaseNode):
         return Tensor.from_numpy(librosa.db_to_power(db_spec))
 
 
-class GriffinLimNode(BaseNode):
+class GriffinLim(BaseNode):
     """
     GriffinLim Node performs phase reconstruction on a magnitude spectrogram utilizing the Griffin-Lim algorithm.
 
@@ -143,7 +143,7 @@ class GriffinLimNode(BaseNode):
         return Tensor.from_numpy(reconstructed_audio)
 
 
-class MelSpectrogramNode(BaseNode):
+class MelSpectrogram(BaseNode):
     """
     MelSpecNode computes the Mel-frequency spectrogram for an audio signal.
     """
@@ -178,7 +178,7 @@ class MelSpectrogramNode(BaseNode):
         return Tensor.from_numpy(melspectrogram)
 
 
-class MFCCNode(BaseNode):
+class MFCC(BaseNode):
     """
     MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.
     """
@@ -211,7 +211,7 @@ class MFCCNode(BaseNode):
         return Tensor.from_numpy(mfccs)
 
 
-class PlotSpectrogramNode(BaseNode):
+class PlotSpectrogram(BaseNode):
     """
     The PlotSpectrogram node generates a visual representation of the spectrum of frequencies in an audio signal as they vary with time.
 
@@ -239,7 +239,7 @@ class PlotSpectrogramNode(BaseNode):
         return await context.image_from_bytes(buf.getvalue())
 
 
-class PowertToDBNode(BaseNode):
+class PowertToDB(BaseNode):
     """
     Converts a power spectrogram to decibel (dB) scale.
 
@@ -257,7 +257,7 @@ class PowertToDBNode(BaseNode):
         return Tensor.from_numpy(librosa.power_to_db(power_spec, ref=np.max))
 
 
-class SpectralContrastNode(BaseNode):
+class SpectralContrast(BaseNode):
     """
     The spectral contrast measures the difference in amplitude between the most noticeable parts (peaks) and the less noticeable parts (valleys) in a sound spectrum.
 
@@ -289,7 +289,7 @@ class SpectralContrastNode(BaseNode):
         return Tensor.from_numpy(spectral_contrast)
 
 
-class STFTNode(BaseNode):
+class STFT(BaseNode):
     """
     This node computes the Short-Time Fourier Transform (STFT) matrix for an audio signal.
     The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.

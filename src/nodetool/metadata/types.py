@@ -1,5 +1,6 @@
 from enum import Enum
 import enum
+from pathlib import Path
 from types import NoneType
 import numpy as np
 from pydantic import BaseModel, Field
@@ -154,12 +155,14 @@ class FunctionModel(LanguageModel):
     type: Literal["function_model"] = "function_model"
     repo_id: str = ""
     filename: str = ""
+    local_path: Path | None = None
 
 
 class LlamaModel(LanguageModel):
     type: Literal["llama_model"] = "llama_model"
     repo_id: str = ""
     filename: str = ""
+    local_path: Path | None = None
 
 
 class CheckpointFile(ModelFile):

@@ -14,7 +14,7 @@ from nodetool.metadata.types import to_numpy
 from nodetool.metadata.types import Tensor
 
 
-# class SaveTensorNode(Node):
+# class SaveTensor(Node):
 #     category: NodeCategory = NodeCategory.TENSOR
 #     value: Tensor = Field(
 #         Tensor(),
@@ -44,7 +44,7 @@ from nodetool.metadata.types import Tensor
 #         )
 
 
-class StackNode(BaseNode):
+class Stack(BaseNode):
     """
     ## Stack Node
     ### Namespace: Core.Tensor
@@ -78,7 +78,7 @@ class StackNode(BaseNode):
         return Tensor.from_numpy(stacked_tensor)
 
 
-# class ConcatTensorNode(Node):
+# class ConcatTensor(Node):
 #     '## Concat Tensor Node\n### Tensor Manipulation\n\n#### Description\nThe Concat Tensor Node combines or joins tensors along a specified axis.\n\nTensors, in the context of this tool, are multi-dimensional arrays, similar to matrices or data tables. "Concatenating" means that the node can take several tensors and join them together along a given "axis", or dimension. For example, you can concatenate two spreadsheets by adding the rows of one to the other (concatenating along the row axis).\n\n#### Applications\n- Combining multiple datasets: If you have several tensors containing related data (like sales data from different regions), the Concat Tensor Node could combine them into a single tensor for unified analysis.\n- Modifying data structures: In certain data analysis scenarios, you may need to modify the structure of your data (for example, combine the columns of two data sets). The Concat Tensor Node allows you to perform this operation easily.\n\n#### Example\nSuppose you have three tensors representing sales data from North, East, and West regions. You want to analyze the data collectively. First, connect the three nodes representing these regional data tensors to the Concat Tensor Node. Specify the axis along which you want to concatenate. The Concat Tensor Node will then output a single tensor that combines the data from all regions, which you can feed into further analysis tools.\n\n##### Inputs\n- `tensors`: List of Tensor. The tensors you want to concatenate.\n- `axis`: Integer. The axis along which the tensors will be concatenated.\n\n##### Outputs\n- `result`: Tensor. The single tensor that results from the concatenation of the input tensors.'
 #     category: NodeCategory = NodeCategory.TENSOR
 #     tensors: list[Tensor] = []
@@ -163,7 +163,7 @@ class ArgMinTensor(BaseNode):
         return Tensor.from_numpy(np.argmin(to_numpy(self.tensor), axis=self.axis))
 
 
-class AbsTensorNode(BaseNode):
+class AbsTensor(BaseNode):
     '## Absolute Value Node\n### Namespace: Core.Tensor\n\n#### Description\nThis node returns the absolute values of a tensor.\n\nIn the context of tensors, the term "absolute value" denotes the magnitude of each element in the tensor, disregarding its sign. This implies that whether the original element values were positive or negative, the returned tensor will only consist of non-negative values.\n\n#### Applications\n- Preprocessing data: Sometimes, it may be critical to consider only the magnitude of values rather than their sign. This can be useful in scenarios where the sign may introduce bias or be irrelevant to the final outcome.\n- Feature engineering: The absolute value transformation can serve as a means to create new features from existing data, thus enhancing the information available for model training.\n\n#### Example\nTo obtain the absolute values of elements in a tensor, simply add the `Absolute Value Node` to your workflow. Then, connect the tensor output from a data source or another computation to this node. The output will be a tensor with the absolute values of all elements.\n\n##### Inputs\n- `input_tensor` (tensor): The tensor from which to calculate absolute values.\n\n##### Outputs\n- `output_tensor` (tensor): The resultant tensor containing the absolute values of all elements in the input tensor.'
     input_tensor: Tensor = Field(
         description="The input tensor to compute the absolute values from."
@@ -190,7 +190,7 @@ class ScalarToTensor(BaseNode):
         return Tensor.from_numpy(np.array([self.value]))
 
 
-class ListToTensorNode(BaseNode):
+class ListToTensor(BaseNode):
     "## ListToTensor\n### Namespace: Core\n\n#### Description\nThis node converts a list to a tensor.\n\nA tensor is a mathematical object that generalizes scalars, vectors, and other higher-dimensional collections. In the context of this node, a tensor is an n-dimensional array of data, similar to a list or a list of lists. By converting data in list format to tensor representation, the node makes it possible for the following nodes to handle machine learning tasks that require tensor computing.\n\n#### Applications\n- Preprocessing data for neural network and machine learning models. Since these models typically work with data in tensor format, transforming input data from a list to a tensor can be a crucial preprocessing step.\n\n#### Example\nConsider a situation where the data collected is in list format, and you wish to train a neural network model. First use the ListToTensor node to convert this data into a tensor format, then you can use this tensor as input to your model node.\n\n##### Inputs\n- `input_list`: A list of data to be converted to a tensor.\n\n##### Outputs\n- `output_tensor`: The tensor representation of the input list."
     values: list[Any] = []
 
@@ -198,7 +198,7 @@ class ListToTensorNode(BaseNode):
         return Tensor.from_numpy(np.array(self.values))
 
 
-class PlotTensorNode(BaseNode):
+class PlotTensor(BaseNode):
     "## Tensor Plotter Node\n### Namespace: Core.Tensor\n\n#### Description\nThis node plots a tensor and generates an image.\n\nA tensor is a type of data structure used in machine learning algorithms. The Tensor Plotter Node takes this tensor data, visualizes it in a graph format, and produces an image output.\n\n#### Applications\n- Visualization of tensor data: The node is used to create visual presentations of tensor data in AI workflows. \n\n#### Example\nFor instance, in a workflow where a tensor is output from one node, the Tensor Plotter Node can be connected to this output. The result is a visual representation of the tensor. The image generated can then be used, for example, for reporting or debugging purposes.\n\n##### Inputs\n- `tensor`: Type - Tensor. Description - The tensor data to be plotted.\n\n##### Outputs\n- `image`: Type - Image. Description - The image generated from the plotted tensor."
 
     class PlotType(str, Enum):
@@ -264,7 +264,7 @@ class PlotTSNE(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class TensorToListNode(BaseNode):
+class TensorToList(BaseNode):
     "## Tensor to List Conversion Node\n### Namespace: Core\n\n#### Description\nThis node converts tensors into lists.\n\nIn the context of AI workflows, a tensor is a generalization of vectors and matrices to potentially higher dimensions. This node simplifies the manipulation of tensor data by converting them into a versatile and easy-to-handle format - lists.\n\n#### Applications\n- Feature extraction: Converting tensors into lists allows for more straightforward manipulation and examination of tensor data. \n- Data transformation: Lists can be further manipulated or transformed as needed, for instance, they could be used to create data frames or other structures, which may be needed in subsequent workflow nodes.\n\n#### Example\nIn a use-case where you have image data represented as tensors (multi-dimensional arrays), and you need to convert this tensor data into a simple list format for further data analysis:\n1. Connect your image data to this node.\n2. The node converts the tensor data into a list.\n3. The outputted list can then feed into other nodes for further data processing like sorting, filtering, or statistical analysis.\n\n##### Inputs\n- `tensor`: The tensor to be converted to a list.\n\n##### Outputs\n- `list`: The outputted list converted from the input tensor."
     tensor: Tensor = Tensor()
 
@@ -272,7 +272,7 @@ class TensorToListNode(BaseNode):
         return self.tensor.to_numpy().tolist()
 
 
-class ExpNode(BaseNode):
+class Exp(BaseNode):
     """
     ## Exp Node
     ### Namespace: Core.Tensor
@@ -299,7 +299,7 @@ class ExpNode(BaseNode):
         )
 
 
-class LogNode(BaseNode):
+class Log(BaseNode):
     """
     ## Log Tensor Node
     ### Namespace: Core.Tensor
