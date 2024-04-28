@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "nodetool"
-version = "0.1.15"
+version = "0.1.20"
 description = "Simple AI automation tool."
 readme = "README.md"
 authors = ["Matthias Georgi <matti.georgi@gmail.com>"]
