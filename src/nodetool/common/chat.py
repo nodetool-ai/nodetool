@@ -2,16 +2,11 @@ import asyncio
 import json
 from typing import Any, Iterator, Union
 
-from llama_cpp import (
-    ChatCompletionRequestMessage,
-    ChatCompletionTool,
-)
 from pydantic import BaseModel
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import FunctionModel, Task, ToolCall
 from nodetool.models.task import Task as TaskModel
 from nodetool.models.workflow import Workflow
-from nodetool.metadata.types import GPTModel
 from nodetool.workflows.base_node import get_node_class
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.models.message import Message
@@ -19,7 +14,6 @@ from openai.types.shared_params import FunctionDefinition
 from openai.types.chat.chat_completion import ChatCompletion
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai._types import NotGiven
-from openai.types.chat.completion_create_params import ResponseFormat
 from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
 )
@@ -238,8 +232,8 @@ def create_task(thread_id: str, user_id: str, params: dict):
 async def create_completion(
     context: ProcessingContext,
     model: FunctionModel,
-    messages: list[ChatCompletionMessageParam | ChatCompletionRequestMessage],
-    tools: list[ChatCompletionTool | ChatCompletionToolParam],
+    messages: list[ChatCompletionMessageParam],
+    tools: list[ChatCompletionToolParam],
     **kwargs,
 ) -> ChatCompletion:
     print(f"Creating completion with model {model.name}")
