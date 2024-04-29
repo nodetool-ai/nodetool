@@ -2613,12 +2613,12 @@ dev = ["absl-py", "pyink", "pylint (>=2.6.0)", "pytest", "pytest-xdist"]
 
 [[package]]
 name = "modal"
-version = "0.62.116"
+version = "0.62.117"
 description = "Python client library for Modal"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "modal-0.62.116-py3-none-any.whl", hash = "sha256:09e93a6db6da40c02e555ab85c63ab9909205b0af60349233d80fd9fc2e9fb1f"},
+    {file = "modal-0.62.117-py3-none-any.whl", hash = "sha256:497bce60d93d79f14beebaeff51d043c39429ed85d6a8d4373fb85124c6df8aa"},
 ]
 
 [package.dependencies]
@@ -5185,13 +5185,13 @@ tests = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "threadpoolctl"
-version = "3.4.0"
+version = "3.5.0"
 description = "threadpoolctl"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "threadpoolctl-3.4.0-py3-none-any.whl", hash = "sha256:8f4c689a65b23e5ed825c8436a92b818aac005e0f3715f6a1664d7c7ee29d262"},
-    {file = "threadpoolctl-3.4.0.tar.gz", hash = "sha256:f11b491a03661d6dd7ef692dd422ab34185d982466c49c8f98c8f716b5c93196"},
+    {file = "threadpoolctl-3.5.0-py3-none-any.whl", hash = "sha256:56c1e26c150397e58c4926da8eeee87533b1e32bef131bd4bf6a2f45f3185467"},
+    {file = "threadpoolctl-3.5.0.tar.gz", hash = "sha256:082433502dd922bf738de0d8bcc4fdcbf0979ff44c42bd40f5af8a282f6fa107"},
 ]
 
 [[package]]
@@ -6310,4 +6310,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "1659484c9f2c2f48da54c6ba0ddf75236a957962f9878df163df65d4b4674671"
+content-hash = "626d44cc757ec39a47a6dc9668353cb5ab19d8a7332280804f3a8d4f96face40"
