@@ -379,6 +379,40 @@ if __name__ == "__main__":
     )
 
     replicate_node(
+        node_name="Zeroscope_V2_XL",
+        namespace="video.generate",
+        model_id="anotherjesse/zeroscope-v2-xl",
+        return_type=VideoRef,
+    )
+
+    replicate_node(
+        node_name="RobustVideoMatting",
+        namespace="video.generate",
+        model_id="arielreplicate/robust_video_matting",
+        return_type=VideoRef,
+        overrides={
+            "input_video": VideoRef,
+        },
+    )
+
+    replicate_node(
+        node_name="StableDiffusionInfiniteZoom",
+        namespace="video.generate",
+        model_id="arielreplicate/stable_diffusion_infinite_zoom",
+        return_type=VideoRef,
+    )
+
+    replicate_node(
+        node_name="AnimateDiffIllusions",
+        namespace="video.generate",
+        model_id="zsxkib/animatediff-illusions",
+        return_type=VideoRef,
+        overrides={
+            "controlnet_video": VideoRef,
+        },
+    )
+
+    replicate_node(
         node_name="Illusions",
         namespace="image.generate",
         model_id="fofr/illusions",
