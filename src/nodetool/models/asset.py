@@ -20,7 +20,6 @@ class Asset(DBModel):
                 "user_id": "S",
                 "parent_id": "S",
                 "content_type": "S",
-                "duration": "N",
             },
             "global_secondary_indexes": {
                 "nodetool_asset_user_content_type_index": {
@@ -45,7 +44,6 @@ class Asset(DBModel):
     content_type: str = DBField(default="")
     created_at: datetime = DBField(default_factory=datetime.now)
     duration: Optional[float] = DBField(default=None)
-
 
     @property
     def file_extension(self) -> str:
