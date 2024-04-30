@@ -211,6 +211,7 @@ class BaseNode(BaseModel):
             node_type=cls.get_node_type(),
             properties=cls.properties(),  # type: ignore
             outputs=cls.outputs(),
+            model_info=cls.model_info(),
         )
 
     def get_json_schema(self):
@@ -352,6 +353,13 @@ class BaseNode(BaseModel):
             raise ValueError(
                 f"Invalid return type for node {cls.__name__}: {return_type}"
             )
+
+    @classmethod
+    def model_info(cls):
+        """
+        Returns the model info for the node.
+        """
+        return {}
 
     @classmethod
     def field_types(cls):

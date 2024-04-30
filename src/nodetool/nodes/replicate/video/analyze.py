@@ -15,6 +15,23 @@ class VideoLlava(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/132630f1-18c6-429e-bc5b-214775997065/video_llava.png",
+            "created_at": "2023-11-20T21:16:55.794627Z",
+            "description": "Video-LLaVA: Learning United Visual Representation by Alignment Before Projection",
+            "github_url": "https://github.com/PKU-YuanGroup/Video-LLaVA",
+            "license_url": "https://github.com/PKU-YuanGroup/Video-LLaVA#-license",
+            "name": "video-llava",
+            "owner": "nateraw",
+            "paper_url": "https://arxiv.org/abs/2311.10122",
+            "run_count": 280571,
+            "url": "https://replicate.com/nateraw/video-llava",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return str
 

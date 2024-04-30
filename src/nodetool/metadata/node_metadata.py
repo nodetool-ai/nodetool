@@ -1,3 +1,4 @@
+from typing import Any
 from nodetool.workflows.property import Property
 from nodetool.metadata.types import OutputSlot
 
@@ -16,3 +17,4 @@ class NodeMetadata(BaseModel):
     node_type: str
     properties: list[Property]
     outputs: list[OutputSlot]
+    model_info: dict[str, Any]

@@ -236,6 +236,23 @@ class Whisper(ReplicateNode):
         return "Nvidia T4 (High-memory) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/a9253a5b-aa79-4df3-8aa1-09a6d044fdd6/Screen_Shot_2022-09-28_at_16.58.5.png",
+            "created_at": "2022-09-22T10:01:42.119733Z",
+            "description": "Convert speech in audio to text",
+            "github_url": "https://github.com/replicate/cog-whisper",
+            "license_url": "https://github.com/openai/whisper/blob/main/LICENSE",
+            "name": "whisper",
+            "owner": "openai",
+            "paper_url": "https://cdn.openai.com/papers/whisper.pdf",
+            "run_count": 6339499,
+            "url": "https://replicate.com/openai/whisper",
+            "visibility": "public",
+            "hardware": "Nvidia T4 (High-memory) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return str
 
@@ -320,6 +337,23 @@ class IncrediblyFastWhisper(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A40 (Large) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/a59dc78f-523f-4977-9856-e84479aec79b/insanely-fast-whisper-img.png",
+            "created_at": "2023-11-13T13:28:53.689979Z",
+            "description": "whisper-large-v3, incredibly fast, powered by Hugging Face Transformers! 🤗",
+            "github_url": "https://github.com/chenxwh/insanely-fast-whisper",
+            "license_url": "https://github.com/Vaibhavs10/insanely-fast-whisper/blob/main/LICENSE",
+            "name": "incredibly-fast-whisper",
+            "owner": "vaibhavs10",
+            "paper_url": None,
+            "run_count": 300039,
+            "url": "https://replicate.com/vaibhavs10/incredibly-fast-whisper",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
 
     @classmethod
     def return_type(cls):

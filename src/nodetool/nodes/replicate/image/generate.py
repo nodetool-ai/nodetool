@@ -30,6 +30,23 @@ class AdInpaint(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/3ZmtvTJWj3a0Al9XR7SSKqpAfLTZtrkM7t5KjLvz7Nqsv3pIA/ad_inpaint_3.jpg",
+            "created_at": "2023-04-03T11:25:28.290524Z",
+            "description": "Product advertising image generator",
+            "github_url": None,
+            "license_url": None,
+            "name": "ad-inpaint",
+            "owner": "logerzhu",
+            "paper_url": None,
+            "run_count": 356581,
+            "url": "https://replicate.com/logerzhu/ad-inpaint",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -88,6 +105,23 @@ class Proteus(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A40 (Large) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/3WJYR5U1mhJCHhWQKCKnr2ZifNcIeaAIBrZrZqijemJtZS1kA/out-0.png",
+            "created_at": "2024-02-26T19:01:05.593762Z",
+            "description": "ProteusV0.4: The Style Update",
+            "github_url": "https://github.com/lucataco/cog-proteus-v0.4",
+            "license_url": "https://huggingface.co/models?license=license%3Agpl-3.0",
+            "name": "proteus-v0.4",
+            "owner": "lucataco",
+            "paper_url": None,
+            "run_count": 28632,
+            "url": "https://replicate.com/lucataco/proteus-v0.4",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -214,6 +248,23 @@ class StableDiffusion(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/sWeZFZou6v3CPKuoJbqX46ugPaHT1DcsWYx0srPmGrMOCPYIA/out-0.png",
+            "created_at": "2022-08-22T21:37:08.396208Z",
+            "description": "A latent text-to-image diffusion model capable of generating photo-realistic images given any text input",
+            "github_url": "https://github.com/replicate/cog-stable-diffusion",
+            "license_url": "https://huggingface.co/spaces/CompVis/stable-diffusion-license",
+            "name": "stable-diffusion",
+            "owner": "stability-ai",
+            "paper_url": "https://arxiv.org/abs/2112.10752",
+            "run_count": 107780741,
+            "url": "https://replicate.com/stability-ai/stable-diffusion",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -276,6 +327,23 @@ class ControlnetRealisticVision(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/6SH5eZLRSZ3wXaq2mfQ6eNqen8Gc9dURnpfqym1Z14fa83UcE/output.png",
+            "created_at": "2023-05-19T03:51:16.901441Z",
+            "description": "controlnet 1.1 lineart x realistic-vision-v2.0 (updated to v5)",
+            "github_url": None,
+            "license_url": None,
+            "name": "controlnet-1.1-x-realistic-vision-v2.0",
+            "owner": "usamaehsan",
+            "paper_url": None,
+            "run_count": 3300824,
+            "url": "https://replicate.com/usamaehsan/controlnet-1.1-x-realistic-vision-v2.0",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -333,6 +401,23 @@ class StableDiffusionXL(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A40 (Large) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/61004930-fb88-4e09-9bd4-74fd8b4aa677/sdxl_cover.png",
+            "created_at": "2023-07-26T17:53:09.882651Z",
+            "description": "A text-to-image generative AI model that creates beautiful images",
+            "github_url": "https://github.com/replicate/cog-sdxl",
+            "license_url": "https://github.com/Stability-AI/generative-models/blob/main/model_licenses/LICENSE-SDXL1.0",
+            "name": "sdxl",
+            "owner": "stability-ai",
+            "paper_url": "https://arxiv.org/abs/2307.01952",
+            "run_count": 49276866,
+            "url": "https://replicate.com/stability-ai/sdxl",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -440,6 +525,23 @@ class Juggernaut_XL_V9(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/I2fZYRjmiKVpWCVhi9guAaUpXrZeLfM28fkjr7NYQyh5DVtJB/out-0.png",
+            "created_at": "2024-02-28T21:01:49.723331Z",
+            "description": "Juggernaut XL v9",
+            "github_url": "https://github.com/lucataco/cog-juggernaut-xl-v9",
+            "license_url": "https://github.com/Stability-AI/generative-models/blob/main/model_licenses/LICENSE-SDXL1.0",
+            "name": "juggernaut-xl-v9",
+            "owner": "lucataco",
+            "paper_url": None,
+            "run_count": 249202,
+            "url": "https://replicate.com/lucataco/juggernaut-xl-v9",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -504,6 +606,23 @@ class SDXL_Pixar(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A40 (Large) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/68125b17-60d7-4949-8984-0d50d736a623/out-0_5.png",
+            "created_at": "2023-10-21T10:32:49.911227Z",
+            "description": "Create Pixar poster easily with SDXL Pixar.",
+            "github_url": None,
+            "license_url": None,
+            "name": "sdxl-pixar",
+            "owner": "swartype",
+            "paper_url": None,
+            "run_count": 498411,
+            "url": "https://replicate.com/swartype/sdxl-pixar",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -606,6 +725,23 @@ class SDXL_Emoji(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/a3z81v5vwlKfLq1H5uBqpVmkHalOVup0jSLma9E2UaF3tawIA/out-0.png",
+            "created_at": "2023-09-04T09:18:11.028708Z",
+            "description": "An SDXL fine-tune based on Apple Emojis",
+            "github_url": None,
+            "license_url": None,
+            "name": "sdxl-emoji",
+            "owner": "fofr",
+            "paper_url": None,
+            "run_count": 4072333,
+            "url": "https://replicate.com/fofr/sdxl-emoji",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -704,6 +840,23 @@ class StableDiffusionInpainting(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A40 (Large) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/5uUmO34KUZKsAJkcc82gC17WZdJgrbtRpRebyLYo9EJGHqOJA/out-0.png",
+            "created_at": "2023-10-17T03:53:36.563598Z",
+            "description": "SDXL Inpainting developed by the HF Diffusers team",
+            "github_url": "https://github.com/lucataco/cog-sdxl-inpainting",
+            "license_url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md",
+            "name": "sdxl-inpainting",
+            "owner": "lucataco",
+            "paper_url": "https://huggingface.co/papers/2112.10752",
+            "run_count": 119654,
+            "url": "https://replicate.com/lucataco/sdxl-inpainting",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -813,6 +966,23 @@ class RealVisXLV3(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A40 (Large) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/mUtp8mKk8yI0EJ5olzsnpkeTbAcmy2OTEqnXXc8EFGLhhuEJA/out-0.png",
+            "created_at": "2024-01-05T14:05:27.681939Z",
+            "description": "RealVisXl V3 with multi-controlnet, lora loading, img2img, inpainting",
+            "github_url": "https://github.com/fofr/cog-realvisxl-3-multi-controlnet-lora",
+            "license_url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md",
+            "name": "realvisxl-v3-multi-controlnet-lora",
+            "owner": "fofr",
+            "paper_url": "https://huggingface.co/SG161222/RealVisXL_V3.0",
+            "run_count": 228067,
+            "url": "https://replicate.com/fofr/realvisxl-v3-multi-controlnet-lora",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -992,6 +1162,23 @@ class SDXL_Controlnet(ReplicateNode):
         return "Nvidia A40 GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/7edf6f87-bd0d-4a4f-9e11-d944bb07a3ea/output.png",
+            "created_at": "2023-08-14T07:15:37.417194Z",
+            "description": "SDXL ControlNet - Canny",
+            "github_url": "https://github.com/lucataco/cog-sdxl-controlnet",
+            "license_url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md",
+            "name": "sdxl-controlnet",
+            "owner": "lucataco",
+            "paper_url": None,
+            "run_count": 971116,
+            "url": "https://replicate.com/lucataco/sdxl-controlnet",
+            "visibility": "public",
+            "hardware": "Nvidia A40 GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -1093,6 +1280,23 @@ class SDXL_Ad_Inpaint(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://pbxt.replicate.delivery/ORbuWtoy0y6NI9f4DrJ2fxs92LgviBaOlzOVdYTr3pT8eKJjA/7-out.png",
+            "created_at": "2023-09-15T15:37:19.970710Z",
+            "description": "Product advertising image generator using SDXL",
+            "github_url": "https://github.com/CatacoLabs/cog-sdxl-ad-inpaint",
+            "license_url": "https://github.com/huggingface/hfapi/blob/master/LICENSE",
+            "name": "sdxl-ad-inpaint",
+            "owner": "catacolabs",
+            "paper_url": None,
+            "run_count": 147497,
+            "url": "https://replicate.com/catacolabs/sdxl-ad-inpaint",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -1163,6 +1367,23 @@ class Kandinsky(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/Lca3IEjcKoJBBVS6ajROkK37sDzPsmjYxIcFzxPZp65wZzTE/out-0.png",
+            "created_at": "2023-07-12T21:53:29.439515Z",
+            "description": "multilingual text2image latent diffusion model",
+            "github_url": "https://github.com/chenxwh/Kandinsky-2/tree/v2.2",
+            "license_url": "https://github.com/ai-forever/Kandinsky-2/blob/main/license",
+            "name": "kandinsky-2.2",
+            "owner": "ai-forever",
+            "paper_url": None,
+            "run_count": 8838741,
+            "url": "https://replicate.com/ai-forever/kandinsky-2.2",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -1223,6 +1444,23 @@ class StableDiffusionXLLightning(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A100 (40GB) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/dYdYGKKt04pHJ1kle3eStm3q4mfPiUFlQ5xGeM3mfboYbMPUC/out-0.png",
+            "created_at": "2024-02-21T07:36:15.534380Z",
+            "description": "SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality images in 4 steps",
+            "github_url": "https://github.com/lucataco/cog-sdxl-lightning-4step",
+            "license_url": "https://huggingface.co/ByteDance/SDXL-Lightning/blob/main/LICENSE.md",
+            "name": "sdxl-lightning-4step",
+            "owner": "bytedance",
+            "paper_url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_report.pdf",
+            "run_count": 19638763,
+            "url": "https://replicate.com/bytedance/sdxl-lightning-4step",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -1288,6 +1526,23 @@ class PlaygroundV2(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A100 (40GB) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/XAK4XRgpjYaCGRrm9yxzO2bacj4XTE1Nl6bwaXKOHKYApJoE/out-0.png",
+            "created_at": "2024-02-27T22:20:16.107222Z",
+            "description": "Playground v2.5 is the state-of-the-art open-source model in aesthetic quality",
+            "github_url": "https://github.com/lucataco/cog-playground-v2.5-1024px-aesthetic",
+            "license_url": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/blob/main/LICENSE.md",
+            "name": "playground-v2.5-1024px-aesthetic",
+            "owner": "playgroundai",
+            "paper_url": "https://arxiv.org/abs/2206.00364",
+            "run_count": 298872,
+            "url": "https://replicate.com/playgroundai/playground-v2.5-1024px-aesthetic",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -1382,6 +1637,23 @@ class Illusions(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A40 (Large) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/0mvORZpRyI4yH5wKdpHDtgqWqUGpsO5w0EcElf7g90eYXF1RA/output-0.png",
+            "created_at": "2023-11-03T17:24:31.993569Z",
+            "description": "Create illusions with img2img and masking support",
+            "github_url": "https://github.com/fofr/cog-illusion",
+            "license_url": None,
+            "name": "illusions",
+            "owner": "fofr",
+            "paper_url": None,
+            "run_count": 4707,
+            "url": "https://replicate.com/fofr/illusions",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
 
     @classmethod
     def return_type(cls):

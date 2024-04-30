@@ -15,6 +15,23 @@ class AudioSuperResolution(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/6bc4e480-6695-451b-940d-48a3b83a1356/replicate-prediction-jvi5xvlbg4v4.png",
+            "created_at": "2023-09-20T04:53:52.943393Z",
+            "description": "AudioSR: Versatile Audio Super-resolution at Scale",
+            "github_url": "https://github.com/haoheliu/versatile_audio_super_resolution",
+            "license_url": "https://huggingface.co/haoheliu/wellsolve_audio_super_resolution_48k/blob/main/README.md",
+            "name": "audio-super-resolution",
+            "owner": "nateraw",
+            "paper_url": "https://arxiv.org/abs/2309.07314",
+            "run_count": 36587,
+            "url": "https://replicate.com/nateraw/audio-super-resolution",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return AudioRef
 

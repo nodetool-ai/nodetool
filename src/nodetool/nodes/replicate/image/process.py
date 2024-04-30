@@ -15,6 +15,23 @@ class RemoveBackground(ReplicateNode):
         return "Nvidia A40 GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/2hczaMwD9xrsIR8h3Cl8iYGbHaCdFhIOMZ0LfoYfHlKuuIBQA/out.png",
+            "created_at": "2022-11-18T00:55:22.939155Z",
+            "description": "Remove images background",
+            "github_url": "https://github.com/chenxwh/rembg/tree/replicate",
+            "license_url": "https://github.com/danielgatis/rembg/blob/main/LICENSE.txt",
+            "name": "rembg",
+            "owner": "cjwbw",
+            "paper_url": None,
+            "run_count": 5271846,
+            "url": "https://replicate.com/cjwbw/rembg",
+            "visibility": "public",
+            "hardware": "Nvidia A40 GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -29,6 +46,23 @@ class ModNet(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia T4 GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/bb0ab3e4-5efa-446f-939a-23e78f2b82de/output.png",
+            "created_at": "2022-11-19T04:56:59.860128Z",
+            "description": "A deep learning approach to remove background & adding new background image",
+            "github_url": "https://github.com/pollinations/MODNet-BGRemover",
+            "license_url": None,
+            "name": "modnet",
+            "owner": "pollinations",
+            "paper_url": "https://arxiv.org/pdf/2011.11961.pdf",
+            "run_count": 518632,
+            "url": "https://replicate.com/pollinations/modnet",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
 
     @classmethod
     def return_type(cls):

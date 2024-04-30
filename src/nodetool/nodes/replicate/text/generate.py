@@ -15,6 +15,22 @@ class Llama3_8B(ReplicateNode):
         return "None"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/dd9ac11a-edda-4d33-b413-6a721c44dfb0/meta-logo.png",
+            "created_at": "2024-04-17T18:04:26.049832Z",
+            "description": "Base version of Llama 3, an 8 billion parameter language model from Meta.",
+            "github_url": "https://github.com/meta-llama/llama3",
+            "license_url": "https://github.com/meta-llama/llama3/blob/main/LICENSE",
+            "name": "meta-llama-3-8b",
+            "owner": "meta",
+            "paper_url": None,
+            "run_count": 1127292,
+            "url": "https://replicate.com/meta/meta-llama-3-8b",
+            "visibility": "public",
+        }
+
+    @classmethod
     def return_type(cls):
         return str
 
@@ -65,6 +81,22 @@ class Llama3_70B(ReplicateNode):
 
     def get_hardware(self):
         return "None"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/8e044b4c-0b20-4717-83bd-a94d89fb0dbe/meta-logo.png",
+            "created_at": "2024-04-17T18:05:18.044746Z",
+            "description": "Base version of Llama 3, a 70 billion parameter language model from Meta.",
+            "github_url": None,
+            "license_url": "https://github.com/meta-llama/llama3/blob/main/LICENSE",
+            "name": "meta-llama-3-70b",
+            "owner": "meta",
+            "paper_url": None,
+            "run_count": 19731,
+            "url": "https://replicate.com/meta/meta-llama-3-70b",
+            "visibility": "public",
+        }
 
     @classmethod
     def return_type(cls):
@@ -119,6 +151,22 @@ class Llama3_8B_Instruct(ReplicateNode):
         return "None"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/927d3fce-75e3-4af9-92da-f537bc34072a/meta-logo.png",
+            "created_at": "2024-04-17T21:44:58.480057Z",
+            "description": "An 8 billion parameter language model from Meta, fine tuned for chat completions",
+            "github_url": "https://github.com/meta-llama/llama3",
+            "license_url": "https://github.com/meta-llama/llama3/blob/main/LICENSE",
+            "name": "meta-llama-3-8b-instruct",
+            "owner": "meta",
+            "paper_url": None,
+            "run_count": 533038,
+            "url": "https://replicate.com/meta/meta-llama-3-8b-instruct",
+            "visibility": "public",
+        }
+
+    @classmethod
     def return_type(cls):
         return str
 
@@ -169,6 +217,22 @@ class Llama3_70B_Instruct(ReplicateNode):
 
     def get_hardware(self):
         return "None"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/12ed0c29-9236-4a21-ac5a-7faff3045ab1/meta-logo.png",
+            "created_at": "2024-04-17T21:44:13.482460Z",
+            "description": "A 70 billion parameter language model from Meta, fine tuned for chat completions",
+            "github_url": "https://github.com/meta-llama/llama3",
+            "license_url": "https://github.com/meta-llama/llama3/blob/main/LICENSE",
+            "name": "meta-llama-3-70b-instruct",
+            "owner": "meta",
+            "paper_url": None,
+            "run_count": 5784394,
+            "url": "https://replicate.com/meta/meta-llama-3-70b-instruct",
+            "visibility": "public",
+        }
 
     @classmethod
     def return_type(cls):

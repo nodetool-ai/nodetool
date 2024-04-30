@@ -15,6 +15,23 @@ class TextExtractOCR(ReplicateNode):
         return "CPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/9d31603c-2266-4705-9d2d-01b4f6bff653/IM0077782.png",
+            "created_at": "2023-10-19T13:20:00.740943Z",
+            "description": "A simple OCR Model that can easily extract text from an image.",
+            "github_url": None,
+            "license_url": None,
+            "name": "text-extract-ocr",
+            "owner": "abiruyt",
+            "paper_url": None,
+            "run_count": 17244350,
+            "url": "https://replicate.com/abiruyt/text-extract-ocr",
+            "visibility": "public",
+            "hardware": "CPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return str
 
@@ -29,6 +46,23 @@ class LatexOCR(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia T4 GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/980ae6b5-4ab8-417a-8148-b244f4ae0493/latex.png",
+            "created_at": "2023-11-06T10:13:47.198885Z",
+            "description": "Optical character recognition to turn images of latex equations into latex format.",
+            "github_url": "https://github.com/mickeybeurskens/LaTeX-OCR",
+            "license_url": "https://github.com/mickeybeurskens/LaTeX-OCR/blob/main/LICENSE",
+            "name": "latex-ocr",
+            "owner": "mickeybeurskens",
+            "paper_url": None,
+            "run_count": 467,
+            "url": "https://replicate.com/mickeybeurskens/latex-ocr",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
 
     @classmethod
     def return_type(cls):

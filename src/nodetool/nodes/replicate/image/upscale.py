@@ -15,6 +15,23 @@ class RealEsrGan(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/90563818-e1bc-4585-a626-62b5ab5ff22d/ApplicationFrameHost_3Bs5DdjGnX.png",
+            "created_at": "2022-06-22T01:08:15.680509Z",
+            "description": "Real-ESRGAN with optional face correction and adjustable upscale",
+            "github_url": "https://github.com/NightmareAI/Real-ESRGAN",
+            "license_url": "https://github.com/NightmareAI/Real-ESRGAN/blob/master/LICENSE",
+            "name": "real-esrgan",
+            "owner": "nightmareai",
+            "paper_url": None,
+            "run_count": 42537712,
+            "url": "https://replicate.com/nightmareai/real-esrgan",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -122,6 +139,23 @@ class ClarityUpscaler(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/76fbe6df-517d-480a-a6e4-dce383b40bbb/Bildschirmfoto_2024-03-30_um_09.2.png",
+            "created_at": "2024-03-15T02:35:32.167345Z",
+            "description": "High resolution image Upscaler and Enhancer. Use at ClarityAI.cc. A free Magnific alternative. Twitter/X: @philz1337x",
+            "github_url": "https://github.com/philz1337x/clarity-upscaler",
+            "license_url": "https://github.com/philz1337x/clarity-upscaler/blob/main/LICENSE.txt",
+            "name": "clarity-upscaler",
+            "owner": "philz1337x",
+            "paper_url": "https://clarityai.cc",
+            "run_count": 873564,
+            "url": "https://replicate.com/philz1337x/clarity-upscaler",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -215,6 +249,23 @@ class MagicImageRefiner(ReplicateNode):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/H3ZmqoAgsBonKFilPafiEsvYsc2FnjD8EW3vMt6KpkYfd0ISA/out-0.png",
+            "created_at": "2024-01-03T16:55:24.594128Z",
+            "description": "A better alternative to SDXL refiners, providing a lot of quality and detail. Can also be used for inpainting or upscaling.",
+            "github_url": "https://github.com/BatouResearch/magic-image-refiner",
+            "license_url": None,
+            "name": "magic-image-refiner",
+            "owner": "batouresearch",
+            "paper_url": None,
+            "run_count": 517166,
+            "url": "https://replicate.com/batouresearch/magic-image-refiner",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -286,6 +337,23 @@ class ruDallE_SR(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/mgxm/588170af-559f-454e-967d-8fb6c7f8304b/out.png",
+            "created_at": "2021-11-04T18:36:03.485750Z",
+            "description": "Real-ESRGAN super-resolution model from ruDALL-E",
+            "github_url": "https://github.com/CJWBW/rudalle-sr",
+            "license_url": "https://github.com/chenxwh/rudalle-sr/blob/main/LICENSE.txt",
+            "name": "rudalle-sr",
+            "owner": "cjwbw",
+            "paper_url": "https://arxiv.org/abs/2107.10833",
+            "run_count": 464731,
+            "url": "https://replicate.com/cjwbw/rudalle-sr",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -301,6 +369,23 @@ class HighResolutionControlNetTile(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A100 (80GB) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/8Reu1zg6zAV6GShu5yiyP0ueFch9EddJPlVfIxyiMLWBlwJkA/out-0.png",
+            "created_at": "2023-12-08T02:32:38.082772Z",
+            "description": "Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.",
+            "github_url": "https://github.com/BatouResearch/controlnet-tile-upscale",
+            "license_url": None,
+            "name": "high-resolution-controlnet-tile",
+            "owner": "batouresearch",
+            "paper_url": None,
+            "run_count": 298038,
+            "url": "https://replicate.com/batouresearch/high-resolution-controlnet-tile",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (80GB) GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -409,6 +494,23 @@ class UltimateSDUpscale(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/ec52df9a-be01-4c74-af9d-a14df03bf03a/output.png",
+            "created_at": "2023-11-14T08:41:40.364739Z",
+            "description": "Ultimate SD Upscale with ControlNet Tile",
+            "github_url": "https://github.com/fewjative/cog-ultimate-sd-upscale",
+            "license_url": None,
+            "name": "ultimate-sd-upscale",
+            "owner": "fewjative",
+            "paper_url": None,
+            "run_count": 93784,
+            "url": "https://replicate.com/fewjative/ultimate-sd-upscale",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -490,6 +592,23 @@ class SwinIR(ReplicateNode):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/mgxm/1e3c0b87-01a7-4795-abac-aaf17479cf84/out.png",
+            "created_at": "2021-09-13T19:58:55.156216Z",
+            "description": "Image Restoration Using Swin Transformer",
+            "github_url": "https://github.com/JingyunLiang/SwinIR",
+            "license_url": "https://github.com/JingyunLiang/SwinIR/blob/main/LICENSE",
+            "name": "swinir",
+            "owner": "jingyunliang",
+            "paper_url": "https://arxiv.org/abs/2108.10257",
+            "run_count": 5597357,
+            "url": "https://replicate.com/jingyunliang/swinir",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -522,6 +641,23 @@ class Swin2SR(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia T4 GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/aabde67b-bf5c-4fc8-a4bd-8b2dcba60be6/swin2sr-cover3.png",
+            "created_at": "2022-10-28T22:59:05.692845Z",
+            "description": "3 Million Runs! AI Photorealistic Image Super-Resolution and Restoration",
+            "github_url": "https://github.com/mv-lab/swin2sr",
+            "license_url": "https://github.com/mv-lab/swin2sr/blob/main/LICENSE",
+            "name": "swin2sr",
+            "owner": "mv-lab",
+            "paper_url": "https://arxiv.org/abs/2209.11345",
+            "run_count": 3480904,
+            "url": "https://replicate.com/mv-lab/swin2sr",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
 
     @classmethod
     def return_type(cls):

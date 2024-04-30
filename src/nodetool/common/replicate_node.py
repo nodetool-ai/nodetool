@@ -1,3 +1,4 @@
+from time import sleep
 from typing import Any, Type
 
 import os
@@ -28,6 +29,10 @@ from nodetool.workflows.types import NodeUpdate
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from replicate.prediction import Prediction as ReplicatePrediction
+import httpx
+import asyncio
+from typing import Any, Type
+import os
 
 
 log = Environment.get_logger()
@@ -218,33 +223,6 @@ def calculate_cost(hardware: str, duration: float):
         return total_price
     else:
         raise ValueError(f"Unsupported hardware: {hardware}")
-
-
-MODEL_VERSIONS = {}
-
-
-def get_model_version(model: str) -> str:
-    version = MODEL_VERSIONS.get(model, None)
-    if version:
-        return version
-
-    headers = {
-        "Authorization": "Token " + Environment.get_replicate_api_token(),
-    }
-
-    res = httpx.get(
-        f"https://api.replicate.com/v1/models/{model}/versions",
-        headers=headers,
-    )
-    res.raise_for_status()
-    data = res.json()
-    model_version = data["results"][0]["id"]
-
-    assert model_version, "Model version not found"
-
-    MODEL_VERSIONS[model] = model_version
-
-    return model_version
 
 
 async def run_replicate(
@@ -550,6 +528,7 @@ def default_for(datatype: DataType | list[DataType] | None) -> Any:
 
 def generate_model_source_code(
     model_name: str,
+    model_info: dict[str, Any],
     description: str,
     schema: Schema,
     type_lookup: dict[str, type],
@@ -565,6 +544,7 @@ def generate_model_source_code(
 
     Args:
         model_name (str): The class name of the model.
+        model_info (dict[str, Any]): The model information.
         description (str): Description of the model.
         schema (Schema): The schema object.
         type_lookup (Dict[str, Type]): Mapping of type names to Python types.
@@ -593,6 +573,8 @@ def generate_model_source_code(
         "",
         f"    def replicate_model_id(self): return '{replicate_model_id}'",
         f"    def get_hardware(self): return '{hardware}'",
+        "    @classmethod",
+        f"    def model_info(cls): return {repr(model_info)}",
     ]
     if return_type:
         lines += [
@@ -604,7 +586,7 @@ def generate_model_source_code(
         lines.append(f"   def output_index(self): return {output_index}")
 
     if output_key != "output":
-        lines.append(f"   def output_key(self): return '{output_key}'")
+        lines.append(f"    def output_key(self): return '{output_key}'")
 
     lines.append("\n")
 
@@ -687,8 +669,36 @@ def parse_model_info(url: str):
         return {}
 
 
+def retry_http_request(url: str, headers: dict[str, str], retries: int = 3) -> Any:
+    """
+    Retry an HTTP request with exponential backoff.
+
+    Args:
+        url (str): The URL to make the request to.
+        headers (dict[str, str]): The headers to include in the request.
+        retries (int, optional): The number of retries. Defaults to 3.
+
+    Returns:
+        Any: The response data.
+
+    Raises:
+        httpx.RequestError: If the request fails after all retries.
+    """
+    for attempt in range(retries + 1):
+        try:
+            response = httpx.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except (httpx.RequestError, httpx.HTTPStatusError) as e:
+            if attempt < retries:
+                delay = 2**attempt
+                sleep(delay)
+            else:
+                raise e
+
+
 def get_model_api(
-    model_id: str, model_version: str | None = None
+    model_id: str,
 ) -> tuple[OpenAPIv3, str, str, dict[str, Any]]:
     """
     Retrieves the API specification for a specific model and version from the Replicate API.
@@ -707,34 +717,14 @@ def get_model_api(
     }
 
     log.info("Getting model API: %s", model_id)
-    res = httpx.get(
+    model_info = retry_http_request(
         f"https://api.replicate.com/v1/models/{model_id}",
         headers=headers,
     )
-    res.raise_for_status()
-    model_info = res.json()
     model_info.update(parse_model_info(f"https://replicate.com/{model_id}"))
-
-    if model_version is None:
-        res = httpx.get(
-            f"https://api.replicate.com/v1/models/{model_id}/versions",
-            headers=headers,
-        )
-        res.raise_for_status()
-        data = res.json()
-        schema = data["results"][0]["openapi_schema"]
-        api = parse_obj(schema)
-        model_version = data["results"][0]["id"]
-        assert model_version, "Model version not found"
-    else:
-        res = httpx.get(
-            f"https://api.replicate.com/v1/models/{model_id}/versions/{model_version}",
-            headers=headers,
-        )
-        res.raise_for_status()
-        data = res.json()
-        schema = data["openapi_schema"]
-        api = parse_obj(schema)
+    latest_version = model_info["latest_version"]
+    api = parse_obj(latest_version["openapi_schema"])
+    model_version = latest_version.get("id", "")
 
     return api, model_id, model_version, model_info
 
@@ -748,7 +738,6 @@ def replicate_node(
     namespace: str,
     model_id: str,
     return_type: Type,
-    model_version: str | None = None,
     overrides: dict[str, type] = {},
     output_index: int = 0,
     output_key: str = "output",
@@ -780,7 +769,7 @@ def replicate_node(
     if not namespace in enums_by_namespace:
         enums_by_namespace[namespace] = set()
 
-    api, model_id, model_version, model_info = get_model_api(model_id, model_version)
+    api, model_id, model_version, model_info = get_model_api(model_id)
 
     assert api.components
     assert api.components.schemas
@@ -807,8 +796,12 @@ def replicate_node(
                 source_code += create_enum_from_schema(capitalized_name, schema)  # type: ignore
                 enums_by_namespace[namespace].add(name)
 
+    del model_info["default_example"]
+    del model_info["latest_version"]
+
     source_code += generate_model_source_code(
         model_name=node_name,
+        model_info=model_info,
         description=model_info.get("description", ""),
         schema=api.components.schemas["Input"],  # type: ignore
         type_lookup=type_lookup,

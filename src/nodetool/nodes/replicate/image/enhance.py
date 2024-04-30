@@ -29,6 +29,23 @@ class Maxim(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/mgxm/716ffa94-41f7-46b4-a2f0-287f0e907f9c/output.png",
+            "created_at": "2022-04-20T16:32:30.049391Z",
+            "description": "Multi-Axis MLP for Image Processing",
+            "github_url": "https://github.com/google-research/maxim",
+            "license_url": "https://github.com/google-research/maxim/blob/main/LICENSE",
+            "name": "maxim",
+            "owner": "google-research",
+            "paper_url": "https://arxiv.org/abs/2201.02973",
+            "run_count": 406317,
+            "url": "https://replicate.com/google-research/maxim",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return ImageRef
 
@@ -44,6 +61,23 @@ class OldPhotosRestoration(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia T4 GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/mgxm/18b02ad9-ae81-4044-800e-65732df6bdc7/out.png",
+            "created_at": "2021-09-11T14:44:30.681818Z",
+            "description": "Bringing Old Photos Back to Life",
+            "github_url": "https://github.com/microsoft/Bringing-Old-Photos-Back-to-Life",
+            "license_url": "https://github.com/microsoft/Bringing-Old-Photos-Back-to-Life/blob/master/LICENSE",
+            "name": "bringing-old-photos-back-to-life",
+            "owner": "microsoft",
+            "paper_url": "https://arxiv.org/abs/2004.09484",
+            "run_count": 852778,
+            "url": "https://replicate.com/microsoft/bringing-old-photos-back-to-life",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -70,6 +104,23 @@ class CodeFormer(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A40 (Large) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/cf736d61-411f-4301-89b3-16aff1a02ed1/codeformer_logo.png",
+            "created_at": "2023-09-06T04:10:50.158696Z",
+            "description": "Robust face restoration algorithm for old photos/AI-generated faces - (A40 GPU)",
+            "github_url": "https://github.com/sczhou/CodeFormer",
+            "license_url": "https://github.com/sczhou/CodeFormer/blob/master/LICENSE",
+            "name": "codeformer",
+            "owner": "lucataco",
+            "paper_url": "https://arxiv.org/abs/2206.11253",
+            "run_count": 275732,
+            "url": "https://replicate.com/lucataco/codeformer",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
 
     @classmethod
     def return_type(cls):

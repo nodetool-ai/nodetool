@@ -45,6 +45,23 @@ class RealisticVoiceCloning(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/7a110507-8a38-4fcb-8826-61aec80309cb/Out_0_1024x1024.png",
+            "created_at": "2023-11-09T16:32:42.062982Z",
+            "description": "Create song covers with any RVC v2 trained AI voice from audio files.",
+            "github_url": "https://github.com/zsxkib/AICoverGen.git",
+            "license_url": "https://github.com/SociallyIneptWeeb/AICoverGen/blob/main/LICENSE",
+            "name": "realistic-voice-cloning",
+            "owner": "zsxkib",
+            "paper_url": None,
+            "run_count": 152189,
+            "url": "https://replicate.com/zsxkib/realistic-voice-cloning",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return AudioRef
 
@@ -177,6 +194,23 @@ class Riffusion(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia T4 GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/4f67b4e2-4df3-4ce9-9b80-00bbf5a186d8/riffusion.gif",
+            "created_at": "2022-12-16T07:31:34.983811Z",
+            "description": "Stable diffusion for real-time music generation",
+            "github_url": "https://github.com/riffusion/riffusion",
+            "license_url": "https://github.com/riffusion/riffusion/blob/main/LICENSE",
+            "name": "riffusion",
+            "owner": "riffusion",
+            "paper_url": "https://www.riffusion.com/about",
+            "run_count": 903456,
+            "url": "https://replicate.com/riffusion/riffusion",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
 
     @classmethod
     def return_type(cls):
@@ -364,6 +398,23 @@ class Bark(ReplicateNode):
         return "Nvidia T4 GPU"
 
     @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/9fbbe7c2-beb0-4caa-bd59-647dd7eeee6b/fofr_dog.jpg",
+            "created_at": "2023-04-25T20:56:39.740033Z",
+            "description": "🔊 Text-Prompted Generative Audio Model",
+            "github_url": "https://github.com/chenxwh/bark",
+            "license_url": "https://github.com/suno-ai/bark/blob/main/LICENSE",
+            "name": "bark",
+            "owner": "suno-ai",
+            "paper_url": None,
+            "run_count": 224454,
+            "url": "https://replicate.com/suno-ai/bark",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
+
+    @classmethod
     def return_type(cls):
         return AudioRef
 
@@ -423,6 +474,23 @@ class MusicGen(ReplicateNode):
 
     def get_hardware(self):
         return "Nvidia A100 (40GB) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/e3d6b391-571b-4e24-8531-936a0fee9fba/musicgen.jpeg",
+            "created_at": "2023-06-12T19:22:05.525230Z",
+            "description": "Generate music from a prompt or melody",
+            "github_url": "https://github.com/replicate/cog-musicgen",
+            "license_url": "https://github.com/facebookresearch/audiocraft/blob/main/LICENSE_weights",
+            "name": "musicgen",
+            "owner": "meta",
+            "paper_url": "https://arxiv.org/abs/2306.05284",
+            "run_count": 1599025,
+            "url": "https://replicate.com/meta/musicgen",
+            "visibility": "public",
+            "hardware": "Nvidia A100 (40GB) GPU",
+        }
 
     @classmethod
     def return_type(cls):
