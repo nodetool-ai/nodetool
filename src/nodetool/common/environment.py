@@ -62,6 +62,7 @@ DEFAULT_ENV = {
     "LOG_LEVEL": "INFO",
     "REMOTE_AUTH": "0",
     "DEBUG": None,
+    "USE_NGROK": None,
     "AWS_REGION": "us-east-1",
     "NODETOOL_API_URL": "http://localhost:8000/api",
 }
@@ -335,7 +336,7 @@ class Environment(object):
     @classmethod
     def use_remote_auth(cls):
         """
-        A single local user with id 1 is used for authentication when this evaluates to True.
+        A single local user with id 1 is used for authentication when this evaluates to False.
         """
         return cls.is_production() or cls.get("REMOTE_AUTH") == "1"
 
@@ -400,7 +401,7 @@ class Environment(object):
         """
         The database adapter is the adapter that we use to connect to the database.
         """
-        if cls.is_production():
+        if cls.get_dynamo_endpoint() is not None:
             from nodetool.models.dynamo_adapter import DynamoAdapter
 
             return DynamoAdapter(
@@ -533,7 +534,7 @@ class Environment(object):
     def get_chroma_settings(cls):
         from chromadb.config import Settings
 
-        if cls.is_production():
+        if cls.get_chroma_url() is not None:
             return Settings(
                 chroma_api_impl="chromadb.api.fastapi.FastAPI",
                 chroma_client_auth_provider="token",
@@ -733,7 +734,7 @@ class Environment(object):
             return [m.name for m in cls.get_function_models()]
         elif folder == "llama_model":
             return [m.name for m in cls.get_llama_models()]
-        elif cls.is_production():
+        elif len(cls.model_files) > 0:
             return cls.model_files.get(folder, [])
         else:
             import comfy.folder_paths
@@ -781,6 +782,13 @@ class Environment(object):
         The ngrok token is the token of the ngrok server.
         """
         return cls.get("NGROK_TOKEN")
+
+    @classmethod
+    def get_use_ngrok(cls):
+        """
+        The use ngrok flag is the flag that determines if we use ngrok.
+        """
+        return cls.get("USE_NGROK")
 
     @classmethod
     def get_api_tunnel_url(cls):
@@ -845,7 +853,7 @@ class Environment(object):
         """
         Get the storage adapter for assets.
         """
-        if cls.is_production() or cls.get_s3_endpoint_url() is not None or use_s3:
+        if cls.get_s3_endpoint_url() is not None or use_s3:
             cls.get_logger().info(f"Using S3 for asset storage")
             return cls.get_s3_service(cls.get_asset_bucket())
         else:
@@ -874,7 +882,7 @@ class Environment(object):
         """
         Get the storage adapter for temporary files.
         """
-        if cls.is_production() or cls.get_s3_endpoint_url() is not None or use_s3:
+        if cls.get_s3_endpoint_url() is not None or use_s3:
             cls.get_logger().info(f"Using S3 for temp storage")
             return cls.get_s3_service(cls.get_temp_bucket())
         else:

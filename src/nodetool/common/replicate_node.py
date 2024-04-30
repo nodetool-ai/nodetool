@@ -321,6 +321,11 @@ async def run_replicate(
             status=replicate_pred.status,
             logs=replicate_pred.logs,
         )
+        if replicate_pred.status in ("failed", "canceled"):
+            if replicate_pred.error:
+                raise ValueError(replicate_pred.error)
+            else:
+                raise ValueError("Prediction failed")
 
         if replicate_pred.status in ("succeeded", "failed", "canceled"):
             break

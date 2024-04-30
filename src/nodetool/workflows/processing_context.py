@@ -909,7 +909,7 @@ class ProcessingContext:
         if req.env is None:
             req.env = {}
 
-        if not Environment.is_production():
+        if Environment.get_use_ngrok():
             api_tunnel_url = Environment.get_api_tunnel_url()
             req.env["NODETOOL_API_URL"] = api_tunnel_url
             req.env["S3_ENDPOINT_URL"] = f"{api_tunnel_url}/storage"
@@ -955,7 +955,7 @@ class ProcessingContext:
 
         settings = Environment.get_chroma_settings()
 
-        if Environment.is_production():
+        if Environment.get_chroma_url():
             admin = chromadb.AdminClient()
             tenant = f"tenant_{self.user_id}"
             try:
