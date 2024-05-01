@@ -6,7 +6,7 @@ from pydantic import Field, validator
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageTensor, Mask
-from nodetool.nodes.comfy import ComfyNode
+from nodetool.common.comfy_node import ComfyNode
 
 
 class ImageCompositeMasked(ComfyNode):

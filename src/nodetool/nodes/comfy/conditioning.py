@@ -15,7 +15,8 @@ from nodetool.metadata.types import (
     UNet,
     VAEFile,
 )
-from nodetool.nodes.comfy import MAX_RESOLUTION, ComfyNode
+from nodetool.common.comfy_node import MAX_RESOLUTION
+from nodetool.common.comfy_node import ComfyNode
 
 
 class CLIPTextEncode(ComfyNode):

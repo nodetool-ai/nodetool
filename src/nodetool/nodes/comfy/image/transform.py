@@ -1,6 +1,6 @@
 from pydantic import Field
 from nodetool.metadata.types import ImageTensor
-from nodetool.nodes.comfy import ComfyNode
+from nodetool.common.comfy_node import ComfyNode
 
 
 class ImageCrop(ComfyNode):

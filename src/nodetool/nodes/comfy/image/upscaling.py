@@ -1,7 +1,7 @@
 from enum import Enum
 from pydantic import Field, validator
 from nodetool.metadata.types import ImageTensor, UpscaleModel
-from nodetool.nodes.comfy import ComfyNode
+from nodetool.common.comfy_node import ComfyNode
 
 
 class CropMethod(str, Enum):

@@ -75,22 +75,23 @@ def create_app(
     return app
 
 
-def run_uvicorn_server(app: str, host: str, port: int) -> None:
+def run_uvicorn_server(app: str, host: str, port: int, reload: bool) -> None:
     """
     Starts api using Uvicorn with the specified configuration.
 
-    Parameters:
-    - host: The host address on which to run the Uvicorn server.
-    - port: The port number on which to run the Uvicorn server.
+    Args:
+        app: The app to run.
+        host: The host to run on.
+        port: The port to run on.
+        reload: Whether to reload the server on changes.
     """
     current_dir = os.path.dirname(os.path.realpath(__file__))
     parent_dir = os.path.dirname(current_dir)
-    reload = not Environment.is_production()
     uvicorn(
         app=app,
         host=host,
         port=port,
         reload=reload,
         reload_dirs=[parent_dir] if reload else None,
-        reload_includes=["*.py", "*.yaml", "*.json"] if reload else None,
+        reload_includes=["*.py"] if reload else None,
     )

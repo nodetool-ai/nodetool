@@ -1,5 +1,5 @@
 from pydantic import Field
-from nodetool.nodes.comfy import ComfyNode
+from nodetool.common.comfy_node import ComfyNode
 
 
 class EmptyImage(ComfyNode):

@@ -1,5 +1,5 @@
 from pydantic import Field
-from nodetool.nodes.huggingface import HuggingfaceNode
+from nodetool.common.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 from enum import Enum
 

@@ -2,7 +2,7 @@ from base64 import b64decode
 import PIL.Image
 from io import BytesIO
 from nodetool.common.environment import Environment
-from nodetool.nodes.openai import calculate_cost
+from nodetool.common.openai_nodes import calculate_cost
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode

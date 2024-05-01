@@ -1,7 +1,8 @@
 from enum import Enum
 from pydantic import Field
 from nodetool.metadata.types import VAE, ImageTensor, Latent, Mask
-from nodetool.nodes.comfy import MAX_RESOLUTION, ComfyNode
+from nodetool.common.comfy_node import MAX_RESOLUTION
+from nodetool.common.comfy_node import ComfyNode
 
 
 class LatentCompositeMasked(ComfyNode):

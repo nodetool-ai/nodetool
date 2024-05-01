@@ -7,6 +7,8 @@ import dotenv
 # silence warnings on the command line
 import warnings
 
+from nodetool.workflows.base_node import get_registered_node_classes
+
 warnings.filterwarnings("ignore")
 
 env_file = dotenv.find_dotenv(usecwd=True)
@@ -41,6 +43,7 @@ def setup():
 )
 @click.option("--skip-setup", is_flag=True, help="Skip the setup process.")
 @click.option("--force-fp16", is_flag=True, help="Force FP16.")
+@click.option("--reload", is_flag=True, help="Reload the server on changes.")
 @click.option(
     "--remote-auth",
     is_flag=True,
@@ -50,12 +53,12 @@ def serve(
     host: str,
     port: int,
     static_folder: str | None = None,
+    reload: bool = False,
     skip_setup: bool = False,
     force_fp16: bool = False,
     remote_auth: bool = False,
 ):
     """Serve the Nodetool API server."""
-    import nodetool.nodes
     import llama_cpp
 
     llama_cpp.llama_backend_init()
@@ -76,7 +79,9 @@ def serve(
 
     Environment.set_remote_auth(remote_auth)
 
-    run_uvicorn_server("nodetool.api.app:app", host, port)
+    app = "nodetool.api.dev_app:app"
+
+    run_uvicorn_server(app=app, host=host, port=port, reload=reload)
 
 
 @click.command()
@@ -84,7 +89,13 @@ def serve(
 def run(workflow_file: str):
     """Run a workflow from a file."""
 
-    import nodetool.nodes
+    # TODO: only import modules referenced in worflow
+    import nodetool.nodes.comfy
+    import nodetool.nodes.huggingface
+    import nodetool.nodes.nodetool
+    import nodetool.nodes.openai
+    import nodetool.nodes.replicate
+
     from nodetool.workflows.run_workflow import run_workflow
     from nodetool.workflows.run_job_request import RunJobRequest
     from nodetool.workflows.read_graph import read_graph

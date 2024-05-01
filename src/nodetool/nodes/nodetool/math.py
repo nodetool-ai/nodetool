@@ -1,12 +1,10 @@
-import os
-from typing import Literal, Tuple
+from typing import Tuple
 import numpy as np
-from pydantic import Field, validator
+from pydantic import Field
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import to_numpy
 from nodetool.metadata.types import Tensor
-from nodetool.workflows.workflow_node import WorkflowNode
 
 
 def pad_arrays(a: np.ndarray, b: np.ndarray) -> Tuple[(np.ndarray, np.ndarray)]:

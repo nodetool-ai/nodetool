@@ -1,6 +1,7 @@
 from pydantic import Field
 from nodetool.metadata.types import Conditioning, ControlNet, ImageTensor
-from nodetool.nodes.comfy import MAX_RESOLUTION, ComfyNode
+from nodetool.common.comfy_node import MAX_RESOLUTION
+from nodetool.common.comfy_node import ComfyNode
 
 
 class PreprocessImage(ComfyNode):

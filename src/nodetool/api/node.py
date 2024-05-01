@@ -6,15 +6,19 @@ from nodetool.api.types.job import (
 )
 from nodetool.api.types.prediction import Prediction
 from nodetool.metadata.node_metadata import NodeMetadata
-from nodetool.metadata.types import AssetRef, NodeRef, WorkflowRef
-from nodetool.metadata.types import AudioRef
-from nodetool.metadata.types import DataFrame
-from nodetool.metadata.types import FolderRef
-from nodetool.metadata.types import ImageRef
-from nodetool.metadata.types import ModelRef
-from nodetool.metadata.types import Tensor
-from nodetool.metadata.types import TextRef
-from nodetool.metadata.types import VideoRef
+from nodetool.metadata.types import (
+    AssetRef,
+    NodeRef,
+    WorkflowRef,
+    AudioRef,
+    DataFrame,
+    FolderRef,
+    ImageRef,
+    ModelRef,
+    Tensor,
+    TextRef,
+    VideoRef,
+)
 from nodetool.workflows.base_node import get_registered_node_classes
 from nodetool.workflows.types import (
     WorkflowUpdate,
@@ -27,7 +31,6 @@ from nodetool.metadata.types import (
     ThreadMessage,
 )
 from nodetool.workflows.types import MessageList, NodeProgress, NodeUpdate
-
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/nodes", tags=["nodes"])

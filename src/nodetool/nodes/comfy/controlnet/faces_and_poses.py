@@ -2,8 +2,9 @@ from enum import Enum
 
 from pydantic import Field
 from nodetool.metadata.types import ImageTensor
-from nodetool.nodes.comfy import ComfyNode, DensePoseModel, EnableDisable
+from nodetool.common.comfy_node import DensePoseModel
 
+from nodetool.common.comfy_node import ComfyNode, EnableDisable
 from nodetool.nodes.comfy.controlnet import PreprocessImage
 
 

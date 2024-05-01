@@ -1,7 +1,8 @@
 from enum import Enum
 from pydantic import Field
 from nodetool.metadata.types import Conditioning, Latent, UNet
-from nodetool.nodes.comfy import ComfyNode, EnableDisable
+from nodetool.common.comfy_node import EnableDisable
+from nodetool.common.comfy_node import ComfyNode
 
 
 class SamplerEnum(str, Enum):

@@ -15,7 +15,7 @@ from nodetool.metadata.types import (
     UpscaleModelFile,
     unCLIPFile,
 )
-from nodetool.nodes.comfy import ComfyNode
+from nodetool.common.comfy_node import ComfyNode
 
 
 class CheckpointLoaderSimple(ComfyNode):

@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import Field
-from nodetool.nodes.comfy import EnableDisable
+from nodetool.common.comfy_node import EnableDisable
 
 from nodetool.nodes.comfy.controlnet import PreprocessImage
 

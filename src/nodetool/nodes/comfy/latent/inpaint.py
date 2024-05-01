@@ -1,6 +1,6 @@
 from pydantic import Field
 from nodetool.metadata.types import Latent, Mask
-from nodetool.nodes.comfy import ComfyNode
+from nodetool.common.comfy_node import ComfyNode
 
 
 class SetLatentNoiseMask(ComfyNode):

@@ -1,76 +1,32 @@
-from enum import Enum
-import enum
-from typing import Any
-from pydantic import Field
-from nodetool.metadata import is_assignable
-
-from nodetool.workflows.base_node import BaseNode
-from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import ModelFile
-
-
-MAX_RESOLUTION = 8192
-
-
-class EnableDisable(str, Enum):
-    ENABLE = "enable"
-    DISABLE = "disable"
-
-
-class DensePoseModel(str, Enum):
-    DENSEPOSE_R50_FPN_DL = "densepose_r50_fpn_dl.torchscript"
-    DENSEPOSE_R101_FPN_DL = "densepose_r101_fpn_dl.torchscript"
-
-
-class ComfyNode(BaseNode):
-    comfy_class: str = Field("", description="The comfy class wrapped by this node.")
-    requires_capabilities: list[str] = ["comfy"]
-
-    def assign_property(self, name: str, value: Any):
-        """
-        Sets the value of a property.
-        """
-        prop = self.find_property(name)
-
-        if not is_assignable(prop.type, value):
-            raise ValueError(
-                f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
-            )
-
-        setattr(self, name, value)
-
-    async def process(self, context: ProcessingContext):
-        from comfy.nodes import NODE_CLASS_MAPPINGS as mappings  # type: ignore
-
-        name = self.comfy_class if self.comfy_class != "" else self.__class__.__name__
-
-        if name in mappings:
-            node_class = mappings[name]
-            function_name = node_class.FUNCTION
-            comfy_node = node_class()
-
-            def convert_value(value: Any) -> Any:
-                if isinstance(value, enum.Enum):
-                    return value.value
-                elif isinstance(value, ModelFile):
-                    return value.name
-                else:
-                    return value
-
-            kwargs = {
-                name.replace("-", ""): convert_value(value)
-                for name, value in self.node_properties().items()
-            }
-            return getattr(comfy_node, function_name)(**kwargs)
-
-        else:
-            raise ValueError(f"Node {name} not found in mappings")
-
-    async def convert_output(self, context: ProcessingContext, value: Any):
-        if isinstance(value, tuple):
-            return {o.name: v for o, v in zip(self.outputs(), value)}
-        else:
-            return value
-
-
-ComfyNode.invisible()
+import nodetool.nodes.comfy
+import nodetool.nodes.comfy.advanced
+import nodetool.nodes.comfy.advanced.conditioning
+import nodetool.nodes.comfy.advanced.loaders
+import nodetool.nodes.comfy.conditioning
+import nodetool.nodes.comfy.controlnet
+import nodetool.nodes.comfy.controlnet.faces_and_poses
+import nodetool.nodes.comfy.controlnet.semantic_segmentation
+import nodetool.nodes.comfy.controlnet.normal_and_depth
+import nodetool.nodes.comfy.controlnet.others
+import nodetool.nodes.comfy.controlnet.line_extractors
+import nodetool.nodes.comfy.controlnet.t2i
+import nodetool.nodes.comfy.generate
+import nodetool.nodes.comfy.image
+import nodetool.nodes.comfy.image.animation
+import nodetool.nodes.comfy.image.batch
+import nodetool.nodes.comfy.image.preprocessors
+import nodetool.nodes.comfy.image.transform
+import nodetool.nodes.comfy.image.upscaling
+import nodetool.nodes.comfy.ipadapter
+import nodetool.nodes.comfy.latent
+import nodetool.nodes.comfy.latent.advanced
+import nodetool.nodes.comfy.latent.batch
+import nodetool.nodes.comfy.latent.inpaint
+import nodetool.nodes.comfy.latent.transform
+import nodetool.nodes.comfy.loaders
+import nodetool.nodes.comfy.mask
+import nodetool.nodes.comfy.mask.compositing
+import nodetool.nodes.comfy.sampling
+import nodetool.nodes.comfy.sampling.samplers
+import nodetool.nodes.comfy.sampling.schedulers
+import nodetool.nodes.comfy.sampling.sigmas

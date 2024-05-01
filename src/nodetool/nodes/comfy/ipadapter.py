@@ -12,7 +12,7 @@ from nodetool.metadata.types import (
     Mask,
     UNet,
 )
-from nodetool.nodes.comfy import ComfyNode
+from nodetool.common.comfy_node import ComfyNode
 
 
 class InterpolationMethod(Enum):

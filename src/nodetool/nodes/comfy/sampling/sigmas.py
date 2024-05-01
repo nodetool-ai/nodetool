@@ -1,6 +1,6 @@
 from pydantic import Field
 from nodetool.metadata.types import Sigmas
-from nodetool.nodes.comfy import ComfyNode
+from nodetool.common.comfy_node import ComfyNode
 
 
 class SplitSigmas(ComfyNode):

@@ -1,9 +1,9 @@
 import numpy as np
+from nodetool.common.openai_nodes import calculate_cost_for_completion_usage
 from nodetool.metadata.types import Tensor
 from nodetool.metadata.types import TextRef
 from nodetool.common.environment import Environment
-from nodetool.nodes.openai import (
-    calculate_cost_for_completion_usage,
+from nodetool.common.openai_nodes import (
     calculate_cost_for_embedding_usage,
 )
 from nodetool.workflows.base_node import BaseNode

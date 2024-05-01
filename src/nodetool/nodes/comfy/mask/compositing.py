@@ -3,7 +3,7 @@ from enum import Enum
 from pydantic import Field
 from nodetool.metadata.types import ImageTensor, Mask
 
-from nodetool.nodes.comfy import ComfyNode
+from nodetool.common.comfy_node import ComfyNode
 
 
 class PorterDuffModeEnum(str, Enum):

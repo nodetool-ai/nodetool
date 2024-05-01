@@ -1,6 +1,6 @@
 from enum import Enum
 import pydub
-from nodetool.nodes.openai import calculate_cost
+from nodetool.common.openai_nodes import calculate_cost
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from io import BytesIO

@@ -2,7 +2,7 @@ from enum import Enum
 import numpy as np
 from pydantic import Field
 from nodetool.metadata.types import ImageTensor, Mask
-from nodetool.nodes.comfy import EnableDisable
+from nodetool.common.comfy_node import EnableDisable
 from nodetool.nodes.comfy.controlnet import PreprocessImage
 from nodetool.workflows.base_node import add_node_classname
 
