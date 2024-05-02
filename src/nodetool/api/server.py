@@ -8,7 +8,6 @@ from nodetool.common.environment import Environment
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run as uvicorn
-import asyncio
 
 from . import (
     asset,
@@ -19,12 +18,6 @@ from . import (
     workflow,
     model,
 )
-
-DEFAULT_ORIGINS = [
-    "http://localhost",
-    "http://localhost:3000",
-    "http://localhost:3001",
-]
 
 DEFAULT_ROUTERS = [
     asset.router,
@@ -39,7 +32,7 @@ DEFAULT_ROUTERS = [
 
 
 def create_app(
-    origins: list[str] = DEFAULT_ORIGINS,
+    origins: list[str] = ["*"],
     routers: list[APIRouter] = DEFAULT_ROUTERS,
     static_folder: str | None = None,
 ):
