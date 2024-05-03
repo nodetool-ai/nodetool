@@ -837,9 +837,6 @@ class Environment(object):
         """
         from nodetool.common.aws_client import AWSClient
 
-        cls.get_logger().info(
-            f"S3 service for {bucket} using endpoint {cls.get_s3_endpoint_url()} and region {cls.get_s3_region()}"
-        )
         return AWSClient(
             endpoint_url=cls.get_s3_endpoint_url(),
             access_key_id=cls.get_s3_access_key_id(),
@@ -853,8 +850,7 @@ class Environment(object):
         """
         Get the storage adapter for assets.
         """
-        if cls.get_s3_endpoint_url() is not None or use_s3:
-            cls.get_logger().info(f"Using S3 for asset storage")
+        if cls.is_production() or cls.get_s3_endpoint_url() is not None or use_s3:
             return cls.get_s3_service(cls.get_asset_bucket())
         else:
             from nodetool.storage.file_storage import FileStorage
@@ -882,7 +878,7 @@ class Environment(object):
         """
         Get the storage adapter for temporary files.
         """
-        if cls.get_s3_endpoint_url() is not None or use_s3:
+        if cls.is_production() and cls.get_s3_endpoint_url() is not None or use_s3:
             cls.get_logger().info(f"Using S3 for temp storage")
             return cls.get_s3_service(cls.get_temp_bucket())
         else:

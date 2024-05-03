@@ -214,7 +214,8 @@ class BaseNode(BaseModel):
             model_info=cls.model_info(),
         )
 
-    def get_json_schema(self):
+    @classmethod
+    def get_json_schema(cls):
         """
         Returns a JSON schema for the node.
         Used as tool description for agents.
@@ -222,7 +223,7 @@ class BaseNode(BaseModel):
         return {
             "type": "object",
             "properties": {
-                prop.name: prop.get_json_schema() for prop in self.properties()
+                prop.name: prop.get_json_schema() for prop in cls.properties()
             },
         }
 
@@ -265,20 +266,22 @@ class BaseNode(BaseModel):
                 if not skip_errors:
                     raise e
 
-    def is_assignable(self, name: str, value: Any) -> bool:
+    @classmethod
+    def is_assignable(cls, name: str, value: Any) -> bool:
         """
         Returns True if the value can be assigned to the property.
         """
-        return is_assignable(self.find_property(name).type, value)
+        return is_assignable(cls.find_property(name).type, value)
 
-    def find_property(self, name: str):
+    @classmethod
+    def find_property(cls, name: str):
         """
         Finds a property by name.
         Throws ValueError if no property is found.
         """
-        if name not in self.properties_dict():
+        if name not in cls.properties_dict():
             raise ValueError(f"Property {name} does not exist")
-        return self.properties_dict()[name]
+        return cls.properties_dict()[name]
 
     @classmethod
     def find_output(cls, name: str) -> OutputSlot:
@@ -409,7 +412,9 @@ class BaseNode(BaseModel):
         """
         Returns the input slots of the node.
         """
-        return {prop.name: prop for prop in cls.properties()}
+        if not hasattr(cls, "__props__"):
+            cls.__props__ = {prop.name: prop for prop in cls.properties()}
+        return cls.__props__
 
     def node_properties(self):
         return {prop.name: getattr(self, prop.name) for prop in self.properties()}
