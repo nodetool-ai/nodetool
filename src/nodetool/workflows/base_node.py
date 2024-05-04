@@ -458,11 +458,25 @@ class OutputNode(BaseNode):
 OutputNode.invisible()
 
 
-class CommentNode(BaseNode):
+class Comment(BaseNode):
     comment: list[str] = Field(default=[""], description="The comment for this node.")
 
 
-CommentNode.invisible()
+Comment.invisible()
+
+
+class Preview(BaseNode):
+    """
+    A preview node is a special type of node that is used to preview the output of a node.
+    """
+
+    value: Any = Field(None, description="The value to preview.")
+
+    async def process(self, context: Any) -> Any:
+        return self.value
+
+
+Preview.invisible()
 
 
 def get_node_class_by_name(class_name: str) -> list[type[BaseNode]]:
