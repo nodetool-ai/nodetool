@@ -68,6 +68,18 @@ class S3Storage(AbstractStorage):
         except:
             return False
 
+    def get_mtime(self, key: str):
+        """
+        Get the last modified time of the file.
+        """
+        url = self.generate_presigned_url("head_object", key)
+        with httpx.Client() as client:
+            response = client.head(url)
+            response.raise_for_status()
+
+            last_modified = response.headers.get("last-modified")
+            return last_modified
+
     def download(self, key: str, stream: IO):
         """
         Downloads a blob from the bucket.

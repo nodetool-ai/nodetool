@@ -3,6 +3,8 @@
 from io import BytesIO
 import os
 from fastapi import APIRouter, Request, Response
+from fastapi import HTTPException
+from email.utils import parsedate_to_datetime
 from fastapi.responses import StreamingResponse
 from nodetool.storage.abstract_storage import AbstractStorage
 from nodetool.common.content_types import EXTENSION_TO_CONTENT_TYPE
@@ -22,18 +24,30 @@ def storage_for_bucket(bucket: str) -> AbstractStorage:
 
 
 @router.get("/{bucket}/{key}")
-async def get(bucket: str, key: str):
+async def get(bucket: str, key: str, request: Request):
     """
     Returns the file as a stream for the given key.
     """
     storage = storage_for_bucket(bucket)
     if not storage.file_exists(key):
-        return Response(status_code=404)
+        raise HTTPException(status_code=404)
+
+    last_modified = storage.get_mtime(key)
+    if "If-Modified-Since" in request.headers:
+        if_modified_since = parsedate_to_datetime(request.headers["If-Modified-Since"])
+        if if_modified_since >= last_modified:
+            raise HTTPException(status_code=304)
 
     iterator = storage.download_stream(key)
     ext = os.path.splitext(key)[-1]
     media_type = EXTENSION_TO_CONTENT_TYPE.get(ext, "application/octet-stream")
-    return StreamingResponse(iterator, media_type=media_type)
+    headers = {
+        "Last-Modified": last_modified.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+    }
+
+    print(headers)
+
+    return StreamingResponse(iterator, media_type=media_type, headers=headers)
 
 
 @router.put("/{bucket}/{key}")

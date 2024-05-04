@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import shutil
 import aiofiles
@@ -23,6 +24,10 @@ class FileStorage(AbstractStorage):
 
     def file_exists(self, file_name: str) -> bool:
         return os.path.isfile(os.path.join(self.base_path, file_name))
+
+    def get_mtime(self, key: str):
+        mtime = os.path.getmtime(os.path.join(self.base_path, key))
+        return datetime.fromtimestamp(mtime)
 
     def download(self, key: str, stream: IO):
         with open(os.path.join(self.base_path, key), "rb") as f:

@@ -98,3 +98,11 @@ async def oauth_callback(auth: OAuthAuthorizeRequest) -> User:
 
 class AuthRequest(BaseModel):
     token: str
+
+
+@router.post("/verify")
+async def verify(auth: AuthRequest) -> TokenResponse:
+    user = User.find_by_auth_token(auth.token)
+    if user:
+        return TokenResponse(valid=True)
+    return TokenResponse(valid=False)

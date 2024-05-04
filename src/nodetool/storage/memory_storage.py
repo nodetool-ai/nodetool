@@ -1,3 +1,4 @@
+from datetime import datetime
 import io
 from typing import Dict, Iterator
 from nodetool.storage.abstract_storage import AbstractStorage
@@ -5,10 +6,12 @@ from nodetool.storage.abstract_storage import AbstractStorage
 
 class MemoryStorage(AbstractStorage):
     storage: Dict[str, bytes]
+    mtimes: Dict[str, datetime]
     base_url: str
 
     def __init__(self, base_url: str):
         self.storage = {}
+        self.mtimes = {}
         self.base_url = base_url
 
     def generate_presigned_url(
@@ -18,6 +21,9 @@ class MemoryStorage(AbstractStorage):
 
     def file_exists(self, file_name: str) -> bool:
         return file_name in self.storage
+
+    def get_mtime(self, key: str):
+        return self.mtimes.get(key, datetime.now())
 
     def download(self, key: str, stream: io.BytesIO):
         if key in self.storage:
@@ -29,6 +35,7 @@ class MemoryStorage(AbstractStorage):
 
     def upload(self, key: str, content: io.BytesIO) -> str:
         self.storage[key] = content.read()
+        self.mtimes[key] = datetime.now()
         return self.generate_presigned_url("get_object", key)
 
     def upload_stream(self, key: str, content: Iterator[bytes]) -> str:
