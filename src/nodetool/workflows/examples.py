@@ -17,8 +17,11 @@ def load_example(name: str) -> Graph:
 
 
 def get_examples() -> list[Workflow]:
-    import nodetool.nodes
+    return []
 
+
+def get_comfy_examples() -> list[Workflow]:
+    """keep this for comfy launch"""
     return [
         Workflow(
             id="stable_diffusion",

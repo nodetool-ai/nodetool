@@ -715,7 +715,7 @@ def get_model_api(
     model_name = model_id.replace("/", "_").replace("-", "_").replace(".", "_")
 
     if "REPLICATE_API_TOKEN" not in os.environ:
-        raise ValueError(f"model not found: {model_name}")
+        raise ValueError("REPLICATE_API_TOKEN environment variable is not set")
 
     headers = {
         "Authorization": "Token " + Environment.get_replicate_api_token(),
