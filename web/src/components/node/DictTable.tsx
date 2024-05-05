@@ -8,12 +8,13 @@ const DictTable: React.FC<Props> = ({ data }) => {
   return (
     <table cellSpacing={2} cellPadding={5}>
       <tbody>
-        {data && Object.entries(data).map(([key, value]) => (
-          <tr key={key}>
-            <td>{key}</td>
-            <td>{value}</td>
-          </tr>
-        ))}
+        {data &&
+          Object.entries(data).map(([key, value]) => (
+            <tr key={key}>
+              <td>{key}</td>
+              <td>{value}</td>
+            </tr>
+          ))}
       </tbody>
     </table>
   );

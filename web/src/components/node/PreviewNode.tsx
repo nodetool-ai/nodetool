@@ -24,6 +24,7 @@ const styles = (theme: any) =>
       width: "100%",
       height: "100%",
       minWidth: "150px",
+      maxWidth: "500px",
       minHeight: "150px",
       borderRadius: "2px"
     },
@@ -80,16 +81,22 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
 
   const getType = (value: any): string => {
-    if (value === null) {
+    if (value === undefined) {
       return "null";
+    }
+    if (value.output === null) {
+      return "null";
+    }
+    if (value.output.type) {
+      return value.output.type;
     }
     if (Array.isArray(value)) {
       return "array";
     }
-    if (typeof value === "object" && "type" in value) {
-      return value.type;
+    if (typeof value.output === "object" && "type" in value) {
+      return value.output.type;
     }
-    return typeof value;
+    return typeof value.output;
   };
 
   const handleResize = (event: ResizeDragEvent) => {
@@ -114,12 +121,17 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
         style={{ background: "red", border: "none" }}
         minWidth={150}
         minHeight={150}
+        maxWidth={500}
+        maxHeight={500}
         onResize={handleResize}
       >
         <SouthEastIcon />
       </NodeResizeControl>
       <NodeHeader id={props.id} nodeTitle="Preview" isLoading={false} />
-      <Typography className="description">Preview any output</Typography>
+
+      {!result?.output && (
+        <Typography className="description">Preview any output</Typography>
+      )}
       <Handle
         style={{ top: "50%" }}
         id="value"
@@ -127,7 +139,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
         position={Position.Left}
         isConnectable={true}
       />
-      <OutputRendererForType value={result} type={{ type: getType(result) }} />
+      <OutputRendererForType
+        value={result?.output ? result.output : {}}
+        type={{ type: getType(result) }}
+      />
     </Container>
   );
 });

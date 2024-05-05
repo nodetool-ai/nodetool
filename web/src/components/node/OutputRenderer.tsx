@@ -96,7 +96,6 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-
   const handleCopyToClipboard = (value: string) => {
     writeClipboard(value?.toString(), true);
     addNotification({
@@ -106,7 +105,11 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
     });
   };
 
-  if (value === null || value === undefined) {
+  if (
+    value === null ||
+    value === undefined ||
+    Object.keys(value).length === 0
+  ) {
     return null;
   }
 
@@ -149,7 +152,11 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
         <Typography> No Image found </Typography>
       );
     case "audio":
-      return <AudioPlayer url={value?.uri} />;
+      return (
+        <div className="audio" style={{ padding: "1em" }}>
+          <AudioPlayer url={value?.uri} />
+        </div>
+      );
     case "video":
       return <video src={value?.uri} controls style={{ width: "100%" }} />;
     case "dataframe":
@@ -158,17 +165,20 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
       return <DictTable data={value} />;
     default:
       return (
-        <div className="value nodrag nowheel" css={styles}>
-          <ButtonGroup className="actions">
-            <Button
-              size="small"
-              onClick={() => handleCopyToClipboard(value?.toString())}
-            >
-              Copy
-            </Button>
-          </ButtonGroup>
-
-          <MarkdownRenderer content={value?.toString()} />
+        <div className="output value nodrag nowheel" css={styles}>
+          {value !== null && (
+            <>
+              <ButtonGroup className="actions">
+                <Button
+                  size="small"
+                  onClick={() => handleCopyToClipboard(value?.toString())}
+                >
+                  Copy
+                </Button>
+              </ButtonGroup>
+              <MarkdownRenderer content={value?.toString()} />
+            </>
+          )}
         </div>
       );
   }
