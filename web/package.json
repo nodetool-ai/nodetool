@@ -1,0 +1,105 @@
+{
+  "name": "nodetool",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@emotion/babel-plugin": "^11.11.0",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
+    "@fontsource/inter": "^5.0.8",
+    "@fontsource/jetbrains-mono": "^5.0.13",
+    "@mui/icons-material": "^5.14.3",
+    "@mui/material": "^5.14.3",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/lodash": "^4.14.198",
+    "@types/react": "^18.2.16",
+    "@types/react-dom": "^18.2.7",
+    "@types/uuid": "^9.0.4",
+    "@vitejs/plugin-react": "^4.2.1",
+    "axios": "^1.4.0",
+    "browserslist-to-esbuild": "^2.1.1",
+    "clipboard-polyfill": "^4.0.1",
+    "cmdk": "^0.2.0",
+    "dagre": "^0.8.5",
+    "framer-motion": "^11.0.8",
+    "fuse.js": "^6.6.2",
+    "history": "^5.3.0",
+    "lodash.debounce": "^4.0.8",
+    "luxon": "^3.4.2",
+    "mui-nested-menu": "^3.3.0",
+    "openapi-fetch": "^0.7.1",
+    "openapi-typescript": "^6.3.9",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-draggable": "^4.4.6",
+    "react-infinite-scroll-component": "^6.1.0",
+    "react-markdown": "^9.0.0",
+    "react-query": "^3.39.3",
+    "react-router-dom": "^6.17.0",
+    "react-textarea-autosize": "^8.5.3",
+    "reactflow": "^11.11.1",
+    "slate": "^0.101.4",
+    "slate-react": "^0.101.3",
+    "string-to-color": "^2.2.2",
+    "typescript": "^4.9.5",
+    "uuid": "^9.0.1",
+    "vite": "^5.1.6",
+    "vite-plugin-svgr": "^4.2.0",
+    "vite-tsconfig-paths": "^4.3.1",
+    "wavesurfer.js": "^7.7.11",
+    "web-vitals": "^2.1.4",
+    "zundo": "^2.0.0-beta.25"
+  },
+  "scripts": {
+    "start": "vite --host 0.0.0.0",
+    "remote-auth": "VITE_REMOTE_AUTH=true vite --host 0.0.0.0",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "jest",
+    "openapi": "openapi-typescript http://127.0.0.1:8000/openapi.json -o ./src/api.ts"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "@typescript-eslint/no-unused-vars": "off"
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/preset-typescript": "^7.22.5",
+    "@jest/globals": "^29.6.2",
+    "@svgr/webpack": "^8.1.0",
+    "@types/dagre": "^0.7.52",
+    "@types/jest": "^29.5.3",
+    "@types/lodash.debounce": "^4.0.7",
+    "@types/luxon": "^3.3.1",
+    "@types/node": "^20.11.24",
+    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/parser": "^7.3.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^8.0.3",
+    "jest": "^29.6.2",
+    "ts-jest": "^29.1.1"
+  }
+}

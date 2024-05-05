@@ -1,0 +1,633 @@
+/* CONTAINER */
+#root .node-editor {
+  margin: 0;
+  padding: 0;
+  top: 50px;
+  position: absolute;
+  width: 100%;
+}
+
+#root .MuiGrid2-root.MuiGrid2-container {
+  width: 100%;
+  height: calc(100vh - 50px);
+  margin: 0;
+}
+
+.reactflow-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+}
+
+.loading-overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  background-color: var(--c_gray0);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* CANVASE | PANE */
+.react-flow__pane.selection {
+  cursor: default;
+}
+
+/* NODE */
+.react-flow__node {
+  font-size: var(--font-size-small);
+  width: auto;
+  /* min-width: 150px; */
+  /* max-width: 150px; */
+  padding: 5px 0 0 0;
+  border-radius: 0.3em;
+  background-color: var(--c_node_bg);
+  padding-bottom: 5px;
+  transition: background-color 0.05s;
+  box-shadow: 0.1em 0.1em 0.5em 0px rgba(30, 30, 30, 0.4);
+}
+
+.react-flow__node-nodetool\.group\.Loop {
+  background-color: transparent;
+  box-shadow: none;
+  min-width: 100px;
+  min-height: 100px;
+}
+
+/* node selected */
+.react-flow__node.selected {
+  box-shadow: 1px 1px 2px 0px rgba(30, 30, 30, 0.4);
+}
+
+.react-flow__node.selected {
+  box-shadow: 0 0 0px 1px #fff;
+}
+
+.zoomed-out .react-flow__node.selected {
+  box-shadow: 0 0 0px 1px #fff;
+}
+
+.react-flow__node {
+  padding: 0;
+}
+
+/* NODE BODY */
+.react-flow .node-body {
+  padding: 0;
+}
+
+.react-flow .has-result {
+  border-bottom: 3px solid var(--c_hl1);
+}
+/* COMPACT NODES */
+.react-flow__node-bool {
+  width: 55px;
+  min-width: 55px;
+}
+
+.react-flow__node-bool label,
+.react-flow__node-bool .node-header {
+  font-size: 0;
+}
+
+.react-flow__node-bool .process-timer {
+  display: none;
+}
+
+/* PANE  */
+.react-flow .react-flow__pane {
+  cursor: default !important;
+}
+
+/*.react-flow.is-connecting .react-flow__pane {
+  cursor: none;
+}*/
+
+.react-flow .react-flow__pane.dragging {
+  cursor: grabbing !important;
+}
+
+/* LOADING */
+.react-flow .process-timer {
+  pointer-events: none;
+  font-size: var(--font-size-tiny);
+  line-height: 1em;
+  width: fit-content;
+  text-align: center;
+  color: var(--c_gray5);
+  background-color: #2c2c2c33;
+  margin: auto;
+  padding: 0px 2px;
+  opacity: 0;
+  transition: opacity 1s 1s;
+}
+
+.react-flow .selected .process-timer {
+  color: var(--c_black);
+  background-color: transparent;
+}
+
+.react-flow .loading .process-timer {
+  opacity: 1;
+}
+
+.node-inputs {
+  margin-top: 0.5em;
+}
+
+/* NODE PROPERTY */
+.node-property,
+.node-output {
+  position: relative;
+  width: auto;
+  min-width: 150px;
+  max-width: 250px;
+  min-height: 15px;
+  border: 0;
+  padding: 0.25em 1em;
+  margin: 1px 0 0;
+}
+.node-output {
+  padding: 0 1em;
+  margin: 1px 0 0;
+}
+
+.node-property code {
+  display: block;
+  margin: 0.6em 0 0;
+  font-size: var(--font-size-smaller);
+  background-color: var(--c_gray1);
+  padding: 0.1em 0.2em;
+  user-select: text;
+  cursor: text;
+  line-height: 1.2em;
+  word-spacing: -2px;
+}
+
+.node-property.bool {
+  min-width: 35px;
+}
+
+/* .node-property label {
+} */
+
+/* DEFAULT PROPERTY */
+.value-default label {
+  color: var(--c_gray5) !important;
+}
+.value-changed .value {
+  color: var(--c_hl1) ;
+}
+.value-changed textarea,
+.value-changed .MuiInput-root {
+  border-right: 2px solid var(--c_hl1) !important;
+}
+
+/* NODE MENU BOTTOM */
+.node-menu-bottom {
+  position: relative;
+  width: calc(100% + 10px);
+  height: 20px;
+  padding: 0px 2px;
+  margin: 5px -5px 0;
+  background: var(--c_node_menu);
+}
+
+/* PROPERTY TOOLTIP */
+.property-tooltip {
+  background-color: var(--c_gray1) !important;
+  border: 1px solid var(--c_gray2);
+}
+
+.property-tooltip span {
+  font-family: var(--font_family);
+  font-size: var(--font-size-normal);
+  color: var(--c_white) !important;
+  display: inline-block;
+  white-space: pre-wrap;
+  text-align: left;
+  line-height: 1.2em;
+}
+
+/* textarea */
+.node-property .MuiTextField-root textarea {
+  font-size: var(--font-size-smaller);
+}
+
+.node-property textarea {
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  overflow-y: auto !important;
+  margin-top: 0.2em;
+  font-size: var(--font-size-tiny);
+  font-family: var(--font_family);
+  color: var(--c_white);
+  background-color: var(--c_gray2);
+  border: 0;
+  font-weight: 300;
+}
+
+/* content hidden on zoom */
+.node-content-hidden {
+  opacity: 0;
+  height: 0;
+}
+
+.react-flow.zoomed-out .node-content-hidden {
+  visibility: hidden;
+}
+
+.react-flow.zoomed-out .react-flow__node {
+  background-color: var(--c_gray1);
+}
+
+.react-flow .node-title.big {
+  opacity: 0;
+  font-size: 0;
+  margin: 5px 0 0 -5px;
+  padding: 0;
+  top: -0.1em;
+  left: 0.5em;
+  position: absolute;
+  width: calc(100% - 20px);
+  min-height: 20px;
+  height: auto;
+  line-height: 1em;
+  background-color: transparent;
+  transition: opacity 0.8s;
+}
+.react-flow.zoomed-out .node-header .node-title.big {
+  font-size: 24px;
+  opacity: 1;
+}
+.react-flow.zoomed-out .node-body .icon-bg,
+.react-flow.zoomed-out .node-body .audio-controls,
+.react-flow.zoomed-out .node-header .node-title {
+  opacity: 0;
+}
+
+.react-flow.zoomed-out .node-body .node-error {
+  height: 60px;
+  color: transparent;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.react-flow.zoomed-out .node-header button {
+  opacity: 0;
+}
+
+.react-flow.zoomed-out .node-header svg {
+  display: hidden;
+}
+.react-flow.zoomed-out .namespace {
+  display: none;
+}
+
+.react-flow.zoomed-out .react-flow__node-nodetool\.loop\.Loop {
+  background-color: transparent;
+}
+
+/* HIDE ENUM HANDLE */
+.node-property.enum .react-flow__handle {
+  display: none;
+}
+
+/* LIST VIEW */
+.node-property.list ul {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0 0 2px 0;
+}
+
+/* DROPZONE */
+.dropzone {
+  position: relative;
+  /* outline: 1px dashed #55555599; */
+  margin: 6px auto 2px auto;
+}
+
+.node-property .dropzone:hover {
+  outline: 1px dashed #77777799;
+  margin: 6px auto 2px auto;
+}
+
+.dropzone p.centered {
+  margin: auto;
+  padding: 4px;
+  font-size: var(--font-size-small);
+  color: var(--c_gray4);
+}
+
+.dropzone img {
+  height: auto;
+  max-width: 100%;
+  max-height: 160px;
+  margin: 0 auto;
+  display: block;
+  width: auto !important;
+}
+
+.dropzone.dropped {
+  outline: 0 none;
+}
+
+/* NODE SELECTION RECT */
+.react-flow__selection,
+.react-flow .react-flow__nodesselection-rect,
+.react-flow__nodesselection-rect:focus-visible,
+.react-flow .react-flow__nodesselection-rect:focus {
+  background: rgba(80, 100, 140, 0.2) !important;
+  border: 0;
+}
+
+.react-flow .react-flow__nodesselection-rect {
+  outline: 1px solid var(--c_gray6) !important;
+  outline-offset: 10px;
+  border-radius: 1px;
+}
+
+/* drag */
+.react-flow__selection {
+  outline: none;
+  border: 1px solid var(--c_gray6) !important;
+  background-color: #33333355;
+  border-radius: 0.25em;
+}
+.react-flow .react-flow__pane.dragging {
+  cursor: grabbing !important;
+}
+
+/*TOOLTIP-1 */
+.tooltip-1 {
+  background-color: var(--c_gray2);
+  background-color: transparent;
+  padding: 2em;
+  color: var(--c_white) !important;
+}
+
+span.tooltip-1,
+span.tooltip-category-info {
+  color: var(--c_white) !important;
+  display: block !important;
+  text-align: left;
+  max-width: 250px !important;
+  word-break: normal;
+  padding: 0;
+  margin: 0;
+}
+
+span.tooltip-category-info {
+  margin-left: 1em;
+}
+
+span.tooltip-small {
+  font-size: var(--font-size-small);
+  color: var(--c_white) !important;
+}
+
+/* COLLAPSED NODE */
+.node-body.collapsed .node-property {
+  height: 12px;
+  min-height: unset;
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+.node-body.collapsed .node-property label,
+.node-body.collapsed .inner-property p {
+  font-size: var(--font-size-tiny);
+  top: 2px;
+}
+
+.node-body.collapsed .value {
+  font-size: var(--font-size-tiny);
+  top: 2px;
+  height: 15px;
+}
+
+.node-body.collapsed .react-flow__handle-left {
+  top: 12px;
+  height: 9px;
+}
+
+.node-body.collapsed .node-property .MuiSlider-root .MuiSlider-track {
+  border-bottom-width: 1px;
+  top: -8px;
+}
+
+.node-body.collapsed .dropzone,
+.node-body.collapsed video {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  height: 14px;
+  padding: 0;
+  margin: 0;
+  top: 0;
+  max-width: 70px;
+  outline: 0 none;
+}
+
+.node-body.collapsed .dropzone p {
+  font-size: var(--font-size-tiny);
+  padding: 0 2px;
+  margin: 0;
+}
+
+.node-body.collapsed .dropzone img {
+  padding: 0 2px;
+  margin: 0;
+  max-height: 12px;
+}
+
+.node-body.collapsed .MuiSlider-track {
+  opacity: 0.6;
+}
+
+.node-body.collapsed .MuiInput-root,
+.node-body.collapsed .node-property textarea,
+.node-body.collapsed .node-property code,
+/* .node-body.collapsed .edge-property .value, */
+.node-body.collapsed .MuiSwitch-switchBase,
+.node-body.collapsed .mui-select,
+.node-body.collapsed .audio-controls,
+.node-body.collapsed .video-controls,
+.node-body.collapsed .waverecorder,
+.node-body.collapsed .value.nodrag,
+.node-body.collapsed .process-timer,
+.node-body.collapsed .node-logs,
+.node-body.collapsed .MuiSwitch-root {
+  visibility: hidden;
+  display: none;
+}
+
+.node-body.collapsed .edit-value {
+  top: -1px;
+}
+
+.node-body.collapsed .edit-value .MuiInput-root {
+  visibility: visible;
+  display: block;
+}
+
+/* INPUT & OUTPUT NODES */
+.react-flow .input-node .node-header,
+.react-flow .output-node .node-header {
+  background-color: var(--c_gray3);
+  margin: 0;
+}
+
+/* COMMENT NODES */
+  .react-flow__node-nodetool\.workflows\.base_node\.Comment{
+  width: auto;
+  min-width: 30px;
+  min-height: 40px;
+  max-width: 5000px;
+  max-height: 5000px;
+  padding: 0.2em;
+  border-radius: 8px;
+  background-color: #0002;
+  box-shadow: none;
+  overflow: hidden;
+  z-index: -1 !important;
+}
+.react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Comment {
+  background-color: #0002;
+}
+
+.react-flow__node-nodetool\.workflows\.base_node\.Comment.selected {
+  box-shadow: none !important;
+  border: 0;
+  outline: 1px solid #555 !important;
+}
+
+.react-flow__resize-control.handle.bottom.right {
+  opacity: 0;
+  z-index: 500;
+  top: unset;
+  left: unset !important;
+  bottom: -9px;
+  right: -10px;
+  width: 17px;
+  height: 17px;
+  background-color: var(--c_gray2) !important;
+}
+
+.react-flow__node .comment-node:hover
+  .react-flow__resize-control.handle.bottom.right {
+  opacity: 1;
+}
+
+.react-flow__resize-control svg {
+  width: 15px;
+  height: 15px;
+  color: var(--c_gray5);
+}
+
+.react-flow__resize-control:hover svg {
+  color: var(--c_hl1);
+}
+
+.comment-node label {
+  display: none;
+}
+
+.react-flow__node-comment .node-header {
+  height: 20px;
+  min-height: unset;
+  margin: 0;
+  padding: 0;
+  left: 0px;
+  background-color: transparent !important;
+  border: 0;
+  position: absolute;
+  top: 0;
+}
+
+.react-flow__node-nodetool\.workflows\.base_node\.Comment.selected .node-header,
+.react-flow__node-comment:hover .node-header {
+  background-color: var(--c_gray2) !important;
+}
+
+.comment-node textarea {
+  background-color: transparent;
+  border: 0;
+  outline: none;
+}
+
+/* PLACEHOLDER */
+.react-flow__node.react-flow__node-default {
+  background-color: var(--c_attention);
+  border: 0;
+  padding: 0;
+}
+
+.react-flow__node.react-flow__node-default .placeholder-node {
+  color: var(--c_white);
+  border: 0 !important;
+  padding: 0 !important;
+}
+.react-flow__node.react-flow__node-default .placeholder-node .react-flow__handle {
+  display: none;
+}
+
+.react-flow .react-flow__node.react-flow__node.selected {
+  outline: 1px solid var(--c_white);
+}
+.react-flow.zoomed-out .react-flow__node.react-flow__node.selected {
+  outline: 4px solid var(--c_white);
+}
+
+.react-flow__node-default .react-flow__handle-left {
+  left: -6px !important;
+}
+
+.react-flow__node-default .node-header {
+  border: 0;
+  background-color: #4444;
+}
+
+/*
+.react-flow - Outer container
+.react-flow__renderer - Inner container
+.react-flow__zoompane - Zoom & pan pane
+.react-flow__selectionpane - Selection pane
+.react-flow__selection - User selection
+.react-flow__edges - Edges wrapper
+.react-flow__edge - Edge element
+.selected is added when edge is selected
+.animated is added when edge is animated
+.react-flow__edge-path - Edge element path
+.react-flow__edge-text - Edge text
+.react-flow__edge-textbg - Edge text background
+.react-flow__connection - Connection line
+.react-flow__connection-path - Connection line path
+.react-flow__nodes - Nodes wrapper
+.react-flow__node - Node element
+.selected is added when a node is selected
+-${type} is added (.react-flow__node-default, .react-flow__node-input, .react-flow__node-output)
+.react-flow__nodesselection - Nodes selection
+.react-flow__nodesselection-rect - Nodes selection rect
+.react-flow__handle - Handle component
+.react-flow__handle-bottom is added when position = 'bottom'
+.react-flow__handle-top is added when position = 'top'
+.react-flow__handle-left is added when position = 'left'
+.react-flow__handle-right is added when position = 'right'
+.react-flow__handle-connecting is added when connection line is above a handle
+.react-flow__handle-valid is added when connection line is above a handle and the connection is valid
+.react-flow__background - Background component
+.react-flow__minimap - Mini map component
+.react-flow__controls - Controls component
+*/

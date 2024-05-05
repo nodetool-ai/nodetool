@@ -1,0 +1,293 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+import { Typography, Button, Tabs, Tab, Box } from "@mui/material";
+import { useState } from "react";
+import DataTypesList from "./DataTypesList";
+
+interface TabPanelProps {
+  children: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+const helpStyles = (theme: any) =>
+  css({
+    "&": {
+      backgroundColor: "#222",
+      padding: "2em",
+      borderRadius: "1em",
+      position: "fixed",
+      width: "50vw",
+      minWidth: "600px",
+      maxWidth: "800px",
+      height: "85vh",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      overflowY: "auto",
+      border: `2px solid ${theme.palette.c_gray3}`
+    },
+    ".help-tabs": {
+      button: {
+        alignItems: "flex-start",
+        textAlign: "left",
+        paddingLeft: "0",
+        marginRight: "0.5em",
+        minWidth: "unset"
+      }
+    },
+    ".help-item": {
+      marginBottom: "0.4em",
+      display: "flex",
+      alignItems: "center",
+      gap: "1rem",
+      p: {
+        minWidth: "240px",
+        borderRight: `1px solid ${theme.palette.c_gray3}`,
+        fontFamily: theme.fontFamily1
+      },
+      button: {
+        marginTop: "2px",
+        border: `1px solid ${theme.palette.c_gray3}`,
+        padding: "1px 6px",
+        textAlign: "left",
+        lineHeight: "1.2em",
+        wordSpacing: "-0.2em",
+        "&.no-border": {
+          border: "0"
+        }
+      }
+    },
+    ".help-item.datatype": {
+      alignItems: "flex-start"
+    },
+    ".help-item.datatype button": {
+      color: "white",
+      padding: "0 .5em",
+      borderRadius: "5px",
+      minWidth: "200px",
+      textAlign: "left",
+      border: "0",
+      wordBreak: "break-word",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start"
+    }
+  });
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index } = props;
+  return (
+    <div role="tabpanel" hidden={value !== index}>
+      {value === index && <Box>{children}</Box>}
+    </div>
+  );
+}
+
+const Help = () => {
+  const [value, setValue] = useState(0);
+
+  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    setValue(newValue);
+  };
+
+  return (
+    <div className="help" css={helpStyles}>
+      <Typography variant="h4">Help</Typography>
+      <Tabs className="help-tabs" value={value} onChange={handleChange}>
+        <Tab label="Nodes" />
+        <Tab label="Values" />
+        <Tab label="Shortcuts" />
+        <Tab label="DataTypes" />
+      </Tabs>
+
+      <TabPanel value={value} index={0}>
+        <Typography variant="h5" color="#999">
+          Create Nodes
+        </Typography>
+        <div className="help-item">
+          <Typography>Node Menu</Typography>
+          <Button className="no-border">Double click on canvas</Button>
+          <Button className="no-border">Shift+Space</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Command Menu</Typography>
+          <Button className="no-border">Alt+K</Button>
+          <Button className="no-border">Option+K</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Input/Output Node</Typography>
+          <Button className="no-border">CTRL+Drag Connection Line</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Constant Node</Typography>
+          <Button className="no-border">Shift+Drag Connection Line</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Asset Node</Typography>
+          <Button className="no-border">
+            Drop Asset from Asset Menu or File Explorer on the Canvas
+          </Button>
+        </div>
+        <Typography variant="h5" color="#999">
+          Edit Nodes
+        </Typography>
+        <div className="help-item">
+          <Typography>Delete Node</Typography>
+          <Button className="no-border">Backspace</Button>
+          <Button className="no-border">Delete</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Un/Collapse Node</Typography>
+          <Button className="no-border">Double click on node name</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Select multiple Nodes</Typography>
+          <Button className="no-border">
+            Drag area with [Shift+] left click
+          </Button>
+        </div>
+
+        <Typography variant="h5" color="#999">
+          Context Menus
+        </Typography>
+        <div className="help-item">
+          <Typography>Node Menu</Typography>
+          <Button className="no-border">Right click on node name</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Selection Menu</Typography>
+          <Button className="no-border">
+            Right click on selection rectangle
+          </Button>
+        </div>
+        <div className="help-item">
+          <Typography>Canvas Menu</Typography>
+          <Button className="no-border">Right click on canvas</Button>
+        </div>
+      </TabPanel>
+      <TabPanel value={value} index={1}>
+        <Typography variant="h5" color="#999">
+          Edit Values
+        </Typography>
+        <div className="help-item">
+          <Typography>Drag Number</Typography>
+          <Button className="no-border">Drag Horizontal</Button>
+        </div>
+        <div className="help-item">
+          <Typography></Typography>
+          <Typography
+            variant="body2"
+            color="#999"
+            style={{ border: "0", marginLeft: ".5em" }}
+          >
+            Shift: Slow
+            <br />
+            Control: Fast
+            <br />
+            Shift+Control: Faster
+            <br />
+          </Typography>
+        </div>
+
+        <div className="help-item">
+          <Typography>Edit Number</Typography>
+          <Button className="no-border">Double click number</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Set Default</Typography>
+          <Button className="no-border">Control + Right Click</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Confirm Editing</Typography>
+          <Button>Enter</Button>/<Button>Click outside</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Cancel Editing</Typography>
+          <Button>ESC</Button>
+        </div>
+      </TabPanel>
+
+      <TabPanel value={value} index={2}>
+        <Typography variant="h5" color="#999">
+          Menu
+        </Typography>
+
+        <div className="help-item">
+          <Typography>Command Menu</Typography>
+          <Button>Alt+k</Button>
+          <Button>Option+k</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Open Node Menu</Typography>
+          <Button className="no-border">Double Click on Canvas</Button>
+          <Button className="no-border">Shift+Space</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Focus Node Search</Typography>
+          <Button>Esc</Button>
+        </div>
+        <Typography variant="h5" color="#999">
+          Nodes
+        </Typography>
+
+        <div className="help-item">
+          <Typography>Help Menu</Typography>
+          <Button>Shift+h</Button>
+          <Button>Option+h</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Copy selected nodes</Typography>
+          <Button>Shift+CTRL+C | Meta+CTRL+C</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Paste selected nodes</Typography>
+          <Button>CTRL+v</Button>
+        </div>
+        <div className="help-item">
+          <Typography>History Undo</Typography>
+          <Button>CTRL+z</Button>
+          <Button>Option+z</Button>
+        </div>
+        <div className="help-item">
+          <Typography>History Redo</Typography>
+          <Button>CTRL+SHIFT+z</Button>
+          <Button>Option+Shift+z</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Align selected nodes</Typography>
+          <Button>a</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Arrange selected nodes</Typography>
+          <Button>Alt+a</Button>
+          <Button>Option+a</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Fit Screen</Typography>
+          <Button>Alt+S</Button>
+          <Button>Option+S</Button>
+        </div>
+
+        <Typography variant="h5" color="#999">
+          Workflow
+        </Typography>
+
+        <div className="help-item">
+          <Typography>Run Workflow</Typography>
+          <Button>Alt+Enter</Button>
+          <Button>Meta+Enter</Button>
+        </div>
+        <div className="help-item">
+          <Typography>Cancel Workflow</Typography>
+          <Button>ESC</Button>
+        </div>
+      </TabPanel>
+      <TabPanel value={value} index={3}>
+        <DataTypesList />
+      </TabPanel>
+    </div>
+  );
+};
+
+export default Help;
