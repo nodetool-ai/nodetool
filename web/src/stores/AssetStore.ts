@@ -31,7 +31,7 @@ function createAsset(
         headers
       ),
       onUploadProgress: (pevt) => {
-        console.log("uploaded.:" + pevt.loaded + "/" + pevt.total);
+        devLog("uploaded.:" + pevt.loaded + "/" + pevt.total);
       }
     })
       .then((res) => {
