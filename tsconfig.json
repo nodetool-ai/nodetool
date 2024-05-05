@@ -16,6 +16,6 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "jsx": "react-jsx"
   },
-  "include": ["src"],
+  "include": ["web/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
