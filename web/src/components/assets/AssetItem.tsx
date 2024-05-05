@@ -564,17 +564,16 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             </Typography>
           )}
 
-          {(showName && assetItemSize > 1) ||
-            (isFolder && (
-              <Typography
-                aria-label={asset.name}
-                data-microtip-position="bottom"
-                role="tooltip"
-                className="name info"
-              >
-                {asset.name}
-              </Typography>
-            ))}
+          {((showName && assetItemSize > 1) || isFolder) && (
+            <Typography
+              aria-label={asset.name}
+              data-microtip-position="bottom"
+              role="tooltip"
+              className="name info"
+            >
+              {asset.name}
+            </Typography>
+          )}
         </>
       )}
       {openAsset && (

@@ -13,6 +13,7 @@ import AddCommentIcon from "@mui/icons-material/AddComment";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNodeStore } from "../../stores/NodeStore";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -91,9 +92,18 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
             <span className="tooltip-1">
               CTRL+V
               <br />
-              <span className="attention">
-                no valid <br />
-                node data <br />
+              <span
+                className="attention"
+                style={{
+                  color: "#ccc",
+                  borderLeft: `2px solid ${ThemeNodetool.palette.c_attention}`,
+                  display: "block",
+                  padding: "0 .5em",
+                  marginTop: ".5em",
+                  lineHeight: "1.1em"
+                }}
+              >
+                no valid node data <br />
                 in clipboard
               </span>
             </span>

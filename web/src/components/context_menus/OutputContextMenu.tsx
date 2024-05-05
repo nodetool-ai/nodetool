@@ -35,8 +35,11 @@ const OutputContextMenu: React.FC = () => {
         })
       );
       newNode.data.size = {
-        width: 400,
+        width: 200,
         height: 200
+      };
+      newNode.data.properties.value = {
+        type: "nodetool.workflows.base_node.Preview"
       };
       addNode(newNode);
     },

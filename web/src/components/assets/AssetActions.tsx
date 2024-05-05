@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { useEffect, useRef, useState } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import NorthWestIcon from "@mui/icons-material/NorthWest";
@@ -130,6 +129,7 @@ const AssetActions = ({
       setAssetsOrder(newOrder);
     }
   };
+
   useEffect(() => {
     if (createFolderAnchor) {
       const timer = setTimeout(() => {
@@ -140,6 +140,14 @@ const AssetActions = ({
       return () => clearTimeout(timer);
     }
   }, [createFolderAnchor]);
+
+  const handleChange = (event: Event, value: number | number[]) => {
+    if (Array.isArray(value)) {
+      setAssetItemSize(value[0] as number);
+    } else {
+      setAssetItemSize(value as number);
+    }
+  };
 
   return (
     <div className="asset-actions" css={styles}>
@@ -222,9 +230,8 @@ const AssetActions = ({
           marks
           min={1}
           max={maxItemSize}
-          onChange={(e: any, value: any) => {
-            setAssetItemSize(value as number);
-          }}
+          onChange={handleChange}
+          value={settings.assetItemSize}
         />
       </div>
       <Popover

@@ -42,6 +42,7 @@ import PropertyContextMenu from "../context_menus/PropertyContextMenu";
 import OutputContextMenu from "../context_menus/OutputContextMenu";
 import InputContextMenu from "../context_menus/InputContextMenu";
 import CommentNode from "../node/CommentNode";
+import PreviewNode from "../node/PreviewNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 //utils
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
@@ -65,39 +66,6 @@ import AxisMarker from "./AxisMarker";
 import { generateCSS } from "../themes/GenerateCSS";
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import LoopNode from "../node/LoopNode";
-import { NodeHeader } from "../node/NodeHeader";
-import { NodeData } from "../../stores/NodeData";
-import { OutputRendererForType } from "../node/OutputRenderer";
-import useResultsStore from "../../stores/ResultsStore";
-
-function PreviewNode(props: NodeProps<NodeData>) {
-  const getResult = useResultsStore((state) => state.getResult);
-  const result = getResult(props.data.workflow_id, props.id);
-  const getType = function (value: any) {
-    if (value === null) {
-      return "null";
-    }
-    if (Array.isArray(value)) {
-      return "array";
-    }
-    if (typeof value === "object" && "type" in value) {
-      return value.type;
-    }
-    return typeof value;
-  };
-  return (
-    <Container>
-      <NodeHeader id={props.id} nodeTitle="Preview" isLoading={false} />
-      <Handle
-        id="value"
-        type="target"
-        position={Position.Left}
-        isConnectable={true}
-      />
-      <OutputRendererForType value={result} type={getType(result)} />
-    </Container>
-  );
-}
 
 const NodeEditor: React.FC<unknown> = () => {
   const nodes = useNodeStore((state) => state.nodes);
@@ -428,8 +396,6 @@ const NodeEditor: React.FC<unknown> = () => {
         redo={nodeHistory.redo}
       />
       <div className="node-editor" css={generateCSS}>
-        {" "}
-        {/* eslint-disable-line */}
         <Grid
           container
           spacing={2}
@@ -520,7 +486,6 @@ const NodeEditor: React.FC<unknown> = () => {
                 size={8}
                 color="#333"
                 lineWidth={1}
-                // style={{ backgroundColor: "rgb(85, 90, 90)" }}
                 style={{ backgroundColor: "rgb(122, 122, 120)" }}
                 variant={BackgroundVariant.Cross}
               />

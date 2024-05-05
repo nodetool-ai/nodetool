@@ -19,9 +19,11 @@ type CustomText = { text: string };
 
 const styles = css({
   "&.comment-node": {
+    width: "100%",
+    height: "100%",
+    margin: 0,
     padding: 0,
     backgroundColor: "transparent",
-    margin: 0,
     "&.collapsed": {
       maxHeight: "60px"
     },

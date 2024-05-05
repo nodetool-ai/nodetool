@@ -105,6 +105,10 @@ const footerStyles = (theme: any) =>
     },
     ".options": {
       marginLeft: "2em"
+    },
+    ".run-workflow.disabled": {
+      opacity: 0.5,
+      cursor: "default"
     }
   });
 
@@ -178,14 +182,14 @@ function AppFooter() {
               enterDelay={TOOLTIP_DELAY}
             >
               <Button
-                className="run-workflow"
-                onClick={() => runWorkflow()}
-                disabled={isWorkflowRunning}
+                className={`run-workflow ${
+                  isWorkflowRunning ? "disabled" : ""
+                }`}
+                onClick={() => !isWorkflowRunning && runWorkflow()}
               >
                 <PlayArrow />
               </Button>
             </Tooltip>
-
             <Tooltip
               title={
                 <div

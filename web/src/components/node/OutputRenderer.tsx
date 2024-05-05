@@ -11,7 +11,7 @@ import { useState } from "react";
 import reduceUnionType from "../../hooks/reduceUnionType";
 import ThreadMessageList from "./ThreadMessageList";
 import ImageList from "./ImageList";
-import { Button, ButtonGroup } from "@mui/material";
+import { Button, ButtonGroup, Typography } from "@mui/material";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { MIN_ZOOM } from "../../config/constants";
@@ -113,21 +113,41 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
   switch (type) {
     case "image":
       return value?.uri ? (
-        <div>
+        <div
+          className="image-output"
+          style={{
+            position: "relative",
+            display: "flex",
+            justifyContent: "flex-start",
+            alignItems: "flex-start",
+            width: "100%",
+            height: "100%",
+            minHeight: "50px"
+          }}
+        >
           <AssetViewer
             contentType="image/*"
             url={value.uri}
             open={openViewer}
             onClose={() => setOpenViewer(false)}
           />
-          <img
-            src={value.uri}
-            alt=""
-            style={{ width: "100%" }}
+          <div
+            style={{
+              position: "absolute",
+              backgroundImage: `url(${value.uri})`,
+              backgroundSize: "contain",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center",
+              width: "100%",
+              height: "100%",
+              minHeight: "20px"
+            }}
             onDoubleClick={() => setOpenViewer(true)}
           />
         </div>
-      ) : null;
+      ) : (
+        <Typography> No Image found </Typography>
+      );
     case "audio":
       return <AudioPlayer url={value?.uri} />;
     case "video":
