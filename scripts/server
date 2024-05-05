@@ -1,5 +1,5 @@
 #!/bin/bash
 
-# export PYTHONPATH=$PYTHONPATH:src
+export PYTHONPATH=$PYTHONPATH:src
 
 python -m nodetool.cli serve $@
