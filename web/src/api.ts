@@ -70,6 +70,10 @@ export interface paths {
     /** Oauth Callback */
     post: operations["oauth_callback_api_auth_oauth_callback_post"];
   };
+  "/api/auth/verify": {
+    /** Verify */
+    post: operations["verify_api_auth_verify_post"];
+  };
   "/api/nodes/dummy": {
     /**
      * Dummy
@@ -241,6 +245,11 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+    };
+    /** AuthRequest */
+    AuthRequest: {
+      /** Token */
+      token: string;
     };
     /** Body_create_api_assets__post */
     Body_create_api_assets__post: {
@@ -819,6 +828,11 @@ export interface components {
        */
       content?: (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[];
     };
+    /** TokenResponse */
+    TokenResponse: {
+      /** Valid */
+      valid: boolean;
+    };
     /**
      * TypeMetadata
      * @description Metadata for a type.
@@ -1358,6 +1372,28 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["User"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Verify */
+  verify_api_auth_verify_post: {
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AuthRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TokenResponse"];
         };
       };
       /** @description Validation Error */

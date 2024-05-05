@@ -39,6 +39,9 @@ import OAuthCallback from "./components/OauthCallback";
 import ExampleGrid from "./components/workflows/ExampleGrid";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import * as Sentry from "@sentry/react";
+import { useLoginStore } from "./stores/LoginStore";
+import { client } from "./stores/ApiClient";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 if (import.meta.env.MODE === "production") {
   Sentry.init({
@@ -92,37 +95,43 @@ const router = createBrowserRouter([
   {
     path: "assets",
     element: (
-      <ThemeProvider theme={ThemeNodetool}>
-        <CssBaseline />
-        <AppHeader />
-        <AssetExplorer />
-      </ThemeProvider>
+      <ProtectedRoute>
+        <ThemeProvider theme={ThemeNodetool}>
+          <CssBaseline />
+          <AppHeader />
+          <AssetExplorer />
+        </ThemeProvider>
+      </ProtectedRoute>
     )
   },
   {
     path: "examples",
     element: (
-      <ThemeProvider theme={ThemeNodetool}>
-        <CssBaseline />
-        <AppHeader />
-        <ExampleGrid />
-      </ThemeProvider>
+      <ProtectedRoute>
+        <ThemeProvider theme={ThemeNodetool}>
+          <CssBaseline />
+          <AppHeader />
+          <ExampleGrid />
+        </ThemeProvider>
+      </ProtectedRoute>
     )
   },
   {
     path: "workflows",
     element: (
-      <ThemeProvider theme={ThemeNodetool}>
-        <CssBaseline />
-        <AppHeader />
-        <WorkflowGrid />
-      </ThemeProvider>
+      <ProtectedRoute>
+        <ThemeProvider theme={ThemeNodetool}>
+          <CssBaseline />
+          <AppHeader />
+          <WorkflowGrid />
+        </ThemeProvider>
+      </ProtectedRoute>
     )
   },
   {
     path: "editor/:workflow",
     element: (
-      <>
+      <ProtectedRoute>
         <ThemeProvider theme={ThemeNodetool}>
           <CssBaseline />
           <AppHeader />
@@ -137,14 +146,14 @@ const router = createBrowserRouter([
           <CssBaseline />
           <NodeMenu focusSearchInput={true} />
         </ThemeProvider>
-      </>
+      </ProtectedRoute>
     ),
     loader: async ({ params }) => await initiateEditor(params.workflow)
   },
   {
     path: "editor/start",
     element: (
-      <>
+      <ProtectedRoute>
         <ThemeProvider theme={ThemeNodetool}>
           <CssBaseline />
           <AppHeader />
@@ -153,7 +162,7 @@ const router = createBrowserRouter([
         <ThemeProvider theme={ThemeNodes}>
           <NodeEditor />
         </ThemeProvider>
-      </>
+      </ProtectedRoute>
     ),
     loader: async ({ params }) => await initiateEditor(params.workflow)
   }
@@ -162,6 +171,32 @@ const router = createBrowserRouter([
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
+
+const verify = async () => {
+  const user = useLoginStore.getState().readFromStorage();
+  if (!user || !user.auth_token) {
+    return false;
+  }
+  const { data, error } = await client.POST("/api/auth/verify", {
+    body: {
+      token: user?.auth_token
+    }
+  });
+  if (error) {
+    return false;
+  }
+  return data.valid;
+};
+
+const checkUser = async () => {
+  const valid = await verify();
+  if (!valid) {
+    useLoginStore.getState().signout();
+  }
+};
+
+window.addEventListener("focus", checkUser);
+checkUser();
 
 root.render(
   <React.StrictMode>
