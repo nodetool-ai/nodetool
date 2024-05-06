@@ -6,6 +6,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Node } from "reactflow";
 import useKeyPressedListener from "../../utils/KeyPressedListener";
 import { NodeData } from "../../stores/NodeData";
+import useSessionStateStore from "../../stores/SessionStateStore";
 
 export default function useDragHandlers(resumeHistoryAndSave: () => void) {
   const createNode = useNodeStore((state) => state.createNode);
@@ -21,6 +22,10 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
   const history: HistoryManager = useTemporalStore((state) => state);
   const hoveredNodes = useNodeStore((state) => state.hoveredNodes);
   const findNode = useNodeStore((state) => state.findNode);
+
+  const setSelectedNodes = useSessionStateStore(
+    (state) => state.setSelectedNodes
+  );
 
   const createCommentNode = useCallback(
     (width: number, height: number) => {
@@ -148,16 +153,20 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
 
   /* SELECTION END */
   const onSelectionEnd = useCallback(() => {
-    const mousePos = getMousePosition();
-    // const projectedEndPos = reactFlow.screenToFlowPosition({
-    const projectedEndPos = reactFlow.project({
-      x: mousePos.x,
-      y: mousePos.y
-    });
-    const width = Math.abs(projectedEndPos.x - startPos.x);
-    const height = Math.abs(projectedEndPos.y - startPos.y);
-    createCommentNode(width, height);
-  }, [createCommentNode, startPos, reactFlow]);
+    const selectedNodes = reactFlow.getNodes().filter((n) => n.selected);
+    setSelectedNodes(selectedNodes);
+    if (CKeyPressed) {
+      const mousePos = getMousePosition();
+      // const projectedEndPos = reactFlow.screenToFlowPosition({
+      const projectedEndPos = reactFlow.project({
+        x: mousePos.x,
+        y: mousePos.y
+      });
+      const width = Math.abs(projectedEndPos.x - startPos.x);
+      const height = Math.abs(projectedEndPos.y - startPos.y);
+      createCommentNode(width, height);
+    }
+  }, [createCommentNode, startPos, reactFlow, CKeyPressed, setSelectedNodes]);
 
   // enables pan on drag. accepts boolean or array of mouse buttons
   let panOnDrag: number[] = [0];

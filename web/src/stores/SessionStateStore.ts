@@ -23,13 +23,10 @@ type SessionStateStore = {
   setIsClipboardValid: (isValid: boolean) => void;
 };
 
-const useSessionStateStore = create<SessionStateStore>((set) => ({
+const useSessionStateStore = create<SessionStateStore>((set, get) => ({
   // NODE SELECTION
-  // do not use setSelectedNodes directly:
-  // NodeEditor uses the reactflow hook onSelectionChange to set the selected nodes in here.
-  // selectedNodeIds are always kept in sync with selectedNodes.
-  // if a setSelectedNodes functionality is needed, it should be done in NodeStore or
-  // implemented here to take care of keeping the selection state in sync.
+  // NodeEditor + useDragHandlers set the selected nodes.
+  // selectedNodeIds are kept in sync with selectedNodes.
   selectedNodeIds: [],
   selectedNodes: [],
   setSelectedNodes: (nodes: Node[]) => {

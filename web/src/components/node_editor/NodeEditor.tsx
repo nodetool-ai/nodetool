@@ -10,12 +10,10 @@ import ReactFlow, {
   useOnSelectionChange,
   Edge,
   SelectionMode,
-  NodeProps,
-  Handle,
-  Position
+  ConnectionMode
 } from "reactflow";
 
-import { CircularProgress, Container, Grid } from "@mui/material";
+import { CircularProgress, Grid } from "@mui/material";
 //store
 import {
   NodeStore,
@@ -452,12 +450,13 @@ const NodeEditor: React.FC<unknown> = () => {
               onSelectionDragStop={onSelectionDragStop}
               onSelectionStart={onSelectionStart}
               onSelectionEnd={onSelectionEnd}
+              onSelectionContextMenu={handleSelectionContextMenu}
               selectionMode={settings.selectionMode as SelectionMode}
-              // onSelectionContextMenu={onSelectionContextMenu}
               onEdgesChange={onEdgesChange}
               onEdgeMouseEnter={onEdgeMouseEnter}
               onEdgeMouseLeave={onEdgeMouseLeave}
               onEdgeContextMenu={onEdgeContextMenu}
+              connectionMode={ConnectionMode.Strict}
               onConnect={onConnect}
               onConnectStart={onConnectStart}
               onConnectEnd={onConnectEnd}
@@ -469,7 +468,6 @@ const NodeEditor: React.FC<unknown> = () => {
               onNodeDragStart={onNodeDragStart}
               onNodeDragStop={onNodeDragStop}
               onNodeContextMenu={handleNodeContextMenu}
-              onSelectionContextMenu={handleSelectionContextMenu}
               onPaneContextMenu={handlePaneContextMenu}
               // onNodeClick={onNodeClick}
               onNodeDoubleClick={onNodeDoubleClick}
