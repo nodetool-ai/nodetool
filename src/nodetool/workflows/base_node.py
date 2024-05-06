@@ -333,7 +333,7 @@ class BaseNode(BaseModel):
             return []
 
         try:
-            if type(return_type) == dict:
+            if type(return_type) is dict:
                 return [
                     OutputSlot(
                         type=type_metadata(field_type),

@@ -12,7 +12,7 @@ const DictTable: React.FC<Props> = ({ data }) => {
           Object.entries(data).map(([key, value]) => (
             <tr key={key}>
               <td>{key}</td>
-              <td>{value}</td>
+              <td>{value.toString()}</td>
             </tr>
           ))}
       </tbody>

@@ -84,11 +84,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
     if (value === undefined) {
       return "null";
     }
-    if (value.output === null) {
-      return "null";
-    }
-    if (value.output.type) {
-      return value.output.type;
+    if (value.type) {
+      return value.type;
     }
     if (Array.isArray(value)) {
       return "array";
@@ -96,7 +93,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
     if (typeof value.output === "object" && "type" in value) {
       return value.output.type;
     }
-    return typeof value.output;
+    return typeof value;
   };
 
   const handleResize = (event: ResizeDragEvent) => {
@@ -140,8 +137,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
         isConnectable={true}
       />
       <OutputRendererForType
-        value={result?.output ? result.output : {}}
-        type={{ type: getType(result) }}
+        value={result?.output ?? {}}
+        type={{ type: getType(result?.output ?? {}) }}
       />
     </Container>
   );

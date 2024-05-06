@@ -11,7 +11,7 @@ import { useState } from "react";
 import reduceUnionType from "../../hooks/reduceUnionType";
 import ThreadMessageList from "./ThreadMessageList";
 import ImageList from "./ImageList";
-import { Button, ButtonGroup, Typography } from "@mui/material";
+import { Button, ButtonGroup, Container, Typography } from "@mui/material";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { MIN_ZOOM } from "../../config/constants";
@@ -163,6 +163,26 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
       return <DataTable data={value as DataFrame} />;
     case "object":
       return <DictTable data={value} />;
+    case "array":
+      return (
+        <Container>
+          {value.map((v: any, i: number) => (
+            <OutputRendererForType key={i} value={v} type={typeFor(v)} />
+          ))}
+        </Container>
+      );
+    case "segmentation_result":
+      return (
+        <div>
+          {Object.entries(value).map((v: any) => (
+            <OutputRendererForType
+              key={v[0]}
+              value={v[1]}
+              type={typeFor(v[1])}
+            />
+          ))}
+        </div>
+      );
     default:
       return (
         <div className="output value nodrag nowheel" css={styles}>

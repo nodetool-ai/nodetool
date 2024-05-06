@@ -19,7 +19,7 @@ async def run_huggingface(
     model_id: str,
     input_params: dict,
     data: bytes | None = None,
-):
+) -> Any:
     log.info(f"Running model {model_id} on Huggingface.")
     started_at = datetime.now()
 
@@ -61,6 +61,14 @@ async def run_huggingface(
                     result = response.json()
                     log.info(
                         f"Model {model_id} is booting. Waiting for {result['estimated_time']} seconds."
+                    )
+                    context.post_message(
+                        NodeUpdate(
+                            node_id=node_id,
+                            node_name=model_id,
+                            status="starting",
+                            error=f"Model is booting. ETA: {result['estimated_time']} seconds.",
+                        )
                     )
                     await asyncio.sleep(result["estimated_time"])
                     retry_count += 1
@@ -105,7 +113,7 @@ class HuggingfaceNode(BaseNode):
         context: ProcessingContext,
         params: dict[(str, Any)] = {},
         data: bytes | None = None,
-    ):
+    ) -> Any:
         raw_inputs = {
             prop.name: convert_enum_value(getattr(self, prop.name))
             for prop in self.properties()
