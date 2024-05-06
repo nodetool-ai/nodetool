@@ -1,11 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import { keyframes } from "@emotion/react";
 import { memo } from "react";
 import { NodeProps } from "reactflow";
 import { isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import useWorkflowRunnner from "../../stores/WorkflowRunner";
 import { useMetadata } from "../../serverState/useMetadata";
 
 import { useNodeStore } from "../../stores/NodeStore";
@@ -19,20 +17,11 @@ import { NodeLogs } from "./NodeLogs";
 import { ProcessTimer } from "./ProcessTimer";
 import { NodeProgress } from "./NodeProgress";
 import { NodeErrors } from "./NodeErrors";
+import useStatusStore from "../../stores/StatusStore";
 
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
 export const TOOLTIP_ENTER_NEXT_DELAY = 350;
-
-export const loadingEffect = keyframes`
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
-  }
-`;
-
 /**
  * Split a camelCase string into a space separated string.
  */
@@ -54,7 +43,13 @@ export default memo(
       isLoading: metadataLoading,
       error: metadataError
     } = useMetadata();
-    const status = useWorkflowRunnner((state) => state.status)[props.id];
+    const nodedata = useNodeStore((state) => state.findNode(props.id)?.data);
+    const workflowId = nodedata?.workflow_id;
+    const status = useStatusStore((state) =>
+      workflowId !== undefined
+        ? state.getStatus(workflowId, props.id)
+        : undefined
+    );
     const getInputEdges = useNodeStore((state) => state.getInputEdges);
     const getResult = useResultsStore((state) => state.getResult);
     const result = getResult(props.data.workflow_id, props.id);

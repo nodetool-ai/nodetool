@@ -4,6 +4,8 @@ import useWorkflowRunnner from "../../stores/WorkflowRunner";
 import { css } from "@emotion/react";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { Button } from "@mui/material";
+import useErrorStore from "../../stores/ErrorStore";
+import { useNodeStore } from "../../stores/NodeStore";
 
 export const errorStyles = (theme: any) =>
   css({
@@ -47,8 +49,12 @@ export const errorStyles = (theme: any) =>
   });
 
 export const NodeErrors = memo(function NodeErrors({ id }: { id: string }) {
-  const errors = useWorkflowRunnner((state) => state.errors);
-  const error = errors[id];
+  const nodeData = useNodeStore((state) => state.findNode(id)?.data);
+  const error = useErrorStore((state) =>
+    nodeData?.workflow_id !== undefined
+      ? state.getError(nodeData?.workflow_id, id)
+      : undefined
+  );
   const { writeClipboard } = useClipboard();
 
   if (!error) {

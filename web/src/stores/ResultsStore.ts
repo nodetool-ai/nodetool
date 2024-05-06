@@ -3,9 +3,20 @@ import { useNodeStore } from "./NodeStore";
 
 type ResultsStore = {
   results: Record<string, any>;
+  progress: Record<string, { progress: number; total: number }>;
   deleteResult: (workflowId: string, nodeId: string) => void;
   setResult: (workflowId: string, nodeId: string, result: any) => void;
   getResult: (workflowId: string, nodeId: string) => any;
+  setProgress: (
+    workflowId: string,
+    nodeId: string,
+    progress: number,
+    total: number
+  ) => void;
+  getProgress: (
+    workflowId: string,
+    nodeId: string
+  ) => { progress: number; total: number };
 };
 
 const hashKey = (workflowId: string, nodeId: string) =>
@@ -13,6 +24,7 @@ const hashKey = (workflowId: string, nodeId: string) =>
 
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
+  progress: {},
   /**
    * Delete the result for a node.
    * The result is removed from the results map.
@@ -57,6 +69,40 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const results = get().results;
     const key = hashKey(workflowId, nodeId);
     return results[key];
+  },
+
+  /**
+   * Set the progress for a node.
+   *
+   * @param workflowId The id of the workflow.
+   * @param nodeId The id of the node.
+   * @param progress The progress to set.
+   * @param total The total to set.
+   *
+   * @returns The progress and total for the node.
+   */
+  setProgress: (
+    workflowId: string,
+    nodeId: string,
+    progress: number,
+    total: number
+  ) => {
+    const key = hashKey(workflowId, nodeId);
+    set({ progress: { ...get().progress, [key]: { progress, total } } });
+  },
+
+  /**
+   * Get the progress for a node.
+   *
+   * @param workflowId The id of the workflow.
+   * @param nodeId The id of the node.
+   *
+   * @returns The progress and total for the node.
+   */
+  getProgress: (workflowId: string, nodeId: string) => {
+    const progress = get().progress;
+    const key = hashKey(workflowId, nodeId);
+    return progress[key];
   }
 }));
 

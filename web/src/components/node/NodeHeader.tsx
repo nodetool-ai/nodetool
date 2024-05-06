@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { ArrowDropDown } from "@mui/icons-material";
-import { loadingEffect } from "./BaseNode";
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useStore } from "reactflow";
@@ -13,6 +12,15 @@ export interface NodeHeaderProps {
   nodeTitle: string;
   isLoading?: boolean;
 }
+
+export const loadingEffect = keyframes`
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+`;
 
 export const headerStyle = (theme: any) =>
   css({
