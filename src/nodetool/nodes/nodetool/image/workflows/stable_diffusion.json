@@ -70,7 +70,7 @@
     }
   },
   "12": {
-    "type": "nodetool.input.IntInput",
+    "type": "nodetool.input.IntegerInput",
     "inputs": {
       "name": "width",
       "value": 512,
@@ -79,7 +79,7 @@
     }
   },
   "13": {
-    "type": "nodetool.input.IntInput",
+    "type": "nodetool.input.IntegerInput",
     "inputs": {
       "name": "height",
       "value": 512,
@@ -88,7 +88,7 @@
     }
   },
   "14": {
-    "type": "nodetool.input.IntInput",
+    "type": "nodetool.input.IntegerInput",
     "inputs": {
       "name": "seed",
       "value": 0,
@@ -97,7 +97,7 @@
     }
   },
   "15": {
-    "type": "nodetool.input.IntInput",
+    "type": "nodetool.input.IntegerInput",
     "inputs": {
       "name": "steps",
       "value": 10,

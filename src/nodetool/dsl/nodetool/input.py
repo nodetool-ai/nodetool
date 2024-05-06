@@ -25,13 +25,13 @@ class AudioInput(GraphNode):
 
 
 
-class BoolInput(GraphNode):
+class BooleanInput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
     value: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.input.BoolInput"
+    def get_node_type(cls): return "nodetool.input.BooleanInput"
 
 
 
@@ -107,7 +107,7 @@ class ImageInput(GraphNode):
 
 
 
-class IntInput(GraphNode):
+class IntegerInput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
@@ -115,7 +115,7 @@ class IntInput(GraphNode):
     min: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
     max: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.input.IntInput"
+    def get_node_type(cls): return "nodetool.input.IntegerInput"
 
 
 

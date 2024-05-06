@@ -4,14 +4,14 @@
       "name": "number1",
       "value": 1
     },
-    "type": "nodetool.input.IntInput"
+    "type": "nodetool.input.IntegerInput"
   },
   "number2": {
     "inputs": {
       "name": "number2",
       "value": 2
     },
-    "type": "nodetool.input.IntInput"
+    "type": "nodetool.input.IntegerInput"
   },
   "addition": {
     "inputs": {
@@ -25,6 +25,6 @@
       "name": "output",
       "value": ["addition", "output"]
     },
-    "type": "nodetool.output.IntOutput"
+    "type": "nodetool.output.IntegerOutput"
   }
 }

@@ -10,7 +10,7 @@ from tests.conftest import make_job
 from fastapi.testclient import TestClient
 from nodetool.models.user import User
 from nodetool.models.workflow import Workflow
-from nodetool.nodes.nodetool.input import IntInput
+from nodetool.nodes.nodetool.input import IntegerInput
 from nodetool.nodes.nodetool.math import Add
 from nodetool.nodes.nodetool.output import IntegerOutput
 
@@ -103,10 +103,10 @@ async def test_run(
     user: User,
     headers: dict[str, str],
 ):
-    int_a = {"id": "1", "type": IntInput.get_node_type(), "data": {"value": 10}}
+    int_a = {"id": "1", "type": IntegerInput.get_node_type(), "data": {"value": 10}}
     int_b = {
         "id": "2",
-        "type": IntInput.get_node_type(),
+        "type": IntegerInput.get_node_type(),
         "data": {"value": 5},
     }
     add = {

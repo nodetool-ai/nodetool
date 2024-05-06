@@ -36,7 +36,7 @@ class FloatInput(InputNode):
         }
 
 
-class BoolInput(InputNode):
+class BooleanInput(InputNode):
     """
     Represents a boolean parameter for the workflow.
     input, parameter, boolean, bool
@@ -55,7 +55,7 @@ class BoolInput(InputNode):
         }
 
 
-class IntInput(InputNode):
+class IntegerInput(InputNode):
     """
     Represents an integer parameter for the workflow.
     input, parameter, integer, number

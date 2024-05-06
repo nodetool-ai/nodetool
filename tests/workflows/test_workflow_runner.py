@@ -20,7 +20,7 @@ from nodetool.nodes.nodetool.input import (
     FloatInput,
     GroupInput,
     ImageInput,
-    IntInput,
+    IntegerInput,
 )
 from nodetool.nodes.nodetool.group import Loop
 from nodetool.nodes.nodetool.math import Add, Multiply
@@ -204,12 +204,12 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
     input_a = {
         "id": "1",
         "data": {"name": "input_1"},
-        "type": IntInput.get_node_type(),
+        "type": IntegerInput.get_node_type(),
     }
     input_b = {
         "id": "2",
         "data": {"name": "input_2"},
-        "type": IntInput.get_node_type(),
+        "type": IntegerInput.get_node_type(),
     }
     add_node = {"id": "3", "type": Add.get_node_type()}
     out_node = {
