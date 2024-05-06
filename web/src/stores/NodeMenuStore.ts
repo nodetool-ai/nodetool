@@ -77,13 +77,13 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     dropType: string = "",
     connectDirection: ConnectDirection = null
   ) => {
-    // const maxPosX = window.innerWidth - get().menuWidth;
-    // const maxPosY = window.innerHeight - get().menuHeight;
-    // const constrainedX = Math.min(Math.max(x, 0), maxPosX) - 20;
-    // const constrainedY = Math.min(Math.max(y, 0), maxPosY) - 20;
+    const maxPosX = window.innerWidth - get().menuWidth;
+    const maxPosY = window.innerHeight - get().menuHeight;
+    const constrainedX = Math.min(Math.max(x, 0), maxPosX) - 20;
+    const constrainedY = Math.min(Math.max(y, 0), maxPosY) + 90;
     set({
       isMenuOpen: true,
-      menuPosition: { x: x, y: y },
+      menuPosition: { x: constrainedX, y: constrainedY },
       openedByDrop: byDrop,
       dropType: dropType,
       connectDirection: connectDirection
