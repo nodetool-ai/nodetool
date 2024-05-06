@@ -14,13 +14,13 @@ class AudioOutput(GraphNode):
 
 
 
-class BoolOutput(GraphNode):
+class BooleanOutput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
     value: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.output.BoolOutput"
+    def get_node_type(cls): return "nodetool.output.BooleanOutput"
 
 
 
@@ -54,13 +54,13 @@ class DataframeOutput(GraphNode):
 
 
 
-class DictOutput(GraphNode):
+class DictionaryOutput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
     value: dict[str, Any] | GraphNode | tuple[GraphNode, str] = Field(default={}, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.output.DictOutput"
+    def get_node_type(cls): return "nodetool.output.DictionaryOutput"
 
 
 
@@ -102,13 +102,13 @@ class ImageOutput(GraphNode):
 
 
 
-class IntOutput(GraphNode):
+class IntegerOutput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
     value: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.output.IntOutput"
+    def get_node_type(cls): return "nodetool.output.IntegerOutput"
 
 
 

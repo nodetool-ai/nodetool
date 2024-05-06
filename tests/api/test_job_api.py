@@ -12,7 +12,7 @@ from nodetool.models.user import User
 from nodetool.models.workflow import Workflow
 from nodetool.nodes.nodetool.input import IntInput
 from nodetool.nodes.nodetool.math import Add
-from nodetool.nodes.nodetool.output import IntOutput
+from nodetool.nodes.nodetool.output import IntegerOutput
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 test_file = os.path.join(current_dir, "test.jpg")
@@ -115,7 +115,7 @@ async def test_run(
     }
     int_output = {
         "id": "4",
-        "type": IntOutput.get_node_type(),
+        "type": IntegerOutput.get_node_type(),
     }
 
     nodes = [int_a, int_b, add, int_output]

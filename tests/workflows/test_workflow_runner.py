@@ -24,7 +24,7 @@ from nodetool.nodes.nodetool.input import (
 )
 from nodetool.nodes.nodetool.group import Loop
 from nodetool.nodes.nodetool.math import Add, Multiply
-from nodetool.nodes.nodetool.output import ImageOutput, IntOutput
+from nodetool.nodes.nodetool.output import ImageOutput, IntegerOutput
 
 
 @pytest.fixture
@@ -215,7 +215,7 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
     out_node = {
         "id": "4",
         "data": {"name": "output"},
-        "type": IntOutput.get_node_type(),
+        "type": IntegerOutput.get_node_type(),
     }
 
     nodes = [

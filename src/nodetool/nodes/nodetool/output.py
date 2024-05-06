@@ -79,7 +79,7 @@ class ImageListOutput(OutputNode):
         }
 
 
-class IntOutput(OutputNode):
+class IntegerOutput(OutputNode):
     value: int = 0
 
     async def process(self, context: ProcessingContext) -> int:
@@ -105,7 +105,7 @@ class FloatOutput(OutputNode):
         }
 
 
-class BoolOutput(OutputNode):
+class BooleanOutput(OutputNode):
     value: bool = False
 
     async def process(self, context: ProcessingContext) -> bool:
@@ -217,7 +217,7 @@ class DataframeOutput(OutputNode):
         return self.value
 
 
-class DictOutput(OutputNode):
+class DictionaryOutput(OutputNode):
     value: dict[str, Any] = {}
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
