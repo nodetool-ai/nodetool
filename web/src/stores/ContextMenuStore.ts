@@ -1,10 +1,11 @@
 import { create } from "zustand";
+import { OutputSlot } from "./ApiTypes";
 type MenuPosition = { x: number; y: number };
 interface ContextMenuState {
   openMenuType: string | null;
   nodeId: string | null;
   menuPosition: MenuPosition | null;
-  type: string | null;
+  outputSlot: OutputSlot | null;
 
   openContextMenu: (
     contextMenuClass: string,
@@ -12,7 +13,7 @@ interface ContextMenuState {
     x: number,
     y: number,
     outsideClickIgnoreClass?: string,
-    type?: string
+    outputSlot?: OutputSlot
   ) => void;
   closeContextMenu: () => void;
 }
@@ -44,7 +45,7 @@ const useContextMenuStore = create<ContextMenuState>((set, get) => {
     x: number,
     y: number,
     outsideClickIgnoreClass?: string,
-    type?: string
+    outputSlot?: OutputSlot
   ) => {
     // Remove existing event listener if any
     if (currentClickOutsideHandler) {
@@ -65,7 +66,7 @@ const useContextMenuStore = create<ContextMenuState>((set, get) => {
         openMenuType: contextMenuClass,
         nodeId: nodeId,
         menuPosition: { x, y },
-        type: type
+        outputSlot: outputSlot
       });
       setTimeout(() => {
         currentClickOutsideHandler = clickOutsideHandler(
@@ -89,10 +90,10 @@ const useContextMenuStore = create<ContextMenuState>((set, get) => {
   return {
     openMenuType: null,
     nodeId: null,
-    type: null,
     menuPosition: null,
     openContextMenu,
-    closeContextMenu
+    closeContextMenu,
+    outputSlot: null
   };
 });
 

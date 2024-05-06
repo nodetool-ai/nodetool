@@ -23,7 +23,7 @@ type SessionStateStore = {
   setIsClipboardValid: (isValid: boolean) => void;
 };
 
-const useSessionStateStore = create<SessionStateStore>((set, get) => ({
+const useSessionStateStore = create<SessionStateStore>((set) => ({
   // NODE SELECTION
   // NodeEditor + useDragHandlers set the selected nodes.
   // selectedNodeIds are kept in sync with selectedNodes.

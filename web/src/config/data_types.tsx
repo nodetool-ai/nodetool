@@ -189,7 +189,7 @@ let DATA_TYPES: DataType[] = [
   },
   {
     value: "dataframe",
-    label: "Data Frame",
+    label: "Dataframe",
     description: "Structured data in a tabular format",
     color: "#AAFFC3",
     textColor: "#eee",
@@ -234,7 +234,7 @@ let DATA_TYPES: DataType[] = [
   },
   {
     value: "float",
-    label: "Floating Point",
+    label: "Float",
     description: "Real numbers with fractional parts",
     // color: "#747D82",
     color: "#acb8bf",
@@ -670,6 +670,11 @@ export function textColorForType(type: string): string {
 export function descriptionForType(type: string): string {
   const foundType = DATA_TYPES.find((dt) => dt.value === type);
   return foundType?.description || "";
+}
+
+export function labelForType(type: string): string {
+  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  return foundType?.label || "";
 }
 
 DATA_TYPES.sort((a, b) => a.value.localeCompare(b.value));
