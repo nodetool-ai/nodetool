@@ -65,7 +65,7 @@ class SelectColumn(BaseNode):
     async def process(self, context: ProcessingContext) -> DataFrame:
         columns = self.columns.split(",")
         df = await context.to_pandas(self.dataframe)
-        return await context.from_pandas(df[columns])
+        return await context.from_pandas(df[columns])  # type: ignore
 
 
 class ColumnToList(BaseNode):

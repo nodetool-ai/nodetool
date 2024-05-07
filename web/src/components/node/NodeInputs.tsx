@@ -7,6 +7,7 @@ import { NodeData } from "../../stores/NodeData";
 
 export interface NodeInputsProps {
   id: string;
+  nodeStyle: string;
   properties: Property[];
   data: NodeData;
   isConstantNode: boolean;
@@ -14,7 +15,7 @@ export interface NodeInputsProps {
 }
 
 export const NodeInputs = memo(
-  function NodeInputs({ id, properties, data, edges, isConstantNode }: NodeInputsProps) {
+  function NodeInputs({ id, properties, data, edges, isConstantNode, nodeStyle }: NodeInputsProps) {
     return (
       <div className="node-inputs">
         {properties.map((property, index) => (
@@ -22,6 +23,7 @@ export const NodeInputs = memo(
             key={property.name + id}
             id={id}
             data={data}
+            nodeStyle={nodeStyle}
             property={property}
             propertyIndex={index.toString()}
             skipHandles={isConstantNode}

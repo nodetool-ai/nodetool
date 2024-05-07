@@ -28,6 +28,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 export type PropertyFieldProps = {
   id: string;
   data: NodeData;
+  nodeStyle: string;
   property: Property;
   propertyIndex: string;
   edgeConnected: boolean;
@@ -130,20 +131,23 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
           </Tooltip>
         </div>
       )}
-      {!isMinZoom ? (
-        <>
-          <PropertyInput
-            propertyIndex={props.id + "-" + propertyIndex}
-            id={props.id}
-            data={props.data}
-            property={props.property}
-            controlKeyPressed={controlKeyPressed}
-            isInspector={props.isInspector}
-            hideInput={props.edgeConnected}
-          />
-        </>
-      ) : (
-        <div className="property-spacer" style={{ height: "20px" }}></div>
+
+      {props.nodeStyle === "normal" && (
+        !isMinZoom ? (
+          <>
+            <PropertyInput
+              propertyIndex={props.id + "-" + propertyIndex}
+              id={props.id}
+              data={props.data}
+              property={props.property}
+              controlKeyPressed={controlKeyPressed}
+              isInspector={props.isInspector}
+              hideInput={props.edgeConnected}
+            />
+          </>
+        ) : (
+          <div className="property-spacer" style={{ height: "20px" }}></div>
+        )
       )}
     </div>
   );

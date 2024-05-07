@@ -149,7 +149,7 @@
 .node-output {
   position: relative;
   width: auto;
-  min-width: 150px;
+  /* min-width: 150px; */
   max-width: 250px;
   min-height: 15px;
   border: 0;
@@ -185,7 +185,7 @@
   color: var(--c_gray5) !important;
 }
 .value-changed .value {
-  color: var(--c_hl1) ;
+  color: var(--c_hl1);
 }
 .value-changed textarea,
 .value-changed .MuiInput-root {
@@ -490,7 +490,7 @@ span.tooltip-small {
 }
 
 /* COMMENT NODES */
-  .react-flow__node-nodetool\.workflows\.base_node\.Comment{
+.react-flow__node-nodetool\.workflows\.base_node\.Comment {
   width: auto;
   min-width: 30px;
   min-height: 40px;
@@ -503,7 +503,8 @@ span.tooltip-small {
   overflow: hidden;
   z-index: -1 !important;
 }
-.react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Comment {
+.react-flow.zoomed-out
+  .react-flow__node-nodetool\.workflows\.base_node\.Comment {
   background-color: #0002;
 }
 
@@ -525,7 +526,8 @@ span.tooltip-small {
   background-color: var(--c_gray2) !important;
 }
 
-.react-flow__node .comment-node:hover
+.react-flow__node
+  .comment-node:hover
   .react-flow__resize-control.handle.bottom.right {
   opacity: 1;
 }
@@ -579,7 +581,9 @@ span.tooltip-small {
   border: 0 !important;
   padding: 0 !important;
 }
-.react-flow__node.react-flow__node-default .placeholder-node .react-flow__handle {
+.react-flow__node.react-flow__node-default
+  .placeholder-node
+  .react-flow__handle {
   display: none;
 }
 

@@ -30,6 +30,11 @@ function capitalToSpace(str: string) {
   return s.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
+
+function isSmallNode(type: string) {
+  return type.match(/\.math|\.tensor|\.list|\.dictionary/) !== null;
+}
+
 /**
  * BaseNode renders a single node in the workflow
  *
@@ -67,6 +72,8 @@ export default memo(
       .replace(/\s+/g, " ")
       .trim();
 
+    const nodeStyle = isSmallNode(props.type) ? 'small' : 'normal';
+
     if (!metadata) {
       return (
         <Container className={className}>
@@ -86,27 +93,27 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-            name: "output",
-            type: {
-              type: "string"
-            }
-          };
+          name: "output",
+          type: {
+            type: "string"
+          }
+        };
 
     return (
       <Container className={className}>
-        <NodeHeader
-          id={props.id}
-          nodeTitle={node_title}
-          isLoading={isLoading}
-        />
-
-        <div className="node-content-hidden" />
-
-        <NodeErrors id={props.id} />
+        <>
+          <NodeHeader
+            id={props.id}
+            nodeTitle={node_title}
+            isLoading={isLoading}
+          />
+          <div className="node-content-hidden" />
+          <NodeErrors id={props.id} />
+        </>
         <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
-
         <NodeInputs
           id={props.id}
+          nodeStyle={nodeStyle}
           properties={nodeMetadata.properties}
           data={props.data}
           isConstantNode={isConstantNode}
@@ -125,15 +132,19 @@ export default memo(
             ))}
           </div>
         )}
-        <ProcessTimer isLoading={isLoading} status={status} />
-        <NodeProgress id={props.id} />
+        {nodeStyle === 'normal' && (
+          <>
+            <ProcessTimer isLoading={isLoading} status={status} />
+            <NodeProgress id={props.id} />
 
-        <NodeFooter
-          nodeNamespace={node_namespace}
-          type={firstOutput.type.type}
-        />
-        <NodeLogs id={props.id} />
-      </Container>
+            <NodeFooter
+              nodeNamespace={node_namespace}
+              type={firstOutput.type.type}
+            />
+            <NodeLogs id={props.id} />
+          </>
+        )}
+      </Container >
     );
   },
   (prevProps, nextProps) => isEqual(prevProps, nextProps)
