@@ -101,10 +101,10 @@ const styles = (theme: any) =>
       transition: "background-color 0.3s 0.3s"
     },
     ".MuiSlider-root:hover .MuiSlider-track, .MuiSlider-root:active .MuiSlider-track, .MuiSlider-root:focus .MuiSlider-track":
-      {
-        backgroundColor: "#8eaca733",
-        transition: "background-color 0.2s 0s"
-      }
+    {
+      backgroundColor: "#8eaca733",
+      transition: "background-color 0.2s 0s"
+    }
   });
 
 const NumberInput = memo((props: InputProps) => {
@@ -242,13 +242,13 @@ const NumberInput = memo((props: InputProps) => {
     (e: MouseEvent) => {
       if (isDragging) {
         const moveX = e.clientX - dragStartX;
-        const range = (props.max || 100) - (props.min || 0);
+        const range = (props.max || 4096) - (props.min || 0);
         if (Math.abs(moveX) > 5) {
           hasExceededDragThreshold.current = true;
         }
         let baseStep = calculateStep(
           props.min ?? 0,
-          props.max ?? 100,
+          props.max ?? 4096,
           props.inputType || "float"
         );
         if (controlKeyPressed && shiftKeyPressed) {
@@ -288,7 +288,7 @@ const NumberInput = memo((props: InputProps) => {
 
         newValue = Math.max(
           props.min ?? 0,
-          Math.min(props.max ?? 100, newValue)
+          Math.min(props.max ?? 4096, newValue)
         );
 
         if (newValue !== currentDragValueRef.current) {
@@ -403,11 +403,10 @@ const NumberInput = memo((props: InputProps) => {
             backgroundColor: ThemeNodes.palette.c_hl1,
             height: "2px",
             minWidth: "1px",
-            width: `${
-              ((props.value - (props.min || 0)) /
-                ((props.max || 100) - (props.min || 0))) *
+            width: `${((props.value - (props.min || 0)) /
+              ((props.max || 4096) - (props.min || 0))) *
               100
-            }%`
+              }%`
           }}
         ></div>
       </div>

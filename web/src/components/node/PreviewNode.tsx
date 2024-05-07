@@ -73,7 +73,7 @@ const styles = (theme: any) =>
     }
   });
 
-interface PreviewNodeProps extends NodeProps<NodeData> {}
+interface PreviewNodeProps extends NodeProps<NodeData> { }
 
 const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
   const getResult = useResultsStore((state) => state.getResult);
@@ -90,8 +90,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
     if (Array.isArray(value)) {
       return "array";
     }
-    if (typeof value.output === "object" && "type" in value) {
-      return value.output.type;
+    if (typeof value === "object" && "type" in value) {
+      return value.type;
     }
     return typeof value;
   };

@@ -20,7 +20,7 @@ import {
   WorkflowUpdate,
   WorkflowAttributes
 } from "./ApiTypes";
-import { Omit } from "lodash";
+import { hasOwnProperty, Omit } from "lodash";
 import { uuidv4 } from "./uuidv4";
 import { useLoginStore } from "./LoginStore";
 import { useNotificationStore, Notification } from "./NotificationStore";
@@ -184,17 +184,21 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
           setResult(workflow.id, data.node_id, update.result);
 
           if (update.result) {
+            console.log("update.result", update.result);
             Object.entries(update.result).forEach(([key, value]) => {
               const ref = value as AssetRef;
-              const asset_id = ref.asset_id;
-              if (asset_id) {
-                getAsset(asset_id).then((res) => {
-                  if (res?.get_url) {
-                    ref.uri = res.get_url;
-                  }
-                  setResult(workflow.id, data.node_id, { [key]: ref });
-                  console.log("setResult", data.node_id, { [key]: ref });
-                });
+              console.log("ref", ref);
+              if (hasOwnProperty(ref, "asset_id")) {
+                const asset_id = ref.asset_id;
+                if (asset_id) {
+                  getAsset(asset_id).then((res) => {
+                    if (res?.get_url) {
+                      ref.uri = res.get_url;
+                    }
+                    setResult(workflow.id, data.node_id, { [key]: ref });
+                    console.log("setResult", data.node_id, { [key]: ref });
+                  });
+                }
               }
             });
           }

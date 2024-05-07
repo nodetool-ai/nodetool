@@ -20,12 +20,6 @@ class ModelId(str, Enum):
     )
 
 
-class ClassificationResult(BaseType):
-    type: Literal["classification_result"] = "classification_result"
-    label: str
-    score: float
-
-
 class Classifier(HuggingfaceNode):
     """
     Text Classification is the task of assigning a label or class to a given text. Some use cases are sentiment analysis, natural language inference, and assessing grammatical correctness.
@@ -46,8 +40,8 @@ class Classifier(HuggingfaceNode):
         description="The input text to classify",
     )
 
-    async def process(self, context: ProcessingContext) -> list[ClassificationResult]:
+    async def process(self, context: ProcessingContext) -> dict[str, float]:
         result = await self.run_huggingface(
             model_id=self.model.value, context=context, params={"inputs": self.inputs}
         )
-        return [ClassificationResult(**r) for r in result[0]]
+        return result[0]

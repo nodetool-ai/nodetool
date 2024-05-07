@@ -312,7 +312,7 @@ class BaseNode(BaseModel):
     @classmethod
     def return_type(cls) -> Type | dict[str, Type] | None:
         """
-        Returns the return type of the node.
+        Returns the return type of the process function.
         """
         type_hints = cls.process.__annotations__
 
@@ -420,7 +420,7 @@ class BaseNode(BaseModel):
         return {prop.name: getattr(self, prop.name) for prop in self.properties()}
 
     async def convert_output(self, context: Any, output: Any) -> Any:
-        if isinstance(output, dict):
+        if is_dict_type(self.return_type()):
             return output
         elif is_output_type(self.return_type()):
             return output.model_dump()

@@ -40,9 +40,9 @@ class Classifier(HuggingfaceNode):
         description="The input image to classify",
     )
 
-    async def process(self, context: ProcessingContext) -> list[dict[str, float]]:
+    async def process(self, context: ProcessingContext) -> dict[str, float]:
         image = await context.to_io(self.image)
         result = await self.run_huggingface(
             model_id=self.model.value, context=context, data=image.read()
         )
-        return result  # type: ignore
+        return result[0]

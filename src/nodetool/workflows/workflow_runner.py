@@ -190,6 +190,7 @@ class WorkflowRunner:
             raise e
         else:
             res_for_update = result.copy()
+            print(res_for_update)
 
             for o in node.outputs():
                 # Comfy types are not sent to the client because they are not JSON serializable.
