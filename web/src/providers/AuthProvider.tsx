@@ -11,9 +11,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  setUser: (_: User) => {},
-  login: async (_: OAuthProvider) => {},
-  logout: async () => {}
+  setUser: (_: User) => { },
+  login: async (_: OAuthProvider) => { },
+  logout: async () => { }
 });
 
 interface AuthProviderProps {

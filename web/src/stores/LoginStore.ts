@@ -76,7 +76,8 @@ export const useLoginStore = create<LoginStore>((set, get) => ({
     if (!useRemoteAuth) {
       return {
         id: "1",
-        email: ""
+        email: "",
+        auth_token: "local_token"
       };
     }
     const user = localStorage.getItem("user");
