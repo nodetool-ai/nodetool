@@ -17,14 +17,8 @@ import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
 
 const OutputContextMenu: React.FC = () => {
-  const {
-    openMenuType,
-    menuPosition,
-    closeContextMenu,
-    type,
-    nodeId,
-    handleId
-  } = useContextMenuStore();
+  const { openMenuType, menuPosition, closeContextMenu, type, nodeId } =
+    useContextMenuStore();
   const { openNodeMenu } = useNodeMenuStore();
   const createNode = useNodeStore((state) => state.createNode);
   const addNode = useNodeStore((state) => state.addNode);
@@ -90,7 +84,6 @@ const OutputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
-      newNode.data.properties.type = "nodetool.workflows.base_node.Preview";
       addNode(newNode);
       addEdge({
         id: generateEdgeId(),

@@ -79,7 +79,6 @@ const InputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
-      // newNode.data.properties.type = { constantNodePath };
       addNode(newNode);
       addEdge({
         id: generateEdgeId(),
@@ -101,7 +100,6 @@ const InputContextMenu: React.FC = () => {
       type,
       nodeId,
       handleId
-      // constantNodePath
     ]
   );
 
@@ -119,7 +117,6 @@ const InputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
-      // newNode.data.properties.type = { inputNodePath };
       addNode(newNode);
       addEdge({
         id: generateEdgeId(),
@@ -141,7 +138,6 @@ const InputContextMenu: React.FC = () => {
       type,
       nodeId,
       handleId
-      // inputNodePath
     ]
   );
 
