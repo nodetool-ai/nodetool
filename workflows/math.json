@@ -3,13 +3,13 @@
     "inputs": {
       "value": 0
     },
-    "type": "nodetool.input.IntInput"
+    "type": "nodetool.input.IntegerInput"
   },
   "number2": {
     "inputs": {
       "value": 0
     },
-    "type": "nodetool.input.IntInput"
+    "type": "nodetool.input.IntegerInput"
   },
   "addition": {
     "inputs": {
@@ -22,6 +22,6 @@
     "inputs": {
       "value": ["addition", "output"]
     },
-    "type": "nodetool.output.IntOutput"
+    "type": "nodetool.output.IntegerOutput"
   }
 }

@@ -45,13 +45,13 @@ class ChatInput(GraphNode):
 
 
 
-class ComfyInputImage(GraphNode):
+class ComfyImageInput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
     value: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None), description='The image to use as input.')
     @classmethod
-    def get_node_type(cls): return "nodetool.input.ComfyInputImage"
+    def get_node_type(cls): return "nodetool.input.ComfyImageInput"
 
 
 

@@ -259,7 +259,7 @@ class TextFolder(Folder):
         return texts
 
 
-class ComfyInputImage(AssetSchemaMixin, InputNode):
+class ComfyImageInput(AssetSchemaMixin, InputNode):
     """
     Represents an image parameter for the workflow.
     input, parameter, image

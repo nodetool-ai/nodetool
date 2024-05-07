@@ -11,10 +11,10 @@ class Audio(GraphNode):
 
 
 
-class Bool(GraphNode):
+class Boolean(GraphNode):
     value: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.constant.Bool"
+    def get_node_type(cls): return "nodetool.constant.Boolean"
 
 
 
@@ -24,10 +24,10 @@ class Constant(GraphNode):
 
 
 
-class Dict(GraphNode):
+class Dictionary(GraphNode):
     value: dict[str, Any] | GraphNode | tuple[GraphNode, str] = Field(default={}, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.constant.Dict"
+    def get_node_type(cls): return "nodetool.constant.Dictionary"
 
 
 
@@ -36,6 +36,12 @@ class Float(GraphNode):
     @classmethod
     def get_node_type(cls): return "nodetool.constant.Float"
 
+
+
+class Integer(GraphNode):
+    value: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
+    @classmethod
+    def get_node_type(cls): return "nodetool.constant.Integer"
 
 
 class Image(GraphNode):
