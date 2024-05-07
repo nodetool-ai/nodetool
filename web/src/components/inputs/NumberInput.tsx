@@ -372,9 +372,11 @@ const NumberInput = memo((props: InputProps) => {
         />
         {!isEditable && (
           <div className="value">
-            {props.inputType === "float"
-              ? props.value.toFixed(decimalPlaces)
-              : props.value}
+            {typeof props.value === "number"
+              ? props.inputType === "float"
+                ? props.value.toFixed(decimalPlaces)
+                : props.value
+              : "NaN"}
           </div>
         )}
       </div>

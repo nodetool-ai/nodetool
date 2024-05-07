@@ -15,7 +15,7 @@ export const inputForType = (type: TypeName) => {
     case "str":
       return "nodetool.input.StringInput";
     case "int":
-      return "nodetool.input.IntInput";
+      return "nodetool.input.IntegerInput";
     case "float":
       return "nodetool.input.FloatInput";
     case "bool":
@@ -38,7 +38,7 @@ export const outputForType = (type: TypeName) => {
     case "text":
       return "nodetool.output.TextOutput";
     case "int":
-      return "nodetool.output.IntOutput";
+      return "nodetool.output.IntegerOutput";
     case "float":
       return "nodetool.output.FloatOutput";
     case "bool":
@@ -65,7 +65,7 @@ export const constantForType = (type: TypeName) => {
     case "str":
       return "nodetool.constant.String";
     case "int":
-      return "nodetool.constant.Int";
+      return "nodetool.constant.Integer";
     case "float":
       return "nodetool.constant.Float";
     case "bool":

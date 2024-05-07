@@ -14,15 +14,28 @@ import { useNodeStore } from "../../stores/NodeStore";
 import { useReactFlow } from "reactflow";
 import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
+import { Slugify } from "../../utils/TypeHandler";
 
 const OutputContextMenu: React.FC = () => {
-  const { openMenuType, menuPosition, closeContextMenu, outputSlot } =
-    useContextMenuStore();
+  const {
+    openMenuType,
+    menuPosition,
+    closeContextMenu,
+    type,
+    nodeId,
+    handleId
+  } = useContextMenuStore();
   const { openNodeMenu } = useNodeMenuStore();
   const createNode = useNodeStore((state) => state.createNode);
   const addNode = useNodeStore((state) => state.addNode);
+  const addEdge = useNodeStore((state) => state.addEdge);
+  const generateEdgeId = useNodeStore((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+
+  const datatypeLabel = labelForType(type || "").replaceAll(" ", "");
+  const outputNodePath = `nodetool.output.${datatypeLabel}Output`;
+  const outputNodeMetadata = getMetadata(outputNodePath);
 
   const createPreviewNode = useCallback(
     (event: React.MouseEvent) => {
@@ -31,8 +44,8 @@ const OutputContextMenu: React.FC = () => {
       const newNode = createNode(
         metadata,
         reactFlowInstance.project({
-          x: event.clientX,
-          y: event.clientY
+          x: event.clientX - 20,
+          y: event.clientY - 150
         })
       );
       newNode.data.size = {
@@ -43,16 +56,27 @@ const OutputContextMenu: React.FC = () => {
         type: "nodetool.workflows.base_node.Preview"
       };
       addNode(newNode);
+      addEdge({
+        id: generateEdgeId(),
+        source: nodeId || "",
+        target: newNode.id,
+        sourceHandle: "output",
+        targetHandle: "value",
+        type: "default",
+        className: Slugify(type || "")
+      });
     },
-    [getMetadata, createNode, reactFlowInstance, addNode]
+    [
+      getMetadata,
+      createNode,
+      reactFlowInstance,
+      addNode,
+      addEdge,
+      generateEdgeId,
+      nodeId,
+      type
+    ]
   );
-
-  const datatypeLabel = labelForType(outputSlot?.type.type || "").replaceAll(
-    " ",
-    ""
-  );
-  const outputNodePath = `nodetool.output.${datatypeLabel}Output`;
-  const outputNodeMetadata = getMetadata(outputNodePath);
 
   const createOutputNode = useCallback(
     (event: React.MouseEvent) => {
@@ -60,8 +84,8 @@ const OutputContextMenu: React.FC = () => {
       const newNode = createNode(
         outputNodeMetadata,
         reactFlowInstance.project({
-          x: event.clientX,
-          y: event.clientY
+          x: event.clientX - 20,
+          y: event.clientY - 220
         })
       );
       newNode.data.size = {
@@ -72,8 +96,26 @@ const OutputContextMenu: React.FC = () => {
         type: "nodetool.workflows.base_node.Preview"
       };
       addNode(newNode);
+      addEdge({
+        id: generateEdgeId(),
+        source: nodeId || "",
+        target: newNode.id,
+        sourceHandle: "output",
+        targetHandle: "value",
+        type: "default",
+        className: Slugify(type || "")
+      });
     },
-    [createNode, reactFlowInstance, addNode, outputNodeMetadata]
+    [
+      outputNodeMetadata,
+      createNode,
+      reactFlowInstance,
+      addNode,
+      addEdge,
+      generateEdgeId,
+      nodeId,
+      type
+    ]
   );
 
   const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
@@ -85,7 +127,7 @@ const OutputContextMenu: React.FC = () => {
       getMousePosition().x,
       getMousePosition().y,
       true,
-      outputSlot?.type.type || "",
+      type || "",
       "source"
     );
     closeContextMenu();
@@ -107,7 +149,6 @@ const OutputContextMenu: React.FC = () => {
       event.stopPropagation();
       createOutputNode(event);
     }
-    devLog("Create Output Node");
     closeContextMenu();
   };
 

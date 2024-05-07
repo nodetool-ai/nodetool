@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import { OutputSlot } from "./ApiTypes";
+// import { OutputSlot } from "./ApiTypes";
 type MenuPosition = { x: number; y: number };
 interface ContextMenuState {
   openMenuType: string | null;
   nodeId: string | null;
   menuPosition: MenuPosition | null;
-  outputSlot: OutputSlot | null;
+  type: string | null;
+  handleId: string | null;
 
   openContextMenu: (
     contextMenuClass: string,
@@ -13,11 +14,12 @@ interface ContextMenuState {
     x: number,
     y: number,
     outsideClickIgnoreClass?: string,
-    outputSlot?: OutputSlot
+    type?: string,
+    handleId?: string
   ) => void;
   closeContextMenu: () => void;
 }
-const useContextMenuStore = create<ContextMenuState>((set, get) => {
+const useContextMenuStore = create<ContextMenuState>((set) => {
   let currentClickOutsideHandler: ((event: MouseEvent) => void) | null = null;
 
   const clickOutsideHandler = (className: string) => (event: MouseEvent) => {
@@ -45,7 +47,8 @@ const useContextMenuStore = create<ContextMenuState>((set, get) => {
     x: number,
     y: number,
     outsideClickIgnoreClass?: string,
-    outputSlot?: OutputSlot
+    type?: string,
+    handleId?: string
   ) => {
     // Remove existing event listener if any
     if (currentClickOutsideHandler) {
@@ -66,7 +69,8 @@ const useContextMenuStore = create<ContextMenuState>((set, get) => {
         openMenuType: contextMenuClass,
         nodeId: nodeId,
         menuPosition: { x, y },
-        outputSlot: outputSlot
+        type: type,
+        handleId: handleId
       });
       setTimeout(() => {
         currentClickOutsideHandler = clickOutsideHandler(
@@ -93,7 +97,8 @@ const useContextMenuStore = create<ContextMenuState>((set, get) => {
     menuPosition: null,
     openContextMenu,
     closeContextMenu,
-    outputSlot: null
+    type: null,
+    handleId: null
   };
 });
 

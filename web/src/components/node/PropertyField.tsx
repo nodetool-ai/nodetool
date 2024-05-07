@@ -59,7 +59,8 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
         event.clientX - 260,
         event.clientY - 50,
         "react-flow__pane",
-        type
+        type,
+        props.property.name
       );
     }, 0);
   };

@@ -44,7 +44,8 @@ const NodeOutput = ({ id, output }: NodeOutputProps) => {
         event.clientX + 25,
         event.clientY - 50,
         "react-flow__pane",
-        output
+        output.type.type,
+        output.name
       );
     }, 0);
   };
