@@ -1,6 +1,8 @@
 from enum import Enum
+from typing import Literal
 from pydantic import Field
 from nodetool.common.huggingface_node import HuggingfaceNode
+from nodetool.metadata.types import BaseType
 from nodetool.workflows.processing_context import ProcessingContext
 
 
@@ -18,6 +20,12 @@ class ModelId(str, Enum):
     )
 
 
+class ClassificationResult(BaseType):
+    type: Literal["classification_result"] = "classification_result"
+    label: str
+    score: float
+
+
 class Classifier(HuggingfaceNode):
     """
     Text Classification is the task of assigning a label or class to a given text. Some use cases are sentiment analysis, natural language inference, and assessing grammatical correctness.
@@ -33,12 +41,13 @@ class Classifier(HuggingfaceNode):
         description="The model ID to use for the classification",
     )
     inputs: str = Field(
+        default="",
         title="Inputs",
         description="The input text to classify",
     )
 
-    async def process(self, context: ProcessingContext) -> list[dict[str, float]]:
+    async def process(self, context: ProcessingContext) -> list[ClassificationResult]:
         result = await self.run_huggingface(
-            model_id=self.model, context=context, params={"inputs": self.inputs}
+            model_id=self.model.value, context=context, params={"inputs": self.inputs}
         )
-        return result  # type: ignore
+        return [ClassificationResult(**r) for r in result[0]]

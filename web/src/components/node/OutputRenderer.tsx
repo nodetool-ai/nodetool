@@ -183,6 +183,12 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
           ))}
         </div>
       );
+    case "classification_result":
+      return (
+        <div>
+          {value["label"]}: {value["score"]}
+        </div>
+      );
     default:
       return (
         <div className="output value nodrag nowheel" css={styles}>

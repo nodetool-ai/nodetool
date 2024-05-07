@@ -24,6 +24,9 @@ import { Omit } from "lodash";
 import { uuidv4 } from "./uuidv4";
 import { useLoginStore } from "./LoginStore";
 import { useNotificationStore, Notification } from "./NotificationStore";
+import useStatusStore from "./StatusStore";
+import useLogsStore from "./LogStore";
+import useErrorStore from "./ErrorStore";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -31,14 +34,15 @@ export type ProcessingContext = {
   processed: Record<string, boolean>;
 };
 
+export type NodeState = {
+  id: string;
+  error: string | null;
+};
+
 export type WorkflowRunner = {
   state: "idle" | "running" | "error" | "cancelled";
   statusMessage: string | null;
   setStatusMessage: (message: string | null) => void;
-  errors: Record<string, string>;
-  logs: Record<string, string>;
-  status: Record<string, string>;
-  progress: Record<string, { progress: number; total: number }>;
   notifications: Notification[];
   readMessage: (
     workflow: WorkflowAttributes,
@@ -101,6 +105,10 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const findNode = useNodeStore.getState().findNode;
     const updateNode = useNodeStore.getState().updateNodeData;
     const addNotification = get().addNotification;
+    const setStatus = useStatusStore.getState().setStatus;
+    const setLogs = useLogsStore.getState().setLogs;
+    const setError = useErrorStore.getState().setError;
+    const setProgress = useResultsStore.getState().setProgress;
 
     try {
       console.log(data);
@@ -134,29 +142,18 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
 
       if (data.type === "prediction") {
         const pred = data as Prediction;
-        set({
-          logs: {
-            ...get().logs,
-            [pred.node_id]: pred.logs || ""
-          },
-          status: {
-            ...get().status,
-            [pred.node_id]: pred.status
-          }
-        });
+        setLogs(workflow.id, pred.node_id, pred.logs || "");
+        setStatus(workflow.id, pred.node_id, pred.status);
       }
 
       if (data.type === "node_progress") {
         const progress = data as NodeProgress;
-        set({
-          progress: {
-            ...get().progress,
-            [progress.node_id]: {
-              progress: progress.progress,
-              total: progress.total
-            }
-          }
-        });
+        setProgress(
+          workflow.id,
+          progress.node_id,
+          progress.progress,
+          progress.total
+        );
       }
 
       if (data.type === "node_update") {
@@ -174,49 +171,18 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
             alert: true,
             content: update.error
           });
-          set({
-            state: "error",
-            status: {
-              ...get().status,
-              [update.node_id]: update.status
-            },
-            errors: { ...get().errors, [update.node_id]: update.error }
-          });
+          set({ state: "error" });
+          setStatus(workflow.id, update.node_id, update.status);
+          setError(workflow.id, update.node_id, update.error);
         } else {
-          // this should go into status bar
-          // addNotification({
-          //   type: "info",
-          //   alert: true,
-          //   content: `${node.type} ${update.status}`
-          // });
-          set({
-            logs: {
-              ...get().logs,
-              [update.node_id]: update.logs || ""
-            },
-            status: {
-              ...get().status,
-              [update.node_id]: update.status
-            },
-            statusMessage: `${node.type} ${update.status}`
-          });
+          set({ statusMessage: `${node.type} ${update.status}` });
+          setLogs(workflow.id, update.node_id, update.logs || "");
+          setStatus(workflow.id, update.node_id, update.status);
         }
-        if (update.status === "completed") {
-          const progress = get().progress;
-          delete progress[update.node_id];
-          set({
-            logs: {
-              ...get().logs,
-              [update.node_id]: update.logs || ""
-            },
-            progress: progress
-          });
 
+        if (update.status === "completed") {
           setResult(workflow.id, data.node_id, update.result);
 
-          /**
-           * If the node is an asset node, get the asset.
-           */
           if (update.result) {
             Object.entries(update.result).forEach(([key, value]) => {
               const ref = value as AssetRef;
@@ -234,7 +200,6 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
           }
         }
 
-        // Update the node properties.
         if (update.properties) {
           const nodeData = findNode(data.node_id)?.data;
           if (nodeData) {
@@ -263,6 +228,10 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const readMessage = get().readMessage;
     const getInputEdges = useNodeStore.getState().getInputEdges;
     const getResult = useResultsStore.getState().getResult;
+    const setStatus = useStatusStore.getState().setStatus;
+    const clearStatuses = useStatusStore.getState().clearStatuses;
+    const clearLogs = useLogsStore.getState().clearLogs;
+    const clearErrors = useErrorStore.getState().clearErrors;
 
     // make a deep copy of nodes
     const nodesCopy = JSON.parse(JSON.stringify(nodes)) as Node<NodeData>[];
@@ -306,12 +275,12 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
           );
         });
 
+    clearStatuses(workflow.id);
+    clearLogs(workflow.id);
+    clearErrors(workflow.id);
+
     set({
       state: "running",
-      status: {},
-      errors: {},
-      progress: {},
-      logs: {},
       notifications: []
     });
 
@@ -356,11 +325,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       }
 
       console.log("Stream complete");
-      set({
-        status: {},
-        progress: {},
-        logs: {}
-      });
+      clearStatuses(workflow.id);
     }
 
     await pump(response.body.getReader());
@@ -373,6 +338,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
    */
   runSelected: async () => {
     const { edges, nodes } = useNodeStore.getState().getSelection();
+    throw new Error("Not implemented");
   },
 
   /**
