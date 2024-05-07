@@ -79,9 +79,7 @@ const InputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
-      newNode.data.properties.value = {
-        type: constantNodePath
-      };
+      // newNode.data.properties.type = { constantNodePath };
       addNode(newNode);
       addEdge({
         id: generateEdgeId(),
@@ -102,8 +100,8 @@ const InputContextMenu: React.FC = () => {
       generateEdgeId,
       type,
       nodeId,
-      handleId,
-      constantNodePath
+      handleId
+      // constantNodePath
     ]
   );
 
@@ -121,9 +119,7 @@ const InputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
-      newNode.data.properties.value = {
-        type: inputNodePath
-      };
+      // newNode.data.properties.type = { inputNodePath };
       addNode(newNode);
       addEdge({
         id: generateEdgeId(),
@@ -144,8 +140,8 @@ const InputContextMenu: React.FC = () => {
       generateEdgeId,
       type,
       nodeId,
-      handleId,
-      inputNodePath
+      handleId
+      // inputNodePath
     ]
   );
 

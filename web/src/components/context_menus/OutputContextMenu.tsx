@@ -52,9 +52,7 @@ const OutputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
-      newNode.data.properties.value = {
-        type: "nodetool.workflows.base_node.Preview"
-      };
+      newNode.data.properties.type = "nodetool.workflows.base_node.Preview";
       addNode(newNode);
       addEdge({
         id: generateEdgeId(),
@@ -92,9 +90,7 @@ const OutputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
-      newNode.data.properties.value = {
-        type: "nodetool.workflows.base_node.Preview"
-      };
+      newNode.data.properties.type = "nodetool.workflows.base_node.Preview";
       addNode(newNode);
       addEdge({
         id: generateEdgeId(),
