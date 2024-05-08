@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import axios from "axios";
 import { devError } from "../../utils/DevLog";
+import { CircularProgress } from "@mui/material";
 // import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface TextViewerProps {
@@ -15,13 +16,22 @@ interface TextViewerProps {
 const styles = (theme: any) =>
   css({
     "&": {
-      width: "100%",
-      height: "100%",
-      overflow: "hidden",
-      padding: ".5em"
+      width: "calc(90vw - 200px)",
+      height: "calc(90vh - 120px)",
+      overflowY: "auto",
+      padding: "2em 1em 4em 1em",
+      margin: "2em 1em 1em 8em",
+      maxWidth: "1000px",
+      backgroundColor: theme.palette.c_gray1,
+      scrollbarWidth: "initial !important"
     },
     p: {
       fontFamily: theme.fontFamily1
+    },
+    ".progress": {
+      position: "absolute",
+      top: "2em",
+      left: "2em"
     }
   });
 
@@ -46,7 +56,7 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
 
   return (
     <div className="output text-viewer" css={styles}>
-      text viewer
+      {!document && <CircularProgress className="progress" />}
       <pre>{document}</pre>
     </div>
   );
