@@ -1,4 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 //mui
 import { Typography, Dialog, Tooltip, Button } from "@mui/material";
@@ -8,8 +10,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import AssetItem from "./AssetItem";
 //
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 //components
 import ImageViewer from "../asset_viewer/ImageViewer";
 import AudioViewer from "../asset_viewer/AudioViewer";
@@ -17,15 +19,14 @@ import TextViewer from "../asset_viewer/TextViewer";
 import VideoViewer from "../asset_viewer/VideoViewer";
 //store
 import { useAssetStore } from "../../stores/AssetStore";
-import useAssets from "../../serverState/useAssets";
+import { Asset } from "../../stores/ApiTypes";
 //utils
+import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import useAssets from "../../serverState/useAssets";
 import useKeyListener from "../../utils/KeyPressedListener";
+import { debounce } from "lodash";
 //css
 import "../../styles/node_editor.css";
-import { Asset } from "../../stores/ApiTypes";
-import { css } from "@emotion/react";
-import AssetItem from "./AssetItem";
-import { debounce } from "lodash";
 
 const containerStyles = css({
   width: "100%",

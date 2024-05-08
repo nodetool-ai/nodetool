@@ -15,7 +15,7 @@ interface TextViewerProps {
 
 const styles = (theme: any) =>
   css({
-    "&": {
+    "&.text-viewer": {
       width: "calc(90vw - 200px)",
       height: "calc(90vh - 120px)",
       overflowY: "auto",
@@ -23,7 +23,7 @@ const styles = (theme: any) =>
       margin: "2em 1em 1em 8em",
       maxWidth: "1000px",
       backgroundColor: theme.palette.c_gray1,
-      scrollbarWidth: "initial !important"
+      scrollbarWidth: "initial"
     },
     p: {
       fontFamily: theme.fontFamily1
