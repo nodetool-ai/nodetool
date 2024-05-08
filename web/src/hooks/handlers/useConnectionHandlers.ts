@@ -9,6 +9,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { Slugify } from "../../utils/TypeHandler";
 import { useMetadata } from "../../serverState/useMetadata";
 import { ConnectDirection } from "../../stores/ConnectionStore";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 
 export const inputForType = (type: TypeName) => {
   switch (type) {
@@ -112,6 +113,7 @@ export default function useConnectionHandlers() {
   const optionKeyPressed = useKeyPressedListener("Option");
   const { openNodeMenu } = useNodeMenuStore();
   const { data: metadata } = useMetadata();
+  const { openContextMenu } = useContextMenuStore();
 
   /* CONNECT START */
   const onConnectStart = useCallback(
@@ -183,85 +185,109 @@ export default function useConnectionHandlers() {
   const onConnectEnd = useCallback(
     // create input, output, constant nodes
     (event: any) => {
-      const targetIsPane = event.target.classList.contains("react-flow__pane");
-      const shiftOrControlKeyPressed =
-        shiftKeyPressed || controlKeyPressed || metaKeyPressed;
+      // const targetIsPane = event.target.classList.contains("react-flow__pane");
+      // const shiftOrControlKeyPressed =
+      //   shiftKeyPressed || controlKeyPressed || metaKeyPressed;
 
-      if (shiftOrControlKeyPressed && targetIsPane && connectNodeId) {
-        if (connectDirection === "source") {
-          // connection starts from output
-          const node = addNewNode(connectType, event, false);
-          if (node) {
-            addEdge({
-              id: generateEdgeId(),
-              source: connectNodeId,
-              target: node.id,
-              sourceHandle: connectHandleId,
-              targetHandle: "value",
-              type: "default",
-              className: Slugify(connectType?.type || "")
-            });
+      // if (shiftOrControlKeyPressed && targetIsPane && connectNodeId) {
+      //   if (connectDirection === "source") {
+      //     // connection starts from output
+      //     const node = addNewNode(connectType, event, false);
+      //     if (node) {
+      //       addEdge({
+      //         id: generateEdgeId(),
+      //         source: connectNodeId,
+      //         target: node.id,
+      //         sourceHandle: connectHandleId,
+      //         targetHandle: "value",
+      //         type: "default",
+      //         className: Slugify(connectType?.type || "")
+      //       });
+      //     }
+      //   }
+      //   if (connectDirection === "target") {
+      //     // connection starts from input
+      //     const node = addNewNode(connectType, event, true);
+      //     // remove existing connection
+      //     // (source handles should only have 1 input)
+      //     const validEdges = edges.filter(
+      //       (edge: Edge) =>
+      //         !(
+      //           edge.target === connectNodeId &&
+      //           edge.targetHandle === connectHandleId
+      //         )
+      //     );
+      //     if (!node) return;
+      //     // create connection for new node + delete possible existing edge
+      //     const newEdge = {
+      //       id: generateEdgeId(),
+      //       source: node.id,
+      //       target: connectNodeId,
+      //       sourceHandle: "output",
+      //       targetHandle: connectHandleId,
+      //       type: "default",
+      //       className: Slugify(connectType?.type || "")
+      //     };
+      //     setEdges([...validEdges, newEdge]);
+      //   }
+      // }
+      // open context menu if connection was dropped and modifier key was pressed
+      // TODO: should work without modifier keys and detect if connection was attempted or not
+      if (
+        altKeyPressed ||
+        optionKeyPressed ||
+        shiftKeyPressed ||
+        metaKeyPressed ||
+        controlKeyPressed
+      ) {
+        setTimeout(() => {
+          if (connectDirection === "source") {
+            openContextMenu(
+              "output-context-menu",
+              connectNodeId || "",
+              event.clientX + 25,
+              event.clientY - 50,
+              "react-flow__pane",
+              connectType ? connectType.type : "",
+              connectHandleId || ""
+            );
           }
-        }
-        if (connectDirection === "target") {
-          // connection starts from input
-          const node = addNewNode(connectType, event, true);
-          // remove existing connection
-          // (source handles should only have 1 input)
-          const validEdges = edges.filter(
-            (edge: Edge) =>
-              !(
-                edge.target === connectNodeId &&
-                edge.targetHandle === connectHandleId
-              )
-          );
-          if (!node) return;
-          // create connection for new node + delete possible existing edge
-          const newEdge = {
-            id: generateEdgeId(),
-            source: node.id,
-            target: connectNodeId,
-            sourceHandle: "output",
-            targetHandle: connectHandleId,
-            type: "default",
-            className: Slugify(connectType?.type || "")
-          };
-          setEdges([...validEdges, newEdge]);
-        }
-      } else {
-        // TODO: open NodeMenu if connection was dropped and no attempt was made to connect
-        // currently opens type-filtered NodeMenu only when alt/option is pressed
-        if (altKeyPressed || optionKeyPressed) {
-          openNodeMenu(
-            getMousePosition().x,
-            getMousePosition().y,
-            true,
-            connectType?.type,
-            connectDirection?.toString() as ConnectDirection
-          );
-        }
-        setConnectionAttempted(false);
+          if (connectDirection === "target") {
+            openContextMenu(
+              "input-context-menu",
+              connectNodeId || "",
+              event.clientX + 25,
+              event.clientY - 50,
+              "react-flow__pane",
+              connectType ? connectType.type : "",
+              connectHandleId || ""
+            );
+          }
+        }, 0);
+        // openNodeMenu(
+        //   getMousePosition().x,
+        //   getMousePosition().y,
+        //   true,
+        //   connectType?.type,
+        //   connectDirection?.toString() as ConnectDirection
+        // );
       }
+      setConnectionAttempted(false);
+
       endConnecting();
     },
     [
-      shiftKeyPressed,
-      controlKeyPressed,
-      metaKeyPressed,
-      connectNodeId,
-      endConnecting,
-      connectDirection,
-      addNewNode,
-      connectType,
-      addEdge,
-      generateEdgeId,
-      connectHandleId,
-      edges,
-      setEdges,
       altKeyPressed,
       optionKeyPressed,
+      shiftKeyPressed,
+      metaKeyPressed,
+      controlKeyPressed,
       setConnectionAttempted,
-      openNodeMenu
+      endConnecting,
+      openContextMenu,
+      connectNodeId,
+      connectType,
+      connectHandleId
     ]
   );
 

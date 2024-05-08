@@ -13,14 +13,17 @@ import LoginIcon from "@mui/icons-material/Login";
 import { labelForType } from "../../config/data_types";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodeStore } from "../../stores/NodeStore";
-import { useReactFlow } from "reactflow";
+import { Edge, useReactFlow } from "reactflow";
 import { Slugify } from "../../utils/TypeHandler";
 
 const InputContextMenu: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const createNode = useNodeStore((state) => state.createNode);
   const addNode = useNodeStore((state) => state.addNode);
-  const addEdge = useNodeStore((state) => state.addEdge);
+  const [edges, setEdges] = useNodeStore((state) => [
+    state.edges,
+    state.setEdges
+  ]);
   const generateEdgeId = useNodeStore((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
 
@@ -80,7 +83,11 @@ const InputContextMenu: React.FC = () => {
         height: 200
       };
       addNode(newNode);
-      addEdge({
+      const validEdges = edges.filter(
+        (edge: Edge) =>
+          !(edge.target === nodeId && edge.targetHandle === handleId)
+      );
+      const newEdge = {
         id: generateEdgeId(),
         source: newNode.id,
         target: nodeId || "",
@@ -88,18 +95,20 @@ const InputContextMenu: React.FC = () => {
         targetHandle: handleId,
         type: "default",
         className: Slugify(type || "")
-      });
+      };
+      setEdges([...validEdges, newEdge]);
     },
     [
+      constantNodeMetadata,
       createNode,
       reactFlowInstance,
       addNode,
-      constantNodeMetadata,
-      addEdge,
+      edges,
       generateEdgeId,
-      type,
       nodeId,
-      handleId
+      handleId,
+      type,
+      setEdges
     ]
   );
 
@@ -118,7 +127,11 @@ const InputContextMenu: React.FC = () => {
         height: 200
       };
       addNode(newNode);
-      addEdge({
+      const validEdges = edges.filter(
+        (edge: Edge) =>
+          !(edge.target === nodeId && edge.targetHandle === handleId)
+      );
+      const newEdge = {
         id: generateEdgeId(),
         source: newNode.id,
         target: nodeId || "",
@@ -126,18 +139,20 @@ const InputContextMenu: React.FC = () => {
         targetHandle: handleId,
         type: "default",
         className: Slugify(type || "")
-      });
+      };
+      setEdges([...validEdges, newEdge]);
     },
     [
+      inputNodeMetadata,
       createNode,
       reactFlowInstance,
       addNode,
-      inputNodeMetadata,
-      addEdge,
+      edges,
       generateEdgeId,
-      type,
       nodeId,
-      handleId
+      handleId,
+      type,
+      setEdges
     ]
   );
 
