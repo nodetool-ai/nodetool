@@ -16,12 +16,13 @@ class ComfyNode(BaseNode):
     implementation. The comfy class is looed up in the NODE_CLASS_MAPPINGS.
 
     Attributes:
-        comfy_class (str): The comfy class wrapped by this node.
+        _comfy_class (str): The comfy class wrapped by this node.
         requires_capabilities (list[str]): List of capabilities required by this node.
     """
 
-    comfy_class: str = Field("", description="The comfy class wrapped by this node.")
-    requires_capabilities: list[str] = ["comfy"]
+    _comfy_class: str = ""
+    _requires_capabilities = ["comfy"]
+    _visible = False
 
     def assign_property(self, name: str, value: Any):
         """
@@ -56,7 +57,7 @@ class ComfyNode(BaseNode):
         """
         from comfy.nodes import NODE_CLASS_MAPPINGS as mappings  # type: ignore
 
-        name = self.comfy_class if self.comfy_class != "" else self.__class__.__name__
+        name = self._comfy_class if self._comfy_class != "" else self.__class__.__name__
 
         if name in mappings:
             node_class = mappings[name]
@@ -106,6 +107,3 @@ class EnableDisable(str, Enum):
 class DensePoseModel(str, Enum):
     DENSEPOSE_R50_FPN_DL = "densepose_r50_fpn_dl.torchscript"
     DENSEPOSE_R101_FPN_DL = "densepose_r101_fpn_dl.torchscript"
-
-
-ComfyNode.invisible()

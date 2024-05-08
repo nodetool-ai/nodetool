@@ -29,7 +29,7 @@ class AutomaticSpeechRecognition(HuggingfaceNode):
     )
 
     async def process(self, context: ProcessingContext) -> str:
-        audio = await context.to_io(self.audio)
+        audio = await context.asset_to_io(self.audio)
         result = await self.run_huggingface(
             model_id=self.model, context=context, data=audio.read()
         )

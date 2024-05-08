@@ -19,7 +19,7 @@ class SaveAudio(BaseNode):
     name: str = Field(default="audio", description="The name of the audio file.")
 
     async def process(self, context: ProcessingContext) -> AudioRef:
-        audio = await context.to_audio_segment(self.value)
+        audio = await context.audio_to_audio_segment(self.value)
         file = io.BytesIO()
         audio.export(file)
         file.seek(0)

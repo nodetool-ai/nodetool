@@ -70,7 +70,7 @@ def function_tool_from_node(node_name: str):
     function_definition = FunctionDefinition(
         name=NODE_PREFIX + sanitize_node_name(node_name),
         description=node_type.get_description(),
-        parameters=node_type().get_json_schema(),
+        parameters=node_type.get_json_schema(),
     )
     return ChatCompletionToolParam(function=function_definition, type="function")
 
@@ -148,7 +148,7 @@ async def process_node_function(
 
     print(f"Processing node {node_type} with params {params}")
 
-    node = node_class()
+    node = node_class(id="")
 
     for key, value in params.items():
         node.assign_property(key, value)

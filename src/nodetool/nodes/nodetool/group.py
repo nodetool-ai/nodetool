@@ -2,6 +2,7 @@ from datetime import datetime
 from nodetool.nodes.nodetool.input import GroupInput
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.workflows.base_node import GroupNode
+from nodetool.workflows.graph import Graph
 from nodetool.workflows.processing_context import ProcessingContext
 
 from typing import Any
@@ -30,8 +31,8 @@ class Loop(GroupNode):
         Each iteration of the loop will run the subgraph with the input data from the input nodes.
         The output will be collected and stored in the output nodes.
         """
-        input_nodes = [n for n in self.nodes if isinstance(n, GroupInput)]
-        output_nodes = [n for n in self.nodes if isinstance(n, GroupOutput)]
+        input_nodes = [n for n in self._nodes if isinstance(n, GroupInput)]
+        output_nodes = [n for n in self._nodes if isinstance(n, GroupOutput)]
 
         if len(input_nodes) == 0:
             raise ValueError("Loop node must have at least one input node.")
@@ -50,13 +51,11 @@ class Loop(GroupNode):
         started_at = datetime.now()
 
         # Run the subgraph for each item in the input data.
-        results = {node.id: [] for node in output_nodes}
+        results = {node._id: [] for node in output_nodes}
         for i in range(input_length):
             sub_context = ProcessingContext(
                 user_id=context.user_id,
                 workflow_id=context.workflow_id,
-                edges=self.edges,
-                nodes=self.nodes,
                 queue=context.message_queue,
                 capabilities=context.capabilities,
             )
@@ -64,25 +63,26 @@ class Loop(GroupNode):
             for input_node in input_nodes:
                 input_node._value = self._properties[input_node.name][i]
 
-            await runner.process_graph(sub_context)
+            graph = Graph(nodes=self._nodes, edges=self._edges)
+            await runner.process_graph(sub_context, graph)
 
             # Get the result of the subgraph and add it to the results.
             for output_node in output_nodes:
-                results[output_node.id].append(output_node.input)
+                results[output_node._id].append(output_node.input)
 
         for output_node in output_nodes:
-            context.set_result(self.id, {output_node.name: results[output_node.id]})
+            context.set_result(self._id, {output_node.name: results[output_node._id]})
             context.post_message(
                 NodeUpdate(
-                    node_id=output_node.id,
+                    node_id=output_node._id,
                     node_name=output_node.get_title(),
                     status="completed",
-                    result={"output": results[output_node.id]},
+                    result={"output": results[output_node._id]},
                     started_at=started_at.isoformat(),
                     completed_at=datetime.now().isoformat(),
                 )
             )
 
         # Mark the nodes as processed.
-        for n in self.nodes:
-            context.processed_nodes.add(n.id)
+        for n in self._nodes:
+            context.processed_nodes.add(n._id)

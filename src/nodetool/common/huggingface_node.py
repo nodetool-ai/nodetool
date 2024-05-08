@@ -107,6 +107,8 @@ async def run_huggingface(
 
 
 class HuggingfaceNode(BaseNode):
+    _visible = False
+
     async def run_huggingface(
         self,
         model_id: str,
@@ -134,7 +136,7 @@ class HuggingfaceNode(BaseNode):
 
         return await run_huggingface(
             context=context,
-            node_id=self.id,
+            node_id=self._id,
             node_type=self.get_node_type(),
             model_id=model_id,
             input_params=input_params,
@@ -153,6 +155,3 @@ class HuggingfaceNode(BaseNode):
         return {
             "output": output,
         }
-
-
-HuggingfaceNode.invisible()

@@ -10,6 +10,7 @@ from nodetool.common.chat import (
     process_messages,
 )
 from nodetool.models.message import Message
+from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.models.thread import Thread
 
@@ -20,6 +21,11 @@ VALID_NODE_NAME = "some.valid.node.name"
 INVALID_NODE_NAME = "invalid_node_name"
 USER_ID = "12345"
 THREAD_ID = "thread123"
+
+
+class DummyNode(BaseNode):
+    async def process(self, context: ProcessingContext) -> str:
+        return "dummy"
 
 
 def test_sanitize_node_name():
@@ -55,8 +61,8 @@ async def test_process_node_function_valid():
     import nodetool.nodes
 
     context = ProcessingContext(user_id=USER_ID)
-    result = await process_node_function(context, "nodetool.constant.Text", {})
-    assert result == {"output": TextRef(uri="", type="text")}
+    result = await process_node_function(context, DummyNode.get_node_type(), {})
+    assert result == {"output": "dummy"}
 
 
 @pytest.mark.asyncio

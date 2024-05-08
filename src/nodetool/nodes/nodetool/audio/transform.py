@@ -20,8 +20,8 @@ class ConcatAudio(BaseNode):
     b: AudioRef = Field(default=AudioRef(), description="The second audio file.")
 
     async def process(self, context: ProcessingContext) -> AudioRef:
-        audio_a = await context.to_audio_segment(self.a)
-        audio_b = await context.to_audio_segment(self.b)
+        audio_a = await context.audio_to_audio_segment(self.a)
+        audio_b = await context.audio_to_audio_segment(self.b)
         res = audio_a + audio_b
         return await context.audio_from_segment(res)
 
@@ -44,7 +44,7 @@ class NormalizeAudio(BaseNode):
     async def process(self, context: ProcessingContext) -> AudioRef:
         from .audio_helpers import normalize_audio
 
-        audio = await context.to_audio_segment(self.audio)
+        audio = await context.audio_to_audio_segment(self.audio)
         res = normalize_audio(audio)
         return await context.audio_from_segment(res)
 
@@ -64,8 +64,8 @@ class OverlayAudio(BaseNode):
     b: AudioRef = Field(default=AudioRef(), description="The second audio file.")
 
     async def process(self, context: ProcessingContext) -> AudioRef:
-        audio_a = await context.to_audio_segment(self.a)
-        audio_b = await context.to_audio_segment(self.b)
+        audio_a = await context.audio_to_audio_segment(self.a)
+        audio_b = await context.audio_to_audio_segment(self.b)
         res = audio_a.overlay(audio_b)
         return await context.audio_from_segment(res)
 
@@ -89,7 +89,7 @@ class RemoveSilence(BaseNode):
     async def process(self, context: ProcessingContext) -> AudioRef:
         from .audio_helpers import remove_silence
 
-        audio = await context.to_audio_segment(self.audio)
+        audio = await context.audio_to_audio_segment(self.audio)
         res = remove_silence(audio)
         return await context.audio_from_segment(res)
 
@@ -114,7 +114,7 @@ class SliceAudio(BaseNode):
     async def process(self, context: ProcessingContext) -> AudioRef:
         import pydub
 
-        audio = await context.to_audio_segment(self.audio)
+        audio = await context.audio_to_audio_segment(self.audio)
         res = audio[(self.start * 1000) : (self.end * 1000)]
         assert isinstance(res, pydub.AudioSegment)
         return await context.audio_from_segment(res)

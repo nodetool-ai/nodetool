@@ -61,15 +61,10 @@ class WorkflowRunner:
                 "edges": [edge.model_dump() for edge in req.graph.edges],
             }
         )
-
-        # Build subgraphs for loop nodes.
-        graph.build_sub_graphs()
+        graph = graph.build_sub_graphs()
 
         input_nodes = {node.name: node for node in graph.inputs()}
         output_nodes = graph.outputs()
-
-        context.edges = graph.edges
-        context.nodes = graph.nodes
 
         if req.params:
             for key, value in req.params.items():
@@ -80,32 +75,35 @@ class WorkflowRunner:
                 node.assign_property("value", value)
 
         with self.torch_capabilities(graph_capabilities, context):
-            await self.process_graph(context)
+            await self.process_graph(context, graph)
 
         output = {}
         for node in output_nodes:
-            output[node.name] = context.get_result(node.id, "output")
+            output[node.name] = context.get_result(node._id, "output")
 
         context.post_message(WorkflowUpdate(result=output))
 
         self.status = "completed"
 
-    async def process_graph(self, context: ProcessingContext):
+    async def process_graph(self, context: ProcessingContext, graph: Graph):
         """
         Process the graph in a topological order, executing each node in parallel.
 
         Args:
             context (ProcessingContext): The processing context containing the graph, edges, and nodes.
+            graph (Graph): The graph to be processed.
 
         Returns:
             None
         """
-        sorted_nodes = topological_sort(context.edges, context.nodes)
+        context.graph = graph
+        sorted_nodes = topological_sort(graph.edges, graph.nodes)
 
         for level in sorted_nodes:
-            nodes = [context.find_node(i) for i in level]
-            # self.log.info("Processing level: " + str(nodes))
-            await asyncio.gather(*[self.process_node(context, node) for node in nodes])
+            nodes = [graph.find_node(i) for i in level]
+            await asyncio.gather(
+                *[self.process_node(context, node) for node in nodes if node]
+            )
 
     async def process_node(self, context: ProcessingContext, node: BaseNode):
         """
@@ -121,10 +119,10 @@ class WorkflowRunner:
             None
         """
 
-        self.current_node = node.id
+        self.current_node = node._id
 
         # Skip nodes that have already been processed in a sub graph.
-        if node.id in context.processed_nodes:
+        if node._id in context.processed_nodes:
             return
 
         # If the node is a loop node, run the loop node, which will process the subgraph.
@@ -139,14 +137,14 @@ class WorkflowRunner:
         the loop node for processing.
         """
         # Assign the input values from edges to the node properties.
-        for name, value in context.get_node_inputs(group_node.id).items():
+        for name, value in context.get_node_inputs(group_node._id).items():
             group_node.assign_property(name, value)
 
         await group_node.process_subgraph(
             context=context,
             runner=self,
         )
-        context.processed_nodes.add(group_node.id)
+        context.processed_nodes.add(group_node._id)
 
     async def process_regular_node(self, context: ProcessingContext, node: BaseNode):
         """
@@ -201,7 +199,7 @@ class WorkflowRunner:
 
             context.post_message(
                 NodeUpdate(
-                    node_id=node.id,
+                    node_id=node._id,
                     node_name=node.get_title(),
                     status="completed",
                     result=res_for_update,
@@ -210,8 +208,8 @@ class WorkflowRunner:
                 )
             )
 
-        context.processed_nodes.add(node.id)
-        context.set_result(node.id, result)
+        context.processed_nodes.add(node._id)
+        context.set_result(node._id, result)
 
     @contextmanager
     def torch_capabilities(self, capabilities: list[str], context: ProcessingContext):

@@ -67,7 +67,7 @@ class ImageToTensor(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         image_data = np.array(image)
         tensor_data = image_data / 255.0
         if len(tensor_data.shape) == 2:
@@ -123,8 +123,8 @@ class Paste(BaseNode):
     top: int = Field(default=0, ge=0, le=4096, description="The top coordinate.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
-        paste = await context.to_pil(self.paste)
+        image = await context.image_to_pil(self.image)
+        paste = await context.image_to_pil(self.paste)
         image.paste(paste, (self.left, self.top))
         return await context.image_from_pil(image)
 
@@ -150,8 +150,8 @@ class Blend(BaseNode):
     alpha: float = Field(default=0.5, ge=0.0, le=1.0, description="The mix ratio.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image1 = await context.to_pil(self.image1)
-        image2 = await context.to_pil(self.image2)
+        image1 = await context.image_to_pil(self.image1)
+        image2 = await context.image_to_pil(self.image2)
         if image1.size != image2.size:
             image2 = PIL.ImageOps.fit(image2, image1.size)
         image = PIL.Image.blend(image1, image2, self.alpha)
@@ -181,9 +181,9 @@ class Composite(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image1 = await context.to_pil(self.image1)
-        image2 = await context.to_pil(self.image2)
-        mask = await context.to_pil(self.mask)
+        image1 = await context.image_to_pil(self.image1)
+        image2 = await context.image_to_pil(self.image2)
+        mask = await context.image_to_pil(self.mask)
         image1 = image1.convert("RGBA")
         image2 = image2.convert("RGBA")
         mask = mask.convert("RGBA")

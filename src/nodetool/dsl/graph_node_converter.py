@@ -59,7 +59,7 @@ class GraphNodeConverter:
                 source_node_instance = self.add(source_node)
                 self.edges.append(
                     Edge(
-                        source=str(source_node_instance.id),
+                        source=str(source_node_instance._id),
                         sourceHandle=slot,
                         target=str(graph_node.id),
                         targetHandle=field_name,
@@ -69,7 +69,7 @@ class GraphNodeConverter:
                 source_node_instance = self.add(value)
                 self.edges.append(
                     Edge(
-                        source=str(source_node_instance.id),
+                        source=str(source_node_instance._id),
                         sourceHandle="output",
                         target=str(graph_node.id),
                         targetHandle=field_name,
