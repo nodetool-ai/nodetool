@@ -1,15 +1,12 @@
-import { useCallback } from "react";
-import { Edge, OnConnectStartParams, useReactFlow } from "reactflow";
+import { useCallback, useRef } from "react";
+import { OnConnectStartParams, Connection } from "reactflow";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useNodeStore } from "../../stores/NodeStore";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
-import { TypeName, TypeMetadata } from "../../stores/ApiTypes";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { getMousePosition } from "../../utils/MousePosition";
-import { Slugify } from "../../utils/TypeHandler";
+import { TypeName } from "../../stores/ApiTypes";
 import { useMetadata } from "../../serverState/useMetadata";
-import { ConnectDirection } from "../../stores/ConnectionStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
+import { devLog } from "../../utils/DevLog";
+// import { ConnectDirection } from "../../stores/ConnectionStore";
 
 export const inputForType = (type: TypeName) => {
   switch (type) {
@@ -85,7 +82,9 @@ export const constantForType = (type: TypeName) => {
 };
 
 export default function useConnectionHandlers() {
-  const reactFlow = useReactFlow();
+  // useRef is needed to track current connection state
+  const connectionCreated = useRef(false);
+
   const {
     connecting,
     startConnecting,
@@ -96,22 +95,7 @@ export default function useConnectionHandlers() {
     connectHandleId
   } = useConnectionStore();
 
-  const {
-    addNode,
-    addEdge,
-    edges,
-    setEdges,
-    createNode,
-    findNode,
-    generateEdgeId,
-    setConnectionAttempted
-  } = useNodeStore();
-  const controlKeyPressed = useKeyPressedListener("Control");
-  const shiftKeyPressed = useKeyPressedListener("Shift");
-  const altKeyPressed = useKeyPressedListener("Alt");
-  const metaKeyPressed = useKeyPressedListener("Meta");
-  const optionKeyPressed = useKeyPressedListener("Option");
-  const { openNodeMenu } = useNodeMenuStore();
+  const { findNode, setConnectionAttempted } = useNodeStore();
   const { data: metadata } = useMetadata();
   const { openContextMenu } = useContextMenuStore();
 
@@ -125,171 +109,68 @@ export default function useConnectionHandlers() {
       const node = findNode(nodeId);
       if (!node) return;
       const nodeMetadata = metadata.metadataByType[node.type || ""];
-
+      connectionCreated.current = false;
       startConnecting(nodeId, handleId, handleType, nodeMetadata);
     },
     [metadata, findNode, startConnecting]
   );
-  const addNewNode = useCallback(
-    (connectType: TypeMetadata | null, event: any, isInput: boolean) => {
-      if (!connectType) return;
-      const nodeType =
-        controlKeyPressed || metaKeyPressed
-          ? isInput
-            ? inputForType(connectType.type)
-            : outputForType(connectType.type)
-          : constantForType(connectType.type);
 
-      if (!nodeType || !metadata) return;
-
-      const nodeMetadata = metadata?.metadataByType[nodeType];
-
-      const newNode = createNode(
-        nodeMetadata,
-        // reactFlow.screenToFlowPosition({
-        reactFlow.project({
-          x: event.clientX,
-          y: event.clientY
-        })
-      );
-      newNode.selected = false;
-      if (connectDirection === "target") {
-        newNode.data.properties.name = connectHandleId || "Input";
-      } else {
-        let nodeName: string | undefined = "Output";
-        if (connectNodeId) {
-          nodeName = findNode(connectNodeId)?.type?.toString();
-        }
-        newNode.data.properties.name = nodeName;
-      }
-
-      addNode(newNode);
-      return newNode;
+  /* ON CONNECT */
+  const handleOnConnect = useCallback(
+    (connection: Connection) => {
+      connectionCreated.current = true;
+      devLog("Connection Created", connection);
     },
-    [
-      controlKeyPressed,
-      metaKeyPressed,
-      metadata,
-      createNode,
-      reactFlow,
-      connectDirection,
-      addNode,
-      connectHandleId,
-      connectNodeId,
-      findNode
-    ]
+    [connectionCreated]
   );
 
   /* CONNECT END */
   // called after onConnect
   const onConnectEnd = useCallback(
-    // create input, output, constant nodes
+    // create input, output, preview, constant nodes
     (event: any) => {
-      // const targetIsPane = event.target.classList.contains("react-flow__pane");
-      // const shiftOrControlKeyPressed =
-      //   shiftKeyPressed || controlKeyPressed || metaKeyPressed;
+      const targetIsPane = event.target.classList.contains("react-flow__pane");
 
-      // if (shiftOrControlKeyPressed && targetIsPane && connectNodeId) {
-      //   if (connectDirection === "source") {
-      //     // connection starts from output
-      //     const node = addNewNode(connectType, event, false);
-      //     if (node) {
-      //       addEdge({
-      //         id: generateEdgeId(),
-      //         source: connectNodeId,
-      //         target: node.id,
-      //         sourceHandle: connectHandleId,
-      //         targetHandle: "value",
-      //         type: "default",
-      //         className: Slugify(connectType?.type || "")
-      //       });
-      //     }
-      //   }
-      //   if (connectDirection === "target") {
-      //     // connection starts from input
-      //     const node = addNewNode(connectType, event, true);
-      //     // remove existing connection
-      //     // (source handles should only have 1 input)
-      //     const validEdges = edges.filter(
-      //       (edge: Edge) =>
-      //         !(
-      //           edge.target === connectNodeId &&
-      //           edge.targetHandle === connectHandleId
-      //         )
-      //     );
-      //     if (!node) return;
-      //     // create connection for new node + delete possible existing edge
-      //     const newEdge = {
-      //       id: generateEdgeId(),
-      //       source: node.id,
-      //       target: connectNodeId,
-      //       sourceHandle: "output",
-      //       targetHandle: connectHandleId,
-      //       type: "default",
-      //       className: Slugify(connectType?.type || "")
-      //     };
-      //     setEdges([...validEdges, newEdge]);
-      //   }
-      // }
-      // open context menu if connection was dropped and modifier key was pressed
-      // TODO: should work without modifier keys and detect if connection was attempted or not
-      if (
-        altKeyPressed ||
-        optionKeyPressed ||
-        shiftKeyPressed ||
-        metaKeyPressed ||
-        controlKeyPressed
-      ) {
-        setTimeout(() => {
-          if (connectDirection === "source") {
-            openContextMenu(
-              "output-context-menu",
-              connectNodeId || "",
-              event.clientX + 25,
-              event.clientY - 50,
-              "react-flow__pane",
-              connectType ? connectType.type : "",
-              connectHandleId || ""
-            );
-          }
-          if (connectDirection === "target") {
-            openContextMenu(
-              "input-context-menu",
-              connectNodeId || "",
-              event.clientX + 25,
-              event.clientY - 50,
-              "react-flow__pane",
-              connectType ? connectType.type : "",
-              connectHandleId || ""
-            );
-          }
-        }, 0);
-        // openNodeMenu(
-        //   getMousePosition().x,
-        //   getMousePosition().y,
-        //   true,
-        //   connectType?.type,
-        //   connectDirection?.toString() as ConnectDirection
-        // );
+      if (!connectionCreated.current && targetIsPane) {
+        if (connectDirection === "source") {
+          openContextMenu(
+            "output-context-menu",
+            connectNodeId || "",
+            event.clientX + 25,
+            event.clientY - 50,
+            "react-flow__pane",
+            connectType ? connectType.type : "",
+            connectHandleId || ""
+          );
+        }
+        if (connectDirection === "target") {
+          openContextMenu(
+            "input-context-menu",
+            connectNodeId || "",
+            event.clientX + 25,
+            event.clientY - 50,
+            "react-flow__pane",
+            connectType ? connectType.type : "",
+            connectHandleId || ""
+          );
+        }
       }
+      connectionCreated.current = true;
       setConnectionAttempted(false);
 
       endConnecting();
     },
     [
-      altKeyPressed,
-      optionKeyPressed,
-      shiftKeyPressed,
-      metaKeyPressed,
-      controlKeyPressed,
       setConnectionAttempted,
       endConnecting,
+      connectDirection,
       openContextMenu,
       connectNodeId,
       connectType,
-      connectHandleId
+      connectHandleId,
+      connectionCreated
     ]
   );
 
-  return { onConnectStart, onConnectEnd, connecting };
+  return { handleOnConnect, onConnectStart, onConnectEnd, connecting };
 }

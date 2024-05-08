@@ -9,6 +9,7 @@ import ReactFlow, {
   FitViewOptions,
   useOnSelectionChange,
   Edge,
+  Connection,
   SelectionMode,
   ConnectionMode
 } from "reactflow";
@@ -73,6 +74,11 @@ const NodeEditor: React.FC<unknown> = () => {
   const onEdgesChange = useNodeStore((state) => state.onEdgesChange);
   const onEdgeUpdate = useNodeStore((state) => state.onEdgeUpdate);
   const updateNode = useNodeStore((state) => state.updateNodeData);
+
+  const triggerOnConnect = (connection: Connection) => {
+    onConnect(connection);
+    handleOnConnect(connection);
+  };
 
   const { closeDescription } = useNodeMenuStore();
 
@@ -203,7 +209,8 @@ const NodeEditor: React.FC<unknown> = () => {
       event.preventDefault();
       event.stopPropagation();
       // setTimeout is needed to prevent browser context menu from opening?
-      setTimeout(() => {
+      // setTimeout(() => {
+      requestAnimationFrame(() => {
         openContextMenu(
           "pane-context-menu",
           nodes.length > 0 ? nodes[0].id : "",
@@ -211,7 +218,8 @@ const NodeEditor: React.FC<unknown> = () => {
           event.clientY,
           "react-flow__pane"
         );
-      }, 0);
+      });
+      // }, 0);
     },
     [nodes, openContextMenu]
   );
@@ -326,7 +334,8 @@ const NodeEditor: React.FC<unknown> = () => {
     [updateNode]
   );
 
-  const { onConnectStart, onConnectEnd } = useConnectionHandlers();
+  const { handleOnConnect, onConnectStart, onConnectEnd } =
+    useConnectionHandlers();
   /* OPTIONS */
   const proOptions = {
     //https://reactflow.dev/docs/guides/remove-attribution/
@@ -457,7 +466,7 @@ const NodeEditor: React.FC<unknown> = () => {
               onEdgeMouseLeave={onEdgeMouseLeave}
               onEdgeContextMenu={onEdgeContextMenu}
               connectionMode={ConnectionMode.Strict}
-              onConnect={onConnect}
+              onConnect={triggerOnConnect}
               onConnectStart={onConnectStart}
               onConnectEnd={onConnectEnd}
               onEdgeUpdate={onEdgeUpdate}
