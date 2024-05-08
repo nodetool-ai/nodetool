@@ -56,6 +56,8 @@ class ReplicateNode(BaseNode):
 
     """
 
+    _visible = False
+
     def replicate_model_id(self) -> str:
         """
         Subclasses need to implement this method to return the model ID to run.
@@ -108,7 +110,7 @@ class ReplicateNode(BaseNode):
 
         return await run_replicate(
             context=context,
-            node_id=self.id,
+            node_id=self._id,
             node_type=self.get_node_type(),
             model_id=self.replicate_model_id(),
             input_params=input_params,
@@ -163,9 +165,6 @@ class ReplicateNode(BaseNode):
         return {
             "output": output,
         }
-
-
-ReplicateNode.invisible()
 
 
 class TypeName:

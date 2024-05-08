@@ -53,7 +53,7 @@ class Embedding(BaseNode):
 
         await context.create_prediction(
             provider="openai",
-            node_id=self.id,
+            node_id=self._id,
             node_type=self.get_node_type(),
             model=self.model,
             cost=cost,
@@ -108,7 +108,7 @@ class GPT(BaseNode):
 
         await context.create_prediction(
             provider="openai",
-            node_id=self.id,
+            node_id=self._id,
             node_type=self.get_node_type(),
             model=self.model.value,
             cost=cost,

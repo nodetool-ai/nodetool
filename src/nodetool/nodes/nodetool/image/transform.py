@@ -36,7 +36,7 @@ class Sharpness(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = PIL.ImageEnhance.Sharpness(image).enhance(self.factor)
         return await context.image_from_pil(res)
 
@@ -60,7 +60,7 @@ class Brightness(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(
             PIL.ImageEnhance.Brightness(image).enhance(self.factor)
         )
@@ -86,7 +86,7 @@ class Contrast(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = PIL.ImageEnhance.Contrast(image).enhance(self.factor)
         return await context.image_from_pil(res)
 
@@ -109,7 +109,7 @@ class AutoContrast(BaseNode):
     cutoff: int = Field(default=0, ge=0, le=255, description="Cutoff for autocontrast.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         img = PIL.ImageOps.autocontrast(image, cutoff=self.cutoff)
         return await context.image_from_pil(img)
 
@@ -137,7 +137,7 @@ class AdaptiveContrast(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         img = adaptive_contrast(
             image, clip_limit=self.clip_limit, grid_size=self.grid_size
         )
@@ -158,7 +158,7 @@ class Equalize(BaseNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to equalize.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = PIL.ImageOps.equalize(image)
         return await context.image_from_pil(res)
 
@@ -183,7 +183,7 @@ class Color(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = PIL.ImageEnhance.Color(image).enhance(self.factor)
         return await context.image_from_pil(res)
 
@@ -205,7 +205,7 @@ class Invert(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = PIL.ImageOps.invert(image)
         return await context.image_from_pil(res)
 
@@ -227,7 +227,7 @@ class Solarize(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = PIL.ImageOps.solarize(image, threshold=self.threshold)
         return await context.image_from_pil(res)
 
@@ -250,7 +250,7 @@ class Posterize(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = PIL.ImageOps.posterize(image, bits=self.bits)
         return await context.image_from_pil(res)
 
@@ -272,7 +272,7 @@ class Fit(BaseNode):
     height: int = Field(default=512, ge=1, le=4096, description="Height to fit to.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = PIL.ImageOps.fit(image, (self.width, self.height), PIL.Image.LANCZOS)
         return await context.image_from_pil(res)
 
@@ -293,7 +293,7 @@ class Expand(BaseNode):
     fill: int = Field(default=0, ge=0, le=255, description="Fill color.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = PIL.ImageOps.expand(image, border=self.border, fill=self.fill)
         return await context.image_from_pil(res)
 
@@ -314,7 +314,7 @@ class Blur(BaseNode):
     radius: float = Field(default=2.0, ge=0.0, le=10.0, description="Blur radius.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = image.filter(PIL.ImageFilter.GaussianBlur(self.radius))
         return await context.image_from_pil(res)
 
@@ -337,7 +337,7 @@ class Contour(BaseNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to contour.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(image.filter(PIL.ImageFilter.CONTOUR))
 
 
@@ -355,7 +355,7 @@ class Detail(BaseNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to detail.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(image.filter(PIL.ImageFilter.DETAIL))
 
 
@@ -376,7 +376,7 @@ class EdgeEnhance(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(image.filter(PIL.ImageFilter.EDGE_ENHANCE))
 
 
@@ -395,7 +395,7 @@ class Emboss(BaseNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to emboss.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(image.filter(PIL.ImageFilter.EMBOSS))
 
 
@@ -414,7 +414,7 @@ class FindEdges(BaseNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to find edges.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(image.filter(PIL.ImageFilter.FIND_EDGES))
 
 
@@ -432,7 +432,7 @@ class Sharpen(BaseNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to sharpen.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(image.filter(PIL.ImageFilter.SHARPEN))
 
 
@@ -451,7 +451,7 @@ class Smooth(BaseNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to smooth.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(image.filter(PIL.ImageFilter.SMOOTH))
 
 
@@ -473,7 +473,7 @@ class RankFilter(BaseNode):
     rank: int = Field(default=3, ge=1, le=512, description="Rank filter rank.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(
             image.filter(PIL.ImageFilter.RankFilter(self.size, self.rank))
         )
@@ -502,7 +502,7 @@ class UnsharpMask(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = image.filter(
             PIL.ImageFilter.UnsharpMask(self.radius, self.percent, self.threshold)
         )
@@ -531,7 +531,7 @@ class Canny(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = canny_edge_detection(image, self.low_threshold, self.high_threshold)
         return await context.image_from_pil(res)
 
@@ -551,7 +551,7 @@ class Scale(BaseNode):
     scale: float = Field(default=1.0, ge=0.0, le=10.0, description="The scale factor.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         width = int((image.width * self.scale))
         height = int((image.height * self.scale))
         image = image.resize((width, height), PIL.Image.Resampling.LANCZOS)
@@ -574,7 +574,7 @@ class Resize(BaseNode):
     height: int = Field(default=512, ge=0, le=4096, description="The target height.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = image.resize((self.width, self.height), PIL.Image.LANCZOS)
         return await context.image_from_pil(res)
 
@@ -600,7 +600,7 @@ class Crop(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = image.crop((self.left, self.top, self.right, self.bottom))
         return await context.image_from_pil(res)
 
@@ -620,7 +620,7 @@ class ConvertToGrayscale(BaseNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to convert.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         return await context.image_from_pil(image.convert("L"))
 
 
@@ -647,6 +647,6 @@ class GetChannel(BaseNode):
     channel: ChannelEnum = ChannelEnum.RED
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         res = image.getchannel(self.channel.value)
         return await context.image_from_pil(res)

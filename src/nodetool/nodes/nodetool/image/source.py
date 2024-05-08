@@ -78,7 +78,7 @@ class RenderText(BaseNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to render on.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
         x = int((image.width * self.x))
         y = int((image.height * self.y))
         draw = PIL.ImageDraw.Draw(image)

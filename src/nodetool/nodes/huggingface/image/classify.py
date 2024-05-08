@@ -41,7 +41,7 @@ class Classifier(HuggingfaceNode):
     )
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        image = await context.to_io(self.image)
+        image = await context.asset_to_io(self.image)
         result = await self.run_huggingface(
             model_id=self.model.value, context=context, data=image.read()
         )

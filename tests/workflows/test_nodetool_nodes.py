@@ -154,7 +154,7 @@ async def test_expand_node(
     pil_image: PIL.Image.Image, image: ImageRef, context: ProcessingContext
 ):
     res = await Expand(image=image, border=10).process(context)
-    res_img = await context.to_pil(res)
+    res_img = await context.image_to_pil(res)
     assert res_img.width == pil_image.width + 20, "Should have border"
     assert res_img.height == pil_image.height + 20, "Should have border"
 
@@ -238,7 +238,7 @@ async def test_resize(image: ImageRef, context: ProcessingContext):
         width=100,
         height=100,
     ).process(context)
-    res_img = await context.to_pil(res)
+    res_img = await context.image_to_pil(res)
     assert res_img.size == (100, 100), "Should be the same size"
 
 
@@ -263,7 +263,7 @@ async def test_scale(
     pil_image: PIL.Image.Image, image: ImageRef, context: ProcessingContext
 ):
     res = await Scale(image=image, scale=2.0).process(context)
-    res_img = await context.to_pil(res)
+    res_img = await context.image_to_pil(res)
     assert res_img.size == (
         pil_image.size[0] * 2,
         pil_image.size[1] * 2,
@@ -339,7 +339,7 @@ async def test_save_text_node(context: ProcessingContext, user: User):
 @pytest.mark.asyncio
 async def test_save_dataframe_node(context: ProcessingContext, user: User):
     folder = Asset.create(user.id, "test", "folder", user.id)
-    df = await context.from_pandas(pd.DataFrame({"a": [1, 2, 3]}))
+    df = await context.dataframe_from_pandas(pd.DataFrame({"a": [1, 2, 3]}))
     node = Save(
         name="TestDataFrame",
         df=df,

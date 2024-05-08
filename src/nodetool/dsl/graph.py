@@ -42,11 +42,9 @@ def graph(*nodes):
         g.add(node)
     nodes = [
         Node(
-            id=n.id,
+            id=n._id,
             type=n.get_node_type(),
-            data=n.model_dump(
-                exclude={"id", "parent_id", "ui_properties", "requires_capabilities"}
-            ),
+            data=n.model_dump(),
         )
         for n in g.nodes.values()
     ]

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 from pydantic.fields import FieldInfo
 
 from typing import Any, Type
@@ -27,19 +27,6 @@ from nodetool.workflows.run_job_request import RunJobRequest
 
 NODE_BY_TYPE: dict[str, type["BaseNode"]] = {}
 NODES_BY_CLASSNAME: dict[str, list[type["BaseNode"]]] = {}
-
-INVISIBLE_NODE_TYPES = set()
-IGNORED_FIELD_NAMES = [
-    "id",
-    "parent_id",
-    "_properties",
-    "_value",
-    "ui_properties",
-    "comfy_class",
-    "requires_capabilities",
-    "nodes",
-    "edges",
-]
 
 log = Environment.get_logger()
 
@@ -116,18 +103,42 @@ class BaseNode(BaseModel):
     which is called when the node is evaluated.
     """
 
-    id: str = ""
-    parent_id: str | None = None
-    ui_properties: dict[str, Any] = {}
-    requires_capabilities: list[str] = []
-
-    @classmethod
-    def invisible(cls):
-        INVISIBLE_NODE_TYPES.add(cls.get_node_type())
+    _id: str = ""
+    _parent_id: str | None = ""
+    _ui_properties: dict[str, Any] = {}
+    _requires_capabilities: list[str] = []
+    _visible: bool = True
 
     @classmethod
     def is_visible(cls):
-        return cls.get_node_type() not in INVISIBLE_NODE_TYPES
+        return cls._visible.default  # type: ignore
+
+    @classmethod
+    def requires_capabilities(cls):
+        return cls._requires_capabilities.default  # type: ignore
+
+    def __init__(
+        self,
+        id: str = "",
+        parent_id: str | None = None,
+        ui_properties: dict[str, Any] = {},
+        **data: Any,
+    ):
+        super().__init__(**data)
+        self._id = id
+        self._parent_id = parent_id
+        self._ui_properties = ui_properties
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def parent_id(self):
+        return self._parent_id
+
+    def has_parent(self):
+        return self._parent_id is not None
 
     @classmethod
     def __init_subclass__(cls):
@@ -312,7 +323,7 @@ class BaseNode(BaseModel):
     @classmethod
     def return_type(cls) -> Type | dict[str, Type] | None:
         """
-        Returns the return type of the process function.
+        The return type of the process function.
         """
         type_hints = cls.process.__annotations__
 
@@ -380,11 +391,7 @@ class BaseNode(BaseModel):
         """
         Returns the input slots of the node.
         """
-        fields = {
-            name: field
-            for name, field in cls.__fields__.items()
-            if name not in IGNORED_FIELD_NAMES
-        }
+        fields = {name: field for name, field in cls.model_fields.items()}
         super_fields = (
             cls.__base__.inherited_fields()  # type: ignore
             if hasattr(cls.__base__, "inherited_fields")
@@ -440,9 +447,7 @@ class InputNode(BaseNode):
     label: str = Field("Input Label", description="The label for this input node.")
     name: str = Field("", description="The parameter name for the workflow.")
     description: str = Field("", description="The description for this input node.")
-
-
-InputNode.invisible()
+    _visible: bool = False
 
 
 class OutputNode(BaseNode):
@@ -453,16 +458,12 @@ class OutputNode(BaseNode):
     description: str = Field(
         default="", description="The description for this output node."
     )
-
-
-OutputNode.invisible()
+    _visible: bool = False
 
 
 class Comment(BaseNode):
     comment: list[str] = Field(default=[""], description="The comment for this node.")
-
-
-Comment.invisible()
+    _visible: bool = False
 
 
 class Preview(BaseNode):
@@ -471,12 +472,10 @@ class Preview(BaseNode):
     """
 
     value: Any = Field(None, description="The value to preview.")
+    _visible: bool = False
 
     async def process(self, context: Any) -> Any:
         return self.value
-
-
-Preview.invisible()
 
 
 def get_node_class_by_name(class_name: str) -> list[type[BaseNode]]:
@@ -517,17 +516,13 @@ def get_registered_node_classes() -> list[type[BaseNode]]:
     Returns:
         list[type[Node]]: The registered node classes.
     """
-    return [
-        c
-        for c in NODE_BY_TYPE.values()
-        if c.get_node_type() not in INVISIBLE_NODE_TYPES
-    ]
+    return [c for c in NODE_BY_TYPE.values() if c.is_visible]
 
 
 def requires_capabilities(nodes: list[BaseNode]):
     capabilities = set()
     for node in nodes:
-        for cap in node.requires_capabilities:
+        for cap in node.requires_capabilities():
             capabilities.add(cap)
     return list(capabilities)
 
@@ -539,7 +534,7 @@ def requires_capabilities_from_request(req: RunJobRequest):
         node_class = get_node_class(node.type)
         if node_class is None:
             raise ValueError(f"Node class not found: {node.type}")
-        for cap in node_class().requires_capabilities:
+        for cap in node_class.requires_capabilities():
             capabilities.add(cap)
     return list(capabilities)
 
@@ -549,9 +544,15 @@ class GroupNode(BaseNode):
     A group node is a special type of node that contains a subgraph.
     """
 
-    nodes: list[BaseNode] = []
-    edges: list[Edge] = []
+    _nodes: list[BaseNode] = []
+    _edges: list[Edge] = []
     _properties: dict[str, Any] = {}
+
+    def append_node(self, node: BaseNode):
+        self._nodes.append(node)
+
+    def append_edge(self, edge: Edge):
+        self._edges.append(edge)
 
     def assign_property(self, name: str, value: Any):
         self._properties[name] = value

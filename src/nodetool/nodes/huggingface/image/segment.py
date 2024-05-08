@@ -14,7 +14,7 @@ class Segformer(HuggingfaceNode):
     )
 
     async def process(self, context: ProcessingContext) -> dict[str, ImageRef]:
-        image = await context.to_io(self.image)
+        image = await context.asset_to_io(self.image)
         result = await self.run_huggingface(
             model_id="nvidia/segformer-b3-finetuned-ade-512-512",
             context=context,

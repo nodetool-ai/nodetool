@@ -34,8 +34,8 @@ class WorkflowNode(BaseNode):
     inputs: dict[str, Any] = {}
 
     def __init__(self, **kwargs):
-        id = kwargs.pop("id", "")
-        ui_properties = kwargs.pop("ui_properties", {})
+        id = kwargs.pop("_id", "")
+        ui_properties = kwargs.pop("_ui_properties", {})
         super().__init__(id=id, ui_properties=ui_properties)
         self.inputs = kwargs
 
@@ -106,7 +106,7 @@ class WorkflowNode(BaseNode):
             if msg["type"] == "node_progress":
                 context.post_message(
                     NodeProgress(
-                        node_id=self.id,
+                        node_id=self._id,
                         progress=msg["progress"],
                         total=msg["total"],
                     )
@@ -115,7 +115,7 @@ class WorkflowNode(BaseNode):
                 logs += f"{msg['node_name']} -> {msg['status']}\n"
                 context.post_message(
                     NodeUpdate(
-                        node_id=self.id,
+                        node_id=self._id,
                         node_name=self.get_title(),
                         status="running",
                         logs=logs,
@@ -127,6 +127,3 @@ class WorkflowNode(BaseNode):
                 output = msg["result"]
 
         return output
-
-
-WorkflowNode.invisible()

@@ -25,7 +25,7 @@ class AudioToTensor(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        audio = await context.to_audio_segment(self.audio)
+        audio = await context.audio_to_audio_segment(self.audio)
         samples = np.array(audio.get_array_of_samples().tolist())
         return Tensor.from_numpy(samples)
 

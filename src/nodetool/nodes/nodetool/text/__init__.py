@@ -16,7 +16,7 @@ from nodetool.metadata.types import Tensor
 
 async def to_string(context: ProcessingContext, text: TextRef | str) -> str:
     if isinstance(text, TextRef):
-        stream = await context.to_io(text)
+        stream = await context.asset_to_io(text)
         return stream.read().decode("utf-8")
     else:
         return text
@@ -121,7 +121,7 @@ class JSONToDataframe(BaseNode):
         json_string = await to_string(context, self.text)
         rows = json.loads(json_string)
         df = pd.DataFrame(rows)
-        return await context.from_pandas(df)
+        return await context.dataframe_from_pandas(df)
 
 
 class SaveText(BaseNode):

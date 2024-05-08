@@ -25,7 +25,7 @@ class SaveVideo(BaseNode):
     name: str = Field(default="video", description="Name of the output video.")
 
     async def process(self, context: ProcessingContext) -> VideoRef:
-        video = await context.to_io(self.value)
+        video = await context.asset_to_io(self.value)
         return await context.video_from_io(
             buffer=video,
             name=self.name,
@@ -46,7 +46,7 @@ class ExtractVideoFrames(BaseNode):
     async def process(self, context: ProcessingContext) -> list[ImageRef]:
         import imageio.v3 as iio
 
-        video_file = await context.to_io(self.video)
+        video_file = await context.asset_to_io(self.video)
         images = []
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as temp:
             temp.write(video_file.read())
@@ -71,7 +71,7 @@ class VideoFps(BaseNode):
     async def process(self, context: ProcessingContext) -> float:
         import imageio.v3 as iio
 
-        video_file = await context.to_io(self.video)
+        video_file = await context.asset_to_io(self.video)
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as temp:
             temp.write(video_file.read())
             temp.flush()
@@ -95,7 +95,7 @@ class FramesToVideo(BaseNode):
             out = iio.imopen(temp.name, "w", plugin="pyav")
             out.init_video_stream("vp9", fps=self.fps)
             for img_ref in self.frames:
-                img = await context.to_pil(img_ref)
+                img = await context.image_to_pil(img_ref)
                 out.write_frame(np.array(img))
             out.close()
             return await context.video_from_io(open(temp.name, "rb"))

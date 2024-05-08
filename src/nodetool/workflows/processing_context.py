@@ -20,6 +20,7 @@ from nodetool.models.base_model import create_time_ordered_uuid
 from nodetool.models.message import Message
 from nodetool.models.prediction import Prediction as PredictionModel
 from nodetool.models.thread import Thread
+from nodetool.workflows.graph import Graph
 from nodetool.workflows.types import (
     NodeProgress,
     NodeUpdate,
@@ -100,8 +101,7 @@ class ProcessingContext:
     auth_token: str
     workflow_id: str
     capabilities: list[str]
-    edges: list[Edge]
-    nodes: list[BaseNode]
+    graph: Graph
     cost: float = 0.0
     results: dict[str, Any]
     processed_nodes: set[str]
@@ -112,16 +112,14 @@ class ProcessingContext:
         user_id: str,
         auth_token: str = "",
         workflow_id: str = "",
-        edges: list[Edge] | None = None,
-        nodes: list[BaseNode] | None = None,
+        graph: Graph = Graph(),
         queue: Queue | asyncio.Queue | None = None,
         capabilities: list[str] | None = None,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
         self.workflow_id = workflow_id
-        self.edges = edges if edges is not None else []
-        self.nodes = nodes if nodes is not None else []
+        self.graph = graph
         self.results = {}
         self.processed_nodes = set()
         self.message_queue = queue if queue is not None else asyncio.Queue()
@@ -214,7 +212,7 @@ class ProcessingContext:
         """
         return {
             edge.targetHandle: self.get_result(edge.source, edge.sourceHandle)
-            for edge in self.edges
+            for edge in self.graph.edges
             if edge.target == node_id
         }
 
@@ -223,10 +221,10 @@ class ProcessingContext:
         Finds a node by its ID.
         Throws ValueError if no node is found.
         """
-        for node in self.nodes:
-            if node.id == node_id:
-                return node
-        raise ValueError(f"Node with ID {node_id} does not exist")
+        node = self.graph.find_node(node_id)
+        if node is None:
+            raise ValueError(f"Node with ID {node_id} does not exist")
+        return node
 
     async def update_prediction(
         self,
@@ -481,7 +479,7 @@ class ProcessingContext:
 
         return BytesIO(response.content)
 
-    async def to_io(self, asset_ref: AssetRef) -> IO:
+    async def asset_to_io(self, asset_ref: AssetRef) -> IO:
         # Asset ID takes precedence over URI
         # as the URI could be expired
         if asset_ref.asset_id is not None:
@@ -510,24 +508,24 @@ class ProcessingContext:
             return await self.download_file_async(asset_ref.uri)
         raise ValueError(f"AssetRef is empty {asset_ref}")
 
-    async def to_pil(self, image_ref: ImageRef) -> PIL.Image.Image:
+    async def image_to_pil(self, image_ref: ImageRef) -> PIL.Image.Image:
         """
         Converts the image to a PIL Image object.
 
         Args:
             context (ProcessingContext): The processing context.
         """
-        buffer = await self.to_io(image_ref)
+        buffer = await self.asset_to_io(image_ref)
         return PIL.Image.open(buffer).convert("RGB")
 
     async def refresh_uri(self, asset_ref: AssetRef):
         if asset_ref.asset_id is not None:
             asset_ref.uri = await self.get_asset_url(asset_ref.asset_id)
 
-    async def to_audio_segment(self, audio_ref: AudioRef):
+    async def audio_to_audio_segment(self, audio_ref: AudioRef):
         import pydub
 
-        audio_bytes = await self.to_io(audio_ref)
+        audio_bytes = await self.asset_to_io(audio_ref)
         return pydub.AudioSegment.from_file(audio_bytes)
 
     async def audio_from_io(
@@ -576,7 +574,7 @@ class ProcessingContext:
         return await self.audio_from_io(BytesIO(b), name=name, parent_id=parent_id)
 
     async def audio_to_numpy(self, audio_ref: AudioRef) -> tuple[np.ndarray, int]:
-        audio_segment = await self.to_audio_segment(audio_ref)
+        audio_segment = await self.audio_to_audio_segment(audio_ref)
         return np.array(audio_segment.get_array_of_samples()), audio_segment.frame_rate
 
     async def audio_from_segment(
@@ -598,16 +596,16 @@ class ProcessingContext:
             s3_url = await self.create_temp_file(buffer, "mp3")
             return AudioRef(uri=s3_url)
 
-    async def to_pandas(self, df: DataFrame):
+    async def dataframe_to_pandas(self, df: DataFrame):
         import pandas as pd
 
         if df.columns:
             return pd.DataFrame(df.data, columns=df.columns)
         else:
-            bytes_io = await self.to_io(df)
+            bytes_io = await self.asset_to_io(df)
             return pd.read_csv(bytes_io)
 
-    async def from_pandas(
+    async def dataframe_from_pandas(
         self, data: "pd.DataFrame", name: str | None = None
     ) -> "DataFrame":
         buffer = BytesIO()
@@ -756,7 +754,7 @@ class ProcessingContext:
             str: The string.
         """
         if isinstance(text_ref, TextRef):
-            stream = await self.to_io(text_ref)
+            stream = await self.asset_to_io(text_ref)
             return stream.read().decode("utf-8")
         else:
             return text_ref
@@ -807,7 +805,7 @@ class ProcessingContext:
     async def to_estimator(self, model_ref: ModelRef):
         if model_ref.asset_id is None:
             raise ValueError("ModelRef is empty")
-        file = await self.to_io(model_ref)
+        file = await self.asset_to_io(model_ref)
         return joblib.load(file)
 
     async def from_estimator(self, est: "BaseEstimator", **kwargs):  # type: ignore
@@ -838,7 +836,7 @@ class ProcessingContext:
         if isinstance(value, AssetRef):
             if value.is_empty():
                 return None
-            io = await self.to_io(value)
+            io = await self.asset_to_io(value)
             if isinstance(value, TextRef):
                 return io.read().decode("utf-8")
             else:

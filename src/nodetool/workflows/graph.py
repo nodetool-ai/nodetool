@@ -69,39 +69,26 @@ class Graph(BaseModel):
         Process:
         1. Identify Group Nodes: It first identifies all nodes that are
         instances of GroupNode .
-
         2. Assign Children to Groups: Each node is checked if it belongs
         to a group (i.e., if its parent_id is in the dictionary of group nodes).
         If so, it is added to the corresponding group node.
-
-        3. Reconnect Edges: Calls reconnect_edges to update the edges based on the
-        new structure of group nodes.
-
-        4. Filter Nodes: Removes all nodes from the main graph's node list that are
-        children of any group node.
-
+        3. Reconnect Edges: reassigns the edges to connect to the group nodes
+        instead of the child nodes.
         """
         group_nodes: dict[str, GroupNode] = {
             node.id: node for node in self.nodes if isinstance(node, GroupNode)
         }
-        group_children = {
-            node.id: node for node in self.nodes if node.parent_id in group_nodes
-        }
         for node in self.nodes:
-            if node.parent_id in group_nodes:
-                group_nodes[node.parent_id].nodes.append(node)
+            parent_id = node.parent_id
+            if parent_id and parent_id in group_nodes:
+                group_nodes[parent_id].append_node(node)
 
-        for edge in self.edges:
-            if edge.source in group_children and edge.target in group_children:
-                source_parent = group_children[edge.source].parent_id
-                target_parent = group_children[edge.target].parent_id
-                if source_parent == target_parent and source_parent:
-                    group_nodes[source_parent].edges.append(edge)
-
-        self.reconnect_edges(group_nodes)
+        edges = self.reconnect_edges(group_nodes)
 
         # Remove child nodes from groups
-        self.nodes = [node for node in self.nodes if node.parent_id is None]
+        nodes = [node for node in self.nodes if not node.has_parent()]
+
+        return Graph(nodes=nodes, edges=edges)
 
     def reconnect_edges(self, group_nodes: dict[str, GroupNode]):
         """
@@ -110,61 +97,67 @@ class Graph(BaseModel):
 
         Process:
         1. Create a new list of edges.
-        2. For each edge in the original list, check if the source and target
+        2. For each edge in the original list, check if the source or target
         nodes are part of a group. If they are, the edge is updated to connect
-        to the group node instead.
-        3. Add the updated edge to the new list.
-        4. Replace the original list of edges with the new list.
+        to the group node instead. They must be either Group Input or Group
+        Output nodes.
+        3. If both the source and target nodes are part of the same group, the
+        edge is added to that group.
+        4. If source and target nodes are part of different groups, the edge is
         """
         from nodetool.nodes.nodetool.input import GroupInput
         from nodetool.nodes.nodetool.output import GroupOutput
 
-        new_edges = []
+        edges = []
         for edge in self.edges:
-            source_node = self.find_node(edge.source)
-            target_node = self.find_node(edge.target)
+            source = self.find_node(edge.source)
+            target = self.find_node(edge.target)
 
             # Skip edges that are not connected to any node
-            if not source_node or not target_node:
+            if not source or not target:
                 continue
 
-            if (
-                source_node.parent_id
-                and target_node.parent_id
-                and source_node.parent_id == target_node.parent_id
-            ):
-                # Edge within the same group, skip it.
-                continue
-
-            if isinstance(source_node, GroupOutput):
-                assert source_node.parent_id, "Group output node must have a parent"
-                new_edge = Edge(
-                    source=source_node.parent_id,
-                    sourceHandle=source_node.name,
-                    target=edge.target,
-                    targetHandle=edge.targetHandle,
-                )
-            elif isinstance(target_node, GroupInput):
-                assert target_node.parent_id, "Group input node must have a parent"
-                new_edge = Edge(
-                    source=edge.source,
-                    sourceHandle=edge.sourceHandle,
-                    target=target_node.parent_id,
-                    targetHandle=target_node.name,
-                )
+            if source.parent_id and source.parent_id == target.parent_id:
+                group_nodes[source.parent_id].append_edge(edge)
             else:
-                new_edge = edge
+                source_id = edge.source
+                target_id = edge.target
+                source_handle = edge.sourceHandle
+                target_handle = edge.targetHandle
 
-            new_edges.append(new_edge)
+                if source.parent_id and isinstance(source, GroupOutput):
+                    assert target.parent_id != source.parent_id, (
+                        "Group output nodes cannot be connected to another node in the same group. "
+                        f"Source: {source.parent_id}, Target: {target.parent_id}"
+                    )
+                    source_id = source.parent_id
+                    source_handle = source.name
 
-        self.edges = new_edges
+                if target.parent_id and isinstance(target, GroupInput):
+                    assert source.parent_id != target.parent_id, (
+                        "Group input nodes cannot be connected to another node in the same group. "
+                        f"Source: {source.parent_id}, Target: {target.parent_id}"
+                    )
+                    target_id = target.parent_id
+                    target_handle = target.name
+
+                edges.append(
+                    Edge(
+                        source=source_id,
+                        target=target_id,
+                        sourceHandle=source_handle,
+                        targetHandle=target_handle,
+                    )
+                )
+
+        return edges
 
     def find_node(self, node_id: str) -> BaseNode | None:
         """
         Find a node by its id.
         """
         for node in self.nodes:
-            if node.id == node_id:
+            if node._id == node_id:
                 return node
         return None
 

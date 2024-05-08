@@ -3,6 +3,7 @@ import PIL.ImageChops
 import pytest
 from nodetool.api.types.graph import Node, Edge
 from nodetool.nodes.nodetool.output import GroupOutput
+from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
@@ -35,7 +36,7 @@ def workflow_runner(user: User):
 @pytest.mark.asyncio
 async def test_process_node(user: User, workflow_runner: WorkflowRunner):
     node = String(id="1", value="test")
-    context = ProcessingContext(user_id="", workflow_id="", edges=[], nodes=[node])
+    context = ProcessingContext(user_id="", workflow_id="")
     await workflow_runner.process_node(context, node)
     assert context.get_result("1", "output") == "test"
 
@@ -65,13 +66,12 @@ async def test_process_node_with_input_edges(
         },
     ]
 
+    context = ProcessingContext(user_id="", workflow_id="")
     graph = Graph.from_dict({"nodes": nodes, "edges": edges})
+    graph = graph.build_sub_graphs()
 
-    context = ProcessingContext(
-        user_id="", workflow_id="", edges=graph.edges, nodes=graph.nodes
-    )
+    await workflow_runner.process_graph(context, graph)
 
-    await workflow_runner.process_graph(context)
     assert context.get_result("3", "output") == 3
 
 
@@ -82,6 +82,26 @@ async def get_workflow_updates(context: ProcessingContext):
         messages.append(await context.pop_message_async())
 
     return list(filter(lambda x: isinstance(x, WorkflowUpdate), messages))
+
+
+@pytest.mark.asyncio
+async def test_from_dict():
+    image_input = {
+        "id": "1",
+        "type": ImageInput.get_node_type(),
+        "data": {
+            "name": "image_a",
+            "value": {
+                "type": "image",
+                "uri": "https://example.com/image.jpg",
+            },
+        },
+    }
+
+    node = ImageInput.from_dict(image_input)
+
+    assert node.id == "1"  # type: ignore
+    assert node.value.uri == "https://example.com/image.jpg"  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -322,15 +342,13 @@ async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
         ),
     ]
     graph = Graph.from_dict({"nodes": nodes, "edges": edges})
-    graph.build_sub_graphs()
+    graph = graph.build_sub_graphs()
+    context = ProcessingContext(user_id="", workflow_id="")
 
-    context = ProcessingContext(
-        user_id="", workflow_id="", edges=graph.edges, nodes=graph.nodes
-    )
     node = graph.find_node("loop")
     assert node is not None
     node.assign_property("input", [1, 2, 3])
 
-    await workflow_runner.process_graph(context)
+    await workflow_runner.process_graph(context, graph)
 
     assert context.get_result("loop", "output") == [1, 4, 9]

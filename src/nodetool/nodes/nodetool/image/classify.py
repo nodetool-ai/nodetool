@@ -23,7 +23,7 @@ class Classify(BaseNode):
 
         device = Environment.get_torch_device()
 
-        image = await context.to_pil(self.image)
+        image = await context.image_to_pil(self.image)
 
         image_processor = AutoImageProcessor.from_pretrained(self.model.value)
         model = AutoModelForImageClassification.from_pretrained(self.model.value).to(

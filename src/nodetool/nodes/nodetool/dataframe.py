@@ -45,8 +45,8 @@ class Save(BaseNode):
     name: str = Field(default="output.csv", description="Name of the output file.")
 
     async def process(self, context: ProcessingContext) -> DataFrame:
-        df = await context.to_pandas(self.df)
-        return await context.from_pandas(df, self.name)
+        df = await context.dataframe_to_pandas(self.df)
+        return await context.dataframe_from_pandas(df, self.name)
 
 
 class SelectColumn(BaseNode):
@@ -64,8 +64,8 @@ class SelectColumn(BaseNode):
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         columns = self.columns.split(",")
-        df = await context.to_pandas(self.dataframe)
-        return await context.from_pandas(df[columns])  # type: ignore
+        df = await context.dataframe_to_pandas(self.dataframe)
+        return await context.dataframe_from_pandas(df[columns])  # type: ignore
 
 
 class ColumnToList(BaseNode):
@@ -83,7 +83,7 @@ class ColumnToList(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> list[Any]:
-        df = await context.to_pandas(self.dataframe)
+        df = await context.dataframe_to_pandas(self.dataframe)
         return df[self.column_name].tolist()
 
 
@@ -108,9 +108,9 @@ class ListToColumn(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
-        df = await context.to_pandas(self.dataframe)
+        df = await context.dataframe_to_pandas(self.dataframe)
         df[self.column_name] = self.values
-        return await context.from_pandas(df)
+        return await context.dataframe_from_pandas(df)
 
 
 class ListToDataFrame(BaseNode):
@@ -156,7 +156,7 @@ class ListToDataFrame(BaseNode):
 
             rows.append(row)
         df = pd.DataFrame(rows)
-        return await context.from_pandas(df)
+        return await context.dataframe_from_pandas(df)
 
 
 class CSVToDataframe(BaseNode):
@@ -189,10 +189,10 @@ class Concat(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
-        df_a = await context.to_pandas(self.dataframe_a)
-        df_b = await context.to_pandas(self.dataframe_b)
+        df_a = await context.dataframe_to_pandas(self.dataframe_a)
+        df_b = await context.dataframe_to_pandas(self.dataframe_b)
         df = pd.concat([df_a, df_b], axis=1)
-        return await context.from_pandas(df)
+        return await context.dataframe_from_pandas(df)
 
 
 class Append(BaseNode):
@@ -210,14 +210,14 @@ class Append(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
-        df_a = await context.to_pandas(self.dataframe_a)
-        df_b = await context.to_pandas(self.dataframe_b)
+        df_a = await context.dataframe_to_pandas(self.dataframe_a)
+        df_b = await context.dataframe_to_pandas(self.dataframe_b)
         if not df_a.columns.equals(df_b.columns):
             raise ValueError(
                 f"Columns in dataframe A ({df_a.columns}) do not match columns in dataframe B ({df_b.columns})"
             )
         df = pd.concat([df_a, df_b], axis=0)
-        return await context.from_pandas(df)
+        return await context.dataframe_from_pandas(df)
 
 
 class Join(BaseNode):
@@ -239,14 +239,14 @@ class Join(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
-        df_a = await context.to_pandas(self.dataframe_a)
-        df_b = await context.to_pandas(self.dataframe_b)
+        df_a = await context.dataframe_to_pandas(self.dataframe_a)
+        df_b = await context.dataframe_to_pandas(self.dataframe_b)
         if not df_a.columns.equals(df_b.columns):
             raise ValueError(
                 f"Columns in dataframe A ({df_a.columns}) do not match columns in dataframe B ({df_b.columns})"
             )
         df = pd.merge(df_a, df_b, on=self.join_on)
-        return await context.from_pandas(df)
+        return await context.dataframe_from_pandas(df)
 
 
 class ToTensor(BaseNode):
@@ -261,7 +261,7 @@ class ToTensor(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        df = await context.to_pandas(self.dataframe)
+        df = await context.dataframe_to_pandas(self.dataframe)
         return Tensor.from_numpy(df.to_numpy())
 
 
@@ -288,7 +288,7 @@ class FromTensor(BaseNode):
                 f"Number of columns in tensor ({array.shape[1]}) does not match number of columns specified ({len(self.columns)})"
             )
         df = pd.DataFrame(array, columns=self.columns)
-        return await context.from_pandas(df)
+        return await context.dataframe_from_pandas(df)
 
 
 class Plot(BaseNode):
@@ -320,7 +320,7 @@ class Plot(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        df = await context.to_pandas(self.dataframe)
+        df = await context.dataframe_to_pandas(self.dataframe)
         if self.x_column not in df.columns:
             raise ValueError(f"Invalid x_column: {self.x_column}")
         if self.y_column not in df.columns:
@@ -355,7 +355,7 @@ class PlotHistogram(BaseNode):
     column: str = Field(title="Column", default="", description="The column to plot.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        df = await context.to_pandas(self.dataframe)
+        df = await context.dataframe_to_pandas(self.dataframe)
         if self.column not in df.columns:
             raise ValueError(f"Invalid column: {self.column}")
         (fig, ax) = plt.subplots()
@@ -379,7 +379,7 @@ class PlotHeatmap(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        df = await context.to_pandas(self.dataframe)
+        df = await context.dataframe_to_pandas(self.dataframe)
         sns.set_theme(style="darkgrid")
         (fig, ax) = plt.subplots()
         sns.heatmap(df, ax=ax)
@@ -405,9 +405,9 @@ class Filter(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> DataFrame:
-        df = await context.to_pandas(self.df)
+        df = await context.dataframe_to_pandas(self.df)
         res = df.query(self.condition)
-        return await context.from_pandas(res)
+        return await context.dataframe_from_pandas(res)
 
 
 class DataFrameSort(BaseNode):
@@ -423,9 +423,9 @@ class DataFrameSort(BaseNode):
     column: str = Field(default="", description="The column to sort the DataFrame by.")
 
     async def process(self, context: ProcessingContext) -> DataFrame:
-        df = await context.to_pandas(self.df)
+        df = await context.dataframe_to_pandas(self.df)
         res = df.sort_values(self.column)
-        return await context.from_pandas(res)
+        return await context.dataframe_from_pandas(res)
 
 
 class DropDuplicates(BaseNode):
@@ -438,9 +438,9 @@ class DropDuplicates(BaseNode):
     df: DataFrame = Field(default_factory=DataFrame, description="The input DataFrame.")
 
     async def process(self, context: ProcessingContext) -> DataFrame:
-        df = await context.to_pandas(self.df)
+        df = await context.dataframe_to_pandas(self.df)
         res = df.drop_duplicates()
-        return await context.from_pandas(res)
+        return await context.dataframe_from_pandas(res)
 
 
 class DropNA(BaseNode):
@@ -453,9 +453,9 @@ class DropNA(BaseNode):
     df: DataFrame = Field(default_factory=DataFrame, description="The input DataFrame.")
 
     async def process(self, context: ProcessingContext) -> DataFrame:
-        df = await context.to_pandas(self.df)
+        df = await context.dataframe_to_pandas(self.df)
         res = df.dropna()
-        return await context.from_pandas(res)
+        return await context.dataframe_from_pandas(res)
 
 
 class IrisDataFrame(BaseNode):
@@ -469,6 +469,6 @@ class IrisDataFrame(BaseNode):
         data = load_iris(as_frame=True)
         assert isinstance(data, Bunch)
         return Dataset(
-            data=await context.from_pandas(data.data),
-            target=await context.from_pandas(pd.DataFrame(data.target)),
+            data=await context.dataframe_from_pandas(data.data),
+            target=await context.dataframe_from_pandas(pd.DataFrame(data.target)),
         )

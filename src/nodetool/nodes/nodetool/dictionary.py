@@ -101,4 +101,4 @@ class DictToDataframe(BaseNode):
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df = pd.DataFrame([self.model_dump()])
-        return await context.from_pandas(df)
+        return await context.dataframe_from_pandas(df)

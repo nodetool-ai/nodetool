@@ -47,7 +47,7 @@ class TextToSpeech(BaseNode):
 
         await context.create_prediction(
             provider="openai",
-            node_id=self.id,
+            node_id=self._id,
             node_type=self.get_node_type(),
             model=self.model.value,
             cost=cost,
@@ -69,7 +69,7 @@ class Transcribe(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> str:
-        audio_bytes = await context.to_io(self.audio)
+        audio_bytes = await context.asset_to_io(self.audio)
         audio_segment: pydub.AudioSegment = pydub.AudioSegment.from_file(audio_bytes)
         audio_bytes.seek(0)
 
@@ -80,7 +80,7 @@ class Transcribe(BaseNode):
 
         await context.create_prediction(
             provider="openai",
-            node_id=self.id,
+            node_id=self._id,
             node_type=self.get_node_type(),
             model="whisper-1",
             cost=calculate_cost("whisper-1", int(audio_segment.duration_seconds)),
@@ -103,7 +103,7 @@ class Translate(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> str:
-        audio_bytes = await context.to_io(self.audio)
+        audio_bytes = await context.asset_to_io(self.audio)
         audio: pydub.AudioSegment = pydub.AudioSegment.from_file(audio_bytes)
         audio_bytes.seek(0)
         client = Environment.get_openai_client()
@@ -115,7 +115,7 @@ class Translate(BaseNode):
         cost = calculate_cost("whisper-1", int(audio.duration_seconds))
         await context.create_prediction(
             provider="openai",
-            node_id=self.id,
+            node_id=self._id,
             node_type=self.get_node_type(),
             model="whisper-1",
             cost=cost,

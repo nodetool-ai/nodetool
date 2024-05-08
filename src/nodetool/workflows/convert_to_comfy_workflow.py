@@ -15,14 +15,14 @@ def convert_to_comfy_workflow(edges: list[Edge], nodes: list[BaseNode]):
             for k, v in inputs.items()
             if v is not None
         }
-        json[node.id] = {
+        json[node._id] = {
             "class_type": node.__class__.__name__,
             "inputs": inputs,
         }
 
     def find_node(id):
         for node in nodes:
-            if node.id == id:
+            if node._id == id:
                 return node
         raise Exception(f"Could not find node with id {id}")
 

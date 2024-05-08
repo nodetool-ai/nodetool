@@ -16,6 +16,10 @@ test_file = os.path.join(current_dir, "test.jpg")
 class DummyClass(BaseNode):
     prop: int = 123
 
+    def __init__(self, prop: int = 123):
+        super().__init__(id="")
+        self.prop = prop
+
     def process(self, context: ProcessingContext) -> int:
         return self.prop
 
@@ -28,8 +32,8 @@ class StringNode(BaseNode):
 
 
 def test_node_creation():
-    node = BaseNode()
-    assert node.id == ""
+    node = BaseNode(id="")
+    assert node._id == ""
 
 
 def test_node_metadata_method():
@@ -82,7 +86,7 @@ def test_node_output_type():
 
 
 def test_string_node_output_type():
-    node = StringNode()
+    node = StringNode(_id="")
     assert node.outputs() == [OutputSlot(type=TypeMetadata(type="str"), name="output")]
 
 
@@ -121,15 +125,9 @@ def test_node_node_properties():
 
 @pytest.mark.asyncio
 async def test_node_process_not_implemented(context: ProcessingContext):
-    node = BaseNode()
+    node = BaseNode(id="")
     with pytest.raises(NotImplementedError):
         await node.process(context)
-
-
-@pytest.mark.asyncio
-async def test_node_convert_output_dict(context: ProcessingContext):
-    node = DummyClass()
-    assert await node.convert_output(context, {"prop": 123}) == {"prop": 123}
 
 
 @pytest.mark.asyncio

@@ -97,7 +97,7 @@ class IndexFolder(ChromaNode):
 
         asset_list = await context.paginate_assets(self.folder.asset_id, MAX_INDEX_SIZE)
         total = len(asset_list.assets)
-        context.post_message(NodeProgress(node_id=self.id, progress=0, total=total))
+        context.post_message(NodeProgress(node_id=self._id, progress=0, total=total))
 
         for i, asset in enumerate(asset_list.assets):
             res = collection.get(asset.id)
@@ -112,7 +112,9 @@ class IndexFolder(ChromaNode):
                     image_io = await context.download_asset(asset.id)
                     image = PIL.Image.open(image_io)
                     collection.add(ids=[asset.id], images=[np.array(image)])
-            context.post_message(NodeProgress(node_id=self.id, progress=i, total=total))
+            context.post_message(
+                NodeProgress(node_id=self._id, progress=i, total=total)
+            )
 
         return self.folder
 

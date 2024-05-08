@@ -272,7 +272,7 @@ class ComfyImageInput(AssetSchemaMixin, InputNode):
         import torch
         import numpy as np
 
-        img = await context.to_pil(self.value)
+        img = await context.image_to_pil(self.value)
 
         output_images = []
         output_masks = []

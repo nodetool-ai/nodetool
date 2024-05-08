@@ -56,7 +56,7 @@ class CreateImage(BaseNode):
 
         await context.create_prediction(
             provider="openai",
-            node_id=self.id,
+            node_id=self._id,
             node_type=self.get_node_type(),
             model=model,
             cost=cost,
