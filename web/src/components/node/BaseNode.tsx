@@ -32,7 +32,7 @@ function capitalToSpace(str: string) {
 
 
 function isSmallNode(type: string) {
-  return type.match(/\.math|\.tensor|\.list|\.dictionary/) !== null;
+  return type.match(/\.math|\.tensor|\.list/) !== null;
 }
 
 /**

@@ -33,6 +33,7 @@ class StableDiffusionXL(HuggingfaceNode):
     """
     Generates images from input text. These models can be used to generate and
     modify images based on text prompts.
+    image, text, image generation, text-to-image, image-to-image, image generation, image synthesis
 
     ### Use Cases
     * Businesses can generate data for their their use cases by inputting text and getting image outputs.
