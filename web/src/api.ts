@@ -501,6 +501,12 @@ export interface components {
       namespace: string;
       /** Node Type */
       node_type: string;
+      /** Primary Field */
+      primary_field: string | null;
+      /** Secondary Field */
+      secondary_field: string | null;
+      /** Layout */
+      layout: string;
       /** Properties */
       properties: components["schemas"]["Property"][];
       /** Outputs */

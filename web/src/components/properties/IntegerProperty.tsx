@@ -27,6 +27,7 @@ export function IntegerProperty(props: PropertyProps) {
         size="small"
         color="secondary"
         inputType="int"
+        hideLabel={props.hideLabel}
         onChange={(_, value) => props.onChange(Number(value))}
       />
     </>

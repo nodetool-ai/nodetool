@@ -33,6 +33,7 @@ async def convert_output(
 
 
 class BinaryOperation(BaseNode):
+    _layout = "small"
     a: int | float | Tensor = Field(title="A", default=0.0)
     b: int | float | Tensor = Field(title="B", default=0.0)
 
@@ -105,6 +106,8 @@ class Sine(BaseNode):
     Returns a float value between -1 and 1.
     """
 
+    _layout = "small"
+
     angle_rad: float | int | Tensor = Field(title="Angle (Radians)", default=0.0)
 
     async def process(self, context: ProcessingContext) -> float | Tensor:
@@ -114,10 +117,28 @@ class Sine(BaseNode):
 
 class Cosine(BaseNode):
     """
-    Calculates the cosine of a given angle in radians.
-    math, cosine, radians, angle
+    Computes the cosine of an input angle in radians.
+    math, sine, radians, angle
     Returns a float value between -1 and 1.
     """
+
+    _layout = "small"
+
+    angle_rad: float | int | Tensor = Field(title="Angle (Radians)", default=0.0)
+
+    async def process(self, context: ProcessingContext) -> float | Tensor:
+        res = np.cos(to_numpy(self.angle_rad))
+        return await convert_output(context, res)
+
+
+class Power(BaseNode):
+    """
+    Computes the power of the base to the exponent.
+    math, power, exponent
+    Returns a float value between -1 and 1.
+    """
+
+    _layout = "small"
 
     base: float | int | Tensor = Field(title="Base", default=1.0)
     exponent: float | int | Tensor = Field(title="Exponent", default=2.0)
@@ -135,6 +156,8 @@ class SqrtTensor(BaseNode):
     Calculates the square root of the input.
     math, power, sqrt, square, root
     """
+
+    _layout = "small"
 
     x: int | float | Tensor = Field(title="Input", default=1.0)
 

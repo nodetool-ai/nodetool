@@ -28,9 +28,11 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 export type PropertyFieldProps = {
   id: string;
   data: NodeData;
-  nodeStyle: string;
+  layout: string;
   property: Property;
   propertyIndex: string;
+  isPrimary?: boolean;
+  isSecondary?: boolean;
   edgeConnected: boolean;
   skipHandles?: boolean;
   isInspector?: boolean;
@@ -81,7 +83,6 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
     props.id,
     props.property.type
   ]);
-
   return (
     <div
       key={props.id}
@@ -131,8 +132,7 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
           </Tooltip>
         </div>
       )}
-
-      {props.nodeStyle === "normal" && (
+      {props.layout === "small" && props.isPrimary && (
         !isMinZoom ? (
           <>
             <PropertyInput
@@ -143,6 +143,26 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
               controlKeyPressed={controlKeyPressed}
               isInspector={props.isInspector}
               hideInput={props.edgeConnected}
+              hideLabel={true}
+            />
+          </>
+        ) : (
+          <div className="property-spacer" style={{ height: "20px" }}></div>
+        )
+      )}
+
+      {props.layout === "default" && (
+        !isMinZoom ? (
+          <>
+            <PropertyInput
+              propertyIndex={props.id + "-" + propertyIndex}
+              id={props.id}
+              data={props.data}
+              property={props.property}
+              controlKeyPressed={controlKeyPressed}
+              isInspector={props.isInspector}
+              hideInput={props.edgeConnected}
+              hideLabel={false}
             />
           </>
         ) : (

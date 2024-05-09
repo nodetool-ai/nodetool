@@ -105,11 +105,7 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
     });
   };
 
-  if (
-    value === null ||
-    value === undefined ||
-    Object.keys(value).length === 0
-  ) {
+  if (value === null || value === undefined) {
     return null;
   }
 

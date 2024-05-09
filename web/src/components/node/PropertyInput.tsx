@@ -30,6 +30,7 @@ import { NonEditableProperty } from "../properties/NonEditableProperty";
 export type PropertyProps = {
   property: Property;
   value: any;
+  hideLabel?: boolean;
   propertyIndex: string;
   isInspector?: boolean;
   onChange: (value: any) => void;
@@ -50,37 +51,37 @@ function InputProperty(props: PropertyProps) {
 }
 
 const componentTypeMap: Record<string, (props: PropertyProps) => JSX.Element> =
-  {
-    str: StringProperty,
-    text: TextProperty,
-    image: ImageProperty,
-    audio: AudioProperty,
-    video: VideoProperty,
-    int: IntegerProperty,
-    float: FloatProperty,
-    enum: EnumProperty,
-    bool: BoolProperty,
-    list: ListProperty,
-    thread: NonEditableProperty,
-    thread_message: ThreadMessageProperty,
-    file: FileProperty,
-    folder: FolderProperty,
-    asset: AssetProperty,
-    workflow: WorkflowProperty,
-    function_model: ModelProperty,
-    language_model: ModelProperty,
-    llama_model: ModelProperty,
-    "comfy.checkpoint_file": ModelProperty,
-    "comfy.vae_file": ModelProperty,
-    "comfy.clip_file": ModelProperty,
-    "comfy.unclip_file": ModelProperty,
-    "comfy.gligen_file": ModelProperty,
-    "comfy.clip_vision_file": ModelProperty,
-    "comfy.control_net_file": ModelProperty,
-    "comfy.ip_adapter_file": ModelProperty,
-    "comfy.upscale_model_file": ModelProperty,
-    "comfy.lora_file": ModelProperty
-  };
+{
+  str: StringProperty,
+  text: TextProperty,
+  image: ImageProperty,
+  audio: AudioProperty,
+  video: VideoProperty,
+  int: IntegerProperty,
+  float: FloatProperty,
+  enum: EnumProperty,
+  bool: BoolProperty,
+  list: ListProperty,
+  thread: NonEditableProperty,
+  thread_message: ThreadMessageProperty,
+  file: FileProperty,
+  folder: FolderProperty,
+  asset: AssetProperty,
+  workflow: WorkflowProperty,
+  function_model: ModelProperty,
+  language_model: ModelProperty,
+  llama_model: ModelProperty,
+  "comfy.checkpoint_file": ModelProperty,
+  "comfy.vae_file": ModelProperty,
+  "comfy.clip_file": ModelProperty,
+  "comfy.unclip_file": ModelProperty,
+  "comfy.gligen_file": ModelProperty,
+  "comfy.clip_vision_file": ModelProperty,
+  "comfy.control_net_file": ModelProperty,
+  "comfy.ip_adapter_file": ModelProperty,
+  "comfy.upscale_model_file": ModelProperty,
+  "comfy.lora_file": ModelProperty
+};
 
 function componentFor(
   property: Property
@@ -121,6 +122,7 @@ export type PropertyInputProps = {
   controlKeyPressed?: boolean;
   isInspector?: boolean;
   hideInput: boolean;
+  hideLabel: boolean;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = (props) => {

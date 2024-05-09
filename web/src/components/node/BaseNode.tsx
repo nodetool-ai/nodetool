@@ -30,11 +30,6 @@ function capitalToSpace(str: string) {
   return s.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
-
-function isSmallNode(type: string) {
-  return type.match(/\.math|\.tensor|\.list/) !== null;
-}
-
 /**
  * BaseNode renders a single node in the workflow
  *
@@ -71,8 +66,6 @@ export default memo(
       ${props.data.dirty ? "dirty" : ""}`
       .replace(/\s+/g, " ")
       .trim();
-
-    const nodeStyle = isSmallNode(props.type) ? 'small' : 'normal';
 
     if (!metadata) {
       return (
@@ -113,11 +106,13 @@ export default memo(
         <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
         <NodeInputs
           id={props.id}
-          nodeStyle={nodeStyle}
+          layout={nodeMetadata.layout}
           properties={nodeMetadata.properties}
           data={props.data}
           isConstantNode={isConstantNode}
           edges={edges}
+          primaryField={nodeMetadata.primary_field || ""}
+          secondaryField={nodeMetadata.secondary_field || ""}
         />
 
         {isOutputNode && (
@@ -132,7 +127,7 @@ export default memo(
             ))}
           </div>
         )}
-        {nodeStyle === 'normal' && (
+        {nodeMetadata.layout === 'default' && (
           <>
             <ProcessTimer isLoading={isLoading} status={status} />
             <NodeProgress id={props.id} />

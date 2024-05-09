@@ -19,6 +19,7 @@ interface InputProps {
   color?: "primary" | "secondary";
   className?: string;
   inputType?: "int" | "float";
+  hideLabel?: boolean;
 }
 
 const styles = (theme: any) =>
@@ -364,12 +365,13 @@ const NumberInput = memo((props: InputProps) => {
         <></>
       )}
       <div id={id} className="slider-value nodrag">
-        {/* <InputLabel className="name">{props.name}</InputLabel> */}
-        <PropertyLabel
-          name={props.name}
-          description={props.description}
-          id={id}
-        />
+        {props.hideLabel ? null : (
+          <PropertyLabel
+            name={props.name}
+            description={props.description}
+            id={id}
+          />
+        )}
         {!isEditable && (
           <div className="value">
             {typeof props.value === "number"

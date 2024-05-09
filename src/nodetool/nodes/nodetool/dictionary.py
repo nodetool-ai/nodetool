@@ -12,6 +12,9 @@ class Access(BaseNode):
     Returns the value associated with the specified key from the input dictionary.
     """
 
+    _layout = "small"
+    _primary_field = "key"
+
     dictionary: dict[(str, Any)] = {}
     key: str = ""
 
@@ -26,6 +29,9 @@ class Update(BaseNode):
     Outputs the updated dictionary, including the newly added key-value pairs.
     """
 
+    _layout = "small"
+    _primary_field = "new_pairs"
+
     dictionary: dict[(str, Any)] = {}
     new_pairs: dict[(str, Any)] = {}
 
@@ -39,6 +45,9 @@ class Delete(BaseNode):
     Removes a key-value pair from a dictionary based on the specified key.
     dictionary, dict, remove
     """
+
+    _layout = "small"
+    _primary_field = "key"
 
     dictionary: dict[(str, Any)] = {}
     key: str = ""
@@ -55,10 +64,12 @@ class Create(BaseNode):
     Outputs a new dictionary constructed from the provided keys and values.
     """
 
+    _layout = "small"
+
     keys: list[Any] = []
     values: list[Any] = []
 
-    async def process(self, context: ProcessingContext) -> dict[(Any, Any)]:
+    async def process(self, context: ProcessingContext) -> dict[Any, Any]:
         return dict(zip(self.keys, self.values))
 
 
@@ -68,6 +79,8 @@ class Merge(BaseNode):
     dictionary, merge, combine
     Outputs a new dictionary that merges the contents of two input dictionaries. Note: Values from the second input override duplicates.
     """
+
+    _layout = "small"
 
     dict_a: dict[(str, Any)] = {}
     dict_b: dict[(str, Any)] = {}
@@ -83,6 +96,9 @@ class SelectKeys(BaseNode):
     Returns a new dictionary containing only the selected keys from the input dictionary.
     """
 
+    _layout = "small"
+    _primary_field = "keys"
+
     dictionary: dict[(str, Any)] = {}
     keys: list[str] = []
 
@@ -96,6 +112,8 @@ class DictToDataframe(BaseNode):
     dictionary, dataframe, pandas
     Outputs a dataframe created from the input dictionary.
     """
+
+    _layout = "small"
 
     dictionary: dict[(str, Any)] = {}
 

@@ -108,14 +108,9 @@ class BaseNode(BaseModel):
     _ui_properties: dict[str, Any] = {}
     _requires_capabilities: list[str] = []
     _visible: bool = True
-
-    @classmethod
-    def is_visible(cls):
-        return cls._visible.default  # type: ignore
-
-    @classmethod
-    def requires_capabilities(cls):
-        return cls._requires_capabilities.default  # type: ignore
+    _primary_field: str | None = None
+    _secondary_field: str | None = None
+    _layout: str = "default"
 
     def __init__(
         self,
@@ -128,6 +123,26 @@ class BaseNode(BaseModel):
         self._id = id
         self._parent_id = parent_id
         self._ui_properties = ui_properties
+
+    @classmethod
+    def is_visible(cls):
+        return cls._visible.default  # type: ignore
+
+    @classmethod
+    def requires_capabilities(cls):
+        return cls._requires_capabilities.default  # type: ignore
+
+    @classmethod
+    def primary_field(cls):
+        return cls._primary_field.default  # type: ignore
+
+    @classmethod
+    def secondary_field(cls):
+        return cls._secondary_field.default  # type: ignore
+
+    @classmethod
+    def layout(cls):
+        return cls._layout.default  # type: ignore
 
     @property
     def id(self):
@@ -223,6 +238,9 @@ class BaseNode(BaseModel):
             properties=cls.properties(),  # type: ignore
             outputs=cls.outputs(),
             model_info=cls.model_info(),
+            primary_field=cls.primary_field(),
+            secondary_field=cls.secondary_field(),
+            layout=cls.layout(),
         )
 
     @classmethod
@@ -427,7 +445,7 @@ class BaseNode(BaseModel):
         return {prop.name: getattr(self, prop.name) for prop in self.properties()}
 
     async def convert_output(self, context: Any, output: Any) -> Any:
-        if is_dict_type(self.return_type()):
+        if self.return_type() is dict:
             return output
         elif is_output_type(self.return_type()):
             return output.model_dump()
