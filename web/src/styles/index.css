@@ -39,7 +39,7 @@ hr {
 }
 /* Firefox 64+ */
 * {
-  scrollbar-width: thin !important;
+  scrollbar-width: thin;
   scrollbar-color: var(--c_scroll_thumb) var(--c_scroll_bg);
 }
 

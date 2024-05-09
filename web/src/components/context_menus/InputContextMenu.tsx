@@ -187,13 +187,15 @@ const InputContextMenu: React.FC = () => {
         </Typography>
       </MenuItem>
       <Divider />
-      <ContextMenuItem
-        onClick={handleCreateConstantNode}
-        label="Create Constant Node"
-        addButtonClassName="create-constant-node"
-        IconComponent={<LoginIcon />}
-        tooltip={"..."}
-      />
+      {constantNodeMetadata && (
+        <ContextMenuItem
+          onClick={handleCreateConstantNode}
+          label="Create Constant Node"
+          addButtonClassName="create-constant-node"
+          IconComponent={<LoginIcon />}
+          tooltip={"..."}
+        />
+      )}
       {inputNodeMetadata && (
         <ContextMenuItem
           onClick={handleCreateInputNode}

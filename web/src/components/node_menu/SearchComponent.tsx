@@ -44,12 +44,13 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
       const fuseOptions = {
         keys: ["title", "tags"],
         includeMatches: true,
-        location: 0,
-        threshold: 0.1,
-        distance: 5,
+        // location: 0,
+        ignoreLocation: true,
+        threshold: 0.2,
+        distance: 100,
         shouldSort: true,
         includeScore: true,
-        minMatchCharLength: 1,
+        minMatchCharLength: 2,
         useExtendedSearch: true,
         tokenize: true,
         matchAllTokens: true
