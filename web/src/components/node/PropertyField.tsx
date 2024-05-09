@@ -107,6 +107,7 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
                   fontSize: ThemeNodetool.fontSizeSmall
                 }}
               >
+                {props.property.name}:
                 {typeToString(props.property.type)}
               </span>
             }
