@@ -9,21 +9,22 @@ import { Typography } from "@mui/material";
 import ThemeNodetool from "./themes/ThemeNodetool";
 import { useNodeStore } from "../stores/NodeStore";
 
-const styles = (theme: any) => css({
-  "&": {
-    backgroundColor: theme.palette.c_gray1,
-    padding: "1em",
-    maxWidth: "500px",
-  },
-  ".node-property .MuiTextField-root textarea": {
-    fontSize: theme.fontSizeNormal,
-  },
-  ".node-property textarea": {
-    padding: "0.25em",
-    backgroundColor: theme.palette.c_gray2,
-    fontSize: theme.palette.fontSizeNormal,
-  },
-});
+const styles = (theme: any) =>
+  css({
+    "&": {
+      backgroundColor: theme.palette.c_gray1,
+      padding: "1em",
+      maxWidth: "500px"
+    },
+    ".node-property .MuiTextField-root textarea": {
+      fontSize: theme.fontSizeNormal
+    },
+    ".node-property textarea": {
+      padding: "0.25em",
+      backgroundColor: theme.palette.c_gray2,
+      fontSize: theme.palette.fontSizeNormal
+    }
+  });
 
 const Inspector: React.FC = () => {
   const [lastSelectedNode, setLastSelectedNode] = useState<Node | null>(null);
@@ -86,6 +87,7 @@ const Inspector: React.FC = () => {
           propertyIndex={index.toString()}
           skipHandles={true}
           isInspector={true}
+          nodeStyle="node-property"
           edgeConnected={
             getInputEdges(lastSelectedNode.id).find(
               (edge) => edge.targetHandle === property.name
