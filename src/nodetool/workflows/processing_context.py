@@ -518,6 +518,16 @@ class ProcessingContext:
         buffer = await self.asset_to_io(image_ref)
         return PIL.Image.open(buffer).convert("RGB")
 
+    async def image_to_base64(self, image_ref: ImageRef) -> str:
+        """
+        Converts the image to a base64-encoded string.
+
+        Args:
+            context (ProcessingContext): The processing context.
+        """
+        buffer = await self.asset_to_io(image_ref)
+        return base64.b64encode(buffer.read()).decode("utf-8")
+
     async def refresh_uri(self, asset_ref: AssetRef):
         if asset_ref.asset_id is not None:
             asset_ref.uri = await self.get_asset_url(asset_ref.asset_id)
