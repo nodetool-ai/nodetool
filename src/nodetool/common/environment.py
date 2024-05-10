@@ -479,6 +479,13 @@ class Environment(object):
         return cls.get("OPENAI_API_KEY")
 
     @classmethod
+    def get_anthropic_api_key(cls):
+        """
+        The anthropic api key is the api key of the anthropic server.
+        """
+        return cls.get("ANTHROPIC_API_KEY")
+
+    @classmethod
     def get_worker_url(cls):
         """
         The worker url is the url of the worker server.
@@ -508,6 +515,12 @@ class Environment(object):
         from openai import AsyncClient
 
         return AsyncClient(api_key=cls.get_openai_api_key())
+
+    @classmethod
+    def get_anthropic_client(cls):
+        from anthropic import AsyncAnthropic
+
+        return AsyncAnthropic(api_key=cls.get_anthropic_api_key())
 
     @classmethod
     def get_chroma_token(cls):
