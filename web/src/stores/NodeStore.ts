@@ -33,10 +33,11 @@ import { WorkflowAttributes } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
 
 type NodeUIProperties = {
+  selected: boolean | undefined;
   position: XYPosition;
-  width: number;
-  height: number;
-  zIndex: number;
+  width: number | undefined;
+  height: number | undefined;
+  zIndex: number | undefined;
 };
 
 type NodeSelection = {
@@ -64,23 +65,32 @@ export function graphNodeToReactFlowNode(
       width: ui_properties?.width,
       height: ui_properties?.height
     },
-    zIndex: node.type == "nodetool.loop.Loop" ? -10 : ui_properties?.zIndex
+    zIndex: node.type == "nodetool.group.Loop" ? -10 : ui_properties?.zIndex
   };
 }
 
 export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
+  const ui_properties: NodeUIProperties = {
+    selected: node.selected,
+    position: node.position,
+    zIndex: node.zIndex || 0,
+    width: undefined,
+    height: undefined
+  };
+  if (
+    node.type === "nodetool.group.Loop" ||
+    node.type === "nodetool.workflows.base_node.Comment" ||
+    node.type === "nodetool.workflows.base_node.Preview"
+  ) {
+    ui_properties.width = node.width || 200;
+    ui_properties.height = node.height || 200;
+  }
   return {
     id: node.id,
     type: node.type,
     data: node.data?.properties,
     parent_id: node.parentId,
-    ui_properties: {
-      selected: node.selected,
-      position: node.position,
-      width: node.width || 200,
-      height: node.height || 200,
-      zIndex: node.zIndex || 0
-    }
+    ui_properties: ui_properties
   };
 }
 
