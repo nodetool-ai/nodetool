@@ -1,5 +1,3 @@
-import { Descendant } from "slate";
-
 export type NodeData = {
   properties: any;
   workflow_id: string;

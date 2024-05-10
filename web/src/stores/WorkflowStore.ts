@@ -25,17 +25,6 @@ export interface WorkflowStore {
   delete: (id: string) => Promise<void>;
 }
 
-const sortWorkflows = (workflows: Workflow[]) =>
-  workflows.sort((a: Workflow, b: Workflow) => {
-    if (a.created_at && b.created_at) {
-      return a.created_at.localeCompare(b.created_at);
-    }
-    if (!a.created_at) {
-      return -1; // Treat 'a' as earlier if 'created_at' is undefined
-    }
-    return 1; // Treat 'b' as earlier if 'a.created_at' is defined but 'b.created_at' is not
-  });
-
 export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   shouldFitToScreen: false,
 

@@ -127,8 +127,6 @@ export const NodeHeader = ({ id, nodeTitle, isLoading }: NodeHeaderProps) => {
       }
     : {};
 
-  console.log("isloading", isLoading);
-
   return (
     <div
       className={`node-header ${isLoading ? "loading" : ""}`}

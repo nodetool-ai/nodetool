@@ -147,6 +147,7 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
   dagreGraph.setGraph({ rankdir: "LR" });
 
   nodes.forEach((node) => {
+    if (node.type === "comment") return;
     dagreGraph.setNode(node.id, {
       x: node.position?.x,
       y: node.position?.y,
@@ -162,18 +163,16 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
   dagre.layout(dagreGraph);
 
   return nodes.map((node: Node) => {
+    if (node.type === "nodetool.workflows.base_node.Comment") return node;
     const dnode = dagreGraph.node(node.id);
+    const position = {
+      x: dnode.x - (node.width ?? 0) / 2,
+      y: dnode.y - (node.height ?? 0) / 2
+    };
     return {
-      id: node.id,
-      type: node.type,
-      data: node.data,
-      width: node.width,
-      height: node.height,
-      zIndex: node.zIndex,
-      position: {
-        x: dnode.x - (node.width ?? 0) / 2,
-        y: dnode.y - (node.height ?? 0) / 2
-      }
+      ...node,
+      position: position,
+      size: { width: dnode.width, height: dnode.height }
     };
   });
 };

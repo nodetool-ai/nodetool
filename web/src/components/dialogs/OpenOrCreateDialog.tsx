@@ -200,10 +200,10 @@ const OpenOrCreateDialog = () => {
 
   const onClickWorkflow = useCallback(
     (workflow: Workflow) => {
-      setShouldAutoLayout(true);
+      // setShouldAutoLayout(true);
       navigate("/editor/" + workflow.id);
     },
-    [navigate, setShouldAutoLayout]
+    [navigate]
   );
 
   // ORDER

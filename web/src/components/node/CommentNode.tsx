@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import { memo, useCallback, useState } from "react";
-import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
+import { NodeProps, NodeResizeControl, NodeResizer } from "reactflow";
 import { debounce, isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -84,8 +84,6 @@ export default memo(
     const className = `comment-node  ${
       props.data.collapsed ? "collapsed " : ""
     }${props.selected ? "selected" : ""}`.trim();
-    const [width, setWidth] = useState(100);
-    const [height, setHeight] = useState(50);
     const updateNodeData = useNodeStore((state) => state.updateNodeData);
     const [editor] = useState(() => withReact(createEditor()));
     const [value, setValue] = useState<Descendant[]>(() => {
@@ -108,47 +106,18 @@ export default memo(
         debouncedUpdate({
           properties: {
             comment: newValue
-          },
-          size: {
-            width: width,
-            height: height
           }
         });
       },
-      [debouncedUpdate, width, height]
-    );
-
-    const handleResize = useCallback(
-      (event: ResizeDragEvent) => {
-        setWidth(event.x);
-        setHeight(event.y);
-        debouncedUpdate({
-          properties: {
-            comment: value
-          },
-          size: {
-            width: event.x,
-            height: event.y
-          }
-        });
-      },
-      [setWidth, setHeight, debouncedUpdate]
+      [debouncedUpdate]
     );
 
     return (
-      <Container
-        className={className}
-        css={styles}
-        style={{
-          width: `${width}px`,
-          height: `${height}px`
-        }}
-      >
+      <Container className={className} css={styles}>
         <NodeResizeControl
           style={{ background: "transparent", border: "none" }}
           minWidth={30}
           minHeight={40}
-          onResize={handleResize}
         >
           <SouthEastIcon />
         </NodeResizeControl>

@@ -60,8 +60,10 @@ export function graphNodeToReactFlowNode(
       workflow_id: workflow.id
     },
     position: ui_properties?.position || { x: 0, y: 0 },
-    width: ui_properties?.width,
-    height: ui_properties?.height,
+    style: {
+      width: ui_properties?.width,
+      height: ui_properties?.height
+    },
     zIndex: node.type == "nodetool.loop.Loop" ? -10 : ui_properties?.zIndex
   };
 }

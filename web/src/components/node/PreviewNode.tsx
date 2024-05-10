@@ -73,12 +73,11 @@ const styles = (theme: any) =>
     }
   });
 
-interface PreviewNodeProps extends NodeProps<NodeData> { }
+interface PreviewNodeProps extends NodeProps<NodeData> {}
 
 const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
   const getResult = useResultsStore((state) => state.getResult);
   const result = getResult(props.data.workflow_id, props.id);
-  const updateNodeData = useNodeStore((state) => state.updateNodeData);
 
   const getType = (value: any): string => {
     if (value === undefined) {
@@ -96,15 +95,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
     return typeof value;
   };
 
-  const handleResize = (event: ResizeDragEvent) => {
-    const newWidth = event.x;
-    const newHeight = event.y;
-    updateNodeData(props.id, {
-      ...props.data,
-      size: { width: newWidth, height: newHeight }
-    });
-  };
-
   return (
     <Container css={styles}>
       <Handle
@@ -120,7 +110,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
         minHeight={150}
         maxWidth={500}
         maxHeight={500}
-        onResize={handleResize}
       >
         <SouthEastIcon />
       </NodeResizeControl>
