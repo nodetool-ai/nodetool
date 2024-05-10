@@ -1,6 +1,6 @@
 import numpy as np
 from nodetool.common.openai_nodes import calculate_cost_for_completion_usage
-from nodetool.metadata.types import Tensor
+from nodetool.metadata.types import ImageRef, Tensor
 from nodetool.metadata.types import TextRef
 from nodetool.common.environment import Environment
 from nodetool.common.openai_nodes import (
@@ -73,7 +73,8 @@ class GPT(BaseNode):
 
     model: GPTModel = Field(title="Model", default=GPTModel.GPT3)
     system: str = Field(title="System", default="You are a friendly assistant.")
-    query: str = Field(title="Query", default="")
+    prompt: str = Field(title="Prompt", default="")
+    image: ImageRef = Field(title="Image", default=ImageRef())
     presence_penalty: float = Field(
         title="Presence Penalty", default=0.0, ge=(-2.0), le=2.0
     )
@@ -88,9 +89,26 @@ class GPT(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> str:
+        content = []
+        if self.image.uri != "":
+            base64_image = await context.image_to_base64(self.image)
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                }
+            )
+
+        content.append(
+            {
+                "type": "text",
+                "text": self.prompt,
+            }
+        )
+
         messages: list[ChatCompletionMessageParam] = [
             {"role": "system", "content": self.system},
-            {"role": "user", "content": self.query},
+            {"role": "user", "content": content},
         ]
         client = Environment.get_openai_client()
         res: ChatCompletion = await client.chat.completions.create(
