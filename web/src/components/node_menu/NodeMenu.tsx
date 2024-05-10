@@ -200,7 +200,7 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
       handle=".draggable-header"
     >
       <Box
-        sx={{ width: menuWidth, height: menuHeight }}
+        sx={{ maxWidth: menuWidth, maxHeight: menuHeight }}
         className="floating-node-menu"
         css={treeStyles}
         ref={nodeRef}

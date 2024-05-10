@@ -37,7 +37,7 @@ const namespaceStyles = (theme: any) =>
     },
     ".header": {
       display: "flex",
-      width: "100%",
+      // width: "100%",
       minHeight: "30px",
       alignItems: "center",
       flexDirection: "row",
@@ -121,8 +121,8 @@ const namespaceStyles = (theme: any) =>
       overflowY: "auto",
       gap: ".5em",
       paddingRight: "1em",
-      width: "340px",
-      height: "60vh",
+      // width: "340px",
+      // height: "60vh",
       ".node-title": {
         fontSize: ThemeNodetool.fontSizeNormal,
         fontWeight: "600",
