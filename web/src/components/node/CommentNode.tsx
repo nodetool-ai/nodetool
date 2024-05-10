@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import { memo, useCallback, useState } from "react";
 import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
-import { isEqual } from "lodash";
+import { debounce, isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -84,44 +84,54 @@ export default memo(
     const className = `comment-node  ${
       props.data.collapsed ? "collapsed " : ""
     }${props.selected ? "selected" : ""}`.trim();
-    const initWidth = 100;
-    const initHeight = 50;
+    const [width, setWidth] = useState(100);
+    const [height, setHeight] = useState(50);
     const updateNodeData = useNodeStore((state) => state.updateNodeData);
-
     const [editor] = useState(() => withReact(createEditor()));
     const [value, setValue] = useState<Descendant[]>(() => {
-      return Array.isArray(props.data.comment) && props.data.comment.length > 0
-        ? props.data.comment
+      return Array.isArray(props.data.properties.comment) &&
+        props.data.properties.comment.length > 0
+        ? props.data.properties.comment
         : [{ type: "paragraph", children: [{ text: "" }] }];
     });
+
+    const debouncedUpdate = useCallback(
+      debounce(() => {
+        updateNodeData(props.id, {
+          ...props.data,
+          size: { width, height },
+          properties: {
+            comment: value
+          }
+        });
+      }, 500),
+      [updateNodeData, props.id, props.data]
+    );
 
     const handleChange = useCallback(
       (newValue: Descendant[]) => {
         setValue(newValue);
-        updateNodeData(props.id, { ...props.data, comment: newValue });
+        debouncedUpdate();
       },
-      [updateNodeData, props.id, props.data]
+      [setValue, debouncedUpdate]
     );
-    const handleResize = (event: ResizeDragEvent) => {
-      const newWidth = event.x;
-      const newHeight = event.y;
-      updateNodeData(props.id, {
-        ...props.data,
-        size: { width: newWidth, height: newHeight }
-      });
-    };
+
+    const handleResize = useCallback(
+      (event: ResizeDragEvent) => {
+        setWidth(event.x);
+        setHeight(event.y);
+        debouncedUpdate();
+      },
+      [setWidth, setHeight, debouncedUpdate]
+    );
 
     return (
       <Container
         className={className}
         css={styles}
         style={{
-          width: props.data.size?.width
-            ? `${props.data.size.width}px`
-            : `${initWidth}px`,
-          height: props.data.size?.height
-            ? `${props.data.size.height}px`
-            : `${initHeight}px`
+          width: `${width}px`,
+          height: `${height}px`
         }}
       >
         <NodeResizeControl

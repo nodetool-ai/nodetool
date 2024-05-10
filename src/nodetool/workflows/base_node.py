@@ -480,7 +480,7 @@ class OutputNode(BaseNode):
 
 
 class Comment(BaseNode):
-    comment: list[str] = Field(default=[""], description="The comment for this node.")
+    comment: list[Any] = Field(default=[""], description="The comment for this node.")
     _visible: bool = False
 
 
