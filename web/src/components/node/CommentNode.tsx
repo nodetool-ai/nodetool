@@ -95,32 +95,42 @@ export default memo(
         : [{ type: "paragraph", children: [{ text: "" }] }];
     });
 
-    const debouncedUpdate = useCallback(
-      debounce(() => {
-        updateNodeData(props.id, {
-          ...props.data,
-          size: { width, height },
-          properties: {
-            comment: value
-          }
-        });
-      }, 500),
-      [updateNodeData, props.id, props.data]
-    );
+    const debouncedUpdate = debounce((data) => {
+      updateNodeData(props.id, {
+        ...props.data,
+        ...data
+      });
+    }, 500);
 
     const handleChange = useCallback(
       (newValue: Descendant[]) => {
         setValue(newValue);
-        debouncedUpdate();
+        debouncedUpdate({
+          properties: {
+            comment: newValue
+          },
+          size: {
+            width: width,
+            height: height
+          }
+        });
       },
-      [setValue, debouncedUpdate]
+      [debouncedUpdate, width, height]
     );
 
     const handleResize = useCallback(
       (event: ResizeDragEvent) => {
         setWidth(event.x);
         setHeight(event.y);
-        debouncedUpdate();
+        debouncedUpdate({
+          properties: {
+            comment: value
+          },
+          size: {
+            width: event.x,
+            height: event.y
+          }
+        });
       },
       [setWidth, setHeight, debouncedUpdate]
     );
