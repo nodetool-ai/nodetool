@@ -19,7 +19,7 @@ type ResultsStore = {
   ) => { progress: number; total: number };
 };
 
-const hashKey = (workflowId: string, nodeId: string) =>
+export const hashKey = (workflowId: string, nodeId: string) =>
   `${workflowId}:${nodeId}`;
 
 const useResultsStore = create<ResultsStore>((set, get) => ({

@@ -7,7 +7,7 @@ import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
 
 import { useNodeStore } from "../../stores/NodeStore";
-import useResultsStore from "../../stores/ResultsStore";
+import useResultsStore, { hashKey } from "../../stores/ResultsStore";
 import OutputRenderer from "./OutputRenderer";
 import { NodeHeader } from "./NodeHeader";
 import { NodeFooter } from "./NodeFooter";
@@ -44,15 +44,11 @@ export default memo(
       error: metadataError
     } = useMetadata();
     const nodedata = useNodeStore((state) => state.findNode(props.id)?.data);
-    const workflowId = nodedata?.workflow_id;
-    const status = useStatusStore((state) =>
-      workflowId !== undefined
-        ? state.getStatus(workflowId, props.id)
-        : undefined
-    );
     const getInputEdges = useNodeStore((state) => state.getInputEdges);
-    const getResult = useResultsStore((state) => state.getResult);
-    const result = getResult(props.data.workflow_id, props.id);
+    const workflowId = nodedata?.workflow_id || "";
+    const nodeKey = hashKey(workflowId, props.id);
+    const status = useStatusStore((state) => state.statuses[nodeKey]);
+    const result = useResultsStore((state) => state.results[nodeKey]);
     const edges = getInputEdges(props.id);
     const isLoading =
       status === "running" || status === "starting" || status === "processing";
@@ -79,18 +75,17 @@ export default memo(
     }
 
     const nodeMetadata = metadata.metadataByType[props.type];
-
     const node_title = capitalToSpace(nodeMetadata.title || "");
     const node_namespace = nodeMetadata.namespace || "";
     const firstOutput =
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-          name: "output",
-          type: {
-            type: "string"
-          }
-        };
+            name: "output",
+            type: {
+              type: "string"
+            }
+          };
 
     return (
       <Container className={className}>
@@ -127,7 +122,7 @@ export default memo(
             ))}
           </div>
         )}
-        {nodeMetadata.layout === 'default' && (
+        {nodeMetadata.layout === "default" && (
           <>
             <ProcessTimer isLoading={isLoading} status={status} />
             <NodeProgress id={props.id} />
@@ -139,7 +134,7 @@ export default memo(
             <NodeLogs id={props.id} />
           </>
         )}
-      </Container >
+      </Container>
     );
   },
   (prevProps, nextProps) => isEqual(prevProps, nextProps)
