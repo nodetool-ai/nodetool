@@ -5,6 +5,7 @@
  *               the values represent the rows. Each column has a key and each row has a key.
  */
 import React from "react";
+import Spreadsheet from "react-spreadsheet";
 import { DataFrame } from "../../stores/ApiTypes";
 
 interface DataTableProps {
@@ -14,32 +15,12 @@ interface DataTableProps {
 const DataTable: React.FC<DataTableProps> = ({ data }) => {
   const { columns, data: rows } = data;
 
-  if (columns === undefined || columns?.length === 0) {
+  if (!rows) {
     return <div>No data</div>;
   }
+  const _data = rows.map((row) => row.map((cell) => ({ value: cell })));
 
-  debugger;
-
-  return (
-    <table border={1} cellPadding={5} cellSpacing={0} style={{ margin: 10 }}>
-      <thead>
-        <tr>
-          {columns?.map((col, index) => (
-            <th key={index}>{col}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows?.map((row: any[], rowIndex: number) => (
-          <tr key={rowIndex}>
-            {columns?.map((col: string, colIndex: number) => (
-              <td key={colIndex}>{row[colIndex]}</td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
+  return <Spreadsheet data={_data} columnLabels={columns || []} />;
 };
 
 export default DataTable;
