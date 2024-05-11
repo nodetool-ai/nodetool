@@ -18,6 +18,8 @@ const DataTable: React.FC<DataTableProps> = ({ data }) => {
     return <div>No data</div>;
   }
 
+  debugger;
+
   return (
     <table border={1} cellPadding={5} cellSpacing={0} style={{ margin: 10 }}>
       <thead>

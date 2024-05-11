@@ -1,3 +1,4 @@
+import json
 from typing import Any, Literal
 import pandas as pd
 from nodetool.workflows.processing_context import ProcessingContext
@@ -9,7 +10,6 @@ class Access(BaseNode):
     """
     Retrieves a specific value from a dictionary using a key.
     dictionary, dict, select, get, value, access, key
-    Returns the value associated with the specified key from the input dictionary.
     """
 
     _layout = "small"
@@ -26,7 +26,6 @@ class Update(BaseNode):
     """
     Updates a dictionary with one or more new key-value pairs.
     dictionary, dict, add, insert
-    Outputs the updated dictionary, including the newly added key-value pairs.
     """
 
     _layout = "small"
@@ -57,11 +56,27 @@ class Delete(BaseNode):
         return self.dictionary
 
 
-class Create(BaseNode):
+class DictFromJson(BaseNode):
+    """
+    Converts a JSON string into a dictionary.
+    dictionary, json, parse
+    """
+
+    _layout = "small"
+
+    json_string: str = ""
+
+    async def process(self, context: ProcessingContext) -> dict[(str, Any)]:
+        res = json.loads(self.json_string)
+        if not isinstance(res, dict):
+            raise ValueError("Input JSON is not a dictionary")
+        return res
+
+
+class NewDict(BaseNode):
     """
     Generates a dictionary by pairing lists of keys and values.
     dictionary, create, keys, values
-    Outputs a new dictionary constructed from the provided keys and values.
     """
 
     _layout = "small"
@@ -75,9 +90,8 @@ class Create(BaseNode):
 
 class Merge(BaseNode):
     """
-    Combines two dictionaries into one.
+    Combines two dictionaries into one. Note: Values from the second input override duplicates.
     dictionary, merge, combine
-    Outputs a new dictionary that merges the contents of two input dictionaries. Note: Values from the second input override duplicates.
     """
 
     _layout = "small"
@@ -93,11 +107,7 @@ class SelectKeys(BaseNode):
     """
     Filters a dictionary to include only specified keys.
     dictionary, keys, filter
-    Returns a new dictionary containing only the selected keys from the input dictionary.
     """
-
-    _layout = "small"
-    _primary_field = "keys"
 
     dictionary: dict[(str, Any)] = {}
     keys: list[str] = []
@@ -108,9 +118,8 @@ class SelectKeys(BaseNode):
 
 class DictToDataframe(BaseNode):
     """
-    Converts a dictionary into a dataframe
+    Converts a dictionary into a dataframe, each value in the dictionary becomes a column.
     dictionary, dataframe, pandas
-    Outputs a dataframe created from the input dictionary.
     """
 
     _layout = "small"
@@ -119,4 +128,19 @@ class DictToDataframe(BaseNode):
 
     async def process(self, context: ProcessingContext) -> DataFrame:
         df = pd.DataFrame([self.model_dump()])
+        return await context.dataframe_from_pandas(df)
+
+
+class RowsToDataframe(BaseNode):
+    """
+    Converts a list of dictionaries into a dataframe, each dictionary becomes a row.
+    dictionary, dataframe, pandas
+    """
+
+    _layout = "small"
+
+    rows: list[dict[(str, Any)]] = []
+
+    async def process(self, context: ProcessingContext) -> DataFrame:
+        df = pd.DataFrame(self.rows)
         return await context.dataframe_from_pandas(df)

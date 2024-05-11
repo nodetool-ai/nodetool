@@ -133,42 +133,22 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
           </Tooltip>
         </div>
       )}
-      {props.layout === "small" && props.isPrimary && (
-        !isMinZoom ? (
-          <>
-            <PropertyInput
-              propertyIndex={props.id + "-" + propertyIndex}
-              id={props.id}
-              data={props.data}
-              property={props.property}
-              controlKeyPressed={controlKeyPressed}
-              isInspector={props.isInspector}
-              hideInput={props.edgeConnected}
-              hideLabel={true}
-            />
-          </>
-        ) : (
-          <div className="property-spacer" style={{ height: "20px" }}></div>
-        )
-      )}
 
-      {props.layout === "default" && (
-        !isMinZoom ? (
-          <>
-            <PropertyInput
-              propertyIndex={props.id + "-" + propertyIndex}
-              id={props.id}
-              data={props.data}
-              property={props.property}
-              controlKeyPressed={controlKeyPressed}
-              isInspector={props.isInspector}
-              hideInput={props.edgeConnected}
-              hideLabel={false}
-            />
-          </>
-        ) : (
-          <div className="property-spacer" style={{ height: "20px" }}></div>
-        )
+      {!isMinZoom ? (
+        <>
+          <PropertyInput
+            propertyIndex={props.id + "-" + propertyIndex}
+            id={props.id}
+            data={props.data}
+            property={props.property}
+            controlKeyPressed={controlKeyPressed}
+            isInspector={props.isInspector}
+            hideInput={props.edgeConnected}
+            hideLabel={false}
+          />
+        </>
+      ) : (
+        <div className="property-spacer" style={{ height: "20px" }}></div>
       )}
     </div>
   );

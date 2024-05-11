@@ -626,7 +626,8 @@ class ProcessingContext:
             return DataFrame(asset_id=asset.id, uri=s3_url)
         else:
             s3_url = await self.create_temp_file(buffer)
-            return DataFrame(uri=s3_url)
+            rows = data.values.tolist()
+            return DataFrame(uri=s3_url, columns=data.columns.tolist(), data=rows)
 
     async def image_from_io(
         self,

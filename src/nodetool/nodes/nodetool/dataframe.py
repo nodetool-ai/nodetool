@@ -19,9 +19,8 @@ from nodetool.metadata.types import Dataset
 
 class Create(BaseNode):
     """
-    Create an empty data frame.
-    csv, columns
-    Outputs a DataFrame object with the specified columns.
+    Create an empty data frame with specified columns.
+    csv, columns, dataframe
     """
 
     columns: str = Field(
@@ -53,7 +52,6 @@ class SelectColumn(BaseNode):
     """
     Select specific columns from a dataframe.
     dataframe, columns
-    Outputs a DataFrame object with only the selected columns.
     """
 
     dataframe: DataFrame = Field(
@@ -72,7 +70,6 @@ class ColumnToList(BaseNode):
     """
     Convert a column in a dataframe to a list.
     dataframe, column
-    Outputs a list of values from the specified column in the input dataframe.
     """
 
     dataframe: DataFrame = Field(
@@ -91,7 +88,6 @@ class ListToColumn(BaseNode):
     """
     Convert a list of objects into a column in a dataframe.
     dataframe, column, values
-    Outputs a DataFrame object with an added column based on the input list.
     """
 
     dataframe: DataFrame = Field(
@@ -115,13 +111,14 @@ class ListToColumn(BaseNode):
 
 class ListToDataFrame(BaseNode):
     """
-    Convert a list of values to a dataframe.
+    Convert a list of values to a dataframe. Each row may be a dict, list, or single value.
     list, dataframe
-    Outputs a DataFrame object with the list values as a single column.
     """
 
     values: list[Any] = Field(
-        title="Values", default=[], description="List of values to be converted."
+        title="Values",
+        default=[],
+        description="List of values to be converted, each value will be a row.",
     )
     columns: str = Field(
         title="Columns", default="", description="Comma separated list of column names"
@@ -169,9 +166,9 @@ class CSVToDataframe(BaseNode):
         ..., title="CSV Data", description="String input of CSV formatted text."
     )
 
-    async def process(self, context: Any) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataFrame:
         df = pd.read_csv(StringIO(self.csv_data))
-        return await context.from_pandas(df)
+        return await context.dataframe_from_pandas(df)
 
 
 class Concat(BaseNode):
