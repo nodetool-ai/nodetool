@@ -48,12 +48,17 @@
   width: auto;
   /* min-width: 150px; */
   /* max-width: 150px; */
+  cursor: default !important;
   padding: 5px 0 0 0;
   border-radius: 0.3em;
   background-color: var(--c_node_bg);
   padding-bottom: 5px;
   transition: background-color 0.05s;
   box-shadow: 0.1em 0.1em 0.5em 0px rgba(30, 30, 30, 0.4);
+}
+
+.react-flow__node .node-header {
+  cursor: grabbing !important;
 }
 
 .react-flow__node-nodetool\.group\.Loop {

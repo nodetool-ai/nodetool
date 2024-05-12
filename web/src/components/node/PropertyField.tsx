@@ -28,6 +28,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 export type PropertyFieldProps = {
   id: string;
   data: NodeData;
+  nodeType: string;
   layout: string;
   property: Property;
   propertyIndex: string;
@@ -41,15 +42,15 @@ export type PropertyFieldProps = {
 /**
  * PropertyField renders a single property of a node.
  */
-const PropertyField: React.FC<PropertyFieldProps> = (props) => {
+const PropertyField: React.FC<PropertyFieldProps> = (
+  { id, data, nodeType, propertyIndex, property, skipHandles, isInspector, edgeConnected }: PropertyFieldProps
+) => {
   const controlKeyPressed = useKeyPressedListener("Control");
-  const { propertyIndex } = props;
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
     (state) => state.connectDirection
   );
   const connectNodeId = useConnectionStore((state) => state.connectNodeId);
-  const { property } = props;
   const currentZoom = useStore((state) => state.transform[2]);
   const isMinZoom = currentZoom === MIN_ZOOM;
 
@@ -63,32 +64,27 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
         event.clientY - 50,
         "react-flow__pane",
         type,
-        props.property.name
+        property.name
       );
     }, 0);
   };
 
   const classConnectable = useMemo(() => {
-    const propType = props.property.type;
+    const propType = property.type;
     return connectType !== null &&
       isConnectable(connectType, propType) &&
-      connectNodeId !== props.id &&
+      connectNodeId !== id &&
       connectDirection === "source"
       ? "is-connectable"
       : "not-connectable";
-  }, [
-    connectDirection,
-    connectNodeId,
-    connectType,
-    props.id,
-    props.property.type
-  ]);
+  }, [connectDirection, connectNodeId, connectType, id, property.type]);
+
   return (
     <div
-      key={props.id}
+      key={id}
       className={"node-property " + Slugify(property.type.type)}
     >
-      {!props.skipHandles && (
+      {!skipHandles && (
         <div className="handle-popup">
           <Tooltip
             componentsProps={{
@@ -101,14 +97,14 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
             title={
               <span
                 style={{
-                  backgroundColor: colorForType(props.property.type.type),
-                  color: textColorForType(props.property.type.type),
+                  backgroundColor: colorForType(property.type.type),
+                  color: textColorForType(property.type.type),
                   borderRadius: ".5em",
                   fontSize: ThemeNodetool.fontSizeSmall
                 }}
               >
-                {props.property.name}:
-                {typeToString(props.property.type)}
+                {property.name}:
+                {typeToString(property.type)}
               </span>
             }
             enterDelay={TOOLTIP_ENTER_DELAY}
@@ -117,17 +113,17 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
             placement="left"
             TransitionComponent={Zoom}
             className={
-              classConnectable + " " + Slugify(props.property.type.type)
+              classConnectable + " " + Slugify(property.type.type)
             }
           >
             <Handle
               type="target"
-              id={props.property.name}
+              id={property.name}
               position={Position.Left}
               isConnectable={true}
-              className={Slugify(props.property.type.type)}
+              className={Slugify(property.type.type)}
               onContextMenu={(e) =>
-                inputContextMenu(e, props.id, props.property.type.type)
+                inputContextMenu(e, id, property.type.type)
               }
             />
           </Tooltip>
@@ -137,13 +133,14 @@ const PropertyField: React.FC<PropertyFieldProps> = (props) => {
       {!isMinZoom ? (
         <>
           <PropertyInput
-            propertyIndex={props.id + "-" + propertyIndex}
-            id={props.id}
-            data={props.data}
-            property={props.property}
+            propertyIndex={id + "-" + propertyIndex}
+            id={id}
+            data={data}
+            nodeType={nodeType}
+            property={property}
             controlKeyPressed={controlKeyPressed}
-            isInspector={props.isInspector}
-            hideInput={props.edgeConnected}
+            isInspector={isInspector}
+            hideInput={edgeConnected}
             hideLabel={false}
           />
         </>

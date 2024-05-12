@@ -4,7 +4,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import NodeSelect from "../node_menu/NodeSelect";
 
-export function NodeListProperty(props: PropertyProps) {
+export default function NodeListProperty(props: PropertyProps) {
   const id = `node-list-${props.property.name}-${props.propertyIndex}`;
   const value = props.value?.map((node: NodeRef) => node.id) || [];
   const onChange = useCallback(

@@ -4,7 +4,7 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
 
-from nodetool.metadata.types import DataFrame
+from nodetool.metadata.types import DataframeRef as DataFrameRef
 from nodetool.metadata.types import ModelRef
 from nodetool.metadata.types import ImageRef
 from nodetool.metadata.types import TextRef
@@ -37,6 +37,18 @@ class Bool(Constant):
     value: bool = False
 
     async def process(self, context: ProcessingContext) -> bool:
+        return self.value
+
+
+class DataFrame(Constant):
+    """
+    Represents a fixed DataFrame in the workflow.
+    table, data, dataframe
+    """
+
+    value: DataFrameRef = DataFrameRef()
+
+    async def process(self, context: ProcessingContext) -> DataFrameRef:
         return self.value
 
 

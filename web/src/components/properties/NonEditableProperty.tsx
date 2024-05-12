@@ -1,7 +1,7 @@
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function NonEditableProperty(props: PropertyProps) {
+export default function NonEditableProperty(props: PropertyProps) {
   const id = `non-editable-${props.property.name}-${props.propertyIndex}`;
   return (
     <>

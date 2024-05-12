@@ -10,7 +10,7 @@ import { useQuery } from "react-query";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function WorkflowListProperty(props: PropertyProps) {
+export default function WorkflowListProperty(props: PropertyProps) {
   const id = `workflow-list-${props.property.name}-${props.propertyIndex}`;
   const workflowIds = props.value?.map((workflow: any) => workflow.id);
   const load = useWorkflowStore((state) => state.load);

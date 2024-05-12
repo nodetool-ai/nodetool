@@ -2,7 +2,7 @@ import { Typography } from "@mui/material";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "../node/DataTable";
 import DictTable from "../node/DictTable";
-import { DataFrame, TypeMetadata } from "../../stores/ApiTypes";
+import { DataframeRef, TypeMetadata } from "../../stores/ApiTypes";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 
@@ -65,7 +65,7 @@ const ListItemProperty = ({ id, type, value }: EdgeProps) => {
           {value === undefined ? (
             <Typography>None</Typography>
           ) : (
-            <DataTable data={value as DataFrame} />
+            <DataTable dataframe={value as DataframeRef} />
           )}
         </div>
       );

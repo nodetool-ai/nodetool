@@ -2,7 +2,7 @@ import { Typography } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function AssetProperty(props: PropertyProps) {
+export default function AssetProperty(props: PropertyProps) {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
 
   return (

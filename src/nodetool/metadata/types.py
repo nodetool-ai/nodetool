@@ -378,17 +378,34 @@ class ChatConversation(OutputType):
     response: str = Field(default="", description="The response from the chat system")
 
 
-class DataFrame(AssetRef):
+class ColumnDef(BaseModel):
+    name: str
+    data_type: (
+        Literal["int"] | Literal["float"] | Literal["datetime"] | Literal["object"]
+    )
+
+
+def dtype_name(dtype: str):
+    if dtype.startswith("int"):
+        return "int"
+    if dtype.startswith("float"):
+        return "float"
+    if dtype.startswith("datetime"):
+        return "datetime"
+    return "object"
+
+
+class DataframeRef(AssetRef):
     type: Literal["dataframe"] = "dataframe"
-    columns: Optional[list[str]] = None
-    data: Optional[list[list[Any]]] = None
+    columns: list[ColumnDef] | None = None
+    data: list[list[Any]] | None = None
 
 
 class TrainTestOutput(OutputType):
-    train_X: DataFrame = DataFrame()
-    train_y: DataFrame = DataFrame()
-    test_X: DataFrame = DataFrame()
-    test_y: DataFrame = DataFrame()
+    train_X: DataframeRef = DataframeRef()
+    train_y: DataframeRef = DataframeRef()
+    test_X: DataframeRef = DataframeRef()
+    test_y: DataframeRef = DataframeRef()
 
 
 class RankingResult(BaseType):
@@ -402,8 +419,8 @@ class Dataset(OutputType):
     This class represents a dataset, which includes a dataframe of features and a dataframe of targets.
     """
 
-    data: DataFrame = DataFrame()
-    target: DataFrame = DataFrame()
+    data: DataframeRef = DataframeRef()
+    target: DataframeRef = DataframeRef()
 
 
 def is_output_type(type):
@@ -528,7 +545,7 @@ def asset_to_ref(asset: Asset):
     elif asset.content_type.startswith("video"):
         return VideoRef(asset_id=asset.id)
     elif asset.content_type == "text/csv":
-        return DataFrame(asset_id=asset.id)
+        return DataframeRef(asset_id=asset.id)
     elif asset.content_type.startswith("text"):
         return TextRef(asset_id=asset.id)
     elif asset.content_type.startswith("application/model"):

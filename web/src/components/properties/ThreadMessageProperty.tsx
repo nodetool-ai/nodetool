@@ -3,7 +3,7 @@ import { ThreadMessage } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function ThreadMessageProperty(props: PropertyProps) {
+export default function ThreadMessageProperty(props: PropertyProps) {
   const id = `thread-message-${props.property.name}-${props.propertyIndex}`;
   const msg = props.value as ThreadMessage;
   return (

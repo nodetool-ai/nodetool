@@ -8,7 +8,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import AssetViewer from "../assets/AssetViewer";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function AudioProperty(props: PropertyProps) {
+export default function AudioProperty(props: PropertyProps) {
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
   const onChangeAsset = (asset: Asset) => props.onChange({ asset_id: asset.id, uri: asset.get_url, type: "audio" });
   const { onDrop, onDragOver, filename } = useFileDrop({

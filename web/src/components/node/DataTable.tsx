@@ -8,9 +8,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import Spreadsheet from "react-spreadsheet";
-import { DataFrame } from "../../stores/ApiTypes";
+import { DataframeRef } from "../../stores/ApiTypes";
+import { Button } from "@mui/material";
 
 const styles = (theme: any) =>
   css({
@@ -20,20 +21,32 @@ const styles = (theme: any) =>
   });
 
 interface DataTableProps {
-  data: DataFrame;
+  dataframe: DataframeRef;
+  onChange?: (data: DataframeRef) => void;
 }
 
-const DataTable: React.FC<DataTableProps> = ({ data }) => {
-  const { columns, data: rows } = data;
+type TableData = Array<Array<{ value: unknown } | undefined>>;
 
-  if (!rows) {
-    return <div>No data</div>;
-  }
-  const _data = rows.map((row) => row.map((cell) => ({ value: cell })));
+const DataTable: React.FC<DataTableProps> = ({ dataframe: df, onChange }) => {
+  const data: TableData = useMemo(() =>
+    df.data?.map((row) => row.map((cell) => ({ value: cell }))) || [],
+    [df.data]
+  );
+
+  const columnLabels = df.columns?.map((col) => col.name) || [];
+
+  const setData = useCallback((data: TableData) => {
+    if (onChange) {
+      onChange({
+        ...df,
+        data: data.map((row) => row.map((cell) => cell?.value))
+      });
+    }
+  }, [df, onChange]);
 
   return (
     <div className="output" css={styles}>
-      <Spreadsheet data={_data} columnLabels={columns || []} />
+      <Spreadsheet data={data} columnLabels={columnLabels} onChange={setData} />
     </div>
   );
 };

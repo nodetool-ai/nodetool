@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import AssetViewer from "../assets/AssetViewer";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function ImageProperty(props: PropertyProps) {
+export default function ImageProperty(props: PropertyProps) {
   const id = `image-${props.property.name}-${props.propertyIndex}`;
   const { onDrop, onDragOver } = useFileDrop({
     uploadAsset: true,

@@ -54,6 +54,7 @@ export function graphNodeToReactFlowNode(
     type: node.type,
     id: node.id,
     parentId: node.parent_id || undefined,
+    dragHandle: ".node-header",
     data: {
       properties: node.data || {},
       dirty: true,
@@ -136,7 +137,8 @@ export interface NodeStore {
   addNode: (node: Node<NodeData>) => void;
   findNode: (id: string) => Node<NodeData> | undefined;
   updateNode: (id: string, node: Partial<Node<NodeData>>) => void;
-  updateNodeData: (id: string, data: NodeData) => void;
+  updateNodeData: (id: string, data: Partial<NodeData>) => void;
+  updateNodeProperties: (id: string, properties: any) => void;
   deleteNode: (id: string) => void;
   findEdge: (id: string) => Edge | undefined;
   deleteEdge: (id: string) => void;
@@ -535,6 +537,7 @@ export const useNodeStore = create<NodeStore>()(
        * @param node The updated node.
        */
       updateNode: (id: string, node: Partial<Node<NodeData>>) => {
+        get().invalidateResults(id);
         set({
           nodes: get().nodes.map(
             (n) => (n.id === id ? { ...n, ...node } : n) as Node
@@ -548,14 +551,41 @@ export const useNodeStore = create<NodeStore>()(
        * @param id The id of the node to update.
        * @param data The new data of the node.
        */
-      updateNodeData: (id: string, data: NodeData) => {
-        const node = get().findNode(id);
-        if (node) {
-          const updateNode = get().updateNode;
-          node.data = data;
-          node.data.workflow_id = get().workflow.id;
-          updateNode(id, node);
-        }
+      updateNodeData: (id: string, data: Partial<NodeData>) => {
+        const workflow_id = get().workflow.id;
+        set({
+          nodes: get().nodes.map(
+            (node) =>
+              (node.id === id
+                ? { ...node, data: { ...node.data, ...data, workflow_id } }
+                : node) as Node
+          )
+        });
+      },
+
+      /**
+       * Update the data of a node.
+       *
+       * @param id The id of the node to update.
+       * @param properties The new properties of the node.
+       */
+      updateNodeProperties: (id: string, properties: any) => {
+        const workflow_id = get().workflow.id;
+        set({
+          nodes: get().nodes.map(
+            (node) =>
+              (node.id === id
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      workflow_id,
+                      properties: { ...node.data.properties, ...properties }
+                    }
+                  }
+                : node) as Node
+          )
+        });
       },
 
       /**

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { DataFrame, ThreadMessage, TypeMetadata } from "../../stores/ApiTypes";
+import { DataframeRef, ThreadMessage, TypeMetadata } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable";
@@ -156,7 +156,7 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
     case "video":
       return <video src={value?.uri} controls style={{ width: "100%" }} />;
     case "dataframe":
-      return <DataTable data={value as DataFrame} />;
+      return <DataTable dataframe={value as DataframeRef} />;
     case "object":
       return <DictTable data={value} />;
     case "array":

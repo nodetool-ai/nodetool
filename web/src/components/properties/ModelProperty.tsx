@@ -38,7 +38,7 @@ export function modelFolder(type: TypeName) {
   }
 }
 
-export function ModelProperty(props: PropertyProps) {
+export default function ModelProperty(props: PropertyProps) {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const load = useModelStore((state) => state.load);
   const folder = modelFolder(props.property.type.type);

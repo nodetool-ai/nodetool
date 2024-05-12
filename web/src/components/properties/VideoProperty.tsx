@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import AssetViewer from "../assets/AssetViewer";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function VideoProperty(props: PropertyProps) {
+export default function VideoProperty(props: PropertyProps) {
   const id = `video-${props.property.name}-${props.propertyIndex}`;
   const { onDrop, onDragOver, filename } = useFileDrop({
     uploadAsset: true,

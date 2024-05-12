@@ -11,7 +11,7 @@ from nodetool.metadata.types import (
     NodeRef,
     WorkflowRef,
     AudioRef,
-    DataFrame,
+    DataframeRef,
     FolderRef,
     ImageRef,
     ModelRef,
@@ -40,7 +40,7 @@ router = APIRouter(prefix="/api/nodes", tags=["nodes"])
 UnionType = (
     AssetRef
     | AudioRef
-    | DataFrame
+    | DataframeRef
     | FolderRef
     | ImageRef
     | Tensor

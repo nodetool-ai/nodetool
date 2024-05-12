@@ -2,7 +2,6 @@ import { useMutation } from "react-query";
 import { AssetUpdate, useAssetStore } from "../stores/AssetStore";
 import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
-import { AssetUpdateRequest } from "../stores/ApiTypes";
 
 export const useAssetUpdate = () => {
   const addNotification = useNotificationStore(

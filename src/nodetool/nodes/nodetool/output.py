@@ -4,7 +4,7 @@ from pydantic import Field
 from nodetool.metadata.types import ImageTensor, Tensor, ThreadMessage
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
-from nodetool.metadata.types import DataFrame
+from nodetool.metadata.types import DataframeRef
 from nodetool.metadata.types import ModelRef
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import (
@@ -211,9 +211,9 @@ class AudioOutput(OutputNode):
 
 
 class DataframeOutput(OutputNode):
-    value: DataFrame = DataFrame()
+    value: DataframeRef = DataframeRef()
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         return self.value
 
 

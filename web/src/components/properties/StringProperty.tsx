@@ -2,7 +2,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import TextareaAutosize from "react-textarea-autosize";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function StringProperty(props: PropertyProps) {
+export default function StringProperty(props: PropertyProps) {
   const id = `textfield-${props.property.name}-${props.propertyIndex}`;
 
   return (

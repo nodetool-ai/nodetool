@@ -21,8 +21,7 @@ class BinaryOperation(GraphNode):
 
 
 class Cosine(GraphNode):
-    base: float | int | nodetool.metadata.types.Tensor | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
-    exponent: float | int | nodetool.metadata.types.Tensor | GraphNode | tuple[GraphNode, str] = Field(default=2.0, description=None)
+    angle_rad: float | int | nodetool.metadata.types.Tensor | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.math.Cosine"
 
@@ -49,6 +48,14 @@ class Multiply(GraphNode):
     b: int | float | nodetool.metadata.types.Tensor | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.math.Multiply"
+
+
+
+class Power(GraphNode):
+    base: float | int | nodetool.metadata.types.Tensor | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
+    exponent: float | int | nodetool.metadata.types.Tensor | GraphNode | tuple[GraphNode, str] = Field(default=2.0, description=None)
+    @classmethod
+    def get_node_type(cls): return "nodetool.math.Power"
 
 
 

@@ -3,7 +3,7 @@ import MenuItem from "@mui/material/MenuItem";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function EnumProperty(props: PropertyProps) {
+export default function EnumProperty(props: PropertyProps) {
   const id = `enum-${props.property.name}-${props.propertyIndex}`;
 
   return (

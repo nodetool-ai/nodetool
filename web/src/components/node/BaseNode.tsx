@@ -81,11 +81,11 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-            name: "output",
-            type: {
-              type: "string"
-            }
-          };
+          name: "output",
+          type: {
+            type: "string"
+          }
+        };
 
     return (
       <Container className={className}>
@@ -103,6 +103,7 @@ export default memo(
           id={props.id}
           layout={nodeMetadata.layout}
           properties={nodeMetadata.properties}
+          nodeType={props.type}
           data={props.data}
           isConstantNode={isConstantNode}
           edges={edges}

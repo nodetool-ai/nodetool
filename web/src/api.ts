@@ -258,8 +258,15 @@ export interface components {
       /** Json */
       json?: string | null;
     };
-    /** DataFrame */
-    DataFrame: {
+    /** ColumnDef */
+    ColumnDef: {
+      /** Name */
+      name: string;
+      /** Data Type */
+      data_type: "int" | "float" | "datetime" | "object";
+    };
+    /** DataframeRef */
+    DataframeRef: {
       /**
        * Type
        * @default dataframe
@@ -274,7 +281,7 @@ export interface components {
       /** Asset Id */
       asset_id?: string | null;
       /** Columns */
-      columns?: string[] | null;
+      columns?: components["schemas"]["ColumnDef"][] | null;
       /** Data */
       data?: unknown[][] | null;
     };
@@ -1419,7 +1426,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataFrame"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["FileRef"] | components["schemas"]["Thread"] | components["schemas"]["ThreadMessage"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["MessageList"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["WorkflowUpdate"] | Record<string, never>;
+          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["FileRef"] | components["schemas"]["Thread"] | components["schemas"]["ThreadMessage"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["MessageList"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["WorkflowUpdate"] | Record<string, never>;
         };
       };
     };

@@ -12,19 +12,26 @@ class Access(GraphNode):
 
 
 
-class Create(GraphNode):
-    keys: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
-    values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
-    @classmethod
-    def get_node_type(cls): return "nodetool.dictionary.Create"
-
-
-
 class Delete(GraphNode):
     dictionary: dict[str, Any] | GraphNode | tuple[GraphNode, str] = Field(default={}, description=None)
     key: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.dictionary.Delete"
+
+
+
+class DictFromJson(GraphNode):
+    json_string: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
+    @classmethod
+    def get_node_type(cls): return "nodetool.dictionary.DictFromJson"
+
+
+
+class DictFromList(GraphNode):
+    keys: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
+    values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
+    @classmethod
+    def get_node_type(cls): return "nodetool.dictionary.DictFromList"
 
 
 
@@ -40,6 +47,13 @@ class Merge(GraphNode):
     dict_b: dict[str, Any] | GraphNode | tuple[GraphNode, str] = Field(default={}, description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.dictionary.Merge"
+
+
+
+class RowsToDataframe(GraphNode):
+    rows: list[dict[str, Any]] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
+    @classmethod
+    def get_node_type(cls): return "nodetool.dictionary.RowsToDataframe"
 
 
 

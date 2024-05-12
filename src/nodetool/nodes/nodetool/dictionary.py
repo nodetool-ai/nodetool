@@ -2,7 +2,7 @@ import json
 from typing import Any, Literal
 import pandas as pd
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import DataFrame
+from nodetool.metadata.types import DataframeRef
 from nodetool.workflows.base_node import BaseNode
 
 
@@ -73,7 +73,7 @@ class DictFromJson(BaseNode):
         return res
 
 
-class NewDict(BaseNode):
+class DictFromList(BaseNode):
     """
     Generates a dictionary by pairing lists of keys and values.
     dictionary, create, keys, values
@@ -126,7 +126,7 @@ class DictToDataframe(BaseNode):
 
     dictionary: dict[(str, Any)] = {}
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df = pd.DataFrame([self.model_dump()])
         return await context.dataframe_from_pandas(df)
 
@@ -141,6 +141,6 @@ class RowsToDataframe(BaseNode):
 
     rows: list[dict[(str, Any)]] = []
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df = pd.DataFrame(self.rows)
         return await context.dataframe_from_pandas(df)

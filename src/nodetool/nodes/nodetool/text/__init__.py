@@ -8,7 +8,7 @@ from typing import Any, Literal
 import pandas as pd
 from pydantic import Field
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import DataFrame
+from nodetool.metadata.types import DataframeRef
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import Tensor
@@ -117,7 +117,7 @@ class JSONToDataframe(BaseNode):
 
     text: str | TextRef = Field(title="JSON", default_factory=TextRef)
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         json_string = await to_string(context, self.text)
         rows = json.loads(json_string)
         df = pd.DataFrame(rows)

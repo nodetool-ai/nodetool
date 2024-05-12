@@ -4,26 +4,26 @@ from nodetool.metadata.types import *
 from nodetool.dsl.graph import GraphNode
 
 
-class AbsTensor(GraphNode):
+class Abs(GraphNode):
     input_tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='The input tensor to compute the absolute values from.')
     @classmethod
-    def get_node_type(cls): return "nodetool.tensor.AbsTensor"
+    def get_node_type(cls): return "nodetool.tensor.Abs"
 
 
 
-class ArgMaxTensor(GraphNode):
+class ArgMax(GraphNode):
     a: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description=None)
     axis: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.tensor.ArgMaxTensor"
+    def get_node_type(cls): return "nodetool.tensor.ArgMax"
 
 
 
-class ArgMinTensor(GraphNode):
+class ArgMin(GraphNode):
     tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description=None)
     axis: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.tensor.ArgMinTensor"
+    def get_node_type(cls): return "nodetool.tensor.ArgMin"
 
 
 
@@ -48,35 +48,35 @@ class Log(GraphNode):
 
 
 
-class MatMulTensor(GraphNode):
+class MatMul(GraphNode):
     a: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description=None)
     b: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.tensor.MatMulTensor"
+    def get_node_type(cls): return "nodetool.tensor.MatMul"
 
 
 
-class MaxTensor(GraphNode):
+class Max(GraphNode):
     tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description=None)
     axis: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.tensor.MaxTensor"
+    def get_node_type(cls): return "nodetool.tensor.Max"
 
 
 
-class MeanTensor(GraphNode):
+class Mean(GraphNode):
     tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description=None)
     axis: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.tensor.MeanTensor"
+    def get_node_type(cls): return "nodetool.tensor.Mean"
 
 
 
-class MinTensor(GraphNode):
+class Min(GraphNode):
     tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description=None)
     axis: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.tensor.MinTensor"
+    def get_node_type(cls): return "nodetool.tensor.Min"
 
 
 
@@ -113,11 +113,11 @@ class Stack(GraphNode):
 
 
 
-class SumTensor(GraphNode):
+class Sum(GraphNode):
     tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description=None)
     axis: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.tensor.SumTensor"
+    def get_node_type(cls): return "nodetool.tensor.Sum"
 
 
 
@@ -135,9 +135,9 @@ class TensorToScalar(GraphNode):
 
 
 
-class TransposeTensor(GraphNode):
+class Transpose(GraphNode):
     tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.tensor.TransposeTensor"
+    def get_node_type(cls): return "nodetool.tensor.Transpose"
 
 

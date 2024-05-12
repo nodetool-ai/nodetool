@@ -2,7 +2,7 @@ import io
 import pandas as pd
 import pytest
 import os
-from nodetool.metadata.types import DataFrame
+from nodetool.metadata.types import DataframeRef
 from nodetool.metadata.types import FolderRef
 from nodetool.common.environment import Environment
 
@@ -346,7 +346,7 @@ async def test_save_dataframe_node(context: ProcessingContext, user: User):
         folder=FolderRef(asset_id=folder.id),
     )
     result = await node.process(context)
-    assert isinstance(result, DataFrame), "Should be a df"
+    assert isinstance(result, DataframeRef), "Should be a df"
     assert result.asset_id, "DataFrame should have an asset_id"
     asset = Asset.find(context.user_id, result.asset_id)
     assert asset, "Asset should exist"

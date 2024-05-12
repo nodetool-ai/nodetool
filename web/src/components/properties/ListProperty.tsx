@@ -2,7 +2,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import ListItemProperty from "./ListItemProperty";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function ListProperty(props: PropertyProps) {
+export default function ListProperty(props: PropertyProps) {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
   const type = props.property.type.type_args?.[0] || {
     type: "none",

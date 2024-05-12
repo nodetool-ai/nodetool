@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "react-query";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function FolderProperty(props: PropertyProps) {
+export default function FolderProperty(props: PropertyProps) {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const load = useAssetStore((state) => state.load);
   const fetchFolders = async () => {

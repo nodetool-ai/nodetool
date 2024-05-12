@@ -39,6 +39,15 @@ class Paste(GraphNode):
 
 
 
+class SaveImage(GraphNode):
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None), description=None)
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to save the image in.')
+    name: str | GraphNode | tuple[GraphNode, str] = Field(default='%Y-%m-%d_%H-%M-%S.png', description=None)
+    @classmethod
+    def get_node_type(cls): return "nodetool.image.SaveImage"
+
+
+
 class TensorToImage(GraphNode):
     tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='The input tensor to convert to an image. Should have either 1, 3, or 4 channels.')
     @classmethod

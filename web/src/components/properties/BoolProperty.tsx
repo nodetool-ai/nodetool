@@ -2,7 +2,7 @@ import { Switch } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function BoolProperty(props: PropertyProps) {
+export default function BoolProperty(props: PropertyProps) {
   const id = `switch-${props.property.name}-${props.propertyIndex}`;
 
   return (

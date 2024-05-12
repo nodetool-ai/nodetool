@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useRef, useEffect } from "react";
 import { Typography } from "@mui/material";
-import useWorkflowRunnner from "../../stores/WorkflowRunner";
+import useLogsStore from "../../stores/LogStore";
 
 export const NodeLogs = memo(function NodeLogs({ id }: { id: string; }) {
   const logsRef = useRef<HTMLDivElement>(null);
-  const logs = useWorkflowRunnner((state) => state.logs)[id];
+  const logs = useLogsStore((state) => state.logs[id]);
   useEffect(() => {
     if (logsRef.current) {
       logsRef.current.scrollTop = logsRef.current.scrollHeight;

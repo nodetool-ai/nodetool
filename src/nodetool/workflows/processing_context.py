@@ -32,7 +32,8 @@ from nodetool.storage.abstract_storage import AbstractStorage
 from nodetool.metadata.types import (
     AssetRef,
     AudioRef,
-    DataFrame,
+    ColumnDef,
+    DataframeRef,
     FunctionModel,
     ImageRef,
     LanguageModel,
@@ -40,6 +41,7 @@ from nodetool.metadata.types import (
     ModelRef,
     TextRef,
     VideoRef,
+    dtype_name,
 )
 from nodetool.common.environment import Environment
 from nodetool.common.nodetool_api_client import NodetoolAPIClient
@@ -52,6 +54,7 @@ from nodetool.common.environment import Environment
 
 from io import BytesIO
 from typing import IO, Any, Literal
+from pickle import dumps, loads
 
 
 log = Environment.get_logger()
@@ -606,28 +609,35 @@ class ProcessingContext:
             s3_url = await self.create_temp_file(buffer, "mp3")
             return AudioRef(uri=s3_url)
 
-    async def dataframe_to_pandas(self, df: DataFrame):
+    async def dataframe_to_pandas(self, df: DataframeRef):
         import pandas as pd
 
         if df.columns:
             return pd.DataFrame(df.data, columns=df.columns)
         else:
             bytes_io = await self.asset_to_io(df)
-            return pd.read_csv(bytes_io)
+            df = loads(bytes_io.read())
+            assert isinstance(df, pd.DataFrame), "Is not a dataframe"
+            return df
 
     async def dataframe_from_pandas(
         self, data: "pd.DataFrame", name: str | None = None
-    ) -> "DataFrame":
-        buffer = BytesIO()
-        data.to_csv(buffer)
-        buffer.seek(0)
+    ) -> "DataframeRef":
+        buffer = BytesIO(dumps(data))
         if name:
-            asset, s3_url = await self.create_asset(name, "text/csv", buffer)
-            return DataFrame(asset_id=asset.id, uri=s3_url)
+            asset, s3_url = await self.create_asset(
+                name, "application/octet-stream", buffer
+            )
+            return DataframeRef(asset_id=asset.id, uri=s3_url)
         else:
             s3_url = await self.create_temp_file(buffer)
+            # TODO: avoid for large tables
             rows = data.values.tolist()
-            return DataFrame(uri=s3_url, columns=data.columns.tolist(), data=rows)
+            column_defs = [
+                ColumnDef(name=name, data_type=dtype_name(dtype.name))
+                for name, dtype in zip(data.columns, data.dtypes)
+            ]
+            return DataframeRef(uri=s3_url, columns=column_defs, data=rows)
 
     async def image_from_io(
         self,

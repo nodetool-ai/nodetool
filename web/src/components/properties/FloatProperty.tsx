@@ -1,7 +1,7 @@
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function FloatProperty(props: PropertyProps) {
+export default function FloatProperty(props: PropertyProps) {
   const id = `slider-${props.property.name}-${props.propertyIndex}`;
 
   return (

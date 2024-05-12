@@ -5,7 +5,7 @@ import { devError } from "../../utils/DevLog";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 
-export function TextProperty(props: PropertyProps) {
+export default function TextProperty(props: PropertyProps) {
   const id = `textfield-${props.property.name}-${props.propertyIndex}`;
   const uri = props.value.uri;
   const assetId = props.value.asset_id;

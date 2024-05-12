@@ -10,25 +10,11 @@ from sklearn.utils import Bunch
 from nodetool.metadata.types import Tensor
 from nodetool.metadata.types import FolderRef
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import DataFrame
+from nodetool.metadata.types import DataframeRef
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
 from typing import Any, Literal
 from nodetool.metadata.types import Dataset
-
-
-class Create(BaseNode):
-    """
-    Create an empty data frame with specified columns.
-    csv, columns, dataframe
-    """
-
-    columns: str = Field(
-        title="Columns", default="", description="comma separated list of column names"
-    )
-
-    async def process(self, context: ProcessingContext) -> DataFrame:
-        return DataFrame(columns=self.columns.split(","), data=[])
 
 
 class Save(BaseNode):
@@ -37,13 +23,13 @@ class Save(BaseNode):
     csv, folder
     """
 
-    df: DataFrame = DataFrame()
+    df: DataframeRef = DataframeRef()
     folder: FolderRef = Field(
         default=FolderRef(), description="Name of the output folder."
     )
     name: str = Field(default="output.csv", description="Name of the output file.")
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)
         return await context.dataframe_from_pandas(df, self.name)
 
@@ -54,13 +40,13 @@ class SelectColumn(BaseNode):
     dataframe, columns
     """
 
-    dataframe: DataFrame = Field(
-        default_factory=DataFrame,
+    dataframe: DataframeRef = Field(
+        default_factory=DataframeRef,
         description="a dataframe from which columns are to be selected",
     )
     columns: str = Field("", description="comma separated list of column names")
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         columns = self.columns.split(",")
         df = await context.dataframe_to_pandas(self.dataframe)
         return await context.dataframe_from_pandas(df[columns])  # type: ignore
@@ -72,8 +58,8 @@ class ColumnToList(BaseNode):
     dataframe, column
     """
 
-    dataframe: DataFrame = Field(
-        default_factory=DataFrame, description="The input dataframe."
+    dataframe: DataframeRef = Field(
+        default_factory=DataframeRef, description="The input dataframe."
     )
     column_name: str = Field(
         default="", description="The name of the column to be converted to a list."
@@ -90,8 +76,8 @@ class ListToColumn(BaseNode):
     dataframe, column, values
     """
 
-    dataframe: DataFrame = Field(
-        default_factory=DataFrame,
+    dataframe: DataframeRef = Field(
+        default_factory=DataframeRef,
         description="Dataframe object to add a new column to.",
     )
     column_name: str = Field(
@@ -103,7 +89,7 @@ class ListToColumn(BaseNode):
         description="A list of any type of elements which will be the new column's values.",
     )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.dataframe)
         df[self.column_name] = self.values
         return await context.dataframe_from_pandas(df)
@@ -124,7 +110,7 @@ class ListToDataFrame(BaseNode):
         title="Columns", default="", description="Comma separated list of column names"
     )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         rows = []
         columns = self.columns.split(",")
         for value in self.values:
@@ -166,7 +152,7 @@ class CSVToDataframe(BaseNode):
         ..., title="CSV Data", description="String input of CSV formatted text."
     )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df = pd.read_csv(StringIO(self.csv_data))
         return await context.dataframe_from_pandas(df)
 
@@ -178,14 +164,14 @@ class Concat(BaseNode):
     Outputs a single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
     """
 
-    dataframe_a: DataFrame = Field(
-        default_factory=DataFrame, description="First DataFrame to be merged."
+    dataframe_a: DataframeRef = Field(
+        default_factory=DataframeRef, description="First DataFrame to be merged."
     )
-    dataframe_b: DataFrame = Field(
-        default_factory=DataFrame, description="Second DataFrame to be merged."
+    dataframe_b: DataframeRef = Field(
+        default_factory=DataframeRef, description="Second DataFrame to be merged."
     )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df_a = await context.dataframe_to_pandas(self.dataframe_a)
         df_b = await context.dataframe_to_pandas(self.dataframe_b)
         df = pd.concat([df_a, df_b], axis=1)
@@ -199,14 +185,14 @@ class Append(BaseNode):
     Outputs a DataFrame object that is the result of appending DataFrame A and DataFrame B.
     """
 
-    dataframe_a: DataFrame = Field(
-        default_factory=DataFrame, description="First DataFrame to be appended."
+    dataframe_a: DataframeRef = Field(
+        default_factory=DataframeRef, description="First DataFrame to be appended."
     )
-    dataframe_b: DataFrame = Field(
-        default_factory=DataFrame, description="Second DataFrame to be appended."
+    dataframe_b: DataframeRef = Field(
+        default_factory=DataframeRef, description="Second DataFrame to be appended."
     )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df_a = await context.dataframe_to_pandas(self.dataframe_a)
         df_b = await context.dataframe_to_pandas(self.dataframe_b)
         if not df_a.columns.equals(df_b.columns):
@@ -224,18 +210,18 @@ class Join(BaseNode):
     Outputs a single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
     """
 
-    dataframe_a: DataFrame = Field(
-        default_factory=DataFrame, description="First DataFrame to be merged."
+    dataframe_a: DataframeRef = Field(
+        default_factory=DataframeRef, description="First DataFrame to be merged."
     )
-    dataframe_b: DataFrame = Field(
-        default_factory=DataFrame, description="Second DataFrame to be merged."
+    dataframe_b: DataframeRef = Field(
+        default_factory=DataframeRef, description="Second DataFrame to be merged."
     )
     join_on: str = Field(
         default="",
         description="The column name on which to join the two dataframes.",
     )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df_a = await context.dataframe_to_pandas(self.dataframe_a)
         df_b = await context.dataframe_to_pandas(self.dataframe_b)
         if not df_a.columns.equals(df_b.columns):
@@ -250,11 +236,10 @@ class ToTensor(BaseNode):
     """
     Convert a dataframe to a tensor.
     dataframe, tensor
-    Outputs a Tensor object.
     """
 
-    dataframe: DataFrame = Field(
-        default_factory=DataFrame, description="The input dataframe."
+    dataframe: DataframeRef = Field(
+        default_factory=DataframeRef, description="The input dataframe."
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
@@ -266,7 +251,6 @@ class FromTensor(BaseNode):
     """
     Convert a tensor to a dataframe.
     dataframe, tensor
-    Outputs a new DataFrame.
     """
 
     tensor: Tensor = Field(
@@ -278,7 +262,7 @@ class FromTensor(BaseNode):
         description="A list of strings specifying the column names for the resulting dataframe.",
     )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         array = self.tensor.to_numpy()
         if array.shape[1] != len(self.columns):
             raise ValueError(
@@ -292,7 +276,6 @@ class Plot(BaseNode):
     """
     Plots a dataframe as a line, bar, or scatter plot.
     plot, dataframe, line, bar, scatter
-    Outputs an image of the plot.
     """
 
     class PlotType(str, Enum):
@@ -300,8 +283,8 @@ class Plot(BaseNode):
         BAR = "bar"
         SCATTER = "scatter"
 
-    dataframe: DataFrame = Field(
-        default_factory=DataFrame, description="The input dataframe."
+    dataframe: DataframeRef = Field(
+        default_factory=DataframeRef, description="The input dataframe."
     )
     x_column: str = Field(
         default="",
@@ -342,12 +325,11 @@ class Plot(BaseNode):
 class PlotHistogram(BaseNode):
     """
     Plot a histogram of a dataframe column.
-    histogram
-    Outputs an image of the histogram.
+    histogram, plot, dataframe
     """
 
-    dataframe: DataFrame = Field(
-        default_factory=DataFrame, description="The input dataframe."
+    dataframe: DataframeRef = Field(
+        default_factory=DataframeRef, description="The input dataframe."
     )
     column: str = Field(title="Column", default="", description="The column to plot.")
 
@@ -367,12 +349,11 @@ class PlotHistogram(BaseNode):
 class PlotHeatmap(BaseNode):
     """
     Plot a heatmap of a dataframe.
-    heatmap
-    Outputs a heatmap representation of the input dataframe.
+    heatmap, plot, dataframe
     """
 
-    dataframe: DataFrame = Field(
-        default_factory=DataFrame, description="The input dataframe."
+    dataframe: DataframeRef = Field(
+        default_factory=DataframeRef, description="The input dataframe."
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -390,36 +371,32 @@ class Filter(BaseNode):
     """
     Filter DataFrame based on a condition.
     dataframe, condition, query
-    Outputs a DataFrame object that is the result of filtering the input DataFrame based on the given condition.
     """
 
-    df: DataFrame = Field(
-        default_factory=DataFrame, description="The DataFrame to filter."
+    df: DataframeRef = Field(
+        default_factory=DataframeRef, description="The DataFrame to filter."
     )
     condition: str = Field(
         default="",
         description="The filtering condition to be applied to the DataFrame, e.g. column_name > 5.",
     )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)
         res = df.query(self.condition)
         return await context.dataframe_from_pandas(res)
 
 
-class DataFrameSort(BaseNode):
+class Sort(BaseNode):
     """
-    This node sorts a DataFrame based on a column.
-
-    #### Inputs
-    - `df`: The DataFrame to be sorted.
-    - `column`: The column to sort the DataFrame by.
+    Sort a DataFrame by a column.
+    dataframe, sort, order
     """
 
-    df: DataFrame = Field(default_factory=DataFrame)
+    df: DataframeRef = Field(default_factory=DataframeRef)
     column: str = Field(default="", description="The column to sort the DataFrame by.")
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)
         res = df.sort_values(self.column)
         return await context.dataframe_from_pandas(res)
@@ -428,13 +405,14 @@ class DataFrameSort(BaseNode):
 class DropDuplicates(BaseNode):
     """
     Drop duplicate rows from a DataFrame.
-    duplicate, dataframe
-    Outputs a DataFrame object with duplicate rows removed.
+    duplicate, dataframe, unique
     """
 
-    df: DataFrame = Field(default_factory=DataFrame, description="The input DataFrame.")
+    df: DataframeRef = Field(
+        default_factory=DataframeRef, description="The input DataFrame."
+    )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)
         res = df.drop_duplicates()
         return await context.dataframe_from_pandas(res)
@@ -443,13 +421,14 @@ class DropDuplicates(BaseNode):
 class DropNA(BaseNode):
     """
     Drop NA values from a DataFrame.
-    na, dataframe
-    Outputs a DataFrame object with NA values removed.
+    na, dataframe, missing
     """
 
-    df: DataFrame = Field(default_factory=DataFrame, description="The input DataFrame.")
+    df: DataframeRef = Field(
+        default_factory=DataframeRef, description="The input DataFrame."
+    )
 
-    async def process(self, context: ProcessingContext) -> DataFrame:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)
         res = df.dropna()
         return await context.dataframe_from_pandas(res)
@@ -458,8 +437,7 @@ class DropNA(BaseNode):
 class IrisDataFrame(BaseNode):
     """
     Load the Iris dataset.
-    ml, training, dataset, test
-    Outputs a two DataFrames containing the features, targets of the Iris dataset.
+    ml, training, dataset, test, iris
     """
 
     async def process(self, context: ProcessingContext) -> Dataset:

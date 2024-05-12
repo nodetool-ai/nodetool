@@ -7,29 +7,31 @@ import { useNodeStore } from "../../stores/NodeStore";
 import PropertyLabel from "./PropertyLabel";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import reduceUnionType from "../../hooks/reduceUnionType";
-import { StringProperty } from "../properties/StringProperty";
-import { TextProperty } from "../properties/TextProperty";
-import { ImageProperty } from "../properties/ImageProperty";
-import { AudioProperty } from "../properties/AudioProperty";
-import { VideoProperty } from "../properties/VideoProperty";
-import { IntegerProperty } from "../properties/IntegerProperty";
-import { FloatProperty } from "../properties/FloatProperty";
-import { EnumProperty } from "../properties/EnumProperty";
-import { BoolProperty } from "../properties/BoolProperty";
-import { ListProperty } from "../properties/ListProperty";
-import { ThreadMessageProperty } from "../properties/ThreadMessageProperty";
-import { FileProperty } from "../properties/FileProperty";
-import { AssetProperty } from "../properties/AssetProperty";
-import { FolderProperty } from "../properties/FolderProperty";
-import { ModelProperty } from "../properties/ModelProperty";
-import { WorkflowProperty } from "../properties/WorkflowProperty";
-import { NodeListProperty } from "../properties/NodeListProperty";
-import { WorkflowListProperty } from "../properties/WorkflowListProperty";
-import { NonEditableProperty } from "../properties/NonEditableProperty";
+import StringProperty from "../properties/StringProperty";
+import TextProperty from "../properties/TextProperty";
+import ImageProperty from "../properties/ImageProperty";
+import AudioProperty from "../properties/AudioProperty";
+import VideoProperty from "../properties/VideoProperty";
+import IntegerProperty from "../properties/IntegerProperty";
+import FloatProperty from "../properties/FloatProperty";
+import EnumProperty from "../properties/EnumProperty";
+import BoolProperty from "../properties/BoolProperty";
+import ListProperty from "../properties/ListProperty";
+import ThreadMessageProperty from "../properties/ThreadMessageProperty";
+import FileProperty from "../properties/FileProperty";
+import AssetProperty from "../properties/AssetProperty";
+import FolderProperty from "../properties/FolderProperty";
+import ModelProperty from "../properties/ModelProperty";
+import WorkflowProperty from "../properties/WorkflowProperty";
+import NodeListProperty from "../properties/NodeListProperty";
+import WorkflowListProperty from "../properties/WorkflowListProperty";
+import NonEditableProperty from "../properties/NonEditableProperty";
+import DataframeProperty from "../properties/DataframeProperty";
 
 export type PropertyProps = {
   property: Property;
   value: any;
+  nodeType: string;
   hideLabel?: boolean;
   propertyIndex: string;
   isInspector?: boolean;
@@ -71,6 +73,7 @@ const componentTypeMap: Record<string, (props: PropertyProps) => JSX.Element> =
   function_model: ModelProperty,
   language_model: ModelProperty,
   llama_model: ModelProperty,
+  dataframe: DataframeProperty,
   "comfy.checkpoint_file": ModelProperty,
   "comfy.vae_file": ModelProperty,
   "comfy.clip_file": ModelProperty,
@@ -116,6 +119,7 @@ function componentFor(
 
 export type PropertyInputProps = {
   id: string;
+  nodeType: string;
   data: NodeData;
   property: Property;
   propertyIndex?: string;
@@ -125,43 +129,24 @@ export type PropertyInputProps = {
   hideLabel: boolean;
 };
 
-const PropertyInput: React.FC<PropertyInputProps> = (props) => {
-  const data = props.data;
-  const property = props.property;
-  const { setNodes } = useReactFlow();
-  const invalidateResults = useNodeStore((state) => state.invalidateResults);
+const PropertyInput: React.FC<PropertyInputProps> = (
+  { id, nodeType, data, property, propertyIndex, controlKeyPressed, hideInput }: PropertyInputProps
+) => {
+  const updateNodeProperties = useNodeStore((state) => state.updateNodeProperties);
   const value = data.properties[property.name];
 
   const onChange = useCallback(
     (value: any) => {
-      invalidateResults(props.id);
-      setNodes((prevNodes) => {
-        const node = prevNodes.find((n) => n.id === props.id);
-        if (node && node.data.properties[property.name] !== value) {
-          const updatedNode = {
-            ...node,
-            data: {
-              ...node.data,
-              properties: {
-                ...node.data.properties,
-                [property.name]: value
-              }
-            }
-          };
-          return prevNodes.map((n) => (n.id === props.id ? updatedNode : n));
-        }
-        return prevNodes;
-      });
+      updateNodeProperties(id, { [property.name]: value });
     },
-    [invalidateResults, property.name, props.id, setNodes]
+    [id, property.name, updateNodeProperties]
   );
 
-  const controlKeyPressed = props.controlKeyPressed || false;
-  const propertyIndex = props.propertyIndex || "";
   const propertyProps = {
     property: property,
     value: value,
-    propertyIndex: propertyIndex,
+    propertyIndex: propertyIndex || "",
+    nodeType: nodeType,
     onChange: onChange
   };
 
@@ -173,37 +158,37 @@ const PropertyInput: React.FC<PropertyInputProps> = (props) => {
       event.stopPropagation();
       openContextMenu(
         "property-context-menu",
-        props.id,
+        id,
         event.clientX,
         event.clientY,
         "node-property"
       );
     },
-    [openContextMenu, props.id]
+    [id, openContextMenu]
   );
 
   // Reset property to default value
   const onContextMenu: React.MouseEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
     if (controlKeyPressed) {
-      onChange(props.property.default);
+      onChange(property.default);
     } else {
-      handlePropertyContextMenu(event, props.property);
+      handlePropertyContextMenu(event, property);
     }
   };
 
-  if (props.hideInput) {
+  if (hideInput) {
     return (
       <PropertyLabel
-        name={props.property.name}
-        description={props.property.description}
-        id={props.id}
+        name={property.name}
+        description={property.description}
+        id={id}
       />
     );
   }
 
   const className =
-    value === props.property.default ? "value-default" : "value-changed";
+    value === property.default ? "value-default" : "value-changed";
 
   const componentType = componentFor(property);
   let inputField = null;
