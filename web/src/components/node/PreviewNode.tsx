@@ -70,6 +70,12 @@ const styles = (theme: any) =>
       fontFamily: theme.fontFamily2,
       width: "100%",
       color: theme.palette.c_gray5
+    },
+    ".datatable": {
+      maxHeight: "100%"
+    },
+    ".datatable .row-actions": {
+      display: "none"
     }
   });
 
