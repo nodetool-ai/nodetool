@@ -266,8 +266,8 @@ ThemeNodes.components = {
         lineHeight: "1.0em",
         backgroundColor: "transparent",
         minHeight: "15px",
-        margin: "0 !important",
-        padding: ".5em .5em .5em .2em !important",
+        margin: "0",
+        padding: ".5em .5em .5em .2em",
         resize: "vertical",
 
         "& .MuiInput-underline:before": {
