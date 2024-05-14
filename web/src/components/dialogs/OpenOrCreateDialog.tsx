@@ -175,7 +175,7 @@ const OpenOrCreateDialog = () => {
   const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>(
     ["workflows"],
     async () => {
-      return loadWorkflows("", 20);
+      return loadWorkflows("");
     },
     {
       useErrorBoundary: true
