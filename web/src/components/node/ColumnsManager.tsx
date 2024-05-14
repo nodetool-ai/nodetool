@@ -118,18 +118,24 @@ const ColumnsManager = ({
   onChange
 }: ColumnsManagerProps) => {
   const handleNameChange = (index: number, newName: string) => {
+    if (newName.trim() === "" || columns.some((col) => col.name === newName)) {
+      // TODO: Show error message on blur?
+    }
+
     const newColumns = columns.map((col, i) =>
       i === index ? { ...col, name: newName } : col
     );
+
+    const oldName = columns[index].name;
     const newData = allData.map((row) => {
       const newRow = { ...row };
-      const oldName = columns[index].name;
       if (newName !== oldName) {
         newRow[newName] = newRow[oldName];
         delete newRow[oldName];
       }
       return newRow;
     });
+
     onChange(newColumns, newData);
   };
 
