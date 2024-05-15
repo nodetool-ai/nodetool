@@ -8,7 +8,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 
 import Spreadsheet from "react-spreadsheet";
 import { Button } from "@mui/material";
@@ -30,12 +30,13 @@ const styles = (theme: any) =>
       position: "absolute",
       zIndex: 1,
       top: "0",
-      width: "2em",
+      left: "1px",
+      width: "2.1em",
       marginTop: "2.4em"
     },
     ".delete-row": {
       opacity: 0,
-      width: "2em",
+      width: "2.1em",
       minWidth: "unset",
       height: "2.546em",
       padding: "0",
@@ -82,11 +83,9 @@ interface DataTableProps {
 type TableData = Array<Array<{ value: unknown } | undefined>>;
 
 const DataTable: React.FC<DataTableProps> = ({ dataframe: df, onChange }) => {
-  const [data, setData] = useState<TableData>(
-    useMemo(
-      () => df.data?.map((row) => row.map((cell) => ({ value: cell }))) || [],
-      [df.data]
-    )
+  const data: TableData = useMemo(
+    () => df.data?.map((row) => row.map((cell) => ({ value: cell }))) || [],
+    [df.data]
   );
 
   const columnLabels = useMemo(
@@ -96,7 +95,6 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe: df, onChange }) => {
 
   const handleDataChange = useCallback(
     (newData: TableData) => {
-      setData(newData);
       if (onChange) {
         onChange({
           ...df,

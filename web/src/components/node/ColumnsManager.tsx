@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
+import React, { useState, useEffect, useRef, memo } from "react";
 import {
   Grid,
   TextField,
@@ -9,8 +9,8 @@ import {
   InputLabel,
   Button
 } from "@mui/material";
-import { ColumnDef } from "../../stores/ApiTypes";
 import CloseIcon from "@mui/icons-material/Close";
+import { devWarn } from "../../utils/DevLog";
 
 const styles = (theme: any) =>
   css({
@@ -103,6 +103,12 @@ const styles = (theme: any) =>
       }
     }
   });
+
+interface ColumnDef {
+  name: string;
+  data_type: "object" | "float" | "int" | "datetime";
+}
+
 interface ColumnsManagerProps {
   columns: ColumnDef[];
   allData: { [key: string]: any }[];
@@ -112,31 +118,98 @@ interface ColumnsManagerProps {
   ) => void;
 }
 
+const Column = memo(
+  ({
+    index,
+    field,
+    inputRef,
+    handleNameChange,
+    handleDataTypeChange,
+    removeColumn,
+    validDataTypes
+  }: {
+    index: number;
+    field: ColumnDef;
+    inputRef: (el: HTMLInputElement | null) => void;
+    handleNameChange: (index: number, newName: string) => void;
+    handleDataTypeChange: (index: number, newType: string) => void;
+    removeColumn: (index: number) => void;
+    validDataTypes: string[];
+  }) => (
+    <div className="column" key={field.name + index}>
+      <div className="item-left">
+        <TextField
+          inputRef={inputRef}
+          className="textfield"
+          margin="dense"
+          value={field.name}
+          onChange={(e) => handleNameChange(index, e.target.value)}
+        />
+      </div>
+
+      <div className="item-right">
+        <Select
+          className="select"
+          labelId={`${field}-${index}-type`}
+          value={field.data_type}
+          onChange={(e) => handleDataTypeChange(index, e.target.value)}
+        >
+          {validDataTypes.map((type) => (
+            <MenuItem key={type} value={type}>
+              {type}
+            </MenuItem>
+          ))}
+        </Select>
+        <Button className="delete" onClick={() => removeColumn(index)}>
+          <CloseIcon />
+        </Button>
+      </div>
+    </div>
+  )
+);
+Column.displayName = "Column";
+
 const ColumnsManager = ({
   columns,
   allData,
   onChange
 }: ColumnsManagerProps) => {
-  const handleNameChange = (index: number, newName: string) => {
-    if (newName.trim() === "" || columns.some((col) => col.name === newName)) {
-      // TODO: Show error message on blur?
-    }
+  const [localColumns, setLocalColumns] = useState(columns);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-    const newColumns = columns.map((col, i) =>
+  useEffect(() => {
+    setLocalColumns(columns);
+  }, [columns]);
+
+  const handleNameChange = (index: number, newName: string) => {
+    if (
+      newName.trim() === "" ||
+      localColumns.some((col) => col.name === newName)
+    ) {
+      devWarn(
+        "Invalid column name. Column names must be unique and non-empty."
+      );
+    }
+    const newColumns = localColumns.map((col, i) =>
       i === index ? { ...col, name: newName } : col
     );
 
     const oldName = columns[index].name;
     const newData = allData.map((row) => {
       const newRow = { ...row };
-      if (newName !== oldName) {
+      if (newName !== oldName && oldName in newRow) {
         newRow[newName] = newRow[oldName];
         delete newRow[oldName];
       }
       return newRow;
     });
 
+    setLocalColumns(newColumns);
     onChange(newColumns, newData);
+
+    setTimeout(() => {
+      inputRefs.current[index]?.focus();
+    }, 0);
   };
 
   const validDataTypes = ["object", "float", "int", "datetime"];
@@ -147,54 +220,48 @@ const ColumnsManager = ({
     }
     const validatedType = newType as "object" | "float" | "int" | "datetime";
 
-    const newColumns = columns.map((col, i) =>
+    const newColumns = localColumns.map((col, i) =>
       i === index ? { ...col, data_type: validatedType } : col
     );
+
+    setLocalColumns(newColumns);
     onChange(newColumns, allData);
   };
 
   const removeColumn = (index: number) => {
-    const newColumns = columns.filter((_, i) => i !== index);
+    if (index < 0 || index >= localColumns.length) {
+      devWarn("Attempted to remove a column with an invalid index.");
+      return;
+    }
+
+    const newColumns = localColumns.filter((_, i) => i !== index);
     const newData = allData.map((row) => {
       const newRow = { ...row };
-      delete newRow[columns[index].name];
+      delete newRow[localColumns[index].name];
       return newRow;
     });
+
+    setLocalColumns(newColumns);
     onChange(newColumns, newData);
   };
+
   return (
     <Grid container spacing={0} css={styles}>
       <div className="labels">
         <InputLabel className="label-left">Column Name</InputLabel>
         <InputLabel className="label-right">Data Type</InputLabel>
       </div>
-      {columns.map((field, index) => (
-        <div className="column" key={field.name + index}>
-          <div className="item-left">
-            <TextField
-              className="textfield"
-              margin="dense"
-              value={field.name}
-              onChange={(e) => handleNameChange(index, e.target.value)}
-            />
-          </div>
-
-          <div className="item-right">
-            <Select
-              className="select"
-              labelId={`${field}-${index}-type`}
-              value={field.data_type}
-              onChange={(e) => handleDataTypeChange(index, e.target.value)}
-            >
-              <MenuItem value="object">object</MenuItem>
-              <MenuItem value="float">float</MenuItem>
-              <MenuItem value="int">int</MenuItem>
-            </Select>
-            <Button className="delete" onClick={() => removeColumn(index)}>
-              <CloseIcon />
-            </Button>
-          </div>
-        </div>
+      {localColumns.map((field, index) => (
+        <Column
+          key={field.name + index}
+          index={index}
+          field={field}
+          inputRef={(el) => (inputRefs.current[index] = el)}
+          handleNameChange={handleNameChange}
+          handleDataTypeChange={handleDataTypeChange}
+          removeColumn={removeColumn}
+          validDataTypes={validDataTypes}
+        />
       ))}
     </Grid>
   );

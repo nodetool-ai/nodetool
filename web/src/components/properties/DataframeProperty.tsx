@@ -9,10 +9,6 @@ import PropertyLabel from "../node/PropertyLabel";
 import ColumnsManager from "../node/ColumnsManager";
 import { Button, ButtonGroup } from "@mui/material";
 // icons
-// import AddColumnIcon from "@mui/icons-material/Add";
-// import AddRowIcon from "@mui/icons-material/AddBox";
-// import ViewWeekIcon from "@mui/icons-material/ViewWeek";
-// import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 
 const styles = (theme: any) =>
@@ -81,8 +77,14 @@ export default function DataframeProperty({
 
   const addColumn = useCallback(() => {
     const columns = value.columns || [];
+    let newColumnName = "Column 1";
+    let counter = 1;
+    while (columns.find((col: any) => col.name === newColumnName)) {
+      newColumnName = `Column ${counter}`;
+      counter++;
+    }
     const newColumn: ColumnDef = {
-      name: "New Column",
+      name: newColumnName,
       data_type: "object"
     };
     onChange({

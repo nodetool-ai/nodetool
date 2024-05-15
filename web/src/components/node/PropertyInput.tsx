@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, createElement } from "react";
-import { useReactFlow } from "reactflow";
 import { NodeData } from "../../stores/NodeData";
 import { Property, TypeName } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -53,38 +52,38 @@ function InputProperty(props: PropertyProps) {
 }
 
 const componentTypeMap: Record<string, (props: PropertyProps) => JSX.Element> =
-{
-  str: StringProperty,
-  text: TextProperty,
-  image: ImageProperty,
-  audio: AudioProperty,
-  video: VideoProperty,
-  int: IntegerProperty,
-  float: FloatProperty,
-  enum: EnumProperty,
-  bool: BoolProperty,
-  list: ListProperty,
-  thread: NonEditableProperty,
-  thread_message: ThreadMessageProperty,
-  file: FileProperty,
-  folder: FolderProperty,
-  asset: AssetProperty,
-  workflow: WorkflowProperty,
-  function_model: ModelProperty,
-  language_model: ModelProperty,
-  llama_model: ModelProperty,
-  dataframe: DataframeProperty,
-  "comfy.checkpoint_file": ModelProperty,
-  "comfy.vae_file": ModelProperty,
-  "comfy.clip_file": ModelProperty,
-  "comfy.unclip_file": ModelProperty,
-  "comfy.gligen_file": ModelProperty,
-  "comfy.clip_vision_file": ModelProperty,
-  "comfy.control_net_file": ModelProperty,
-  "comfy.ip_adapter_file": ModelProperty,
-  "comfy.upscale_model_file": ModelProperty,
-  "comfy.lora_file": ModelProperty
-};
+  {
+    str: StringProperty,
+    text: TextProperty,
+    image: ImageProperty,
+    audio: AudioProperty,
+    video: VideoProperty,
+    int: IntegerProperty,
+    float: FloatProperty,
+    enum: EnumProperty,
+    bool: BoolProperty,
+    list: ListProperty,
+    thread: NonEditableProperty,
+    thread_message: ThreadMessageProperty,
+    file: FileProperty,
+    folder: FolderProperty,
+    asset: AssetProperty,
+    workflow: WorkflowProperty,
+    function_model: ModelProperty,
+    language_model: ModelProperty,
+    llama_model: ModelProperty,
+    dataframe: DataframeProperty,
+    "comfy.checkpoint_file": ModelProperty,
+    "comfy.vae_file": ModelProperty,
+    "comfy.clip_file": ModelProperty,
+    "comfy.unclip_file": ModelProperty,
+    "comfy.gligen_file": ModelProperty,
+    "comfy.clip_vision_file": ModelProperty,
+    "comfy.control_net_file": ModelProperty,
+    "comfy.ip_adapter_file": ModelProperty,
+    "comfy.upscale_model_file": ModelProperty,
+    "comfy.lora_file": ModelProperty
+  };
 
 function componentFor(
   property: Property
@@ -129,10 +128,18 @@ export type PropertyInputProps = {
   hideLabel: boolean;
 };
 
-const PropertyInput: React.FC<PropertyInputProps> = (
-  { id, nodeType, data, property, propertyIndex, controlKeyPressed, hideInput }: PropertyInputProps
-) => {
-  const updateNodeProperties = useNodeStore((state) => state.updateNodeProperties);
+const PropertyInput: React.FC<PropertyInputProps> = ({
+  id,
+  nodeType,
+  data,
+  property,
+  propertyIndex,
+  controlKeyPressed,
+  hideInput
+}: PropertyInputProps) => {
+  const updateNodeProperties = useNodeStore(
+    (state) => state.updateNodeProperties
+  );
   const value = data.properties[property.name];
 
   const onChange = useCallback(
