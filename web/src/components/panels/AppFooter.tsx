@@ -2,19 +2,8 @@
 import { css } from "@emotion/react";
 
 import { useState } from "react";
-// import { useReactFlow } from "reactflow";
 // store
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
-
-// components
-// import LoadingAnimation from "../node_editor/LoadingAnimation";
-// import SettingsMenu from "../menus/SettingsMenu";
-// import Help from "../content/Help/Help";
-// import Alert from "../node_editor/Alert";
-// import WorkflowMenu from "../workflows/WorkflowMenu";
-// import AppIconMenu from "../menus/AppIconMenu";
-import BarChartIcon from "@mui/icons-material/BarChart";
-import CampaignIcon from "@mui/icons-material/Campaign";
 // mui
 import {
   AppBar,
@@ -22,18 +11,15 @@ import {
   Tooltip,
   Toolbar,
   Box,
-  Typography,
-  Popover
+  Typography
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-// import QueryStatsIcon from "@mui/icons-material/QueryStats";
 
 //utils
 import useKeyListener from "../../utils/KeyListener";
 //constants
 import { TOOLTIP_DELAY } from "../../config/constants";
-import WorkflowStats from "../workflows/WorkflowStats";
 
 const footerStyles = (theme: any) =>
   css({
@@ -43,17 +29,17 @@ const footerStyles = (theme: any) =>
       justifyContent: "center",
       alignItems: "center",
       width: "40%",
-      height: "50px",
+      height: "80px",
       color: "#FCFCFC",
       backgroundColor: "transparent",
-      bottom: "5px",
+      bottom: "0",
       boxShadow: "none",
       border: 0,
-      left: "0",
       margin: "auto",
       position: "absolute",
-      right: "0",
       top: "auto",
+      left: "0",
+      right: "0",
       zIndex: 100
     },
     header: {
@@ -65,29 +51,37 @@ const footerStyles = (theme: any) =>
       boxShadow: "none"
     },
     ".toolbar": {
+      padding: "2em 3em",
       borderRadius: ".4em"
     },
     ".toolbar-buttons": {
+      height: "2em",
       display: "flex",
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
       borderRadius: "1em",
-      top: "-10px"
+      gap: "2em"
     },
     button: {
+      width: "3.0em",
+      height: "3.0em",
+      borderRadius: "0",
       color: theme.palette.c_white,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
+        backgroundColor: theme.palette.c_gray1,
+        color: theme.palette.c_hl1
+      },
+      "&.disabled:hover": {
+        color: theme.palette.c_gray5
       },
       "&.active": {
         color: theme.palette.c_hl1
       }
     },
     "button svg": {
-      marginRight: "0.1em",
-      width: "1.5em",
-      height: "1.5em"
+      width: "2.5em",
+      height: "2.5em"
     },
     ".status-message": {
       position: "fixed",
@@ -106,7 +100,7 @@ const footerStyles = (theme: any) =>
     ".options": {
       marginLeft: "2em"
     },
-    ".run-workflow.disabled": {
+    ".disabled": {
       opacity: 0.5,
       cursor: "default"
     }
@@ -118,45 +112,14 @@ function AppFooter() {
   const state = useWorkflowRunnner((state) => state.state);
   const isWorkflowRunning = state === "running";
   const statusMessage = useWorkflowRunnner((state) => state.statusMessage);
-  const [areMessagesVisible, setAreMessagesVisible] = useState(true);
-  const [isWorkflowStatsVisible, setIsWorkflowStatsVisible] = useState(false);
+  const areMessagesVisible = true;
 
   useKeyListener("Alt+Enter", () => runWorkflow());
   useKeyListener("Meta+Enter", () => runWorkflow());
   useKeyListener("Escape", () => cancelWorkflow());
 
-  function toggleWorkflowStats(): void {
-    setIsWorkflowStatsVisible(!isWorkflowStatsVisible);
-  }
-
-  function toggleMessages(): void {
-    setAreMessagesVisible(!areMessagesVisible);
-  }
-
-  function handleWorkflowStatsClose(): void {
-    setIsWorkflowStatsVisible(false);
-  }
-
   return (
     <div css={footerStyles}>
-      <Popover
-        open={isWorkflowStatsVisible}
-        onClose={handleWorkflowStatsClose}
-        anchorReference="none"
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "90%",
-          boxShadow: "none",
-          top: "0",
-          left: "0",
-          margin: "auto",
-          background: "transparent"
-          // transform: "translate(-50%, -50%)"
-        }}
-      >
-        <WorkflowStats />
-      </Popover>
       <AppBar position="static" className="app-footer">
         <Toolbar className="toolbar" variant="dense">
           <Box className="toolbar-buttons">
@@ -182,6 +145,7 @@ function AppFooter() {
               enterDelay={TOOLTIP_DELAY}
             >
               <Button
+                size="large"
                 className={`run-workflow ${
                   isWorkflowRunning ? "disabled" : ""
                 }`}
@@ -210,34 +174,13 @@ function AppFooter() {
               enterDelay={TOOLTIP_DELAY}
             >
               <Button
-                className="stop-workflow"
+                size="large"
+                className={`stop-workflow ${
+                  !isWorkflowRunning ? "disabled" : ""
+                }`}
                 onClick={() => cancelWorkflow()}
               >
                 <StopIcon />
-              </Button>
-            </Tooltip>
-          </Box>
-
-          <Box className="toolbar-buttons options">
-            <Tooltip title="Show Messages" enterDelay={TOOLTIP_DELAY}>
-              <Button
-                className={`show-messages ${
-                  areMessagesVisible ? "active" : ""
-                }`}
-                onClick={() => toggleMessages()}
-              >
-                <CampaignIcon />
-              </Button>
-            </Tooltip>
-
-            <Tooltip title="Open Workflow Stats" enterDelay={TOOLTIP_DELAY}>
-              <Button
-                className={`show-info ${
-                  isWorkflowStatsVisible ? "active" : ""
-                }`}
-                onClick={() => toggleWorkflowStats()}
-              >
-                <BarChartIcon />
               </Button>
             </Tooltip>
           </Box>

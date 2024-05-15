@@ -16,7 +16,11 @@ function PanelLeft() {
   } = useResizePanel(0, 800, 300, "horizontal", "left");
 
   useKeyListener("1", () => {
-    if (document.activeElement === document.body) {
+    if (
+      document.activeElement &&
+      document.activeElement.tagName.toLowerCase() !== "input" &&
+      document.activeElement.tagName.toLowerCase() !== "textarea"
+    ) {
       handlePanelToggle();
     }
   });
