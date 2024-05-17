@@ -40,7 +40,7 @@
     "react-markdown": "^9.0.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.17.0",
-    "react-spreadsheet": "^0.9.4",
+    "react-tabulator": "^0.19.0",
     "react-textarea-autosize": "^8.5.3",
     "reactflow": "^11.11.1",
     "rollup": "^4.17.2",
