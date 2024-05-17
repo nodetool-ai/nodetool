@@ -28,14 +28,14 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
 const styles = css({
   position: "fixed",
   bottom: "0px",
-  right: "1em",
+  right: "2em",
   zIndex: 100000,
-  maxWidth: "500px",
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-end",
   li: {
-    listStyleType: "none"
+    listStyleType: "none",
+    maxWidth: "35vw"
   }
 });
 
