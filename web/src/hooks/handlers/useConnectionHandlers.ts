@@ -12,6 +12,8 @@ export const inputForType = (type: TypeName) => {
   switch (type) {
     case "str":
       return "nodetool.input.StringInput";
+    case "dataframe":
+      return "nodetool.input.DataFrameInput";
     case "int":
       return "nodetool.input.IntegerInput";
     case "float":
@@ -62,6 +64,8 @@ export const constantForType = (type: TypeName) => {
   switch (type) {
     case "str":
       return "nodetool.constant.String";
+    case "dataframe":
+      return "nodetool.dataframe.CSVToDataframe";
     case "int":
       return "nodetool.constant.Integer";
     case "float":

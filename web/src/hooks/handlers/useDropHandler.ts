@@ -3,7 +3,6 @@ import { useReactFlow } from "reactflow";
 import { Asset, Edge, TypeName, Node } from "../../stores/ApiTypes";
 import useKeyPressedListener from "../../utils/KeyPressedListener";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-// import { uuidv4 } from "../stores/uuidv4";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { constantForType, inputForType } from "./useConnectionHandlers";
@@ -11,6 +10,8 @@ import { useAuth } from "../../providers/AuthProvider";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import dagre from "dagre";
 import { useMetadata } from "../../serverState/useMetadata";
+import axios from "axios";
+import { devError } from "../../utils/DevLog";
 
 interface DropHandler {
   onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -57,8 +58,10 @@ export function nodeTypeFor(content_type: string): TypeName | null {
   switch (content_type) {
     case "application/json":
       return "str";
+    case "text/plain":
+      return "str";
     case "text/csv":
-      return "dataframe";
+      return "str";
     case "image/png":
       return "image";
     case "image/jpeg":
@@ -117,19 +120,18 @@ export const useDropHandler = (): DropHandler => {
         addNotification({
           type: "warning",
           alert: true,
-          content: "Unsupported file type!"
+          content: "Unsupported file type: " + asset.content_type
         });
         return;
       }
       const nodeType = controlKeyPressed
         ? inputForType(assetType)
         : constantForType(assetType);
-
       if (nodeType === null) {
         addNotification({
           type: "warning",
           alert: true,
-          content: "Unsupported file type!"
+          content: "Unsupported file type: " + asset.content_type
         });
         return;
       }
@@ -143,27 +145,64 @@ export const useDropHandler = (): DropHandler => {
         return;
       }
       const nodeMetadata = metadata.metadataByType[nodeType];
+      if (assetType === "str" || assetType === "dataframe") {
+        if (!asset?.get_url) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            timeout: 50000,
+            dismissable: true,
+            content: "Asset URL not found: " + asset?.get_url
+          });
+          return;
+        }
+        axios
+          .get(asset?.get_url, {
+            responseType: "arraybuffer"
+          })
+          .then((response) => {
+            const data = new TextDecoder().decode(
+              new Uint8Array(response.data)
+            );
+            const newNode = createNode(
+              nodeMetadata,
+              reactFlow.project({
+                x: event.clientX,
+                y: event.clientY
+              })
+            );
 
-      const newNode = createNode(
-        nodeMetadata,
-        // reactFlow.screenToFlowPosition({
-        reactFlow.project({
-          x: event.clientX,
-          y: event.clientY
-        })
-      );
-      newNode.data.properties.value = {
-        type: assetType,
-        asset_id: asset.id,
-        uri: asset.get_url
-      };
-      addNode(newNode);
+            newNode.data.properties = {
+              type: assetType,
+              value: data,
+              asset_id: asset.id,
+              uri: asset.get_url
+            };
+            addNode(newNode);
+          })
+          .catch(devError);
+      } else {
+        const newNode = createNode(
+          nodeMetadata,
+          // reactFlow.screenToFlowPosition({
+          reactFlow.project({
+            x: event.clientX,
+            y: event.clientY
+          })
+        );
+        newNode.data.properties.value = {
+          type: assetType,
+          asset_id: asset.id,
+          uri: asset.get_url
+        };
+        addNode(newNode);
+      }
     };
 
     const files = Array.from(event.dataTransfer?.files);
 
     if (files.length > 0) {
-      // parent id of roor assets is the user id
+      // parent id of root assets is the user id
       if (user) {
         let skipUpload = false;
         files.forEach((file) => {
