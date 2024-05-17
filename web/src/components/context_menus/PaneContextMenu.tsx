@@ -49,7 +49,10 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       icon: "",
       color: "",
       outputs: [],
-      model_info: {}
+      model_info: {},
+      primary_field: "",
+      secondary_field: "",
+      layout: "default"
     };
     const newNode = createNode(
       metadata,
@@ -59,10 +62,9 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         y: event.clientY
       })
     );
-    newNode.data.size = {
-      width: 200,
-      height: 100
-    };
+    newNode.width = 150;
+    newNode.height = 100;
+    newNode.style = { width: 150, height: 100 };
     addNode(newNode);
   };
 

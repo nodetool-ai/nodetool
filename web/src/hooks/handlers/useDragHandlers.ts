@@ -40,19 +40,20 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
           icon: "",
           color: "",
           outputs: [],
-          model_info: {}
+          model_info: {},
+          primary_field: "",
+          secondary_field: "",
+          layout: "comment"
         };
         const newNode = createNode(metadata, {
           x: startPos.x,
-          y: startPos.y
+          y: startPos.y - 20
         });
-        newNode.data.size = {
-          width: Math.max(width, 50),
-          height: Math.max(height, 50)
-        };
-        newNode.data.properties.value = {
-          type: "nodetool.workflows.base_node.Comment",
-          comment: ""
+        newNode.width = Math.max(width, 150);
+        newNode.height = Math.max(height, 100);
+        newNode.style = {
+          width: Math.max(width, 150),
+          height: Math.max(height, 100)
         };
         addNode(newNode);
       }

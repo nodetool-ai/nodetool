@@ -42,12 +42,13 @@ const styles = (theme: any) =>
       transition: "background-color 0.2s"
     },
     "input[type='text']:focus": {
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.c_gray1,
       outline: "none"
     },
     ".clear-search-btn": {
       position: "absolute",
       cursor: "pointer",
+      width: "2em",
       top: 0,
       right: ".5em",
       padding: "0.2em 0.1em 0.2em 0.1em",
@@ -59,7 +60,11 @@ const styles = (theme: any) =>
         fontSize: "1.4rem"
       },
       "&:hover": {
-        color: theme.palette.c_gray6
+        backgroundColor: "transparent"
+      },
+      "&:not(.disabled):hover svg": {
+        color: theme.palette.c_hl1,
+        backgroundColor: "transparent"
       },
       "&.disabled": {
         color: theme.palette.c_gray3

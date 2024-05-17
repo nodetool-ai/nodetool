@@ -2,12 +2,10 @@
 import { css } from "@emotion/react";
 
 import { memo } from "react";
-import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
+import { NodeProps, NodeResizeControl } from "reactflow";
 import { Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
-import { useNodeStore } from "../../stores/NodeStore";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
-
 import React from "react";
 import { NodeHeader } from "../node/NodeHeader";
 import OutputRendererForType from "./OutputRenderer";

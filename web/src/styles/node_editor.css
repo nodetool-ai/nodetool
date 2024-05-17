@@ -497,12 +497,12 @@ span.tooltip-small {
 /* COMMENT NODES */
 .react-flow__node-nodetool\.workflows\.base_node\.Comment {
   width: auto;
-  min-width: 30px;
-  min-height: 40px;
+  min-width: 100px;
+  min-height: 50px;
   max-width: 5000px;
   max-height: 5000px;
-  padding: 0.2em;
-  border-radius: 8px;
+  padding: 0;
+  border-radius: 4px;
   background-color: #0002;
   box-shadow: none;
   overflow: hidden;
@@ -563,10 +563,10 @@ span.tooltip-small {
   top: 0;
 }
 
-.react-flow__node-nodetool\.workflows\.base_node\.Comment.selected .node-header,
+/* .react-flow__node-nodetool\.workflows\.base_node\.Comment.selected .node-header,
 .react-flow__node-comment:hover .node-header {
   background-color: var(--c_gray2) !important;
-}
+} */
 
 .comment-node textarea {
   background-color: transparent;

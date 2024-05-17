@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useState } from "react";
 // store
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
 // mui
@@ -15,7 +14,6 @@ import {
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-
 //utils
 import useKeyListener from "../../utils/KeyListener";
 //constants
