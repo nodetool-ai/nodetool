@@ -19,6 +19,7 @@ function PanelLeft() {
     if (
       document.activeElement &&
       document.activeElement.tagName.toLowerCase() !== "input" &&
+      document.activeElement.tagName.toLowerCase() !== "div" &&
       document.activeElement.tagName.toLowerCase() !== "textarea"
     ) {
       handlePanelToggle();
