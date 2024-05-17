@@ -122,7 +122,7 @@ const namespaceStyles = (theme: any) =>
       gap: ".5em",
       paddingRight: "1em",
       // width: "340px",
-      // height: "60vh",
+      maxHeight: "60vh",
       ".node-title": {
         fontSize: ThemeNodetool.fontSizeNormal,
         fontWeight: "600",
