@@ -72,7 +72,8 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray5
     },
     ".datatable": {
-      maxHeight: "100%"
+      maxHeight: "500px",
+      overflow: "auto"
     },
     ".datatable .row-actions": {
       display: "none"
