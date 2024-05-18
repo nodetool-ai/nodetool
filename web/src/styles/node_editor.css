@@ -155,7 +155,7 @@
   position: relative;
   width: auto;
   /* min-width: 150px; */
-  max-width: 250px;
+  /* max-width: 250px; */
   min-height: 15px;
   border: 0;
   padding: 0.25em 1em;

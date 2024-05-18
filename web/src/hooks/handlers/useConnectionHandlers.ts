@@ -65,7 +65,7 @@ export const constantForType = (type: TypeName) => {
     case "str":
       return "nodetool.constant.String";
     case "dataframe":
-      return "nodetool.dataframe.CSVToDataframe";
+      return "nodetool.dataframe.Dataframe";
     case "int":
       return "nodetool.constant.Integer";
     case "float":

@@ -6,77 +6,20 @@
  */
 
 /** @jsxImportSource @emotion/react */
+
+import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 
-import React, { useCallback, useMemo } from "react";
-
-// import Spreadsheet from "react-spreadsheet";
-import { Button } from "@mui/material";
 import { DataframeRef } from "../../stores/ApiTypes";
-import CloseIcon from "@mui/icons-material/Close";
 import 'react-tabulator/lib/styles.css';
 import 'react-tabulator/lib/css/tabulator_midnight.css'
-import { ReactTabulator, ColumnDefinition, ReactTabulatorOptions } from 'react-tabulator'
+import { ReactTabulator, ColumnDefinition } from 'react-tabulator'
 
-// const styles = (theme: any) =>
-//   css({
-//     "&": {
-//       display: "flex",
-//       flexDirection: "row",
-//       width: "100%",
-//       height: "100%",
-//       maxHeight: "20em",
-//       overflow: "auto",
-//       position: "relative"
-//     },
-//     ".row-actions": {
-//       position: "absolute",
-//       zIndex: 1,
-//       top: "0",
-//       left: "1px",
-//       width: "2.1em",
-//       marginTop: "2.4em"
-//     },
-//     ".delete-row": {
-//       opacity: 0,
-//       width: "2.1em",
-//       minWidth: "unset",
-//       height: "2.546em",
-//       padding: "0",
-//       margin: "0 .5em 0 0",
-//       borderRadius: "0",
-//       backgroundColor: "transparent",
-//       color: theme.palette.c_delete,
-//       transition: "opacity 0.2s"
-//     },
-//     ".delete-row:hover": {
-//       color: theme.palette.c_delete,
-//       backgroundColor: theme.palette.c_gray2,
-//       opacity: 1
-//     },
-//     ".Spreadsheet": {
-//       boxShadow: "none",
-//       backgroundColor: "transparent",
-//       width: "auto"
-//     },
-//     ".Spreadsheet__table": {
-//       width: "auto"
-//     },
-//     ".Spreadsheet__header": {
-//       minWidth: "2em",
-//       maxWidth: "15em",
-//       textAlign: "left",
-//       border: `1px solid ${theme.palette.c_gray1}`,
-//       color: theme.palette.c_gray0,
-//       backgroundColor: theme.palette.c_gray3
-//     },
-//     ".Spreadsheet__cell": {
-//       minWidth: "2em",
-//       textAlign: "left",
-//       border: `1px solid ${theme.palette.c_gray1}`,
-//       backgroundColor: theme.palette.c_gray4
-//     }
-//   });
+const styles = (theme: any) =>
+  css({
+    "&": {
+    },
+  });
 
 interface DataTableProps {
   dataframe: DataframeRef;
@@ -123,13 +66,14 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe: df, onChange }) => {
   };
 
   return (
-    <div className="datatable nowheel">
+    <div className="datatable nowheel" css={styles}>
       <ReactTabulator
         events={{ cellEdited: onCellEdited }}
         columns={columns}
         data={data}
         tooltips={true}
         layout={"fitData"}
+        height="500px"
       />
     </div>
   );
