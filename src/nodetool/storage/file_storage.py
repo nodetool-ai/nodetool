@@ -27,7 +27,7 @@ class FileStorage(AbstractStorage):
 
     def get_mtime(self, key: str):
         mtime = os.path.getmtime(os.path.join(self.base_path, key))
-        return datetime.fromtimestamp(mtime)
+        return datetime.fromtimestamp(mtime, tz=datetime.now().astimezone().tzinfo)
 
     def download(self, key: str, stream: IO):
         with open(os.path.join(self.base_path, key), "rb") as f:
