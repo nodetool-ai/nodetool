@@ -59,11 +59,27 @@ class Asset(DBModel):
         )
 
     @property
+    def has_thumbnail(self) -> bool:
+        """
+        Returns True if the asset type supports thumbnails.
+        """
+        return self.content_type.startswith("image/") or self.content_type.startswith(
+            "video/"
+        )
+
+    @property
     def file_name(self) -> str:
         """
         Get the file name of the asset.
         """
         return f"{self.id}.{self.file_extension}"
+
+    @property
+    def thumb_file_name(self) -> str:
+        """
+        Get the file name of the thumbnail.
+        """
+        return f"{self.id}_thumb.jpg"
 
     @classmethod
     def create(

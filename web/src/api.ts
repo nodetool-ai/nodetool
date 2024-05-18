@@ -190,8 +190,8 @@ export interface components {
       created_at: string;
       /** Get Url */
       get_url: string | null;
-      /** Put Url */
-      put_url: string | null;
+      /** Thumb Url */
+      thumb_url: string | null;
       /** Duration */
       duration?: number | null;
     };

@@ -15,7 +15,7 @@ class Asset(BaseModel):
     content_type: str
     created_at: str
     get_url: str | None
-    put_url: str | None
+    thumb_url: str | None
     duration: float | None = None
 
     @property
@@ -40,13 +40,19 @@ class Asset(BaseModel):
 
     @classmethod
     def from_model(cls, asset: AssetModel):
-        s3 = Environment.get_asset_storage()
+        storage = Environment.get_asset_storage()
         if asset.content_type != "folder":
-            get_url = s3.generate_presigned_url("get_object", asset.file_name)
-            put_url = s3.generate_presigned_url("put_object", asset.file_name)
+            get_url = storage.generate_presigned_url("get_object", asset.file_name)
         else:
             get_url = None
-            put_url = None
+
+        if asset.has_thumbnail:
+            thumb_url = storage.generate_presigned_url(
+                "get_object", asset.thumb_file_name
+            )
+        else:
+            thumb_url = None
+
         return cls(
             id=asset.id,
             user_id=asset.user_id,
@@ -57,7 +63,7 @@ class Asset(BaseModel):
             content_type=asset.content_type,
             created_at=asset.created_at.isoformat(),
             get_url=get_url,
-            put_url=put_url,
+            thumb_url=thumb_url,
             duration=asset.duration,
         )
 
