@@ -60,7 +60,7 @@ function PanelRight() {
         className="tooltip-1"
         title={
           <span className="tooltip-1">
-            Drag to scale <br /> Click to open/close
+            Drag to scale <br /> Click to open/close <br /> Keyboard shortcut: 2
           </span>
         }
         placement="left"
