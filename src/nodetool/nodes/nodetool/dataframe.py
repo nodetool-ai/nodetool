@@ -17,7 +17,7 @@ from typing import Any, Literal
 from nodetool.metadata.types import Dataset
 
 
-class Save(BaseNode):
+class SaveDataframe(BaseNode):
     """
     Save data frame as a CSV file in a folder.
     csv, folder

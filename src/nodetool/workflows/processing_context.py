@@ -142,7 +142,7 @@ class ProcessingContext:
     def has_messages(self) -> bool:
         return not self.message_queue.empty()
 
-    def api_client(self) -> NodetoolAPIClient:
+    def api_client(self):
         assert self.auth_token is not None, "Auth token is required"
         return Environment.get_nodetool_api_client(self.auth_token)
 
@@ -150,14 +150,8 @@ class ProcessingContext:
         """
         Finds an asset by id.
         """
-        if "db" in self.capabilities:
-            asset = AssetModel.find(self.user_id, asset_id)
-            if asset is None:
-                raise ValueError(f"Asset with ID {asset_id} does not exist")
-            return asset
-        else:
-            res = await self.api_client().get(f"assets/{asset_id}")
-            return Asset(**res)
+        res = await self.api_client().get(f"assets/{asset_id}")
+        return Asset(**res)
 
     async def get_asset_url(self, asset_id: str):
         """
@@ -242,39 +236,18 @@ class ProcessingContext:
         """
         Updates the prediction.
         """
-        if "db" in self.capabilities:
-            pred = PredictionModel.find(self.user_id, id)
-            if pred is None:
-                raise ValueError(f"Prediction with ID {id} does not exist")
-            if status:
-                pred.status = status
-            if error:
-                pred.error = error
-            if logs:
-                pred.logs = logs
-            if duration:
-                pred.duration = duration
-            if completed_at:
-                pred.completed_at = completed_at
-            if cost:
-                pred.cost = cost
-            pred.save()
-            ret = Prediction.from_model(pred)
-        else:
-            res = await self.api_client().put(
-                f"predictions/{id}",
-                {
-                    "status": status,
-                    "error": error,
-                    "logs": logs,
-                    "cost": cost,
-                    "duration": duration,
-                    "completed_at": (
-                        completed_at.isoformat() if completed_at else None
-                    ),
-                },
-            )
-            ret = Prediction(**res)
+        res = await self.api_client().put(
+            f"predictions/{id}",
+            {
+                "status": status,
+                "error": error,
+                "logs": logs,
+                "cost": cost,
+                "duration": duration,
+                "completed_at": (completed_at.isoformat() if completed_at else None),
+            },
+        )
+        ret = Prediction(**res)
         self.post_message(ret)
         return ret
 
@@ -291,36 +264,21 @@ class ProcessingContext:
     ) -> Prediction:
         if cost:
             self.cost += cost
-        if "db" in self.capabilities:
-            pred = PredictionModel.create(
-                provider=provider,
-                user_id=self.user_id,
-                node_id=node_id,
-                node_type=node_type if node_type else "",
-                model=model if model else "",
-                version=version if version else "",
-                workflow_id=self.workflow_id if self.workflow_id else "",
-                status=status if status else "",
-                cost=cost if cost else 0.0,
-                hardware=hardware if hardware else "",
-            )
-            ret = Prediction.from_model(pred)
-        else:
-            res = await self.api_client().post(
-                "predictions/",
-                {
-                    "node_id": node_id,
-                    "node_type": node_type if node_type else "",
-                    "provider": provider,
-                    "model": model if model else "",
-                    "workflow_id": self.workflow_id if self.workflow_id else "",
-                    "version": version if version else "",
-                    "status": status if status else "",
-                    "cost": cost if cost else 0.0,
-                    "hardware": hardware if hardware else "",
-                },
-            )
-            ret = Prediction(**res)
+        res = await self.api_client().post(
+            "predictions/",
+            json={
+                "node_id": node_id,
+                "node_type": node_type if node_type else "",
+                "provider": provider,
+                "model": model if model else "",
+                "workflow_id": self.workflow_id if self.workflow_id else "",
+                "version": version if version else "",
+                "status": status if status else "",
+                "cost": cost if cost else 0.0,
+                "hardware": hardware if hardware else "",
+            },
+        )
+        ret = Prediction(**res)
         self.post_message(ret)
         return ret
 
@@ -417,31 +375,24 @@ class ProcessingContext:
         content_type: str,
         content: IO,
         parent_id: str | None = None,
-    ) -> tuple[Any, str]:
+    ) -> Asset:
         content.seek(0)
 
-        if "db" in self.capabilities:
-            asset = AssetModel.create(
-                user_id=self.user_id,
-                workflow_id=self.workflow_id,
-                name=name,
-                content_type=content_type,
-                parent_id=parent_id,
-            )
-        else:
-            req = AssetCreateRequest(
-                workflow_id=self.workflow_id,
-                name=name,
-                content_type=content_type,
-                parent_id=parent_id,
-            )
-            res = await self.api_client().post("assets/", req.model_dump())
-            asset = Asset(**res)
+        req = AssetCreateRequest(
+            workflow_id=self.workflow_id,
+            name=name,
+            content_type=content_type,
+            parent_id=parent_id,
+        )
+        res = await self.api_client().post(
+            "assets/",
+            data={"json": req.model_dump_json()},
+            files={"file": (name, content, content_type)},
+        )
 
-        url = await self.get_asset_storage().upload_async(asset.file_name, content)
-        return asset, url
+        return Asset(**res)
 
-    async def create_temp_file(self, content: IO, ext: str = "") -> str:
+    async def create_temp_asset(self, content: IO, ext: str = "") -> str:
         key = create_time_ordered_uuid()
         if ext != "":
             key += "." + ext
@@ -559,12 +510,12 @@ class ProcessingContext:
             AudioRef: The AudioRef object.
         """
         if name:
-            asset, s3_url = await self.create_asset(
+            asset = await self.create_asset(
                 name, "audio/mp3", buffer, parent_id=parent_id
             )
-            return AudioRef(asset_id=asset.id, uri=s3_url)
+            return AudioRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_file(buffer, "mp3")
+            s3_url = await self.create_temp_asset(buffer, "mp3")
             return AudioRef(uri=s3_url)
 
     async def audio_from_bytes(
@@ -601,12 +552,12 @@ class ProcessingContext:
         audio_segment.export(buffer, format="mp3")
         buffer.seek(0)
         if name:
-            asset, s3_url = await self.create_asset(
+            asset = await self.create_asset(
                 name, "audio/mp3", buffer, parent_id=parent_id
             )
-            return AudioRef(asset_id=asset.id, uri=s3_url)
+            return AudioRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_file(buffer, "mp3")
+            s3_url = await self.create_temp_asset(buffer, "mp3")
             return AudioRef(uri=s3_url)
 
     async def dataframe_to_pandas(self, df: DataframeRef):
@@ -625,12 +576,10 @@ class ProcessingContext:
     ) -> "DataframeRef":
         buffer = BytesIO(dumps(data))
         if name:
-            asset, s3_url = await self.create_asset(
-                name, "application/octet-stream", buffer
-            )
-            return DataframeRef(asset_id=asset.id, uri=s3_url)
+            asset = await self.create_asset(name, "application/octet-stream", buffer)
+            return DataframeRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_file(buffer)
+            s3_url = await self.create_temp_asset(buffer)
             # TODO: avoid for large tables
             rows = data.values.tolist()
             column_defs = [
@@ -657,12 +606,12 @@ class ProcessingContext:
             ImageRef: The ImageRef object.
         """
         if name:
-            asset, s3_url = await self.create_asset(
+            asset = await self.create_asset(
                 name=name, content_type="image/png", content=buffer, parent_id=parent_id
             )
-            return ImageRef(asset_id=asset.id, uri=s3_url)
+            return ImageRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_file(buffer)
+            s3_url = await self.create_temp_asset(buffer)
             return ImageRef(uri=s3_url)
 
     async def image_from_url(
@@ -789,12 +738,12 @@ class ProcessingContext:
     ) -> "TextRef":
         buffer = BytesIO(s.encode("utf-8"))
         if name:
-            asset, s3_url = await self.create_asset(
+            asset = await self.create_asset(
                 name, content_type, buffer, parent_id=parent_id
             )
-            return TextRef(asset_id=asset, uri=s3_url)
+            return TextRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_file(buffer)
+            s3_url = await self.create_temp_asset(buffer)
             return TextRef(uri=s3_url)
 
     async def video_from_io(
@@ -815,12 +764,12 @@ class ProcessingContext:
             VideoRef: The VideoRef object.
         """
         if name:
-            asset, s3_url = await self.create_asset(
+            asset = await self.create_asset(
                 name, "video/mpeg", buffer, parent_id=parent_id
             )
-            return VideoRef(asset_id=asset.id, uri=s3_url)
+            return VideoRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_file(buffer)
+            s3_url = await self.create_temp_asset(buffer)
             return VideoRef(uri=s3_url)
 
     async def to_estimator(self, model_ref: ModelRef):
@@ -833,9 +782,9 @@ class ProcessingContext:
         stream = BytesIO()
         joblib.dump(est, stream)
         stream.seek(0)
-        asset, url = await self.create_asset("model", "application/model", stream)
+        asset = await self.create_asset("model", "application/model", stream)
 
-        return ModelRef(uri=url, asset_id=asset.id, **kwargs)
+        return ModelRef(uri=asset.get_url or "", asset_id=asset.id, **kwargs)
 
     async def convert_value_for_prediction(
         self,

@@ -2,13 +2,6 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
-import nodetool.api.auth
-import nodetool.api.asset
-import nodetool.api.types.graph
-import nodetool.api.prediction
-import nodetool.api.job
-import nodetool.api.node
-import nodetool.api.workflow
 from nodetool.api.types.graph import Node, Edge
 from nodetool.common.environment import Environment
 from nodetool.models.schema import (
@@ -135,15 +128,9 @@ def client():
 
     This fixture is scoped to the module, so it will only be created once for the entire test run.
     """
-    app = FastAPI()
-    app.include_router(nodetool.api.asset.router)
-    app.include_router(nodetool.api.auth.router)
-    app.include_router(nodetool.api.prediction.router)
-    app.include_router(nodetool.api.job.router)
-    app.include_router(nodetool.api.node.router)
-    app.include_router(nodetool.api.workflow.router)
 
     Environment.set_remote_auth(True)
+    app = Environment.get_test_app()
 
     return TestClient(app)
 

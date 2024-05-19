@@ -8,40 +8,39 @@ from pydantic import Field
 from typing import Any, Literal
 from nodetool.nodes.nodetool.math import convert_output
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import ImageRef
+from nodetool.metadata.types import FolderRef, ImageRef
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import to_numpy
 from nodetool.metadata.types import Tensor
 
 
-# class SaveTensor(Node):
-#     category: NodeCategory = NodeCategory.TENSOR
-#     value: Tensor = Field(
-#         Tensor(),
-#         description="The tensor to save.",
-#     )
-#     folder: FolderRef = Field(
-#         FolderRef(),
-#         description="The folder to save the tensor in.",
-#     )
-#     name: str = Field("tensor.npy", description="The name of the asset to save.")
+class SaveTensor(BaseNode):
+    value: Tensor = Field(
+        Tensor(),
+        description="The tensor to save.",
+    )
+    folder: FolderRef = Field(
+        FolderRef(),
+        description="The folder to save the tensor in.",
+    )
+    name: str = Field("tensor.npy", description="The name of the asset to save.")
 
-#     async def process(self, context: ProcessingContext) -> Tensor:
-#         tensor = self.value.to_numpy()
-#         buffer = BytesIO()
-#         np.save(buffer, tensor)
-#         buffer.seek(0)
-#         asset, s3_url = await context.create_asset(
-#             name=self.name,
-#             content_type="application/tensor",
-#             content=buffer,
-#             parent_id=self.folder.asset_id,
-#         )
-#         return Tensor.from_numpy(
-#             tensor,
-#             uri=s3_url,
-#             asset_id=asset.id,
-#         )
+    async def process(self, context: ProcessingContext) -> Tensor:
+        tensor = self.value.to_numpy()
+        buffer = BytesIO()
+        np.save(buffer, tensor)
+        buffer.seek(0)
+        asset = await context.create_asset(
+            name=self.name,
+            content_type="application/tensor",
+            content=buffer,
+            parent_id=self.folder.asset_id,
+        )
+        return Tensor.from_numpy(
+            tensor,
+            uri=asset.get_url,
+            asset_id=asset.id,
+        )
 
 
 class Stack(BaseNode):
