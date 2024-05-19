@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useEffect } from "react";
 import { useState, useCallback, DragEvent } from "react";
 import { ButtonGroup } from "@mui/material";
 import { Typography } from "@mui/material";
@@ -13,6 +13,7 @@ import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 // store
 import useSessionStateStore from "../../stores/SessionStateStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
+import { useAssetStore } from "../../stores/AssetStore";
 // components
 import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
@@ -49,17 +50,26 @@ const styles = (theme: any) =>
       zIndex: 0,
       overflow: "hidden"
     },
-    ".asset .image": {
+    ".asset .image, .asset .image-aspect-ratio": {
       position: "absolute",
       top: 0,
       width: "100%",
       height: "100%",
       backgroundSize: "cover",
       backgroundPosition: "center",
-      backgroundRepeat: "no-repeat"
+      backgroundRepeat: "no-repeat",
+      transition: "opacity 0.5s"
+    },
+    ".asset .image-aspect-ratio": {
+      opacity: 0,
+      backgroundSize: "contain",
+      backgroundColor: theme.palette.c_gray1
     },
     "&:hover .asset .image": {
-      backgroundSize: "contain"
+      opacity: 1
+    },
+    "&:hover .asset .image-aspect-ratio": {
+      opacity: 1
     },
     "& svg.placeholder": {
       position: "absolute",
@@ -247,6 +257,22 @@ const styles = (theme: any) =>
     // DRAG HOVER
     "&.drag-hover": {
       opacity: 0.7
+    },
+    // ASSET MISSING
+    ".asset-missing": {
+      position: "absolute",
+      zIndex: 10000,
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      padding: "2em",
+      textAlign: "center",
+      lineHeight: "1.1em",
+      fontSize: theme.fontSizeSmaller,
+      color: theme.palette.c_error,
+      borderBottom: "1px solid" + theme.palette.c_error,
+      width: "100%",
+      height: "100%"
     }
   });
 
@@ -291,9 +317,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     onClickParent,
     onMoveToFolder
   } = props;
+
   const assetType = asset.content_type.split("/")[0];
   const assetFileEnding = asset.content_type.split("/")[1];
-
   const isImage = asset.content_type.match("image") !== null;
   const isText = asset.content_type.match("text") !== null;
   const isAudio = asset.content_type.match("audio") !== null;
@@ -301,6 +327,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   const isFolder = asset.content_type.match("folder") !== null;
   const [isDragHovered, setIsDragHovered] = useState(false);
   const { openContextMenu } = useContextMenuStore();
+
   const { selectedAssetIds, setSelectedAssetIds } = useSessionStateStore();
   const [openAsset, setOpenAsset] = useState<Asset | undefined>(undefined);
   const [assetItemSize] = useSettingsStore((state) => [
@@ -441,6 +468,17 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     [selectedAssetIds, setSelectedAssetIds, openContextMenu, enableContextMenu]
   );
 
+  const [assetExists, setAssetExists] = useState<boolean | null>(null);
+  const { assetExists: checkAssetExists } = useAssetStore();
+
+  useEffect(() => {
+    const checkExistence = async () => {
+      const exists = await checkAssetExists(asset);
+      setAssetExists(exists);
+    };
+    checkExistence();
+  }, [asset, checkAssetExists]);
+
   return (
     <div
       css={styles}
@@ -493,12 +531,22 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             {isParent && <NorthWest className="parent-icon" />}
           </div>
         )}
+        {!assetExists && !isFolder && <div className="asset-missing" />}
 
         {isImage && (
           <>
             <ImageIcon className="placeholder" />
             <div
               className="image"
+              style={{
+                backgroundImage: `url(${
+                  asset.get_url || "/images/placeholder.png"
+                })`
+              }}
+              aria-label={asset.id}
+            />
+            <div
+              className="image-aspect-ratio"
               style={{
                 backgroundImage: `url(${
                   asset.get_url || "/images/placeholder.png"

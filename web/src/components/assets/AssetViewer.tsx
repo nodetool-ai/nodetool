@@ -23,7 +23,7 @@ import { Asset } from "../../stores/ApiTypes";
 //utils
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import useAssets from "../../serverState/useAssets";
-import useKeyListener from "../../utils/KeyPressedListener";
+import useKeyPressedListener from "../../utils/KeyPressedListener";
 import { debounce } from "lodash";
 //css
 import "../../styles/node_editor.css";
@@ -206,9 +206,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const sortedAssets = useAssets().sortedAssets;
   const [currentFolderName, setCurrentFolderName] = useState<string | null>();
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
-  const leftKeyPressed = useKeyListener("ArrowLeft");
-  const rightKeyPressed = useKeyListener("ArrowRight");
-  const controlKeyPressed = useKeyListener("Control");
+  const leftKeyPressed = useKeyPressedListener("ArrowLeft");
+  const rightKeyPressed = useKeyPressedListener("ArrowRight");
+  const controlKeyPressed = useKeyPressedListener("Control");
   const prevNextAmount = 5;
 
   const handleChangeAsset = useCallback(
