@@ -1,10 +1,13 @@
 import subprocess
+from typing import IO
+import PIL.Image
 import pydub
 from io import BytesIO
 import tempfile
-from typing import IO
-import cv2
 import numpy as np
+import asyncio
+import subprocess
+import cv2
 
 
 def create_empty_video(fps: int, width: int, height: int, duration: int, filename: str):
@@ -39,7 +42,69 @@ def create_empty_video(fps: int, width: int, height: int, duration: int, filenam
     out.release()
 
 
-def get_video_duration(input_io: BytesIO) -> float | None:
+async def create_image_thumbnail(input_io: IO, width: int, height: int) -> BytesIO:
+    """
+    Generate a thumbnail image from an image using PIL.
+    """
+    # Read the image from the input BytesIO object
+    image = PIL.Image.open(input_io)
+    input_io.seek(0)
+
+    # Resize the image to the specified width and height
+    image.thumbnail((width, height))
+
+    # Create a new BytesIO object to store the thumbnail image
+    output_io = BytesIO()
+    image.save(output_io, format="JPEG")
+
+    # Reset the BytesIO object to the beginning
+    output_io.seek(0)
+
+    return output_io
+
+
+async def create_video_thumbnail(input_io: IO, width: int, height: int) -> BytesIO:
+    """
+    Generate a thumbnail image from a video file using OpenCV.
+    """
+    # Create a temporary file to store the video
+    with tempfile.NamedTemporaryFile() as temp_file:
+        # Write the input BytesIO object to the temporary file
+        temp_file.write(input_io.read())
+        temp_file.flush()
+        input_io.seek(0)
+
+        # Use ffmpeg to generate thumbnail
+        # select the most representative frame in a given sequence of consecutive frames
+        # automatically from the video.
+        cmd = [
+            "ffmpeg",
+            "-i",
+            temp_file.name,
+            "-vf",
+            "thumbnail=300",
+            "-frames:v",
+            "1",
+            "-f",
+            "image2pipe",
+            "-",
+        ]
+
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        output, errors = await process.communicate()
+
+        if process.returncode == 0:
+            return BytesIO(output)
+        else:
+            raise Exception(f"ffmpeg error: {errors}")
+
+
+async def get_video_duration(input_io: BytesIO) -> float | None:
     """
     Get the duration of a media file using ffprobe.
 
@@ -62,17 +127,17 @@ def get_video_duration(input_io: BytesIO) -> float | None:
             temp_file.name,  # Read from the temporary file
         ]
         # write the input bytes to the temporary file
-        temp_file.write(input_io.getvalue())
+        temp_file.write(input_io.read())
         temp_file.flush()
+        input_io.seek(0)
 
-        process = subprocess.Popen(
-            cmd,
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
 
-        input_io.seek(0)
-        output, errors = process.communicate(timeout=300)
+        output, errors = await process.communicate()
 
         if process.returncode == 0:
             duration = output.strip()

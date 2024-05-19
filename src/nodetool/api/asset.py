@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import asyncio
 from io import BytesIO
 import re
 from uuid import uuid4
@@ -18,7 +19,12 @@ from nodetool.models.asset import Asset as AssetModel
 from nodetool.models.workflow import Workflow
 
 from nodetool.common.environment import Environment
-from nodetool.common.media_utils import get_audio_duration, get_video_duration
+from nodetool.common.media_utils import (
+    create_image_thumbnail,
+    create_video_thumbnail,
+    get_audio_duration,
+    get_video_duration,
+)
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/assets", tags=["assets"])
@@ -83,7 +89,7 @@ async def get(id: str, user: User = Depends(current_user)) -> Asset:
             parent_id="",
             workflow_id=None,
             get_url=None,
-            put_url=None,
+            thumb_url=None,
             created_at=user.created_at.isoformat(),
         )
     asset = AssetModel.find(user.id, id)
@@ -91,9 +97,6 @@ async def get(id: str, user: User = Depends(current_user)) -> Asset:
         log.info("Asset not found: %s", id)
         raise HTTPException(status_code=404, detail="Asset not found")
     return Asset.from_model(asset)
-
-
-from re import match
 
 
 @router.put("/{id}")
@@ -133,7 +136,15 @@ async def delete(id: str, user: User = Depends(current_user)):
         log.info("Asset not found: %s", id)
         raise HTTPException(status_code=404, detail="Asset not found")
     asset.delete()
-    Environment.get_asset_storage().delete(asset.file_name)
+    try:
+        Environment.get_asset_storage().delete(asset.thumb_file_name)
+    except Exception as e:
+        log.exception(e)
+    try:
+        Environment.get_asset_storage().delete(asset.file_name)
+    except Exception as e:
+        log.exception(e)
+
     log.info("Deleted asset: %s", id)
 
 
@@ -150,6 +161,10 @@ async def create(
         raise HTTPException(status_code=400, detail="Missing JSON body")
 
     req = AssetCreateRequest.model_validate_json(json)
+    asset = None
+    duration = None
+    file_io = None
+    thumbnail = None
 
     if req.workflow_id:
         workflow = Workflow.get(req.workflow_id)
@@ -165,14 +180,12 @@ async def create(
             storage = Environment.get_asset_storage()
 
             if "video" in req.content_type:
-                duration = get_video_duration(file_io)
+                duration = await get_video_duration(file_io)
+                thumbnail = await create_video_thumbnail(file_io, 512, 512)
             elif "audio" in req.content_type:
                 duration = get_audio_duration(file_io)
-            else:
-                duration = None
-        else:
-            duration = None
-            file_io = None
+            elif "image" in req.content_type:
+                thumbnail = await create_image_thumbnail(file_io, 512, 512)
 
         asset = AssetModel.create(
             workflow_id=req.workflow_id,
@@ -183,10 +196,16 @@ async def create(
             duration=duration,
         )
         if file_io:
+            file_io.seek(0)
             await storage.upload_async(asset.file_name, file_io)
+
+            if thumbnail:
+                await storage.upload_async(asset.thumb_file_name, thumbnail)
+
     except Exception as e:
         log.exception(e)
-        asset.delete()
+        if asset:
+            asset.delete()
         raise HTTPException(status_code=500, detail="Error uploading asset")
 
     return Asset.from_model(asset)

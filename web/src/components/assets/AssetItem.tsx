@@ -482,9 +482,8 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   return (
     <div
       css={styles}
-      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
-        isDragHovered ? "drag-hover" : ""
-      } ${isParent ? "parent" : ""}`}
+      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
+        } ${isParent ? "parent" : ""}`}
       onDragEnter={isFolder ? handleDragEnter : undefined}
       onDragLeave={isFolder ? handleDragLeave : undefined}
       onContextMenu={(e) =>
@@ -539,9 +538,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${
-                  asset.get_url || "/images/placeholder.png"
-                })`
+                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"})`
               }}
               aria-label={asset.id}
             />
@@ -581,14 +578,13 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               className="placeholder"
               style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
             />
-            <video
-              style={{ width: "100%", height: "auto" }}
-              controls={false}
-              preload="metadata"
-              src={asset.get_url || ""}
-            >
-              Your browser does not support the video element.
-            </video>
+            <div
+              className="image"
+              style={{
+                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"})`
+              }}
+              aria-label={asset.id}
+            />
             {showDuration && asset.duration && assetItemSize > 1 && (
               <Typography className="duration info">
                 {secondsToHMS(asset.duration)}
