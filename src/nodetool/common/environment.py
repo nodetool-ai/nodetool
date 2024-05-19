@@ -550,8 +550,8 @@ class Environment(object):
         if cls.get_chroma_url() is not None:
             return Settings(
                 chroma_api_impl="chromadb.api.fastapi.FastAPI",
-                chroma_client_auth_provider="token",
-                chroma_client_auth_credentials=cls.get_chroma_token(),
+                # chroma_client_auth_provider="token",
+                # chroma_client_auth_credentials=cls.get_chroma_token(),
                 chroma_server_host=cls.get_chroma_url(),
             )
         else:
