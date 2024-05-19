@@ -8,6 +8,7 @@ from tests.conftest import make_image
 
 
 test_mp4 = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test.mp4")
+test_jpg = os.path.join(os.path.dirname(os.path.dirname(__file__)), "test.jpg")
 
 
 def test_index(client: TestClient, headers: dict[str, str], user: User):
@@ -70,7 +71,7 @@ def test_put(client: TestClient, headers: dict[str, str], user: User):
 def test_create(client: TestClient, headers: dict[str, str], user: User):
     response = client.post(
         "/api/assets",
-        files={"file": ("test.jpg", open(test_mp4, "rb"), "image/jpeg")},
+        files={"file": ("test.jpg", open(test_jpg, "rb"), "image/jpeg")},
         data={
             "json": json.dumps(
                 {

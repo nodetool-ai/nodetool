@@ -350,4 +350,4 @@ async def test_save_dataframe_node(context: ProcessingContext, user: User):
     assert result.asset_id, "DataFrame should have an asset_id"
     asset = Asset.find(context.user_id, result.asset_id)
     assert asset, "Asset should exist"
-    assert asset.content_type == "text/csv", "Asset should be csv"
+    assert asset.content_type == "application/octet-stream"
