@@ -44,7 +44,9 @@ interface AssetActionsProps {
 const styles = (theme: any) =>
   css({
     "&": {
-      width: "100%",
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "2em",
       minHeight: "30px",
       backgroundColor: theme.palette.c_gray1
     },
@@ -52,7 +54,7 @@ const styles = (theme: any) =>
       display: "inline-block"
     },
     ".asset-button-group": {
-      width: "100%",
+      width: "auto",
       display: "flex",
       alignItems: "center",
       gap: "0.5em",
@@ -71,8 +73,10 @@ const styles = (theme: any) =>
       backgroundColor: "transparent"
     },
     ".asset-size-slider": {
-      flexGrow: 1,
-      maxWidth: "95px"
+      flexGrow: 0,
+      flexShrink: 1,
+      minWidth: "60px",
+      maxWidth: "120px"
     },
     ".asset-size-slider .MuiSlider-root": {
       height: "25px",

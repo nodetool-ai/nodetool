@@ -16,20 +16,20 @@ import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 //utils
 import { prettyDate } from "../../utils/formatDateAndTime";
-//components
 import useKeyPressedListener from "../../utils/KeyPressedListener";
+
+//components
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
-
 //asset components
+import Dropzone from "./Dropzone";
+import AssetActions from "./AssetActions";
 import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
-import Dropzone from "./Dropzone";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
-import AssetActions from "./AssetActions";
 import AssetUploadOverlay from "./AssetUploadOverlay";
 import AssetGridContent from "./AssetGridContent";
 import SearchInput from "../search/SearchInput";
@@ -43,7 +43,12 @@ const styles = (theme: any) =>
       height: "100%"
     },
     ".asset-menu": {
-      margin: "0 0 .5em .5em"
+      margin: "0 0 .5em .5em",
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "start",
+      alignItems: "start",
+      gap: "1em"
     },
     ".dropzone": {
       display: "flex",
@@ -55,6 +60,7 @@ const styles = (theme: any) =>
       maxHeight: "calc(-273px + 100vh)"
     },
     ".selected-asset-info": {
+      marginLeft: "auto",
       backgroundColor: theme.palette.c_gray1,
       minHeight: "70px",
       overflowY: "auto",
@@ -64,12 +70,13 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray5
     },
     ".file-upload-button button": {
-      width: "100%"
+      width: "100%",
+      maxWidth: "200px"
     },
     ".current-folder": {
+      minWidth: "100px",
       fontSize: ThemeNodetool.fontSizeSmall,
-      color: theme.palette.c_gray5,
-      margin: "1em 0 0.25em .5em !important"
+      color: theme.palette.c_gray5
     },
     ".folder-slash": {
       color: theme.palette.c_hl1,
@@ -108,9 +115,7 @@ interface AssetGridProps {
 }
 
 const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
-  const { sortedAssets, sortedFolders, sortedFiles, currentAssets, error } =
-    useAssets();
-  const filteredAssets = useSessionStateStore((state) => state.filteredAssets);
+  const { sortedAssets, currentAssets, error } = useAssets();
   const { selectedAssetIds, setSelectedAssetIds, selectedAssets } =
     useSessionStateStore();
   const { mutation: deleteMutation } = useAssetDeletion();
@@ -135,6 +140,7 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   const [currentAudioAsset, setCurrentAudioAsset] = useState<Asset | null>(
     null
   );
+  const F2KeyPressed = useKeyPressedListener("F2");
   const controlKeyPressed = useKeyPressedListener("Control");
   const metaKeyPressed = useKeyPressedListener("Meta");
   const shiftKeyPressed = useKeyPressedListener("Shift");
@@ -167,6 +173,13 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
       window.removeEventListener("click", handleClickOutside);
     };
   }, [shiftKeyPressed, controlKeyPressed, metaKeyPressed, setSelectedAssetIds]);
+
+  // rename with F2 key
+  useEffect(() => {
+    if (F2KeyPressed && selectedAssetIds.length > 0) {
+      setRenameDialogOpen(true);
+    }
+  }, [F2KeyPressed, selectedAssetIds]);
 
   // select
   const handleSelectAsset = useCallback(
@@ -262,6 +275,7 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
       {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}
+      <AssetUploadOverlay />
       <div className="asset-menu">
         <AssetActions
           setSelectedAssetIds={setSelectedAssetIds}
@@ -269,6 +283,45 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
           handleDeselectAssets={handleDeselectAssets}
           maxItemSize={maxItemSize}
         />
+
+        {/* Current Folder + Selected Info */}
+        <Divider />
+        <Typography className="current-folder">
+          <span className="folder-slash">/</span>
+          {currentFolder && `${currentFolder.name}`}
+        </Typography>
+        <div className="selected-asset-info">
+          <Typography variant="body1" className="selected-info">
+            {selectedAssetIds.length > 0 && (
+              <>
+                {selectedAssetIds.length}{" "}
+                {selectedAssetIds.length === 1 ? "item " : "items "}
+                selected
+              </>
+            )}
+          </Typography>
+          {selectedAssetIds.length === 1 && (
+            <Typography variant="body2" className="asset-info">
+              <span
+                style={{
+                  color: "white",
+                  fontSize: ThemeNodetool.fontSizeSmall
+                }}
+              >
+                {selectedAssets[0]?.name}{" "}
+              </span>
+              <br />
+              {selectedAssets[0]?.content_type}
+              <br />
+              {prettyDate(selectedAssets[0]?.created_at)}
+            </Typography>
+          )}
+        </div>
+      </div>
+      <Dropzone onDrop={uploadFiles}>
+        <div className="br">
+          <br />
+        </div>
         <SearchInput
           onSearchChange={handleSearchChange}
           onSearchClear={handleSearchClear}
@@ -277,40 +330,6 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
           focusOnEscapeKey={false}
           maxWidth={"9em"}
         />
-      </div>
-      <AssetUploadOverlay />
-
-      {/* Current Folder + Selected Info */}
-      <Divider />
-      <Typography className="current-folder">
-        <span className="folder-slash">/</span>
-        {currentFolder && `${currentFolder.name}`}
-      </Typography>
-      <div className="selected-asset-info">
-        <Typography variant="body1" className="selected-info">
-          {selectedAssetIds.length > 0 && (
-            <>
-              {selectedAssetIds.length}{" "}
-              {selectedAssetIds.length === 1 ? "item " : "items "}
-              selected
-            </>
-          )}
-        </Typography>
-        {selectedAssetIds.length === 1 && (
-          <Typography variant="body2" className="asset-info">
-            <span
-              style={{ color: "white", fontSize: ThemeNodetool.fontSizeSmall }}
-            >
-              {selectedAssets[0]?.name}{" "}
-            </span>
-            <br />
-            {selectedAssets[0]?.content_type}
-            <br />
-            {prettyDate(selectedAssets[0]?.created_at)}
-          </Typography>
-        )}
-      </div>
-      <Dropzone onDrop={uploadFiles}>
         <AssetGridContent
           selectedAssetIds={selectedAssetIds}
           handleSelectAsset={handleSelectAsset}
