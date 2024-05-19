@@ -219,7 +219,7 @@ class SaveList(BaseNode):
 
     async def process(self, context: ProcessingContext) -> TextRef:
         values = "\n".join([str(value) for value in self.values])
-        asset, s3_uri = await context.create_asset(
+        asset = await context.create_asset(
             name=self.name, content_type="text/plain", content=BytesIO(values.encode())
         )
-        return TextRef(uri=s3_uri, asset_id=asset.id)
+        return TextRef(uri=asset.get_url or "", asset_id=asset.id)

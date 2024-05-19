@@ -2,6 +2,12 @@ import os
 from pathlib import Path
 from typing import Any
 
+from nodetool.common.nodetool_api_client import (
+    AbstractNodetoolAPIClient,
+    NodetoolAPIClient,
+    NodetoolAPITestClient,
+)
+
 
 def get_data_path(filename: str):
     """
@@ -330,6 +336,27 @@ class Environment(object):
         return cls.get_env() == "test"
 
     @classmethod
+    def get_test_app(cls):
+        from fastapi import FastAPI
+        import nodetool.api
+        import nodetool.api.auth
+        import nodetool.api.asset
+        import nodetool.api.types.graph
+        import nodetool.api.prediction
+        import nodetool.api.job
+        import nodetool.api.node
+        import nodetool.api.workflow
+
+        app = FastAPI()
+        app.include_router(nodetool.api.asset.router)
+        app.include_router(nodetool.api.auth.router)
+        app.include_router(nodetool.api.prediction.router)
+        app.include_router(nodetool.api.job.router)
+        app.include_router(nodetool.api.node.router)
+        app.include_router(nodetool.api.workflow.router)
+        return app
+
+    @classmethod
     def set_remote_auth(cls, remote_auth: bool):
         os.environ["REMOTE_AUTH"] = "1" if remote_auth else "0"
 
@@ -500,15 +527,21 @@ class Environment(object):
         return cls.get("NODETOOL_API_URL")
 
     @classmethod
-    def get_nodetool_api_client(cls, auth_token: str):
+    def get_nodetool_api_client(cls, auth_token: str) -> AbstractNodetoolAPIClient:
         """
         The nodetool api client is a wrapper around the nodetool api.
         """
-        from nodetool.common.nodetool_api_client import NodetoolAPIClient
 
-        return NodetoolAPIClient(
-            auth_token=auth_token, base_url=cls.get_nodetool_api_url()
-        )
+        if cls.is_test():
+            from fastapi.testclient import TestClient
+
+            return NodetoolAPITestClient(
+                auth_token=auth_token, client=TestClient(cls.get_test_app())
+            )
+        else:
+            return NodetoolAPIClient(
+                auth_token=auth_token, base_url=cls.get_nodetool_api_url()
+            )
 
     @classmethod
     def get_openai_client(cls):

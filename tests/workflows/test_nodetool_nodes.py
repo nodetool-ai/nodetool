@@ -1,11 +1,15 @@
 import io
+import numpy as np
 import pandas as pd
 import pytest
+import pydub
 import os
-from nodetool.metadata.types import DataframeRef
+from nodetool.metadata.types import AudioRef, DataframeRef, Tensor
 from nodetool.metadata.types import FolderRef
 from nodetool.common.environment import Environment
 
+from nodetool.nodes.nodetool.audio import SaveAudio
+from nodetool.nodes.nodetool.tensor import SaveTensor
 from nodetool.workflows.graph import Graph
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.processing_context import ProcessingContext
@@ -16,8 +20,8 @@ from nodetool.models.asset import (
 
 from nodetool.models.user import User
 from nodetool.nodes.nodetool.constant import Image
-from nodetool.nodes.nodetool.dataframe import Save
-from nodetool.nodes.nodetool.image import Blend, Composite
+from nodetool.nodes.nodetool.dataframe import SaveDataframe
+from nodetool.nodes.nodetool.image import Blend, Composite, SaveImg
 from nodetool.nodes.nodetool.image.source import Background
 from nodetool.nodes.nodetool.image.transform import (
     AutoContrast,
@@ -283,64 +287,62 @@ async def test_save_text_node(context: ProcessingContext, user: User):
     assert file.read() == b"Sample Text", "Asset should have the right content"
 
 
-# these tests should be resurrected at some point
-# @pytest.mark.asyncio
-# async def test_save_image_node(context: ProcessingContext, user: User):
-#     folder = Asset.create(user.id, "test", "folder", user.id)
-#     image_ref = await context.image_from_pil(PIL.Image.open(test_file))
-#     node = SaveImage(
-#         name="TestImage",
-#         image=image_ref,
-#         folder=FolderRef(asset_id=folder.id),
-#     )
-#     image_ref = await node.process(context)
-#     assert image_ref.asset_id, "ImageRef should have an asset_id"
-#     asset = Asset.find(user.id, image_ref.asset_id)
-#     assert asset, "Asset should exist"
-#     assert context.get_s3_asset_service().asset_exists(
-#         asset
-#     ), "Asset should exist on S3"
+@pytest.mark.asyncio
+async def test_save_image_node(context: ProcessingContext, user: User):
+    folder = Asset.create(user.id, "test", "folder", user.id)
+    image_ref = await context.image_from_pil(PIL.Image.open(test_file))
+    node = SaveImg(
+        name="TestImage",
+        image=image_ref,
+        folder=FolderRef(asset_id=folder.id),
+    )
+    image_ref = await node.process(context)
+    assert image_ref.asset_id, "ImageRef should have an asset_id"
+    asset = Asset.find(user.id, image_ref.asset_id)
+    assert asset, "Asset should exist"
+    file = await context.download_asset(image_ref.asset_id)
+    assert PIL.Image.open(file), "Asset should be an image"
 
 
-# @pytest.mark.asyncio
-# async def test_save_tensor_node(context: ProcessingContext, user: User):
-#     folder = Asset.create(user.id, "test", "folder")
-#     node = SaveTensor(
-#         name="TestTensor",
-#         value=Tensor.from_numpy(np.array([1, 2, 3], dtype=np.float32)),
-#         folder=FolderRef(asset_id=folder.id),
-#     )
-#     result = await node.process(context)
-#     assert result.to_numpy().tolist() == [1, 2, 3], "Tensor should be the same"
+@pytest.mark.asyncio
+async def test_save_tensor_node(context: ProcessingContext, user: User):
+    folder = Asset.create(user.id, "test", "folder")
+    node = SaveTensor(
+        name="TestTensor",
+        value=Tensor.from_numpy(np.array([1, 2, 3], dtype=np.float32)),
+        folder=FolderRef(asset_id=folder.id),
+    )
+    result = await node.process(context)
+    assert result.to_numpy().tolist() == [1, 2, 3], "Tensor should be the same"
 
 
-# @pytest.mark.asyncio
-# async def test_save_audio_node(context: ProcessingContext):
-#     user = User.get(context.user_id)
-#     assert user
-#     folder = Asset.create(user.id, "test", "folder", user.id)
-#     audio_segment = pydub.AudioSegment.silent(duration=1000)
-#     audio_ref = await context.audio_from_segment(audio_segment)
-#     node = SaveAudio(
-#         name="TestAudio",
-#         value=audio_ref,
-#         folder=FolderRef(asset_id=folder.id),
-#     )
-#     result = await node.process(context)
-#     assert isinstance(result, AudioRef)
-#     assert result.asset_id, "AudioRef should have an asset_id"
-#     segment = await context.to_audio_segment(result)
-#     assert segment.duration_seconds == 1.0, "AudioSegment should be the same"
-#     asset = Asset.find(context.user_id, result.asset_id)
-#     assert asset, "Asset should exist"
-#     assert asset.content_type.startswith("audio/"), "Asset should be audio"
+@pytest.mark.asyncio
+async def test_save_audio_node(context: ProcessingContext):
+    user = User.get(context.user_id)
+    assert user
+    folder = Asset.create(user.id, "test", "folder", user.id)
+    audio_segment = pydub.AudioSegment.silent(duration=1000)
+    audio_ref = await context.audio_from_segment(audio_segment)
+    node = SaveAudio(
+        name="TestAudio",
+        value=audio_ref,
+        folder=FolderRef(asset_id=folder.id),
+    )
+    result = await node.process(context)
+    assert isinstance(result, AudioRef)
+    assert result.asset_id, "AudioRef should have an asset_id"
+    segment = await context.audio_to_audio_segment(result)
+    assert segment.duration_seconds == 1.0, "AudioSegment should be the same"
+    asset = Asset.find(context.user_id, result.asset_id)
+    assert asset, "Asset should exist"
+    assert asset.content_type.startswith("audio/"), "Asset should be audio"
 
 
 @pytest.mark.asyncio
 async def test_save_dataframe_node(context: ProcessingContext, user: User):
     folder = Asset.create(user.id, "test", "folder", user.id)
     df = await context.dataframe_from_pandas(pd.DataFrame({"a": [1, 2, 3]}))
-    node = Save(
+    node = SaveDataframe(
         name="TestDataFrame",
         df=df,
         folder=FolderRef(asset_id=folder.id),

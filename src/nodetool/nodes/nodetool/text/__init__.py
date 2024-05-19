@@ -137,8 +137,8 @@ class SaveText(BaseNode):
     async def process(self, context: ProcessingContext) -> TextRef:
         string = await to_string(context, self.value)
         file = BytesIO(string.encode("utf-8"))
-        asset, s3_uri = await context.create_asset(self.name, "text/plain", file)
-        return TextRef(uri=s3_uri, asset_id=asset.id)
+        asset = await context.create_asset(self.name, "text/plain", file)
+        return TextRef(uri=asset.get_url or "", asset_id=asset.id)
 
 
 class Split(BaseNode):

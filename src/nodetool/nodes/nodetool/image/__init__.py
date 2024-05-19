@@ -14,7 +14,8 @@ from pydantic import Field
 from typing import Literal
 
 
-class Save(BaseNode):
+# Distinguish from comfy SaveImage
+class SaveImg(BaseNode):
     """
     Save an image to a folder.
     """
