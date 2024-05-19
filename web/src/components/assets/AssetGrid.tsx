@@ -279,6 +279,14 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
       {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}
       <AssetUploadOverlay />
       <div className="asset-menu">
+        <SearchInput
+          onSearchChange={handleSearchChange}
+          onSearchClear={handleSearchClear}
+          focusOnTyping={false}
+          focusSearchInput={false}
+          focusOnEscapeKey={false}
+          maxWidth={"9em"}
+        />
         <AssetActions
           setSelectedAssetIds={setSelectedAssetIds}
           handleSelectAllAssets={handleSelectAllAssets}
@@ -324,14 +332,6 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
         <div className="br">
           <br />
         </div>
-        <SearchInput
-          onSearchChange={handleSearchChange}
-          onSearchClear={handleSearchClear}
-          focusOnTyping={false}
-          focusSearchInput={false}
-          focusOnEscapeKey={false}
-          maxWidth={"9em"}
-        />
         <AssetGridContent
           selectedAssetIds={selectedAssetIds}
           handleSelectAsset={handleSelectAsset}

@@ -69,9 +69,5 @@ export function createLinearGradient(
   }
 
   const rgbaModifiedColor = hexToRgba(modifiedHexColor, 1);
-  console.log(rgbaModifiedColor);
-  console.log(
-    `linear-gradient(${direction}, ${rgbaColor}, ${rgbaModifiedColor})`
-  );
   return `linear-gradient(${direction}, ${rgbaColor}, ${rgbaModifiedColor})`;
 }

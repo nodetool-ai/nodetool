@@ -24,7 +24,7 @@ const styles = (theme: any) =>
       position: "relative"
     },
     ".search-input": {
-      width: "200px",
+      width: "100%",
       height: "2em",
       flexShrink: "0"
     },
@@ -171,7 +171,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
   }, [focusOnTyping, controlKeyPressed]);
 
   return (
-    <div css={styles} style={{ maxWidth: maxWidth }}>
+    <div
+      className="search-input-container"
+      css={styles}
+      style={{ maxWidth: maxWidth }}
+    >
       <input
         id={`search-input`}
         className="search-input"

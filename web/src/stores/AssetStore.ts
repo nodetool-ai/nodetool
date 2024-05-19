@@ -79,7 +79,6 @@ export interface AssetStore {
   loadCurrentFolder: (cursor?: string) => Promise<AssetList>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<void>;
-  assetExists: (asset: Asset) => Promise<boolean>;
 }
 
 /**
@@ -288,34 +287,5 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     get().add(asset);
 
     return asset;
-  },
-
-  /**
-   * Check if the asset's URL exists using a GET request.
-   *
-   * @param asset The asset to check.
-   * @returns A promise that resolves to true if the asset exists, false otherwise.
-   */
-  assetExists: async (asset: Asset) => {
-    try {
-      if (!asset.get_url) {
-        return false;
-      }
-      const response = await axios.get(asset.get_url, {
-        headers: {
-          Range: "bytes=0-0"
-        }
-      });
-      return response.status === 206 || response.status === 200;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response && error.response.status === 404) {
-          return false;
-        }
-      } else {
-        console.error("assetExists error:", error);
-      }
-      return false;
-    }
   }
 }));

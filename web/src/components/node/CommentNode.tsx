@@ -111,9 +111,11 @@ const styles = (theme: any) =>
 const colorSelectStyles = (theme: any) =>
   css({
     ".color-button": {
-      width: "100%",
+      width: "98%",
       height: "2em",
-
+      borderRadius: "2px",
+      alignItems: "center",
+      justifyContent: "start",
       border: "none",
       "&:hover": {
         opacity: 0.6
@@ -121,6 +123,8 @@ const colorSelectStyles = (theme: any) =>
       p: {
         fontSize: ThemeNodetool.fontSizeSmall,
         fontFamily: ThemeNodetool.fontFamily2,
+        wordSpacing: "-3px",
+        textAlign: "left",
         fontWeight: "bold"
       }
     },
@@ -134,7 +138,7 @@ const colorSelectStyles = (theme: any) =>
     ".MuiDialogTitle-root": {
       backgroundColor: theme.palette.c_gray2,
       color: theme.palette.c_gray5,
-      padding: "0.5em"
+      padding: "0.5em .75em"
     },
     ".MuiDialogContent-root": {
       backgroundColor: theme.palette.c_gray2,
@@ -143,9 +147,9 @@ const colorSelectStyles = (theme: any) =>
     },
     ".search": {
       width: "100%",
-      padding: "0",
+      padding: "0 .5em",
       marginBottom: "1em",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: "transparent",
       color: theme.palette.c_gray5
     }
   });
@@ -282,15 +286,17 @@ export default memo(
           open={modalOpen}
           onClose={() => setModalOpen(false)}
         >
-          <DialogTitle>Select Color</DialogTitle>
+          <DialogTitle style={{ backgroundColor: "transparent" }}>
+            datatype colors
+          </DialogTitle>
+          <div className="search">
+            <SearchInput
+              onSearchChange={handleSearchChange}
+              onSearchClear={handleSearchClear}
+              focusOnTyping={true}
+            />
+          </div>
           <DialogContent>
-            <div className="search">
-              <SearchInput
-                onSearchChange={handleSearchChange}
-                onSearchClear={handleSearchClear}
-                focusOnTyping={true}
-              />
-            </div>
             {dataTypesFiltered.map((datatype, index) => (
               <>
                 <Button
@@ -299,7 +305,7 @@ export default memo(
                   style={{
                     background: createLinearGradient(
                       datatype.color,
-                      120,
+                      140,
                       "to right",
                       "lighten"
                     )
