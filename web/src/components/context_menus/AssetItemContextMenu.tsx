@@ -4,6 +4,7 @@ import ContextMenuItem from "./ContextMenuItem";
 //icons
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
@@ -11,11 +12,13 @@ import useSessionStateStore from "../../stores/SessionStateStore";
 interface AssetItemContextMenuProps {
   openDeleteDialog: () => void;
   openRenameDialog: () => void;
+  openMoveToFolderDialog: () => void;
 }
 
 const AssetItemContextMenu = ({
   openDeleteDialog,
-  openRenameDialog
+  openRenameDialog,
+  openMoveToFolderDialog
 }: AssetItemContextMenuProps) => {
   const { openMenuType, menuPosition } = useContextMenuStore();
   const { selectedAssetIds } = useSessionStateStore();
@@ -48,6 +51,15 @@ const AssetItemContextMenu = ({
           label="Rename"
           IconComponent={<DriveFileRenameOutlineIcon />}
           tooltip="Rename selected assets"
+        />
+        <ContextMenuItem
+          onClick={(e: any) => {
+            e.stopPropagation();
+            openMoveToFolderDialog();
+          }}
+          label="Move to folder"
+          IconComponent={<DriveFileMoveIcon />}
+          tooltip="Move selected assets to a different folder"
         />
         <Divider />
         <ContextMenuItem

@@ -33,6 +33,7 @@ import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
 import AssetGridContent from "./AssetGridContent";
 import SearchInput from "../search/SearchInput";
+import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 
 const styles = (theme: any) =>
   css({
@@ -122,13 +123,19 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
     useSessionStateStore();
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
+  const { mutation: moveMutation } = useAssetUpdate();
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [moveToFolderDialogOpen, setMoveToFolderDialogOpen] = useState(false);
   const openDeleteDialog = () => {
     setDeleteDialogOpen(true);
   };
   const openRenameDialog = () => {
     setRenameDialogOpen(true);
+  };
+  const openMoveToFolderDialog = () => {
+    setMoveToFolderDialogOpen(true);
   };
   const [searchTerm, setSearchTerm] = useState("");
   const currentFolder = useAssetStore((state) => state.currentFolder);
@@ -365,6 +372,7 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
       <AssetItemContextMenu
         openDeleteDialog={openDeleteDialog}
         openRenameDialog={openRenameDialog}
+        openMoveToFolderDialog={openMoveToFolderDialog}
       />
       <AssetDeleteConfirmation
         mutation={deleteMutation}
@@ -376,6 +384,12 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
         mutation={updateMutation}
         dialogOpen={renameDialogOpen}
         setDialogOpen={setRenameDialogOpen}
+        assets={selectedAssetIds}
+      />
+      <AssetMoveToFolderConfirmation
+        mutation={moveMutation}
+        dialogOpen={moveToFolderDialogOpen}
+        setDialogOpen={setMoveToFolderDialogOpen}
         assets={selectedAssetIds}
       />
     </Box>

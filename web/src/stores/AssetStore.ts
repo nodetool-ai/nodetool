@@ -76,6 +76,7 @@ export interface AssetStore {
     parent_id: string | null
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
+  loadFolderTree: (sortBy?: string) => Promise<Record<string, any>>;
   loadCurrentFolder: (cursor?: string) => Promise<AssetList>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<void>;
@@ -88,6 +89,53 @@ const sort = (assets: { [key: string]: Asset }) => {
   return Object.values(assets).sort((a, b) => {
     return -a.created_at.localeCompare(b.created_at);
   });
+};
+
+const buildFolderTree = (
+  folders: Asset[],
+  sortBy: "name" | "updated_at" = "name"
+) => {
+  const tree: Record<string, any> = {};
+  const lookup: Record<string, any> = {};
+
+  folders.forEach((folder) => {
+    lookup[folder.id] = { ...folder, children: [] };
+  });
+
+  folders.forEach((folder) => {
+    if (folder.parent_id && lookup[folder.parent_id]) {
+      lookup[folder.parent_id].children.push(lookup[folder.id]);
+    } else {
+      tree[folder.id] = lookup[folder.id];
+    }
+  });
+
+  const sortNodes = (a: any, b: any) => {
+    if (sortBy === "name") {
+      return a.name.localeCompare(b.name);
+    } else if (sortBy === "updated_at") {
+      return (
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+    }
+    return 0;
+  };
+
+  const sortChildren = (node: any) => {
+    node.children.sort(sortNodes);
+    node.children.forEach(sortChildren);
+  };
+
+  // Convert tree object to array, sort, and convert back to object
+  const sortedTreeArray = Object.values(tree).sort(sortNodes);
+  const sortedTree: Record<string, any> = {};
+  sortedTreeArray.forEach((node) => {
+    sortedTree[node.id] = node;
+  });
+
+  Object.values(sortedTree).forEach(sortChildren);
+
+  return sortedTree;
 };
 
 export const useAssetStore = create<AssetStore>((set, get) => ({
@@ -155,6 +203,14 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       get().add(asset);
     }
     return data;
+  },
+  /**
+   * Load all folders as a tree
+   */
+
+  loadFolderTree: async (sortBy?: string) => {
+    const { assets } = await get().load({ content_type: "folder" });
+    return buildFolderTree(assets, (sortBy as "name" | "updated_at") || "name");
   },
 
   /**
