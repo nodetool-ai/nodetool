@@ -46,7 +46,7 @@ const styles = (theme: any) =>
     "&": {
       display: "flex",
       flexWrap: "wrap",
-      gap: "2em",
+      gap: ".5em",
       minHeight: "30px",
       backgroundColor: theme.palette.c_gray1
     },
@@ -73,10 +73,10 @@ const styles = (theme: any) =>
       backgroundColor: "transparent"
     },
     ".asset-size-slider": {
-      flexGrow: 0,
+      flexGrow: 0.5,
       flexShrink: 1,
       minWidth: "60px",
-      maxWidth: "120px"
+      maxWidth: "150px"
     },
     ".asset-size-slider .MuiSlider-root": {
       height: "25px",

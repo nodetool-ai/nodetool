@@ -19,6 +19,24 @@ const styles = (theme: any) =>
     },
     ".audio-controls-container": {
       padding: "2em"
+    },
+    ".current-folder": {
+      position: "absolute",
+      top: "2em",
+      right: "3em",
+      textAlign: "right",
+      margin: "0",
+      padding: "0"
+    },
+    ".selected-asset-info": {
+      position: "absolute",
+      top: "2em",
+      right: "3em"
+    },
+    ".asset-size-slider": {
+      width: "200px",
+      maxWidth: "unset",
+      paddingLeft: "1em"
     }
   });
 

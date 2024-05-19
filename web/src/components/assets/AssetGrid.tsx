@@ -43,12 +43,12 @@ const styles = (theme: any) =>
       height: "100%"
     },
     ".asset-menu": {
-      margin: "0 0 .5em .5em",
+      margin: "0",
       display: "flex",
       flexWrap: "wrap",
       justifyContent: "start",
       alignItems: "start",
-      gap: "1em"
+      gap: ".5em"
     },
     ".dropzone": {
       display: "flex",
@@ -60,23 +60,25 @@ const styles = (theme: any) =>
       maxHeight: "calc(-273px + 100vh)"
     },
     ".selected-asset-info": {
-      marginLeft: "auto",
       backgroundColor: theme.palette.c_gray1,
       minHeight: "70px",
+      minWidth: "200px",
       overflowY: "auto",
       overflowX: "hidden",
       fontSize: ThemeNodetool.fontSizeSmall,
       padding: "0.1em 0.2em",
+
       color: theme.palette.c_gray5
     },
     ".file-upload-button button": {
       width: "100%",
-      maxWidth: "200px"
+      maxWidth: "155px"
     },
     ".current-folder": {
       minWidth: "100px",
       fontSize: ThemeNodetool.fontSizeSmall,
-      color: theme.palette.c_gray5
+      color: theme.palette.c_gray5,
+      paddingTop: "0.5em"
     },
     ".folder-slash": {
       color: theme.palette.c_hl1,

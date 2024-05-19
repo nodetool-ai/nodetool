@@ -482,8 +482,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   return (
     <div
       css={styles}
-      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
-        } ${isParent ? "parent" : ""}`}
+      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
+        isDragHovered ? "drag-hover" : ""
+      } ${isParent ? "parent" : ""}`}
       onDragEnter={isFolder ? handleDragEnter : undefined}
       onDragLeave={isFolder ? handleDragLeave : undefined}
       onContextMenu={(e) =>
@@ -538,7 +539,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"})`
+                backgroundImage: `url(${
+                  asset.thumb_url || "/images/placeholder.png"
+                })`
               }}
               aria-label={asset.id}
             />
@@ -546,7 +549,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               className="image-aspect-ratio"
               style={{
                 backgroundImage: `url(${
-                  asset.get_url || "/images/placeholder.png"
+                  asset.thumb_url || "/images/placeholder.png"
                 })`
               }}
               aria-label={asset.id}
@@ -581,7 +584,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"})`
+                backgroundImage: `url(${
+                  asset.thumb_url || "/images/placeholder.png"
+                })`
               }}
               aria-label={asset.id}
             />
