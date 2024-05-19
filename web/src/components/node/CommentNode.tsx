@@ -22,7 +22,7 @@ import ColorizeIcon from "@mui/icons-material/Colorize";
 import { DATA_TYPES } from "../../config/data_types";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import SearchInput from "../search/SearchInput";
-
+import { hexToRgba, createLinearGradient } from "../../utils/ColorUtils";
 type CustomElement = { type: "paragraph"; children: CustomText[] };
 type CustomText = { text: string };
 
@@ -239,15 +239,6 @@ export default memo(
       setModalOpen(false);
     };
 
-    function hexToRgba(hex: string, opacity: number) {
-      const bigint = parseInt(hex.slice(1), 16);
-      const r = (bigint >> 16) & 255;
-      const g = (bigint >> 8) & 255;
-      const b = bigint & 255;
-
-      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    }
-
     const handleSearchChange = (search: string) => {
       // filter datatypes by search string:
       setDataTypesFiltered(
@@ -306,7 +297,12 @@ export default memo(
                   className="color-button"
                   key={index}
                   style={{
-                    backgroundColor: datatype.color
+                    background: createLinearGradient(
+                      datatype.color,
+                      120,
+                      "to right",
+                      "lighten"
+                    )
                   }}
                   onClick={() => handleColorChange(datatype.color)}
                 >
