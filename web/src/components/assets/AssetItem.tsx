@@ -468,17 +468,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     [selectedAssetIds, setSelectedAssetIds, openContextMenu, enableContextMenu]
   );
 
-  const [assetExists, setAssetExists] = useState<boolean | null>(null);
-  const { assetExists: checkAssetExists } = useAssetStore();
-
-  useEffect(() => {
-    const checkExistence = async () => {
-      const exists = await checkAssetExists(asset);
-      setAssetExists(exists);
-    };
-    checkExistence();
-  }, [asset, checkAssetExists]);
-
   return (
     <div
       css={styles}
@@ -531,7 +520,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             {isParent && <NorthWest className="parent-icon" />}
           </div>
         )}
-        {!assetExists && !isFolder && <div className="asset-missing" />}
+        {!asset.get_url && !isFolder && <div className="asset-missing" />}
 
         {isImage && (
           <>
