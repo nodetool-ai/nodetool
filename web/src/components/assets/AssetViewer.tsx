@@ -61,7 +61,7 @@ const styles = (theme: any) =>
     },
     ".asset-info": {
       position: "absolute",
-      maxWidth: "300px",
+      maxWidth: "350px",
       display: "flex",
       flexDirection: "column",
       gap: "0.5em",
@@ -69,7 +69,8 @@ const styles = (theme: any) =>
       padding: 0,
       bottom: "1em",
       right: "1em",
-      zIndex: "2000"
+      zIndex: "2000",
+      overflowWrap: "break-word"
     },
     ".asset-info p": {
       fontSize: "0.9em",
