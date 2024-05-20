@@ -13,7 +13,8 @@ const useAssets = () => {
   const { user: currentUser } = useAuth();
   const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
 
-  const { currentFolderId, loadCurrentFolder } = useAssetStore();
+  const { currentFolderId, loadCurrentFolder, loadFolderById } =
+    useAssetStore();
 
   interface SortedAssetsByType {
     assetsByType: Record<string, Asset[]>;
@@ -93,6 +94,13 @@ const useAssets = () => {
     [loadCurrentFolder]
   );
 
+  const loadFolderId = useCallback(
+    async (id: string) => {
+      return await loadFolderById(id);
+    },
+    [loadFolderById]
+  );
+
   const { data, error, isLoading, hasNextPage, fetchNextPage, refetch } =
     useInfiniteQuery<AssetList, Error>(
       ["assets", { parent_id: currentFolderId || currentUser?.id }],
@@ -143,6 +151,8 @@ const useAssets = () => {
     sortedFolders,
     sortedFiles,
     currentAssets,
+    loadFolder,
+    loadFolderId,
     getAssetById,
     getAssetsById,
     isLoading,
