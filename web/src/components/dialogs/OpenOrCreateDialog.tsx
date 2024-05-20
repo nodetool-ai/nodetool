@@ -39,9 +39,22 @@ const styles = (theme: any) =>
       background: theme.palette.c_gray1
     },
     ".title": {
-      color: theme.palette.c_gray5,
-      fontSize: theme.fontSizeBig,
-      margin: "0 0 .5em 0"
+      position: "absolute",
+      left: "2em",
+      color: theme.palette.c_white,
+      fontSize: theme.fontSizeBigger,
+      margin: "0",
+      textAlign: "center"
+    },
+    ".recent-hl": {
+      color: theme.palette.c_gray6,
+      textTransform: "uppercase",
+      fontFamily: theme.fontFamily1
+    },
+    ".toggle-name-date": {
+      marginLeft: "auto",
+      paddingRight: "3em",
+      height: "1.5em"
     },
     ".content": {
       position: "relative",
@@ -54,7 +67,6 @@ const styles = (theme: any) =>
 
       overflow: "hidden"
     },
-    ".create": { minWidth: "200px" },
     ".recent": {
       position: "relative",
       display: "flex",
@@ -68,25 +80,18 @@ const styles = (theme: any) =>
       position: "relative",
       display: "flex",
       flexDirection: "row",
-      gap: "1em"
+      gap: "1em",
+      marginTop: "2em"
     },
     ".recent h4": { margin: "0" },
     ".recent .items": { height: "100%", position: "relative" },
-    ".navigate-workflow": {
+    ".workflow-buttons": {
       display: "flex",
       flexDirection: "row",
       gap: "1em",
       justifyContent: "center",
+      marginLeft: "6em",
       alignItems: "center"
-    },
-    ".navigate-workflow button": {
-      // borderBottom: "1px solid " + theme.palette.c_hl1,
-      wordSpacing: "-2px",
-      backgroundColor: theme.palette.c_gray0,
-      height: "2em"
-    },
-    ".navigate-workflow button:hover": {
-      backgroundColor: theme.palette.c_gray1
     }
   });
 
@@ -126,6 +131,7 @@ const listStyles = () =>
     },
     ".name": {
       fontSize: ThemeNodetool.fontSizeNormal,
+      wordSpacing: "-3px",
       margin: "0",
       lineHeight: "1em",
       color: ThemeNodetool.palette.c_hl1
@@ -273,24 +279,29 @@ const OpenOrCreateDialog = () => {
       style={{ top: "100px" }}
     >
       <Typography className="title" variant="h4">
-        NODETOOL
+        NODE
+        <br />
+        TOOL
       </Typography>
       <DialogContent className="content">
-        <div className="create">
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={handleCreateNewWorkflow}
-          >
-            Create New Workflow
+        <div className="workflow-buttons">
+          <Button variant="outlined" onClick={handleCreateNewWorkflow}>
+            Create New
+          </Button>
+          <Button color="primary" onClick={handleNavigateUserWorkflows}>
+            My Workflows
+          </Button>
+          <Button color="primary" onClick={handleNavigateExampleWorkflows}>
+            Examples
           </Button>
         </div>
+
         <div className="recent">
           <div className="tools">
-            <Typography variant="h4">Recent Workflows:</Typography>
+            <Typography className="recent-hl">Recent Workflows</Typography>
             <ToggleButtonGroup
+              className="toggle-name-date"
               value={settings.workflowOrder}
-              style={{ marginLeft: "auto", height: "2em" }}
               onChange={handleOrderChange}
               exclusive
               aria-label="Sort workflows"
@@ -313,14 +324,6 @@ const OpenOrCreateDialog = () => {
             )}
             {data && renderListView(sortedWorkflows)}
           </div>
-        </div>
-        <div className="navigate-workflow">
-          <Button color="primary" onClick={handleNavigateUserWorkflows}>
-            All Workflows
-          </Button>
-          <Button color="primary" onClick={handleNavigateExampleWorkflows}>
-            Example Workflows
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

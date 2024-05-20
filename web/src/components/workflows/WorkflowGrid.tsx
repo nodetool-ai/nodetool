@@ -23,7 +23,6 @@ import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useEffect, useState } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate } from "react-router-dom";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { useQuery, useQueryClient } from "react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -34,7 +33,7 @@ const tile_height = "200px";
 
 type WorkflowCategory = "user" | "examples";
 
-const styles = () =>
+const styles = (theme: any) =>
   css({
     ".tools": {
       display: "flex",
@@ -55,7 +54,7 @@ const styles = () =>
       height: tile_height,
       overflow: "hidden",
       position: "relative",
-      backgroundColor: ThemeNodetool.palette.c_gray2,
+      backgroundColor: theme.palette.c_gray2,
       display: "flex",
       justifyContent: "center",
       alignItems: "center"
@@ -66,8 +65,8 @@ const styles = () =>
       transition: "outline 0.2s"
     },
     ".workflow:hover": {
-      backgroundColor: ThemeNodetool.palette.c_gray1,
-      outline: `1px solid ${ThemeNodetool.palette.c_hl1}`
+      backgroundColor: theme.palette.c_gray1,
+      outline: "1px solid" + theme.palette.c_hl1
     },
     ".workflow img": {
       width: "100%",
@@ -76,27 +75,40 @@ const styles = () =>
     },
     ".description": {
       lineHeight: "1.2em",
-      fontSize: ThemeNodetool.fontSizeSmall,
-      color: ThemeNodetool.palette.c_gray6
+      fontSize: theme.fontSizeSmall,
+      color: theme.palette.c_gray6
     },
     ".date": {
       lineHeight: "1.2em",
 
       margin: "0.25em 0 0",
-      fontSize: ThemeNodetool.fontSizeSmaller,
-      color: ThemeNodetool.palette.c_gray5
+      fontSize: theme.fontSizeSmaller,
+      color: theme.palette.c_gray5
     },
     ".status": { margin: "1em 1em 0 2em" },
     // Toggle category
     ".toggle-category": {
       display: "flex",
       flexDirection: "row",
+      gap: "0",
+      height: "2em",
+      margin: "0"
+    },
+    ".workflow-buttons": {
+      display: "flex",
+      flexDirection: "row",
       gap: "1em",
-      margin: "2em 1em 0 2em"
+      justifyContent: "flex-start",
+      margin: "2em 2em",
+      alignItems: "center"
+    },
+
+    ".workflow-buttons .MuiToggleButton-root[aria-pressed='false']": {
+      color: theme.palette.c_gray4
     }
   });
 
-const gridStyles = () =>
+const gridStyles = (theme: any) =>
   css({
     "&": {
       display: "flex",
@@ -125,10 +137,10 @@ const gridStyles = () =>
     ".name": {
       top: "-5px",
       left: "5px",
-      fontSize: ThemeNodetool.fontSizeSmall,
+      fontSize: theme.fontSizeSmall,
       margin: "0.5em 0 .25em",
       lineHeight: "1em",
-      color: ThemeNodetool.palette.c_hl1
+      color: theme.palette.c_hl1
     },
     ".description": {
       margin: "0.25em 0 .75em"
@@ -143,7 +155,7 @@ const gridStyles = () =>
       right: "-5px"
     }
   });
-const listStyles = () =>
+const listStyles = (theme: any) =>
   css({
     "&": {
       display: "flex",
@@ -167,7 +179,7 @@ const listStyles = () =>
       transition: "background 0.2s"
     },
     ".workflow:hover": {
-      backgroundColor: ThemeNodetool.palette.c_gray1,
+      backgroundColor: theme.palette.c_gray1,
       outline: `0`
     },
     ".name-and-description": {
@@ -176,10 +188,10 @@ const listStyles = () =>
       gap: "0.1em"
     },
     ".name": {
-      fontSize: ThemeNodetool.fontSizeNormal,
+      fontSize: theme.fontSizeNormal,
       margin: "0",
       lineHeight: "1em",
-      color: ThemeNodetool.palette.c_hl1
+      color: theme.palette.c_hl1
     },
     ".description": {
       margin: "0.1em 0 .1em"
@@ -187,7 +199,7 @@ const listStyles = () =>
     ".date": {
       marginLeft: "auto",
       paddingRight: "1em",
-      fontFamily: ThemeNodetool.fontFamily2,
+      fontFamily: theme.fontFamily2,
       right: "0",
       minWidth: "150px"
     },
@@ -440,22 +452,33 @@ const WorkflowGrid = () => {
         content={`Delete workflow '${workflowToDelete?.name}'?`}
       />
 
-      <ToggleButtonGroup
-        className="toggle-category"
-        value={workflowCategory}
-        onChange={handleWorfklowCategoryChange}
-        exclusive
-        aria-label="Workflow category"
-      >
-        <ToggleButton value="user" aria-label="user">
-          My Workflows
-        </ToggleButton>
-        <ToggleButton value="examples" aria-label="examples">
-          Examples
-        </ToggleButton>
-      </ToggleButtonGroup>
+      <div className="workflow-buttons">
+        <Button variant="outlined" onClick={handleCreateWorkflow}>
+          Create New
+        </Button>
+        {/* <Button color="primary" onClick={handleWorfklowCategoryChange}>
+          All Workflows
+        </Button>
+        <Button color="primary" onClick={handleWorfklowCategoryChange}>
+          Example Workflows
+        </Button> */}
+        <ToggleButtonGroup
+          className="toggle-category"
+          value={workflowCategory}
+          onChange={handleWorfklowCategoryChange}
+          exclusive
+          aria-label="Workflow category"
+        >
+          <ToggleButton color="primary" value="user" aria-label="user">
+            My Workflows
+          </ToggleButton>
+          <ToggleButton color="primary" value="examples" aria-label="examples">
+            Examples
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </div>
 
-      <Button
+      {/* <Button
         onClick={() => {
           handleCreateWorkflow();
         }}
@@ -463,7 +486,7 @@ const WorkflowGrid = () => {
         sx={{ flexGrow: 1, margin: "2em 0 0 2em" }}
       >
         Create Workflow
-      </Button>
+      </Button> */}
       <div className="tools">
         <SearchInput
           onSearchChange={handleSearchChange}
