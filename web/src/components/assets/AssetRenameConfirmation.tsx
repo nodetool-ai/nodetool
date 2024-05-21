@@ -97,9 +97,13 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
     const cleanedName = baseNewName.trim();
 
     // assetsToRename with incremented new names
+    const maxIndexLength = Math.max(2, assets.length.toString().length);
     const updatedAssetsToRename = assets?.map((asset, index) => ({
       id: asset,
-      name: assets.length === 1 ? cleanedName : `${cleanedName}_${index + 1}`
+      name:
+        assets.length === 1
+          ? cleanedName
+          : `${cleanedName}_${String(index + 1).padStart(maxIndexLength, "0")}`
     }));
 
     await mutation.mutateAsync(updatedAssetsToRename);

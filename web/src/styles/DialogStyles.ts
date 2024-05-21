@@ -11,7 +11,8 @@ const dialogStyles = (theme: any) =>
       transform: "translate(0, 0)"
     },
     "& .MuiPaper-root": {
-      width: "100%"
+      width: "100%",
+      maxWidth: "500px"
     },
     ".dialog-content": {
       padding: "0 1em"
