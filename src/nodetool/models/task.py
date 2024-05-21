@@ -11,7 +11,7 @@ class Task(DBModel):
             "key_schema": {"id": "HASH"},
             "attribute_definitions": {"thread_id": "S"},
             "global_secondary_indexes": {
-                "nodetool_job_job_index": {"thread_id": "HASH"},
+                "nodetool_task_thread_index": {"thread_id": "HASH"},
             },
         }
 
@@ -51,14 +51,14 @@ class Task(DBModel):
     @classmethod
     def paginate(
         cls,
-        job_id: Optional[str] = None,
+        thread_id: Optional[str] = None,
         limit: int = 10,
         start_key: Optional[str] = None,
     ):
         return cls.query(
-            condition="job_id = :job_id",
-            values={":job_id": job_id},
-            index="nodetool_task_job_index",
+            condition="thread_id = :thread_id",
+            values={":thread_id": thread_id},
+            index="nodetool_task_thread_index",
             limit=limit,
             start_key=start_key,
         )

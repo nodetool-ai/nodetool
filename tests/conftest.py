@@ -2,12 +2,15 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
+from nodetool.api.server import create_app
 from nodetool.api.types.graph import Node, Edge
 from nodetool.common.environment import Environment
+from nodetool.models.message import Message
 from nodetool.models.schema import (
     create_all_tables,
     drop_all_tables,
 )
+from nodetool.models.thread import Thread
 from nodetool.models.user import User
 
 from nodetool.common.environment import Environment
@@ -108,7 +111,7 @@ def make_job(user: User, **kwargs):
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def user():
     return make_user(verified=True)
 
@@ -130,9 +133,8 @@ def client():
     """
 
     Environment.set_remote_auth(True)
-    app = Environment.get_test_app()
 
-    return TestClient(app)
+    return TestClient(create_app())
 
 
 @pytest.fixture(scope="function")
@@ -147,6 +149,23 @@ def headers(user: User):
 
 def make_node(id, type: str, data: dict[str, Any]):
     return Node(id=id, type=type, data=data)
+
+
+@pytest.fixture(scope="function")
+def thread(user: User):
+    yield Thread.create(
+        user_id=user.id,
+    )
+
+
+@pytest.fixture(scope="function")
+def message(user: User, thread: Thread):
+    yield Message.create(
+        user_id=user.id,
+        thread_id=thread.id,
+        role="user",
+        content="content",
+    )
 
 
 @pytest.fixture(scope="function")

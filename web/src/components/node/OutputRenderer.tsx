@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { DataframeRef, ThreadMessage, TypeMetadata } from "../../stores/ApiTypes";
+import { DataframeRef, Message, TypeMetadata } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable";
@@ -234,7 +234,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value, type }) => {
 
       switch (type_args[0].type) {
         case "thread_message":
-          return <ThreadMessageList messages={value as ThreadMessage[]} />;
+          return <ThreadMessageList messages={value as Message[]} />;
         case "image":
           return <ImageList images={value} />;
         default:

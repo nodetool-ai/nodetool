@@ -317,9 +317,7 @@ async def test_save_tensor_node(context: ProcessingContext, user: User):
 
 
 @pytest.mark.asyncio
-async def test_save_audio_node(context: ProcessingContext):
-    user = User.get(context.user_id)
-    assert user
+async def test_save_audio_node(context: ProcessingContext, user: User):
     folder = Asset.create(user.id, "test", "folder", user.id)
     audio_segment = pydub.AudioSegment.silent(duration=1000)
     audio_ref = await context.audio_from_segment(audio_segment)

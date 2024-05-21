@@ -1,11 +1,11 @@
 import { Typography } from "@mui/material";
-import { ThreadMessage } from "../../stores/ApiTypes";
+import { Message } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 
 export default function ThreadMessageProperty(props: PropertyProps) {
   const id = `thread-message-${props.property.name}-${props.propertyIndex}`;
-  const msg = props.value as ThreadMessage;
+  const msg = props.value as Message;
   return (
     <>
       <PropertyLabel

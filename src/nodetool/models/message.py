@@ -1,5 +1,25 @@
 from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+
+
+class MessageTextContent(BaseModel):
+    type: Literal["text"] = "text"
+    text: str = ""
+
+
+class ImageUrl(BaseModel):
+    url: str = ""
+
+
+class MessageImageContent(BaseModel):
+    type: Literal["image_url"] = "image_url"
+    image_url: ImageUrl = ImageUrl(url="")
+
+
+MessageContent = MessageTextContent | MessageImageContent
 
 
 class Message(DBModel):
@@ -22,7 +42,7 @@ class Message(DBModel):
     tool_call_id: str | None = DBField(default=None)
     role: str = DBField(default="")
     name: str = DBField(default="")
-    content: str | None = DBField(default=None)
+    content: str | list[MessageContent] | None = DBField(default=None)
     tool_calls: list[dict] | None = DBField(default=None)
     created_at: datetime = DBField(default_factory=datetime.now)
 

@@ -74,6 +74,16 @@ export interface paths {
     /** Verify */
     post: operations["verify_api_auth_verify_post"];
   };
+  "/api/messages/": {
+    /** Index */
+    get: operations["index_api_messages__get"];
+    /** Create */
+    post: operations["create_api_messages__post"];
+  };
+  "/api/messages/{message_id}": {
+    /** Get */
+    get: operations["get_api_messages__message_id__get"];
+  };
   "/api/nodes/dummy": {
     /**
      * Dummy
@@ -265,6 +275,31 @@ export interface components {
       /** Data Type */
       data_type: "int" | "float" | "datetime" | "object";
     };
+    /** CreateMessageRequest */
+    CreateMessageRequest: {
+      /** Thread Id */
+      thread_id?: string | null;
+      /** User Id */
+      user_id?: string | null;
+      /** Tool Call Id */
+      tool_call_id?: string | null;
+      /**
+       * Role
+       * @default
+       */
+      role?: string;
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+      /** Content */
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      /** Tool Calls */
+      tool_calls?: Record<string, never>[] | null;
+      /** Created At */
+      created_at?: string | null;
+    };
     /** DataframeRef */
     DataframeRef: {
       /**
@@ -358,6 +393,14 @@ export interface components {
       /** Asset Id */
       asset_id?: string | null;
     };
+    /** ImageUrl */
+    ImageUrl: {
+      /**
+       * Url
+       * @default
+       */
+      url?: string;
+    };
     /** Job */
     Job: {
       /** Id */
@@ -416,41 +459,63 @@ export interface components {
       /** Error */
       error?: string | null;
     };
+    /** Message */
+    Message: {
+      /** Id */
+      id?: string | null;
+      /** Thread Id */
+      thread_id?: string | null;
+      /** User Id */
+      user_id?: string | null;
+      /** Tool Call Id */
+      tool_call_id?: string | null;
+      /**
+       * Role
+       * @default
+       */
+      role?: string;
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+      /** Content */
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      /** Tool Calls */
+      tool_calls?: Record<string, never>[] | null;
+      /** Created At */
+      created_at?: string | null;
+    };
     /** MessageImageContent */
     MessageImageContent: {
       /**
        * Type
-       * @default message_image_content
+       * @default image_url
        * @constant
        */
-      type?: "message_image_content";
+      type?: "image_url";
       /**
        * @default {
-       *   "type": "image",
-       *   "uri": ""
+       *   "url": ""
        * }
        */
-      image?: components["schemas"]["ImageRef"];
+      image_url?: components["schemas"]["ImageUrl"];
     };
     /** MessageList */
     MessageList: {
-      /**
-       * Type
-       * @default messages
-       * @constant
-       */
-      type?: "messages";
+      /** Next */
+      next: string | null;
       /** Messages */
-      messages: components["schemas"]["ThreadMessage"][];
+      messages: components["schemas"]["Message"][];
     };
     /** MessageTextContent */
     MessageTextContent: {
       /**
        * Type
-       * @default message_text_content
+       * @default text
        * @constant
        */
-      type?: "message_text_content";
+      type?: "text";
       /**
        * Text
        * @default
@@ -797,49 +862,6 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-    };
-    /** Thread */
-    Thread: {
-      /**
-       * Type
-       * @default thread
-       * @constant
-       */
-      type?: "thread";
-      /**
-       * Id
-       * @default
-       */
-      id?: string;
-    };
-    /** ThreadMessage */
-    ThreadMessage: {
-      /**
-       * Type
-       * @default thread_message
-       * @constant
-       */
-      type?: "thread_message";
-      /**
-       * Id
-       * @default
-       */
-      id?: string;
-      /**
-       * Thread Id
-       * @default
-       */
-      thread_id?: string;
-      /**
-       * Role
-       * @default
-       */
-      role?: string;
-      /**
-       * Content
-       * @default []
-       */
-      content?: (components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[];
     };
     /** TokenResponse */
     TokenResponse: {
@@ -1417,6 +1439,95 @@ export interface operations {
       };
     };
   };
+  /** Index */
+  index_api_messages__get: {
+    parameters: {
+      query: {
+        thread_id: string;
+        reverse?: boolean;
+        cursor?: string | null;
+        limit?: number;
+      };
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["MessageList"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Create */
+  create_api_messages__post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CreateMessageRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["Message"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get */
+  get_api_messages__message_id__get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        message_id: string;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["Message"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /**
    * Dummy
    * @description Returns a dummy node.
@@ -1426,7 +1537,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["FileRef"] | components["schemas"]["Thread"] | components["schemas"]["ThreadMessage"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["MessageList"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["WorkflowUpdate"] | Record<string, never>;
+          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["FileRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["WorkflowUpdate"] | Record<string, never>;
         };
       };
     };

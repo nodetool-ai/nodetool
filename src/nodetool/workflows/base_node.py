@@ -381,9 +381,9 @@ class BaseNode(BaseModel):
                 ]
             else:
                 return [OutputSlot(type=type_metadata(return_type), name="output")]  # type: ignore
-        except ValueError:
+        except ValueError as e:
             raise ValueError(
-                f"Invalid return type for node {cls.__name__}: {return_type}"
+                f"Invalid return type for node {cls.__name__}: {return_type} ({e})"
             )
 
     @classmethod

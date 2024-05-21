@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from typing import Any, Literal
 
 from nodetool.api.types.prediction import Prediction
-from nodetool.metadata.types import ThreadMessage
 
 
 class NodeUpdate(BaseModel):
@@ -18,11 +17,6 @@ class NodeUpdate(BaseModel):
     properties: dict[str, Any] | None = None
     started_at: str | None = None
     completed_at: str | None = None
-
-
-class MessageList(BaseModel):
-    type: Literal["messages"] = "messages"
-    messages: list[ThreadMessage]
 
 
 class NodeProgress(BaseModel):

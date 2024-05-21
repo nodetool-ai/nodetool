@@ -36,3 +36,44 @@ def test_create_message(user: User):
     )
 
     assert Message.get(message.id) is not None
+
+
+def test_create_message_image_content(user: User):
+    message = Message.create(
+        user_id=user.id,
+        thread_id="th1",
+        content=[
+            {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
+        ],
+    )
+
+    assert Message.get(message.id) is not None
+    assert message.content is not None
+    assert type(message.content) == list
+    assert len(message.content) == 1
+    assert message.content[0].type == "image_url"
+    assert message.content[0].image_url.url == "https://example.com/image.jpg"
+
+
+def test_create_message_mixed_content(user: User):
+    message = Message.create(
+        user_id=user.id,
+        thread_id="th1",
+        content=[
+            {"type": "text", "text": "Hello"},
+            {
+                "type": "image_url",
+                "image_url": {"url": "https://example.com/image.jpg"},
+            },
+        ],
+    )
+
+    assert Message.get(message.id) is not None
+
+    assert message.content is not None
+    assert type(message.content) == list
+    assert len(message.content) == 2
+    assert message.content[0].type == "text"
+    assert message.content[0].text == "Hello"
+    assert message.content[1].type == "image_url"
+    assert message.content[1].image_url.url == "https://example.com/image.jpg"

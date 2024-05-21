@@ -29,10 +29,11 @@ def convert_to_sqlite_format(
 
     origin = get_origin(py_type)
     if origin is Union or origin is UnionType:
-        # Assume the first non-None type is the desired type for SQLite
-        # This works for Optional types as well
-        _type = next(t for t in get_args(py_type) if t is not type(None))
-        return convert_to_sqlite_format(value, _type)
+        args = [t for t in py_type.__args__ if t != type(None)]
+        if len(args) == 1:
+            return convert_to_sqlite_format(value, args[0])
+        else:
+            return json.dumps(value)
 
     if py_type in (str, int, float):
         return value
@@ -68,10 +69,11 @@ def convert_from_sqlite_format(value: Any, py_type: Type) -> Any:
 
     origin = get_origin(py_type)
     if origin is Union or origin is UnionType:
-        # Assume the first non-None type is the desired type for SQLite
-        # This works for Optional types as well
-        _type = next(t for t in get_args(py_type) if t is not type(None))
-        return convert_from_sqlite_format(value, _type)
+        args = [t for t in py_type.__args__ if t != type(None)]
+        if len(args) == 1:
+            return convert_from_sqlite_format(value, args[0])
+        else:
+            return json.loads(value)
 
     if py_type in (str, int, float):
         return value

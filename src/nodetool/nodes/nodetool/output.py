@@ -1,7 +1,8 @@
 from typing import Any, Literal
 
 from pydantic import Field
-from nodetool.metadata.types import ImageTensor, Tensor, ThreadMessage
+from nodetool.metadata.types import Message
+from nodetool.metadata.types import ImageTensor, Tensor
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import DataframeRef
@@ -32,12 +33,12 @@ class ListOutput(OutputNode):
 
 
 class ChatOutput(OutputNode):
-    value: list[ThreadMessage] = Field(
+    value: list[Message] = Field(
         default=[],
         description="The messages to display in the chat.",
     )
 
-    async def process(self, context: ProcessingContext) -> list[ThreadMessage]:
+    async def process(self, context: ProcessingContext) -> list[Message]:
         return self.value
 
     def get_json_schema(self):

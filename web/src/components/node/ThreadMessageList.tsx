@@ -2,9 +2,7 @@
 import React, { useRef } from "react";
 
 import {
-  MessageImageContent,
-  MessageTextContent,
-  ThreadMessage
+  Message
 } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { css } from "@emotion/react";
@@ -56,10 +54,10 @@ const styles = (theme: any) =>
   });
 
 type ChatViewProps = {
-  messages: Array<ThreadMessage>;
+  messages: Array<Message>;
 };
 
-const Message = (msg: ThreadMessage) => {
+const MessageView = (msg: Message) => {
   let messageClass = "chat-message";
 
   if (msg.role === "user") {
@@ -69,20 +67,22 @@ const Message = (msg: ThreadMessage) => {
   } else if (msg.role === "tool") {
     messageClass += " tool";
   }
-  const content = msg.content as Array<
-    MessageTextContent | MessageImageContent
-  >;
   return (
     <li className={messageClass} key={msg.id}>
-      {content.map((c) => {
-        if (c.type === "message_text_content") {
-          return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
-        } else if (c.type === "message_image_content") {
-          return <img key={c.image?.uri} src={c.image?.uri} alt="" />;
-        } else {
-          return <></>;
-        }
-      })}
+      {typeof msg.content === "string" &&
+        <MarkdownRenderer key={msg.id} content={msg.content} />
+      }
+      {typeof msg.content === "object" && (
+        msg.content?.map((c) => {
+          if (c.type === "text") {
+            return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
+          } else if (c.type === "image_url") {
+            return <img key={c.image_url?.url} src={c.image_url?.url} alt="" />;
+          } else {
+            return <></>;
+          }
+        })
+      )}
     </li>
   );
 };
@@ -93,7 +93,7 @@ const ThreadMessageList: React.FC<ChatViewProps> = ({ messages }) => {
   return (
     <div css={styles}>
       <ul className="messages" ref={messagesListRef}>
-        {messages.map(Message)}
+        {messages.map(MessageView)}
       </ul>
     </div>
   );

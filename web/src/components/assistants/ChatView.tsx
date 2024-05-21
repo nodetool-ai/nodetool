@@ -14,7 +14,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import {
   MessageImageContent,
   MessageTextContent,
-  ThreadMessage
+  Message
 } from "../../stores/ApiTypes";
 // utils
 import useKeyPressedListener from "../../utils/KeyPressedListener";
@@ -128,13 +128,13 @@ const styles = (theme: any) => css({
 });
 
 type ChatViewProps = {
-  messages: Array<ThreadMessage>;
+  messages: Array<Message>;
   showMessages?: boolean;
   setShowMessages?: (show: boolean) => void;
   sendMessage: (prompt: string, token: string) => Promise<void>;
 };
 
-const Message = (msg: ThreadMessage) => {
+const Message = (msg: Message) => {
   let messageClass = "chat-message";
 
   if (msg.role === "user") {

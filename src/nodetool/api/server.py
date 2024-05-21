@@ -13,8 +13,10 @@ from . import (
     asset,
     job,
     auth,
+    message,
     node,
     storage,
+    task,
     workflow,
     model,
 )
@@ -23,10 +25,12 @@ DEFAULT_ROUTERS = [
     asset.router,
     job.router,
     auth.router,
+    message.router,
     node.router,
     prediction.router,
     workflow.router,
     storage.router,
+    task.router,
     model.router,
 ]
 

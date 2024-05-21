@@ -1,24 +1,19 @@
 import asyncio
-import enum
 import json
-import uuid
 from pydantic import Field
 from nodetool.common.chat import process_messages
 from nodetool.metadata.types import (
     FunctionModel,
     ImageRef,
-    LanguageModel,
     NodeRef,
     Task,
-    ThreadMessage,
     ToolCall,
-    WorkflowRef,
 )
-from nodetool.models.message import Message
 from nodetool.models.task import Task as TaskModel
 from nodetool.metadata.types import GPTModel
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.metadata.types import Message
 
 
 class Agent(BaseNode):
@@ -35,51 +30,40 @@ class Agent(BaseNode):
         default="",
         description="The user prompt",
     )
-    input: str = Field(
-        default="",
-        description="The user input",
-    )
     n_gpu_layers: int = Field(default=0, description="Number of layers on the GPU")
 
     @classmethod
     def return_type(cls):
         return {
-            "messages": list[ThreadMessage],
+            "messages": list[Message],
             "tasks": list[Task],
         }
 
     async def process(self, context: ProcessingContext):
-        thread = context.create_thread()
+        message = await context.create_message(
+            Message(
+                role="user",
+                content=self.goal,
+            )
+        )
         input_messages = [
             Message(
-                id="",
                 role="system",
                 content="Generate a full list of tasks to achieve the goal below. Do not wait for tasks to finish.",
             ),
-            await context.create_message(
-                thread_id=thread.id,
-                role="user",
-                content=self.goal,
-            ),
+            message,
         ]
-        if self.input != "":
-            input_messages.append(
-                Message(
-                    id="",
-                    role="user",
-                    content=self.input,
-                )
-            )
+        assert message.thread_id is not None, "Thread ID is required"
 
         messages, tasks, _ = await process_messages(
             context=context,
-            thread_id=thread.id,
+            thread_id=message.thread_id,
             model=self.model,
             messages=input_messages,
             n_gpu_layers=self.n_gpu_layers,
         )
         return {
-            "messages": [ThreadMessage.from_message(m) for m in messages],
+            "messages": messages,
             "tasks": tasks,
         }
 
@@ -93,6 +77,10 @@ class TaskNode(BaseNode):
     model: FunctionModel = Field(
         default=FunctionModel(name=GPTModel.GPT4.value),
         description="The language model to use.",
+    )
+    thread_id: str = Field(
+        default="",
+        description="The thread ID of the conversation.",
     )
     tasks: list[Task] = Field(
         default=[],
@@ -113,12 +101,10 @@ class TaskNode(BaseNode):
     async def process_task(
         self, context: ProcessingContext, task: TaskModel, **kwargs
     ) -> tuple[list[Message], list[ToolCall]]:
-        thread = context.get_latest_thread()
-
         messages, _, tool_calls = await process_messages(
             context=context,
             model_name=self.model.name,
-            thread_id=thread.id,
+            thread_id=self.thread_id,
             can_create_tasks=False,
             # workflow_ids=[w.id for w in self.workflows],
             node_types=[n.id for n in self.nodes],
@@ -151,7 +137,7 @@ class TextTasks(TaskNode):
     def return_type(cls):
         return {
             "texts": list[str],
-            "messages": list[ThreadMessage],
+            "messages": list[Message],
         }
 
     def get_system_prompt(self):
@@ -176,7 +162,7 @@ class TextTasks(TaskNode):
         res = await asyncio.gather(*[process_task(task) for task in self.tasks])
         return {
             "texts": [r[1] for r in res],
-            "messages": [ThreadMessage.from_message(m) for r in res for m in r[0]],
+            "messages": [m for r in res for m in r[0]],
         }
 
 
@@ -190,7 +176,7 @@ class ImageTask(TaskNode):
     def return_type(cls):
         return {
             "images": list[ImageRef],
-            "messages": list[ThreadMessage],
+            "messages": list[Message],
         }
 
     def get_system_prompt(self):
@@ -227,5 +213,5 @@ class ImageTask(TaskNode):
 
         return {
             "images": [r[1] for r in res],
-            "messages": [ThreadMessage.from_message(m) for r in res for m in r[0]],
+            "messages": [m for r in res for m in r[0]],
         }

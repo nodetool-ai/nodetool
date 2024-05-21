@@ -6,18 +6,40 @@ import dotenv
 dotenv.load_dotenv()
 
 
-def get_files(folder):
+def get_files(path: str, extensions: list[str] = [".py"]):
+    """
+    Recursively retrieves all files with specified extensions in the given path.
+
+    Args:
+        path (str): The path to search for files.
+        extensions (list[str], optional): List of file extensions to include. Defaults to [".py"].
+
+    Returns:
+        list[str]: A list of file paths matching the specified extensions.
+    """
+    if os.path.isfile(path) and os.path.splitext(path)[1] in extensions:
+        return [path]
     files = []
-    for file in os.listdir(folder):
-        if file.endswith(".py"):
-            files.append(os.path.join(folder, file))
+    if os.path.isdir(path):
+        for file in os.listdir(path):
+            files += get_files(os.path.join(path, file), extensions)
     return files
 
 
-def get_content(*folders):
+def get_content(paths: list[str], extensions: list[str] = [".py"]):
+    """
+    Retrieves the content of files with specified extensions in the given paths.
+
+    Args:
+        paths (list[str]): A list of paths to search for files.
+        extensions (list[str], optional): A list of file extensions to include. Defaults to [".py"].
+
+    Returns:
+        str: The concatenated content of all the files found.
+    """
     content = ""
-    for folder in folders:
-        for file in get_files(folder):
+    for path in paths:
+        for file in get_files(path, extensions):
             content += "\n\n"
             content += f"## {file}\n\n"
             with open(file, "r", encoding="utf-8") as f:
@@ -25,9 +47,9 @@ def get_content(*folders):
     return content
 
 
-folder = sys.argv[1]
-system_prompt = sys.argv[2]
-combined = get_content(folder)
+system_prompt = sys.argv[1]
+files = sys.argv[2:]
+combined = get_content(files)
 
 print(system_prompt)
 

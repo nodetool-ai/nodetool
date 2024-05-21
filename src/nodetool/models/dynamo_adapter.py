@@ -57,7 +57,11 @@ def convert_to_dynamodb_format(
 
     # unwrap union and optional types
     if is_union_type(py_type):
-        py_type = [t for t in py_type.__args__ if t != type(None)][0]  # type: ignore
+        args = [t for t in py_type.__args__ if t != type(None)]
+        if len(args) == 1:
+            return convert_to_dynamodb_format(value, args[0])
+        else:
+            return {"S": json.dumps(value)}
 
     if py_type == Any:
         return convert_to_dynamo(value)
@@ -108,7 +112,12 @@ def convert_from_dynamodb_format(item: Dict[str, Any], py_type: Type) -> Any:
     """
     # unwrap union and optional types
     if is_union_type(py_type):
-        py_type = [t for t in py_type.__args__ if t != type(None)][0]  # type: ignore
+        args = [t for t in py_type.__args__ if t != type(None)]
+        if len(args) == 1:
+            return convert_from_dynamodb_format(item, args[0])
+        else:
+            json_str = item.get("S", "{}")
+            return json.loads(json_str) if json_str else {}
 
     if get_origin(py_type) == set and py_type.__args__[0] in {int, float}:  # type: ignore
         return {py_type.__args__[0](v) for v in item.get("NS", [])}  # type: ignore

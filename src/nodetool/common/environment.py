@@ -70,7 +70,7 @@ DEFAULT_ENV = {
     "DEBUG": None,
     "USE_NGROK": None,
     "AWS_REGION": "us-east-1",
-    "NODETOOL_API_URL": "http://localhost:8000/api",
+    "NODETOOL_API_URL": None,
 }
 
 SETTINGS_FILE = "settings.yaml"
@@ -336,27 +336,6 @@ class Environment(object):
         return cls.get_env() == "test"
 
     @classmethod
-    def get_test_app(cls):
-        from fastapi import FastAPI
-        import nodetool.api
-        import nodetool.api.auth
-        import nodetool.api.asset
-        import nodetool.api.types.graph
-        import nodetool.api.prediction
-        import nodetool.api.job
-        import nodetool.api.node
-        import nodetool.api.workflow
-
-        app = FastAPI()
-        app.include_router(nodetool.api.asset.router)
-        app.include_router(nodetool.api.auth.router)
-        app.include_router(nodetool.api.prediction.router)
-        app.include_router(nodetool.api.job.router)
-        app.include_router(nodetool.api.node.router)
-        app.include_router(nodetool.api.workflow.router)
-        return app
-
-    @classmethod
     def set_remote_auth(cls, remote_auth: bool):
         os.environ["REMOTE_AUTH"] = "1" if remote_auth else "0"
 
@@ -531,16 +510,16 @@ class Environment(object):
         """
         The nodetool api client is a wrapper around the nodetool api.
         """
+        from fastapi.testclient import TestClient
+        from nodetool.api.server import create_app
 
-        if cls.is_test():
-            from fastapi.testclient import TestClient
-
-            return NodetoolAPITestClient(
-                auth_token=auth_token, client=TestClient(cls.get_test_app())
-            )
-        else:
+        if cls.get_nodetool_api_url():
             return NodetoolAPIClient(
                 auth_token=auth_token, base_url=cls.get_nodetool_api_url()
+            )
+        else:
+            return NodetoolAPITestClient(
+                auth_token=auth_token, client=TestClient(create_app())
             )
 
     @classmethod

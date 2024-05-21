@@ -27,10 +27,8 @@ from nodetool.workflows.types import (
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
     FileRef,
-    Thread,
-    ThreadMessage,
 )
-from nodetool.workflows.types import MessageList, NodeProgress, NodeUpdate
+from nodetool.workflows.types import NodeProgress, NodeUpdate
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/nodes", tags=["nodes"])
@@ -46,13 +44,10 @@ UnionType = (
     | Tensor
     | VideoRef
     | FileRef
-    | Thread
-    | ThreadMessage
     | ModelRef
     | TextRef
     | WorkflowRef
     | NodeRef
-    | MessageList
     | Prediction
     | JobUpdate
     | NodeUpdate

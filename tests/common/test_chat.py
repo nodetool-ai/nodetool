@@ -1,5 +1,7 @@
+import json
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
+from nodetool.metadata.types import Message
 from nodetool.metadata.types import TextRef
 from nodetool.common.chat import (
     process_node_function,
@@ -9,13 +11,13 @@ from nodetool.common.chat import (
     process_workflow_function,
     process_messages,
 )
-from nodetool.models.message import Message
+from nodetool.models.user import User
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.models.thread import Thread
 
 # load all nodes
-import nodetool.nodes
+import nodetool.nodes.nodetool
 
 VALID_NODE_NAME = "some.valid.node.name"
 INVALID_NODE_NAME = "invalid_node_name"
@@ -73,9 +75,7 @@ async def test_process_node_function_invalid():
 
 
 @pytest.mark.asyncio
-async def test_process_message_valid():
-    thread = Thread.create(user_id=USER_ID)
-    context = ProcessingContext(user_id=USER_ID)
+async def test_process_message_valid(thread: Thread, context: ProcessingContext):
     with patch(
         "nodetool.common.chat.Environment.get_openai_client"
     ) as get_openai_client_mock:
@@ -88,7 +88,6 @@ async def test_process_message_valid():
         )
         messages = [
             Message(
-                id="1",
                 role="user",
                 content="Hello",
             )
@@ -101,3 +100,100 @@ async def test_process_message_valid():
             messages=messages,
         )
         assert result is not None
+
+
+class MockFunction:
+    def __init__(self, name, arguments):
+        self.name = name
+        self.arguments = arguments
+
+
+@pytest.mark.asyncio
+async def test_process_message_with_tool_call(
+    thread: Thread, context: ProcessingContext
+):
+    with patch(
+        "nodetool.common.chat.Environment.get_openai_client"
+    ) as get_openai_client_mock:
+        tool_call = MagicMock(
+            function=MockFunction(
+                name="node__nodetool_constant_String",
+                arguments=json.dumps({"value": "Text"}),
+            ),
+            id="tool_call_id",
+        )
+        response_message = MagicMock(tool_calls=[tool_call], content="Hello world")
+        completion = AsyncMock(choices=[MagicMock(message=response_message)])
+        get_openai_client_mock.return_value = MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(return_value=completion))
+            )
+        )
+        messages = [
+            Message(
+                role="user",
+                content="Hello",
+            )
+        ]
+        model = MagicMock(name="gpt")
+        result, tasks, tool_calls = await process_messages(
+            model=model,
+            context=context,
+            thread_id=thread.id,
+            messages=messages,
+            node_types=["nodetool.constant.Text"],
+        )
+        assert len(tasks) == 0
+        assert len(tool_calls) == 1
+        assert tool_calls[0].function_name == "node__nodetool_constant_String"
+        assert tool_calls[0].function_args == {"value": "Text"}
+        assert tool_calls[0].function_response, "Text"
+
+
+@pytest.mark.asyncio
+async def test_process_message_with_task_creation(
+    thread: Thread, context: ProcessingContext
+):
+    with patch(
+        "nodetool.common.chat.Environment.get_openai_client"
+    ) as get_openai_client_mock:
+        task_call = MagicMock(
+            function=MockFunction(
+                name="create_task",
+                arguments=json.dumps(
+                    {
+                        "task_type": "generate_text",
+                        "name": "Generate a summary",
+                        "instructions": "Generate a summary of the given text.",
+                        "dependencies": ["tool_call_id"],
+                    }
+                ),
+            ),
+            id="task_call_id",
+        )
+        response_message = MagicMock(tool_calls=[task_call], content="Hello world")
+        completion = AsyncMock(choices=[MagicMock(message=response_message)])
+        get_openai_client_mock.return_value = MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(return_value=completion))
+            )
+        )
+        messages = [
+            Message(
+                role="user",
+                content="Hello",
+            )
+        ]
+        model = MagicMock(name="gpt")
+        result, tasks, tool_calls = await process_messages(
+            model=model,
+            context=context,
+            thread_id=thread.id,
+            messages=messages,
+            node_types=["nodetool.constant.Text"],
+            can_create_tasks=True,
+        )
+        assert len(tasks) == 1
+        assert tasks[0].task_type == "generate_text"
+        assert tasks[0].name == "Generate a summary"
+        assert tasks[0].instructions == "Generate a summary of the given text."

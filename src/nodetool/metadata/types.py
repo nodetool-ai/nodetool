@@ -4,12 +4,11 @@ from pathlib import Path
 from types import NoneType
 import numpy as np
 from pydantic import BaseModel, Field
-
-
 from typing import Any, Literal, Optional, Type, Union
 
 from nodetool.models.asset import Asset
-from nodetool.models.message import Message
+from nodetool.models.message import Message as MessageModel, MessageContent
+from nodetool.models.task import Task as TaskModel
 
 
 # Mapping of python types to their string representation
@@ -277,44 +276,41 @@ class Embeds(BaseType):
     type: Literal["comfy.embeds"] = "comfy.embeds"
 
 
-class MessageTextContent(BaseType):
-    type: Literal["message_text_content"] = "message_text_content"
-    text: str = ""
-
-
-class MessageImageContent(BaseType):
-    type: Literal["message_image_content"] = "message_image_content"
-    image: ImageRef = ImageRef()
-
-
-MessageContent = MessageTextContent | MessageImageContent
-
-
-class ThreadMessage(BaseType):
-    type: Literal["thread_message"] = "thread_message"
-    id: str = ""
-    thread_id: str = ""
-    role: str = ""
-    content: list[MessageContent] = []
-
-    @classmethod
-    def from_message(cls, message: Message):
-        return cls(
-            id=message.id,
-            thread_id=message.thread_id,
-            role=message.role,
-            content=[MessageTextContent(text=message.content or "")],
-        )
-
-
-class Thread(BaseType):
-    type: Literal["thread"] = "thread"
-    id: str = ""
-
-
 class Task(BaseType):
     type: Literal["task"] = "task"
     id: str = ""
+    task_type: str = ""
+    user_id: str = ""
+    thread_id: str = ""
+    status: str = ""
+    name: str = ""
+    instructions: str = ""
+    dependencies: list[str] = []
+    required_capabilities: list[str] = []
+    started_at: str = ""
+    finished_at: str | None = None
+    error: str | None = None
+    result: str | None = None
+    cost: float | None = None
+
+    @classmethod
+    def from_model(cls, task: TaskModel):
+        return cls(
+            id=task.id,
+            user_id=task.user_id,
+            task_type=task.task_type,
+            thread_id=task.thread_id,
+            status=task.status,
+            name=task.name,
+            instructions=task.instructions,
+            dependencies=task.dependencies,
+            required_capabilities=task.required_capabilities,
+            started_at=task.started_at.isoformat(),
+            finished_at=task.finished_at.isoformat() if task.finished_at else None,
+            error=task.error,
+            result=task.result,
+            cost=task.cost,
+        )
 
 
 class ToolCall(BaseType):
@@ -554,3 +550,29 @@ def asset_to_ref(asset: Asset):
         return AssetRef(asset_id=asset.id)
     else:
         raise ValueError(f"Unknown asset type: {asset.content_type}")
+
+
+class Message(BaseType):
+    type: str = "message"
+    id: str | None = None
+    thread_id: str | None = None
+    user_id: str | None = None
+    tool_call_id: str | None = None
+    role: str = ""
+    name: str = ""
+    content: str | list[MessageContent] | None = None
+    tool_calls: list[dict] | None = None
+    created_at: str | None = None
+
+    @staticmethod
+    def from_model(message: MessageModel):
+        return Message(
+            id=message.id,
+            thread_id=message.thread_id,
+            tool_call_id=message.tool_call_id,
+            role=message.role,
+            name=message.name,
+            content=message.content,
+            tool_calls=message.tool_calls,
+            created_at=message.created_at.isoformat(),
+        )

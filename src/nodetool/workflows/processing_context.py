@@ -13,13 +13,16 @@ import PIL.Image
 import numpy as np
 import pandas as pd
 
-from nodetool.api.types.graph import Edge
 from nodetool.api.types.asset import Asset, AssetCreateRequest, AssetList
+from nodetool.api.types.chat import (
+    MessageList,
+    MessageCreateRequest,
+    TaskCreateRequest,
+    TaskList,
+)
 from nodetool.api.types.prediction import Prediction
-from nodetool.models.base_model import create_time_ordered_uuid
-from nodetool.models.message import Message
-from nodetool.models.prediction import Prediction as PredictionModel
-from nodetool.models.thread import Thread
+from nodetool.api.types.workflow import Workflow
+from nodetool.metadata.types import Message, Task
 from nodetool.workflows.graph import Graph
 from nodetool.workflows.types import (
     NodeProgress,
@@ -36,8 +39,6 @@ from nodetool.metadata.types import (
     DataframeRef,
     FunctionModel,
     ImageRef,
-    LanguageModel,
-    LlamaModel,
     ModelRef,
     TextRef,
     VideoRef,
@@ -223,6 +224,13 @@ class ProcessingContext:
             raise ValueError(f"Node with ID {node_id} does not exist")
         return node
 
+    async def get_workflow(self, workflow_id: str):
+        """
+        Gets the workflow by ID.
+        """
+        res = await self.api_client().get(f"workflows/{workflow_id}")
+        return Workflow(**res)
+
     async def update_prediction(
         self,
         id: str,
@@ -296,79 +304,6 @@ class ProcessingContext:
         )
         return AssetList(**res)
 
-    def create_thread(self):
-        return Thread.create(user_id=self.user_id)
-
-    def get_latest_thread(self):
-        """
-        Gets the latest thread.
-        """
-        if "db" in self.capabilities:
-            threads, _ = Thread.paginate(self.user_id, limit=1, reverse=True)
-            if len(threads) > 0:
-                return threads[0]
-            else:
-                return self.create_thread()
-
-        else:
-            raise NotImplementedError()
-
-    async def find_thread(self, thread_id: str):
-        """
-        Finds a thread by id.
-        """
-        if "db" in self.capabilities:
-            thread = Thread.find(self.user_id, thread_id)
-            if thread is None:
-                raise ValueError(f"Thread with ID {thread_id} does not exist")
-            return thread
-        else:
-            raise NotImplementedError()
-            # res = await self.api_client().get(f"threads/{thread_id}")
-            # return Thread(**res)
-
-    async def create_message(
-        self, thread_id: str, role: str, content: str | None = None
-    ):
-        """
-        Creates a message for a thread.
-        """
-        if "db" in self.capabilities:
-            message = Message.create(
-                thread_id=thread_id,
-                user_id=self.user_id,
-                role=role,
-                content=content,
-            )
-            return message
-        else:
-            raise NotImplementedError()
-            # res = await self.api_client().post(
-            #     f"threads/{thread_id}/messages",
-            #     {"role": role, "content": content},
-            # )
-            # return Message(**res)
-
-    async def get_messages(
-        self,
-        thread_id: str,
-        limit: int = 10,
-        start_key: str | None = None,
-        reverse: bool = False,
-    ):
-        """
-        Gets messages for a thread.
-        """
-        if "db" in self.capabilities:
-            return Message.paginate(thread_id, limit, start_key, reverse)
-        else:
-            raise NotImplementedError()
-            # res = await self.api_client().get(
-            #     f"threads/{thread_id}/messages",
-            #     {"limit": limit, "start_key": start_key},
-            # )
-            # return res
-
     async def create_asset(
         self,
         name: str,
@@ -393,11 +328,48 @@ class ProcessingContext:
         return Asset(**res)
 
     async def create_temp_asset(self, content: IO, ext: str = "") -> str:
-        key = create_time_ordered_uuid()
+        key = uuid.uuid4().hex
         if ext != "":
             key += "." + ext
 
         return self.get_temp_storage().upload(key, content)
+
+    async def create_message(self, req: MessageCreateRequest):
+        """
+        Creates a message for a thread.
+        """
+        res = await self.api_client().post("messages/", json=req.model_dump())
+        return Message(**res)
+
+    async def get_messages(
+        self,
+        thread_id: str,
+        limit: int = 10,
+        start_key: str | None = None,
+        reverse: bool = False,
+    ):
+        """
+        Gets messages for a thread.
+        """
+        res = await self.api_client().get(
+            "messages/",
+            {"thread_id": thread_id, "limit": limit, "cursor": start_key},
+        )
+        return MessageList(**res)
+
+    async def create_task(self, task: TaskCreateRequest):
+        """
+        Creates a task.
+        """
+        res = await self.api_client().post("tasks/", json=task.model_dump())
+        return Task(**res)
+
+    async def get_tasks(self, thread_id: str):
+        """
+        Gets tasks for a thread.
+        """
+        res = await self.api_client().get("tasks/", {"thread_id": thread_id})
+        return TaskList(**res)
 
     async def download_asset(self, asset_id: str):
         """

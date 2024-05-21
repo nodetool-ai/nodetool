@@ -4,12 +4,12 @@ from typing import Any, Iterator, Union
 
 from pydantic import BaseModel
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import FunctionModel, Task, ToolCall
-from nodetool.models.task import Task as TaskModel
+from nodetool.metadata.types import FunctionModel, Message, Task, ToolCall
 from nodetool.models.workflow import Workflow
 from nodetool.workflows.base_node import get_node_class
+from nodetool.workflows.graph import Graph
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.models.message import Message
+from nodetool.api.types.chat import MessageCreateRequest, MessageList, TaskCreateRequest
 from openai.types.shared_params import FunctionDefinition
 from openai.types.chat.chat_completion import ChatCompletion
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
@@ -75,13 +75,15 @@ def function_tool_from_node(node_name: str):
     return ChatCompletionToolParam(function=function_definition, type="function")
 
 
-def function_tool_from_workflow(workflow_id: str):
-    workflow = Workflow.get(workflow_id)
+async def function_tool_from_workflow(context: ProcessingContext, workflow_id: str):
+    workflow = await context.get_workflow(workflow_id)
 
     if workflow is None:
         raise ValueError(f"Workflow {workflow_id} does not exist")
 
-    parameters = workflow.get_graph().get_input_schema()
+    graph = Graph.from_dict(workflow.graph.model_dump())
+
+    parameters = graph.get_input_schema()
 
     function_definition = FunctionDefinition(
         name=WORKFLOW_PREFIX + workflow_id,
@@ -203,23 +205,26 @@ async def process_workflow_function(
     }
 
 
-def create_task(thread_id: str, user_id: str, params: dict):
+async def create_task(context: ProcessingContext, thread_id: str, params: dict):
     """
     Create a task for an agent to be executed.
 
     Args:
         context (ProcessingContext): The processing context.
+        thread_id (str): The ID of the thread.
+        user_id (str): The ID of the user.
         params (dict): The parameters of the task.
     """
-    task = TaskModel.create(
-        thread_id=thread_id,
-        user_id=user_id,
-        task_type=params["task_type"],
-        name=params["name"],
-        instructions=params["instructions"],
-        dependencies=params.get("dependencies", []),
+    task = await context.create_task(
+        TaskCreateRequest(
+            thread_id=thread_id,
+            task_type=params["task_type"],
+            name=params["name"],
+            instructions=params["instructions"],
+            dependencies=params.get("dependencies", []),
+        )
     )
-    return {
+    return task, {
         "type": "task",
         "task_type": task.task_type,
         "id": task.id,
@@ -262,9 +267,9 @@ async def create_completion(
 
 async def process_messages(
     context: ProcessingContext,
-    thread_id: str,
     messages: list[Message],
     model: FunctionModel,
+    thread_id: str,
     workflow_ids: list[str] = [],
     node_types: list[str] = [],
     can_create_tasks: bool = True,
@@ -275,16 +280,15 @@ async def process_messages(
 
     Args:
         context (ProcessingContext): The processing context.
-        thread_id (str): The ID of the thread.
         messages (list[Message]): The messages in the thread.
         model (str): The model to use for the completion.
+        thread_id (str): The ID of the thread.
         workflow_ids (list[str]): The workflow IDs to use as tools.
         node_types (list[str]): The node types to use as tools.
     """
 
     messages_for_request = [
-        {"role": str(message.role), "content": str(message.content)}
-        for message in messages
+        {"role": str(message.role), "content": message.content} for message in messages
     ]
 
     tasks = []
@@ -293,7 +297,12 @@ async def process_messages(
 
     if can_create_tasks:
         tools.append(create_task_tool())
-    tools += [function_tool_from_workflow(workflow_id) for workflow_id in workflow_ids]
+    tools += await asyncio.gather(
+        *[
+            function_tool_from_workflow(context, workflow_id)
+            for workflow_id in workflow_ids
+        ]
+    )
     tools += [function_tool_from_node(node_type) for node_type in node_types]
 
     completion = await create_completion(
@@ -306,9 +315,8 @@ async def process_messages(
 
     response_message = completion.choices[0].message  # type: ignore
     messages_for_request.append(response_message)  # type: ignore
-
-    messages_to_return.append(
-        Message.create(
+    assistant_message = await context.create_message(
+        MessageCreateRequest(
             thread_id=thread_id,
             user_id=context.user_id,
             role="assistant",
@@ -329,6 +337,8 @@ async def process_messages(
         )
     )
 
+    messages_to_return.append(assistant_message)
+
     async def run_tool(tool_call: ChatCompletionMessageToolCall):
         print(f"******* [[TOOL]] {tool_call.function.name} *******")
 
@@ -336,8 +346,10 @@ async def process_messages(
         function_args = json.loads(tool_call.function.arguments)
 
         if function_name == "create_task":
-            function_response = create_task(thread_id, context.user_id, function_args)
-            tasks.append(Task(id=function_response["id"]))
+            task, function_response = await create_task(
+                context, thread_id, function_args
+            )
+            tasks.append(task)
         elif function_name.startswith(WORKFLOW_PREFIX):
             function_response = await process_workflow_function(
                 context, function_name[len(WORKFLOW_PREFIX) :], function_args
@@ -352,14 +364,17 @@ async def process_messages(
             raise ValueError(f"Unknown function type {function_name}")
 
         content = json.dumps(function_response, default=default_serializer)
-        message = Message.create(
-            thread_id=thread_id,
-            user_id=context.user_id,
-            role="tool",
-            tool_call_id=tool_call.id,
-            name=function_name,
-            content=content,
+        message = await context.create_message(
+            MessageCreateRequest(
+                thread_id=thread_id,
+                user_id=context.user_id,
+                role="tool",
+                tool_call_id=tool_call.id,
+                name=function_name,
+                content=content,
+            )
         )
+
         call = ToolCall(
             function_name=function_name,
             function_args=function_args,
@@ -391,14 +406,15 @@ async def process_messages(
         )
         print("SECOND RESPONSE", second_response)
         second_message = second_response.choices[0].message
-        messages_to_return.append(
-            Message.create(
+        second_assistant_message = await context.create_message(
+            MessageCreateRequest(
                 thread_id=thread_id,
                 user_id=context.user_id,
                 role="assistant",
                 content=second_message.content,
             )
         )
+        messages_to_return.append(second_assistant_message)
     else:
         tool_calls = []
 
