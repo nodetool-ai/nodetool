@@ -29,6 +29,7 @@ const AssetItemContextMenu = ({
       <Menu
         className="context-menu asset-item-context-menu"
         open={menuPosition !== null}
+        onContextMenu={(event) => event.preventDefault()}
         anchorReference="anchorPosition"
         style={{ padding: "1em" }}
         anchorPosition={

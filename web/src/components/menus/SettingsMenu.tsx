@@ -136,9 +136,10 @@ function SettingsMenu() {
       </Tooltip>
       <Menu
         css={styles}
-        open={open}
-        onClose={handleClose}
         className="settings-menu-container"
+        open={open}
+        onContextMenu={(event) => event.preventDefault()}
+        onClose={handleClose}
         MenuListProps={{
           "aria-labelledby": "basic-button"
         }}

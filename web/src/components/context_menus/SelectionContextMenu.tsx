@@ -104,8 +104,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   if (openMenuType !== "selection-context-menu" || !menuPosition) return null;
   return (
     <Menu
-      open={menuPosition !== null}
       className="context-menu selection-context-menu"
+      open={menuPosition !== null}
+      onContextMenu={(event) => event.preventDefault()}
       onClick={(e) => e.stopPropagation()}
       anchorReference="anchorPosition"
       anchorPosition={

@@ -74,8 +74,9 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
 
   return (
     <Menu
-      open={menuPosition !== null}
       className="context-menu pane-context-menu"
+      open={menuPosition !== null}
+      onContextMenu={(event) => event.preventDefault()}
       onClick={(e) => e.stopPropagation()}
       anchorReference="anchorPosition"
       anchorPosition={

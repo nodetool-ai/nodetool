@@ -118,27 +118,6 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       {isVisible && (
         <div className="type-filter-container">
           <div className="type-filter">
-            {/* <Tooltip
-                title={
-                  <span className="tooltip-small">
-                    Only show nodes that can plug into the selected input or
-                    output.
-                  </span>
-                }
-                placement="bottom"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-              >
-                 <Typography
-                  variant="h4"
-                  component="h4"
-                  style={{
-                    color: ThemeNodetool.palette.c_gray5,
-                    margin: "-8px 0 10px 0"
-                  }}
-                >
-                  By Type
-                </Typography>
-              </Tooltip> */}
             {!selectedInputType && (
               <InputLabel id="input-type" className="label">
                 Input

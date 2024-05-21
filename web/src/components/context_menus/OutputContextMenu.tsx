@@ -146,6 +146,7 @@ const OutputContextMenu: React.FC = () => {
     <Menu
       className="context-menu output-context-menu"
       open={menuPosition !== null}
+      onContextMenu={(event) => event.preventDefault()}
       anchorReference="anchorPosition"
       anchorPosition={
         menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined

@@ -319,7 +319,7 @@
 /* DROPZONE */
 .dropzone {
   position: relative;
-  /* outline: 1px dashed #55555599; */
+  outline: 1px dashed #55555599;
   margin: 6px auto 2px auto;
 }
 

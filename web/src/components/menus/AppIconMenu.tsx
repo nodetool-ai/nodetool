@@ -27,10 +27,16 @@ const AppIconMenu: React.FC<AppIconMenuProps> = ({ anchorEl, handleClose }) => {
   const open = Boolean(anchorEl);
 
   return (
-    <Menu css={styles} anchorEl={anchorEl} open={open} onClose={handleClose}>
+    <Menu
+      css={styles}
+      anchorEl={anchorEl}
+      open={open}
+      onContextMenu={(event) => event.preventDefault()}
+      onClose={handleClose}
+    >
       <MenuItem onClick={handleClose}>
         <a
-          href="https://github.com/nodetool-ai/nodetool-app"
+          href="https://github.com/nodetool-ai/nodetool"
           target="_blank"
           rel="noopener noreferrer"
           style={{ textDecoration: "none", color: "inherit" }}
