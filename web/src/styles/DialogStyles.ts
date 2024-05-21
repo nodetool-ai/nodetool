@@ -5,7 +5,7 @@ const dialogStyles = (theme: any) =>
     "&": {
       position: "fixed",
       backgroundColor: "transparent",
-      width: "400px",
+      width: "600px",
       height: "400px",
       maxHeight: "400px",
       transform: "translate(0, 0)"

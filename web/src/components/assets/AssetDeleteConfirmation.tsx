@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogActions,
@@ -29,15 +29,40 @@ const AssetDeleteConfirmation = ({
   mutation
 }: AssetDeleteConfirmationProps) => {
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
-  const { getAssetsById } = useAssets();
-  const assetItems = getAssetsById(assets);
+  const [hasNonEmptyFolder, setHasNonEmptyFolder] = useState(false);
+  const { getAssetsById, loadFolderId } = useAssets();
+  const assetItems = useMemo(
+    () => getAssetsById(assets),
+    [assets, getAssetsById]
+  );
+
+  const checkFolders = useCallback(async () => {
+    const folders = assetItems.filter(
+      (asset) => asset.content_type === "folder"
+    );
+
+    let hasNonEmpty = false;
+    for (const folder of folders) {
+      const childAssets = await loadFolderId(folder.id);
+      if (childAssets.assets.length > 0) {
+        hasNonEmpty = true;
+        break;
+      }
+    }
+
+    setHasNonEmptyFolder(hasNonEmpty);
+  }, [assetItems, loadFolderId]);
 
   useEffect(() => {
     if (dialogOpen) {
       const mousePosition = getMousePosition();
       setDialogPosition({ x: mousePosition.x, y: mousePosition.y });
+
+      if (assetItems.length > 0) {
+        checkFolders();
+      }
     }
-  }, [dialogOpen]);
+  }, [dialogOpen, assetItems, checkFolders]);
 
   const executeDeletion = useCallback(async () => {
     await mutation.mutateAsync(assets);
@@ -95,6 +120,11 @@ const AssetDeleteConfirmation = ({
           </>
         )}
       </DialogTitle>
+      {hasNonEmptyFolder && (
+        <Typography className="error-message">
+          {"Cannot delete folders that are not empty."}
+        </Typography>
+      )}
       <ul className="asset-names">
         {assetItems?.map((asset: Asset) => (
           <li key={asset.id}>{asset.name}</li>
@@ -104,7 +134,12 @@ const AssetDeleteConfirmation = ({
         <Button className="button-cancel" onClick={() => setDialogOpen(false)}>
           Cancel
         </Button>
-        <Button className="button-confirm" onClick={executeDeletion} autoFocus>
+        <Button
+          disabled={hasNonEmptyFolder}
+          className="button-confirm"
+          onClick={executeDeletion}
+          autoFocus
+        >
           Delete
         </Button>
       </DialogActions>
