@@ -22,6 +22,7 @@ import { useNavigate } from "react-router";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { VERSION } from "../../config/constants";
 
 const styles = (theme: any) =>
   css({
@@ -47,6 +48,7 @@ const styles = (theme: any) =>
       textAlign: "center"
     },
     ".recent-hl": {
+      marginLeft: ".75em",
       color: theme.palette.c_gray6,
       textTransform: "uppercase",
       fontFamily: theme.fontFamily1
@@ -326,6 +328,16 @@ const OpenOrCreateDialog = () => {
           </div>
         </div>
       </DialogContent>
+      <Typography
+        variant="body2"
+        style={{
+          color: "#666",
+          marginTop: "2em",
+          fontSize: ThemeNodetool.fontSizeSmaller
+        }}
+      >
+        NODETOOL {VERSION}
+      </Typography>
     </Dialog>
   );
 };
