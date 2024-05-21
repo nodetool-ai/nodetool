@@ -43,7 +43,7 @@ const styles = (theme: any) =>
       position: "absolute",
       left: "2em",
       color: theme.palette.c_white,
-      fontSize: theme.fontSizeBigger,
+      fontSize: "1.1em",
       margin: "0",
       textAlign: "center"
     },
