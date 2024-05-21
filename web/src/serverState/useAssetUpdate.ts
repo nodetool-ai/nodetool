@@ -15,12 +15,13 @@ export const useAssetUpdate = () => {
   };
   const mutation = useMutation(performMutation, {
     onSuccess: () => {
+      mutation.reset();
       addNotification({
         type: "info",
         alert: true,
         content: `${
           Object.keys(assets).length > 1 ? "Assets" : "Asset"
-        } renamed!`,
+        } updated!`,
         dismissable: false
       });
     },
@@ -28,7 +29,7 @@ export const useAssetUpdate = () => {
       addNotification({
         type: "error",
         alert: true,
-        content: "Error renaming assets.",
+        content: "Error updating asset.",
         dismissable: false
       });
     },

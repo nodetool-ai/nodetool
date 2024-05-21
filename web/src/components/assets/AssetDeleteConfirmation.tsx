@@ -70,12 +70,12 @@ const AssetDeleteConfirmation = ({
   }, [mutation, assets, setDialogOpen]);
 
   const screenWidth = window.innerWidth;
-  const objectWidth = 250;
-  const leftPosition = dialogPosition.x - objectWidth;
+  const objectWidth = 450;
+  const leftPosition = dialogPosition.x - objectWidth / 2;
 
   const safeLeft = Math.min(
-    Math.max(leftPosition, 0),
-    screenWidth - objectWidth
+    Math.max(leftPosition - 50, 50),
+    screenWidth - objectWidth - 50
   );
 
   return (
@@ -111,7 +111,7 @@ const AssetDeleteConfirmation = ({
             {"Error deleting assets."}
           </Typography>
         )}
-        {mutation.isIdle && (
+        {mutation.isIdle && !hasNonEmptyFolder && (
           <>
             <span>
               {`${assets?.length} ${assets?.length === 1 ? "asset" : "assets"}`}
@@ -121,9 +121,14 @@ const AssetDeleteConfirmation = ({
         )}
       </DialogTitle>
       {hasNonEmptyFolder && (
-        <Typography className="error-message">
-          {"Cannot delete folders that are not empty."}
-        </Typography>
+        <>
+          <Typography className="error-message">
+            {"Cannot delete folders that are not empty."}
+          </Typography>
+          <Typography className="error-notice">
+            {"Please delete the assets in the folder first."}
+          </Typography>
+        </>
       )}
       <ul className="asset-names">
         {assetItems?.map((asset: Asset) => (
@@ -131,17 +136,27 @@ const AssetDeleteConfirmation = ({
         ))}
       </ul>
       <DialogActions className="dialog-actions">
-        <Button className="button-cancel" onClick={() => setDialogOpen(false)}>
-          Cancel
-        </Button>
-        <Button
-          disabled={hasNonEmptyFolder}
-          className="button-confirm"
-          onClick={executeDeletion}
-          autoFocus
-        >
-          Delete
-        </Button>
+        {!hasNonEmptyFolder ? (
+          <>
+            <Button
+              className="button-cancel"
+              onClick={() => setDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="button-confirm"
+              onClick={executeDeletion}
+              autoFocus
+            >
+              Delete
+            </Button>
+          </>
+        ) : (
+          <Button className="button-ok" onClick={() => setDialogOpen(false)}>
+            OK
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

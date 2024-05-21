@@ -10,7 +10,6 @@ import {
   Alert
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
-import { devLog } from "../../utils/DevLog";
 import { UseMutationResult } from "react-query";
 import { AssetUpdate } from "../../stores/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
@@ -35,15 +34,14 @@ const AssetMoveToFolderConfirmation: React.FC<
 
   const handleSelectFolder = useCallback(
     async (folderId: string) => {
-      devLog("folderId", folderId);
-      devLog("selectedAssets", selectedAssets);
       const assetUpdates = selectedAssets.map((asset: Asset) => ({
         id: asset.id,
         parent_id: folderId
       }));
       await mutation.mutateAsync(assetUpdates);
+      setDialogOpen(false);
     },
-    [selectedAssets, mutation]
+    [selectedAssets, mutation, setDialogOpen]
   );
 
   useEffect(() => {
@@ -54,22 +52,12 @@ const AssetMoveToFolderConfirmation: React.FC<
     }
   }, [dialogOpen, assets]);
 
-  const handleMoveToFolder = useCallback(async () => {
-    const assetsToMove = assets.map((assetId) => ({
-      id: assetId
-    }));
-
-    await mutation.mutateAsync(assetsToMove);
-
-    setDialogOpen(false);
-  }, [mutation, assets, setDialogOpen]);
-
   const screenWidth = window.innerWidth;
   const objectWidth = 500;
   const leftPosition = dialogPosition.x - objectWidth;
   const safeLeft = Math.min(
-    Math.max(leftPosition, 0),
-    screenWidth - objectWidth
+    Math.max(leftPosition, 50),
+    screenWidth - objectWidth - 50
   );
 
   return (
@@ -99,9 +87,9 @@ const AssetMoveToFolderConfirmation: React.FC<
       }}
     >
       <DialogTitle className="dialog-title" id="alert-dialog-title">
-        Select new folder for
+        Select new folder for &nbsp;
         <span>
-          {` ${assets?.length} ${assets?.length === 1 ? "asset" : "assets"}`}
+          {`${assets?.length} ${assets?.length === 1 ? "asset" : "assets"}`}
         </span>
         :
       </DialogTitle>
@@ -117,9 +105,6 @@ const AssetMoveToFolderConfirmation: React.FC<
       <DialogActions className="dialog-actions">
         <Button className="button-cancel" onClick={() => setDialogOpen(false)}>
           Cancel
-        </Button>
-        <Button className="button-confirm" onClick={handleMoveToFolder}>
-          Move
         </Button>
       </DialogActions>
     </Dialog>

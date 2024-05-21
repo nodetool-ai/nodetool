@@ -5,10 +5,13 @@ const dialogStyles = (theme: any) =>
     "&": {
       position: "fixed",
       backgroundColor: "transparent",
-      width: "600px",
+      width: "500px",
       height: "400px",
       maxHeight: "400px",
       transform: "translate(0, 0)"
+    },
+    "& .MuiPaper-root": {
+      width: "100%"
     },
     ".dialog-content": {
       padding: "0 1em"
@@ -44,6 +47,21 @@ const dialogStyles = (theme: any) =>
     },
     ".button-cancel": {
       color: theme.palette.c_gray6
+    },
+    ".error-message": {
+      color: theme.palette.c_black,
+      backgroundColor: theme.palette.c_error,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
+      margin: "0 0 1em",
+      padding: ".5em 1em"
+    },
+    ".error-notice": {
+      color: theme.palette.c_white,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
+      margin: "0 0 1em",
+      padding: ".5em 1em"
     },
     ".notice": {
       backgroundColor: theme.palette.c_attention,

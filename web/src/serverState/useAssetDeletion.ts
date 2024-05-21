@@ -15,6 +15,7 @@ export const useAssetDeletion = () => {
   };
   const mutation = useMutation(performMutation, {
     onSuccess: () => {
+      mutation.reset();
       addNotification({
         type: "info",
         alert: true,

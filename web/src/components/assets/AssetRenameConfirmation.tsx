@@ -108,12 +108,12 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   }, [baseNewName, assets, mutation, setDialogOpen]);
 
   const screenWidth = window.innerWidth;
-  const objectWidth = 350;
+  const objectWidth = 400;
   const leftPosition = dialogPosition.x - objectWidth;
 
   const safeLeft = Math.min(
-    Math.max(leftPosition, 0),
-    screenWidth - objectWidth
+    Math.max(leftPosition, 50),
+    screenWidth - objectWidth - 50
   );
 
   return (
