@@ -47,7 +47,7 @@ async def current_user(
         user = None
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=401, detail="User not authenticated")
     if user.verified_at is None:
         raise HTTPException(status_code=401, detail="User not verified")
     return user

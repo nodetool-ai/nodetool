@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any, Iterator, Union
+from typing import Any
 
 from pydantic import BaseModel
 from nodetool.common.environment import Environment

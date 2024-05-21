@@ -6,44 +6,32 @@ from nodetool.api.server import create_app
 from nodetool.api.types.graph import Node, Edge
 from nodetool.common.environment import Environment
 from nodetool.models.message import Message
-from nodetool.models.schema import (
-    create_all_tables,
-    drop_all_tables,
-)
 from nodetool.models.thread import Thread
 from nodetool.models.user import User
-
-from nodetool.common.environment import Environment
-from nodetool.models.user import User
 from nodetool.models.workflow import Workflow
-import PIL.ImageChops
-import pytest
-from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.common.environment import Environment
+from nodetool.models.job import Job
 from nodetool.models.asset import Asset
 from nodetool.models.schema import create_all_tables, drop_all_tables
-from nodetool.models.user import User
-from nodetool.models.workflow import Workflow
+import PIL.ImageChops
+from nodetool.workflows.processing_context import ProcessingContext
 from datetime import datetime, timedelta
 import io
 import uuid
-
 import PIL.Image
-from nodetool.common.environment import Environment
-from nodetool.models.asset import Asset
-from nodetool.models.job import Job
-from nodetool.models.user import User
-import nodetool.nodes
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="function")
 def setup_and_teardown():
+    Environment.set_remote_auth(True)
+
     Environment.settings = {
         "ENV": "test",
         "DB_PATH": "/tmp/nodetool_test.db",
     }
     create_all_tables()
+
     yield
+
     drop_all_tables()
 
 
@@ -111,20 +99,36 @@ def make_job(user: User, **kwargs):
     )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
+def image(user: User):
+    return make_image(user)
+
+
+@pytest.fixture()
 def user():
-    return make_user(verified=True)
+    return User(
+        id="1",
+        email="test@a.de",
+        auth_token="token",
+        token_valid=datetime.now() + timedelta(days=1),
+        passcode="123",
+        passcode_valid=datetime.now() + timedelta(days=1),
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+        verified_at=datetime.now(),
+    ).save()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def context(user: User):
     workflow = Workflow.create(user.id, "wf", {"edges": [], "nodes": []})
+    assert user.auth_token
     return ProcessingContext(
-        user_id=user.id, workflow_id=workflow.id, capabilities=["db"]
+        user_id=user.id, workflow_id=workflow.id, auth_token=user.auth_token
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def client():
     """
     Create a test client for the FastAPI app.
@@ -132,12 +136,10 @@ def client():
     This fixture is scoped to the module, so it will only be created once for the entire test run.
     """
 
-    Environment.set_remote_auth(True)
-
     return TestClient(create_app())
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def headers(user: User):
     """
     Create headers for a http request that requires authentication.
@@ -151,14 +153,14 @@ def make_node(id, type: str, data: dict[str, Any]):
     return Node(id=id, type=type, data=data)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def thread(user: User):
     yield Thread.create(
         user_id=user.id,
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def message(user: User, thread: Thread):
     yield Message.create(
         user_id=user.id,
@@ -168,7 +170,7 @@ def message(user: User, thread: Thread):
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def workflow(user: User):
     nodes = [
         make_node("1", "nodetool.input.FloatInput", {"name": "in1", "value": 10}),

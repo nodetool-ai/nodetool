@@ -513,14 +513,16 @@ class Environment(object):
         from fastapi.testclient import TestClient
         from nodetool.api.server import create_app
 
-        if cls.get_nodetool_api_url():
-            return NodetoolAPIClient(
-                auth_token=auth_token, base_url=cls.get_nodetool_api_url()
-            )
-        else:
-            return NodetoolAPITestClient(
-                auth_token=auth_token, client=TestClient(create_app())
-            )
+        if not hasattr(cls, "nodetool_api_client"):
+            if cls.get_nodetool_api_url():
+                cls.nodetool_api_client = NodetoolAPIClient(
+                    auth_token=auth_token, base_url=cls.get_nodetool_api_url()
+                )
+            else:
+                cls.nodetool_api_client = NodetoolAPITestClient(
+                    auth_token=auth_token, client=TestClient(create_app())
+                )
+        return cls.nodetool_api_client
 
     @classmethod
     def get_openai_client(cls):
