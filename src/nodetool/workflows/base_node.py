@@ -445,7 +445,7 @@ class BaseNode(BaseModel):
         return {prop.name: getattr(self, prop.name) for prop in self.properties()}
 
     async def convert_output(self, context: Any, output: Any) -> Any:
-        if self.return_type() is dict:
+        if type(self.return_type()) is dict:
             return output
         elif is_output_type(self.return_type()):
             return output.model_dump()
