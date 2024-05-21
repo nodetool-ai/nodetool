@@ -1,6 +1,7 @@
 import asyncio
 import json
 from pydantic import Field
+from nodetool.api.types.chat import MessageCreateRequest
 from nodetool.common.chat import process_messages
 from nodetool.metadata.types import (
     FunctionModel,
@@ -37,11 +38,12 @@ class Agent(BaseNode):
         return {
             "messages": list[Message],
             "tasks": list[Task],
+            "thread_id": str,
         }
 
     async def process(self, context: ProcessingContext):
         message = await context.create_message(
-            Message(
+            MessageCreateRequest(
                 role="user",
                 content=self.goal,
             )
@@ -65,6 +67,7 @@ class Agent(BaseNode):
         return {
             "messages": messages,
             "tasks": tasks,
+            "thread_id": message.thread_id,
         }
 
 
