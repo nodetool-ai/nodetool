@@ -101,7 +101,6 @@ const ThemeNodetool: Theme = createTheme({
     c_background: "#424854",
     c_node_menu: "#252525",
     /* Highlights */
-    //c_hl1: "#bcdaba",
     c_hl1: "#76e5b8",
     c_hl1_1: "#325954",
     c_hl2: "#128B6E",
@@ -125,7 +124,6 @@ const ThemeNodetool: Theme = createTheme({
 
     mode: "dark",
     primary: {
-      //main: "#424242",
       main: "#76e5b8",
       contrastText: "#FFFFFF"
     },

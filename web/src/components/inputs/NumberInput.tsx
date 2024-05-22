@@ -5,7 +5,6 @@ import useKeyPressedListener from "../../utils/KeyPressedListener";
 import PropertyLabel from "../node/PropertyLabel";
 import { TextField } from "@mui/material";
 import { css } from "@emotion/react";
-import ThemeNodes from "../themes/ThemeNodes";
 
 interface InputProps {
   name: string;
@@ -102,9 +101,26 @@ const styles = (theme: any) =>
       transition: "background-color 0.3s 0.3s"
     },
     ".MuiSlider-root:hover .MuiSlider-track, .MuiSlider-root:active .MuiSlider-track, .MuiSlider-root:focus .MuiSlider-track":
-    {
-      backgroundColor: "#8eaca733",
-      transition: "background-color 0.2s 0s"
+      {
+        backgroundColor: "#8eaca733",
+        transition: "background-color 0.2s 0s"
+      },
+    ".range-container": {
+      transition: "opacity 0.2s",
+      position: "absolute",
+      bottom: ".4em",
+      width: "calc(100% - 20px)",
+      height: "2px",
+      backgroundColor: theme.palette.c_gray2,
+      borderRadius: "2px",
+      fontSize: ".5em"
+    },
+    ".range-indicator": {
+      position: "absolute",
+      left: "0",
+      backgroundColor: theme.palette.c_hl1,
+      height: "2px",
+      minWidth: "1px"
     }
   });
 
@@ -385,30 +401,16 @@ const NumberInput = memo((props: InputProps) => {
 
       <div
         className="range-container"
-        style={{
-          opacity: isDragging || isEditable ? 1 : 0,
-          transition: "opacity 0.2s",
-          position: "absolute",
-          bottom: ".4em",
-          width: "calc(100% - 20px)",
-          height: "2px",
-          backgroundColor: ThemeNodes.palette.c_gray2,
-          borderRadius: "2px",
-          fontSize: ".5em"
-        }}
+        style={{ opacity: isDragging || isEditable ? 1 : 0 }}
       >
         <div
           className="range-indicator"
           style={{
-            position: "absolute",
-            left: "0",
-            backgroundColor: ThemeNodes.palette.c_hl1,
-            height: "2px",
-            minWidth: "1px",
-            width: `${((props.value - (props.min || 0)) /
-              ((props.max || 4096) - (props.min || 0))) *
+            width: `${
+              ((props.value - (props.min || 0)) /
+                ((props.max || 4096) - (props.min || 0))) *
               100
-              }%`
+            }%`
           }}
         ></div>
       </div>
