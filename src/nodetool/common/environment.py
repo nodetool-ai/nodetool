@@ -506,6 +506,16 @@ class Environment(object):
         return cls.get("NODETOOL_API_URL")
 
     @classmethod
+    def get_storage_api_url(cls):
+        """
+        The storage API endpoint.
+        """
+        if cls.get_nodetool_api_url():
+            return f"{cls.get_nodetool_api_url()}/storage/"
+        else:
+            return "http://localhost:8000/api/storage/"
+
+    @classmethod
     def get_nodetool_api_client(cls, auth_token: str) -> AbstractNodetoolAPIClient:
         """
         The nodetool api client is a wrapper around the nodetool api.
@@ -894,8 +904,7 @@ class Environment(object):
                     cls.get_logger().info(f"Using local file storage for asset storage")
                     cls.asset_storage = FileStorage(
                         base_path=cls.get_asset_folder(),
-                        base_url=f"{cls.get_nodetool_api_url()}/storage/"
-                        + cls.get_asset_bucket(),
+                        base_url=cls.get_storage_api_url() + cls.get_asset_bucket(),
                     )
 
             return cls.asset_storage
@@ -915,8 +924,7 @@ class Environment(object):
 
             if not hasattr(cls, "temp_storage"):
                 cls.temp_storage = MemoryStorage(
-                    base_url=f"{cls.get_nodetool_api_url()}/storage/"
-                    + cls.get_temp_bucket()
+                    base_url=cls.get_storage_api_url() + cls.get_temp_bucket()
                 )
             return cls.temp_storage
 
