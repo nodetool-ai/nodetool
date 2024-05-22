@@ -6,7 +6,6 @@ import { Box, Divider, List, Tooltip, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import {
   TOOLTIP_ENTER_DELAY,
