@@ -61,8 +61,8 @@ declare module "@mui/material/styles" {
 }
 
 const ThemeNodes: Theme = createTheme({
-  fontSizeBig: "1.125em",
   fontSizeBigger: "1.25em",
+  fontSizeBig: "1.125em",
   fontSizeNormal: "12px",
   fontSizeSmall: "10px",
   fontSizeSmaller: "8px",
@@ -96,7 +96,6 @@ const ThemeNodes: Theme = createTheme({
     mode: "dark",
     primary: {
       main: "#424242",
-      // main: "#68a89a",
       contrastText: "#FFFFFF"
     },
     secondary: {
@@ -244,7 +243,6 @@ ThemeNodes.components = {
       inputMultiline: {
         margin: "5px 0",
         padding: "2px 8px 0px 4px !important",
-        // backgroundColor: ThemeNodes.palette.c_gray2,
         backgroundColor: "#4b4b4b",
         resize: "vertical"
       },
@@ -272,11 +270,9 @@ ThemeNodes.components = {
 
         "& .MuiInput-underline:before": {
           borderBottom: "0"
-          //borderBottom: `0px solid ${ThemeNodes.palette.divider}`,
         },
         "& .MuiInput-underline:after": {
           borderBottom: "0"
-          //borderBottom: `0px solid ${ThemeNodes.palette.divider}`,
         },
         // TEXTAREA
         "& .MuiInputBase-inputMultiline": {
@@ -320,9 +316,6 @@ ThemeNodes.components = {
         lineHeight: "1em",
         minHeight: "1.2em",
         margin: " 0",
-        // pointerEvents: "none",
-        // color: ThemeNodes.palette.c_gray6,
-        // color: ThemeNodes.palette.c_hl1,
         "&.Mui-focused": {
           color: ThemeNodes.palette.c_white
         }
@@ -332,7 +325,6 @@ ThemeNodes.components = {
   MuiFormControl: {
     styleOverrides: {
       root: {
-        //margin: ThemeNodes.spacing(8, 0),
         margin: 0,
         display: "block",
         width: "100%",
@@ -344,7 +336,6 @@ ThemeNodes.components = {
   MuiFormControlLabel: {
     styleOverrides: {
       root: {
-        //display: "block",
         width: "100%"
       }
     }

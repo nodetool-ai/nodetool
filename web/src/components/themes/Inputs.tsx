@@ -1,3 +1,7 @@
+/*
+ * used to test MUI components
+ */
+
 import React, { useState } from "react";
 import {
   Autocomplete,
@@ -32,22 +36,21 @@ function Inputs() {
         options={["Option1", "Option2", "Option3"]}
         renderInput={(params) => <TextField {...params} label="Autocomplete" />}
       />
-      <Button variant="contained" color="primary" style={{}}>
+      <Button variant="contained" color="primary">
         Button
       </Button>
-      <ButtonGroup variant="contained" color="primary" style={{}}>
+      <ButtonGroup variant="contained" color="primary">
         <Button>Left</Button>
         <Button>Middle</Button>
         <Button>Right</Button>
       </ButtonGroup>
-      <Checkbox color="primary" style={{}} /> Checkbox
-      <Fab color="primary" aria-label="add" style={{}}>
+      <Checkbox color="primary" /> Checkbox
+      <Fab color="primary" aria-label="add">
         <AddIcon />
       </Fab>
       <RadioGroup
         value={radioValue}
         onChange={(e) => setRadioValue(e.target.value)}
-        style={{}}
       >
         <FormControlLabel
           value="option1"
@@ -60,8 +63,8 @@ function Inputs() {
           label="Option 2"
         />
       </RadioGroup>
-      <Rating name="rating" style={{}} />
-      <FormControl variant="outlined" style={{}}>
+      <Rating name="rating" />
+      <FormControl variant="outlined">
         <InputLabel>Select</InputLabel>
         <Select
           value={selectValue}
@@ -73,14 +76,13 @@ function Inputs() {
           <MenuItem value="Option3">Option3</MenuItem>
         </Select>
       </FormControl>
-      <Slider defaultValue={30} aria-label="Slider" style={{}} />
-      <Switch color="primary" style={{}} />
-      <TextField label="Text Field" variant="outlined" style={{}} />
+      <Slider defaultValue={30} aria-label="Slider" />
+      <Switch color="primary" />
+      <TextField label="Text Field" variant="outlined" />
       <ToggleButtonGroup
         value={toggleValue}
         exclusive
         onChange={() => setToggleValue(!toggleValue)}
-        style={{}}
       >
         <ToggleButton value={true}>Toggle On</ToggleButton>
         <ToggleButton value={false}>Toggle Off</ToggleButton>

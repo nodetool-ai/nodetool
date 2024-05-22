@@ -632,7 +632,6 @@ export function iconForType(
             <span
               style={{
                 textAlign: "left",
-                // backgroundColor: ThemeNodetool.palette.c_gray1,
                 backgroundColor: "transparent",
                 color: "#fff",
                 display: "block",

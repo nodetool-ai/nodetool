@@ -6,7 +6,6 @@ import { Box, Divider, List, Tooltip, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
-import ThemeNodes from "../themes/ThemeNodes";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import {
@@ -37,7 +36,6 @@ const namespaceStyles = (theme: any) =>
     },
     ".header": {
       display: "flex",
-      // width: "100%",
       minHeight: "30px",
       alignItems: "center",
       flexDirection: "row",
@@ -76,9 +74,9 @@ const namespaceStyles = (theme: any) =>
     },
     ".no-selection": {
       flexDirection: "column",
-      color: ThemeNodes.palette.c_white,
-      fontFamily: ThemeNodetool.fontFamily1,
-      fontSize: ThemeNodetool.fontSizeNormal,
+      color: theme.palette.c_white,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeNormal,
       wordSpacing: "0",
       margin: 0,
       alignItems: "stretch",
@@ -87,7 +85,7 @@ const namespaceStyles = (theme: any) =>
     ".explanation": {
       overflowY: "scroll",
       fontFamily: theme.fontFamily1,
-      fontSize: ThemeNodetool.fontSizeNormal,
+      fontSize: theme.fontSizeNormal,
       margin: "0",
       padding: "0 2em 2em .5em"
     },
@@ -121,15 +119,14 @@ const namespaceStyles = (theme: any) =>
       overflowY: "auto",
       gap: ".5em",
       paddingRight: "1em",
-      // width: "340px",
       maxHeight: "60vh",
       ".node-title": {
-        fontSize: ThemeNodetool.fontSizeNormal,
+        fontSize: theme.fontSizeNormal,
         fontWeight: "600",
         color: theme.palette.c_hl1
       },
       ".node-description": {
-        fontSize: ThemeNodetool.fontSizeNormal,
+        fontSize: theme.fontSizeNormal,
         fontWeight: "400",
         color: theme.palette.c_white
       }
@@ -161,6 +158,13 @@ const namespaceStyles = (theme: any) =>
       borderRight: `4px solid ${theme.palette.c_gray4}`,
       paddingRight: ".5em"
     },
+    ".inputs-outputs .item .property": {
+      color: theme.palette.c_gray6
+    },
+    ".inputs-outputs .item .property.description": {
+      color: theme.palette.c_white
+    },
+
     ".preview-image": {
       width: "100%",
       height: "auto",
@@ -290,11 +294,11 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
                           title={property.description}
                         >
                           <Typography
-                            style={{
-                              color: property.description
-                                ? ThemeNodes.palette.c_white
-                                : ThemeNodes.palette.c_gray6
-                            }}
+                            className={
+                              property.description
+                                ? "property description"
+                                : "property"
+                            }
                           >
                             {property.name}
                           </Typography>
@@ -320,9 +324,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
                     <Typography variant="h4">Outputs</Typography>
                     {hoveredNode.outputs.map((property) => (
                       <div key={property.name} className="item">
-                        <Typography
-                          style={{ color: ThemeNodes.palette.c_gray6 }}
-                        >
+                        <Typography className="property">
                           {property.name}
                         </Typography>
                         <Tooltip
