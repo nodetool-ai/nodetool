@@ -7,11 +7,10 @@ import {
   Node,
   NodeMetadata
 } from "../../stores/ApiTypes";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { constantForType, inputForType } from "./useConnectionHandlers";
+import { constantForType } from "./useConnectionHandlers";
 import { useAuth } from "../../providers/AuthProvider";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import dagre from "dagre";
