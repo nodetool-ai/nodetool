@@ -57,6 +57,10 @@
   box-shadow: 0.1em 0.1em 0.5em 0px rgba(30, 30, 30, 0.4);
 }
 
+.react-flow.zoomed-out .react-flow__node {
+  min-width: 150px;
+}
+
 .react-flow__node .node-header {
   cursor: grabbing !important;
 }
@@ -509,8 +513,8 @@ span.tooltip-small {
   overflow: hidden;
   z-index: -1 !important;
 }
-.react-flow.zoomed-out
-  .react-flow__node-nodetool\.workflows\.base_node\.Comment {
+.react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Comment,
+.react-flow.zoomed-out .react-flow__node-nodetool\.group\.Loop {
   background-color: #0002;
 }
 
