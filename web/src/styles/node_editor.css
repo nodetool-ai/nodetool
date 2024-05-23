@@ -62,6 +62,7 @@
 }
 
 .react-flow__node-nodetool\.group\.Loop {
+  z-index: -1 !important;
   background-color: transparent;
   box-shadow: none;
   min-width: 100px;

@@ -12,7 +12,9 @@ import useKeyPressedListener from "../../utils/KeyPressedListener";
 const styles = (theme: any) =>
   css({
     "&": {
-      boxShadow: "none"
+      boxShadow: "none",
+      minWidth: "500px",
+      minHeight: "350px"
     },
     "&.hovered.space-pressed": {
       border: "2px dashed black !important"
@@ -71,8 +73,8 @@ const LoopNode = (props: NodeProps<NodeData>) => {
         <div className="tools">
           <NodeResizeControl
             style={{ background: "transparent", border: "none" }}
-            minWidth={30}
-            minHeight={40}
+            minWidth={500}
+            minHeight={350}
             onResize={handleResize}
           >
             <SouthEastIcon />
