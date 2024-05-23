@@ -135,7 +135,7 @@ function AppFooter() {
                     Run Workflow
                   </span>
                   <span style={{ fontSize: ".9em", color: "white" }}>
-                    ALT+Enter | Meta+Enter
+                    CTRL+Enter
                   </span>
                 </div>
               }

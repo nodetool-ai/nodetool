@@ -30,7 +30,6 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
-
 //components
 import CommandMenu from "../menus/CommandMenu";
 import ConnectionLine from "./ConnectionLine";
@@ -49,7 +48,6 @@ import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { getMousePosition } from "../../utils/MousePosition";
-
 //css
 import "reactflow/dist/style.css";
 import "../../styles/node_editor.css";
@@ -59,7 +57,6 @@ import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import { useHotkeys } from "react-hotkeys-hook";
-
 //router
 import AxisMarker from "./AxisMarker";
 import { generateCSS } from "../themes/GenerateCSS";
