@@ -10,7 +10,8 @@ import { PropertyProps } from "../node/PropertyInput";
 
 export default function AudioProperty(props: PropertyProps) {
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
-  const onChangeAsset = (asset: Asset) => props.onChange({ asset_id: asset.id, uri: asset.get_url, type: "audio" });
+  const onChangeAsset = (asset: Asset) =>
+    props.onChange({ asset_id: asset.id, uri: asset.get_url, type: "audio" });
   const { onDrop, onDragOver, filename } = useFileDrop({
     onChangeAsset,
     uploadAsset: true,
@@ -24,15 +25,13 @@ export default function AudioProperty(props: PropertyProps) {
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
-        id={id} />
+        id={id}
+      />
 
       <WaveRecorder onChange={onChangeAsset} />
       <div id={id} aria-labelledby={id} className="audio-drop">
         <div
           className={`dropzone ${uri ? "dropped" : ""}`}
-          style={{
-            borderWidth: uri === "" ? "2px" : "0px"
-          }}
           onDragOver={onDragOver}
           onDrop={onDrop}
         >
@@ -43,7 +42,8 @@ export default function AudioProperty(props: PropertyProps) {
                 asset={asset ? asset : undefined}
                 url={uri ? uri : undefined}
                 open={openViewer}
-                onClose={() => setOpenViewer(false)} />
+                onClose={() => setOpenViewer(false)}
+              />
               <audio
                 style={{ width: "100%", height: "20px" }}
                 onVolumeChange={(e) => (e.currentTarget.volume = 1)}
