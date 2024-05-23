@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
-import useKeyListener from "../../utils/KeyListener";
 import useKeyPressedListener from "../../utils/KeyPressedListener";
+import { useHotkeys } from "react-hotkeys-hook";
 import { debounce } from "lodash";
 
 const styles = (theme: any) =>
@@ -129,7 +129,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     }
   };
 
-  useKeyListener("Escape", clearSearchOnEscape);
+  useHotkeys("Escape", clearSearchOnEscape);
 
   // focus on mount
   useLayoutEffect(() => {

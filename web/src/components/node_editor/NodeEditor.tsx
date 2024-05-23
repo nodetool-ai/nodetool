@@ -48,7 +48,6 @@ import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
-import useKeyListener from "../../utils/KeyListener";
 import { getMousePosition } from "../../utils/MousePosition";
 
 //css
@@ -59,6 +58,7 @@ import "../../styles/node_editor_handle_edge_tooltip.css";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
+import { useHotkeys } from "react-hotkeys-hook";
 
 //router
 import AxisMarker from "./AxisMarker";
@@ -208,8 +208,6 @@ const NodeEditor: React.FC<unknown> = () => {
     (event: React.MouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
-      // setTimeout is needed to prevent browser context menu from opening?
-      // setTimeout(() => {
       requestAnimationFrame(() => {
         openContextMenu(
           "pane-context-menu",
@@ -219,7 +217,6 @@ const NodeEditor: React.FC<unknown> = () => {
           "react-flow__pane"
         );
       });
-      // }, 0);
     },
     [nodes, openContextMenu]
   );
@@ -251,27 +248,28 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* KEY LISTENER */
   // align
-  useKeyListener("a", () => alignNodes({ arrangeSpacing: false }));
-  useKeyListener("Alt+a", () => alignNodes({ arrangeSpacing: true }));
-  useKeyListener("Meta+a", () => alignNodes({ arrangeSpacing: true }));
+  useHotkeys("space+a", () => {
+    alignNodes({ arrangeSpacing: true });
+  });
+  useHotkeys("a", () => {
+    alignNodes({ arrangeSpacing: false });
+  });
+  useHotkeys("Meta+a", () => alignNodes({ arrangeSpacing: true }));
   // copy paste
-  useKeyListener("Shift+Control+c", () => handleCopy());
-  useKeyListener("Control+v", () => handlePaste());
-  useKeyListener("Shift+Meta+c", () => handleCopy());
-  useKeyListener("Meta+v", () => handlePaste());
+  useHotkeys("Shift+c", () => handleCopy());
+  useHotkeys("Shift+v", () => handlePaste());
   // duplicate
-  useKeyListener("Alt+d", handleDuplicate);
-  useKeyListener("Meta+d", handleDuplicate);
+  useHotkeys("Space+d", handleDuplicate);
   // history
-  useKeyListener("Control+z", () => nodeHistory.undo());
-  useKeyListener("Control+Shift+z", () => nodeHistory.redo());
-  useKeyListener("Meta+z", () => nodeHistory.undo());
-  useKeyListener("Meta+Shift+z", () => nodeHistory.redo());
+  useHotkeys("Control+z", () => nodeHistory.undo());
+  useHotkeys("Control+Shift+z", () => nodeHistory.redo());
+  useHotkeys("Meta+z", () => nodeHistory.undo());
+  useHotkeys("Meta+Shift+z", () => nodeHistory.redo());
   // cmd menu
-  useKeyListener("Alt+k", () => setOpenCommandMenu(true));
-  useKeyListener("Meta+k", () => setOpenCommandMenu(true));
+  useHotkeys("Alt+k", () => setOpenCommandMenu(true));
+  useHotkeys("Meta+k", () => setOpenCommandMenu(true));
   // node menu
-  useKeyListener("Control+Space", () =>
+  useHotkeys("Control+Space", () =>
     openNodeMenu(getMousePosition().x, getMousePosition().y)
   );
 

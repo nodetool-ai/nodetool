@@ -1,10 +1,11 @@
 import { Drawer, IconButton, Tooltip } from "@mui/material";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CodeIcon from "@mui/icons-material/Code";
-import useKeyListener from "../../utils/KeyListener";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import "../../styles/panel.css";
+// hooks
+import { useHotkeys } from "react-hotkeys-hook";
 
 function PanelLeft() {
   const {
@@ -15,7 +16,7 @@ function PanelLeft() {
     handlePanelToggle
   } = useResizePanel(0, 800, 300, "horizontal", "left");
 
-  useKeyListener("1", () => {
+  useHotkeys("1", () => {
     if (
       document.activeElement &&
       document.activeElement.tagName.toLowerCase() !== "input" &&

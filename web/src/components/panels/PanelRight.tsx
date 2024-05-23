@@ -5,10 +5,11 @@ import React, { useState } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import { IconButton, Box, Tooltip, Drawer, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
-import useKeyListener from "../../utils/KeyListener";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import Inspector from "../Inspector";
+// hooks
+import { useHotkeys } from "react-hotkeys-hook";
 // import AssetRenameConfirmation from "../assets/AssetRenameConfirmation";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
@@ -34,7 +35,7 @@ function PanelRight() {
     handlePanelToggle
   } = useResizePanel(10, 1200, 300, "horizontal", "right");
 
-  useKeyListener("2", () => {
+  useHotkeys("2", () => {
     if (
       document.activeElement &&
       document.activeElement.tagName.toLowerCase() !== "input" &&

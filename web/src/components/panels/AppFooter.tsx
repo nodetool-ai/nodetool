@@ -14,8 +14,8 @@ import {
 } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-//utils
-import useKeyListener from "../../utils/KeyListener";
+//hooks
+import { useHotkeys } from "react-hotkeys-hook";
 //constants
 import { TOOLTIP_DELAY } from "../../config/constants";
 
@@ -112,9 +112,8 @@ function AppFooter() {
   const statusMessage = useWorkflowRunnner((state) => state.statusMessage);
   const areMessagesVisible = true;
 
-  useKeyListener("Alt+Enter", () => runWorkflow());
-  useKeyListener("Meta+Enter", () => runWorkflow());
-  useKeyListener("Escape", () => cancelWorkflow());
+  useHotkeys("Control+Enter", () => runWorkflow());
+  useHotkeys("Escape", () => cancelWorkflow());
 
   return (
     <div css={footerStyles}>

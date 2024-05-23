@@ -25,11 +25,12 @@ import WorkflowsIcon from "@mui/icons-material/ListAlt";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 
 //utils
-import useKeyListener from "../../utils/KeyListener";
 import { iconForType } from "../../config/data_types";
 import { useLocation, useNavigate } from "react-router-dom";
 //constants
 import { TOOLTIP_DELAY } from "../../config/constants";
+//hooks
+import { useHotkeys } from "react-hotkeys-hook";
 
 const styles = (theme: any) => ({
   button: {
@@ -51,24 +52,21 @@ const styles = (theme: any) => ({
 
 // function AppHeader({ openCommandMenu }: Props) {
 function AppHeader() {
-  const runWorkflow = useWorkflowRunnner((state) => state.run);
   const navigate = useNavigate();
   const path = useLocation().pathname;
   const reactFlowInstance = useReactFlow();
   const [openCommandMenu, setOpenCommandMenu] = useState(false);
   const { openNodeMenu } = useNodeMenuStore();
 
-  useKeyListener("Alt+s", () => fitScreen());
-  useKeyListener("Meta+s", () => fitScreen());
-  useKeyListener("Alt+h", () => handleOpenHelp());
-  useKeyListener("Meta+h", () => handleOpenHelp());
-  useKeyListener("Alt+Enter", () => runWorkflow());
-  useKeyListener("Meta+Enter", () => runWorkflow());
-  useKeyListener("Ctrl+Space", () => handleOpenNodeMenu());
+  useHotkeys("Alt+s", () => fitScreen());
+  useHotkeys("Meta+s", () => fitScreen());
+  useHotkeys("Alt+h", () => handleOpenHelp());
+  useHotkeys("Meta+h", () => handleOpenHelp());
+  useHotkeys("Ctrl+Space", () => handleOpenNodeMenu());
 
   // cmd menu
-  useKeyListener("Alt+k", () => setOpenCommandMenu(true));
-  useKeyListener("Meta+k", () => setOpenCommandMenu(true));
+  useHotkeys("Alt+k", () => setOpenCommandMenu(true));
+  useHotkeys("Meta+k", () => setOpenCommandMenu(true));
 
   const fitScreen = () => {
     reactFlowInstance.fitView({

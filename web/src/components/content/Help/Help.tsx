@@ -116,17 +116,13 @@ const Help = () => {
           <Button className="no-border">Option+K</Button>
         </div>
         <div className="help-item">
-          <Typography>Input/Output Node</Typography>
-          <Button className="no-border">CTRL+Drag Connection Line</Button>
-        </div>
-        <div className="help-item">
-          <Typography>Constant Node</Typography>
-          <Button className="no-border">Shift+Drag Connection Line</Button>
+          <Typography>Connection Menu</Typography>
+          <Button className="no-border">End a connection on the canvas</Button>
         </div>
         <div className="help-item">
           <Typography>Asset Node</Typography>
           <Button className="no-border">
-            Drop Asset from Asset Menu or File Explorer on the Canvas
+            Drop an asset from the Asset Menu or File Explorer on the Canvas
           </Button>
         </div>
         <Typography variant="h5" color="#999">
@@ -144,7 +140,9 @@ const Help = () => {
         <div className="help-item">
           <Typography>Select multiple Nodes</Typography>
           <Button className="no-border">
-            Drag area with [Shift+] left click
+            Drag area with left click
+            <br />
+            Shift + Left Click if using LMB for panning
           </Button>
         </div>
 
@@ -153,7 +151,9 @@ const Help = () => {
         </Typography>
         <div className="help-item">
           <Typography>Node Menu</Typography>
-          <Button className="no-border">Right click on node name</Button>
+          <Button className="no-border">
+            Right click on node name or left click on top-right menu icon
+          </Button>
         </div>
         <div className="help-item">
           <Typography>Selection Menu</Typography>
@@ -163,7 +163,7 @@ const Help = () => {
         </div>
         <div className="help-item">
           <Typography>Canvas Menu</Typography>
-          <Button className="no-border">Right click on canvas</Button>
+          <Button className="no-border">Right click on empty canvas</Button>
         </div>
       </TabPanel>
       <TabPanel value={value} index={1}>
@@ -183,24 +183,24 @@ const Help = () => {
           >
             Shift: Slow
             <br />
-            Control: Fast
+            CTRL: Fast
             <br />
-            Shift+Control: Faster
+            Shift+CTRL: Faster
             <br />
           </Typography>
         </div>
 
         <div className="help-item">
           <Typography>Edit Number</Typography>
-          <Button className="no-border">Double click number</Button>
+          <Button className="no-border">Double click a number property</Button>
         </div>
         <div className="help-item">
           <Typography>Set Default</Typography>
-          <Button className="no-border">Control + Right Click</Button>
+          <Button className="no-border">CTRL + Right Click</Button>
         </div>
         <div className="help-item">
           <Typography>Confirm Editing</Typography>
-          <Button>Enter</Button>/<Button>Click outside</Button>
+          <Button>Enter</Button>/<Button>Click anywhere outside</Button>
         </div>
         <div className="help-item">
           <Typography>Cancel Editing</Typography>
@@ -221,11 +221,11 @@ const Help = () => {
         <div className="help-item">
           <Typography>Open Node Menu</Typography>
           <Button className="no-border">Double Click on Canvas</Button>
-          <Button className="no-border">Shift+Space</Button>
+          <Button className="no-border">CTRL+Space</Button>
         </div>
         <div className="help-item">
-          <Typography>Focus Node Search</Typography>
-          <Button>Esc</Button>
+          <Typography>Focus Search in NodeMenu</Typography>
+          <Button>Esc</Button> or just start typing with menu opened
         </div>
         <Typography variant="h5" color="#999">
           Nodes
@@ -233,16 +233,16 @@ const Help = () => {
 
         <div className="help-item">
           <Typography>Help Menu</Typography>
-          <Button>Shift+h</Button>
-          <Button>Option+h</Button>
+          <Button>Alt+h</Button>
+          <Button>Meta+h</Button>
         </div>
         <div className="help-item">
           <Typography>Copy selected nodes</Typography>
-          <Button>Shift+CTRL+C | Meta+CTRL+C</Button>
+          <Button>Shift+C</Button>
         </div>
         <div className="help-item">
           <Typography>Paste selected nodes</Typography>
-          <Button>CTRL+v</Button>
+          <Button>Shift+v</Button>
         </div>
         <div className="help-item">
           <Typography>History Undo</Typography>
@@ -260,8 +260,7 @@ const Help = () => {
         </div>
         <div className="help-item">
           <Typography>Arrange selected nodes</Typography>
-          <Button>Alt+a</Button>
-          <Button>Option+a</Button>
+          <Button>Space+a</Button>
         </div>
         <div className="help-item">
           <Typography>Fit Screen</Typography>
@@ -275,8 +274,7 @@ const Help = () => {
 
         <div className="help-item">
           <Typography>Run Workflow</Typography>
-          <Button>Alt+Enter</Button>
-          <Button>Meta+Enter</Button>
+          <Button>CTRL+Enter</Button>
         </div>
         <div className="help-item">
           <Typography>Cancel Workflow</Typography>

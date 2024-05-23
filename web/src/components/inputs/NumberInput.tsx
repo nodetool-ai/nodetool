@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, useRef, memo } from "react";
-import useKeyListener from "../../utils/KeyListener";
+import { useHotkeys } from "react-hotkeys-hook";
 import useKeyPressedListener from "../../utils/KeyPressedListener";
 import PropertyLabel from "../node/PropertyLabel";
 import { TextField } from "@mui/material";
@@ -154,7 +154,7 @@ const NumberInput = memo((props: InputProps) => {
     }
   }, [isFloat, localValue]);
 
-  useKeyListener("Escape", () => {
+  useHotkeys("Escape", () => {
     if (originalValue !== null) {
       setLocalValue(originalValue.toString());
     }
