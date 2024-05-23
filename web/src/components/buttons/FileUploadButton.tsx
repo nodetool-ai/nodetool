@@ -2,6 +2,7 @@ import { useRef, useCallback, ChangeEvent } from "react";
 import { Button, Typography, Tooltip } from "@mui/material";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import { TOOLTIP_DELAY } from "../../config/constants";
+import ThemeNodes from "../themes/ThemeNodes";
 
 export type FileUploadButtonProps = {
   onFileChange: (files: File[]) => void;
@@ -24,7 +25,33 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
 
   return (
     <div className="file-upload-button">
-      <Tooltip enterDelay={TOOLTIP_DELAY} title="Select files or drop here">
+      <Tooltip
+        enterDelay={TOOLTIP_DELAY}
+        title={
+          <>
+            <Typography
+              variant="h4"
+              style={{ fontSize: ThemeNodes.fontSizeBig, paddingLeft: ".5em" }}
+            >
+              Add assets
+            </Typography>
+            <ul
+              style={{
+                margin: "0",
+                padding: ".5em .5em .5em 2em",
+                color: ThemeNodes.palette.c_white,
+                display: "block"
+              }}
+            >
+              <li>Click to select files</li>
+              <li>
+                Drop any file from a file explorer
+                <br /> onto the assets area below
+              </li>
+            </ul>
+          </>
+        }
+      >
         <Button
           className="upload-file"
           variant="outlined"
