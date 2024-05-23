@@ -8,7 +8,7 @@ import CodeIcon from "@mui/icons-material/Code";
 import useKeyListener from "../../utils/KeyListener";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
-// import Inspector from "../Inspector";
+import Inspector from "../Inspector";
 // import AssetRenameConfirmation from "../assets/AssetRenameConfirmation";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
@@ -99,7 +99,7 @@ function PanelRight() {
           aria-label="Panel tabs"
         >
           <Tab label="Assets" />
-          {/* <Tab label="Inspector" /> */}
+          <Tab label="Inspector" />
         </Tabs>
         {tabIndex === 0 && (
           <Box
@@ -109,7 +109,7 @@ function PanelRight() {
             <AssetGrid maxItemSize={5} />
           </Box>
         )}
-        {/* {tabIndex === 1 && <Inspector />} */}
+        {tabIndex === 1 && <Inspector />}
       </Drawer>
     </div>
   );

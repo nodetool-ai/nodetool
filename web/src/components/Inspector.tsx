@@ -28,10 +28,12 @@ const styles = (theme: any) =>
 
 const Inspector: React.FC = () => {
   const [lastSelectedNode, setLastSelectedNode] = useState<Node | null>(null);
-  const selectedNodes = useSessionStateStore.getState().selectedNodes;
+  const selectedNodes = useSessionStateStore((state) => state.selectedNodes); // Use selector hook
+
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
 
   useEffect(() => {
+    console.log("selectedNodes", selectedNodes);
     if (selectedNodes.length) {
       setLastSelectedNode(selectedNodes[0]);
     }
@@ -87,7 +89,8 @@ const Inspector: React.FC = () => {
           propertyIndex={index.toString()}
           skipHandles={true}
           isInspector={true}
-          nodeStyle="node-property"
+          nodeType="inspector"
+          layout=""
           edgeConnected={
             getInputEdges(lastSelectedNode.id).find(
               (edge) => edge.targetHandle === property.name
