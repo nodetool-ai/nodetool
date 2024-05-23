@@ -92,6 +92,21 @@ const namespaceStyles = (theme: any) =>
       color: theme.palette.c_hl1,
       marginBottom: "0.3em"
     },
+    ".explanation p": {
+      fontSize: theme.fontSizeNormal
+    },
+    ".explanation ul": {
+      listStyleType: "square",
+      paddingInlineStart: "1em",
+      margin: 0,
+      "& li": {
+        fontFamily: theme.fontFamily1,
+        fontSize: theme.fontSizeNormal,
+        margin: "0.25em 0",
+        padding: "0"
+      }
+    },
+
     ".result-info": {
       color: theme.palette.c_white,
       cursor: "default"
@@ -163,7 +178,6 @@ const namespaceStyles = (theme: any) =>
     ".inputs-outputs .item .property.description": {
       color: theme.palette.c_white
     },
-
     ".preview-image": {
       width: "100%",
       height: "auto",
@@ -371,7 +385,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
               <Typography variant="h5" style={{ marginTop: 0 }}>
                 Browse Nodes
               </Typography>
-              <Typography variant="body1">Click on a namespace.</Typography>
+              <ul>
+                <li>Click on the namespaces to the left</li>
+              </ul>
 
               <Typography variant="h5">Search Nodes</Typography>
               <Typography variant="body1">
@@ -379,11 +395,14 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
                 <br />
                 To clear the search term:
                 <br />
-                Press ESC key or the X icon.
+                Press ESC key or the X icon in the search input.
               </Typography>
 
               <Typography variant="h5">Create Nodes</Typography>
-              <Typography variant="body1">Click on a node.</Typography>
+              <ul>
+                <li>Click on a node</li>
+                <li>Drag nodes on canvas</li>
+              </ul>
             </div>
             <List className="node-info">
               <Typography className="node-title"></Typography>

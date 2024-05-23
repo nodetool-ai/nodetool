@@ -4,9 +4,11 @@ import { ConnectDirection } from "./ConnectionStore";
 
 type NodeMenuStore = {
   isMenuOpen: boolean;
-  openedByDrop: boolean;
+  dragToCreate: boolean;
+  setDragToCreate: (dragToCreate: boolean) => void;
   connectDirection: ConnectDirection;
   setConnectDirection: (direction: ConnectDirection) => void;
+  openedByDrop: boolean;
   dropType: string;
   menuPosition: { x: number; y: number };
   setMenuPosition: (x: number, y: number) => void;
@@ -45,6 +47,10 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   isMenuOpen: false,
   openedByDrop: false,
   dropType: "",
+  dragToCreate: false,
+  setDragToCreate: (dragToCreate) => {
+    set({ dragToCreate });
+  },
   connectDirection: null,
   setConnectDirection: (direction) => {
     set({ connectDirection: direction as ConnectDirection });
@@ -73,7 +79,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   openNodeMenu: (
     x,
     y,
-    byDrop: boolean = false,
+    openedByDrop: boolean = false,
     dropType: string = "",
     connectDirection: ConnectDirection = null
   ) => {
@@ -84,25 +90,30 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     set({
       isMenuOpen: true,
       menuPosition: { x: constrainedX, y: constrainedY },
-      openedByDrop: byDrop,
+      openedByDrop: openedByDrop,
       dropType: dropType,
       connectDirection: connectDirection
     });
   },
 
   closeNodeMenu: () => {
+    if (get().dragToCreate) {
+      set({ dragToCreate: false });
+      return;
+    }
     if (get().openedByDrop) {
       set({ openedByDrop: false });
-    } else {
-      set({
-        searchTerm: "",
-        dropType: "",
-        connectDirection: null,
-        openedByDrop: false,
-        isMenuOpen: false,
-        menuPosition: { x: 100, y: 100 }
-      });
+      return;
     }
+    set({
+      searchTerm: "",
+      openedByDrop: false,
+      dropType: "",
+      dragToCreate: false,
+      connectDirection: null,
+      isMenuOpen: false,
+      menuPosition: { x: 100, y: 100 }
+    });
   },
 
   // description

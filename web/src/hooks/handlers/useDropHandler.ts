@@ -273,10 +273,18 @@ export const useDropHandler = (): DropHandler => {
       x: event.clientX,
       y: event.clientY
     });
-    const assetJSON = event.dataTransfer.getData("asset");
-    const asset = assetJSON ? (JSON.parse(assetJSON) as Asset) : null;
+
+    // Create nodes from node menu drop
+    const nodeJSON = event.dataTransfer.getData("create-node");
+    const node = nodeJSON ? (JSON.parse(nodeJSON) as NodeMetadata) : null;
+    if (node !== null) {
+      const newNode = createNode(node, position);
+      addNode(newNode);
+    }
 
     // Create nodes on asset drop
+    const assetJSON = event.dataTransfer.getData("asset");
+    const asset = assetJSON ? (JSON.parse(assetJSON) as Asset) : null;
     if (targetIsPane && asset !== null) {
       getAsset(asset.id).then((asset) => {
         addNodeFromAsset(asset, position);

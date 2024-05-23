@@ -3,11 +3,14 @@ import { useState } from "react";
 import { useReactFlow } from "reactflow";
 // store
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 // components
 import SettingsMenu from "../menus/SettingsMenu";
 import Help from "../content/Help/Help";
 import Alert from "../node_editor/Alert";
 import AppIconMenu from "../menus/AppIconMenu";
+// icons
+import AdjustIcon from "@mui/icons-material/Adjust";
 // mui
 import {
   AppBar,
@@ -20,16 +23,13 @@ import {
 } from "@mui/material";
 import WorkflowsIcon from "@mui/icons-material/ListAlt";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
-// import ExploreIcon from "@mui/icons-material/Explore";
-import ExampleIcon from "@mui/icons-material/Code";
 
 //utils
 import useKeyListener from "../../utils/KeyListener";
 import { iconForType } from "../../config/data_types";
+import { useLocation, useNavigate } from "react-router-dom";
 //constants
 import { TOOLTIP_DELAY } from "../../config/constants";
-
-import { useLocation, useNavigate } from "react-router-dom";
 
 const styles = (theme: any) => ({
   button: {
@@ -56,6 +56,7 @@ function AppHeader() {
   const path = useLocation().pathname;
   const reactFlowInstance = useReactFlow();
   const [openCommandMenu, setOpenCommandMenu] = useState(false);
+  const { openNodeMenu } = useNodeMenuStore();
 
   useKeyListener("Alt+s", () => fitScreen());
   useKeyListener("Meta+s", () => fitScreen());
@@ -63,6 +64,7 @@ function AppHeader() {
   useKeyListener("Meta+h", () => handleOpenHelp());
   useKeyListener("Alt+Enter", () => runWorkflow());
   useKeyListener("Meta+Enter", () => runWorkflow());
+  useKeyListener("Ctrl+Space", () => handleOpenNodeMenu());
 
   // cmd menu
   useKeyListener("Alt+k", () => setOpenCommandMenu(true));
@@ -93,6 +95,10 @@ function AppHeader() {
 
   const closeAppIconMenu = () => {
     setAnchorEl(null);
+  };
+
+  const handleOpenNodeMenu = () => {
+    openNodeMenu(400, 200);
   };
 
   return (
@@ -147,6 +153,29 @@ function AppHeader() {
                 height: "1.7em"
               })}
               Assets
+            </Button>
+          </Tooltip>
+
+          <Tooltip
+            title={
+              <span
+                style={{
+                  color: "white",
+                  textAlign: "center",
+                  display: "block"
+                }}
+              >
+                Open NodeMenu <br /> Ctrl+Space
+              </span>
+            }
+            enterDelay={TOOLTIP_DELAY}
+          >
+            <Button
+              className={`nav-button ${path === "/assets" ? "active" : ""}`}
+              onClick={handleOpenNodeMenu}
+            >
+              {<AdjustIcon />}
+              Nodes
             </Button>
           </Tooltip>
         </Box>

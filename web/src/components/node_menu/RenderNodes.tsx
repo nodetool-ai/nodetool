@@ -38,7 +38,7 @@ const nodeStyles = (theme: any) =>
   });
 
 const RenderNodes: React.FC<RenderNodesProps> = ({ nodes, hoverDelay }) => {
-  const { hoveredNode, setHoveredNode } = useNodeMenuStore();
+  const { hoveredNode, setHoveredNode, setDragToCreate } = useNodeMenuStore();
 
   const handleCreateNode = useCreateNode();
 
@@ -55,6 +55,16 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes, hoverDelay }) => {
       setHoveredNode(currentHoveredNodeRef.current);
     }
   }, hoverDelay || 150);
+
+  // drag nodes
+  const handleDragStart = (
+    event: React.DragEvent<HTMLDivElement>,
+    node: NodeMetadata
+  ) => {
+    setDragToCreate(true);
+    event.dataTransfer.setData("create-node", JSON.stringify(node));
+    event.dataTransfer.effectAllowed = "move";
+  };
 
   return (
     <div className="nodes" css={nodeStyles}>
@@ -89,6 +99,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes, hoverDelay }) => {
               currentHoveredNodeRef.current = null;
               handleMouseLeave();
             }}
+            draggable
+            onDragStart={(event) => handleDragStart(event, node)}
           >
             {iconForType(getOutputType(node), {
               fill: "#fff",
