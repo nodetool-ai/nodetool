@@ -349,8 +349,9 @@
   width: auto !important;
 }
 
-.dropzone.dropped {
+.node-property .dropzone.dropped {
   outline: 0 none;
+  border: 0;
 }
 
 /* NODE SELECTION RECT */
