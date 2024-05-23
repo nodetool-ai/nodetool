@@ -111,7 +111,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const setProgress = useResultsStore.getState().setProgress;
 
     try {
-      console.log(data);
+      devLog("WofkflowRunner data:", data);
 
       if (data.type === "workflow_update") {
         set({ state: "idle" });

@@ -384,13 +384,8 @@ export const useNodeStore = create<NodeStore>()(
         get().setWorkflow(newWorkflow);
         get().syncWorkflow();
         get().saveWorkflow();
-        return newWorkflow.id; // Assuming newWorkflow has an 'id' property
+        return newWorkflow.id;
       },
-      // newWorkflow: () => {
-      //   get().setWorkflow(useWorkflowStore.getState().newWorkflow());
-      //   get().syncWorkflow();
-      //   get().saveWorkflow();
-      // },
 
       /**
        * Sync with workflow store.

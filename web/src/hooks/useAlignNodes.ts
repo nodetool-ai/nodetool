@@ -14,7 +14,7 @@ const useAlignNodes = () => {
   const nodes = useNodeStore((state) => state.nodes);
   const setNodes = useNodeStore((state) => state.setNodes);
   const setExplicitSave = useNodeStore((state) => state.setExplicitSave);
-  const selectedNodes = useSessionStateStore.getState().selectedNodes;
+  const selectedNodes = useSessionStateStore((state) => state.selectedNodes);
 
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {

@@ -187,15 +187,15 @@ const CommandMenu = memo(function CommandMenu({
   const runWorkflow = useWorkflowRunnner((state) => state.run);
   const cancelWorkflow = useWorkflowRunnner((state) => state.cancel);
   const autoLayout = useNodeStore((state) => state.autoLayout);
-  // const runSelected = useWorkflowRunnner((state) => state.runSelected);
   const exportWorkflow = useNodeStore((state) => state.exportWorkflow);
   const workflow = useNodeStore((state) => state.workflow);
   const input = useRef<HTMLInputElement>(null);
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const alignNodes = useAlignNodes();
-  // const { handleCopy, handlePaste } = useCopyPaste();
   const { data } = useMetadata();
   const handleCreateNode = useCreateNode();
+  // const runSelected = useWorkflowRunnner((state) => state.runSelected);
+  // const { handleCopy, handlePaste } = useCopyPaste();
 
   useEffect(() => {
     const focusInput = () => {
@@ -203,7 +203,7 @@ const CommandMenu = memo(function CommandMenu({
       (inputElement as HTMLInputElement)?.focus();
     };
     if (open) {
-      // Delaying the focus to ensure the element is in the DOM
+      // Delay focus to ensure the element is in the DOM
       setTimeout(focusInput, 0);
     }
   }, [open]);

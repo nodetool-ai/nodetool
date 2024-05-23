@@ -16,10 +16,6 @@ import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
-// import { useReactFlow } from "reactflow";
-//import TableRowsIcon from "@mui/icons-material/TableRows";
-//import FormatLineSpacingIcon from "@mui/icons-material/FormatLineSpacing";
-//import { CopyAll, UnfoldMore } from "@mui/icons-material";
 
 interface SelectionContextMenuProps {
   top?: number;
@@ -34,7 +30,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
   const { openMenuType, menuPosition } = useContextMenuStore();
-  const selectedNodeIds = useSessionStateStore.getState().selectedNodeIds;
+  const selectedNodeIds = useSessionStateStore(
+    (state) => state.selectedNodeIds
+  );
 
   //duplicate
   const handleDuplicateNodes = useCallback(() => {
