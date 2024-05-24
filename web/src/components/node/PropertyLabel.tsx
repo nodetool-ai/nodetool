@@ -49,7 +49,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   description
 }) => {
   return (
-    <div css={labelStyles}>
+    <div className="property-label" css={labelStyles}>
       {description ? (
         <div
           aria-label={description}

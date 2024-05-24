@@ -42,9 +42,16 @@ export type PropertyFieldProps = {
 /**
  * PropertyField renders a single property of a node.
  */
-const PropertyField: React.FC<PropertyFieldProps> = (
-  { id, data, nodeType, propertyIndex, property, skipHandles, isInspector, edgeConnected }: PropertyFieldProps
-) => {
+const PropertyField: React.FC<PropertyFieldProps> = ({
+  id,
+  data,
+  nodeType,
+  propertyIndex,
+  property,
+  skipHandles,
+  isInspector,
+  edgeConnected
+}: PropertyFieldProps) => {
   const controlKeyPressed = useKeyPressedListener("Control");
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
@@ -80,10 +87,7 @@ const PropertyField: React.FC<PropertyFieldProps> = (
   }, [connectDirection, connectNodeId, connectType, id, property.type]);
 
   return (
-    <div
-      key={id}
-      className={"node-property " + Slugify(property.type.type)}
-    >
+    <div key={id} className={"node-property " + Slugify(property.type.type)}>
       {!skipHandles && (
         <div className="handle-popup">
           <Tooltip
@@ -103,8 +107,7 @@ const PropertyField: React.FC<PropertyFieldProps> = (
                   fontSize: ThemeNodetool.fontSizeSmall
                 }}
               >
-                {property.name}:
-                {typeToString(property.type)}
+                {property.name}:{typeToString(property.type)}
               </span>
             }
             enterDelay={TOOLTIP_ENTER_DELAY}
@@ -112,9 +115,7 @@ const PropertyField: React.FC<PropertyFieldProps> = (
             enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
             placement="left"
             TransitionComponent={Zoom}
-            className={
-              classConnectable + " " + Slugify(property.type.type)
-            }
+            className={classConnectable + " " + Slugify(property.type.type)}
           >
             <Handle
               type="target"
@@ -122,9 +123,7 @@ const PropertyField: React.FC<PropertyFieldProps> = (
               position={Position.Left}
               isConnectable={true}
               className={Slugify(property.type.type)}
-              onContextMenu={(e) =>
-                inputContextMenu(e, id, property.type.type)
-              }
+              onContextMenu={(e) => inputContextMenu(e, id, property.type.type)}
             />
           </Tooltip>
         </div>
