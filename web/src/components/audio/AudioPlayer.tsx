@@ -70,7 +70,7 @@ const wsprops: WaveSurferProps = {
   height: 12,
   barHeight: 1.0,
   minimapHeight: 8,
-  waveformHeight: 8,
+  waveformHeight: 15,
   minimapBarHeight: 1,
   dragToSeek: true,
   autoplay: false,
