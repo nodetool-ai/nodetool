@@ -25,7 +25,6 @@ type NamespaceTree = Record<
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
   metadata: NodeMetadata[];
-  activeNode?: string;
 }
 
 const namespaceStyles = (theme: any) =>
@@ -188,8 +187,7 @@ const namespaceStyles = (theme: any) =>
 
 const NamespaceList: React.FC<NamespaceListProps> = ({
   namespaceTree,
-  metadata,
-  activeNode
+  metadata
 }) => {
   const {
     searchTerm,
@@ -269,7 +267,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         <List className="namespace-list">
           <RenderNamespaces
             tree={namespaceTree}
-            activeNode={activeNode}
             handleNamespaceClick={handleNamespaceClick}
           />
         </List>

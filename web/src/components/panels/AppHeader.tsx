@@ -156,15 +156,29 @@ function AppHeader() {
 
           <Tooltip
             title={
-              <span
-                style={{
-                  color: "white",
-                  textAlign: "center",
-                  display: "block"
-                }}
-              >
-                Open NodeMenu <br /> Ctrl+Space
-              </span>
+              <>
+                <span
+                  style={{
+                    fontSize: "1.2em",
+                    color: "white",
+                    textAlign: "center",
+                    display: "block"
+                  }}
+                >
+                  Open NodeMenu
+                </span>
+                <span
+                  style={{
+                    fontSize: "1em",
+                    color: "white",
+                    textAlign: "center",
+                    display: "block"
+                  }}
+                >
+                  Ctrl+Space
+                  <br /> Double Click on Canvas
+                </span>
+              </>
             }
             enterDelay={TOOLTIP_DELAY}
           >

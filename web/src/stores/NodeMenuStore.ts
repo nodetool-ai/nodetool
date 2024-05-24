@@ -18,12 +18,16 @@ type NodeMenuStore = {
   setSearchTerm: (term: string) => void;
   selectedPath: string[];
   setSelectedPath: (path: string[]) => void;
+  activeNode: string | null;
+  setActiveNode: (node: string | null) => void;
+
   openNodeMenu: (
     x: number,
     y: number,
     openedByDrop?: boolean,
     dropType?: string,
-    connectDirection?: ConnectDirection
+    connectDirection?: ConnectDirection,
+    activeNode?: string
   ) => void;
   closeNodeMenu: () => void;
 
@@ -76,12 +80,19 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       selectedPath: path
     });
   },
+  activeNode: null,
+  setActiveNode: (node) => {
+    set({
+      activeNode: node
+    });
+  },
   openNodeMenu: (
     x,
     y,
     openedByDrop: boolean = false,
     dropType: string = "",
-    connectDirection: ConnectDirection = null
+    connectDirection: ConnectDirection = null,
+    activeNode: string = ""
   ) => {
     const maxPosX = window.innerWidth - get().menuWidth;
     const maxPosY = window.innerHeight - get().menuHeight;
@@ -92,7 +103,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       menuPosition: { x: constrainedX, y: constrainedY },
       openedByDrop: openedByDrop,
       dropType: dropType,
-      connectDirection: connectDirection
+      connectDirection: connectDirection,
+      activeNode: activeNode
     });
   },
 
