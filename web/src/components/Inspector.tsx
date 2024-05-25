@@ -5,10 +5,11 @@ import useSessionStateStore from "../stores/SessionStateStore";
 import { useMetadataOrNull } from "../serverState/useMetadata";
 import PropertyField from "./node/PropertyField";
 import { Node } from "reactflow";
-import { Typography } from "@mui/material";
+import { Button, Tooltip, Typography } from "@mui/material";
 import ThemeNodetool from "./themes/ThemeNodetool";
 import { useNodeStore } from "../stores/NodeStore";
 import { NodeMetadata } from "../stores/ApiTypes";
+import useNodeMenuStore from "../stores/NodeMenuStore";
 
 const styles = (theme: any) =>
   css({
@@ -29,19 +30,28 @@ const styles = (theme: any) =>
     ".top": {
       display: "flex",
       flexDirection: "column",
-      gap: ".25em",
+      gap: "10px",
       width: "100%",
-      padding: "0.5em"
+      padding: "0.5em",
+      height: "60vh",
+      flexShrink: 1,
+      flexGrow: 1,
+      overflowY: "auto",
+      overflowX: "hidden"
     },
     ".bottom": {
       display: "flex",
       flexDirection: "column",
       gap: "1em",
       width: "100%",
-      padding: "0.5em",
-      marginTop: "auto"
+      padding: "0.5em 0",
+      marginTop: "auto",
+      flexShrink: 0
     },
     ".node-property": {
+      display: "flex",
+      flexShrink: 0,
+      flexDirection: "column",
       margin: 0,
       padding: 0,
       width: "100%",
@@ -52,6 +62,7 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeNormal
     },
     ".node-property textarea": {
+      margin: 0,
       padding: "0.25em",
       backgroundColor: theme.palette.c_gray2,
       fontSize: theme.fontSizeSmall,
@@ -76,6 +87,9 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeNormal,
       fontFamily: theme.fontFamily1,
       transform: "translate(0, 0)"
+    },
+    ".node-property.enum .MuiFormControl-root": {
+      margin: 0
     },
     ".inspector-header": {
       display: "flex",
@@ -104,8 +118,11 @@ const styles = (theme: any) =>
     },
     ".namespace": {
       maxHeight: "4em",
+      justifyContent: "flex-start",
       overflowY: "auto",
-      paddingBottom: ".75em",
+      paddingLeft: "0",
+      marginBottom: ".75em",
+
       wordBreak: "break-all",
       color: theme.palette.c_hl1,
       textTransform: "uppercase",
@@ -117,6 +134,9 @@ const Inspector: React.FC = () => {
   const [lastSelectedNode, setLastSelectedNode] = useState<Node | null>(null);
   const selectedNodes = useSessionStateStore((state) => state.selectedNodes);
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
+  const { openNodeMenu } = useNodeMenuStore();
+  const { setHighlightedNamespaces, setSelectedPath, setHoveredNode } =
+    useNodeMenuStore();
 
   useEffect(() => {
     if (selectedNodes.length) {
@@ -162,6 +182,15 @@ const Inspector: React.FC = () => {
     );
   }
 
+  const handleOpenNodeMenu = () => {
+    openNodeMenu(500, 200, false, metadata.namespace);
+    requestAnimationFrame(() => {
+      setSelectedPath(metadata.namespace.split("."));
+      setHoveredNode(metadata);
+      setHighlightedNamespaces(metadata.namespace.split("."));
+    });
+  };
+
   return (
     <div className="inspector" css={styles}>
       <div className="top">
@@ -189,7 +218,11 @@ const Inspector: React.FC = () => {
       </div>
       <div className="bottom">
         <div className="description">{metadata.description}</div>
-        <div className="namespace">{metadata?.namespace}</div>
+        <Tooltip title="Show in NodeMenu" placement="top-start">
+          <Button className="namespace" onClick={handleOpenNodeMenu}>
+            {metadata.namespace}
+          </Button>
+        </Tooltip>
       </div>
     </div>
   );

@@ -46,7 +46,6 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
   const namespaceTree = useNamespaceTree();
   const [selectedInputType, setSelectedInputType] = useState("");
   const [selectedOutputType, setSelectedOutputType] = useState("");
-  const [activeNode, setActiveNode] = useState<string | null>(null);
   const [metadataFilteredByTypes, setMetadataFilteredByTypes] = useState<
     NodeMetadata[]
   >([]);
@@ -57,7 +56,9 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     menuHeight,
     menuPosition,
     dropType,
-    connectDirection
+    connectDirection,
+    activeNode,
+    setActiveNode
   } = useNodeMenuStore();
   const {
     searchResults,
@@ -274,7 +275,6 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
             <NamespaceList
               namespaceTree={namespaceTree}
               metadata={searchResults}
-              activeNode={activeNode || ""}
             />
           </Box>
         </Box>

@@ -16,7 +16,6 @@ interface NamespaceTree {
 interface RenderNamespacesProps {
   tree: NamespaceTree;
   currentPath?: string[];
-  activeNode?: string;
   handleNamespaceClick: (newPath: string[]) => void;
 }
 
@@ -85,10 +84,11 @@ function toPascalCase(input: string): string {
 const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   tree,
   currentPath = [],
-  activeNode,
   handleNamespaceClick
 }) => {
-  const { highlightedNamespaces, selectedPath } = useNodeMenuStore();
+  const { highlightedNamespaces, selectedPath, activeNode } =
+    useNodeMenuStore();
+
   return (
     <div className="namespaces" css={namespaceStyles}>
       {Object.keys(tree).map((namespace) => {
@@ -135,7 +135,6 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
                 <RenderNamespaces
                   tree={tree[namespace].children}
                   currentPath={newPath}
-                  activeNode={activeNode}
                   handleNamespaceClick={handleNamespaceClick}
                 />
               </Box>
