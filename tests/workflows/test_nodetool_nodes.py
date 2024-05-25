@@ -9,6 +9,19 @@ from nodetool.metadata.types import FolderRef
 from nodetool.common.environment import Environment
 
 from nodetool.nodes.nodetool.audio import SaveAudio
+from nodetool.nodes.nodetool.image.enhance import (
+    AutoContrast,
+    Brightness,
+    Color,
+    Contrast,
+    Detail,
+    EdgeEnhance,
+    Equalize,
+    RankFilter,
+    Sharpen,
+    Sharpness,
+    UnsharpMask,
+)
 from nodetool.nodes.nodetool.tensor import SaveTensor
 from nodetool.workflows.graph import Graph
 from nodetool.metadata.types import ImageRef
@@ -24,30 +37,19 @@ from nodetool.nodes.nodetool.dataframe import SaveDataframe
 from nodetool.nodes.nodetool.image import Blend, Composite, SaveImg
 from nodetool.nodes.nodetool.image.source import Background
 from nodetool.nodes.nodetool.image.transform import (
-    AutoContrast,
     Blur,
-    Brightness,
-    Color,
     Contour,
-    Contrast,
-    Detail,
-    EdgeEnhance,
     Emboss,
-    Equalize,
     Expand,
     FindEdges,
     Fit,
     GetChannel,
     Invert,
     Posterize,
-    RankFilter,
     Resize,
     Scale,
-    Sharpen,
-    Sharpness,
     Smooth,
     Solarize,
-    UnsharpMask,
 )
 from nodetool.nodes.nodetool.text import SaveText
 

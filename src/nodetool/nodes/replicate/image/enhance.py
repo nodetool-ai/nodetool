@@ -4,6 +4,8 @@ from nodetool.dsl.graph import GraphNode
 from nodetool.common.replicate_node import ReplicateNode
 from enum import Enum
 
+from nodetool.metadata.types import ImageRef
+
 
 class Model(str, Enum):
     IMAGE_DENOISING = "Image Denoising"

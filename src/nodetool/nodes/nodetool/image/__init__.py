@@ -11,7 +11,6 @@ from nodetool.workflows.base_node import BaseNode
 from datetime import datetime
 import numpy as np
 from pydantic import Field
-from typing import Literal
 
 
 # Distinguish from comfy SaveImage

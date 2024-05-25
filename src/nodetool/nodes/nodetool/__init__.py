@@ -1,6 +1,10 @@
 import nodetool.nodes.nodetool.dataframe
 import nodetool.nodes.nodetool.dictionary
 import nodetool.nodes.nodetool.image
+import nodetool.nodes.nodetool.image.classify
+import nodetool.nodes.nodetool.image.enhance
+import nodetool.nodes.nodetool.image.source
+import nodetool.nodes.nodetool.image.transform
 import nodetool.nodes.nodetool.agents
 import nodetool.nodes.nodetool.audio
 import nodetool.nodes.nodetool.audio.analysis
@@ -8,9 +12,6 @@ import nodetool.nodes.nodetool.audio.conversion
 import nodetool.nodes.nodetool.audio.transform
 import nodetool.nodes.nodetool.constant
 import nodetool.nodes.nodetool.http
-import nodetool.nodes.nodetool.image.classify
-import nodetool.nodes.nodetool.image.source
-import nodetool.nodes.nodetool.image.transform
 
 # TODO: move this into comfy module as it requires comfy nodes
 # import nodetool.nodes.nodetool.image.generate
