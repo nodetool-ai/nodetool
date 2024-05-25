@@ -34,6 +34,12 @@ class S3Storage(AbstractStorage):
         self.log = log
         self.endpoint_url = endpoint_url
 
+    def get_base_url(self):
+        """
+        Get the base URL for the S3 bucket.
+        """
+        return f"{self.endpoint_url}/{self.bucket_name}"
+
     def generate_presigned_url(
         self,
         client_method: str,

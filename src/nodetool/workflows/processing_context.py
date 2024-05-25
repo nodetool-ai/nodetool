@@ -381,6 +381,73 @@ class ProcessingContext:
         stream.seek(0)
         return stream
 
+    async def download_asset_url(self, url: str):
+        """
+        Downloads an asset from asset storage.
+        This is preferred over downloading from URL directly due to testing and
+        other optimizations.
+
+        Args:
+            url (str): The URL of the asset to download.
+
+        Returns:
+            BytesIO: The downloaded asset as a BytesIO object.
+        """
+        url_parsed = urllib.parse.urlparse(url)
+        bytes_io = BytesIO()
+        key = url.split(self.get_asset_storage().get_base_url())[1]
+        if key.startswith("/"):
+            key = key[1:]
+        await self.get_asset_storage().download_async(key, bytes_io)
+        bytes_io.seek(0)
+        return bytes_io
+
+    async def download_temp_url(self, url: str):
+        """
+        Downloads a file from temp storage.
+        This is preferred over downloading from URL directly due to testing and
+        other optimizations.
+
+        Args:
+            url (str): The temporary URL of the file to download.
+
+        Returns:
+            BytesIO: A BytesIO object containing the downloaded file.
+        """
+        key = url.split(self.get_temp_storage().get_base_url())[1]
+        if key.startswith("/"):
+            key = key[1:]
+        bytes_io = BytesIO()
+        await self.get_temp_storage().download_async(key, bytes_io)
+        bytes_io.seek(0)
+        return bytes_io
+
+    async def is_temp_url(self, url: str) -> bool:
+        """
+        Checks if the given URL is from temp storage.
+
+        Args:
+            url (str): The URL to check.
+
+        Returns:
+            bool: True if the URL is a temporary URL, False otherwise.
+        """
+        base_url = self.get_temp_storage().get_base_url()
+        return url.startswith(base_url)
+
+    async def is_asset_url(self, url: str) -> bool:
+        """
+        Checks if the given URL is from asset storage.
+
+        Args:
+            url (str): The URL to check.
+
+        Returns:
+            bool: True if the URL is a temporary URL, False otherwise.
+        """
+        base_url = self.get_asset_storage().get_base_url()
+        return url.startswith(base_url)
+
     async def download_file_async(self, url: str) -> IO:
         """
         Download a file from URL.
@@ -401,8 +468,6 @@ class ProcessingContext:
             response = await client.get(url)
             response.raise_for_status()
 
-        key = os.path.basename(url).split("?")[0]
-
         return BytesIO(response.content)
 
     async def asset_to_io(self, asset_ref: AssetRef) -> IO:
@@ -411,25 +476,13 @@ class ProcessingContext:
         if asset_ref.asset_id is not None:
             return await self.download_asset(asset_ref.asset_id)
         if asset_ref.uri != "":
-            endpoint_url = (
-                Environment.get_s3_endpoint_url()
-                or f"{Environment.get_nodetool_api_url()}/storage"
-            )
-            if endpoint_url and asset_ref.uri.startswith(endpoint_url):
-                path = asset_ref.uri.removeprefix(endpoint_url + "/").split("/")
-                bucket = path[0]
-                key = "/".join(path[1:])
+            url = asset_ref.uri
 
-                if bucket == Environment.get_asset_bucket():
-                    storage = self.get_asset_storage()
-                elif bucket == Environment.get_temp_bucket():
-                    storage = self.get_temp_storage()
-                else:
-                    raise ValueError(f"Invalid bucket: {bucket}")
-                stream = BytesIO()
-                await storage.download_async(key, stream)
-                stream.seek(0)
-                return stream
+            if self.is_temp_url(url):
+                return await self.download_temp_url(url)
+
+            if self.is_asset_url(url):
+                return await self.download_asset_url(url)
 
             return await self.download_file_async(asset_ref.uri)
         raise ValueError(f"AssetRef is empty {asset_ref}")

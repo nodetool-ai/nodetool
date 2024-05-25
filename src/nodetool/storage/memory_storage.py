@@ -14,6 +14,9 @@ class MemoryStorage(AbstractStorage):
         self.mtimes = {}
         self.base_url = base_url
 
+    def get_base_url(self):
+        return self.base_url
+
     def generate_presigned_url(
         self, client_method: str, object_name: str, expiration=3600 * 24 * 7
     ) -> str:
@@ -28,10 +31,14 @@ class MemoryStorage(AbstractStorage):
     def download(self, key: str, stream: io.BytesIO):
         if key in self.storage:
             stream.write(self.storage[key])
+        else:
+            raise FileNotFoundError(f"File {key} not found")
 
     def download_stream(self, key: str) -> Iterator[bytes]:
         if key in self.storage:
             yield self.storage[key]
+        else:
+            raise FileNotFoundError(f"File {key} not found")
 
     def upload(self, key: str, content: io.BytesIO) -> str:
         self.storage[key] = content.read()
@@ -49,6 +56,8 @@ class MemoryStorage(AbstractStorage):
     async def download_async(self, key: str, stream: io.BytesIO):
         if key in self.storage:
             stream.write(self.storage[key])
+        else:
+            raise FileNotFoundError(f"File {key} not found")
 
     async def upload_async(self, key: str, content: io.BytesIO) -> str:
         self.storage[key] = content.read()

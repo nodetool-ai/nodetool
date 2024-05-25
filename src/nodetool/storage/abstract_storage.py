@@ -6,6 +6,10 @@ from datetime import datetime
 class AbstractStorage(ABC):
 
     @abstractmethod
+    def get_base_url(self) -> str:
+        pass
+
+    @abstractmethod
     def generate_presigned_url(
         self, client_method: str, object_name: str, expiration=3600 * 24 * 7
     ) -> str:
