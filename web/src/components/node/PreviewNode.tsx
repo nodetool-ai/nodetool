@@ -68,13 +68,6 @@ const styles = (theme: any) =>
       fontFamily: theme.fontFamily2,
       width: "100%",
       color: theme.palette.c_gray5
-    },
-    ".datatable": {
-      maxHeight: "500px",
-      overflow: "auto"
-    },
-    ".datatable .row-actions": {
-      display: "none"
     }
   });
 

@@ -11,14 +11,61 @@ import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 
 import { DataframeRef } from "../../stores/ApiTypes";
-import 'react-tabulator/lib/styles.css';
-import 'react-tabulator/lib/css/tabulator_midnight.css'
-import { ReactTabulator, ColumnDefinition } from 'react-tabulator'
+import "tabulator-tables/dist/css/tabulator.min.css";
+import "react-tabulator/lib/css/tabulator_midnight.css";
+import { ReactTabulator, ColumnDefinition } from "react-tabulator";
 
 const styles = (theme: any) =>
   css({
-    "&": {
+    "&.datatable": {
+      width: "100%",
+      height: "calc(100% - 20px)"
     },
+    ".tabulator": {
+      fontSize: theme.fontSizeSmaller,
+      fontFamily: theme.fontFamily1
+    },
+    ".tabulator-col:hover": {
+      backgroundColor: theme.palette.c_gray1
+    },
+    ".tabulator-tableholder": {
+      overflow: "auto"
+    },
+    ".tabulator .tabulator-col-resize-handle": {
+      position: "relative",
+      display: "inline-block",
+      width: "6px",
+      marginLeft: "-3px",
+      marginRight: "-3px",
+      zIndex: 11,
+      verticalAlign: "middle"
+    },
+    // ".tabulator .tabulator-cell .tabulator-editable input": {
+    //   fontSize: theme.fontSizeSmaller,
+    //   fontFamily: theme.fontFamily2
+    // },
+    ".tabulator .tabulator-cell.tabulator-editable input": {
+      backgroundColor: theme.palette.c_gray6,
+      color: "black",
+      border: "1px solid" + theme.palette.c_gray4,
+      fontSize: theme.fontSizeSmaller,
+      fontFamily: theme.fontFamily1
+    },
+    ".tabulator .tabulator-cell.tabulator-editable input::selection": {
+      backgroundColor: theme.palette.c_hl1
+    },
+    ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
+      {
+        transition: "border 0.2s"
+      },
+    ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
+      {
+        borderBottom: "6px solid" + theme.palette.c_hl1
+      },
+    ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
+      {
+        borderTop: "6px solid" + theme.palette.c_hl1
+      }
   });
 
 interface DataTableProps {
@@ -28,21 +75,29 @@ interface DataTableProps {
 
 const DataTable: React.FC<DataTableProps> = ({ dataframe: df, onChange }) => {
   const data = useMemo(
-    () => df.data?.map((row) => df.columns?.reduce((acc: Record<string, any>, col, index) => {
-      acc[col.name] = row[index];
-      return acc;
-    }, {})) || [],
+    () =>
+      df.data?.map((row) =>
+        df.columns?.reduce((acc: Record<string, any>, col, index) => {
+          acc[col.name] = row[index];
+          return acc;
+        }, {})
+      ) || [],
     [df.columns, df.data]
   );
 
   const columns: ColumnDefinition[] = useMemo(
-    () => df.columns?.map((col) => {
-      return {
-        title: col.name,
-        field: col.name,
-        editor: "input"
-      };
-    }) || [],
+    () =>
+      df.columns?.map((col) => {
+        return {
+          title: col.name,
+          field: col.name,
+          editor: "input",
+          editorParams: {
+            elementAttributes: { spellcheck: "false" }
+          }
+          // resizable: true
+        };
+      }) || [],
     [df.columns]
   );
 
@@ -70,10 +125,16 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe: df, onChange }) => {
       <ReactTabulator
         events={{ cellEdited: onCellEdited }}
         columns={columns}
+        // resizableRows="true"
+        responsiveLayout="collapse"
         data={data}
         tooltips={true}
         layout={"fitData"}
-        height="500px"
+        height="100%"
+        options={{
+          height: "100%",
+          movableColumns: true
+        }}
       />
     </div>
   );
