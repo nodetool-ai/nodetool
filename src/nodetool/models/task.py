@@ -9,7 +9,7 @@ class Task(DBModel):
         return {
             "table_name": "nodetool_tasks",
             "key_schema": {"id": "HASH"},
-            "attribute_definitions": {"thread_id": "S"},
+            "attribute_definitions": {"id": "S", "thread_id": "S"},
             "global_secondary_indexes": {
                 "nodetool_task_thread_index": {"thread_id": "HASH"},
             },
