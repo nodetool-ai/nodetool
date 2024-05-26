@@ -1,20 +1,25 @@
-/**
- * A table component that displays data in rows and columns.
- *
- * @param data - An object containing the data to be displayed. The keys represent the columns and
- *               the values represent the rows. Each column has a key and each row has a key.
- */
-
 /** @jsxImportSource @emotion/react */
-
-import React, { useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback
+} from "react";
 import { css } from "@emotion/react";
-
-import { DataframeRef } from "../../stores/ApiTypes";
+import {
+  TabulatorFull as Tabulator,
+  ColumnDefinition,
+  CellComponent,
+  ColumnDefinitionAlign,
+  Editor
+} from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
-// import "react-tabulator/lib/css/tabulator_site.css";
-import "react-tabulator/lib/css/tabulator_midnight.css";
-import { ReactTabulator, ColumnDefinition } from "react-tabulator";
+import "tabulator-tables/dist/css/tabulator_midnight.css";
+import { DataframeRef } from "../../stores/ApiTypes";
+import { useClipboard } from "../../hooks/browser/useClipboard";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { Button } from "@mui/material";
 
 const styles = (theme: any) =>
   css({
@@ -73,94 +78,117 @@ interface DataTableProps {
   onChange?: (data: DataframeRef) => void;
 }
 
-const DataTable: React.FC<DataTableProps> = ({ dataframe: df, onChange }) => {
-  const data = useMemo(
-    () =>
-      df.data?.map((row) =>
-        df.columns?.reduce((acc: Record<string, any>, col, index) => {
+const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
+  const tableRef = useRef<HTMLDivElement>(null);
+  const [tabulator, setTabulator] = useState<Tabulator>();
+  const { writeClipboard } = useClipboard();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
+  const data = useMemo(() => {
+    if (!dataframe.data || !dataframe.columns) return [];
+    return dataframe.data.map((row) => {
+      return dataframe.columns!.reduce(
+        (acc: Record<string, any>, col, index) => {
           acc[col.name] = row[index];
           return acc;
-        }, {})
-      ) || [],
-    [df.columns, df.data]
-  );
-
-  const columns: ColumnDefinition[] = useMemo(
-    () =>
-      df.columns?.map((col) => {
-        return {
-          title: col.name,
-          field: col.name
-        };
-      }) || [],
-    [df.columns]
-  );
-
-  const onCellEdited = (cell: any) => {
-    const newData = data.map((row, index) => {
-      if (row === undefined) {
-        return [];
-      }
-      const newRow = df.columns?.map((col) => row[col.name]) || [];
-      if (index === cell.getRow().getIndex()) {
-        newRow[cell.getColumn().getField()] = cell.getValue();
-      }
-      return newRow;
+        },
+        {}
+      );
     });
-    if (onChange) {
-      onChange({
-        ...df,
-        data: newData
+  }, [dataframe.columns, dataframe.data]);
+
+  const columns = useMemo<ColumnDefinition[]>(() => {
+    if (!dataframe.columns) return [];
+    return [
+      ...dataframe.columns.map((col) => ({
+        title: col.name,
+        field: col.name,
+        editor: "input" as unknown as Editor,
+        headerHozAlign: "center" as ColumnDefinitionAlign
+      }))
+    ];
+  }, [dataframe.columns]);
+
+  const onCellEdited = useCallback(
+    (cell: CellComponent) => {
+      const newData = data.map((row, index) => {
+        if (!row) {
+          return {};
+        }
+        const newRow =
+          dataframe.columns?.reduce((acc, col) => {
+            acc[col.name] = row[col.name];
+            return acc;
+          }, {} as Record<string, any>) || {};
+        if (index === cell.getRow().getIndex()) {
+          newRow[cell.getField()] = cell.getValue();
+        }
+        return newRow;
+      });
+      if (onChange) {
+        onChange({
+          ...dataframe,
+          data: newData.map(
+            (row) => dataframe.columns?.map((col) => row[col.name]) || []
+          )
+        });
+      }
+    },
+    [data, dataframe, onChange]
+  );
+
+  useEffect(() => {
+    if (!tableRef.current) return;
+
+    const tabulatorInstance = new Tabulator(tableRef.current, {
+      height: "300px",
+      data: data,
+      columns: columns,
+      rowHeader: {
+        field: "_id",
+        hozAlign: "center",
+        formatter: "rownum",
+        headerSort: false
+        // frozen: true
+      },
+      columnDefaults: {
+        headerSort: true,
+        hozAlign: "left",
+        headerHozAlign: "left",
+        editor: "input",
+        resizable: true,
+        editorParams: {
+          elementAttributes: { spellcheck: "false" }
+        }
+      }
+    });
+
+    tabulatorInstance.on("cellEdited", onCellEdited);
+
+    setTabulator(tabulatorInstance);
+
+    return () => {
+      tabulatorInstance.destroy();
+    };
+  }, [data, columns, onCellEdited]);
+
+  const handleClick = () => {
+    if (tabulator) {
+      writeClipboard(JSON.stringify(tabulator.getData()), true);
+      addNotification({
+        content: "Copied to clipboard",
+        type: "success",
+        alert: true
       });
     }
   };
 
   return (
-    <div className="datatable nodrag nowheel" css={styles}>
-      <ReactTabulator
-        data={data}
-        columns={columns}
-        events={{ cellEdited: onCellEdited }}
-        tooltips={true}
-        layout={"fitData"}
-        height="300px"
-        options={{
-          movableRows: false,
-          movableColumns: true,
-          columnDefaults: {
-            editor: "input",
-            editorParams: {
-              elementAttributes: { spellcheck: "false" }
-            }
-          }
-        }}
-        // options={{
-        //   movableRows: false,
-        //   movableColumns: true,
-        //   //
-        //   selectableRange: 1,
-        //   selectableRangeColumns: true,
-        //   selectableRangeRows: true,
-        //   selectableRangeClearCells: true,
-        //   clipboard: true,
-        //   clipboardCopyStyled: false,
-        //   clipboardCopyConfig: {
-        //     rowHeaders: false,
-        //     columnHeaders: false
-        //   },
-        //   clipboardCopyRowRange: "range",
-        //   clipboardPasteParser: "range",
-        //   clipboardPasteAction: "range",
-        //   columnDefaults: {
-        //     editTriggerEvent: "dblclick",
-        //     editor: "input",
-        //     // resizable: "header",
-        //     editorParams: {
-        //       elementAttributes: { spellcheck: "false" }
-        //     }
-        //   }
-        // }}
-      />
+    <div className="datatable nowheel nodrag" css={styles}>
+      <Button onClick={handleClick}>Copy to Clipboard</Button>
+      <div ref={tableRef} className="datatable" />
     </div>
   );
 };
