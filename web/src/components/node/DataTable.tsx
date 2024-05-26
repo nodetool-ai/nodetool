@@ -12,6 +12,7 @@ import { css } from "@emotion/react";
 
 import { DataframeRef } from "../../stores/ApiTypes";
 import "tabulator-tables/dist/css/tabulator.min.css";
+// import "react-tabulator/lib/css/tabulator_site.css";
 import "react-tabulator/lib/css/tabulator_midnight.css";
 import { ReactTabulator, ColumnDefinition } from "react-tabulator";
 
@@ -19,11 +20,15 @@ const styles = (theme: any) =>
   css({
     "&.datatable": {
       width: "100%",
-      height: "calc(100% - 20px)"
+      height: "calc(100% - 20px)",
+      maxHeight: "800px",
+      position: "relative",
+      overflow: "hidden"
     },
     ".tabulator": {
       fontSize: theme.fontSizeSmaller,
-      fontFamily: theme.fontFamily1
+      fontFamily: theme.fontFamily1,
+      height: "200px"
     },
     ".tabulator-col:hover": {
       backgroundColor: theme.palette.c_gray1
@@ -40,18 +45,13 @@ const styles = (theme: any) =>
       zIndex: 11,
       verticalAlign: "middle"
     },
-    // ".tabulator .tabulator-cell .tabulator-editable input": {
-    //   fontSize: theme.fontSizeSmaller,
-    //   fontFamily: theme.fontFamily2
-    // },
-    ".tabulator .tabulator-cell.tabulator-editable input": {
-      backgroundColor: theme.palette.c_gray6,
-      color: "black",
-      border: "1px solid" + theme.palette.c_gray4,
+    ".tabulator .tabulator-cell.tabulator-editing input": {
+      backgroundColor: theme.palette.c_white,
+      color: theme.palette.c_black,
       fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily1
     },
-    ".tabulator .tabulator-cell.tabulator-editable input::selection": {
+    ".tabulator .tabulator-cell.tabulator-editing input::selection": {
       backgroundColor: theme.palette.c_hl1
     },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
@@ -90,12 +90,7 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe: df, onChange }) => {
       df.columns?.map((col) => {
         return {
           title: col.name,
-          field: col.name,
-          editor: "input",
-          editorParams: {
-            elementAttributes: { spellcheck: "false" }
-          }
-          // resizable: true
+          field: col.name
         };
       }) || [],
     [df.columns]
@@ -121,20 +116,50 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe: df, onChange }) => {
   };
 
   return (
-    <div className="datatable nowheel" css={styles}>
+    <div className="datatable nodrag nowheel" css={styles}>
       <ReactTabulator
-        events={{ cellEdited: onCellEdited }}
-        columns={columns}
-        // resizableRows="true"
-        responsiveLayout="collapse"
         data={data}
+        columns={columns}
+        events={{ cellEdited: onCellEdited }}
         tooltips={true}
         layout={"fitData"}
-        height="100%"
+        height="300px"
         options={{
-          height: "100%",
-          movableColumns: true
+          movableRows: false,
+          movableColumns: true,
+          columnDefaults: {
+            editor: "input",
+            editorParams: {
+              elementAttributes: { spellcheck: "false" }
+            }
+          }
         }}
+        // options={{
+        //   movableRows: false,
+        //   movableColumns: true,
+        //   //
+        //   selectableRange: 1,
+        //   selectableRangeColumns: true,
+        //   selectableRangeRows: true,
+        //   selectableRangeClearCells: true,
+        //   clipboard: true,
+        //   clipboardCopyStyled: false,
+        //   clipboardCopyConfig: {
+        //     rowHeaders: false,
+        //     columnHeaders: false
+        //   },
+        //   clipboardCopyRowRange: "range",
+        //   clipboardPasteParser: "range",
+        //   clipboardPasteAction: "range",
+        //   columnDefaults: {
+        //     editTriggerEvent: "dblclick",
+        //     editor: "input",
+        //     // resizable: "header",
+        //     editorParams: {
+        //       elementAttributes: { spellcheck: "false" }
+        //     }
+        //   }
+        // }}
       />
     </div>
   );

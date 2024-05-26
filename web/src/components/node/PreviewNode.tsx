@@ -68,6 +68,13 @@ const styles = (theme: any) =>
       fontFamily: theme.fontFamily2,
       width: "100%",
       color: theme.palette.c_gray5
+    },
+    ".tabulator": {
+      height: "100% !important"
+    },
+    ".tabulator-editable": {
+      cursor: "text",
+      userSelect: "text"
     }
   });
 
