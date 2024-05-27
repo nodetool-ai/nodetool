@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useCallback, useEffect } from "react";
 import { useQuery } from "react-query";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { client } from "../stores/ApiClient";
 import { OAuthAuthorizeRequest } from "../stores/ApiTypes";
 import { useLoginStore } from "../stores/LoginStore";
@@ -28,27 +28,28 @@ const OAuthCallback: React.FC = () => {
   const location = useLocation();
   const urlParams = new URLSearchParams(location.search);
   const state = urlParams.get("state");
-  const saveToStorage = useLoginStore.getState().saveToStorage;
+  const saveToStorage = useLoginStore(state => state.saveToStorage);
   const { setUser } = useAuth();
+  const navigate = useNavigate();
+  const fetchUser = useCallback(async (state: string) => {
+    const res = await oauthCallback({
+      provider: "google",
+      authorization_response: window.location.origin + location.search,
+      redirect_uri: window.location.origin + "/oauth/callback",
+      state: state || ""
+    });
+    saveToStorage(res.data);
+    setUser(res.data);
+    navigate("/editor/start");
+  }, [location.search, navigate, saveToStorage, setUser]);
 
-  const { data } = useQuery(
-    ["oauthCallback", state],
-    async () => {
-      const res = await oauthCallback({
-        provider: "google",
-        authorization_response: window.location.origin + location.search,
-        redirect_uri: window.location.origin + "/oauth/callback",
-        state: state || ""
-      });
-      saveToStorage(res.data);
-      setUser(res.data);
-      return res;
-    },
-    {
-      useErrorBoundary: true
+  useQuery(["oauth", state], async () => {
+    if (state) {
+      await fetchUser(state);
     }
-  );
-  return <Navigate to={"/editor"} replace={true} />;
+  });
+
+  return <></>;
 };
 
 export default OAuthCallback;
