@@ -69,8 +69,9 @@ const styles = (theme: any) =>
       width: "100%",
       color: theme.palette.c_gray5
     },
-    ".tabulator": {
-      height: "100% !important"
+    "& .tabulator": {
+      height: "calc(100% - 5px) !important",
+      overflowX: "scroll"
     },
     ".tabulator-editable": {
       cursor: "text",

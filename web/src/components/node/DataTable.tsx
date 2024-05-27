@@ -39,7 +39,9 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1
     },
     ".tabulator-tableholder": {
-      overflow: "auto"
+      overflow: "auto",
+      paddingBottom: "5em",
+      backgroundColor: theme.palette.c_gray2
     },
     ".tabulator .tabulator-col-resize-handle": {
       position: "relative",
@@ -70,7 +72,19 @@ const styles = (theme: any) =>
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
         borderTop: "6px solid" + theme.palette.c_hl1
-      }
+      },
+    ".copy-button": {
+      fontSize: theme.fontSizeTinyer,
+      color: theme.palette.c_gray6,
+      margin: "0",
+      borderRadius: "0",
+      padding: "0 .5em",
+      border: 0,
+      backgroundColor: theme.palette.c_gray0
+    },
+    ".copy-button:hover": {
+      color: theme.palette.c_hl1
+    }
   });
 
 interface DataTableProps {
@@ -102,11 +116,21 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
   const columns = useMemo<ColumnDefinition[]>(() => {
     if (!dataframe.columns) return [];
     return [
+      {
+        title: "",
+        formatter: "rownum",
+        hozAlign: "left" as ColumnDefinitionAlign,
+        width: 40,
+        headerSort: false,
+        resizable: false,
+        frozen: true,
+        editable: false
+      },
       ...dataframe.columns.map((col) => ({
         title: col.name,
         field: col.name,
-        editor: "input" as unknown as Editor,
-        headerHozAlign: "center" as ColumnDefinitionAlign
+        editor: "input" as Editor,
+        headerHozAlign: "left" as ColumnDefinitionAlign
       }))
     ];
   }, [dataframe.columns]);
@@ -146,13 +170,6 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
       height: "300px",
       data: data,
       columns: columns,
-      rowHeader: {
-        field: "_id",
-        hozAlign: "center",
-        formatter: "rownum",
-        headerSort: false
-        // frozen: true
-      },
       columnDefaults: {
         headerSort: true,
         hozAlign: "left",
@@ -187,7 +204,9 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
 
   return (
     <div className="datatable nowheel nodrag" css={styles}>
-      <Button onClick={handleClick}>Copy to Clipboard</Button>
+      <Button className="copy-button" variant="outlined" onClick={handleClick}>
+        Copy to Clipboard
+      </Button>
       <div ref={tableRef} className="datatable" />
     </div>
   );
