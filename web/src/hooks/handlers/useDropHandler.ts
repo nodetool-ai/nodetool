@@ -16,7 +16,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import dagre from "dagre";
 import { useMetadata } from "../../serverState/useMetadata";
 import axios from "axios";
-import { devError } from "../../utils/DevLog";
+import { devError, devLog } from "../../utils/DevLog";
 import { useCallback } from "react";
 
 interface DropHandler {
@@ -109,6 +109,28 @@ export const useDropHandler = (): DropHandler => {
   );
   const { data: metadata } = useMetadata();
 
+  const createDataFrameNode = useCallback(
+    (csv: string, position: XYPosition, nodeMetadata: NodeMetadata) => {
+      const newNode = createNode(nodeMetadata, position);
+      // transform csv into dataframe
+      const data = csv
+        .split("\n")
+        .map((row) => row.split(","))
+        .filter((row) => row.length > 0);
+      const columnDefs = data[0].map((col) => ({
+        name: col,
+        data_type: "object"
+      }));
+      newNode.data.properties.value = {
+        type: "dataframe",
+        columns: columnDefs,
+        data: data.slice(1)
+      };
+      addNode(newNode);
+    },
+    [addNode, createNode]
+  );
+
   const isWorkflowJson = (json: any): boolean => {
     const comfyProperties = ["inputs", "class_type", "type", "_meta"];
 
@@ -159,7 +181,7 @@ export const useDropHandler = (): DropHandler => {
                   nonJsonFiles.push(file);
                 }
               } catch (error) {
-                console.error("Error parsing JSON", error);
+                devError("Error parsing JSON", error);
                 nonJsonFiles.push(file);
               }
             }
@@ -189,16 +211,21 @@ export const useDropHandler = (): DropHandler => {
         responseType: "arraybuffer"
       });
       const data = new TextDecoder().decode(new Uint8Array(response.data));
-      const newNode = createNode(nodeMetadata, position);
-      newNode.data.properties = {
-        type: assetType,
-        value: data,
-        asset_id: asset.id,
-        uri: asset.get_url
-      };
-      addNode(newNode);
+      if (assetType === "dataframe") {
+        createDataFrameNode(data, position, nodeMetadata);
+      } else {
+        const newNode = createNode(nodeMetadata, position);
+        newNode.data.properties = {
+          type: assetType,
+          value: data,
+          asset_id: asset.id,
+          uri: asset.get_url
+        };
+        addNode(newNode);
+      }
+      devLog("Downloaded asset content", asset, nodeMetadata);
     },
-    [addNode, createNode]
+    [addNode, createDataFrameNode, createNode]
   );
 
   // Embed text files as nodes
@@ -229,22 +256,7 @@ export const useDropHandler = (): DropHandler => {
           reader.onload = (event) => {
             if (event.target) {
               const csv = event.target.result as string;
-              const newNode = createNode(nodeMetadata, position);
-              // transform csv into dataframe
-              const data = csv
-                .split("\n")
-                .map((row) => row.split(","))
-                .filter((row) => row.length > 0);
-              const columnDefs = data[0].map((col) => ({
-                name: col,
-                data_type: "object"
-              }));
-              newNode.data.properties.value = {
-                type: "dataframe",
-                columns: columnDefs,
-                data: data.slice(1)
-              };
-              addNode(newNode);
+              createDataFrameNode(csv, position, nodeMetadata);
             }
           };
           reader.readAsText(file);
@@ -254,7 +266,7 @@ export const useDropHandler = (): DropHandler => {
         return acc;
       }, [] as File[]);
     },
-    [addNode, createNode, metadata]
+    [addNode, createDataFrameNode, createNode, metadata]
   );
 
   const addNodeFromAsset = useCallback(
