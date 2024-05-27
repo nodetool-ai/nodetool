@@ -8,10 +8,12 @@ from enum import Enum
 class TextExtractOCR(ReplicateNode):
     """A simple OCR Model that can easily extract text from an image."""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "abiruyt/text-extract-ocr:a524caeaa23495bc9edc805ab08ab5fe943afd3febed884a4f3747aa32e9cd61"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "CPU"
 
     @classmethod
@@ -41,10 +43,12 @@ class TextExtractOCR(ReplicateNode):
 class LatexOCR(ReplicateNode):
     """Optical character recognition to turn images of latex equations into latex format."""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "mickeybeurskens/latex-ocr:b3278fae4c46eb2798804fc66e721e6ce61a450d072041a7e402b2c77805dcc3"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod

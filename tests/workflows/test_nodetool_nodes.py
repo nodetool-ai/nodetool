@@ -1,3 +1,4 @@
+import asyncio
 import io
 import numpy as np
 import pandas as pd
@@ -69,8 +70,8 @@ def image(pil_image: PIL.Image.Image, user: User):
     buffer = io.BytesIO()
     pil_image.save(buffer, format="PNG")
     buffer.seek(0)
-    uri = Environment.get_temp_storage().upload("test.jpg", buffer)
-    return ImageRef(uri=uri)
+    uri = asyncio.run(Environment.get_temp_storage().upload("test.jpg", buffer))
+    return ImageRef(uri=uri, temp_id="test.jpg")
 
 
 @pytest.fixture(scope="function")

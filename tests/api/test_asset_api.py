@@ -1,6 +1,7 @@
 import json
 import os
 from fastapi.testclient import TestClient
+import pytest
 from nodetool.common.environment import Environment
 from nodetool.models.asset import Asset
 from nodetool.models.user import User
@@ -20,12 +21,13 @@ def test_index(client: TestClient, headers: dict[str, str], user: User):
     assert json["assets"][0]["id"] == image.id
 
 
-def test_delete(client: TestClient, headers: dict[str, str], user: User):
+@pytest.mark.asyncio
+async def test_delete(client: TestClient, headers: dict[str, str], user: User):
     image = make_image(user)
     response = client.delete(f"/api/assets/{image.id}", headers=headers)
     assert response.status_code == 200
     assert Asset.find(user.id, image.id) is None
-    assert not Environment.get_asset_storage().file_exists(image.file_name)
+    assert not await Environment.get_asset_storage().file_exists(image.file_name)
 
 
 def test_pagination(client: TestClient, headers: dict[str, str], user: User):

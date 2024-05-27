@@ -1,6 +1,7 @@
 from datetime import datetime
 import io
-from typing import Dict, Iterator
+from typing import AsyncIterator, Dict, Iterator
+from nodetool.common.async_iterators import AsyncByteStream
 from nodetool.storage.abstract_storage import AbstractStorage
 
 
@@ -22,28 +23,17 @@ class MemoryStorage(AbstractStorage):
     ) -> str:
         return f"{self.base_url}/{object_name}"
 
-    def file_exists(self, file_name: str) -> bool:
+    async def file_exists(self, file_name: str) -> bool:
         return file_name in self.storage
 
-    def get_mtime(self, key: str):
+    async def get_mtime(self, key: str):
         return self.mtimes.get(key, datetime.now())
 
-    def download(self, key: str, stream: io.BytesIO):
+    def download_stream(self, key: str) -> AsyncIterator[bytes]:
         if key in self.storage:
-            stream.write(self.storage[key])
+            return AsyncByteStream(self.storage[key])
         else:
             raise FileNotFoundError(f"File {key} not found")
-
-    def download_stream(self, key: str) -> Iterator[bytes]:
-        if key in self.storage:
-            yield self.storage[key]
-        else:
-            raise FileNotFoundError(f"File {key} not found")
-
-    def upload(self, key: str, content: io.BytesIO) -> str:
-        self.storage[key] = content.read()
-        self.mtimes[key] = datetime.now()
-        return self.generate_presigned_url("get_object", key)
 
     def upload_stream(self, key: str, content: Iterator[bytes]) -> str:
         bytes_io = io.BytesIO()
@@ -53,16 +43,16 @@ class MemoryStorage(AbstractStorage):
         self.storage[key] = bytes_io.getvalue()
         return self.generate_presigned_url("get_object", key)
 
-    async def download_async(self, key: str, stream: io.BytesIO):
+    async def download(self, key: str, stream: io.BytesIO):
         if key in self.storage:
             stream.write(self.storage[key])
         else:
             raise FileNotFoundError(f"File {key} not found")
 
-    async def upload_async(self, key: str, content: io.BytesIO) -> str:
+    async def upload(self, key: str, content: io.BytesIO) -> str:
         self.storage[key] = content.read()
         return self.generate_presigned_url("get_object", key)
 
-    def delete(self, file_name: str):
+    async def delete(self, file_name: str):
         if file_name in self.storage:
             del self.storage[file_name]

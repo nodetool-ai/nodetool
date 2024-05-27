@@ -35,7 +35,7 @@ def workflow_runner(user: User):
 
 @pytest.mark.asyncio
 async def test_process_node(user: User, workflow_runner: WorkflowRunner):
-    node = String(id="1", value="test")
+    node = String(_id="1", value="test")
     context = ProcessingContext(user_id="", workflow_id="")
     await workflow_runner.process_node(context, node)
     assert context.get_result("1", "output") == "test"
@@ -105,9 +105,8 @@ async def test_from_dict():
 
 
 @pytest.mark.asyncio
-async def test_process_node_image_blend(
-    user: User, context: ProcessingContext, workflow_runner: WorkflowRunner
-):
+async def test_process_node_image_blend(user: User):
+    context = ProcessingContext(user_id=user.id, auth_token=user.auth_token or "")
     image_a = await context.image_from_pil(
         PIL.Image.new("RGB", (100, 100), color=(255, 0, 0))
     )
@@ -200,7 +199,6 @@ async def test_process_node_image_blend(
 
     graph = APIGraph(nodes=[Node(**n) for n in nodes], edges=[Edge(**e) for e in edges])
 
-    context = ProcessingContext(user_id=user.id)
     params = {"image_a": image_a, "image_b": image_b, "alpha": 0.5}
 
     req = RunJobRequest(
@@ -211,6 +209,7 @@ async def test_process_node_image_blend(
         graph=graph,
     )
 
+    workflow_runner = WorkflowRunner()
     out = await workflow_runner.run(req, context)
 
     workflow_updates = await get_workflow_updates(context)

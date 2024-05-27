@@ -8,10 +8,12 @@ from enum import Enum
 class RealEsrGan(ReplicateNode):
     """Real-ESRGAN with optional face correction and adjustable upscale"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "nightmareai/real-esrgan:350d32041630ffbe63c8352783a26d94126809164e54085352f8326e53999085"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -132,10 +134,12 @@ class Tiling_height(int, Enum):
 class ClarityUpscaler(ReplicateNode):
     """High resolution image Upscaler and Enhancer. Use at ClarityAI.cc. A free Magnific alternative. Twitter/X: @philz1337x"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "philz1337x/clarity-upscaler:b8a46b09384dc1ac996596bc14058e2b7604971128ee7de709a40d4bbf982d2c"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
@@ -242,10 +246,12 @@ class Resolution(str, Enum):
 class MagicImageRefiner(ReplicateNode):
     """A better alternative to SDXL refiners, providing a lot of quality and detail. Can also be used for inpainting or upscaling."""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "batouresearch/magic-image-refiner:507ddf6f977a7e30e46c0daefd30de7d563c72322f9e4cf7cbac52ef0f667b13"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
@@ -330,10 +336,12 @@ class Scale(int, Enum):
 class ruDallE_SR(ReplicateNode):
     """Real-ESRGAN super-resolution model from ruDALL-E"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "cjwbw/rudalle-sr:32fdb2231d00a10d33754cc2ba794a2dfec94216579770785849ce6f149dbc69"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -364,10 +372,12 @@ class ruDallE_SR(ReplicateNode):
 class HighResolutionControlNetTile(ReplicateNode):
     """Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination."""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "batouresearch/high-resolution-controlnet-tile:4af11083a13ebb9bf97a88d7906ef21cf79d1f2e5fa9d87b70739ce6b8113d29"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (80GB) GPU"
 
     @classmethod
@@ -487,10 +497,12 @@ class Seam_fix_mode(str, Enum):
 class UltimateSDUpscale(ReplicateNode):
     """Ultimate SD Upscale with ControlNet Tile"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "fewjative/ultimate-sd-upscale:5daf1012d946160622cd1bd45ed8f12d9675d24659276ccfe24804035f3b3ad7"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
@@ -585,10 +597,12 @@ class Task_type(str, Enum):
 class SwinIR(ReplicateNode):
     """Image Restoration Using Swin Transformer"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "jingyunliang/swinir:660d922d33153019e8c263a3bba265de882e7f4f70396546b6c9c8f9d47a021a"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
@@ -636,10 +650,12 @@ class Task(str, Enum):
 class Swin2SR(ReplicateNode):
     """3 Million Runs! AI Photorealistic Image Super-Resolution and Restoration"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "mv-lab/swin2sr:a01b0512004918ca55d02e554914a9eca63909fa83a29ff0f115c78a7045574f"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod

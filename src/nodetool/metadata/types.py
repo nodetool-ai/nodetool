@@ -77,12 +77,17 @@ class AssetRef(BaseType):
     type: str = "asset"
     uri: str = ""
     asset_id: str | None = None
+    temp_id: str | None = None
 
     def to_dict(self):
-        return {
+        res = {
             "uri": self.uri,
-            "asset_id": self.asset_id,
         }
+        if self.asset_id:
+            res["asset_id"] = self.asset_id
+        if self.temp_id:
+            res["temp_id"] = self.temp_id
+        return res
 
     def is_empty(self):
         return self.uri == "" and self.asset_id is None

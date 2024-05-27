@@ -33,10 +33,8 @@ class Prediction(BaseModel):
             user_id=prediction.user_id,
             node_id=prediction.node_id,
             workflow_id=prediction.workflow_id,
-            node_type=prediction.node_type,
             provider=prediction.provider,
             model=prediction.model,
-            version=prediction.version,
             status=prediction.status,
             logs=prediction.logs,
             error=prediction.error,
@@ -58,28 +56,15 @@ class PredictionList(BaseModel):
     predictions: List[Prediction]
 
 
-class PredictionUpdateRequest(BaseModel):
-    """
-    The request body for updating a prediction.
-    """
-
-    status: str | None = None
-    error: str | None = None
-    logs: str | None = None
-    metrics: dict[str, Any] | None = None
-    completed_at: str | None = None
-
-
 class PredictionCreateRequest(BaseModel):
     """
     The request body for creating a prediction.
     """
 
-    node_id: str
-    node_type: str
     provider: str
     model: str
-    cost: float | None = None
+    node_id: str
+    params: dict[str, Any] = {}
+    data: str | None = None
     version: str | None = None
     workflow_id: str | None = None
-    status: str | None = None

@@ -1,117 +1,128 @@
 from abc import ABC
+import json
 import httpx
-from typing import Dict, Any
+from typing import IO, AsyncIterator, Dict, Any
 from fastapi.testclient import TestClient
 
 
-class AbstractNodetoolAPIClient(ABC):
-    async def get(self, endpoint: str, params: dict | None = None) -> Dict[str, Any]:
-        raise NotImplementedError()
+class Response:
+    """
+    Represents an HTTP response.
 
-    async def post(self, endpoint: str, **kwargs) -> Dict[str, Any]:
-        raise NotImplementedError()
+    Attributes:
+        content (bytes): The content of the response.
+        status_code (int): The status code of the response.
+        headers (Dict[str, str]): The headers of the response.
+        media_type (str): The media type of the response.
+    """
 
-    async def put(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        raise NotImplementedError()
+    content: bytes
+    status_code: int
+    headers: Dict[str, str]
+    media_type: str
 
-    async def delete(self, endpoint: str) -> Dict[str, Any]:
-        raise NotImplementedError()
+    def __init__(
+        self, content: bytes, status_code: int, headers: Dict[str, str], media_type: str
+    ):
+        self.content = content
+        self.status_code = status_code
+        self.headers = headers
+        self.media_type = media_type
+
+    def json(self):
+        return json.loads(self.content)
+
+    @staticmethod
+    def from_httpx(response: httpx.Response):
+        return Response(
+            content=response.content,
+            status_code=response.status_code,
+            headers=dict(response.headers),
+            media_type=response.headers.get("Content-Type", "text/plain"),
+        )
 
 
-class NodetoolAPIClient(AbstractNodetoolAPIClient):
+class NodetoolAPIClient:
     auth_token: str
     base_url: str
+    app: Any
 
-    def __init__(self, auth_token: str, base_url: str):
+    def __init__(self, auth_token: str, base_url: str, app: Any | None = None):
         self.auth_token = auth_token
         self.base_url = base_url
+        self.app = app
+        assert self.auth_token != "", "auth_token is required"
+
+    def get_base_url(self):
+        return self.base_url
 
     def _get_headers(self) -> Dict[str, str]:
         return {
             "Authorization": f"Bearer {self.auth_token}",
         }
 
-    async def get(self, endpoint: str, params: dict | None = None) -> Dict[str, Any]:
-        url = f"{self.base_url}/{endpoint}"
-        headers = self._get_headers()
+    def _get_url(self, key: str):
+        if key[0] == "/":
+            key = key[1:]
+        return f"{self.base_url}/{key}"
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers=headers, params=params)
+    async def get(self, path: str, **kwargs) -> Response:
+        async with httpx.AsyncClient(app=self.app) as client:
+            response = await client.get(
+                self._get_url(path),
+                headers=self._get_headers(),
+                **kwargs,
+            )
             response.raise_for_status()
-            return response.json()
+            return Response.from_httpx(response)
 
-    async def post(self, endpoint: str, **kwargs) -> Dict[str, Any]:
-        url = f"{self.base_url}/{endpoint}"
-        headers = self._get_headers()
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, **kwargs)
+    async def head(self, path: str, **kwargs) -> Response:
+        async with httpx.AsyncClient(app=self.app) as client:
+            response = await client.head(
+                self._get_url(path),
+                headers=self._get_headers(),
+                **kwargs,
+            )
             response.raise_for_status()
-            return response.json()
+            return Response.from_httpx(response)
 
-    async def put(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        url = f"{self.base_url}/{endpoint}"
-        headers = self._get_headers()
+    async def stream(
+        self,
+        method: str,
+        path: str,
+        **kwargs,
+    ) -> AsyncIterator[bytes]:
+        async with httpx.AsyncClient(app=self.app) as client:
+            async with client.stream(
+                method,
+                self._get_url(path),
+                headers=self._get_headers(),
+                **kwargs,
+            ) as response:
+                response.raise_for_status()
+                async for chunk in response.aiter_bytes():
+                    yield chunk
 
-        async with httpx.AsyncClient() as client:
-            response = await client.put(url, headers=headers, json=data)
+    async def post(self, path: str, **kwargs) -> Response:
+        async with httpx.AsyncClient(app=self.app) as client:
+            response = await client.post(
+                self._get_url(path), headers=self._get_headers(), **kwargs
+            )
             response.raise_for_status()
-            return response.json()
+            return Response.from_httpx(response)
 
-    async def delete(self, endpoint: str) -> Dict[str, Any]:
-        url = f"{self.base_url}/{endpoint}"
-        headers = self._get_headers()
-
-        async with httpx.AsyncClient() as client:
-            response = await client.delete(url, headers=headers)
+    async def put(self, path: str, **kwargs) -> Response:
+        async with httpx.AsyncClient(app=self.app) as client:
+            response = await client.put(
+                self._get_url(path), headers=self._get_headers(), **kwargs
+            )
             response.raise_for_status()
-            return response.json()
+            return Response.from_httpx(response)
 
-
-class NodetoolAPITestClient(AbstractNodetoolAPIClient):
-    auth_token: str
-    base_url: str
-    client: TestClient
-
-    def __init__(self, auth_token: str, client: TestClient):
-        print("using token", auth_token)
-        self.base_url = "/api"
-        self.auth_token = auth_token
-        self.client = client
-
-    def _get_headers(self) -> Dict[str, str]:
-        return {
-            "Authorization": f"Bearer {self.auth_token}",
-        }
-
-    async def get(self, endpoint: str, params: dict | None = None) -> Dict[str, Any]:
-        url = f"{self.base_url}/{endpoint}"
-        headers = self._get_headers()
-
-        response = self.client.get(url, headers=headers, params=params)
-        response.raise_for_status()
-        return response.json()
-
-    async def post(self, endpoint: str, **kwargs) -> Dict[str, Any]:
-        url = f"{self.base_url}/{endpoint}"
-        headers = self._get_headers()
-
-        response = self.client.post(url, headers=headers, **kwargs)
-        response.raise_for_status()
-        return response.json()
-
-    async def put(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        url = f"{self.base_url}/{endpoint}"
-        headers = self._get_headers()
-
-        response = self.client.put(url, headers=headers, json=data)
-        response.raise_for_status()
-        return response.json()
-
-    async def delete(self, endpoint: str) -> Dict[str, Any]:
-        url = f"{self.base_url}/{endpoint}"
-        headers = self._get_headers()
-
-        response = self.client.delete(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
+    async def delete(self, path: str) -> Response:
+        async with httpx.AsyncClient(app=self.app) as client:
+            response = await client.delete(
+                self._get_url(path), headers=self._get_headers()
+            )
+            response.raise_for_status()
+            return Response.from_httpx(response)

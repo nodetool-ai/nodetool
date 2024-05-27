@@ -13,10 +13,12 @@ class Mode(str, Enum):
 class SDXLClipInterrogator(ReplicateNode):
     """CLIP Interrogator for SDXL optimizes text prompts to match a given image"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "lucataco/sdxl-clip-interrogator:d90ed1292165dbad1fc3fc8ce26c3a695d6a211de00e2bb5f5fec4815ea30e4c"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 GPU"
 
     @classmethod
@@ -50,10 +52,12 @@ class SDXLClipInterrogator(ReplicateNode):
 class Moondream2(ReplicateNode):
     """moondream2 is a small vision language model designed to run efficiently on edge devices"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "lucataco/moondream2:392a53ac3f36d630d2d07ce0e78142acaccc338d6caeeb8ca552fe5baca2781e"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 GPU"
 
     @classmethod
@@ -86,10 +90,12 @@ class Moondream2(ReplicateNode):
 class MiniGPT4(ReplicateNode):
     """A model which generates text in response to an input image and prompt."""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "daanelson/minigpt-4:b96a2f33cc8e4b0aa23eacfce731b9c41a7d9466d9ed4e167375587b54db9423"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
@@ -166,10 +172,12 @@ class MiniGPT4(ReplicateNode):
 class NSFWImageDetection(ReplicateNode):
     """Falcons.ai Fine-Tuned Vision Transformer (ViT) for NSFW Image Classification"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "lucataco/nsfw_image_detection:97116600cabd3037e5f22ca08ffcc33b92cfacebf7ccd3609e9c1d29e43d3a8d"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -199,10 +207,12 @@ class NSFWImageDetection(ReplicateNode):
 class Llava34B(ReplicateNode):
     """LLaVA v1.6: Large Language and Vision Assistant (Nous-Hermes-2-34B)"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "yorickvp/llava-v1.6-34b:41ecfbfb261e6c1adf3ad896c9066ca98346996d7c4045c5bc944a79d430f174"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (80GB) GPU"
 
     @classmethod
@@ -265,10 +275,12 @@ class Task(str, Enum):
 class Blip(ReplicateNode):
     """Bootstrapping Language-Image Pre-training"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "salesforce/blip:2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -309,10 +321,12 @@ class Blip(ReplicateNode):
 class Blip2(ReplicateNode):
     """Answers questions about images"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "andreasjansson/blip-2:f677695e5e89f8b236e52ecd1d3f01beb44c34606419bcc19345e046d8f786f9"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
@@ -377,10 +391,12 @@ class Clip_model_name(str, Enum):
 class ClipInterrogator(ReplicateNode):
     """The CLIP Interrogator is a prompt engineering tool that combines OpenAI's CLIP and Salesforce's BLIP to optimize text prompts to match a given image. Use the resulting prompts with text-to-image models like Stable Diffusion to create cool art!"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "pharmapsychotic/clip-interrogator:8151e1c9f47e696fa316146a2e35812ccf79cfc9eba05b11c7f450155102af70"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -418,10 +434,12 @@ class ClipInterrogator(ReplicateNode):
 class Llava13b(ReplicateNode):
     """Visual instruction tuning towards large language and vision models with GPT-4 level capabilities"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "yorickvp/llava-13b:b5f6212d032508382d61ff00469ddda3e32fd8a0e75dc39d8a4191bb742157fb"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod

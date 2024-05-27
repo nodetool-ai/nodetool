@@ -8,11 +8,11 @@ from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from enum import Enum
-from typing import Literal
-from enum import Enum
+
+from openai.types.images_response import ImagesResponse
 
 
-class CreateImage(BaseNode):
+class Dall_E(BaseNode):
     """
     Generates images from textual descriptions using DALLE-3.
     image, t2i, tti, text-to-image, create, generate, dall-e, picture, photo, art, drawing, illustration
@@ -42,25 +42,18 @@ class CreateImage(BaseNode):
     style: Style = Field(default=Style.natural, description="The style to use.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        client = Environment.get_openai_client()
-        image = await client.images.generate(
-            model="dall-e-3",
-            prompt=self.prompt,
-            size=self.size.value,
-            quality=self.quality.value,
-            style=self.style.value,
-            response_format="b64_json",
-        )
-        model = f"dalle-3 {self.quality.value} {self.size.value}"
-        cost = calculate_cost(model, len(self.prompt), 0)
-
-        await context.create_prediction(
-            provider="openai",
+        response = await context.run_prediction(
             node_id=self._id,
-            node_type=self.get_node_type(),
-            model=model,
-            cost=cost,
+            provider="openai",
+            model="dall-e-3",
+            params={
+                "prompt": self.prompt,
+                "style": self.style.value,
+                "size": self.size.value,
+                "quality": self.quality.value,
+            },
         )
+        image = ImagesResponse(**response.json())
 
         assert len(image.data) > 0
         b64 = image.data[0].b64_json

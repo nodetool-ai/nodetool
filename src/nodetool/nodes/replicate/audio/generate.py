@@ -38,10 +38,12 @@ class Pitch_detection_algorithm(str, Enum):
 class RealisticVoiceCloning(ReplicateNode):
     """Create song covers with any RVC v2 trained AI voice from audio files."""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "zsxkib/realistic-voice-cloning:0a9c7c558af4c0f20667c1bd1260ce32a2879944a0b9e44e1398660c077b1550"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -189,10 +191,12 @@ class Seed_image_id(str, Enum):
 class Riffusion(ReplicateNode):
     """Stable diffusion for real-time music generation"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "riffusion/riffusion:8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -391,10 +395,12 @@ class History_prompt(str, Enum):
 class Bark(ReplicateNode):
     """🔊 Text-Prompted Generative Audio Model"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "suno-ai/bark:b76242b40d67c76ab6742e987628a2a9ac019e11d56ab96c4e91ce03b79b2787"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -469,10 +475,12 @@ class Normalization_strategy(str, Enum):
 class MusicGen(ReplicateNode):
     """Generate music from a prompt or melody"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod

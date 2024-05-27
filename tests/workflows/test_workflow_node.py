@@ -3,7 +3,7 @@ import os
 from nodetool.workflows.base_node import type_metadata
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.workflow_node import WorkflowNode
-import nodetool.nodes
+import nodetool.nodes.nodetool.input
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))

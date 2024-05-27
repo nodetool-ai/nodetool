@@ -8,7 +8,6 @@ def test_prediction_find(user: User):
     prediction = Prediction.create(
         user_id=user.id,
         node_id="test_node",
-        node_type="test_type",
         provider="test_provider",
         model="test_model",
     )
@@ -30,7 +29,6 @@ def test_paginate_predictions(user: User):
         Prediction.create(
             user_id=user.id,
             node_id="test_node",
-            node_type="test_type",
             provider="test_provider",
             model="test_model",
         )
@@ -48,7 +46,6 @@ def test_paginate_predictions_by_workflow(user: User):
             user_id=user.id,
             workflow_id="test_workflow",
             node_id="test_node",
-            node_type="test_type",
             provider="test_provider",
             model="test_model",
         )
@@ -68,7 +65,6 @@ def test_created_at(user: User):
     prediction = Prediction.create(
         user_id=user.id,
         node_id="test_node",
-        node_type="test_type",
         provider="test_provider",
         model="test_model",
     )
