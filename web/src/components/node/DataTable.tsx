@@ -19,7 +19,8 @@ import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { DataframeRef } from "../../stores/ApiTypes";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { Button } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
+import { on } from "events";
 
 const styles = (theme: any) =>
   css({
@@ -84,6 +85,17 @@ const styles = (theme: any) =>
     },
     ".copy-button:hover": {
       color: theme.palette.c_hl1
+    },
+    ".table-actions": {
+      display: "flex",
+      width: "100%",
+      gap: ".5em",
+      justifyContent: "flex-start",
+      alignItems: "flex-start",
+      height: "2em"
+    },
+    ".table-actions .disabled": {
+      opacity: 0.5
     }
   });
 
@@ -96,6 +108,8 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
   const { writeClipboard } = useClipboard();
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -118,13 +132,29 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
     return [
       {
         title: "",
-        formatter: "rownum",
-        hozAlign: "left" as ColumnDefinitionAlign,
-        width: 40,
         headerSort: false,
         resizable: false,
         frozen: true,
-        editable: false
+        headerHozAlign: "center",
+        hozAlign: "center",
+        formatter: "rowSelection",
+        titleFormatter: "rowSelection",
+        cellClick: function (e, cell) {
+          cell.getRow().toggleSelect();
+        },
+        editable: false,
+        cssClass: "row-select"
+      },
+      {
+        title: "",
+        formatter: "rownum",
+        hozAlign: "left" as ColumnDefinitionAlign,
+        headerSort: false,
+        resizable: true,
+        frozen: true,
+        rowHandle: true,
+        editable: false,
+        cssClass: "row-numbers"
       },
       ...dataframe.columns.map((col) => ({
         title: col.name,
@@ -179,11 +209,26 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
         editorParams: {
           elementAttributes: { spellcheck: "false" }
         }
-      }
+      },
+      movableRows: true
+      // rowHeader: {
+      //   headerSort: false,
+      //   resizable: false,
+      //   frozen: true,
+      //   headerHozAlign: "center",
+      //   hozAlign: "center",
+      //   formatter: "rowSelection",
+      //   titleFormatter: "rowSelection",
+      //   cellClick: function (e, cell) {
+      //     cell.getRow().toggleSelect();
+      //   }
+      // }
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
-
+    tabulatorInstance.on("rowSelectionChanged", (data, rows) => {
+      setSelectedRows(rows);
+    });
     setTabulator(tabulatorInstance);
 
     return () => {
@@ -202,11 +247,58 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
     }
   };
 
+  const handleDeleteRows = () => {
+    if (tabulator) {
+      tabulator.deleteRow(selectedRows);
+      setSelectedRows([]);
+    }
+  };
+
+  const handleResetSorting = () => {
+    if (tabulator) {
+      tabulator.clearSort();
+    }
+  };
+
   return (
     <div className="datatable nowheel nodrag" css={styles}>
-      <Button className="copy-button" variant="outlined" onClick={handleClick}>
-        Copy to Clipboard
-      </Button>
+      <div className="table-actions">
+        <Tooltip title="Copy table data to clipboard">
+          <Button
+            className="copy-button"
+            variant="outlined"
+            onClick={handleClick}
+          >
+            Copy Data
+          </Button>
+        </Tooltip>
+
+        <Tooltip title="Reset table sorting">
+          <Button
+            className="copy-button"
+            variant="outlined"
+            onClick={handleResetSorting}
+          >
+            Reset Sorting
+          </Button>
+        </Tooltip>
+
+        <Tooltip title="Delete selected rows">
+          <Button
+            className={
+              "copy-button" + (selectedRows.length > 0 ? "" : " disabled")
+            }
+            variant="outlined"
+            onClick={() => {
+              if (tabulator?.getSelectedRows().length) {
+                handleDeleteRows();
+              }
+            }}
+          >
+            Delete Rows
+          </Button>
+        </Tooltip>
+      </div>
       <div ref={tableRef} className="datatable" />
     </div>
   );

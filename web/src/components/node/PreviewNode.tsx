@@ -76,6 +76,9 @@ const styles = (theme: any) =>
     ".tabulator-editable": {
       cursor: "text",
       userSelect: "text"
+    },
+    ".table-actions": {
+      padding: ".5em 0 0 .5em"
     }
   });
 
