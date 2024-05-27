@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 from nodetool.api.types.prediction import PredictionCreateRequest
@@ -48,19 +49,20 @@ def test_get_nonexistent_prediction(client: TestClient, user: User):
     assert response.status_code == 404
 
 
-def test_create_prediction(client: TestClient, user: User):
+@patch("nodetool.api.prediction.run_huggingface")
+def test_create_prediction(run_huggingface, client: TestClient, user: User):
+    run_huggingface.return_value = {"result": "test_result"}
+
     response = client.post(
         "/api/predictions/",
         json=PredictionCreateRequest(
             node_id="test_node_id",
             model="test_model",
             workflow_id="test_workflow_id",
-            provider="test_provider",
-        ).model_dump()
+            provider="huggingface",
+        ).model_dump(),
         headers={"Authorization": f"Bearer {user.auth_token}"},
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] is not None
-    assert data["user_id"] == user.id
-    assert data["workflow_id"] == "test_workflow_id"
+    assert data == {"result": "test_result"}
