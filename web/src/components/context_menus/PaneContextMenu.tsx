@@ -93,7 +93,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         tooltip={
           !isClipboardValid ? (
             <span className="tooltip-1">
-              CTRL+V
+              Shift+V
               <br />
               <span
                 className="attention"
@@ -111,7 +111,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
               </span>
             </span>
           ) : (
-            <span className="tooltip-1">CTRL+V</span>
+            <span className="tooltip-1">Shift+V</span>
           )
         }
       />

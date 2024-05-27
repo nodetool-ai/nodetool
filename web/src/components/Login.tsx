@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import { Box, Typography } from "@mui/material";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
-import { css } from "@emotion/react";
 
 const styles = (theme: any) =>
   css({

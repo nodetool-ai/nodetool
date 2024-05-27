@@ -69,12 +69,16 @@ const styles = (theme: any) =>
       width: "100%",
       color: theme.palette.c_gray5
     },
-    ".datatable": {
-      maxHeight: "500px",
-      overflow: "auto"
+    "& .tabulator": {
+      height: "calc(100% - 5px) !important",
+      overflowX: "scroll"
     },
-    ".datatable .row-actions": {
-      display: "none"
+    ".tabulator-editable": {
+      cursor: "text",
+      userSelect: "text"
+    },
+    ".table-actions": {
+      padding: ".5em 0 0 .5em"
     }
   });
 
