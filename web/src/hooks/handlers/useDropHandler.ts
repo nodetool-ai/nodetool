@@ -109,39 +109,68 @@ export const useDropHandler = (): DropHandler => {
   );
   const { data: metadata } = useMetadata();
 
+  const isWorkflowJson = (json: any): boolean => {
+    const comfyProperties = ["inputs", "class_type", "type", "_meta"];
+
+    for (const key in json) {
+      if (Object.prototype.hasOwnProperty.call(json, key)) {
+        const node = json[key];
+        if (
+          comfyProperties.some((prop) =>
+            Object.prototype.hasOwnProperty.call(node, prop)
+          )
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
   const processComfyFiles = useCallback(
     (files: File[]) => {
-      return files.reduce((acc: File[], file) => {
-        // TODO: better way to check for comfy
+      const nonJsonFiles: File[] = [];
+
+      files.forEach((file) => {
         if (file.type === "application/json") {
           const reader = new FileReader();
           reader.onload = (event) => {
             if (event.target) {
-              const comfyWorkflow = JSON.parse(event.target.result as string);
-              createWorkflow({
-                name: file.name,
-                description: "created from comfy",
-                access: "private",
-                comfy_workflow: comfyWorkflow
-              })
-                .then((workflow) => {
-                  const edges = workflow.graph.edges;
-                  const nodes = workflow.graph.nodes;
-                  workflow.graph.nodes = autoLayout(edges, nodes);
+              try {
+                const comfyWorkflow = JSON.parse(event.target.result as string);
+                if (isWorkflowJson(comfyWorkflow)) {
+                  createWorkflow({
+                    name: file.name,
+                    description: "created from comfy",
+                    access: "private",
+                    comfy_workflow: comfyWorkflow
+                  })
+                    .then((workflow) => {
+                      const edges = workflow.graph.edges;
+                      const nodes = workflow.graph.nodes;
+                      workflow.graph.nodes = autoLayout(edges, nodes);
 
-                  setWorkflow(workflow);
-                })
-                .catch((error) => {
-                  alert(error.detail);
-                });
+                      setWorkflow(workflow);
+                    })
+                    .catch((error) => {
+                      alert(error.detail);
+                    });
+                } else {
+                  nonJsonFiles.push(file);
+                }
+              } catch (error) {
+                console.error("Error parsing JSON", error);
+                nonJsonFiles.push(file);
+              }
             }
           };
           reader.readAsText(file);
         } else {
-          acc.push(file);
+          nonJsonFiles.push(file);
         }
-        return acc;
-      }, [] as File[]);
+      });
+
+      return nonJsonFiles;
     },
     [createWorkflow, setWorkflow]
   );
@@ -161,7 +190,6 @@ export const useDropHandler = (): DropHandler => {
       });
       const data = new TextDecoder().decode(new Uint8Array(response.data));
       const newNode = createNode(nodeMetadata, position);
-
       newNode.data.properties = {
         type: assetType,
         value: data,
@@ -249,17 +277,25 @@ export const useDropHandler = (): DropHandler => {
         devError("metadata is undefined");
         return;
       }
-      const nodeMetadata = metadata.metadataByType[nodeType];
-      if (assetType === "str" || assetType === "dataframe") {
+      let nodeMetadata = metadata.metadataByType[nodeType];
+      if (assetType === "dataframe") {
+        const nodeType = "nodetool.constant.DataFrame";
+        nodeMetadata = metadata.metadataByType[nodeType];
         downloadAssetContent(asset, assetType, nodeMetadata, position);
       } else {
-        const newNode = createNode(nodeMetadata, position);
-        newNode.data.properties.value = {
-          type: assetType,
-          asset_id: asset.id,
-          uri: asset.get_url
-        };
-        addNode(newNode);
+        if (assetType === "str") {
+          const nodeType = "nodetool.constant.String";
+          nodeMetadata = metadata.metadataByType[nodeType];
+          downloadAssetContent(asset, assetType, nodeMetadata, position);
+        } else {
+          const newNode = createNode(nodeMetadata, position);
+          newNode.data.properties.value = {
+            type: assetType,
+            asset_id: asset.id,
+            uri: asset.get_url
+          };
+          addNode(newNode);
+        }
       }
     },
     [addNode, addNotification, createNode, downloadAssetContent, metadata]
@@ -286,7 +322,7 @@ export const useDropHandler = (): DropHandler => {
     const assetJSON = event.dataTransfer.getData("asset");
     const asset = assetJSON ? (JSON.parse(assetJSON) as Asset) : null;
     if (targetIsPane && asset !== null) {
-      getAsset(asset.id).then((asset) => {
+      getAsset(asset.id).then((asset: Asset) => {
         addNodeFromAsset(asset, position);
       });
     }
@@ -307,8 +343,11 @@ export const useDropHandler = (): DropHandler => {
           })
           .then((assets) => {
             if (targetIsPane) {
-              assets.forEach((asset) => {
-                addNodeFromAsset(asset, position);
+              assets.forEach((asset, index) => {
+                addNodeFromAsset(asset, {
+                  x: position.x + index * 300,
+                  y: position.y
+                });
               });
             }
           });
