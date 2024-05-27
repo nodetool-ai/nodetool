@@ -3,6 +3,7 @@ import httpx
 from nodetool.common.environment import Environment
 from datetime import datetime
 from nodetool.common.replicate_node import convert_enum_value, convert_output_value
+from nodetool.models.prediction import Prediction
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from typing import Any, Type
@@ -10,38 +11,19 @@ from nodetool.workflows.types import NodeUpdate
 
 log = Environment.get_logger()
 API_URL = "https://api-inference.huggingface.co/models"
+MAX_RETRY_COUNT = 10
 
 
 async def run_huggingface(
-    context: ProcessingContext,
-    node_type: str,
-    node_id: str,
-    model_id: str,
-    input_params: dict,
+    prediction: Prediction,
+    params: dict,
     data: bytes | None = None,
 ) -> Any:
-    log.info(f"Running model {model_id} on Huggingface.")
+    model = prediction.model
+    log.info(f"Running model {model} on Huggingface.")
     started_at = datetime.now()
 
-    url = f"{API_URL}/{model_id}"
-
-    context.post_message(
-        NodeUpdate(
-            node_id=node_id,
-            node_name=model_id,
-            status="starting",
-            started_at=started_at.isoformat(),
-        )
-    )
-
-    prediction = await context.create_prediction(
-        provider="huggingface",
-        model=model_id,
-        version="",
-        node_id=node_id,
-        node_type=node_type,
-    )
-
+    url = f"{API_URL}/{model}"
     headers = {
         "Authorization": f"Bearer {Environment.get_huggingface_token()}",
     }
@@ -53,32 +35,25 @@ async def run_huggingface(
                 if data:
                     response = await client.post(url, headers=headers, content=data)
                 else:
-                    response = await client.post(
-                        url, headers=headers, json=input_params
-                    )
+                    response = await client.post(url, headers=headers, json=params)
 
                 if response.status_code == 503:
                     result = response.json()
                     log.info(
-                        f"Model {model_id} is booting. Waiting for {result['estimated_time']} seconds."
+                        f"Model {model} is booting. Waiting for {result['estimated_time']} seconds."
                     )
-                    context.post_message(
-                        NodeUpdate(
-                            node_id=node_id,
-                            node_name=model_id,
-                            status="starting",
-                            error=f"Model is booting. ETA: {result['estimated_time']} seconds.",
-                        )
-                    )
-                    await asyncio.sleep(result["estimated_time"])
+                    prediction.status = "booting"
+                    prediction.save()
+
+                    await asyncio.sleep(result["estimated_time"] / 2)
                     retry_count += 1
-                    if retry_count > 5:
+                    if retry_count > MAX_RETRY_COUNT:
                         raise Exception(
-                            f"Failed to run model {model_id}. Status: {result['error']}."
+                            f"Failed to run model {model}. Status: {result['error']}."
                         )
                 elif response.status_code != 200:
                     raise Exception(
-                        f"Failed to run model {model_id}. Status code: {response.status_code}. Response: {response.text}"
+                        f"Failed to run model {model}. Status code: {response.status_code}. Response: {response.text}"
                     )
                 else:
                     if response.headers.get("content-type") == "application/json":
@@ -87,22 +62,19 @@ async def run_huggingface(
                         result = response.content
                     break
 
-            await context.update_prediction(
-                prediction.id,
-                status="completed",
-                completed_at=datetime.now(),
-            )
+            prediction.duration = (datetime.now() - started_at).total_seconds()
+            prediction.status = "completed"
+            prediction.completed_at = datetime.now()
+            prediction.save()
 
             return result
 
     except Exception as e:
         log.exception(e)
-        await context.update_prediction(
-            prediction.id,
-            status="failed",
-            error=str(e),
-            completed_at=datetime.now(),
-        )
+        prediction.status = "failed"
+        prediction.error = str(e)
+        prediction.completed_at = datetime.now()
+        prediction.save()
         raise e
 
 
@@ -113,9 +85,11 @@ class HuggingfaceNode(BaseNode):
         self,
         model_id: str,
         context: ProcessingContext,
-        params: dict[(str, Any)] = {},
+        params: dict[(str, Any)] | None = None,
         data: bytes | None = None,
     ) -> Any:
+        if params and data:
+            raise ValueError("Cannot provide both params and data to run_huggingface.")
         raw_inputs = {
             prop.name: convert_enum_value(getattr(self, prop.name))
             for prop in self.properties()
@@ -134,14 +108,26 @@ class HuggingfaceNode(BaseNode):
         }
         input_params = {**input_params, **(params or {})}
 
-        return await run_huggingface(
-            context=context,
-            node_id=self._id,
-            node_type=self.get_node_type(),
-            model_id=model_id,
-            input_params=input_params,
+        context.post_message(
+            NodeUpdate(
+                node_id=self.id,
+                node_name=model_id,
+                status="starting",
+                started_at=datetime.now().isoformat(),
+            )
+        )
+
+        res = await context.run_prediction(
+            provider="huggingface",
+            node_id=self.id,
+            model=model_id,
+            params=input_params,
             data=data,
         )
+        if res.media_type == "application/json":
+            return res.json()
+        else:
+            return res.content
 
     async def extra_params(self, context: ProcessingContext) -> dict:
         return {}

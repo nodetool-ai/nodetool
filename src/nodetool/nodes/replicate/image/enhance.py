@@ -24,10 +24,12 @@ class Model(str, Enum):
 class Maxim(ReplicateNode):
     """Multi-Axis MLP for Image Processing"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "google-research/maxim:494ca4d578293b4b93945115601b6a38190519da18467556ca223d219c3af9f9"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -58,10 +60,12 @@ class Maxim(ReplicateNode):
 class OldPhotosRestoration(ReplicateNode):
     """Bringing Old Photos Back to Life"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "microsoft/bringing-old-photos-back-to-life:c75db81db6cbd809d93cc3b7e7a088a351a3349c9fa02b6d393e35e0d51ba799"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -101,10 +105,12 @@ class OldPhotosRestoration(ReplicateNode):
 class CodeFormer(ReplicateNode):
     """Robust face restoration algorithm for old photos/AI-generated faces - (A40 GPU)"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "lucataco/codeformer:78f2bab438ab0ffc85a68cdfd316a2ecd3994b5dd26aa6b3d203357b45e5eb1b"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod

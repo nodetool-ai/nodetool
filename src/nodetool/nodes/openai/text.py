@@ -1,16 +1,12 @@
 import numpy as np
-from nodetool.common.openai_nodes import calculate_cost_for_completion_usage
 from nodetool.metadata.types import ImageRef, Tensor
 from nodetool.metadata.types import TextRef
-from nodetool.common.environment import Environment
-from nodetool.common.openai_nodes import (
-    calculate_cost_for_embedding_usage,
-)
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import GPTModel
 from nodetool.workflows.processing_context import ProcessingContext
 
 from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
+from openai.types.create_embedding_response import CreateEmbeddingResponse
 from pydantic import Field
 
 from enum import Enum
@@ -19,7 +15,6 @@ from enum import Enum
 class EmbeddingModel(str, Enum):
     TEXT_EMBEDDING_3_LARGE = "text-embedding-3-large"
     TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
-    TEXT_EMBEDDING_ADA_002 = "text-embedding-ada-002"
 
 
 class ResponseFormat(str, Enum):
@@ -41,23 +36,18 @@ class Embedding(BaseNode):
     chunk_size: int = 4096
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        client = Environment.get_openai_client()
         input = await context.to_str(self.input)
         # chunk the input into smaller pieces
         chunks = [
             input[i : i + self.chunk_size]
             for i in range(0, len(input), self.chunk_size)
         ]
-        res = await client.embeddings.create(input=chunks, model=self.model)
-        cost = calculate_cost_for_embedding_usage(self.model, res.usage)
 
-        await context.create_prediction(
-            provider="openai",
-            node_id=self._id,
-            node_type=self.get_node_type(),
-            model=self.model,
-            cost=cost,
+        response = await context.run_prediction(
+            self.id, provider="openai", params={"input": chunks}, model=self.model.value
         )
+
+        res = CreateEmbeddingResponse(**response.json())
 
         all = [i.embedding for i in res.data]
         avg = np.mean(all, axis=0)
@@ -110,27 +100,23 @@ class GPT(BaseNode):
             {"role": "system", "content": self.system},
             {"role": "user", "content": content},
         ]
-        client = Environment.get_openai_client()
-        res: ChatCompletion = await client.chat.completions.create(
-            model=self.model.value,
-            messages=messages,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
-            top_p=self.top_p,
-            presence_penalty=self.presence_penalty,
-            frequency_penalty=self.frequency_penalty,
-            response_format={"type": self.response_format.value},
-        )
-        assert res.usage
-        cost = calculate_cost_for_completion_usage(self.model.value, res.usage)
 
-        await context.create_prediction(
+        response = await context.run_prediction(
+            node_id=self.id,
             provider="openai",
-            node_id=self._id,
-            node_type=self.get_node_type(),
+            params={
+                "messages": messages,
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+                "top_p": self.top_p,
+                "presence_penalty": self.presence_penalty,
+                "frequency_penalty": self.frequency_penalty,
+                "response_format": self.response_format,
+            },
             model=self.model.value,
-            cost=cost,
         )
+
+        res = ChatCompletion(**response.json())
 
         assert len(res.choices) > 0
         assert res.choices[0].message.content is not None

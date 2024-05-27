@@ -1,13 +1,31 @@
 import numpy as np
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import ImageRef
+from nodetool.models.prediction import Prediction
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 from anthropic.types.text_block import TextBlock
+from anthropic.types.message import Message
 from pydantic import Field
 
 from enum import Enum
+
+
+async def run_anthropic(
+    prediction: Prediction,
+    params: dict,
+):
+    client = Environment.get_anthropic_client()
+    message = await client.messages.create(
+        system=params["system"],
+        messages=params["messages"],
+        max_tokens=params["max_tokens"],
+        top_k=params["top_k"],
+        top_p=params["top_p"],
+        model=prediction.model,
+    )
+    return message.model_dump()
 
 
 class Model(str, Enum):
@@ -32,7 +50,6 @@ class Claude(BaseNode):
     top_p: float = Field(title="Top P", default=1.0, ge=0.0, le=1.0)
 
     async def process(self, context: ProcessingContext) -> str:
-        client = Environment.get_anthropic_client()
         messages = []
         content = []
 
@@ -58,19 +75,20 @@ class Claude(BaseNode):
 
         messages.append({"role": "user", "content": content})
 
-        message = await client.messages.create(
-            system=self.system,
-            messages=messages,
-            max_tokens=self.max_tokens,
+        response = await context.run_prediction(
+            node_id=self.id,
+            provider="anthropic",
             model=self.model.value,
+            params={
+                "system": self.system,
+                "messages": messages,
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+                "top_k": self.top_k,
+                "top_p": self.top_p,
+            },
         )
 
-        await context.create_prediction(
-            provider="anthropic",
-            node_id=self._id,
-            node_type=self.get_node_type(),
-            model=self.model.value,
-            cost=0.0,
-        )
+        message = Message(**response.json())
 
         return "".join([i.text for i in message.content if isinstance(i, TextBlock)])

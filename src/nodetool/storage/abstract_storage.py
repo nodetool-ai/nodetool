@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import IO, Iterator
+from typing import IO, AsyncIterator, Iterator
 from datetime import datetime
 
 
@@ -16,33 +16,25 @@ class AbstractStorage(ABC):
         pass
 
     @abstractmethod
-    def file_exists(self, key: str) -> bool:
+    async def file_exists(self, key: str) -> bool:
         pass
 
     @abstractmethod
-    def get_mtime(self, key: str) -> datetime:
+    async def get_mtime(self, key: str) -> datetime:
         pass
 
     @abstractmethod
-    def download(self, key: str, stream: IO):
+    def download_stream(self, key: str) -> AsyncIterator[bytes]:
         pass
 
     @abstractmethod
-    def download_stream(self, key: str) -> Iterator[bytes]:
+    async def download(self, key: str, stream: IO):
         pass
 
     @abstractmethod
-    def upload(self, key: str, content: IO) -> str:
+    async def upload(self, key: str, content: IO) -> str:
         pass
 
     @abstractmethod
-    async def download_async(self, key: str, stream: IO):
-        pass
-
-    @abstractmethod
-    async def upload_async(self, key: str, content: IO) -> str:
-        pass
-
-    @abstractmethod
-    def delete(self, file_name: str):
+    async def delete(self, file_name: str):
         pass

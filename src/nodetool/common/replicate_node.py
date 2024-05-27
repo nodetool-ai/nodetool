@@ -21,6 +21,7 @@ from nodetool.common.environment import Environment
 from nodetool.dsl.codegen import field_default, type_to_string
 from nodetool.metadata.types import Tensor
 from nodetool.metadata.utils import is_enum_type
+from nodetool.models.prediction import Prediction
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import ImageRef
@@ -41,6 +42,12 @@ replicate_nodes_folder = os.path.join(
     os.path.dirname(current_folder), "nodes", "replicate"
 )
 
+REPLICATE_MODELS = {}
+
+
+def add_replicate_model(model_id: str, model_info: dict[str, Any]):
+    REPLICATE_MODELS[model_id] = model_info
+
 
 class ReplicateNode(BaseNode):
     """
@@ -58,13 +65,26 @@ class ReplicateNode(BaseNode):
 
     _visible = False
 
-    def replicate_model_id(self) -> str:
+    @classmethod
+    def __init_subclass__(cls):
+        """
+        This method is called when a subclass of this class is created.
+        We remember the model_id and corresponding model_info for each subclass.
+        """
+        super().__init_subclass__()
+        model_info = cls.model_info().copy()
+        model_info["hardware"] = cls.get_hardware()
+        add_replicate_model(cls.replicate_model_id(), model_info)
+
+    @classmethod
+    def replicate_model_id(cls) -> str:
         """
         Subclasses need to implement this method to return the model ID to run.
         """
         raise NotImplementedError()
 
-    def get_hardware(self) -> str:
+    @classmethod
+    def get_hardware(cls) -> str:
         """
         Subclasses need to implement this method to return the hardware information.
         """
@@ -78,7 +98,7 @@ class ReplicateNode(BaseNode):
 
     async def run_replicate(
         self, context: ProcessingContext, params: dict[(str, Any)] | None = None
-    ) -> ReplicatePrediction | None:
+    ):
         """
         Run prediction on Replicate.
 
@@ -87,8 +107,7 @@ class ReplicateNode(BaseNode):
             params: Optional dictionary of parameters.
 
         Returns:
-            ReplicatePrediction if successful, None otherwise.
-
+            Result of the prediction.
         """
         raw_inputs = {
             prop.name: convert_enum_value(getattr(self, prop.name))
@@ -108,17 +127,16 @@ class ReplicateNode(BaseNode):
         }
         input_params = {**input_params, **(params or {})}
 
-        return await run_replicate(
-            context=context,
-            node_id=self._id,
-            node_type=self.get_node_type(),
-            model_id=self.replicate_model_id(),
-            input_params=input_params,
-            hardware=self.get_hardware(),
+        res = await context.run_prediction(
+            provider="replicate",
+            node_id=self.id,
+            model=self.replicate_model_id(),
+            params=input_params,
         )
-
-    async def extra_params(self, context: ProcessingContext) -> dict:
-        return {}
+        if res.media_type == "application/json":
+            return res.json()
+        else:
+            return res.content
 
     async def process(self, context: ProcessingContext):
         """
@@ -134,11 +152,8 @@ class ReplicateNode(BaseNode):
             ValueError: If prediction failed.
 
         """
-        params = await self.extra_params(context)
-        pred = await self.run_replicate(context, params)
-        if pred is None:
-            raise ValueError("Prediction failed")
-        return pred.output
+        result = await self.run_replicate(context)
+        return result
 
     async def convert_output(self, context: ProcessingContext, output: Any) -> Any:
         """
@@ -209,6 +224,7 @@ def calculate_cost(hardware: str, duration: float):
     pricing = {
         "CPU": 0.000100,
         "Nvidia T4 GPU": 0.000225,
+        "Nvidia T4 (High-memory) GPU": 0.000225,
         "Nvidia A40 GPU": 0.000575,
         "Nvidia A40 (Large) GPU": 0.000725,
         "Nvidia A100 (40GB) GPU": 0.001150,
@@ -224,84 +240,41 @@ def calculate_cost(hardware: str, duration: float):
         raise ValueError(f"Unsupported hardware: {hardware}")
 
 
+REPLICATE_STATUS_MAP = {
+    "starting": "starting",
+    "succeeded": "completed",
+    "processing": "running",
+    "failed": "failed",
+    "canceled": "canceled",
+}
+
+
 async def run_replicate(
-    context: ProcessingContext,
-    node_type: str,
-    node_id: str,
-    model_id: str,
-    input_params: dict,
-    hardware: str,
+    prediction: Prediction,
+    params: dict,
 ):
     """
     Run the model on Replicate API
-
-    Args:
-        context (ProcessingContext): The processing context.
-        node_type (str): The type of the node.
-        node_id (str): The ID of the node.
-        model_id (str): The ID of the model to be replicated.
-        input_params (dict): The input parameters for the API call.
-        hardware (str): The hardware configuration for the API endpoint.
-
-    Returns:
-        ReplicatePrediction: The replication prediction object.
-
-    Raises:
-        ValueError: If the model version is invalid.
-
     """
+    model = prediction.model
+    model_info = REPLICATE_MODELS.get(model) or {}
+    hardware = model_info.get("hardware", "")
 
     replicate = Environment.get_replicate_client()
 
-    log.info(f"Running model {model_id}")
+    log.info(f"Running model {model}")
     started_at = datetime.now()
 
-    context.post_message(
-        NodeUpdate(
-            node_id=node_id,
-            node_name=model_id,
-            status="starting",
-            started_at=started_at.isoformat(),
-        )
-    )
-
-    # Split model_version into owner, name in format owner/name
-    match = re.match(r"^(?P<owner>[^/]+)/(?P<name>[^:]+)$", model_id)
-
-    if match:
-        owner = match.group("owner")
-        name = match.group("name")
-        version_id = None
-    else:
-        # Split model_version into owner, name, version in format owner/name:version
-        match = re.match(
-            r"^(?P<owner>[^/]+)/(?P<name>[^:]+):(?P<version>.+)$", model_id
-        )
-        if not match:
-            raise ValueError(
-                f"Invalid model_version: {model_id}. Expected format: owner/name:version"
-            )
-        owner = match.group("owner")
-        name = match.group("name")
-        version_id = match.group("version")
-
-    if version_id:
-        replicate_pred = replicate.predictions.create(
-            version=version_id,
-            input=input_params,
-        )
-    else:
-        replicate_pred = replicate.models.predictions.create(
-            model=(owner, name),
-            input=input_params,
-        )
-
-    prediction = await context.create_prediction(
-        provider="replicate",
-        model=f"{owner}/{name}",
+    # Split model_version into owner, name, version in format owner/name:version
+    match = re.match(r"^(?P<owner>[^/]+)/(?P<name>[^:]+):(?P<version>.+)$", model)
+    if not match:
+        raise ValueError(f"Invalid model: {model}. Expected format: owner/name:version")
+    owner = match.group("owner")
+    name = match.group("name")
+    version_id = match.group("version")
+    replicate_pred = replicate.predictions.create(
         version=version_id,
-        node_id=node_id,
-        node_type=node_type,
+        input=params,
     )
 
     current_status = "starting"
@@ -313,18 +286,14 @@ async def run_replicate(
             log.info(f"Prediction status: {replicate_pred.status}")
             current_status = replicate_pred.status
 
-        await context.update_prediction(
-            id=prediction.id,
-            completed_at=datetime.now(),
-            error=replicate_pred.error,
-            status=replicate_pred.status,
-            logs=replicate_pred.logs,
-        )
+        prediction.status = REPLICATE_STATUS_MAP[replicate_pred.status]
+        prediction.logs = replicate_pred.logs
+        prediction.error = replicate_pred.error
+        prediction.duration = (datetime.now() - started_at).total_seconds()
+        prediction.save()
+
         if replicate_pred.status in ("failed", "canceled"):
-            if replicate_pred.error:
-                raise ValueError(replicate_pred.error)
-            else:
-                raise ValueError("Prediction failed")
+            raise ValueError(replicate_pred.error or "Prediction failed")
 
         if replicate_pred.status in ("succeeded", "failed", "canceled"):
             break
@@ -336,15 +305,19 @@ async def run_replicate(
     if "input_token_count" in replicate_pred.metrics:
         input_token_count = replicate_pred.metrics["input_token_count"]
         output_token_count = replicate_pred.metrics["output_token_count"]
-        cost = calculate_llm_cost(model_id, input_token_count, output_token_count)
+        prediction.cost = calculate_llm_cost(
+            model, input_token_count, output_token_count
+        )
+        prediction.save()
+
     elif "predict_time" in replicate_pred.metrics:
         predict_time = replicate_pred.metrics["predict_time"]
-        cost = calculate_cost(hardware, predict_time)
+        prediction.cost = calculate_cost(hardware, predict_time)
+        prediction.save()
     else:
         raise ValueError("Cost calculation failed")
 
-    await context.update_prediction(id=prediction.id, cost=cost)
-    return replicate_pred
+    return replicate_pred.output
 
 
 async def convert_output_value(
@@ -575,8 +548,10 @@ def generate_model_source_code(
         f"class {model_name}(ReplicateNode):",
         '    """' + description + '"""',
         "",
-        f"    def replicate_model_id(self): return '{replicate_model_id}'",
-        f"    def get_hardware(self): return '{hardware}'",
+        "    @classmethod",
+        f"    def replicate_model_id(cls): return '{replicate_model_id}'",
+        "    @classmethod",
+        f"    def get_hardware(cls): return '{hardware}'",
         "    @classmethod",
         f"    def model_info(cls): return {repr(model_info)}",
     ]

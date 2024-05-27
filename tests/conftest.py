@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -67,10 +68,10 @@ def make_user(verified: bool = False) -> User:
     return user
 
 
-def upload_test_image(image: Asset, width: int = 512, height: int = 512):
+async def upload_test_image(image: Asset, width: int = 512, height: int = 512):
     storage = Environment.get_asset_storage()
     img = PIL.Image.new("RGB", (width, height))
-    storage.upload(image.file_name, io.BytesIO(pil_to_bytes(img)))
+    await storage.upload(image.file_name, io.BytesIO(pil_to_bytes(img)))
 
 
 def make_image(
@@ -87,8 +88,28 @@ def make_image(
         content_type="image/jpeg",
         workflow_id=workflow_id,
     )
-    upload_test_image(image, width, height)
+    asyncio.run_coroutine_threadsafe(
+        upload_test_image(image, width, height), asyncio.get_event_loop()
+    )
     return image
+
+
+def make_text(
+    user: User,
+    content: str,
+    workflow_id: str | None = None,
+    parent_id: str | None = None,
+):
+    asset = Asset.create(
+        user_id=user.id,
+        name="test_text",
+        parent_id=parent_id,
+        content_type="text/plain",
+        workflow_id=workflow_id,
+    )
+    storage = Environment.get_asset_storage()
+    asyncio.run(storage.upload(asset.file_name, io.BytesIO(content.encode())))
+    return asset
 
 
 def make_job(user: User, **kwargs):
@@ -102,6 +123,11 @@ def make_job(user: User, **kwargs):
 @pytest.fixture()
 def image(user: User):
     return make_image(user)
+
+
+@pytest.fixture()
+def text_asset(user: User):
+    return make_text(user, "test content")
 
 
 @pytest.fixture()
@@ -122,7 +148,7 @@ def user():
 @pytest.fixture()
 def context(user: User):
     workflow = Workflow.create(user.id, "wf", {"edges": [], "nodes": []})
-    assert user.auth_token
+    assert user.auth_token != None and user.auth_token != ""
     return ProcessingContext(
         user_id=user.id, workflow_id=workflow.id, auth_token=user.auth_token
     )

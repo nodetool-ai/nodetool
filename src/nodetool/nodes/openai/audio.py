@@ -1,13 +1,13 @@
+import base64
 from enum import Enum
-import pydub
-from nodetool.common.openai_nodes import calculate_cost
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from io import BytesIO
 from pydub import AudioSegment
 from nodetool.metadata.types import AudioRef
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.common.environment import Environment
+from openai.types.audio.transcription import Transcription
+from openai.types.audio.translation import Translation
 
 
 class TextToSpeech(BaseNode):
@@ -35,23 +35,17 @@ class TextToSpeech(BaseNode):
     speed: float = Field(title="Speed", default=1.0, ge=0.25, le=4.0)
 
     async def process(self, context: ProcessingContext) -> AudioRef:
-        client = Environment.get_openai_client()
-        res = await client.audio.speech.create(
-            input=self.input,
-            model=self.model.value,
-            voice=self.voice.value,
-            speed=self.speed,
-            response_format="mp3",
-        )
-        cost = calculate_cost(self.model.value, len(self.input), 0)
-
-        await context.create_prediction(
-            provider="openai",
+        res = await context.run_prediction(
             node_id=self._id,
-            node_type=self.get_node_type(),
+            provider="openai",
             model=self.model.value,
-            cost=cost,
+            params={
+                "input": self.input,
+                "voice": self.voice,
+                "speed": self.speed,
+            },
         )
+
         segment = AudioSegment.from_mp3(BytesIO(res.content))
         audio = await context.audio_from_segment(segment)  # type: ignore
         return audio
@@ -67,24 +61,24 @@ class Transcribe(BaseNode):
     audio: AudioRef = Field(
         default=AudioRef(), description="The audio file to transcribe."
     )
+    temperature: float = Field(
+        default=0.0, description="The temperature to use for the transcription."
+    )
 
     async def process(self, context: ProcessingContext) -> str:
         audio_bytes = await context.asset_to_io(self.audio)
-        audio_segment: pydub.AudioSegment = pydub.AudioSegment.from_file(audio_bytes)
-        audio_bytes.seek(0)
 
-        client = Environment.get_openai_client()
-        res = await client.audio.transcriptions.create(
-            model="whisper-1", file=("file.mp3", audio_bytes, "audio/mp3")
-        )
-
-        await context.create_prediction(
-            provider="openai",
+        response = await context.run_prediction(
             node_id=self._id,
-            node_type=self.get_node_type(),
+            provider="openai",
             model="whisper-1",
-            cost=calculate_cost("whisper-1", int(audio_segment.duration_seconds)),
+            params={
+                "file": base64.b64encode(audio_bytes.read()).decode(),
+            },
         )
+
+        res = Transcription(**response.json())
+
         return res.text
 
 
@@ -104,20 +98,16 @@ class Translate(BaseNode):
 
     async def process(self, context: ProcessingContext) -> str:
         audio_bytes = await context.asset_to_io(self.audio)
-        audio: pydub.AudioSegment = pydub.AudioSegment.from_file(audio_bytes)
-        audio_bytes.seek(0)
-        client = Environment.get_openai_client()
-        res = await client.audio.translations.create(
-            model="whisper-1",
-            file=("file.mp3", audio_bytes, "audio/mp3"),
-            temperature=self.temperature,
-        )
-        cost = calculate_cost("whisper-1", int(audio.duration_seconds))
-        await context.create_prediction(
-            provider="openai",
+        response = await context.run_prediction(
             node_id=self._id,
-            node_type=self.get_node_type(),
+            provider="openai",
             model="whisper-1",
-            cost=cost,
+            params={
+                "file": base64.b64encode(audio_bytes.read()).decode(),
+                "temperature": self.temperature,
+                "translate": True,
+            },
         )
+        res = Translation(**response.json())
+
         return res.text

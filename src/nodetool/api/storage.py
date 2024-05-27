@@ -2,10 +2,12 @@
 
 from io import BytesIO
 import os
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi import HTTPException
 from email.utils import parsedate_to_datetime
 from fastapi.responses import StreamingResponse
+from nodetool.api.utils import current_user
+from nodetool.models.user import User
 from nodetool.storage.abstract_storage import AbstractStorage
 from nodetool.common.content_types import EXTENSION_TO_CONTENT_TYPE
 from nodetool.common.environment import Environment
@@ -23,6 +25,24 @@ def storage_for_bucket(bucket: str) -> AbstractStorage:
         raise ValueError(f"Invalid bucket: {bucket}")
 
 
+@router.head("/{bucket}/{key}")
+async def head(bucket: str, key: str):
+    """
+    Returns the metadata for the file with the given key.
+    """
+    storage = storage_for_bucket(bucket)
+    if not storage.file_exists(key):
+        raise HTTPException(status_code=404)
+
+    last_modified = await storage.get_mtime(key)
+    return Response(
+        status_code=200,
+        headers={
+            "Last-Modified": last_modified.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+        },
+    )
+
+
 @router.get("/{bucket}/{key}")
 async def get(bucket: str, key: str, request: Request):
     """
@@ -32,43 +52,45 @@ async def get(bucket: str, key: str, request: Request):
     if not storage.file_exists(key):
         raise HTTPException(status_code=404)
 
-    last_modified = storage.get_mtime(key)
+    last_modified = await storage.get_mtime(key)
     if "If-Modified-Since" in request.headers:
         if_modified_since = parsedate_to_datetime(request.headers["If-Modified-Since"])
         if if_modified_since >= last_modified:
             raise HTTPException(status_code=304)
 
-    iterator = storage.download_stream(key)
     ext = os.path.splitext(key)[-1]
     media_type = EXTENSION_TO_CONTENT_TYPE.get(ext, "application/octet-stream")
     headers = {
         "Last-Modified": last_modified.strftime("%a, %d %b %Y %H:%M:%S GMT"),
     }
 
-    print(headers)
-
-    return StreamingResponse(iterator, media_type=media_type, headers=headers)
+    return StreamingResponse(
+        content=storage.download_stream(key), media_type=media_type, headers=headers
+    )
 
 
 @router.put("/{bucket}/{key}")
-async def update(bucket: str, key: str, request: Request):
+async def update(
+    bucket: str, key: str, request: Request, user: User = Depends(current_user)
+):
     """
     Updates or creates the file for the given key.
     """
     storage = storage_for_bucket(bucket)
+
     body = await request.body()
-    storage.upload(key, BytesIO(body))
+    await storage.upload(key, BytesIO(body))
 
     # return the same xml response as aws s3 upload_fileobj
     return Response(status_code=200, content=b"")
 
 
 @router.delete("/{bucket}/{key}")
-async def delete(bucket: str, key: str):
+async def delete(bucket: str, key: str, user: User = Depends(current_user)):
     """
     Deletes the asset for the given key.
     """
     storage = storage_for_bucket(bucket)
     if not storage.file_exists(key):
         return Response(status_code=404)
-    storage.delete(key)
+    await storage.delete(key)

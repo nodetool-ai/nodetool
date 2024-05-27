@@ -8,10 +8,12 @@ from enum import Enum
 class AudioSuperResolution(ReplicateNode):
     """AudioSR: Versatile Audio Super-resolution at Scale"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "nateraw/audio-super-resolution:9c3d3e39fb0cb6aea677264881d8073f835336137b39fdea4e94093319379535"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod

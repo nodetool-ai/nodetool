@@ -4,7 +4,6 @@ from enum import Enum
 import json
 from queue import Queue
 import urllib.parse
-import os
 import uuid
 import httpx
 import joblib
@@ -20,8 +19,10 @@ from nodetool.api.types.chat import (
     TaskCreateRequest,
     TaskList,
 )
-from nodetool.api.types.prediction import Prediction
+from nodetool.api.types.prediction import Prediction, PredictionCreateRequest
 from nodetool.api.types.workflow import Workflow
+from nodetool.common.async_iterators import AsyncByteStream
+from nodetool.common.nodetool_api_client import NodetoolAPIClient, Response
 from nodetool.metadata.types import Message, Task
 from nodetool.workflows.graph import Graph
 from nodetool.workflows.types import (
@@ -31,7 +32,6 @@ from nodetool.workflows.types import (
     WorkflowUpdate,
 )
 from nodetool.workflows.run_job_request import RunJobRequest
-from nodetool.storage.abstract_storage import AbstractStorage
 from nodetool.metadata.types import (
     AssetRef,
     AudioRef,
@@ -45,10 +45,8 @@ from nodetool.metadata.types import (
     dtype_name,
 )
 from nodetool.common.environment import Environment
-from nodetool.common.nodetool_api_client import NodetoolAPIClient
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.property import Property
-from nodetool.models.asset import Asset as AssetModel
 from nodetool.metadata.types import ImageRef
 from nodetool.common.environment import Environment
 
@@ -59,16 +57,6 @@ from pickle import dumps, loads
 
 
 log = Environment.get_logger()
-
-
-def parse_s3_url(url: str) -> tuple[str, str]:
-    """
-    Parses an S3 URL into a bucket and object key.
-    """
-    parsed_url = urllib.parse.urlparse(url)
-    bucket = parsed_url.netloc
-    key = parsed_url.path.lstrip("/")
-    return bucket, key
 
 
 class ProcessingContext:
@@ -110,6 +98,7 @@ class ProcessingContext:
     results: dict[str, Any]
     processed_nodes: set[str]
     message_queue: Queue | asyncio.Queue
+    api_client: NodetoolAPIClient
 
     def __init__(
         self,
@@ -128,59 +117,108 @@ class ProcessingContext:
         self.processed_nodes = set()
         self.message_queue = queue if queue is not None else asyncio.Queue()
         self.capabilities = capabilities if capabilities is not None else []
+        self.api_client = Environment.get_nodetool_api_client(self.auth_token)
+        assert self.auth_token is not None, "Auth token is required"
 
     async def pop_message_async(self) -> ProcessingMessage:
+        """
+        Retrieves and removes a message from the message queue.
+        The message queue is used to communicate updates to upstream
+        processing.
+
+        Returns:
+            The retrieved message from the message queue.
+        """
         assert isinstance(self.message_queue, asyncio.Queue)
         return await self.message_queue.get()
 
     def pop_message(self) -> ProcessingMessage:
+        """
+        Removes and returns the next message from the message queue.
+
+        Returns:
+            The next message from the message queue.
+        """
         assert isinstance(self.message_queue, Queue)
         return self.message_queue.get()
 
     def post_message(self, message: ProcessingMessage):
+        """
+        Posts a message to the message queue.
+
+        Args:
+            message (ProcessingMessage): The message to be posted.
+        """
         self.message_queue.put_nowait(message)
 
     def has_messages(self) -> bool:
+        """
+        Checks if the processing context has any messages in the message queue.
+
+        Returns:
+            bool: True if the message queue is not empty, False otherwise.
+        """
         return not self.message_queue.empty()
 
-    def api_client(self):
-        assert self.auth_token is not None, "Auth token is required"
-        return Environment.get_nodetool_api_client(self.auth_token)
+    def asset_storage_url(self, key: str) -> str:
+        """
+        Returns the URL of an asset in the asset storage.
+
+        Args:
+            key (str): The key of the asset.
+        """
+        base_url = Environment.get_asset_storage().get_base_url()
+        return f"{base_url}/{key}"
+
+    def temp_storage_url(self, key: str) -> str:
+        """
+        Returns the URL of an asset in the temp storage.
+
+        Args:
+            key (str): The key of the asset.
+        """
+        base_url = Environment.get_temp_storage().get_base_url()
+        return f"{base_url}/{key}"
 
     async def find_asset(self, asset_id: str):
         """
         Finds an asset by id.
+
+        Args:
+            asset_id (str): The ID of the asset.
+
+        Returns:
+            Asset: The asset with the given ID.
         """
-        res = await self.api_client().get(f"assets/{asset_id}")
-        return Asset(**res)
+        res = await self.api_client.get(f"api/assets/{asset_id}")
+        return Asset(**res.json())
 
     async def get_asset_url(self, asset_id: str):
         """
         Returns the asset url.
+
+        Args:
+            asset_id (str): The ID of the asset.
+
+        Returns:
+            str: The URL of the asset.
         """
         asset = await self.find_asset(asset_id)  # type: ignore
 
-        return self.get_asset_storage().generate_presigned_url(
-            "get_object", asset.file_name
-        )
-
-    def get_asset_storage(self) -> AbstractStorage:
-        """
-        Returns the asset service.
-        """
-        return Environment.get_asset_storage()
-
-    def get_temp_storage(self) -> AbstractStorage:
-        """
-        Returns the asset service.
-        """
-        return Environment.get_temp_storage()
+        return self.asset_storage_url(asset.file_name)
 
     def get_result(self, node_id: str, slot: str) -> Any:
         """
         Get the result of a node.
 
         Results are stored in the context's results dictionary after a node is processed.
+
+        Args:
+            node_id (str): The ID of the node.
+            slot (str): The slot name.
+
+        Returns:
+            Any: The result of the node.
         """
         res = self.results.get(node_id, {})
 
@@ -194,6 +232,10 @@ class ProcessingContext:
         Set the result of a node.
 
         Results are stored in the context's results dictionary after a node is processed.
+
+        Args:
+            node_id (str): The ID of the node.
+            res (dict[str, Any]): The result of the node.
         """
         self.results[node_id] = res
 
@@ -217,7 +259,15 @@ class ProcessingContext:
     def find_node(self, node_id: str) -> BaseNode:
         """
         Finds a node by its ID.
-        Throws ValueError if no node is found.
+
+        Args:
+            node_id (str): The ID of the node to be found.
+
+        Returns:
+            BaseNode: The node with the given ID.
+
+        Raises:
+            ValueError: If the node with the given ID does not exist.
         """
         node = self.graph.find_node(node_id)
         if node is None:
@@ -228,67 +278,48 @@ class ProcessingContext:
         """
         Gets the workflow by ID.
         """
-        res = await self.api_client().get(f"workflows/{workflow_id}")
-        return Workflow(**res)
+        res = await self.api_client.get(f"api/workflows/{workflow_id}")
+        return Workflow(**res.json())
 
-    async def update_prediction(
+    async def run_prediction(
         self,
-        id: str,
-        status: str | None = None,
-        error: str | None = None,
-        logs: str | None = None,
-        cost: float | None = None,
-        duration: float | None = None,
-        completed_at: datetime | None = None,
-    ) -> Prediction:
-        """
-        Updates the prediction.
-        """
-        res = await self.api_client().put(
-            f"predictions/{id}",
-            {
-                "status": status,
-                "error": error,
-                "logs": logs,
-                "cost": cost,
-                "duration": duration,
-                "completed_at": (completed_at.isoformat() if completed_at else None),
-            },
-        )
-        ret = Prediction(**res)
-        self.post_message(ret)
-        return ret
-
-    async def create_prediction(
-        self,
-        provider: str,
         node_id: str,
-        node_type: str | None = None,
-        model: str | None = None,
-        version: str | None = None,
-        status: str | None = None,
-        cost: float | None = None,
-        hardware: str | None = None,
-    ) -> Prediction:
-        if cost:
-            self.cost += cost
-        res = await self.api_client().post(
-            "predictions/",
-            json={
-                "node_id": node_id,
-                "node_type": node_type if node_type else "",
-                "provider": provider,
-                "model": model if model else "",
-                "workflow_id": self.workflow_id if self.workflow_id else "",
-                "version": version if version else "",
-                "status": status if status else "",
-                "cost": cost if cost else 0.0,
-                "hardware": hardware if hardware else "",
-            },
+        provider: Literal["huggingface", "replicate", "openai", "anthropic"],
+        model: str,
+        params: dict[str, Any] | None = None,
+        data: bytes | None = None,
+    ) -> Response:
+        """
+        Run a prediction on a third-party provider.
+
+        Args:
+            node_id (str): The ID of the node.
+            provider (Literal["huggingface", "replicate", "openai", "anthropic"]): The provider to use for the prediction.
+            model (str): The name of the model to use for the prediction.
+            params (dict[str, Any] | None, optional): Additional parameters for the prediction. Defaults to None.
+            data (bytes | None, optional): Input data for the prediction. Defaults to None.
+
+        Returns:
+            Response: The response from the prediction API.
+
+        """
+
+        data_encoded = (
+            base64.b64encode(data).decode("utf-8") if isinstance(data, bytes) else None
         )
-        ret = Prediction(**res)
-        self.post_message(ret)
-        return ret
+
+        res = await self.api_client.post(
+            "api/predictions/",
+            json=PredictionCreateRequest(
+                provider=provider,
+                model=model,
+                node_id=node_id,
+                workflow_id=self.workflow_id if self.workflow_id else "",
+                params=params or {},
+                data=data_encoded,
+            ).model_dump(),
+        )
+        return res
 
     async def paginate_assets(
         self,
@@ -297,12 +328,34 @@ class ProcessingContext:
         cursor: str | None = None,
     ) -> AssetList:
         """
-        Lists assets.
+        Lists children assets for a given parent asset.
+        Lists top level assets if parent_id is None.
+
+        Args:
+            parent_id (str | None, optional): The ID of the parent asset. Defaults to None.
+            page_size (int, optional): The number of assets to return. Defaults to 100.
+            cursor (str | None, optional): The cursor for pagination. Defaults to None.
+
+        Returns:
+            AssetList: The list of assets.
         """
-        res = await self.api_client().get(
-            "assets/", {"parent_id": parent_id, page_size: page_size, "cursor": cursor}
+        res = await self.api_client.get(
+            "api/assets/",
+            params={"parent_id": parent_id, page_size: page_size, "cursor": cursor},
         )
-        return AssetList(**res)
+        return AssetList(**res.json())
+
+    async def refresh_uri(self, asset: AssetRef):
+        """
+        Refreshes the URI of the asset.
+
+        Args:
+            asset (AssetRef): The asset to refresh.
+        """
+        if asset.asset_id:
+            asset.uri = await self.get_asset_url(asset.asset_id)
+        elif asset.temp_id:
+            asset.uri = self.temp_storage_url(asset.temp_id)
 
     async def create_asset(
         self,
@@ -311,6 +364,19 @@ class ProcessingContext:
         content: IO,
         parent_id: str | None = None,
     ) -> Asset:
+        """
+        Creates an asset with the given name, content type, content, and optional parent ID.
+
+        Args:
+            name (str): The name of the asset.
+            content_type (str): The content type of the asset.
+            content (IO): The content of the asset.
+            parent_id (str | None, optional): The ID of the parent asset. Defaults to None.
+
+        Returns:
+            Asset: The created asset.
+
+        """
         content.seek(0)
 
         req = AssetCreateRequest(
@@ -319,27 +385,47 @@ class ProcessingContext:
             content_type=content_type,
             parent_id=parent_id,
         )
-        res = await self.api_client().post(
-            "assets/",
+        res = await self.api_client.post(
+            "api/assets/",
             data={"json": req.model_dump_json()},
             files={"file": (name, content, content_type)},
         )
 
-        return Asset(**res)
+        return Asset(**res.json())
 
-    async def create_temp_asset(self, content: IO, ext: str = "") -> str:
+    async def create_temp_asset(self, content: IO, ext: str = "") -> AssetRef:
+        """
+        Uploads a temporary asset with the given content and extension.
+
+        Args:
+            content (IO): The content of the asset.
+            ext (str, optional): The extension of the asset. Defaults to "".
+
+        Returns:
+            str: The URL of the created temporary asset.
+        """
         key = uuid.uuid4().hex
         if ext != "":
             key += "." + ext
-
-        return self.get_temp_storage().upload(key, content)
+        url = self.temp_storage_url(key)
+        # parse uri
+        path = urllib.parse.urlparse(url).path
+        stream = AsyncByteStream(content.read())
+        await self.api_client.put(path, content=stream)
+        return AssetRef(uri=url, temp_id=key)
 
     async def create_message(self, req: MessageCreateRequest):
         """
         Creates a message for a thread.
+
+        Args:
+            req (MessageCreateRequest): The message to create.
+
+        Returns:
+            Message: The created message.
         """
-        res = await self.api_client().post("messages/", json=req.model_dump())
-        return Message(**res)
+        res = await self.api_client.post("api/messages/", json=req.model_dump())
+        return Message(**res.json())
 
     async def get_messages(
         self,
@@ -350,108 +436,109 @@ class ProcessingContext:
     ):
         """
         Gets messages for a thread.
+
+        Args:
+            thread_id (str): The ID of the thread.
+            limit (int, optional): The number of messages to return. Defaults to 10.
+            start_key (str, optional): The start key for pagination. Defaults to None.
+            reverse (bool, optional): Whether to reverse the order of messages. Defaults to False.
+
+        Returns:
+            MessageList: The list of messages.
         """
-        res = await self.api_client().get(
-            "messages/",
-            {"thread_id": thread_id, "limit": limit, "cursor": start_key},
+        res = await self.api_client.get(
+            "api/messages/",
+            params={"thread_id": thread_id, "limit": limit, "cursor": start_key},
         )
-        return MessageList(**res)
+        return MessageList(**res.json())
 
     async def create_task(self, task: TaskCreateRequest):
         """
         Creates a task.
+
+        Args:
+            task (TaskCreateRequest): The task to create.
+
+        Returns:
+            Task: The created task.
         """
-        res = await self.api_client().post("tasks/", json=task.model_dump())
-        return Task(**res)
+        res = await self.api_client.post("api/tasks/", json=task.model_dump())
+        return Task(**res.json())
 
     async def get_tasks(self, thread_id: str):
         """
         Gets tasks for a thread.
-        """
-        res = await self.api_client().get("tasks/", {"thread_id": thread_id})
-        return TaskList(**res)
 
-    async def download_asset(self, asset_id: str):
+        Args:
+            thread_id (str): The ID of the thread.
+
+        Returns:
+            TaskList: The list of tasks.
         """
-        Downloads an asset.
+        res = await self.api_client.get("api/tasks/", params={"thread_id": thread_id})
+        return TaskList(**res.json())
+
+    async def download_asset(self, asset_id: str) -> IO:
+        """
+        Downloads an asset from the asset storage api.
+
+        Args:
+            asset_id (str): The ID of the asset to download.
+
+        Returns:
+            IO: The downloaded asset.
         """
         asset = await self.find_asset(asset_id)
-        stream = BytesIO()
-        await self.get_asset_storage().download_async(asset.file_name, stream)
-        stream.seek(0)
-        return stream
+        io = BytesIO()
+        url = self.asset_storage_url(asset.file_name)
+        path = urllib.parse.urlparse(url).path
+        async for chunk in self.api_client.stream("GET", path):
+            io.write(chunk)
+        io.seek(0)
+        return io
 
-    async def download_asset_url(self, url: str):
+    async def download_temp_asset(self, temp_id: str) -> IO:
         """
-        Downloads an asset from asset storage.
-        This is preferred over downloading from URL directly due to testing and
-        other optimizations.
+        Downloads a temporary asset from the temp storage.
 
         Args:
-            url (str): The URL of the asset to download.
+            temp_id (str): The ID of the temporary asset to download.
 
         Returns:
-            BytesIO: The downloaded asset as a BytesIO object.
+            IO: The downloaded temporary asset.
         """
-        url_parsed = urllib.parse.urlparse(url)
-        bytes_io = BytesIO()
-        key = url.split(self.get_asset_storage().get_base_url())[1]
-        if key.startswith("/"):
-            key = key[1:]
-        await self.get_asset_storage().download_async(key, bytes_io)
-        bytes_io.seek(0)
-        return bytes_io
+        io = BytesIO()
+        url = self.temp_storage_url(temp_id)
+        path = urllib.parse.urlparse(url).path
+        async for chunk in self.api_client.stream("GET", path):
+            io.write(chunk)
+        io.seek(0)
+        return io
 
-    async def download_temp_url(self, url: str):
+    async def http_get(self, url: str) -> bytes:
         """
-        Downloads a file from temp storage.
-        This is preferred over downloading from URL directly due to testing and
-        other optimizations.
+        Sends an HTTP GET request to the specified URL.
 
         Args:
-            url (str): The temporary URL of the file to download.
+            url (str): The URL to send the request to.
 
         Returns:
-            BytesIO: A BytesIO object containing the downloaded file.
+            bytes: The response content.
         """
-        key = url.split(self.get_temp_storage().get_base_url())[1]
-        if key.startswith("/"):
-            key = key[1:]
-        bytes_io = BytesIO()
-        await self.get_temp_storage().download_async(key, bytes_io)
-        bytes_io.seek(0)
-        return bytes_io
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            return response.content
 
-    async def is_temp_url(self, url: str) -> bool:
-        """
-        Checks if the given URL is from temp storage.
-
-        Args:
-            url (str): The URL to check.
-
-        Returns:
-            bool: True if the URL is a temporary URL, False otherwise.
-        """
-        base_url = self.get_temp_storage().get_base_url()
-        return url.startswith(base_url)
-
-    async def is_asset_url(self, url: str) -> bool:
-        """
-        Checks if the given URL is from asset storage.
-
-        Args:
-            url (str): The URL to check.
-
-        Returns:
-            bool: True if the URL is a temporary URL, False otherwise.
-        """
-        base_url = self.get_asset_storage().get_base_url()
-        return url.startswith(base_url)
-
-    async def download_file_async(self, url: str) -> IO:
+    async def download_file(self, url: str) -> IO:
         """
         Download a file from URL.
-        If url contains s3.amazonaws.com, it will be downloaded from S3.
+
+        Args:
+            url (str): The URL of the file to download.
+
+        Returns:
+            IO: The downloaded file.
         """
         from nodetool.common.encoding import decode_bytes_io
 
@@ -464,27 +551,29 @@ class ProcessingContext:
             file.name = f"{uuid.uuid4()}.{ext}"
             return file
 
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-
-        return BytesIO(response.content)
+        return BytesIO(await self.http_get(url))
 
     async def asset_to_io(self, asset_ref: AssetRef) -> IO:
+        """
+        Converts an AssetRef object to an IO object.
+
+        Args:
+            asset_ref (AssetRef): The AssetRef object to convert.
+
+        Returns:
+            IO: The converted IO object.
+
+        Raises:
+            ValueError: If the AssetRef is empty.
+        """
         # Asset ID takes precedence over URI
         # as the URI could be expired
         if asset_ref.asset_id is not None:
             return await self.download_asset(asset_ref.asset_id)
-        if asset_ref.uri != "":
-            url = asset_ref.uri
-
-            if self.is_temp_url(url):
-                return await self.download_temp_url(url)
-
-            if self.is_asset_url(url):
-                return await self.download_asset_url(url)
-
-            return await self.download_file_async(asset_ref.uri)
+        elif asset_ref.temp_id is not None:
+            return await self.download_temp_asset(asset_ref.temp_id)
+        elif asset_ref.uri != "":
+            return await self.download_file(asset_ref.uri)
         raise ValueError(f"AssetRef is empty {asset_ref}")
 
     async def image_to_pil(self, image_ref: ImageRef) -> PIL.Image.Image:
@@ -507,11 +596,13 @@ class ProcessingContext:
         buffer = await self.asset_to_io(image_ref)
         return base64.b64encode(buffer.read()).decode("utf-8")
 
-    async def refresh_uri(self, asset_ref: AssetRef):
-        if asset_ref.asset_id is not None:
-            asset_ref.uri = await self.get_asset_url(asset_ref.asset_id)
-
     async def audio_to_audio_segment(self, audio_ref: AudioRef):
+        """
+        Converts the audio to an AudioSegment object.
+
+        Args:
+            context (ProcessingContext): The processing context.
+        """
         import pydub
 
         audio_bytes = await self.asset_to_io(audio_ref)
@@ -536,12 +627,12 @@ class ProcessingContext:
         """
         if name:
             asset = await self.create_asset(
-                name, "audio/mp3", buffer, parent_id=parent_id
+                name=name, content_type="audio/mp3", content=buffer, parent_id=parent_id
             )
             return AudioRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_asset(buffer, "mp3")
-            return AudioRef(uri=s3_url)
+            ref = await self.create_temp_asset(buffer, "mp3")
+            return AudioRef(temp_id=ref.temp_id, uri=ref.uri)
 
     async def audio_from_bytes(
         self,
@@ -573,6 +664,19 @@ class ProcessingContext:
         parent_id: str | None = None,
         **kwargs,
     ) -> "AudioRef":
+        """
+        Converts an audio segment to an AudioRef object.
+
+        Args:
+            audio_segment (pydub.AudioSegment): The audio segment to convert.
+            name (str, optional): The name of the audio. Defaults to None.
+            parent_id (str, optional): The ID of the parent asset. Defaults to None.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            AudioRef: The converted AudioRef object.
+
+        """
         buffer = BytesIO()
         audio_segment.export(buffer, format="mp3")
         buffer.seek(0)
@@ -582,36 +686,58 @@ class ProcessingContext:
             )
             return AudioRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_asset(buffer, "mp3")
-            return AudioRef(uri=s3_url)
+            ref = await self.create_temp_asset(buffer, "mp3")
+            return AudioRef(
+                temp_id=ref.temp_id,
+                uri=ref.uri,
+            )
 
     async def dataframe_to_pandas(self, df: DataframeRef):
+        """
+        Converts a DataframeRef object to a pandas DataFrame.
+
+        Args:
+            df (DataframeRef): The DataframeRef object to convert.
+
+        Returns:
+            pandas.DataFrame: The converted pandas DataFrame.
+        """
         import pandas as pd
 
         if df.columns:
             return pd.DataFrame(df.data, columns=df.columns)
         else:
-            bytes_io = await self.asset_to_io(df)
-            df = loads(bytes_io.read())
+            io = await self.asset_to_io(df)
+            df = loads(io.read())
             assert isinstance(df, pd.DataFrame), "Is not a dataframe"
             return df
 
     async def dataframe_from_pandas(
         self, data: "pd.DataFrame", name: str | None = None
     ) -> "DataframeRef":
+        """
+        Converts a pandas DataFrame to a DataframeRef object.
+
+        Args:
+            data (pd.DataFrame): The pandas DataFrame to convert.
+            name (str | None, optional): The name of the asset. Defaults to None.
+
+        Returns:
+            DataframeRef: The converted DataframeRef object.
+        """
         buffer = BytesIO(dumps(data))
         if name:
             asset = await self.create_asset(name, "application/octet-stream", buffer)
             return DataframeRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_asset(buffer)
+            ref = await self.create_temp_asset(buffer)
             # TODO: avoid for large tables
             rows = data.values.tolist()
             column_defs = [
                 ColumnDef(name=name, data_type=dtype_name(dtype.name))
                 for name, dtype in zip(data.columns, data.dtypes)
             ]
-            return DataframeRef(uri=s3_url, columns=column_defs, data=rows)
+            return DataframeRef(temp_id=ref.temp_id, columns=column_defs, data=rows)
 
     async def image_from_io(
         self,
@@ -636,8 +762,8 @@ class ProcessingContext:
             )
             return ImageRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_asset(buffer)
-            return ImageRef(uri=s3_url)
+            ref = await self.create_temp_asset(buffer)
+            return ImageRef(temp_id=ref.temp_id, uri=ref.uri)
 
     async def image_from_url(
         self,
@@ -657,7 +783,7 @@ class ProcessingContext:
             ImageRef: The ImageRef object.
         """
         return await self.image_from_io(
-            await self.download_file_async(url), name=name, parent_id=parent_id
+            await self.download_file(url), name=name, parent_id=parent_id
         )
 
     async def image_from_bytes(
@@ -768,8 +894,8 @@ class ProcessingContext:
             )
             return TextRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_asset(buffer)
-            return TextRef(uri=s3_url)
+            ref = await self.create_temp_asset(buffer)
+            return TextRef(temp_id=ref.temp_id, uri=ref.uri)
 
     async def video_from_io(
         self,
@@ -794,16 +920,39 @@ class ProcessingContext:
             )
             return VideoRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            s3_url = await self.create_temp_asset(buffer)
-            return VideoRef(uri=s3_url)
+            ref = await self.create_temp_asset(buffer)
+            return VideoRef(temp_id=ref.temp_id, uri=ref.uri)
 
     async def to_estimator(self, model_ref: ModelRef):
+        """
+        Converts a model reference to an estimator object.
+
+        Args:
+            model_ref (ModelRef): The model reference to convert.
+
+        Returns:
+            The loaded estimator object.
+
+        Raises:
+            ValueError: If the model reference is empty.
+        """
         if model_ref.asset_id is None:
             raise ValueError("ModelRef is empty")
         file = await self.asset_to_io(model_ref)
         return joblib.load(file)
 
     async def from_estimator(self, est: "BaseEstimator", **kwargs):  # type: ignore
+        """
+        Create a model asset from an estimator.
+
+        Args:
+            est (BaseEstimator): The estimator object to be serialized.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            ModelRef: A reference to the created model asset.
+
+        """
         stream = BytesIO()
         joblib.dump(est, stream)
         stream.seek(0)

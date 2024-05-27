@@ -8,10 +8,12 @@ from enum import Enum
 class RemoveBackground(ReplicateNode):
     """Remove images background"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 GPU"
 
     @classmethod
@@ -41,10 +43,12 @@ class RemoveBackground(ReplicateNode):
 class ModNet(ReplicateNode):
     """A deep learning approach to remove background & adding new background image"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "pollinations/modnet:da7d45f3b836795f945f221fc0b01a6d3ab7f5e163f13208948ad436001e2255"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod

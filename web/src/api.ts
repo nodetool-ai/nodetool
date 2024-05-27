@@ -104,20 +104,12 @@ export interface paths {
      * @description Returns all assets for a given user or workflow.
      */
     get: operations["index_api_predictions__get"];
-    /**
-     * Create
-     * @description Create a new asset.
-     */
+    /** Create */
     post: operations["create_api_predictions__post"];
   };
   "/api/predictions/{id}": {
     /** Get */
     get: operations["get_api_predictions__id__get"];
-    /**
-     * Update
-     * @description Updates the asset for the given id.
-     */
-    put: operations["update_api_predictions__id__put"];
   };
   "/api/workflows/": {
     /** Index */
@@ -165,6 +157,40 @@ export interface paths {
      * @description Deletes the asset for the given key.
      */
     delete: operations["delete_api_storage__bucket___key__delete"];
+    /**
+     * Head
+     * @description Returns the metadata for the file with the given key.
+     */
+    head: operations["head_api_storage__bucket___key__head"];
+  };
+  "/api/tasks/": {
+    /**
+     * Index
+     * @description Returns all tasks for the current user, optionally filtered by status.
+     */
+    get: operations["index_api_tasks__get"];
+    /**
+     * Create
+     * @description Creates a new task.
+     */
+    post: operations["create_api_tasks__post"];
+  };
+  "/api/tasks/{id}": {
+    /**
+     * Get
+     * @description Returns the task with the given id.
+     */
+    get: operations["get_api_tasks__id__get"];
+    /**
+     * Update
+     * @description Updates the task with the given id.
+     */
+    put: operations["update_api_tasks__id__put"];
+    /**
+     * Delete
+     * @description Deletes the task with the given id.
+     */
+    delete: operations["delete_api_tasks__id__delete"];
   };
   "/api/models/{folder}": {
     /** Index */
@@ -226,6 +252,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Temp Id */
+      temp_id?: string | null;
     };
     /** AssetUpdateRequest */
     AssetUpdateRequest: {
@@ -255,6 +283,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Temp Id */
+      temp_id?: string | null;
     };
     /** AuthRequest */
     AuthRequest: {
@@ -275,31 +305,6 @@ export interface components {
       /** Data Type */
       data_type: "int" | "float" | "datetime" | "object";
     };
-    /** CreateMessageRequest */
-    CreateMessageRequest: {
-      /** Thread Id */
-      thread_id?: string | null;
-      /** User Id */
-      user_id?: string | null;
-      /** Tool Call Id */
-      tool_call_id?: string | null;
-      /**
-       * Role
-       * @default
-       */
-      role?: string;
-      /**
-       * Name
-       * @default
-       */
-      name?: string;
-      /** Content */
-      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
-      /** Tool Calls */
-      tool_calls?: Record<string, never>[] | null;
-      /** Created At */
-      created_at?: string | null;
-    };
     /** DataframeRef */
     DataframeRef: {
       /**
@@ -315,6 +320,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Temp Id */
+      temp_id?: string | null;
       /** Columns */
       columns?: components["schemas"]["ColumnDef"][] | null;
       /** Data */
@@ -333,9 +340,9 @@ export interface components {
       /** Targethandle */
       targetHandle: string;
       /** Ui Properties */
-      ui_properties?: ({
-        [key: string]: string | undefined;
-      }) | null;
+      ui_properties?: {
+        [key: string]: string;
+      } | null;
     };
     /** FileRef */
     FileRef: {
@@ -361,6 +368,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Temp Id */
+      temp_id?: string | null;
     };
     /** Graph */
     Graph: {
@@ -392,6 +401,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Temp Id */
+      temp_id?: string | null;
     };
     /** ImageUrl */
     ImageUrl: {
@@ -461,8 +472,38 @@ export interface components {
     };
     /** Message */
     Message: {
+      /**
+       * Type
+       * @default message
+       */
+      type?: string;
       /** Id */
       id?: string | null;
+      /** Thread Id */
+      thread_id?: string | null;
+      /** User Id */
+      user_id?: string | null;
+      /** Tool Call Id */
+      tool_call_id?: string | null;
+      /**
+       * Role
+       * @default
+       */
+      role?: string;
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+      /** Content */
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      /** Tool Calls */
+      tool_calls?: Record<string, never>[] | null;
+      /** Created At */
+      created_at?: string | null;
+    };
+    /** MessageCreateRequest */
+    MessageCreateRequest: {
       /** Thread Id */
       thread_id?: string | null;
       /** User Id */
@@ -537,6 +578,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Temp Id */
+      temp_id?: string | null;
     };
     /** Node */
     Node: {
@@ -731,22 +774,23 @@ export interface components {
      * @description The request body for creating a prediction.
      */
     PredictionCreateRequest: {
-      /** Node Id */
-      node_id: string;
-      /** Node Type */
-      node_type: string;
       /** Provider */
       provider: string;
       /** Model */
       model: string;
-      /** Cost */
-      cost?: number | null;
+      /** Node Id */
+      node_id: string;
+      /**
+       * Params
+       * @default {}
+       */
+      params?: Record<string, never>;
+      /** Data */
+      data?: string | null;
       /** Version */
       version?: string | null;
       /** Workflow Id */
       workflow_id?: string | null;
-      /** Status */
-      status?: string | null;
     };
     /** PredictionList */
     PredictionList: {
@@ -754,22 +798,6 @@ export interface components {
       next: string | null;
       /** Predictions */
       predictions: components["schemas"]["Prediction"][];
-    };
-    /**
-     * PredictionUpdateRequest
-     * @description The request body for updating a prediction.
-     */
-    PredictionUpdateRequest: {
-      /** Status */
-      status?: string | null;
-      /** Error */
-      error?: string | null;
-      /** Logs */
-      logs?: string | null;
-      /** Metrics */
-      metrics?: Record<string, never> | null;
-      /** Completed At */
-      completed_at?: string | null;
     };
     /**
      * Property
@@ -824,6 +852,116 @@ export interface components {
       env?: Record<string, never> | null;
       graph?: components["schemas"]["Graph"] | null;
     };
+    /** Task */
+    Task: {
+      /**
+       * Type
+       * @default task
+       * @constant
+       */
+      type?: "task";
+      /**
+       * Id
+       * @default
+       */
+      id?: string;
+      /**
+       * Task Type
+       * @default
+       */
+      task_type?: string;
+      /**
+       * User Id
+       * @default
+       */
+      user_id?: string;
+      /**
+       * Thread Id
+       * @default
+       */
+      thread_id?: string;
+      /**
+       * Status
+       * @default
+       */
+      status?: string;
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+      /**
+       * Instructions
+       * @default
+       */
+      instructions?: string;
+      /**
+       * Dependencies
+       * @default []
+       */
+      dependencies?: string[];
+      /**
+       * Required Capabilities
+       * @default []
+       */
+      required_capabilities?: string[];
+      /**
+       * Started At
+       * @default
+       */
+      started_at?: string;
+      /** Finished At */
+      finished_at?: string | null;
+      /** Error */
+      error?: string | null;
+      /** Result */
+      result?: string | null;
+      /** Cost */
+      cost?: number | null;
+    };
+    /** TaskCreateRequest */
+    TaskCreateRequest: {
+      /** Task Type */
+      task_type: string;
+      /** Thread Id */
+      thread_id: string;
+      /** Name */
+      name: string;
+      /** Instructions */
+      instructions: string;
+      /**
+       * Dependencies
+       * @default []
+       */
+      dependencies?: string[];
+      /**
+       * Required Capabilities
+       * @default []
+       */
+      required_capabilities?: string[];
+    };
+    /** TaskList */
+    TaskList: {
+      /** Next */
+      next: string | null;
+      /** Tasks */
+      tasks: components["schemas"]["Task"][];
+    };
+    /** TaskUpdateRequest */
+    TaskUpdateRequest: {
+      /** Status */
+      status?: string | null;
+      /** Error */
+      error?: string | null;
+      /** Result */
+      result?: string | null;
+      /** Cost */
+      cost?: number | null;
+      /** Started At */
+      started_at?: string | null;
+      /** Finished At */
+      finished_at?: string | null;
+    };
     /** TempAsset */
     TempAsset: {
       /** Get Url */
@@ -862,6 +1000,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Temp Id */
+      temp_id?: string | null;
     };
     /** TokenResponse */
     TokenResponse: {
@@ -956,6 +1096,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Temp Id */
+      temp_id?: string | null;
       /** Duration */
       duration?: number | null;
       /** Format */
@@ -1038,6 +1180,8 @@ export interface components {
   headers: never;
   pathItems: never;
 }
+
+export type $defs = Record<string, never>;
 
 export type external = Record<string, never>;
 
@@ -1482,7 +1626,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["CreateMessageRequest"];
+        "application/json": components["schemas"]["MessageCreateRequest"];
       };
     };
     responses: {
@@ -1588,10 +1732,7 @@ export interface operations {
       };
     };
   };
-  /**
-   * Create
-   * @description Create a new asset.
-   */
+  /** Create */
   create_api_predictions__post: {
     parameters: {
       header?: {
@@ -1610,7 +1751,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["Prediction"];
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */
@@ -1632,42 +1773,6 @@ export interface operations {
       };
       cookie?: {
         auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["Prediction"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Update
-   * @description Updates the asset for the given id.
-   */
-  update_api_predictions__id__put: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      path: {
-        id: string;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PredictionUpdateRequest"];
       };
     };
     responses: {
@@ -1947,9 +2052,15 @@ export interface operations {
    */
   update_api_storage__bucket___key__put: {
     parameters: {
+      header?: {
+        authorization?: string | null;
+      };
       path: {
         bucket: string;
         key: string;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
       };
     };
     responses: {
@@ -1973,9 +2084,205 @@ export interface operations {
    */
   delete_api_storage__bucket___key__delete: {
     parameters: {
+      header?: {
+        authorization?: string | null;
+      };
       path: {
         bucket: string;
         key: string;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Head
+   * @description Returns the metadata for the file with the given key.
+   */
+  head_api_storage__bucket___key__head: {
+    parameters: {
+      path: {
+        bucket: string;
+        key: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Index
+   * @description Returns all tasks for the current user, optionally filtered by status.
+   */
+  index_api_tasks__get: {
+    parameters: {
+      query: {
+        thread_id: string;
+        cursor?: string | null;
+        page_size?: number | null;
+      };
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["TaskList"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Create
+   * @description Creates a new task.
+   */
+  create_api_tasks__post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskCreateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["Task"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Get
+   * @description Returns the task with the given id.
+   */
+  get_api_tasks__id__get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        id: string;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["Task"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Update
+   * @description Updates the task with the given id.
+   */
+  update_api_tasks__id__put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        id: string;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskUpdateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["Task"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Delete
+   * @description Deletes the task with the given id.
+   */
+  delete_api_tasks__id__delete: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        id: string;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
       };
     };
     responses: {

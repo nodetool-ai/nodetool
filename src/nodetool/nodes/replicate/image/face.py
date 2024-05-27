@@ -17,10 +17,12 @@ class Style(str, Enum):
 class FaceToMany(ReplicateNode):
     """Turn a face into 3D, emoji, pixel art, video game, claymation or toy"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "fofr/face-to-many:a07f252abbbd832009640b27f063ea52d87d7a23a185ca165bec23b5adc8deaf"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "None"
 
     @classmethod
@@ -103,10 +105,12 @@ class FaceToMany(ReplicateNode):
 class BecomeImage(ReplicateNode):
     """Adapt any picture of a face into another image"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "fofr/become-image:8d0b076a2aff3904dfcec3253c778e0310a68f78483c4699c7fd800f3051d2b3"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
@@ -220,10 +224,12 @@ class Style_name(str, Enum):
 class PhotoMaker(ReplicateNode):
     """Create photos, paintings and avatars for anyone in any style within seconds."""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
@@ -326,10 +332,12 @@ class PhotoMaker(ReplicateNode):
 class PhotoMakerStyle(ReplicateNode):
     """Create photos, paintings and avatars for anyone in any style within seconds.  (Stylization version)"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "tencentarc/photomaker-style:467d062309da518648ba89d226490e02b8ed09b5abc15026e54e31c5a8cd0769"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
@@ -425,10 +433,12 @@ class PhotoMakerStyle(ReplicateNode):
 class FaceToSticker(ReplicateNode):
     """Turn a face into a sticker"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "fofr/face-to-sticker:764d4827ea159608a07cdde8ddf1c6000019627515eb02b6b449695fd547e5ef"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
@@ -542,10 +552,12 @@ class Output_format(str, Enum):
 class InstantId(ReplicateNode):
     """Make realistic images of real people instantly"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "zsxkib/instant-id:491ddf5be6b827f8931f088ef10c6d015f6d99685e6454e6f04c8ac298979686"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod

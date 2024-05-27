@@ -52,10 +52,12 @@ class Scheduler(str, Enum):
 class HotshotXL(ReplicateNode):
     """😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "lucataco/hotshot-xl:78b3a6257e16e4b241245d65c8b2b81ea2e1ff7ed4c55306b511509ddbfd327a"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 GPU"
 
     @classmethod
@@ -125,10 +127,12 @@ class Output_format(str, Enum):
 class AnimateDiff(ReplicateNode):
     """🎨 AnimateDiff (w/ MotionLoRAs for Panning, Zooming, etc): Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "zsxkib/animate-diff:269a616c8b0c2bbc12fc15fd51bb202b11e94ff0f7786c026aa905305c4ed9fb"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 GPU"
 
     @classmethod
@@ -263,10 +267,12 @@ class Model(str, Enum):
 class Zeroscope_V2_XL(ReplicateNode):
     """Zeroscope V2 XL & 576w"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
@@ -355,10 +361,12 @@ class Output_type(str, Enum):
 class RobustVideoMatting(ReplicateNode):
     """extract foreground of a video"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "arielreplicate/robust_video_matting:73d2128a371922d5d1abf0712a1d974be0e4e2358cc1218e4e34714767232bac"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 GPU"
 
     @classmethod
@@ -389,10 +397,12 @@ class RobustVideoMatting(ReplicateNode):
 class StableDiffusionInfiniteZoom(ReplicateNode):
     """Use Runway's Stable-diffusion inpainting model to create an infinite loop video"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "arielreplicate/stable_diffusion_infinite_zoom:a2527c5074fc0cf9fa6015a40d75d080d1ddf7082fabe142f1ccd882c18fce61"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A100 (40GB) GPU"
 
     @classmethod
@@ -430,10 +440,12 @@ class StableDiffusionInfiniteZoom(ReplicateNode):
 class AnimateDiffIllusions(ReplicateNode):
     """Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Prompt Travel (Motion Module SD 1.5 v2)"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "zsxkib/animatediff-illusions:b3ccb0101402aafd04bfea042950be606223e2abedbad93cf848bfffa072bb61"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
@@ -598,10 +610,12 @@ class AnimateDiffIllusions(ReplicateNode):
 class AudioToWaveform(ReplicateNode):
     """Create a waveform video from audio"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "fofr/audio-to-waveform:116cf9b97d0a117cfe64310637bf99ae8542cc35d813744c6ab178a3e134ff5a"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "CPU"
 
     @classmethod

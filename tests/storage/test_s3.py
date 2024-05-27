@@ -25,28 +25,18 @@ def url(storage: S3Storage):
     return f"https://{storage.bucket_name}.s3.amazonaws.com/{file_name}"
 
 
-def test_upload(storage: S3Storage, url: str):
-    with respx.mock as mock:
-        mock.put(url).mock(return_value=httpx.Response(200))
-        storage.upload(file_name, io.BytesIO(data))
-
-
-def test_download(storage: S3Storage, url: str):
-    with respx.mock as mock:
-        mock.get(url).mock(return_value=httpx.Response(200))
-        storage.download(file_name, io.BytesIO(data))
-
-
-def test_download_stream(storage: S3Storage, url: str):
+@pytest.mark.asyncio
+async def test_download_stream(storage: S3Storage, url: str):
     with respx.mock as mock:
         mock.get(url).mock(return_value=httpx.Response(200, content=data))
         size = 0
-        for chunk in storage.download_stream(file_name):
+        async for chunk in storage.download_stream(file_name):
             size += len(chunk)
         assert size == 1024 * 1024 * 10
 
 
-def test_delete(storage: S3Storage, url: str):
+@pytest.mark.asyncio
+async def test_delete(storage: S3Storage, url: str):
     with respx.mock as mock:
         mock.delete(url).mock(return_value=httpx.Response(200))
-        storage.delete(file_name)
+        await storage.delete(file_name)

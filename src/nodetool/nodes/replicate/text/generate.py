@@ -8,10 +8,12 @@ from enum import Enum
 class Llama3_8B(ReplicateNode):
     """Base version of Llama 3, an 8 billion parameter language model from Meta."""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "meta/meta-llama-3-8b:9a9e68fc8695f5847ce944a5cecf9967fd7c64d0fb8c8af1d5bdcc71f03c5e47"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "None"
 
     @classmethod
@@ -76,10 +78,12 @@ class Llama3_8B(ReplicateNode):
 class Llama3_70B(ReplicateNode):
     """Base version of Llama 3, a 70 billion parameter language model from Meta."""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "meta/meta-llama-3-70b:83c5bdea9941e83be68480bd06ad792f3f295612a24e4678baed34083083a87f"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "None"
 
     @classmethod
@@ -144,10 +148,12 @@ class Llama3_70B(ReplicateNode):
 class Llama3_8B_Instruct(ReplicateNode):
     """An 8 billion parameter language model from Meta, fine tuned for chat completions"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "meta/meta-llama-3-8b-instruct:5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "None"
 
     @classmethod
@@ -212,10 +218,12 @@ class Llama3_8B_Instruct(ReplicateNode):
 class Llama3_70B_Instruct(ReplicateNode):
     """A 70 billion parameter language model from Meta, fine tuned for chat completions"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "meta/meta-llama-3-70b-instruct:fbfb20b472b2f3bdd101412a9f70a0ed4fc0ced78a77ff00970ee7a2383c575d"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "None"
 
     @classmethod

@@ -229,10 +229,12 @@ class Transcription(str, Enum):
 class Whisper(ReplicateNode):
     """Convert speech in audio to text"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "openai/whisper:4d50797290df275329f202e48c76360b3f22b08d28c196cbc54600319435f8d2"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia T4 (High-memory) GPU"
 
     @classmethod
@@ -332,10 +334,12 @@ class Timestamp(str, Enum):
 class IncrediblyFastWhisper(ReplicateNode):
     """whisper-large-v3, incredibly fast, powered by Hugging Face Transformers! 🤗"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "vaibhavs10/incredibly-fast-whisper:3ab86df6c8f54c11309d4d1f930ac292bad43ace52d10c80d87eb258b3c9f79c"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod

@@ -3,9 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from nodetool.common.nodetool_api_client import (
-    AbstractNodetoolAPIClient,
     NodetoolAPIClient,
-    NodetoolAPITestClient,
 )
 
 
@@ -516,7 +514,7 @@ class Environment(object):
             return "http://localhost:8000/api/storage/"
 
     @classmethod
-    def get_nodetool_api_client(cls, auth_token: str) -> AbstractNodetoolAPIClient:
+    def get_nodetool_api_client(cls, auth_token: str) -> NodetoolAPIClient:
         """
         The nodetool api client is a wrapper around the nodetool api.
         """
@@ -529,8 +527,10 @@ class Environment(object):
                     auth_token=auth_token, base_url=cls.get_nodetool_api_url()
                 )
             else:
-                cls.nodetool_api_client = NodetoolAPITestClient(
-                    auth_token=auth_token, client=TestClient(create_app())
+                cls.nodetool_api_client = NodetoolAPIClient(
+                    auth_token=auth_token,
+                    base_url="http://localhost:8000",
+                    app=create_app(),
                 )
         return cls.nodetool_api_client
 
@@ -893,20 +893,19 @@ class Environment(object):
             from nodetool.storage.file_storage import FileStorage
 
             if not hasattr(cls, "asset_storage"):
+                base_url = cls.get_storage_api_url() + cls.get_asset_bucket()
                 if cls.is_test():
                     from nodetool.storage.memory_storage import MemoryStorage
 
-                    cls.asset_storage = MemoryStorage(
-                        base_url=f"{cls.get_nodetool_api_url()}/storage/"
-                        + cls.get_asset_bucket()
-                    )
+                    cls.asset_storage = MemoryStorage(base_url=base_url)
                 else:
                     cls.get_logger().info(f"Using local file storage for asset storage")
                     cls.asset_storage = FileStorage(
                         base_path=cls.get_asset_folder(),
-                        base_url=cls.get_storage_api_url() + cls.get_asset_bucket(),
+                        base_url=base_url,
                     )
 
+            assert cls.asset_storage is not None
             return cls.asset_storage
 
     @classmethod
@@ -926,6 +925,7 @@ class Environment(object):
                 cls.temp_storage = MemoryStorage(
                     base_url=cls.get_storage_api_url() + cls.get_temp_bucket()
                 )
+            assert cls.temp_storage is not None
             return cls.temp_storage
 
     @classmethod

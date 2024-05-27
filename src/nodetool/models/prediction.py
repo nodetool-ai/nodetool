@@ -22,11 +22,9 @@ class Prediction(DBModel):
 
     id: str = DBField(hash_key=True)
     user_id: str = DBField()
-    node_id: str = DBField()
-    node_type: str = DBField()
+    node_id: str = DBField(default="")
     provider: str = DBField(default="")
     model: str = DBField()
-    version: str = DBField(default="")
     workflow_id: str | None = DBField(default=None)
     error: str | None = DBField(default=None)
     logs: str | None = DBField(default=None)
@@ -43,27 +41,25 @@ class Prediction(DBModel):
         cls,
         user_id: str,
         node_id: str,
-        node_type: str,
         provider: str,
         model: str,
-        version: str | None = None,
         workflow_id: str | None = None,
         status: str = "starting",
         cost: float | None = None,
         hardware: str | None = None,
+        started_at: datetime | None = None,
     ):
         prediction = cls(
             id=create_time_ordered_uuid(),
             user_id=user_id,
             node_id=node_id,
-            node_type=node_type,
             provider=provider,
             model=model,
-            version=version if version else "",
             workflow_id=workflow_id,
             status=status,
             cost=cost,
             hardware=hardware,
+            started_at=started_at,
         )
         prediction.save()
         return prediction

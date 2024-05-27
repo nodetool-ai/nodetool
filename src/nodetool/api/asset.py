@@ -137,11 +137,11 @@ async def delete(id: str, user: User = Depends(current_user)):
         raise HTTPException(status_code=404, detail="Asset not found")
     asset.delete()
     try:
-        Environment.get_asset_storage().delete(asset.thumb_file_name)
+        await Environment.get_asset_storage().delete(asset.thumb_file_name)
     except Exception as e:
         log.exception(e)
     try:
-        Environment.get_asset_storage().delete(asset.file_name)
+        await Environment.get_asset_storage().delete(asset.file_name)
     except Exception as e:
         log.exception(e)
 
@@ -197,10 +197,10 @@ async def create(
         )
         if file_io:
             file_io.seek(0)
-            await storage.upload_async(asset.file_name, file_io)
+            await storage.upload(asset.file_name, file_io)
 
             if thumbnail:
-                await storage.upload_async(asset.thumb_file_name, thumbnail)
+                await storage.upload(asset.thumb_file_name, thumbnail)
 
     except Exception as e:
         log.exception(e)

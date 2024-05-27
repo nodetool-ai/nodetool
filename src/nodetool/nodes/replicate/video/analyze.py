@@ -8,10 +8,12 @@ from enum import Enum
 class VideoLlava(ReplicateNode):
     """Video-LLaVA: Learning United Visual Representation by Alignment Before Projection"""
 
-    def replicate_model_id(self):
+    @classmethod
+    def replicate_model_id(cls):
         return "nateraw/video-llava:26387f81b9417278a8578188a31cd763eb3a55ca0f3ec375bf69c713de3fb4e8"
 
-    def get_hardware(self):
+    @classmethod
+    def get_hardware(cls):
         return "Nvidia A40 (Large) GPU"
 
     @classmethod
