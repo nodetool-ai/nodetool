@@ -22,7 +22,7 @@ const styles = (theme: any) =>
       width: "100%",
       height: "100%",
       minWidth: "150px",
-      maxWidth: "500px",
+      maxWidth: "1000px",
       minHeight: "150px",
       borderRadius: "2px"
     },
@@ -70,7 +70,9 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray5
     },
     "& .tabulator": {
-      height: "calc(100% - 5px) !important",
+      // height: "calc(100% - 5px) !important",
+      height: "600px",
+      maxHeight: "800px",
       overflowX: "scroll"
     },
     ".tabulator-editable": {
@@ -117,8 +119,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
         style={{ background: "red", border: "none" }}
         minWidth={150}
         minHeight={150}
-        maxWidth={500}
-        maxHeight={500}
+        maxWidth={1000}
+        maxHeight={1000}
       >
         <SouthEastIcon />
       </NodeResizeControl>

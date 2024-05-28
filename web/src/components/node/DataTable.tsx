@@ -12,15 +12,20 @@ import {
   ColumnDefinition,
   CellComponent,
   ColumnDefinitionAlign,
-  Editor
+  Editor,
+  Formatter
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { DataframeRef } from "../../stores/ApiTypes";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { Button, Tooltip } from "@mui/material";
-import { on } from "events";
+import {
+  Button,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip
+} from "@mui/material";
 
 const styles = (theme: any) =>
   css({
@@ -96,6 +101,38 @@ const styles = (theme: any) =>
     },
     ".table-actions .disabled": {
       opacity: 0.5
+    },
+    ".table-actions button": {
+      lineHeight: "1em",
+      textAlign: "left",
+      padding: ".5em"
+    },
+    ".select-column-toggle": {
+      height: "2em",
+      display: "flex",
+      flexDirection: "column",
+      gap: ".5em",
+      padding: "0",
+      margin: "0",
+      "& .MuiToggleButton-root": {
+        fontSize: theme.fontSizeTinyer,
+        color: theme.palette.c_gray5,
+        margin: "0",
+        borderRadius: "0",
+        border: 0,
+        backgroundColor: theme.palette.c_gray0,
+        lineHeight: "1em",
+        textAlign: "left",
+        padding: ".5em"
+      },
+      "& .MuiToggleButton-root:hover, & .MuiToggleButton-root.Mui-selected:hover":
+        {
+          color: theme.palette.c_hl1
+        },
+      "& .MuiToggleButton-root.Mui-selected": {
+        color: theme.palette.c_white
+        // backgroundColor: theme.palette.c_gray0
+      }
     }
   });
 
@@ -109,7 +146,8 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
   const [tabulator, setTabulator] = useState<Tabulator>();
   const { writeClipboard } = useClipboard();
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
-
+  const [showSelect, setShowSelect] = useState(true);
+  const [showRowNumbers, setShowRowNumbers] = useState(true);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -130,32 +168,40 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
   const columns = useMemo<ColumnDefinition[]>(() => {
     if (!dataframe.columns) return [];
     return [
-      {
-        title: "",
-        headerSort: false,
-        resizable: false,
-        frozen: true,
-        headerHozAlign: "center",
-        hozAlign: "center",
-        formatter: "rowSelection",
-        titleFormatter: "rowSelection",
-        cellClick: function (e, cell) {
-          cell.getRow().toggleSelect();
-        },
-        editable: false,
-        cssClass: "row-select"
-      },
-      {
-        title: "",
-        formatter: "rownum",
-        hozAlign: "left" as ColumnDefinitionAlign,
-        headerSort: false,
-        resizable: true,
-        frozen: true,
-        rowHandle: true,
-        editable: false,
-        cssClass: "row-numbers"
-      },
+      ...(showSelect
+        ? [
+            {
+              title: "",
+              headerSort: false,
+              resizable: false,
+              frozen: true,
+              headerHozAlign: "center" as ColumnDefinitionAlign,
+              hozAlign: "center" as ColumnDefinitionAlign,
+              formatter: "rowSelection" as Formatter,
+              titleFormatter: "rowSelection" as Formatter,
+              cellClick: function (e: any, cell: CellComponent) {
+                cell.getRow().toggleSelect();
+              },
+              editable: false,
+              cssClass: "row-select"
+            }
+          ]
+        : []),
+      ...(showRowNumbers
+        ? [
+            {
+              title: "",
+              formatter: "rownum" as Formatter,
+              hozAlign: "left" as ColumnDefinitionAlign,
+              headerSort: false,
+              resizable: true,
+              frozen: true,
+              rowHandle: true,
+              editable: false,
+              cssClass: "row-numbers"
+            }
+          ]
+        : []),
       ...dataframe.columns.map((col) => ({
         title: col.name,
         field: col.name,
@@ -163,7 +209,7 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
         headerHozAlign: "left" as ColumnDefinitionAlign
       }))
     ];
-  }, [dataframe.columns]);
+  }, [dataframe.columns, showRowNumbers, showSelect]);
 
   const onCellEdited = useCallback(
     (cell: CellComponent) => {
@@ -297,6 +343,28 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
           >
             Delete Rows
           </Button>
+        </Tooltip>
+
+        <Tooltip title="Show Select column">
+          <ToggleButtonGroup
+            className="select-column-toggle"
+            value={showSelect ? "selected" : null}
+            exclusive
+            onChange={() => setShowSelect(!showSelect)}
+          >
+            <ToggleButton value="selected">Show Select</ToggleButton>
+          </ToggleButtonGroup>
+        </Tooltip>
+
+        <Tooltip title="Show Row Numbers">
+          <ToggleButtonGroup
+            className="select-column-toggle"
+            value={showRowNumbers ? "selected" : null}
+            exclusive
+            onChange={() => setShowRowNumbers(!showRowNumbers)}
+          >
+            <ToggleButton value="selected">Show Row Numbers</ToggleButton>
+          </ToggleButtonGroup>
         </Tooltip>
       </div>
       <div ref={tableRef} className="datatable" />
