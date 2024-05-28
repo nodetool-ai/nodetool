@@ -19,7 +19,7 @@ from nodetool.api.types.chat import (
     TaskCreateRequest,
     TaskList,
 )
-from nodetool.api.types.prediction import Prediction, PredictionCreateRequest
+from nodetool.api.types.prediction import PredictionCreateRequest
 from nodetool.api.types.workflow import Workflow
 from nodetool.common.async_iterators import AsyncByteStream
 from nodetool.common.nodetool_api_client import NodetoolAPIClient, Response
@@ -87,6 +87,17 @@ class ProcessingContext:
     - Provides helper methods for converting values for prediction, handling enums, and parsing S3 URLs.
     - Supports data conversion between different formats (e.g., TextRef to string, DataFrame to pandas DataFrame).
 
+    Attributes:
+        user_id (str): The ID of the user running the workflow.
+        auth_token (str): The authentication token for the user.
+        workflow_id (str): The ID of the workflow being executed.
+        capabilities (list[str]): The capabilities required by the workflow.
+        graph (Graph): The graph representing the workflow.
+        cost (float): The cost of running the workflow.
+        results (dict[str, Any]): The results of the processed nodes.
+        processed_nodes (set[str]): The IDs of the nodes that have been processed.
+        message_queue (Queue | asyncio.Queue): The queue for processing messages.
+        api_client (NodetoolAPIClient): The API client for interacting with the Nodetool API.
     """
 
     user_id: str
@@ -103,7 +114,7 @@ class ProcessingContext:
     def __init__(
         self,
         user_id: str,
-        auth_token: str = "",
+        auth_token: str,
         workflow_id: str = "",
         graph: Graph = Graph(),
         queue: Queue | asyncio.Queue | None = None,

@@ -55,6 +55,7 @@ class Loop(GroupNode):
         for i in range(input_length):
             sub_context = ProcessingContext(
                 user_id=context.user_id,
+                auth_token=context.auth_token,
                 workflow_id=context.workflow_id,
                 queue=context.message_queue,
                 capabilities=context.capabilities,

@@ -35,8 +35,8 @@ def workflow_runner(user: User):
 
 @pytest.mark.asyncio
 async def test_process_node(user: User, workflow_runner: WorkflowRunner):
-    node = String(_id="1", value="test")
-    context = ProcessingContext(user_id="", workflow_id="")
+    node = String(id="1", value="test")
+    context = ProcessingContext(user_id="", workflow_id="", auth_token="token")
     await workflow_runner.process_node(context, node)
     assert context.get_result("1", "output") == "test"
 
@@ -66,7 +66,7 @@ async def test_process_node_with_input_edges(
         },
     ]
 
-    context = ProcessingContext(user_id="", workflow_id="")
+    context = ProcessingContext(user_id="", workflow_id="", auth_token="token")
     graph = Graph.from_dict({"nodes": nodes, "edges": edges})
     graph = graph.build_sub_graphs()
 
@@ -280,7 +280,7 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
         params=params,
         graph=graph,
     )
-    context = ProcessingContext(user_id=user.id)
+    context = ProcessingContext(user_id=user.id, auth_token=user.auth_token or "")
 
     await workflow_runner.run(req, context)
 
@@ -342,7 +342,7 @@ async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
     ]
     graph = Graph.from_dict({"nodes": nodes, "edges": edges})
     graph = graph.build_sub_graphs()
-    context = ProcessingContext(user_id="", workflow_id="")
+    context = ProcessingContext(user_id="", workflow_id="", auth_token="token")
 
     node = graph.find_node("loop")
     assert node is not None

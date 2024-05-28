@@ -46,13 +46,6 @@ class WorkflowRunner:
         """
         assert req.graph is not None, "Graph is required"
 
-        log.info(
-            {
-                "workflow_id": req.workflow_id,
-                "user_id": context.user_id,
-            }
-        )
-
         graph_capabilities = requires_capabilities_from_request(req)
 
         graph = Graph.from_dict(
@@ -188,7 +181,6 @@ class WorkflowRunner:
             raise e
         else:
             res_for_update = result.copy()
-            print(res_for_update)
 
             for o in node.outputs():
                 # Comfy types are not sent to the client because they are not JSON serializable.

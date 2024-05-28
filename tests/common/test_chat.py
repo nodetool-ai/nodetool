@@ -62,14 +62,14 @@ def test_function_tool_from_node_invalid():
 async def test_process_node_function_valid():
     import nodetool.nodes
 
-    context = ProcessingContext(user_id=USER_ID)
+    context = ProcessingContext(user_id=USER_ID, auth_token="")
     result = await process_node_function(context, DummyNode.get_node_type(), {})
     assert result == {"output": "dummy"}
 
 
 @pytest.mark.asyncio
 async def test_process_node_function_invalid():
-    context = ProcessingContext(user_id=USER_ID)
+    context = ProcessingContext(user_id=USER_ID, auth_token="")
     with pytest.raises(ValueError):
         await process_workflow_function(context, INVALID_NODE_NAME, {})
 
