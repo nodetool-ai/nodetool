@@ -1,5 +1,5 @@
 import { Typography } from "@mui/material";
-import { Message } from "../../stores/ApiTypes";
+import { Message, MessageContent } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 
@@ -12,11 +12,14 @@ export default function ThreadMessageProperty(props: PropertyProps) {
         name={props.property.name}
         description={props.property.description}
         id={id} />
-      {msg.content?.map((content, i) => {
-        if (content.type === "message_text_content") {
+      {(typeof msg.content === "string") && (
+        <Typography>{msg.content}</Typography>
+      )}
+      {Array.isArray(msg.content) && msg.content?.map((content: MessageContent, i: number) => {
+        if (content.type === "text") {
           return <Typography key={'_' + i}>{content.text}</Typography>;
-        } else if (content.type === "message_image_content") {
-          return <img key={'_' + i} src={content.image?.uri} alt="" />;
+        } else if (content.type === "image_url") {
+          return <img key={'_' + i} src={content.image_url?.url} alt="" />;
         } else {
           return <></>;
         }

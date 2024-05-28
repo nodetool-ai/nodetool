@@ -14,7 +14,8 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import {
   MessageImageContent,
   MessageTextContent,
-  Message
+  Message,
+  MessageContent
 } from "../../stores/ApiTypes";
 // utils
 import useKeyPressedListener from "../../utils/KeyPressedListener";
@@ -134,7 +135,7 @@ type ChatViewProps = {
   sendMessage: (prompt: string, token: string) => Promise<void>;
 };
 
-const Message = (msg: Message) => {
+const MessageView = (msg: Message) => {
   let messageClass = "chat-message";
 
   if (msg.role === "user") {
@@ -144,14 +145,17 @@ const Message = (msg: Message) => {
   }
   const content = msg.content as Array<
     MessageTextContent | MessageImageContent
-  >;
+  > | string;
   return (
     <li className={messageClass} key={msg.id}>
-      {content.map((c) => {
-        if (c.type === "message_text_content") {
+      {typeof msg.content === "string" && (
+        <Typography>{msg.content}</Typography>
+      )}
+      {Array.isArray(content) && content.map((c: MessageContent, i: number) => {
+        if (c.type === "text") {
           return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
-        } else if (c.type === "message_image_content") {
-          return <img src={c.image?.uri} alt="" />;
+        } else if (c.type === "image_url") {
+          return <img key={i} src={c.image_url?.url} alt="" />;
         } else {
           return <></>;
         }
@@ -203,7 +207,7 @@ const ChatView = ({
         console.error("Error sending help message:", error);
       }
     }
-  }, [loading, prompt, setShowMessages, user]);
+  }, [loading, prompt, setShowMessages]);
 
   // scroll to bottom
   const scrollToBottom = useCallback(() => {
@@ -224,7 +228,7 @@ const ChatView = ({
     <div css={styles}>
       {showMessages && (
         <ul className="messages" ref={messagesListRef}>
-          {messages.map(Message)}
+          {messages.map(MessageView)}
           {loading && <CircularProgress size={24} />}
         </ul>
       )}

@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
 import { LinearProgress, Typography } from "@mui/material";
-import useWorkflowRunnner from "../../stores/WorkflowRunner";
+import useResultsStore from "../../stores/ResultsStore";
 
 export const NodeProgress = memo(function NodeProgress({ id }: { id: string; }) {
-  const progress = useWorkflowRunnner((state) => state.progress)[id];
+  const progress = useResultsStore(state => state.progress)[id];
   if (!progress) {
     return null;
   }

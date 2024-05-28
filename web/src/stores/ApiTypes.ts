@@ -44,3 +44,4 @@ export type WorkflowUpdate = components["schemas"]["WorkflowUpdate"];
 // a type that allows arbitrary members
 export type TypeName = string;
 export type WorkflowAttributes = Omit<Workflow, "graph">;
+export type MessageContent = MessageTextContent | MessageImageContent;

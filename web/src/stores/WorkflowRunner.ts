@@ -86,10 +86,6 @@ async function* lineIterator(reader: ReadableStreamDefaultReader) {
 }
 
 const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
-  errors: {},
-  logs: {},
-  status: {},
-  progress: {},
   state: "idle",
   statusMessage: null,
   setStatusMessage: (message: string | null) => {

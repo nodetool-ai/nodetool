@@ -9,8 +9,13 @@ type MetadataStore = {
 
 const defaultMetadata: Record<string, NodeMetadata> = {
   "nodetool.workflows.base_node.Preview": {
+    title: "Preview",
+    description: "Preview",
     namespace: "default",
     node_type: "nodetool.workflows.base_node.Preview",
+    layout: "default",
+    primary_field: "value",
+    secondary_field: "",
     properties: [
       {
         name: "value",
@@ -19,8 +24,6 @@ const defaultMetadata: Record<string, NodeMetadata> = {
         }
       }
     ],
-    title: "Preview",
-    description: "Preview",
     outputs: [],
     model_info: {}
   }
