@@ -39,8 +39,6 @@ import OAuthCallback from "./components/OauthCallback";
 import ExampleGrid from "./components/workflows/ExampleGrid";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
 import * as Sentry from "@sentry/react";
-import { useLoginStore } from "./stores/LoginStore";
-import { client } from "./stores/ApiClient";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 if (import.meta.env.MODE === "production") {
@@ -171,32 +169,6 @@ const router = createBrowserRouter([
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
-
-const verify = async () => {
-  const user = useLoginStore.getState().readFromStorage();
-  if (!user || !user.auth_token) {
-    return false;
-  }
-  const { data, error } = await client.POST("/api/auth/verify", {
-    body: {
-      token: user?.auth_token
-    }
-  });
-  if (error) {
-    return false;
-  }
-  return data.valid;
-};
-
-const checkUser = async () => {
-  const valid = await verify();
-  if (!valid) {
-    useLoginStore.getState().signout();
-  }
-};
-
-window.addEventListener("focus", checkUser);
-checkUser();
 
 root.render(
   <React.StrictMode>
