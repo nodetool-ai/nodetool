@@ -261,14 +261,13 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
 
   const { mutation: uploadMutation } = useAssetUpload();
 
-  const uploadFiles = useCallback(
-    async (files: File[]) => {
-      await uploadMutation.mutateAsync({
-        files,
-        workflow_id: workflow.id,
-        parent_id: currentFolderId
-      });
-    },
+  const uploadFiles = useCallback((files: File[]) => {
+    uploadMutation.mutate({
+      files,
+      workflow_id: workflow.id,
+      parent_id: currentFolderId
+    });
+  },
     [currentFolderId, uploadMutation, workflow.id]
   );
 

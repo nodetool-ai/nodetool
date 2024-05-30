@@ -26,9 +26,7 @@ class Workflow(BaseModel):
         if workflow.thumbnail and workflow.thumbnail != "":
             asset = AssetModel.get(workflow.thumbnail)
             if asset:
-                thumbnail_url = Environment.get_asset_storage().generate_presigned_url(
-                    "get_object", asset.file_name
-                )
+                thumbnail_url = Environment.get_asset_storage().get_url(asset.file_name)
 
         graph = workflow.get_graph()
         api_graph = workflow.get_api_graph()

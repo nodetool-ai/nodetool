@@ -25,20 +25,37 @@ class S3Storage(AbstractStorage):
     client: Any
     log: Logger
     endpoint_url: str | None = None
+    domain: str | None = None
 
     def __init__(
-        self, bucket_name: str, client, log: Logger, endpoint_url: str | None = None
+        self,
+        bucket_name: str,
+        client: Any,
+        log: Logger,
+        endpoint_url: str | None = None,
+        domain: str | None = None,
     ):
         self.bucket_name = bucket_name
         self.client = client
         self.log = log
         self.endpoint_url = endpoint_url
+        self.domain = domain
+        print("S3Storage initialized with domain:", self.domain)
 
     def get_base_url(self):
         """
         Get the base URL for the S3 bucket.
         """
         return f"{self.endpoint_url}/{self.bucket_name}"
+
+    def get_url(self, key: str):
+        """
+        Get the URL for the given S3 object.
+        """
+        if self.domain:
+            return f"https://{self.domain}/{key}"
+        else:
+            return f"{self.endpoint_url}/{self.bucket_name}/{key}"
 
     def generate_presigned_url(
         self,

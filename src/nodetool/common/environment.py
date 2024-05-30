@@ -53,6 +53,8 @@ MISSING_MESSAGE = "Missing required environment variable: {}"
 DEFAULT_ENV = {
     "ASSET_BUCKET": "images",
     "TEMP_BUCKET": "temp",
+    "ASSET_DOMAIN": None,
+    "TEMP_DOMAIN": None,
     "CHROMA_URL": None,
     "CHROMA_PATH": str(get_data_path("chroma")),
     "COMFY_FOLDER": None,
@@ -113,17 +115,6 @@ class Environment(object):
     In production mode, the class expects environment variables to be set for various services like
     AWS, OpenAI, and others. It uses AWS services like S3 and DynamoDB for storage and database,
     respectively.
-
-
-    Initialization:
-    The class is designed to be used as a singleton, with class methods providing access to various
-    configuration values and services. The `setup` method guides the user through the initial setup
-    process, prompting for required values and saving the settings and secrets.
-
-    Usage:
-    To access configuration values or services, simply call the corresponding class method, e.g.,
-    `Environment.get_aws_region()`, `Environment.get_openai_client()`, etc. These methods handle
-    the logic of retrieving the appropriate value based on the environment (local or production)..
     """
 
     model_files: dict[str, list[str]] = {}
@@ -488,6 +479,20 @@ class Environment(object):
         The anthropic api key is the api key of the anthropic server.
         """
         return cls.get("ANTHROPIC_API_KEY")
+
+    @classmethod
+    def get_asset_domain(cls):
+        """
+        The asset domain is the domain where assets are stored.
+        """
+        return cls.get("ASSET_DOMAIN")
+
+    @classmethod
+    def get_temp_domain(cls):
+        """
+        The temp domain is the domain where temporary files are stored.
+        """
+        return cls.get("TEMP_DOMAIN")
 
     @classmethod
     def get_worker_url(cls):
@@ -868,7 +873,7 @@ class Environment(object):
         return cls.get("GOOGLE_CLIENT_SECRET")
 
     @classmethod
-    def get_s3_service(cls, bucket: str):
+    def get_s3_service(cls, bucket: str, domain: str | None = None):
         """
         Get the S3 service.
         """
@@ -880,19 +885,21 @@ class Environment(object):
             secret_access_key=cls.get_s3_secret_access_key(),
             region_name=cls.get_s3_region(),
             log=cls.get_logger(),
-        ).get_s3_service(bucket)
+        ).get_s3_service(bucket=bucket, domain=domain)
 
     @classmethod
     def get_asset_storage(cls, use_s3: bool = False):
         """
         Get the storage adapter for assets.
         """
-        if cls.is_production() or cls.get_s3_endpoint_url() is not None or use_s3:
-            return cls.get_s3_service(cls.get_asset_bucket())
-        else:
-            from nodetool.storage.file_storage import FileStorage
+        if not hasattr(cls, "asset_storage"):
+            if cls.is_production() or cls.get_s3_endpoint_url() is not None or use_s3:
+                return cls.get_s3_service(
+                    cls.get_asset_bucket(), cls.get_asset_domain()
+                )
+            else:
+                from nodetool.storage.file_storage import FileStorage
 
-            if not hasattr(cls, "asset_storage"):
                 base_url = cls.get_storage_api_url() + cls.get_asset_bucket()
                 if cls.is_test():
                     from nodetool.storage.memory_storage import MemoryStorage
@@ -905,28 +912,27 @@ class Environment(object):
                         base_url=base_url,
                     )
 
-            assert cls.asset_storage is not None
-            return cls.asset_storage
+        assert cls.asset_storage is not None
+        return cls.asset_storage
 
     @classmethod
     def get_temp_storage(cls, use_s3: bool = False):
         """
         Get the storage adapter for temporary files.
         """
-        if cls.is_production() and cls.get_s3_endpoint_url() is not None or use_s3:
-            cls.get_logger().info(f"Using S3 for temp storage")
-            return cls.get_s3_service(cls.get_temp_bucket())
-        else:
-            from nodetool.storage.memory_storage import MemoryStorage
+        if not hasattr(cls, "temp_storage"):
+            if cls.is_production() and cls.get_s3_endpoint_url() is not None or use_s3:
+                cls.get_logger().info(f"Using S3 for temp storage")
+                return cls.get_s3_service(cls.get_temp_bucket(), cls.get_temp_domain())
+            else:
+                from nodetool.storage.memory_storage import MemoryStorage
 
-            cls.get_logger().info(f"Using local file storage for temp storage")
-
-            if not hasattr(cls, "temp_storage"):
+                cls.get_logger().info(f"Using local file storage for temp storage")
                 cls.temp_storage = MemoryStorage(
                     base_url=cls.get_storage_api_url() + cls.get_temp_bucket()
                 )
-            assert cls.temp_storage is not None
-            return cls.temp_storage
+        assert cls.temp_storage is not None
+        return cls.temp_storage
 
     @classmethod
     def get_logger(cls):

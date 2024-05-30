@@ -42,14 +42,12 @@ class Asset(BaseModel):
     def from_model(cls, asset: AssetModel):
         storage = Environment.get_asset_storage()
         if asset.content_type != "folder":
-            get_url = storage.generate_presigned_url("get_object", asset.file_name)
+            get_url = storage.get_url(asset.file_name)
         else:
             get_url = None
 
         if asset.has_thumbnail:
-            thumb_url = storage.generate_presigned_url(
-                "get_object", asset.thumb_file_name
-            )
+            thumb_url = storage.get_url(asset.thumb_file_name)
         else:
             thumb_url = None
 

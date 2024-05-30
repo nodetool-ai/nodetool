@@ -19,6 +19,9 @@ class FileStorage(AbstractStorage):
     def get_base_url(self):
         return self.base_url
 
+    def get_url(self, key: str):
+        return f"{self.base_url}/{key}"
+
     def generate_presigned_url(
         self, client_method: str, object_name: str, expiration=3600 * 24 * 7
     ):

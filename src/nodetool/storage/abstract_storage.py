@@ -10,6 +10,10 @@ class AbstractStorage(ABC):
         pass
 
     @abstractmethod
+    def get_url(self, key: str) -> str:
+        pass
+
+    @abstractmethod
     def generate_presigned_url(
         self, client_method: str, object_name: str, expiration=3600 * 24 * 7
     ) -> str:

@@ -30,6 +30,7 @@ const styles = (theme: any) =>
 
 const AssetUploadOverlay = () => {
   const { mutation: uploadMutation } = useAssetUpload();
+  console.log("uploadMutation", uploadMutation.status);
   if (uploadMutation.isLoading) {
     return (
       <div css={styles} className="uploading-overlay">

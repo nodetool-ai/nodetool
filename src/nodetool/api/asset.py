@@ -69,7 +69,7 @@ async def create_temp(extension: str, user: User = Depends(current_user)) -> Tem
     s3 = Environment.get_temp_storage()
     uuid = uuid4().hex
     return TempAsset(
-        get_url=s3.generate_presigned_url("get_object", f"{uuid}.{extension}"),
+        get_url=s3.get_url(f"{uuid}.{extension}"),
         put_url=s3.generate_presigned_url("put_object", f"{uuid}.{extension}"),
     )
 

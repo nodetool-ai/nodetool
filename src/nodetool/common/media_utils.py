@@ -55,7 +55,7 @@ async def create_image_thumbnail(input_io: IO, width: int, height: int) -> Bytes
 
     # Create a new BytesIO object to store the thumbnail image
     output_io = BytesIO()
-    image.save(output_io, format="JPEG")
+    image.convert("RGB").save(output_io, format="JPEG")
 
     # Reset the BytesIO object to the beginning
     output_io.seek(0)
