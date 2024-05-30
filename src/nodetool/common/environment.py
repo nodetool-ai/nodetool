@@ -873,7 +873,7 @@ class Environment(object):
         return cls.get("GOOGLE_CLIENT_SECRET")
 
     @classmethod
-    def get_s3_service(cls, bucket: str, domain: str | None = None):
+    def get_s3_storage(cls, bucket: str, domain: str | None = None):
         """
         Get the S3 service.
         """
@@ -885,7 +885,7 @@ class Environment(object):
             secret_access_key=cls.get_s3_secret_access_key(),
             region_name=cls.get_s3_region(),
             log=cls.get_logger(),
-        ).get_s3_service(bucket=bucket, domain=domain)
+        ).get_s3_storage(bucket=bucket, domain=domain)
 
     @classmethod
     def get_asset_storage(cls, use_s3: bool = False):
@@ -894,7 +894,7 @@ class Environment(object):
         """
         if not hasattr(cls, "asset_storage"):
             if cls.is_production() or cls.get_s3_endpoint_url() is not None or use_s3:
-                return cls.get_s3_service(
+                return cls.get_s3_storage(
                     cls.get_asset_bucket(), cls.get_asset_domain()
                 )
             else:
@@ -923,7 +923,7 @@ class Environment(object):
         if not hasattr(cls, "temp_storage"):
             if cls.is_production() and cls.get_s3_endpoint_url() is not None or use_s3:
                 cls.get_logger().info(f"Using S3 for temp storage")
-                return cls.get_s3_service(cls.get_temp_bucket(), cls.get_temp_domain())
+                return cls.get_s3_storage(cls.get_temp_bucket(), cls.get_temp_domain())
             else:
                 from nodetool.storage.memory_storage import MemoryStorage
 

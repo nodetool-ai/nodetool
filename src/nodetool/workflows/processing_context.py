@@ -119,6 +119,9 @@ class ProcessingContext:
         graph: Graph = Graph(),
         queue: Queue | asyncio.Queue | None = None,
         capabilities: list[str] | None = None,
+        http_client: httpx.AsyncClient = httpx.AsyncClient(
+            follow_redirects=True, timeout=600
+        ),
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -129,6 +132,7 @@ class ProcessingContext:
         self.message_queue = queue if queue is not None else asyncio.Queue()
         self.capabilities = capabilities if capabilities is not None else []
         self.api_client = Environment.get_nodetool_api_client(self.auth_token)
+        self.http_client = http_client
         assert self.auth_token is not None, "Auth token is required"
 
     async def pop_message_async(self) -> ProcessingMessage:
@@ -178,8 +182,7 @@ class ProcessingContext:
         Args:
             key (str): The key of the asset.
         """
-        base_url = Environment.get_asset_storage().get_base_url()
-        return f"{base_url}/{key}"
+        return Environment.get_asset_storage().get_url(key)
 
     def temp_storage_url(self, key: str) -> str:
         """
@@ -188,8 +191,7 @@ class ProcessingContext:
         Args:
             key (str): The key of the asset.
         """
-        base_url = Environment.get_temp_storage().get_base_url()
-        return f"{base_url}/{key}"
+        return Environment.get_temp_storage().get_url(key)
 
     async def find_asset(self, asset_id: str):
         """
@@ -501,10 +503,7 @@ class ProcessingContext:
         """
         asset = await self.find_asset(asset_id)
         io = BytesIO()
-        url = self.asset_storage_url(asset.file_name)
-        path = urllib.parse.urlparse(url).path
-        async for chunk in self.api_client.stream("GET", path):
-            io.write(chunk)
+        await Environment.get_asset_storage().download(asset.file_name, io)
         io.seek(0)
         return io
 
@@ -519,10 +518,7 @@ class ProcessingContext:
             IO: The downloaded temporary asset.
         """
         io = BytesIO()
-        url = self.temp_storage_url(temp_id)
-        path = urllib.parse.urlparse(url).path
-        async for chunk in self.api_client.stream("GET", path):
-            io.write(chunk)
+        await Environment.get_temp_storage().download(temp_id, io)
         io.seek(0)
         return io
 
@@ -536,10 +532,9 @@ class ProcessingContext:
         Returns:
             bytes: The response content.
         """
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            return response.content
+        response = await self.http_client.get(url)
+        response.raise_for_status()
+        return response.content
 
     async def download_file(self, url: str) -> IO:
         """
@@ -1058,7 +1053,6 @@ class ProcessingContext:
             "Content-Type": "application/json",
         }
 
-        client = httpx.AsyncClient(timeout=600)
         if req.env is None:
             req.env = {}
 
@@ -1072,7 +1066,7 @@ class ProcessingContext:
         # log.info(json.dumps(req.model_dump(), indent=2))
         result = {}
 
-        async with client.stream(
+        async with self.http_client.stream(
             "POST",
             url,
             headers=headers,

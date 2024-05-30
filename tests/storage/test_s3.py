@@ -4,6 +4,7 @@ import httpx
 import io
 import respx
 from moto import mock_aws
+from nodetool.common.aws_client import AWSClient
 from nodetool.common.environment import Environment
 from nodetool.storage.s3_storage import S3Storage
 
@@ -15,20 +16,21 @@ data = b"0" * 1024 * 1024 * 10
 def storage():
     mock = mock_aws()
     mock.start()
-    s3_temp = Environment.get_asset_storage(use_s3=True)
+    s3_temp = AWSClient("region").get_s3_storage(bucket="temp", domain="temp.test")
     yield s3_temp
     mock.stop()
 
 
-@pytest.fixture(scope="module")
-def url(storage: S3Storage):
-    return f"https://{storage.bucket_name}.s3.amazonaws.com/{file_name}"
+@pytest.fixture()
+def get_url(storage: S3Storage):
+    return
 
 
 @pytest.mark.asyncio
-async def test_download_stream(storage: S3Storage, url: str):
+async def test_download_stream(storage: S3Storage):
+    get_url = f"https://temp.test/{file_name}"
     with respx.mock as mock:
-        mock.get(url).mock(return_value=httpx.Response(200, content=data))
+        mock.get(get_url).mock(return_value=httpx.Response(200, content=data))
         size = 0
         async for chunk in storage.download_stream(file_name):
             size += len(chunk)
@@ -36,7 +38,8 @@ async def test_download_stream(storage: S3Storage, url: str):
 
 
 @pytest.mark.asyncio
-async def test_delete(storage: S3Storage, url: str):
+async def test_delete(storage: S3Storage):
+    delete_url = storage.generate_presigned_url("delete_object", file_name)
     with respx.mock as mock:
-        mock.delete(url).mock(return_value=httpx.Response(200))
+        mock.delete(delete_url).mock(return_value=httpx.Response(200))
         await storage.delete(file_name)

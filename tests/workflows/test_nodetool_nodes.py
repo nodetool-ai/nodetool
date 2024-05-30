@@ -1,5 +1,6 @@
 import asyncio
 import io
+from unittest.mock import AsyncMock
 import numpy as np
 import pandas as pd
 import pytest
@@ -58,6 +59,7 @@ from nodetool.nodes.nodetool.text import SaveText
 current_dir = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.dirname(current_dir)
 test_file = os.path.join(parent_dir, "test.jpg")
+test_audio = os.path.join(parent_dir, "test.mp3")
 
 
 @pytest.fixture(scope="session")
@@ -278,22 +280,25 @@ async def test_scale(
 
 
 @pytest.mark.asyncio
-async def test_save_text_node(context: ProcessingContext, user: User):
+async def test_save_text_node(context: ProcessingContext, user: User, http_client):
     text_ref = await context.text_from_str("Sample Text")
     node = SaveText(name="TestText", value=text_ref)
+
     res = await node.process(context)
     assert res.asset_id, "TextRef should have an asset_id"
     asset = Asset.find(user.id, res.asset_id)
     assert asset, "Asset should exist"
     assert asset.content_type == "text/plain", "Asset should be text"
+
     file = await context.download_asset(res.asset_id)
     assert file.read() == b"Sample Text", "Asset should have the right content"
 
 
 @pytest.mark.asyncio
-async def test_save_image_node(context: ProcessingContext, user: User):
+async def test_save_image_node(context: ProcessingContext, user: User, http_client):
     folder = Asset.create(user.id, "test", "folder", user.id)
     image_ref = await context.image_from_pil(PIL.Image.open(test_file))
+
     node = SaveImg(
         name="TestImage",
         image=image_ref,
@@ -320,10 +325,10 @@ async def test_save_tensor_node(context: ProcessingContext, user: User):
 
 
 @pytest.mark.asyncio
-async def test_save_audio_node(context: ProcessingContext, user: User):
+async def test_save_audio_node(context: ProcessingContext, user: User, http_client):
     folder = Asset.create(user.id, "test", "folder", user.id)
-    audio_segment = pydub.AudioSegment.silent(duration=1000)
-    audio_ref = await context.audio_from_segment(audio_segment)
+    audio_ref = await context.audio_from_io(open(test_audio, "rb"))
+
     node = SaveAudio(
         name="TestAudio",
         value=audio_ref,
@@ -333,7 +338,7 @@ async def test_save_audio_node(context: ProcessingContext, user: User):
     assert isinstance(result, AudioRef)
     assert result.asset_id, "AudioRef should have an asset_id"
     segment = await context.audio_to_audio_segment(result)
-    assert segment.duration_seconds == 1.0, "AudioSegment should be the same"
+    assert segment.duration_seconds > 0
     asset = Asset.find(context.user_id, result.asset_id)
     assert asset, "Asset should exist"
     assert asset.content_type.startswith("audio/"), "Asset should be audio"

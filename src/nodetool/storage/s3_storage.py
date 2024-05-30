@@ -40,7 +40,6 @@ class S3Storage(AbstractStorage):
         self.log = log
         self.endpoint_url = endpoint_url
         self.domain = domain
-        print("S3Storage initialized with domain:", self.domain)
 
     def get_base_url(self):
         """
@@ -108,7 +107,7 @@ class S3Storage(AbstractStorage):
         """
         Downloads a blob from the bucket.
         """
-        url = self.generate_presigned_url("get_object", key)
+        url = self.get_url(key)
         async with httpx.AsyncClient() as client:
             async with client.stream("GET", url) as response:
                 response.raise_for_status()
@@ -132,7 +131,7 @@ class S3Storage(AbstractStorage):
         """
         Downloads a blob from the bucket as a stream.
         """
-        url = self.generate_presigned_url("get_object", key)
+        url = self.get_url(key)
 
         async with httpx.AsyncClient() as client:
             async with client.stream("GET", url) as response:

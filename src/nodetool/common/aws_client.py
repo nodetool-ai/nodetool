@@ -96,9 +96,9 @@ class AWSClient:
         client.meta.events.register("before-send.s3.*", _patch_headers)
         return client
 
-    def get_s3_service(self, bucket: str, domain: Optional[str] = None):
+    def get_s3_storage(self, bucket: str, domain: Optional[str] = None):
         """
-        Create an S3 service for the given bucket.
+        Create an S3 storage for the given bucket.
 
         Args:
             bucket: The name of the bucket.

@@ -1,7 +1,9 @@
 import asyncio
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock, Mock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+import httpx
 import pytest
 from nodetool.api.server import create_app
 from nodetool.api.types.graph import Node, Edge
@@ -145,12 +147,20 @@ def user():
     ).save()
 
 
+@pytest.fixture
+def http_client():
+    return Mock(httpx.AsyncClient)
+
+
 @pytest.fixture()
-def context(user: User):
+def context(user: User, http_client):
     workflow = Workflow.create(user.id, "wf", {"edges": [], "nodes": []})
     assert user.auth_token != None and user.auth_token != ""
     return ProcessingContext(
-        user_id=user.id, workflow_id=workflow.id, auth_token=user.auth_token
+        user_id=user.id,
+        workflow_id=workflow.id,
+        auth_token=user.auth_token,
+        http_client=http_client,
     )
 
 
