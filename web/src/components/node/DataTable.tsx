@@ -105,7 +105,8 @@ const styles = (theme: any) =>
     ".table-actions button": {
       lineHeight: "1em",
       textAlign: "left",
-      padding: ".5em"
+      padding: ".5em",
+      border: 0
     },
     ".select-column-toggle": {
       height: "2em",
@@ -131,7 +132,6 @@ const styles = (theme: any) =>
         },
       "& .MuiToggleButton-root.Mui-selected": {
         color: theme.palette.c_white
-        // backgroundColor: theme.palette.c_gray0
       }
     }
   });
@@ -257,18 +257,6 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
         }
       },
       movableRows: true
-      // rowHeader: {
-      //   headerSort: false,
-      //   resizable: false,
-      //   frozen: true,
-      //   headerHozAlign: "center",
-      //   hozAlign: "center",
-      //   formatter: "rowSelection",
-      //   titleFormatter: "rowSelection",
-      //   cellClick: function (e, cell) {
-      //     cell.getRow().toggleSelect();
-      //   }
-      // }
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);

@@ -31,12 +31,20 @@ const styles = (theme: any) =>
     ".selected-asset-info": {
       position: "absolute",
       top: "2em",
-      right: "3em"
+      right: "3em",
+      maxWidth: "500px",
+      textAlign: "right"
     },
     ".asset-size-slider": {
       width: "200px",
       maxWidth: "unset",
       paddingLeft: "1em"
+    },
+    ".dropzone": {
+      outline: "none"
+    },
+    ".infinite-scroll-component": {
+      border: 0
     }
   });
 

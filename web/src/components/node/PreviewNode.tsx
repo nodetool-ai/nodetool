@@ -81,6 +81,12 @@ const styles = (theme: any) =>
     },
     ".table-actions": {
       padding: ".5em 0 0 .5em"
+    },
+    "& .tensor": {
+      width: "100%",
+      maxHeight: "500px",
+      overflowY: "auto",
+      padding: "1em"
     }
   });
 

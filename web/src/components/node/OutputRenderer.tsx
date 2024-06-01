@@ -1,7 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { DataframeRef, Message, TypeMetadata } from "../../stores/ApiTypes";
+import {
+  DataframeRef,
+  Message,
+  Tensor,
+  TypeMetadata
+} from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable";
@@ -109,6 +114,16 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
     return null;
   }
 
+  function renderTensorPreview(tensor: Tensor): string {
+    const value = tensor.value || [];
+    const dtype = tensor.dtype || "unknown";
+    const preview = `
+    ${dtype}
+    ${JSON.stringify(value, null, 2)}
+  `;
+    return preview;
+  }
+
   switch (type) {
     case "image":
       return value?.uri ? (
@@ -157,6 +172,12 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
       return <video src={value?.uri} controls style={{ width: "100%" }} />;
     case "dataframe":
       return <DataTable dataframe={value as DataframeRef} />;
+    case "tensor":
+      return (
+        <div className="tensor nodrag nowheel">
+          {renderTensorPreview(value)}
+        </div>
+      );
     case "object":
       return <DictTable data={value} />;
     case "array":
