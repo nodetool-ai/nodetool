@@ -132,7 +132,7 @@ const WorkflowForm = () => {
     if (localWorkflow !== workflow) {
       setWorkflowAttributes(localWorkflow);
       await saveWorkflow();
-      setUpdatedAt(new Date().toISOString()); // Use current time for updated_at
+      setUpdatedAt(new Date().toISOString());
       addNotification({
         type: "info",
         content: "Workflow saved!",
