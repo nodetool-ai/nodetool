@@ -23,8 +23,7 @@ import { Asset } from "../../stores/ApiTypes";
 //utils
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import useAssets from "../../serverState/useAssets";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
-import { debounce } from "lodash";
+import { useHotkeys } from "react-hotkeys-hook";
 //css
 import "../../styles/node_editor.css";
 
@@ -207,9 +206,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const sortedAssets = useAssets().sortedAssets;
   const [currentFolderName, setCurrentFolderName] = useState<string | null>();
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
-  const leftKeyPressed = useKeyPressedListener("ArrowLeft");
-  const rightKeyPressed = useKeyPressedListener("ArrowRight");
-  const controlKeyPressed = useKeyPressedListener("Control");
   const prevNextAmount = 5;
 
   const handleChangeAsset = useCallback(
@@ -243,66 +239,44 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }
   }, [asset, sortedAssets]);
 
-  useEffect(() => {
-    const handleEscapePress = (event: { key: string }) => {
-      if (event.key === "Escape") {
-        handleClose();
+  const changeAsset = useCallback(
+    (direction: "left" | "right", controlKeyPressed: boolean) => {
+      if (currentIndex !== null && sortedAssets) {
+        if (direction === "left" && currentIndex > 0) {
+          if (controlKeyPressed) {
+            handleChangeAsset(
+              sortedAssets[Math.max(currentIndex - prevNextAmount, 0)]
+            );
+          } else {
+            handleChangeAsset(sortedAssets[currentIndex - 1]);
+          }
+        } else if (
+          direction === "right" &&
+          currentIndex < sortedAssets.length - 1
+        )
+          if (controlKeyPressed) {
+            handleChangeAsset(
+              sortedAssets[
+              Math.min(
+                currentIndex + prevNextAmount,
+                sortedAssets.length - 1
+              )
+              ]
+            );
+          } else {
+            handleChangeAsset(sortedAssets[currentIndex + 1]);
+          }
       }
-    };
-    window.addEventListener("keydown", handleEscapePress, true);
-    return () => {
-      window.removeEventListener("keydown", handleEscapePress, true);
-    };
-  }, [handleClose]);
-
-  const debouncedChangeAsset = useMemo(
-    () =>
-      debounce((direction) => {
-        if (currentIndex !== null && sortedAssets) {
-          if (direction === "left" && currentIndex > 0) {
-            if (controlKeyPressed) {
-              handleChangeAsset(
-                sortedAssets[Math.max(currentIndex - prevNextAmount, 0)]
-              );
-            } else {
-              handleChangeAsset(sortedAssets[currentIndex - 1]);
-            }
-          } else if (
-            direction === "right" &&
-            currentIndex < sortedAssets.length - 1
-          )
-            if (controlKeyPressed) {
-              handleChangeAsset(
-                sortedAssets[
-                Math.min(
-                  currentIndex + prevNextAmount,
-                  sortedAssets.length - 1
-                )
-                ]
-              );
-            } else {
-              handleChangeAsset(sortedAssets[currentIndex + 1]);
-            }
-        }
-      }, 150),
-    [handleChangeAsset, currentIndex, sortedAssets, controlKeyPressed]
+    },
+    [handleChangeAsset, currentIndex, sortedAssets]
   );
 
-  useEffect(() => {
-    if (sortedAssets && currentIndex !== null) {
-      if (leftKeyPressed && currentIndex > 0) {
-        debouncedChangeAsset("left");
-      } else if (rightKeyPressed && currentIndex < sortedAssets.length - 1) {
-        debouncedChangeAsset("right");
-      }
-    }
-  }, [
-    leftKeyPressed,
-    rightKeyPressed,
-    currentIndex,
-    sortedAssets,
-    debouncedChangeAsset
-  ]);
+  useHotkeys("esc", handleClose);
+  useHotkeys("left", () => { changeAsset("left", false); });
+  useHotkeys("right", () => { changeAsset("right", false); });
+  useHotkeys("ctrl+left", () => { changeAsset("left", true); });
+  useHotkeys("ctrl+right", () => { changeAsset("right", true); });
+
   const renderAsset = () => {
     const type = currentAsset?.content_type || contentType || "";
     if (currentAsset) {
