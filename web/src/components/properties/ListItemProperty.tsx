@@ -1,6 +1,6 @@
 import { Typography } from "@mui/material";
 import AudioPlayer from "../audio/AudioPlayer";
-import DataTable from "../node/DataTable";
+import DataTable from "../node/DataTable/DataTable";
 import DictTable from "../node/DictTable";
 import { DataframeRef, TypeMetadata } from "../../stores/ApiTypes";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -100,9 +100,11 @@ const ListItemProperty = ({ id, type, value }: EdgeProps) => {
           >
             {value.content.map((c: any, i: number) => {
               if (c.type === "message_text_content") {
-                return <MarkdownRenderer key={'_' + i} content={c.text || ""} />;
+                return (
+                  <MarkdownRenderer key={"_" + i} content={c.text || ""} />
+                );
               } else if (c.type === "message_image_content") {
-                return <img key={'_' + i} src={c.image?.uri} alt="" />;
+                return <img key={"_" + i} src={c.image?.uri} alt="" />;
               } else {
                 return <></>;
               }

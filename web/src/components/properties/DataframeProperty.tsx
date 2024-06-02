@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
-import DataTable from "../node/DataTable";
+import DataTable from "../node/DataTable/DataTable";
 import PropertyLabel from "../node/PropertyLabel";
 import ColumnsManager from "../node/ColumnsManager";
 import { Button, ButtonGroup } from "@mui/material";
