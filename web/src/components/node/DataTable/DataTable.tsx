@@ -1,4 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React, {
   useEffect,
   useRef,
@@ -6,26 +8,26 @@ import React, {
   useMemo,
   useCallback
 } from "react";
-import { css } from "@emotion/react";
 import {
   TabulatorFull as Tabulator,
   ColumnDefinition,
   CellComponent,
   ColumnDefinitionAlign,
-  Editor,
-  Formatter
+  Formatter,
+  StandardValidatorType
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
-import { DataframeRef } from "../../stores/ApiTypes";
-import { useClipboard } from "../../hooks/browser/useClipboard";
-import { useNotificationStore } from "../../stores/NotificationStore";
+import { DataframeRef } from "../../../stores/ApiTypes";
+import { useClipboard } from "../../../hooks/browser/useClipboard";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import {
   Button,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip
 } from "@mui/material";
+import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 
 const styles = (theme: any) =>
   css({
@@ -36,13 +38,13 @@ const styles = (theme: any) =>
       position: "relative",
       overflow: "hidden"
     },
+    ".datetime-picker": {
+      backgroundColor: theme.palette.c_hl1
+    },
     ".tabulator": {
       fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily1,
       height: "200px"
-    },
-    ".tabulator-col:hover": {
-      backgroundColor: theme.palette.c_gray1
     },
     ".tabulator-tableholder": {
       overflow: "auto",
@@ -64,6 +66,10 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily1
     },
+    // header
+    ".tabulator .tabulator-header": {
+      maxHeight: "4em"
+    },
     ".tabulator .tabulator-cell.tabulator-editing input::selection": {
       backgroundColor: theme.palette.c_hl1
     },
@@ -79,16 +85,19 @@ const styles = (theme: any) =>
       {
         borderTop: "6px solid" + theme.palette.c_hl1
       },
-    ".copy-button": {
+    // actions
+    ".table-actions button": {
+      lineHeight: "1em",
+      textAlign: "left",
+      padding: ".5em",
+      border: 0,
       fontSize: theme.fontSizeTinyer,
       color: theme.palette.c_gray6,
       margin: "0",
       borderRadius: "0",
-      padding: "0 .5em",
-      border: 0,
       backgroundColor: theme.palette.c_gray0
     },
-    ".copy-button:hover": {
+    ".table-actions button:hover": {
       color: theme.palette.c_hl1
     },
     ".table-actions": {
@@ -101,12 +110,6 @@ const styles = (theme: any) =>
     },
     ".table-actions .disabled": {
       opacity: 0.5
-    },
-    ".table-actions button": {
-      lineHeight: "1em",
-      textAlign: "left",
-      padding: ".5em",
-      border: 0
     },
     ".select-column-toggle": {
       height: "2em",
@@ -133,6 +136,32 @@ const styles = (theme: any) =>
       "& .MuiToggleButton-root.Mui-selected": {
         color: theme.palette.c_white
       }
+    },
+    ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
+      padding: ".5em",
+      borderRadius: "0",
+      backgroundColor: "white"
+    },
+    ".datetime button": {
+      position: "absolute",
+      width: "20px",
+      height: "20px",
+      padding: 0,
+      top: "0",
+      right: ".5em",
+      borderRadius: "0",
+      backgroundColor: "white"
+    },
+    ".datetime button:hover svg": {
+      color: theme.palette.c_hl1
+    },
+    ".datetime button svg": {
+      color: theme.palette.c_black,
+      width: "100%",
+      height: "100%"
+    },
+    ".datetime fieldset": {
+      border: 0
     }
   });
 
@@ -165,20 +194,20 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
     });
   }, [dataframe.columns, dataframe.data]);
 
-  const columns = useMemo<ColumnDefinition[]>(() => {
+  const columns: ColumnDefinition[] = useMemo(() => {
     if (!dataframe.columns) return [];
-    return [
+    const cols: ColumnDefinition[] = [
       ...(showSelect
         ? [
             {
               title: "",
+              field: "select",
+              formatter: "rowSelection" as Formatter,
+              titleFormatter: "rowSelection" as Formatter,
+              hozAlign: "center" as ColumnDefinitionAlign,
               headerSort: false,
               resizable: false,
               frozen: true,
-              headerHozAlign: "center" as ColumnDefinitionAlign,
-              hozAlign: "center" as ColumnDefinitionAlign,
-              formatter: "rowSelection" as Formatter,
-              titleFormatter: "rowSelection" as Formatter,
               cellClick: function (e: any, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
@@ -191,6 +220,7 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
         ? [
             {
               title: "",
+              field: "rownum",
               formatter: "rownum" as Formatter,
               hozAlign: "left" as ColumnDefinitionAlign,
               headerSort: false,
@@ -205,10 +235,27 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
       ...dataframe.columns.map((col) => ({
         title: col.name,
         field: col.name,
-        editor: "input" as Editor,
-        headerHozAlign: "left" as ColumnDefinitionAlign
+        editor:
+          col.data_type === "int"
+            ? integerEditor
+            : col.data_type === "float"
+            ? floatEditor
+            : col.data_type === "datetime"
+            ? datetimeEditor
+            : "input",
+        headerHozAlign: "left" as ColumnDefinitionAlign,
+        cssClass: col.data_type,
+        validator:
+          col.data_type === "int"
+            ? (["required", "integer"] as StandardValidatorType[])
+            : col.data_type === "float"
+            ? (["required", "numeric"] as StandardValidatorType[])
+            : col.data_type === "datetime"
+            ? (["required", "date"] as StandardValidatorType[])
+            : undefined
       }))
     ];
+    return cols;
   }, [dataframe.columns, showRowNumbers, showSelect]);
 
   const onCellEdited = useCallback(
@@ -298,30 +345,20 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
     <div className="datatable nowheel nodrag" css={styles}>
       <div className="table-actions">
         <Tooltip title="Copy table data to clipboard">
-          <Button
-            className="copy-button"
-            variant="outlined"
-            onClick={handleClick}
-          >
+          <Button variant="outlined" onClick={handleClick}>
             Copy Data
           </Button>
         </Tooltip>
 
         <Tooltip title="Reset table sorting">
-          <Button
-            className="copy-button"
-            variant="outlined"
-            onClick={handleResetSorting}
-          >
+          <Button variant="outlined" onClick={handleResetSorting}>
             Reset Sorting
           </Button>
         </Tooltip>
 
         <Tooltip title="Delete selected rows">
           <Button
-            className={
-              "copy-button" + (selectedRows.length > 0 ? "" : " disabled")
-            }
+            className={selectedRows.length > 0 ? "" : " disabled"}
             variant="outlined"
             onClick={() => {
               if (tabulator?.getSelectedRows().length) {

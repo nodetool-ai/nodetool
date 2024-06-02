@@ -9,7 +9,7 @@ import {
 } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
-import DataTable from "./DataTable";
+import DataTable from "./DataTable/DataTable";
 import DictTable from "./DictTable";
 import AssetViewer from "../assets/AssetViewer";
 import { useState } from "react";
