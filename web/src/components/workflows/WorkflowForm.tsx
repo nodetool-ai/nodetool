@@ -46,12 +46,20 @@ const styles = (theme: any) =>
       backgroundColor: "#333333cc"
     },
     ".save-button": {
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.c_gray1,
+      border: "1px solid" + theme.palette.c_gray3,
       color: theme.palette.c_hl1,
       width: "100%",
       "&:hover": {
-        backgroundColor: theme.palette.c_gray3
+        border: "1px solid" + theme.palette.c_white
       }
+    },
+    "input, textarea, .MuiSelect-select": {
+      fontFamily: theme.fontFamily1
+    },
+    ".save-text": {
+      color: theme.palette.c_gray6,
+      fontSize: theme.fontSizeSmall
     },
     '[role~="tooltip"][data-microtip-position|="center"]::after': {
       position: "absolute",
@@ -85,18 +93,18 @@ const WorkflowForm = () => {
   const { addNotification } = useNotificationStore();
   const [localWorkflow, setLocalWorkflow] = useState(workflow);
   const settings = useSettingsStore((state) => state.settings);
+  const [updatedAt, setUpdatedAt] = useState(workflow.updated_at);
 
-  const handleSaveWorkflow = () => {
-    saveWorkflow().then(() => {
-      addNotification({
-        type: "info",
-        alert: true,
-        content: "Workflow saved!",
-        dismissable: true
-      });
+  const handleSaveWorkflow = async () => {
+    await saveWorkflow();
+    setUpdatedAt(new Date().toISOString());
+    addNotification({
+      type: "info",
+      alert: true,
+      content: "Workflow saved!",
+      dismissable: true
     });
   };
-
   useEffect(() => {
     setLocalWorkflow(workflow);
   }, [workflow]);
@@ -120,26 +128,17 @@ const WorkflowForm = () => {
     handleBlur();
   };
 
-  const handleBlur = () => {
+  const handleBlur = async () => {
     if (localWorkflow !== workflow) {
       setWorkflowAttributes(localWorkflow);
-      saveWorkflow()
-        .then(() => {
-          addNotification({
-            type: "info",
-            content: "Workflow saved!",
-            alert: true,
-            dismissable: true
-          });
-        })
-        .catch((error) => {
-          addNotification({
-            type: "error",
-            content: `Failed to save workflow. ${error}`,
-            alert: true,
-            dismissable: true
-          });
-        });
+      await saveWorkflow();
+      setUpdatedAt(new Date().toISOString());
+      addNotification({
+        type: "info",
+        content: "Workflow saved!",
+        alert: true,
+        dismissable: true
+      });
     }
   };
 
@@ -245,11 +244,8 @@ const WorkflowForm = () => {
         <Button className="save-button" onClick={() => handleSaveWorkflow()}>
           Save
         </Button>
-        <Typography
-          variant="caption"
-          sx={{ color: ThemeNodetool.palette.c_gray4 }}
-        >
-          {prettyDate(workflow.updated_at, "normal", settings)}
+        <Typography variant="caption" className="save-text">
+          {prettyDate(updatedAt, "normal", settings)}
         </Typography>
       </Box>
     </div>

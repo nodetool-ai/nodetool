@@ -49,7 +49,8 @@ const styles = (theme: any) =>
       flexWrap: "wrap",
       justifyContent: "start",
       alignItems: "start",
-      gap: ".5em"
+      gap: ".5em",
+      transition: "max-height 0.5s ease-in-out"
     },
     ".dropzone": {
       display: "flex",
@@ -68,7 +69,6 @@ const styles = (theme: any) =>
       overflowX: "hidden",
       fontSize: ThemeNodetool.fontSizeSmall,
       padding: "0.1em 0.2em",
-
       color: theme.palette.c_gray5
     },
     ".file-upload-button button": {
@@ -161,17 +161,16 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
       const clickedElement = e.target as HTMLElement;
       if (!shiftKeyPressed && !controlKeyPressed && !metaKeyPressed) {
         if (
-          // deselect
-          clickedElement.classList.contains("content-type-header") ||
-          clickedElement.classList.contains("selected-info") ||
-          clickedElement.classList.contains("infinite-scroll-component") ||
-          clickedElement.classList.contains("asset-grid-flex") ||
-          clickedElement.classList.contains("divider") ||
-          clickedElement.classList.contains("selected-info") ||
-          clickedElement.classList.contains("current-folder") ||
-          clickedElement.classList.contains("asset-info") ||
-          clickedElement.classList.contains("asset-grid-container") ||
-          clickedElement.classList.contains("MuiTabs-flexContainer")
+          !clickedElement.classList.contains("selected-asset-info") &&
+          (clickedElement.classList.contains("content-type-header") ||
+            clickedElement.classList.contains("selected-info") ||
+            clickedElement.classList.contains("infinite-scroll-component") ||
+            clickedElement.classList.contains("asset-grid-flex") ||
+            clickedElement.classList.contains("divider") ||
+            clickedElement.classList.contains("current-folder") ||
+            clickedElement.classList.contains("asset-info") ||
+            clickedElement.classList.contains("asset-grid-container") ||
+            clickedElement.classList.contains("MuiTabs-flexContainer"))
         ) {
           setSelectedAssetIds([]);
         }
