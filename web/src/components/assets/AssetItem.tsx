@@ -291,7 +291,7 @@ export type AssetItemProps = {
   openRenameDialog?: () => void;
   onSelect?: () => void;
   onDoubleClickFolder?: (id: string) => void;
-  onClickParent?: (id: string) => void;
+  onMouseDownParent?: (id: string) => void;
   // onDragStart?: () => string[];
   onDragStart?: (assetId: string) => string[];
   onMoveToFolder?: () => void;
@@ -314,7 +314,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     openDeleteDialog,
     onSelect,
     onDoubleClickFolder,
-    onClickParent,
+    onMouseDownParent,
     onMoveToFolder
   } = props;
 
@@ -483,7 +483,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       key={asset.id}
       draggable={draggable}
       onDragStart={handleDrag}
-      // onClick={onSelect}
+      // onMouseDown={onSelect}
       onDoubleClick={() => {
         if (asset.get_url) {
           setOpenAsset(asset);
@@ -494,9 +494,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           }
         }
       }}
-      onClick={() => {
+      onMouseDown={() => {
         if (isParent) {
-          onClickParent && onClickParent(asset.id);
+          onMouseDownParent && onMouseDownParent(asset.id);
         }
         onSelect && onSelect();
       }}
@@ -551,7 +551,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <>
             <AudioFileIcon
               style={{ color: `var(--c_${assetType})` }}
-              onClick={() => props.onSetCurrentAudioAsset?.(asset)}
+              onMouseDown={() => props.onSetCurrentAudioAsset?.(asset)}
               className="placeholder"
             />
             {showDuration && asset.duration && assetItemSize > 1 && (

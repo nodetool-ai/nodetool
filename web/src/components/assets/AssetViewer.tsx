@@ -348,14 +348,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       <>
         <IconButton
           className="prev-next-button left"
-          onClick={() => handleChangeAsset(prevAssets[prevAssets.length - 1])}
+          onMouseDown={() => handleChangeAsset(prevAssets[prevAssets.length - 1])}
           disabled={prevAssets?.length === 0}
         >
           <KeyboardArrowLeftIcon />
         </IconButton>
         <IconButton
           className="prev-next-button right"
-          onClick={() => handleChangeAsset(nextAssets[0])}
+          onMouseDown={() => handleChangeAsset(nextAssets[0])}
           disabled={nextAssets?.length === 0}
         >
           <KeyboardArrowRightIcon />
@@ -375,7 +375,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               <Button
                 className="item"
                 key={asset.id}
-                onClick={() => handleChangeAsset(asset)}
+                onMouseDown={() => handleChangeAsset(asset)}
               >
                 <AssetItem
                   asset={asset}
@@ -407,7 +407,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               <Button
                 className="item"
                 key={asset.id}
-                onClick={() => handleChangeAsset(asset)}
+                onMouseDown={() => handleChangeAsset(asset)}
               >
                 <AssetItem
                   asset={asset}
@@ -445,7 +445,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               className="button download"
               edge="end"
               color="inherit"
-              onClick={() => window.open(asset?.get_url || url, "_blank")}
+              onMouseDown={() => window.open(asset?.get_url || url, "_blank")}
               aria-label="download"
             >
               <FileDownloadIcon />
@@ -456,7 +456,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               className="button close"
               edge="end"
               color="inherit"
-              onClick={handleClose}
+              onMouseDown={handleClose}
               aria-label="close"
             >
               <CloseIcon />
