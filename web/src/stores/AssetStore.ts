@@ -5,13 +5,14 @@ import { devLog } from "../utils/DevLog";
 import { QueryClient, QueryKey } from "react-query";
 import axios from "axios";
 
-function createAsset(
+const createAsset = (
   url: string,
   method: string,
   headers: any,
   jsonData: any,
-  file: File | undefined
-): Promise<Asset> {
+  file: File | undefined,
+  onUploadProgress: (progressEvent: any) => void
+): Promise<Asset> => {
   return new Promise((resolve, reject) => {
     const formData = new FormData();
     formData.append("json", JSON.stringify(jsonData));
@@ -24,24 +25,16 @@ function createAsset(
       url: url,
       method: method,
       data: formData,
-      headers: Object.assign(
-        {
-          "Content-Type": "multipart/form-data"
-        },
-        headers
-      ),
-      onUploadProgress: (pevt) => {
-        devLog("uploaded.:" + pevt.loaded + "/" + pevt.total);
-      }
+      headers: {
+        ...headers,
+        "Content-Type": "multipart/form-data"
+      },
+      onUploadProgress
     })
-      .then((res) => {
-        resolve(res.data as Asset);
-      })
-      .catch((err) => {
-        reject(err);
-      });
+      .then((res) => resolve(res.data as Asset))
+      .catch((err) => reject(err));
   });
-}
+};
 
 export type AssetQuery = {
   cursor?: string;
@@ -72,8 +65,9 @@ export interface AssetStore {
   createFolder: (parent_id: string | null, name: string) => Promise<Asset>;
   createAsset: (
     file: File,
-    workflow_id: string | null,
-    parent_id: string | null
+    workflow_id?: string,
+    parent_id?: string,
+    onUploadProgress?: (progressEvent: any) => void
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string) => Promise<Record<string, any>>;
@@ -262,7 +256,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         content_type: "folder",
         name: name
       },
-      undefined
+      undefined,
+      (_) => {}
     );
     get().add(folder);
     get().invalidateQueries(["assets", { parent_id: parent_id }]);
@@ -335,8 +330,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
   createAsset: async (
     file: File,
-    workflow_id: string | null,
-    parent_id: string | null
+    workflow_id?: string,
+    parent_id?: string,
+    onUploadProgress?: (progressEvent: any) => void
   ) => {
     const asset = await createAsset(
       BASE_URL + "/api/assets/",
@@ -348,7 +344,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         content_type: file.type,
         name: file.name
       },
-      file
+      file,
+      onUploadProgress || ((_) => {})
     );
     get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
     get().add(asset);

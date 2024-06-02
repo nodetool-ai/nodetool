@@ -259,16 +259,18 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
 
   const containerRef = useRef(null);
 
-  const { mutation: uploadMutation } = useAssetUpload();
+  const { uploadAsset } = useAssetUpload();
 
   const uploadFiles = useCallback((files: File[]) => {
-    uploadMutation.mutate({
-      files,
-      workflow_id: workflow.id,
-      parent_id: currentFolderId
+    files.forEach((file: File) => {
+      uploadAsset({
+        file: file,
+        workflow_id: workflow.id,
+        parent_id: currentFolderId || undefined
+      })
     });
   },
-    [currentFolderId, uploadMutation, workflow.id]
+    [currentFolderId, uploadAsset, workflow.id]
   );
 
   //search

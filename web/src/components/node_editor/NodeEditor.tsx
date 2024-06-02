@@ -90,7 +90,7 @@ const NodeEditor: React.FC<unknown> = () => {
   const { data: queryMetadata, isLoading: loadingMetadata } = useMetadata();
   const metadata = queryMetadata?.metadata;
   const nodeTypes = useNodeTypes();
-  const { mutation: uploadMutation } = useAssetUpload();
+  const { uploadAsset, isUploading } = useAssetUpload();
   const nodeHistory: HistoryManager = useTemporalStore((state) => state);
   const { shouldFitToScreen, setShouldFitToScreen } = useWorkflowStore(
     (state: any) => state
@@ -409,13 +409,10 @@ const NodeEditor: React.FC<unknown> = () => {
             overflow: "hidden"
           }}
         >
-          {uploadMutation.isLoading && (
+          {isUploading && (
             <div className="loading-overlay">
               <CircularProgress />
             </div>
-          )}
-          {uploadMutation.isError && (
-            <div className="loading-overlay">{"Error uploading assets"}</div>
           )}
           <div className="reactflow-wrapper" ref={reactFlowWrapper}>
             <ReactFlow

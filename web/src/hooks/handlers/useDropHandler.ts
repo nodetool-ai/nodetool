@@ -95,7 +95,6 @@ export function nodeTypeFor(content_type: string): TypeName | null {
 
 export const useDropHandler = (): DropHandler => {
   const reactFlow = useReactFlow();
-  const { mutation: uploadMutation } = useAssetUpload();
   const addNode = useNodeStore((state) => state.addNode);
   const createNode = useNodeStore((state) => state.createNode);
   const workflow = useNodeStore((state) => state.workflow);
@@ -103,6 +102,7 @@ export const useDropHandler = (): DropHandler => {
   const setWorkflow = useNodeStore((state) => state.setWorkflow);
   const getAsset = useAssetStore((state) => state.get);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
+  const { uploadAsset } = useAssetUpload();
   const { user } = useAuth();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -347,22 +347,21 @@ export const useDropHandler = (): DropHandler => {
       if (user) {
         files = processComfyFiles(files);
         files = embedAssetsFromFiles(files, position);
-        uploadMutation
-          .mutateAsync({
-            files,
+        files.forEach((file: File, index: number) => {
+          uploadAsset({
+            file,
             workflow_id: workflow.id,
-            parent_id: currentFolderId || user.id
-          })
-          .then((assets) => {
-            if (targetIsPane) {
-              assets.forEach((asset, index) => {
+            parent_id: currentFolderId || user.id,
+            onCompleted: (asset: Asset) => {
+              if (targetIsPane) {
                 addNodeFromAsset(asset, {
                   x: position.x + index * 300,
                   y: position.y
                 });
-              });
+              }
             }
           });
+        });
       }
     }
   };

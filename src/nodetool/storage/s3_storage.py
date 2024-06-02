@@ -125,7 +125,7 @@ class S3Storage(AbstractStorage):
             response = await client.put(url, content=content.read())
             response.raise_for_status()
 
-        return self.generate_presigned_url("get_object", key)
+        return self.get_url(key)
 
     async def download_stream(self, key: str) -> AsyncIterator[bytes]:
         """

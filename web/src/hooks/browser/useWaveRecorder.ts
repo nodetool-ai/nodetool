@@ -23,7 +23,7 @@ export function useWaveRecorder(props: WaveRecorderProps): {
   toggleDeviceListVisibility: () => void;
 } {
   const defaultFileType = "webm";
-  const { mutation } = useAssetUpload();
+  const { uploadAsset } = useAssetUpload();
   const workflow = useNodeStore((state) => state.workflow);
   const micRef = useRef<HTMLDivElement | null>(null);
   const recordingsRef = useRef<HTMLDivElement | null>(null);
@@ -110,15 +110,12 @@ export function useWaveRecorder(props: WaveRecorderProps): {
           const file = new File([blob], "recording.webm", {
             type: `audio/${defaultFileType}`
           });
-          mutation
-            .mutateAsync({
-              files: [file],
-              workflow_id: workflow.id,
-              parent_id: null
-            })
-            .then((data) => {
-              props.onChange(data[0]);
-            });
+          uploadAsset({
+            file: file,
+            workflow_id: workflow.id,
+            onCompleted: (asset: Asset) => props.onChange(asset),
+            onFailed: (error) => console.log(error)
+          });
         });
       }
     }
@@ -132,7 +129,7 @@ export function useWaveRecorder(props: WaveRecorderProps): {
         waveSurferRef.current.destroy();
       }
     };
-  }, [workflow.id, props, mutation.data]);
+  }, [workflow.id, props, uploadAsset]);
 
   const [isDeviceListVisible, setIsDeviceListVisible] =
     useState<boolean>(false);
