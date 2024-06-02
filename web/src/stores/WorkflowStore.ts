@@ -1,7 +1,6 @@
 import { create } from "zustand";
-import { authHeader, client } from "./ApiClient";
+import { client } from "./ApiClient";
 import { Workflow, WorkflowList, WorkflowRequest } from "./ApiTypes";
-import { uuidv4 } from "./uuidv4";
 import { QueryClient, QueryKey } from "react-query";
 
 export interface WorkflowStore {
@@ -101,7 +100,6 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
    */
   create: async (workflow: WorkflowRequest) => {
     const { data, error } = await client.POST("/api/workflows/", {
-      params: { header: authHeader() },
       body: workflow
     });
     if (error) {
@@ -117,7 +115,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   load: async (cursor?: string, limit?: number) => {
     cursor = cursor || "";
     const { data, error } = await client.GET("/api/workflows/", {
-      params: { query: { cursor, limit }, header: authHeader() }
+      params: { query: { cursor, limit } }
     });
     if (error) {
       throw error;
@@ -175,7 +173,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
    */
   get: async (id: string) => {
     const { data, error } = await client.GET("/api/workflows/{id}", {
-      params: { path: { id }, header: authHeader() }
+      params: { path: { id } }
     });
     if (error) {
       throw error;
@@ -196,8 +194,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     }
     const { error, data } = await client.PUT("/api/workflows/{id}", {
       params: {
-        path: { id: workflow.id },
-        header: authHeader()
+        path: { id: workflow.id }
       },
       body: workflow
     });
@@ -229,7 +226,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
    */
   delete: async (id: string) => {
     const { error, data } = await client.DELETE("/api/workflows/{id}", {
-      params: { path: { id }, header: authHeader() }
+      params: { path: { id } }
     });
     if (error) {
       throw error;

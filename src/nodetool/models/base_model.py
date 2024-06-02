@@ -29,10 +29,6 @@ class DBModel(BaseModel):
         raise NotImplementedError()
 
     @classmethod
-    def client(cls):
-        return Environment.get_dynamo_client()
-
-    @classmethod
     def get_table_name(cls) -> str:
         """
         Get the name of the table for the model.

@@ -9,7 +9,7 @@ import { Box, Typography } from "@mui/material";
 
 //store
 import { useNodeStore } from "../../stores/NodeStore";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../hooks/AssetStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 //server state
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";
@@ -258,17 +258,18 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
 
   const containerRef = useRef(null);
 
-  const { mutation: uploadMutation } = useAssetUpload();
+  const { uploadAsset } = useAssetUpload();
 
-  const uploadFiles = useCallback(
-    (files: File[]) => {
-      uploadMutation.mutate({
-        files,
+  const uploadFiles = useCallback((files: File[]) => {
+    files.forEach((file: File) => {
+      uploadAsset({
+        file: file,
         workflow_id: workflow.id,
-        parent_id: currentFolderId
-      });
-    },
-    [currentFolderId, uploadMutation, workflow.id]
+        parent_id: currentFolderId || undefined
+      })
+    });
+  },
+    [currentFolderId, uploadAsset, workflow.id]
   );
 
   //search

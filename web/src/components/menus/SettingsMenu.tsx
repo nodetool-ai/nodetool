@@ -20,7 +20,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useNavigate } from "react-router";
 import { TOOLTIP_DELAY } from "../../config/constants";
-import { useAuth } from "../../providers/AuthProvider";
+import useAuth from "../../stores/useAuth";
 
 const styles = (theme: any) =>
   css({
@@ -96,7 +96,7 @@ const styles = (theme: any) =>
   });
 
 function SettingsMenu() {
-  const { user, logout } = useAuth();
+  const { user, signout } = useAuth();
   const navigate = useNavigate();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -338,7 +338,7 @@ function SettingsMenu() {
                   variant="contained"
                   color="primary"
                   onClick={() => {
-                    logout();
+                    signout();
                     navigate("/");
                   }}
                 >

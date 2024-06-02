@@ -396,6 +396,7 @@ class Environment(object):
         """
         The database adapter is the adapter that we use to connect to the database.
         """
+
         if cls.get_dynamo_endpoint() is not None:
             from nodetool.models.dynamo_adapter import DynamoAdapter
 

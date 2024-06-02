@@ -22,7 +22,7 @@ import useKeyPressedListener from "../../utils/KeyPressedListener";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
-import { useLoginStore } from "../../stores/LoginStore";
+import { useAuth } from "../../stores/useAuth";
 import { css } from "@emotion/react";
 
 const styles = (theme: any) => css({
@@ -175,7 +175,7 @@ const ChatView = ({
   const altKeyPressed = useKeyPressedListener("Alt");
   const shiftkeyPressed = useKeyPressedListener("Shift");
   const [submitted, setSubmitted] = useState(false);
-  const readFromStorage = useLoginStore((state) => state.readFromStorage);
+  const readFromStorage = useAuth((state) => state.readFromStorage);
   const [prompt, setPrompt] = useState("");
   const user = readFromStorage();
   const loading = false;

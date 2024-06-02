@@ -14,7 +14,7 @@ import {
 import { getMousePosition } from "../../utils/MousePosition";
 import { devLog } from "../../utils/DevLog";
 import { UseMutationResult } from "react-query";
-import { AssetUpdate, useAssetStore } from "../../stores/AssetStore";
+import { AssetUpdate, useAssetStore } from "../../hooks/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 
 interface AssetRenameConfirmationProps {

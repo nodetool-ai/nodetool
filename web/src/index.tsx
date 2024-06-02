@@ -4,9 +4,11 @@ import reportWebVitals from "./reportWebVitals";
 import { ReactFlowProvider } from "reactflow";
 
 import {
+  LoaderFunctionArgs,
   Navigate,
   RouterProvider,
-  createBrowserRouter
+  createBrowserRouter,
+  useRouteError
 } from "react-router-dom";
 
 import NodeEditor from "./components/node_editor/NodeEditor";
@@ -27,33 +29,21 @@ import "./styles/vars.css";
 import NodeMenu from "./components/node_menu/NodeMenu";
 import AssetExplorer from "./components/assets/AssetExplorer";
 import WorkflowGrid from "./components/workflows/WorkflowGrid";
-import ErrorBoundary from "./components/ErrorBoundary";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
-import { useAssetStore } from "./stores/AssetStore";
+import { useAssetStore } from "./hooks/AssetStore";
 import { useWorkflowStore } from "./stores/WorkflowStore";
-import { AuthProvider, useAuth } from "./providers/AuthProvider";
 import Login from "./components/Login";
 import AppFooter from "./components/panels/AppFooter";
 import OAuthCallback from "./components/OauthCallback";
 import ExampleGrid from "./components/workflows/ExampleGrid";
 import OpenOrCreateDialog from "./components/dialogs/OpenOrCreateDialog";
-import * as Sentry from "@sentry/react";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { initSentry } from "./utils/sentry";
+import { RouteObject } from "@sentry/react/types/types";
+import useAuth from "./stores/useAuth";
 
-if (import.meta.env.MODE === "production") {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration()
-    ],
-    tracesSampleRate: 1.0,
-    tracePropagationTargets: [/^https:\/\/app.nodetool\.ai/],
-    replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-    replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
-  });
-}
+initSentry();
 
 const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);
@@ -68,18 +58,20 @@ const NavigateToStart = () => {
   }
 };
 
-const router = createBrowserRouter([
-  {
+function ErrorBoundary() {
+  const error = useRouteError();
+  console.error(error);
+  return <div>Error!</div>;
+}
+
+function getRoutes() {
+  const routes: RouteObject[] = [{
     path: "/",
-    element: <NavigateToStart />
+    element: <NavigateToStart />,
   },
   {
     path: "/oauth/callback",
-    element: <OAuthCallback />
-  },
-  {
-    path: "/editor",
-    element: <NavigateToStart />
+    element: <OAuthCallback />,
   },
   {
     path: "/login",
@@ -88,7 +80,11 @@ const router = createBrowserRouter([
         <CssBaseline />
         <Login />
       </ThemeProvider>
-    )
+    ),
+  },
+  {
+    path: "/editor",
+    element: <NavigateToStart />,
   },
   {
     path: "assets",
@@ -100,7 +96,7 @@ const router = createBrowserRouter([
           <AssetExplorer />
         </ThemeProvider>
       </ProtectedRoute>
-    )
+    ),
   },
   {
     path: "examples",
@@ -112,7 +108,7 @@ const router = createBrowserRouter([
           <ExampleGrid />
         </ThemeProvider>
       </ProtectedRoute>
-    )
+    ),
   },
   {
     path: "workflows",
@@ -124,7 +120,7 @@ const router = createBrowserRouter([
           <WorkflowGrid />
         </ThemeProvider>
       </ProtectedRoute>
-    )
+    ),
   },
   {
     path: "editor/:workflow",
@@ -146,7 +142,7 @@ const router = createBrowserRouter([
         </ThemeProvider>
       </ProtectedRoute>
     ),
-    loader: async ({ params }) => await initiateEditor(params.workflow)
+    loader: async ({ params }: LoaderFunctionArgs) => await initiateEditor(params.workflow)
   },
   {
     path: "editor/start",
@@ -162,26 +158,30 @@ const router = createBrowserRouter([
         </ThemeProvider>
       </ProtectedRoute>
     ),
-    loader: async ({ params }) => await initiateEditor(params.workflow)
+    loader: async ({ params }: LoaderFunctionArgs) => await initiateEditor(params.workflow)
   }
-]);
+  ];
 
+  routes.forEach((route) => {
+    route.ErrorBoundary = ErrorBoundary;
+  });
+
+  return routes;
+}
+
+const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
 root.render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <AuthProvider>
-        <ReactFlowProvider>
-          <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
-            <ReactQueryDevtools />
-          </QueryClientProvider>
-        </ReactFlowProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <ReactFlowProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <ReactQueryDevtools />
+      </QueryClientProvider>
+    </ReactFlowProvider>
   </React.StrictMode>
 );
 

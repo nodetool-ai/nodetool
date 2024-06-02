@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from "react";
 import { useInfiniteQuery } from "react-query";
-import { useAuth } from "../providers/AuthProvider";
 import { Asset, AssetList } from "../stores/ApiTypes";
-import { useAssetStore } from "../stores/AssetStore";
+import { useAssetStore } from "../hooks/AssetStore";
 import { useSettingsStore } from "../stores/SettingsStore";
+import useAuth from "../stores/useAuth";
 
 type AssetLoadParams = {
   pageParam?: string;

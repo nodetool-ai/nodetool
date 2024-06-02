@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import { UseMutationResult } from "react-query";
-import { AssetUpdate } from "../../stores/AssetStore";
+import { AssetUpdate } from "../../hooks/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 import FolderTree from "./FolderTree";
 import useSessionStateStore from "../../stores/SessionStateStore";

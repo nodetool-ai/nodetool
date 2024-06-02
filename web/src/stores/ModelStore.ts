@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { client, authHeader } from "./ApiClient";
+import { create } from "zustand";
+import { client } from "./ApiClient";
 
 type ModelStore = {
   models: Record<string, string[]>;
@@ -10,15 +10,15 @@ const useModelStore = create<ModelStore>((set, get) => ({
   models: {},
   load: async (folder: string) => {
     const { error, data } = await client.GET("/api/models/{folder}", {
-      params: { path: { folder }, header: authHeader() }
+      params: { path: { folder } }
     });
     const models = get().models;
     if (error) {
-      console.error('Failed to fetch models:', error);
+      console.error("Failed to fetch models:", error);
       return [];
     }
     if (!data) {
-      console.error('No data returned from server');
+      console.error("No data returned from server");
       return [];
     }
     set({
@@ -28,7 +28,7 @@ const useModelStore = create<ModelStore>((set, get) => ({
       }
     });
     return data;
-  },
+  }
 }));
 
 export default useModelStore;

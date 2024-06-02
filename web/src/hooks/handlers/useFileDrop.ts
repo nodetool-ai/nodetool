@@ -18,7 +18,7 @@ export function useFileDrop(props: FileDropProps): {
 } {
   const [filename, setFilename] = useState("");
   const notificationStore = useNotificationStore();
-  const { mutation: uploadMutation } = useAssetUpload();
+  const { uploadAsset, isUploading } = useAssetUpload();
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
   }, []);
@@ -35,17 +35,14 @@ export function useFileDrop(props: FileDropProps): {
           const reader = new FileReader();
 
           if (props.uploadAsset) {
-            uploadMutation
-              .mutateAsync({
-                files: [file],
-                workflow_id: null,
-                parent_id: null
-              })
-              .then((assets) => {
+            uploadAsset({
+              file,
+              onCompleted: (asset) => {
                 if (props.onChangeAsset) {
-                  props.onChangeAsset(assets[0]);
+                  props.onChangeAsset(asset);
                 }
-              });
+              }
+            });
           } else {
             reader.onload = function (event) {
               if (event.target?.result && props.onChange) {
@@ -89,8 +86,8 @@ export function useFileDrop(props: FileDropProps): {
         });
       }
     },
-    [props, uploadMutation, notificationStore]
+    [props, uploadAsset, notificationStore]
   );
 
-  return { onDragOver, onDrop, filename, uploading: uploadMutation.isLoading };
+  return { onDragOver, onDrop, filename, uploading: isUploading };
 }

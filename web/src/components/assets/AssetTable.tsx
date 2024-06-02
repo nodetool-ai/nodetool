@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../hooks/AssetStore";
 
 export type AssetTableProps = {
   assetIds: string[];

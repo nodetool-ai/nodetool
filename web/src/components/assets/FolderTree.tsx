@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Box, Button } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../hooks/AssetStore";
 import { devError } from "../../utils/DevLog";
 
 interface FolderNode {
