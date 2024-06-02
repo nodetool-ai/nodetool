@@ -13,7 +13,7 @@ import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 // store
 import useSessionStateStore from "../../stores/SessionStateStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../hooks/AssetStore";
 // components
 import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";

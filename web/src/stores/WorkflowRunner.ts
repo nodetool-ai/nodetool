@@ -3,7 +3,7 @@ import { NodeData } from "./NodeData";
 import { WORKER_URL } from "./ApiClient";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "reactflow";
-import { useAssetStore } from "./AssetStore";
+import { useAssetStore } from "../hooks/AssetStore";
 import {
   reactFlowEdgeToGraphEdge,
   reactFlowNodeToGraphNode,
@@ -22,7 +22,7 @@ import {
 } from "./ApiTypes";
 import { Omit } from "lodash";
 import { uuidv4 } from "./uuidv4";
-import { useLoginStore } from "./LoginStore";
+import { useAuth } from "./useAuth";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
@@ -220,7 +220,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const edges = useNodeStore.getState().edges;
     const nodes = useNodeStore.getState().nodes;
     const workflow = useNodeStore.getState().workflow;
-    const readFromStorage = useLoginStore.getState().readFromStorage;
+    const readFromStorage = useAuth.getState().readFromStorage;
     const readMessage = get().readMessage;
     const getInputEdges = useNodeStore.getState().getInputEdges;
     const getResult = useResultsStore.getState().getResult;

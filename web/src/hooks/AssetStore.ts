@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { client, authHeader, BASE_URL } from "./ApiClient";
-import { Asset, AssetList } from "./ApiTypes";
+import { client, BASE_URL, authHeader } from "../stores/ApiClient";
+import { Asset, AssetList } from "../stores/ApiTypes";
 import { devLog } from "../utils/DevLog";
 import { QueryClient, QueryKey } from "react-query";
 import axios from "axios";
@@ -168,7 +168,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
   get: async (id: string) => {
     const { data, error } = await client.GET("/api/assets/{id}", {
-      params: { path: { id }, header: authHeader() }
+      params: { path: { id } }
     });
     if (error) {
       throw error;
@@ -187,8 +187,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     devLog("Loading assets with query", query);
     const { data, error } = await client.GET("/api/assets/", {
       params: {
-        query: query,
-        header: authHeader()
+        query: query
       }
     });
     if (error) {
@@ -282,7 +281,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   delete: async (id: string) => {
     const asset = await get().get(id);
     const { error } = await client.DELETE("/api/assets/{id}", {
-      params: { path: { id }, header: authHeader() }
+      params: { path: { id } }
     });
 
     if (error) {
@@ -303,7 +302,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       throw new Error("Cannot move an asset into itself.");
     }
     const { error, data } = await client.PUT("/api/assets/{id}", {
-      params: { path: { id: req.id }, header: authHeader() },
+      params: { path: { id: req.id } },
       body: {
         status: req.status || prev.status,
         name: req.name || prev.name,

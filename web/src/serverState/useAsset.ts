@@ -1,5 +1,5 @@
 import { Asset, Video, Audio, Image } from "../stores/ApiTypes";
-import { useAssetStore } from "../stores/AssetStore";
+import { useAssetStore } from "../hooks/AssetStore";
 import { useQuery } from "react-query";
 
 type UseAssetProps = {
@@ -35,9 +35,7 @@ export function useAsset(props: UseAssetProps): {
     }
   };
 
-  const {
-    data: asset,
-  } = useQuery(["asset", assetResource?.asset_id], load, {
+  const { data: asset } = useQuery(["asset", assetResource?.asset_id], load, {
     enabled: !!assetResource?.asset_id
   });
 

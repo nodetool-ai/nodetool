@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../providers/AuthProvider";
-import { useLoginStore } from "../stores/LoginStore";
 import { client } from "../stores/ApiClient";
+import useAuth from "../stores/useAuth";
 
 type Props = {
   children: React.ReactNode;
@@ -10,12 +9,9 @@ type Props = {
 
 const ProtectedRoute: React.FC<Props> = ({ children }) => {
   const navigate = useNavigate();
-  const auth = useAuth();
-  const readFromStorage = useLoginStore((state) => state.readFromStorage);
-  const signout = useLoginStore((state) => state.signout);
+  const { user, signout } = useAuth();
 
   const verify = useCallback(async () => {
-    const user = readFromStorage();
     if (!user || !user.auth_token) {
       return false;
     }
@@ -28,7 +24,7 @@ const ProtectedRoute: React.FC<Props> = ({ children }) => {
       return false;
     }
     return data.valid;
-  }, [readFromStorage]);
+  }, [user]);
 
   const checkUser = useCallback(async () => {
     const valid = await verify();
@@ -44,10 +40,10 @@ const ProtectedRoute: React.FC<Props> = ({ children }) => {
   }, [checkUser]);
 
   useEffect(() => {
-    if (!auth.user) {
+    if (!user) {
       navigate("/login");
     }
-  }, [navigate, auth.user]);
+  }, [navigate, user]);
 
   return <>{children}</>;
 };

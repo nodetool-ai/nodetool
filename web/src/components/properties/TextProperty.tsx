@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../hooks/AssetStore";
 import { devError } from "../../utils/DevLog";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";

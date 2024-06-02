@@ -9,7 +9,7 @@ import { Box, Typography } from "@mui/material";
 
 //store
 import { useNodeStore } from "../../stores/NodeStore";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../hooks/AssetStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 //server state
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";

@@ -8,16 +8,16 @@ import {
   NodeMetadata
 } from "../../stores/ApiTypes";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../AssetStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { constantForType } from "./useConnectionHandlers";
-import { useAuth } from "../../providers/AuthProvider";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import dagre from "dagre";
 import { useMetadata } from "../../serverState/useMetadata";
 import axios from "axios";
 import { devError, devLog } from "../../utils/DevLog";
 import { useCallback } from "react";
+import useAuth from "../../stores/useAuth";
 
 interface DropHandler {
   onDrop: (event: React.DragEvent<HTMLDivElement>) => void;

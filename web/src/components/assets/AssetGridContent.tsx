@@ -5,7 +5,7 @@ import { css } from "@emotion/react";
 import { Box, Divider } from "@mui/material";
 
 //store
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../hooks/AssetStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 //utils
@@ -243,7 +243,7 @@ const AssetGridContent = ({
                       }}
                       onDragStart={() => onDragStart(asset.id)}
 
-                      // onDragStart={() => [...selectedAssetIds, asset.id]}
+                    // onDragStart={() => [...selectedAssetIds, asset.id]}
                     />
                   </Box>
                 ))}

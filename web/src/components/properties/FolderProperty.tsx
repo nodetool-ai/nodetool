@@ -1,7 +1,7 @@
 import { Select } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import { AssetList } from "../../stores/ApiTypes";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../hooks/AssetStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "react-query";
 import { PropertyProps } from "../node/PropertyInput";

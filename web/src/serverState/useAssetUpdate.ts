@@ -1,5 +1,5 @@
 import { useMutation } from "react-query";
-import { AssetUpdate, useAssetStore } from "../stores/AssetStore";
+import { AssetUpdate, useAssetStore } from "../hooks/AssetStore";
 import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
 

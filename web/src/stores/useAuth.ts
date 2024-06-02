@@ -6,22 +6,37 @@ import { devLog } from "../utils/DevLog";
 export type OAuthProvider = "google" | "facebook";
 
 export interface LoginStore {
-  oauthLogin: (provider: OAuthProvider, redirect_uri: string) => Promise<void>;
+  user: User | null;
+  setUser: (user: User | null) => void;
+  oauthLogin: (provider: OAuthProvider, redirect_uri?: string) => Promise<void>;
   oauthCallback: (req: OAuthAuthorizeRequest) => Promise<User>;
   oauthState: () => string | null;
+  saveToStorage: (user: User | null) => void;
   readFromStorage: () => User | null;
-  saveToStorage: (user: User) => void;
   signout: () => Promise<void>;
 }
 
-export const useLoginStore = create<LoginStore>((set, get) => ({
+export const useAuth = create<LoginStore>((set, get) => ({
+  user: null,
+
+  /**
+   * Set user
+   */
+  setUser: (user: User | null) => {
+    set({ user });
+    get().saveToStorage(user);
+  },
+
   /**
    * Redirect the user to the OAuth provider's login page.
    *
    * @param provider The OAuth provider to use.
    * @returns A promise that resolves when the user is redirected.
    */
-  oauthLogin: async (provider: OAuthProvider, redirect_uri: string) => {
+  oauthLogin: async (provider: OAuthProvider, redirect_uri?: string) => {
+    if (redirect_uri === undefined) {
+      redirect_uri = window.location.origin + "/oauth/callback";
+    }
     const { error, data } = await client.POST("/api/auth/oauth/login", {
       body: {
         provider: provider,
@@ -31,7 +46,7 @@ export const useLoginStore = create<LoginStore>((set, get) => ({
     if (error) {
       throw error;
     }
-    localStorage.setItem("oauth_state", data.state);
+    sessionStorage.setItem("oauth_state", data.state);
     window.location.href = data.url;
   },
 
@@ -41,32 +56,33 @@ export const useLoginStore = create<LoginStore>((set, get) => ({
    * @param req The OAuth callback request.
    */
   oauthCallback: async (req: OAuthAuthorizeRequest) => {
-    if (req.state !== localStorage.getItem("oauth_state")) {
+    if (req.state !== get().oauthState()) {
       throw new Error("Invalid OAuth state");
     }
-    localStorage.removeItem("oauth_state");
-    const { error, data } = await client.POST("/api/auth/oauth/callback", {
+    sessionStorage.removeItem("oauth_state");
+    const { data } = await client.POST("/api/auth/oauth/callback", {
       body: req
     });
-    if (error) {
-      throw error;
-    }
-    return data;
+    return data as User;
   },
 
   /**
    * Get the OAuth state from local storage.
    */
   oauthState: () => {
-    return localStorage.getItem("oauth_state");
+    return sessionStorage.getItem("oauth_state");
   },
 
   /**
    * Save the user to local storage.
    */
-  saveToStorage: (user: User) => {
+  saveToStorage: (user: User | null) => {
     devLog("saveToStorage", user);
-    localStorage.setItem("user", JSON.stringify(user));
+    if (user === null) {
+      localStorage.removeItem("user");
+    } else {
+      localStorage.setItem("user", JSON.stringify(user));
+    }
   },
 
   /**
@@ -92,6 +108,9 @@ export const useLoginStore = create<LoginStore>((set, get) => ({
    */
   signout: async () => {
     localStorage.removeItem("user");
-    window.history.pushState({}, "", "/");
+    set({ user: null });
+    // window.history.pushState({}, "", "/");
   }
 }));
+
+export default useAuth;

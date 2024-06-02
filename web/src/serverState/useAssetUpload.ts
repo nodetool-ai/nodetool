@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Asset } from "../stores/ApiTypes";
-import { useAssetStore } from "../stores/AssetStore";
+import { useAssetStore } from "../hooks/AssetStore";
 
 type UploadFile = {
   file: File;

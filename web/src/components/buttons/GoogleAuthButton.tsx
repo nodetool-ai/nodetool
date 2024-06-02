@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
-import { useAuth } from "../../providers/AuthProvider";
+import useAuth from "../../stores/useAuth";
+
 
 const styles = {
   svg: {
@@ -9,9 +10,9 @@ const styles = {
 };
 
 const GoogleAuthButton = () => {
-  const { login } = useAuth();
+  const { oauthLogin } = useAuth();
   const handleClick = async () => {
-    await login("google");
+    await oauthLogin("google");
   };
 
   return (

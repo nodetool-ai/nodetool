@@ -26,7 +26,7 @@ import {
 } from "@mui/material";
 
 import useAssets from "../../serverState/useAssets";
-import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../hooks/AssetStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
@@ -164,9 +164,8 @@ const AssetActions = ({
               setCurrentFolderId(currentFolder?.parent_id || "");
               setSelectedAssetIds([]);
             }}
-            className={`folder-up-button ${
-              currentFolder?.parent_id !== "" ? " enabled" : " disabled"
-            }`}
+            className={`folder-up-button ${currentFolder?.parent_id !== "" ? " enabled" : " disabled"
+              }`}
           >
             <NorthWestIcon />
           </Button>

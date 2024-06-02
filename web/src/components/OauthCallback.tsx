@@ -1,35 +1,13 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 import { useQuery } from "react-query";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { client } from "../stores/ApiClient";
-import { OAuthAuthorizeRequest } from "../stores/ApiTypes";
-import { useLoginStore } from "../stores/LoginStore";
-import { useAuth } from "../providers/AuthProvider";
-
-const oauthCallback = async (req: OAuthAuthorizeRequest) => {
-  const saveToStorage = useLoginStore.getState().saveToStorage;
-  if (req.state !== localStorage.getItem("oauth_state")) {
-    throw new Error("Invalid OAuth state");
-  }
-  const { error, data } = await client.POST("/api/auth/oauth/callback", {
-    body: req
-  });
-  if (data) {
-    saveToStorage(data);
-  }
-  if (error) {
-    throw error;
-  }
-  localStorage.removeItem("oauth_state");
-  return { data, error };
-};
+import { useLocation, useNavigate } from "react-router-dom";
+import useAuth from "../stores/useAuth";
 
 const OAuthCallback: React.FC = () => {
   const location = useLocation();
   const urlParams = new URLSearchParams(location.search);
   const state = urlParams.get("state");
-  const saveToStorage = useLoginStore(state => state.saveToStorage);
-  const { setUser } = useAuth();
+  const { setUser, oauthCallback } = useAuth();
   const navigate = useNavigate();
   const fetchUser = useCallback(async (state: string) => {
     const res = await oauthCallback({
@@ -38,10 +16,9 @@ const OAuthCallback: React.FC = () => {
       redirect_uri: window.location.origin + "/oauth/callback",
       state: state || ""
     });
-    saveToStorage(res.data);
-    setUser(res.data);
+    setUser(res);
     navigate("/editor/start");
-  }, [location.search, navigate, saveToStorage, setUser]);
+  }, [location.search, navigate, oauthCallback, setUser]);
 
   useQuery(["oauth", state], async () => {
     if (state) {
