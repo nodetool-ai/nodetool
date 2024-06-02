@@ -47,10 +47,13 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
   updateStatus: (index, progress, status, error) =>
     set((state) => {
       const updatedFiles = [...state.files];
+      if (index >= updatedFiles.length) {
+        return state;
+      }
       updatedFiles[index].progress = progress;
       updatedFiles[index].status = status;
       updatedFiles[index].error = error;
-      const newState = {
+      return {
         files: updatedFiles,
         isUploading: updatedFiles.some(
           (file) => file.status === "uploading" || file.status === undefined
@@ -61,7 +64,6 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
         completed: updatedFiles.filter((file) => file.status === "completed")
           .length
       };
-      return newState;
     }),
 
   handleUpload: () => {
