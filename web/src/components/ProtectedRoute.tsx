@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { client } from "../stores/ApiClient";
+import { client, useRemoteAuth } from "../stores/ApiClient";
 import useAuth from "../stores/useAuth";
 
 type Props = {
@@ -12,6 +12,9 @@ const ProtectedRoute: React.FC<Props> = ({ children }) => {
   const { user, signout } = useAuth();
 
   const verify = useCallback(async () => {
+    if (!useRemoteAuth) {
+      return true;
+    }
     if (!user || !user.auth_token) {
       return false;
     }
