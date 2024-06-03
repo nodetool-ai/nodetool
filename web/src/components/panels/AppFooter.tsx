@@ -38,7 +38,7 @@ const footerStyles = (theme: any) =>
       top: "auto",
       left: "0",
       right: "0",
-      zIndex: 100
+      zIndex: 10000
     },
     header: {
       width: "100%",
