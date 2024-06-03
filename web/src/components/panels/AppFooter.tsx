@@ -116,7 +116,7 @@ function AppFooter() {
   useHotkeys("Escape", () => cancelWorkflow());
 
   return (
-    <div css={footerStyles}>
+    <div css={footerStyles} onContextMenu={(e) => e.preventDefault()}>
       <AppBar position="static" className="app-footer">
         <Toolbar className="toolbar" variant="dense">
           <Box className="toolbar-buttons">
