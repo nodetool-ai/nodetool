@@ -88,11 +88,7 @@ class WorkflowNode(BaseNode):
         return APIGraph(edges=edges, nodes=nodes)
 
     async def process(self, context: ProcessingContext):
-        capabilities = ["db"]
         logs = ""
-
-        if Environment.get_comfy_folder():
-            capabilities.append("comfy")
 
         req = RunJobRequest(
             user_id=context.user_id,
@@ -101,7 +97,7 @@ class WorkflowNode(BaseNode):
             params=self.inputs or {},
         )
         output = {}
-        for msg_json in run_workflow(req, capabilities):
+        for msg_json in run_workflow(req):
             msg = json.loads(msg_json)
             if msg["type"] == "node_progress":
                 context.post_message(

@@ -110,7 +110,7 @@ async def run(
 
     assert user.auth_token
 
-    capabilities = ["db"]
+    capabilities = []
 
     if Environment.get_comfy_folder():
         capabilities.append("comfy")

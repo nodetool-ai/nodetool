@@ -17,6 +17,8 @@ from openapi_pydantic.v3 import (
 )
 from openapi_pydantic.v3.parser import OpenAPIv3
 from enum import Enum
+
+from pydantic import ConfigDict
 from nodetool.common.environment import Environment
 from nodetool.dsl.codegen import field_default, type_to_string
 from nodetool.metadata.types import Tensor
@@ -64,6 +66,7 @@ class ReplicateNode(BaseNode):
     """
 
     _visible = False
+    model_config = ConfigDict(protected_namespaces=())
 
     @classmethod
     def __init_subclass__(cls):

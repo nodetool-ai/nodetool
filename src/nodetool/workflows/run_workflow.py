@@ -10,7 +10,7 @@ from sys import stdout
 log = Environment.get_logger()
 
 
-def run_workflow(req: RunJobRequest, capabilities: list[str]):
+def run_workflow(req: RunJobRequest):
     from nodetool.workflows.types import Error, WorkflowUpdate
     from nodetool.workflows.processing_context import (
         ProcessingContext,
@@ -22,7 +22,6 @@ def run_workflow(req: RunJobRequest, capabilities: list[str]):
         auth_token=req.auth_token,
         workflow_id=req.workflow_id,
         queue=Queue(),
-        capabilities=capabilities,
     )
 
     loop = asyncio.get_event_loop()

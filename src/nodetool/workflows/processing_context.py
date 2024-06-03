@@ -129,8 +129,10 @@ class ProcessingContext:
         self.graph = graph
         self.results = {}
         self.processed_nodes = set()
-        self.message_queue = queue if queue is not None else asyncio.Queue()
-        self.capabilities = capabilities if capabilities is not None else []
+        self.message_queue = queue if queue else asyncio.Queue()
+        self.capabilities = (
+            capabilities if capabilities else Environment.get_capabilities()
+        )
         self.api_client = Environment.get_nodetool_api_client(self.auth_token)
         self.http_client = http_client
         assert self.auth_token is not None, "Auth token is required"

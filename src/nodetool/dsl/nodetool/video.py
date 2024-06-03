@@ -22,8 +22,8 @@ class FramesToVideo(GraphNode):
 
 
 class SaveVideo(GraphNode):
-    value: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, duration=None, format=None), description=None)
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='Name of the output folder.')
+    value: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, temp_id=None, duration=None, format=None), description=None)
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='Name of the output folder.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='video', description='Name of the output video.')
     @classmethod
     def get_node_type(cls): return "nodetool.video.SaveVideo"
