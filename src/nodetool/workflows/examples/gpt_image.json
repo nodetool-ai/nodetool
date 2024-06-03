@@ -1,0 +1,69 @@
+{
+  "1": {
+    "type": "openai.text.GPT",
+    "inputs": {
+      "model": "gpt-3.5-turbo-0125",
+      "system": "You are a friendly assistant.",
+      "prompt": "write a random prompt",
+      "image": {
+        "type": "image",
+        "uri": "",
+        "asset_id": null,
+        "temp_id": null
+      },
+      "presence_penalty": 0,
+      "frequency_penalty": 0,
+      "temperature": 1,
+      "max_tokens": 100,
+      "top_p": 1,
+      "response_format": "text"
+    }
+  },
+  "2": {
+    "type": "replicate.image.generate.StableDiffusionXL",
+    "inputs": {
+      "mask": {
+        "type": "image",
+        "uri": "",
+        "asset_id": null,
+        "temp_id": null
+      },
+      "seed": null,
+      "image": {
+        "type": "image",
+        "uri": "",
+        "asset_id": null,
+        "temp_id": null
+      },
+      "width": 1024,
+      "height": 1024,
+      "prompt": [
+        "1",
+        "output"
+      ],
+      "refine": "no_refiner",
+      "scheduler": "K_EULER",
+      "lora_scale": 0.6,
+      "num_outputs": 1,
+      "refine_steps": null,
+      "guidance_scale": 7.5,
+      "apply_watermark": true,
+      "high_noise_frac": 0.8,
+      "negative_prompt": "",
+      "prompt_strength": 0.8,
+      "replicate_weights": null,
+      "num_inference_steps": 50,
+      "disable_safety_checker": false
+    }
+  },
+  "3": {
+    "type": "nodetool.workflows.base_node.Preview",
+    "inputs": {
+      "value": [
+        "2",
+        "output"
+      ],
+      "type": "nodetool.workflows.base_node.Preview"
+    }
+  }
+}
