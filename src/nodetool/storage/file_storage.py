@@ -31,8 +31,11 @@ class FileStorage(AbstractStorage):
         return os.path.isfile(os.path.join(self.base_path, file_name))
 
     async def get_mtime(self, key: str):
-        mtime = os.path.getmtime(os.path.join(self.base_path, key))
-        return datetime.fromtimestamp(mtime, tz=datetime.now().astimezone().tzinfo)
+        try:
+            mtime = os.path.getmtime(os.path.join(self.base_path, key))
+            return datetime.fromtimestamp(mtime, tz=datetime.now().astimezone().tzinfo)
+        except FileNotFoundError:
+            return None
 
     async def download_stream(self, key: str) -> AsyncIterator[bytes]:
         with open(os.path.join(self.base_path, key), "rb") as f:

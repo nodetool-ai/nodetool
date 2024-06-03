@@ -53,7 +53,7 @@ async def get(bucket: str, key: str, request: Request):
         raise HTTPException(status_code=404)
 
     last_modified = await storage.get_mtime(key)
-    if "If-Modified-Since" in request.headers:
+    if "If-Modified-Since" in request.headers and last_modified:
         if_modified_since = parsedate_to_datetime(request.headers["If-Modified-Since"])
         if if_modified_since >= last_modified:
             raise HTTPException(status_code=304)
