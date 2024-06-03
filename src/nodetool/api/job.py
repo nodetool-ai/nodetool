@@ -110,16 +110,10 @@ async def run(
 
     assert user.auth_token
 
-    capabilities = ["db"]
-
-    if Environment.get_comfy_folder():
-        capabilities.append("comfy")
-
     context = ProcessingContext(
         user_id=user.id,
         auth_token=user.auth_token,
         workflow_id=req.workflow_id,
-        capabilities=capabilities,
     )
 
     runner = WorkflowRunner()

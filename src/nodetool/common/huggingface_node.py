@@ -79,7 +79,10 @@ async def run_huggingface(
 
 
 class HuggingfaceNode(BaseNode):
-    _visible = False
+
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls is not HuggingfaceNode
 
     async def run_huggingface(
         self,

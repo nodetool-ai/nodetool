@@ -182,14 +182,10 @@ async def process_workflow_function(
         graph=workflow.get_api_graph(),
         params=params,
     )
-    capabilities = ["db"]
-
-    if Environment.get_comfy_folder():
-        capabilities.append("comfy")
 
     output = {}
 
-    for msg_json in run_workflow(req, capabilities):
+    for msg_json in run_workflow(req):
         msg = json.loads(msg_json)
         if msg["type"] == "node_progress":
             print(f"{msg['node_id']} -> {msg['progress']}\n")

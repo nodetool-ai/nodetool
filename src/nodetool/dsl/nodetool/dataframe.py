@@ -1,10 +1,8 @@
 from pydantic import BaseModel, Field
-from pydantic_core import PydanticUndefined
 import nodetool.metadata.types
 from nodetool.metadata.types import *
 from nodetool.dsl.graph import GraphNode
-from io import StringIO
-import pandas as pd
+
 
 class Append(GraphNode):
     dataframe_a: DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='First DataFrame to be appended.')
@@ -13,23 +11,12 @@ class Append(GraphNode):
     def get_node_type(cls): return "nodetool.dataframe.Append"
 
 
-class CSVToDataframe(BaseModel):
-    csv_data: str = Field(..., description='String input of CSV formatted text.')
-    
+
+class CSVToDataframe(GraphNode):
+    csv_data: str | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='String input of CSV formatted text.')
     @classmethod
-    def get_node_type(cls):
-        return "nodetool.dataframe.CSVToDataframe"
-    
-    def to_dataframe(self):
-        if isinstance(self.csv_data, str):
-            try:
-                csv_data_io = StringIO(self.csv_data)
-                df = pd.read_csv(csv_data_io)
-                return df
-            except Exception as e:
-                raise ValueError(f"Error converting CSV to DataFrame: {e}")
-        else:
-            raise TypeError("csv_data must be a string containing CSV formatted text.")
+    def get_node_type(cls): return "nodetool.dataframe.CSVToDataframe"
+
 
 
 class ColumnToList(GraphNode):
@@ -136,12 +123,12 @@ class PlotHistogram(GraphNode):
 
 
 
-class Save(GraphNode):
-    df: DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=DataframeRef(type='dataframe', uri='', asset_id=None, columns=None, data=None), description=None)
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='Name of the output folder.')
+class SaveDataframe(GraphNode):
+    df: DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=DataframeRef(type='dataframe', uri='', asset_id=None, temp_id=None, columns=None, data=None), description=None)
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='Name of the output folder.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='output.csv', description='Name of the output file.')
     @classmethod
-    def get_node_type(cls): return "nodetool.dataframe.Save"
+    def get_node_type(cls): return "nodetool.dataframe.SaveDataframe"
 
 
 

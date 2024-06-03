@@ -5,7 +5,7 @@ from nodetool.dsl.graph import GraphNode
 
 
 class AudioToTensor(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None), description='The audio file to convert to a tensor.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to convert to a tensor.')
     @classmethod
     def get_node_type(cls): return "nodetool.audio.conversion.AudioToTensor"
 

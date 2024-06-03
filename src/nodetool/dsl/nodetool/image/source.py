@@ -33,7 +33,7 @@ class RenderText(GraphNode):
     size: int | GraphNode | tuple[GraphNode, str] = Field(default=12, description='The font size.')
     color: str | GraphNode | tuple[GraphNode, str] = Field(default='#000000', description='The font color.')
     align: TextAlignment | GraphNode | tuple[GraphNode, str] = Field(default=TextAlignment('left'), description=None)
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None), description='The image to render on.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to render on.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.source.RenderText"
 

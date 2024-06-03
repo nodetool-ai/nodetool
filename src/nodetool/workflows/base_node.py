@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from pydantic.fields import FieldInfo
 
 from typing import Any, Type
@@ -465,7 +465,10 @@ class InputNode(BaseNode):
     label: str = Field("Input Label", description="The label for this input node.")
     name: str = Field("", description="The parameter name for the workflow.")
     description: str = Field("", description="The description for this input node.")
-    _visible: bool = False
+
+    @classmethod
+    def is_visible(cls):
+        return cls is not InputNode
 
 
 class OutputNode(BaseNode):
@@ -476,7 +479,10 @@ class OutputNode(BaseNode):
     description: str = Field(
         default="", description="The description for this output node."
     )
-    _visible: bool = False
+
+    @classmethod
+    def is_visible(cls):
+        return cls is not OutputNode
 
 
 class Comment(BaseNode):
@@ -534,7 +540,7 @@ def get_registered_node_classes() -> list[type[BaseNode]]:
     Returns:
         list[type[Node]]: The registered node classes.
     """
-    return [c for c in NODE_BY_TYPE.values() if c.is_visible]
+    return [c for c in NODE_BY_TYPE.values() if c.is_visible()]
 
 
 def requires_capabilities(nodes: list[BaseNode]):

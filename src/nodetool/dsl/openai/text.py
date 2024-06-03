@@ -20,7 +20,7 @@ class GPT(GraphNode):
     model: GPTModel | GraphNode | tuple[GraphNode, str] = Field(default=GPTModel('gpt-3.5-turbo-0125'), description=None)
     system: str | GraphNode | tuple[GraphNode, str] = Field(default='You are a friendly assistant.', description=None)
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None), description=None)
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description=None)
     presence_penalty: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description=None)
     frequency_penalty: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description=None)
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)

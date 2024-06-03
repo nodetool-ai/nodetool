@@ -104,11 +104,6 @@ def run(workflow_file: str):
 
     click.echo(f"Running workflow from {workflow_file}.")
 
-    capabilities = ["db"]
-
-    if Environment.get_comfy_folder():
-        capabilities.append("comfy")
-
     with open(workflow_file, "r") as f:
         workflow = json.load(f)
         edges, nodes = read_graph(workflow)
@@ -121,7 +116,7 @@ def run(workflow_file: str):
                 nodes=nodes,
             ),
         )
-        for msg in run_workflow(req, capabilities):
+        for msg in run_workflow(req):
             print(msg, end="")
 
 

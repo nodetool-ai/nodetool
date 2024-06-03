@@ -51,7 +51,7 @@ def graph(*nodes):
     return Graph(nodes=nodes, edges=g.edges)
 
 
-def run(graph: Graph):
+def run(graph: Graph, user_id: str = "1", auth_token: str = "token"):
     """
     Run the workflow with the given graph.
 
@@ -61,15 +61,10 @@ def run(graph: Graph):
     Returns:
       Any: The result of the workflow execution.
     """
-    capabilities = ["db"]
-
-    if Environment.get_comfy_folder():
-        capabilities.append("comfy")
-
-    req = RunJobRequest(user_id="1", auth_token="", graph=graph)
+    req = RunJobRequest(user_id=user_id, auth_token=auth_token, graph=graph)
 
     res = None
-    for str_msg in run_workflow(req, capabilities):
+    for str_msg in run_workflow(req):
         msg = json.loads(str_msg)
         if msg["type"] == "workflow_update":
             res = msg["result"]

@@ -98,6 +98,15 @@ class PlotTensor(GraphNode):
 
 
 
+class SaveTensor(GraphNode):
+    value: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description='The tensor to save.')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to save the tensor in.')
+    name: str | GraphNode | tuple[GraphNode, str] = Field(default='tensor.npy', description='The name of the asset to save.')
+    @classmethod
+    def get_node_type(cls): return "nodetool.tensor.SaveTensor"
+
+
+
 class ScalarToTensor(GraphNode):
     value: float | int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
     @classmethod
