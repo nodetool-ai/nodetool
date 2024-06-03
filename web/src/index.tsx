@@ -50,8 +50,8 @@ useAssetStore.getState().setQueryClient(queryClient);
 useWorkflowStore.getState().setQueryClient(queryClient);
 
 const NavigateToStart = () => {
-  const { user } = useAuth();
-  if (user) {
+  const { getUser } = useAuth();
+  if (getUser()) {
     return <Navigate to={"/editor/start"} replace={true} />;
   } else {
     return <Navigate to={"/login"} replace={true} />;
@@ -65,101 +65,104 @@ function ErrorBoundary() {
 }
 
 function getRoutes() {
-  const routes: RouteObject[] = [{
-    path: "/",
-    element: <NavigateToStart />,
-  },
-  {
-    path: "/oauth/callback",
-    element: <OAuthCallback />,
-  },
-  {
-    path: "/login",
-    element: (
-      <ThemeProvider theme={ThemeNodetool}>
-        <CssBaseline />
-        <Login />
-      </ThemeProvider>
-    ),
-  },
-  {
-    path: "/editor",
-    element: <NavigateToStart />,
-  },
-  {
-    path: "assets",
-    element: (
-      <ProtectedRoute>
+  const routes: RouteObject[] = [
+    {
+      path: "/",
+      element: <NavigateToStart />
+    },
+    {
+      path: "/oauth/callback",
+      element: <OAuthCallback />
+    },
+    {
+      path: "/login",
+      element: (
         <ThemeProvider theme={ThemeNodetool}>
           <CssBaseline />
-          <AppHeader />
-          <AssetExplorer />
+          <Login />
         </ThemeProvider>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "examples",
-    element: (
-      <ProtectedRoute>
-        <ThemeProvider theme={ThemeNodetool}>
-          <CssBaseline />
-          <AppHeader />
-          <ExampleGrid />
-        </ThemeProvider>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "workflows",
-    element: (
-      <ProtectedRoute>
-        <ThemeProvider theme={ThemeNodetool}>
-          <CssBaseline />
-          <AppHeader />
-          <WorkflowGrid />
-        </ThemeProvider>
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "editor/:workflow",
-    element: (
-      <ProtectedRoute>
-        <ThemeProvider theme={ThemeNodetool}>
-          <CssBaseline />
-          <AppHeader />
-          <PanelLeft />
-          <PanelRight />
-          <AppFooter />
-        </ThemeProvider>
-        <ThemeProvider theme={ThemeNodes}>
-          <NodeEditor />
-        </ThemeProvider>
-        <ThemeProvider theme={ThemeNodetool}>
-          <CssBaseline />
-          <NodeMenu focusSearchInput={true} />
-        </ThemeProvider>
-      </ProtectedRoute>
-    ),
-    loader: async ({ params }: LoaderFunctionArgs) => await initiateEditor(params.workflow)
-  },
-  {
-    path: "editor/start",
-    element: (
-      <ProtectedRoute>
-        <ThemeProvider theme={ThemeNodetool}>
-          <CssBaseline />
-          <AppHeader />
-          <OpenOrCreateDialog />
-        </ThemeProvider>
-        <ThemeProvider theme={ThemeNodes}>
-          <NodeEditor />
-        </ThemeProvider>
-      </ProtectedRoute>
-    ),
-    loader: async ({ params }: LoaderFunctionArgs) => await initiateEditor(params.workflow)
-  }
+      )
+    },
+    {
+      path: "/editor",
+      element: <NavigateToStart />
+    },
+    {
+      path: "assets",
+      element: (
+        <ProtectedRoute>
+          <ThemeProvider theme={ThemeNodetool}>
+            <CssBaseline />
+            <AppHeader />
+            <AssetExplorer />
+          </ThemeProvider>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "examples",
+      element: (
+        <ProtectedRoute>
+          <ThemeProvider theme={ThemeNodetool}>
+            <CssBaseline />
+            <AppHeader />
+            <ExampleGrid />
+          </ThemeProvider>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "workflows",
+      element: (
+        <ProtectedRoute>
+          <ThemeProvider theme={ThemeNodetool}>
+            <CssBaseline />
+            <AppHeader />
+            <WorkflowGrid />
+          </ThemeProvider>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "editor/:workflow",
+      element: (
+        <ProtectedRoute>
+          <ThemeProvider theme={ThemeNodetool}>
+            <CssBaseline />
+            <AppHeader />
+            <PanelLeft />
+            <PanelRight />
+            <AppFooter />
+          </ThemeProvider>
+          <ThemeProvider theme={ThemeNodes}>
+            <NodeEditor />
+          </ThemeProvider>
+          <ThemeProvider theme={ThemeNodetool}>
+            <CssBaseline />
+            <NodeMenu focusSearchInput={true} />
+          </ThemeProvider>
+        </ProtectedRoute>
+      ),
+      loader: async ({ params }: LoaderFunctionArgs) =>
+        await initiateEditor(params.workflow)
+    },
+    {
+      path: "editor/start",
+      element: (
+        <ProtectedRoute>
+          <ThemeProvider theme={ThemeNodetool}>
+            <CssBaseline />
+            <AppHeader />
+            <OpenOrCreateDialog />
+          </ThemeProvider>
+          <ThemeProvider theme={ThemeNodes}>
+            <NodeEditor />
+          </ThemeProvider>
+        </ProtectedRoute>
+      ),
+      loader: async ({ params }: LoaderFunctionArgs) =>
+        await initiateEditor(params.workflow)
+    }
   ];
 
   routes.forEach((route) => {
