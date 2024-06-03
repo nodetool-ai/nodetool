@@ -313,7 +313,11 @@ export const useNodeStore = create<NodeStore>()(
         for (const node of nodes) {
           json[node.id] = {
             type: node.type,
-            inputs: node.data.properties
+            inputs: node.data.properties,
+            parent_id: node.parentId,
+            position: node.position,
+            width: node.style?.width,
+            height: node.style?.height
           };
         }
 

@@ -27,7 +27,17 @@ def get_examples() -> list[Workflow]:
             description="A basic workflow for generating images using GPT-3",
             thumbnail_url="/examples/gpt_image.png",
             graph=load_example("gpt_image"),
-        )
+        ),
+        Workflow(
+            id="csv_diffusion",
+            access="private",
+            created_at="2021-01-01T00:00:00",
+            updated_at="2021-01-01T00:00:00",
+            name="CSV Diffusion",
+            description="A basic workflow for inputting CSV data into a diffusion model",
+            thumbnail_url="/examples/csv_diffusion.png",
+            graph=load_example("csv_diffusion"),
+        ),
     ]
 
 

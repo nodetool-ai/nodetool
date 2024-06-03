@@ -98,7 +98,25 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
             if not isinstance(value, list)
         }
 
-        node_instance = Node(id=node_id, type=node_type, data=data)
+        parent_id = node.get("parent_id", None)
+        ui_properties = {}
+
+        if "position" in node:
+            ui_properties["position"] = node["position"]
+
+        if "width" in node:
+            ui_properties["width"] = node["width"]
+
+        if "height" in node:
+            ui_properties["height"] = node["height"]
+
+        node_instance = Node(
+            id=node_id,
+            type=node_type,
+            data=data,
+            parent_id=parent_id,
+            ui_properties=ui_properties,
+        )
 
         nodes.append(node_instance)
         node_by_id[node_id] = node_instance

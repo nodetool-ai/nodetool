@@ -167,10 +167,6 @@ export const useDropHandler = (): DropHandler => {
                     comfy_workflow: comfyWorkflow
                   })
                     .then((workflow) => {
-                      const edges = workflow.graph.edges;
-                      const nodes = workflow.graph.nodes;
-                      workflow.graph.nodes = autoLayout(edges, nodes);
-
                       setWorkflow(workflow);
                     })
                     .catch((error) => {
