@@ -78,6 +78,9 @@ const styles = (theme: any) =>
       margin: "0",
       padding: "0"
     },
+    ".current-folder": {
+      top: "20px"
+    },
     ".actions": {
       zIndex: 10000,
       position: "absolute",
