@@ -291,7 +291,7 @@ export type AssetItemProps = {
   openRenameDialog?: () => void;
   onSelect?: () => void;
   onDoubleClickFolder?: (id: string) => void;
-  onMouseDownParent?: (id: string) => void;
+  onClickParent?: (id: string) => void;
   // onDragStart?: () => string[];
   onDragStart?: (assetId: string) => string[];
   onMoveToFolder?: () => void;
@@ -314,7 +314,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     openDeleteDialog,
     onSelect,
     onDoubleClickFolder,
-    onMouseDownParent,
+    onClickParent,
     onMoveToFolder
   } = props;
 
@@ -496,7 +496,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       }}
       onMouseDown={() => {
         if (isParent) {
-          onMouseDownParent && onMouseDownParent(asset.id);
+          onClickParent && onClickParent(asset.id);
         }
         onSelect && onSelect();
       }}
