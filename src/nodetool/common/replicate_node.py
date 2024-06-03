@@ -65,8 +65,11 @@ class ReplicateNode(BaseNode):
 
     """
 
-    _visible = False
     model_config = ConfigDict(protected_namespaces=())
+
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls is not ReplicateNode
 
     @classmethod
     def __init_subclass__(cls):
