@@ -17,7 +17,7 @@ def create_time_ordered_uuid() -> str:
 
 
 def DBField(hash_key: bool = False, **kwargs: Any):
-    return Field(hash_key=hash_key, persist=True, **kwargs)  # type: ignore
+    return Field(json_schema_extra={"hash_key": hash_key, "persist": True}, **kwargs)  # type: ignore
 
 
 class DBModel(BaseModel):
