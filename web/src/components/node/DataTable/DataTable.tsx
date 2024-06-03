@@ -28,7 +28,7 @@ import {
   Tooltip
 } from "@mui/material";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
-import { format, isValid, parse, parseISO } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 
 export const datetimeFormatter: Formatter = (
   cell,
