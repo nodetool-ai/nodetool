@@ -59,7 +59,7 @@ const styles = (theme: any) =>
       margin: 0
     },
     ".asset-info": {
-      position: "absolute",
+      position: "relative",
       maxWidth: "350px",
       display: "flex",
       flexDirection: "column",
@@ -69,7 +69,8 @@ const styles = (theme: any) =>
       bottom: "1em",
       right: "1em",
       zIndex: "2000",
-      overflowWrap: "break-word"
+      overflowWrap: "break-word",
+      marginLeft: "auto"
     },
     ".asset-info p": {
       fontSize: "0.9em",
@@ -110,7 +111,7 @@ const styles = (theme: any) =>
       gap: "1em",
       width: "100%",
       height: "120px",
-      padding: "0 1em",
+      padding: "0",
       backgroundColor: theme.palette.c_gray1,
       bottom: 0,
       zIndex: 200
@@ -257,10 +258,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           if (controlKeyPressed) {
             handleChangeAsset(
               sortedAssets[
-              Math.min(
-                currentIndex + prevNextAmount,
-                sortedAssets.length - 1
-              )
+                Math.min(currentIndex + prevNextAmount, sortedAssets.length - 1)
               ]
             );
           } else {
@@ -272,10 +270,18 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
 
   useHotkeys("esc", handleClose);
-  useHotkeys("left", () => { changeAsset("left", false); });
-  useHotkeys("right", () => { changeAsset("right", false); });
-  useHotkeys("ctrl+left", () => { changeAsset("left", true); });
-  useHotkeys("ctrl+right", () => { changeAsset("right", true); });
+  useHotkeys("left", () => {
+    changeAsset("left", false);
+  });
+  useHotkeys("right", () => {
+    changeAsset("right", false);
+  });
+  useHotkeys("ctrl+left", () => {
+    changeAsset("left", true);
+  });
+  useHotkeys("ctrl+right", () => {
+    changeAsset("right", true);
+  });
 
   const renderAsset = () => {
     const type = currentAsset?.content_type || contentType || "";
@@ -322,7 +328,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       <>
         <IconButton
           className="prev-next-button left"
-          onMouseDown={() => handleChangeAsset(prevAssets[prevAssets.length - 1])}
+          onMouseDown={() =>
+            handleChangeAsset(prevAssets[prevAssets.length - 1])
+          }
           disabled={prevAssets?.length === 0}
         >
           <KeyboardArrowLeftIcon />
@@ -335,15 +343,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           <KeyboardArrowRightIcon />
         </IconButton>
         <div className="asset-navigation">
-          <div className="asset-info">
-            <Typography className="folder-name">
-              <span style={{ color: "white", marginRight: ".5em" }}>/</span>
-              {currentFolderName || ""}
-            </Typography>
-            {currentAsset?.name && (
-              <Typography variant="body2">{currentAsset.name}</Typography>
-            )}
-          </div>
           <div className="prev-next-items left">
             {prevAssets?.map((asset) => (
               <Button
@@ -395,6 +394,15 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                 />
               </Button>
             ))}
+          </div>
+          <div className="asset-info">
+            <Typography className="folder-name">
+              <span style={{ color: "white", marginRight: ".5em" }}>/</span>
+              {currentFolderName || ""}
+            </Typography>
+            {currentAsset?.name && (
+              <Typography variant="body2">{currentAsset.name}</Typography>
+            )}
           </div>
         </div>
       </>
