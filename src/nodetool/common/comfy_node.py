@@ -22,7 +22,10 @@ class ComfyNode(BaseNode):
 
     _comfy_class: str = ""
     _requires_capabilities = ["comfy"]
-    _visible = False
+
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls is not ComfyNode
 
     def assign_property(self, name: str, value: Any):
         """
