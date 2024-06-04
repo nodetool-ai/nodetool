@@ -38,7 +38,7 @@ const footerStyles = (theme: any) =>
       top: "auto",
       left: "0",
       right: "0",
-      zIndex: 100
+      zIndex: 1200
     },
     header: {
       width: "100%",
@@ -83,6 +83,7 @@ const footerStyles = (theme: any) =>
     },
     ".status-message": {
       position: "fixed",
+      zIndex: 100,
       top: "0.5em",
       maxWidth: "50%",
       left: "0",
@@ -116,7 +117,7 @@ function AppFooter() {
   useHotkeys("Escape", () => cancelWorkflow());
 
   return (
-    <div css={footerStyles}>
+    <div css={footerStyles} onContextMenu={(e) => e.preventDefault()}>
       <AppBar position="static" className="app-footer">
         <Toolbar className="toolbar" variant="dense">
           <Box className="toolbar-buttons">

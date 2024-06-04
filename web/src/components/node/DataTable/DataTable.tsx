@@ -28,6 +28,20 @@ import {
   Tooltip
 } from "@mui/material";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
+import { format, isValid, parseISO } from "date-fns";
+
+export const datetimeFormatter: Formatter = (
+  cell,
+  formatterParams,
+  onRendered
+) => {
+  const value = cell.getValue();
+  const date = typeof value === "string" ? parseISO(value) : new Date(value);
+  if (isValid(date)) {
+    return format(date, "PPpp");
+  }
+  return value;
+};
 
 const styles = (theme: any) =>
   css({
@@ -66,9 +80,18 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily1
     },
+    // rows
+    ".tabulator-row": {
+      minHeight: "20px",
+      minWidth: "20px"
+    },
     // header
     ".tabulator .tabulator-header": {
-      maxHeight: "4em"
+      minHeight: "20px",
+      maxHeight: "30px",
+      fontFamily: theme.fontFamily2,
+      wordSpacing: "-.2em",
+      fontWeight: "normal"
     },
     ".tabulator .tabulator-cell.tabulator-editing input::selection": {
       backgroundColor: theme.palette.c_hl1
@@ -86,6 +109,17 @@ const styles = (theme: any) =>
         borderTop: "6px solid" + theme.palette.c_hl1
       },
     // actions
+    ".table-actions": {
+      display: "flex",
+      width: "100%",
+      gap: ".5em",
+      justifyContent: "flex-start",
+      alignItems: "flex-start",
+      height: "2em"
+    },
+    ".table-actions .disabled": {
+      opacity: 0.5
+    },
     ".table-actions button": {
       lineHeight: "1em",
       textAlign: "left",
@@ -100,18 +134,7 @@ const styles = (theme: any) =>
     ".table-actions button:hover": {
       color: theme.palette.c_hl1
     },
-    ".table-actions": {
-      display: "flex",
-      width: "100%",
-      gap: ".5em",
-      justifyContent: "flex-start",
-      alignItems: "flex-start",
-      height: "2em"
-    },
-    ".table-actions .disabled": {
-      opacity: 0.5
-    },
-    ".select-column-toggle": {
+    ".toggle": {
       height: "2em",
       display: "flex",
       flexDirection: "column",
@@ -121,10 +144,10 @@ const styles = (theme: any) =>
       "& .MuiToggleButton-root": {
         fontSize: theme.fontSizeTinyer,
         color: theme.palette.c_gray5,
-        margin: "0",
-        borderRadius: "0",
-        border: 0,
         backgroundColor: theme.palette.c_gray0,
+        margin: "0",
+        border: 0,
+        borderRadius: "0",
         lineHeight: "1em",
         textAlign: "left",
         padding: ".5em"
@@ -137,6 +160,7 @@ const styles = (theme: any) =>
         color: theme.palette.c_white
       }
     },
+    // datetime
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
       borderRadius: "0",
@@ -162,7 +186,15 @@ const styles = (theme: any) =>
     },
     ".datetime fieldset": {
       border: 0
-    }
+    },
+    // row select
+    ".tabulator-row .tabulator-cell.row-select, .tabulator .tabulator-header .tabulator-col.row-select .tabulator-col-content, .tabulator-header .tabulator-col.row-select":
+      {
+        width: "25px !important",
+        minWidth: "25px !important",
+        textAlign: "left",
+        padding: "0 !important"
+      }
   });
 
 interface DataTableProps {
@@ -204,8 +236,10 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
               field: "select",
               formatter: "rowSelection" as Formatter,
               titleFormatter: "rowSelection" as Formatter,
-              hozAlign: "center" as ColumnDefinitionAlign,
+              hozAlign: "left" as ColumnDefinitionAlign,
               headerSort: false,
+              width: 25,
+              minWidth: 25,
               resizable: false,
               frozen: true,
               cellClick: function (e: any, cell: CellComponent) {
@@ -235,6 +269,9 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
       ...dataframe.columns.map((col) => ({
         title: col.name,
         field: col.name,
+        headerTooltip: col.data_type,
+        formatter: col.data_type === "datetime" ? datetimeFormatter : undefined,
+        data_type: col.data_type,
         editor:
           col.data_type === "int"
             ? integerEditor
@@ -372,7 +409,7 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
 
         <Tooltip title="Show Select column">
           <ToggleButtonGroup
-            className="select-column-toggle"
+            className="toggle select-row"
             value={showSelect ? "selected" : null}
             exclusive
             onChange={() => setShowSelect(!showSelect)}
@@ -383,7 +420,7 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
 
         <Tooltip title="Show Row Numbers">
           <ToggleButtonGroup
-            className="select-column-toggle"
+            className="toggle row-numbers"
             value={showRowNumbers ? "selected" : null}
             exclusive
             onChange={() => setShowRowNumbers(!showRowNumbers)}

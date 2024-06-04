@@ -63,7 +63,7 @@ const styles = (theme: any) =>
     },
     ".selected-asset-info": {
       backgroundColor: theme.palette.c_gray1,
-      minHeight: "70px",
+      minHeight: "100px",
       minWidth: "200px",
       overflowY: "auto",
       overflowX: "hidden",
@@ -79,7 +79,7 @@ const styles = (theme: any) =>
       minWidth: "100px",
       fontSize: ThemeNodetool.fontSizeSmall,
       color: theme.palette.c_gray5,
-      paddingTop: "0.5em"
+      padding: "0.5em 0 0 .25em"
     },
     ".folder-slash": {
       color: theme.palette.c_hl1,
@@ -260,15 +260,16 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
 
   const { uploadAsset } = useAssetUpload();
 
-  const uploadFiles = useCallback((files: File[]) => {
-    files.forEach((file: File) => {
-      uploadAsset({
-        file: file,
-        workflow_id: workflow.id,
-        parent_id: currentFolderId || undefined
-      })
-    });
-  },
+  const uploadFiles = useCallback(
+    (files: File[]) => {
+      files.forEach((file: File) => {
+        uploadAsset({
+          file: file,
+          workflow_id: workflow.id,
+          parent_id: currentFolderId || undefined
+        });
+      });
+    },
     [currentFolderId, uploadAsset, workflow.id]
   );
 
@@ -302,7 +303,6 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
         />
 
         {/* Current Folder + Selected Info */}
-        <Divider />
         <Typography className="current-folder">
           <span className="folder-slash">/</span>
           {currentFolder && `${currentFolder.name}`}

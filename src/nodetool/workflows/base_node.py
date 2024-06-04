@@ -458,7 +458,7 @@ class BaseNode(BaseModel):
         Input slots are inferred from the function signature.
         Output type is inferred from the function return type.
         """
-        raise NotImplementedError
+        pass
 
 
 class InputNode(BaseNode):

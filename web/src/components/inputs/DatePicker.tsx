@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFnsV3";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
@@ -16,10 +16,6 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
     new Date(value)
   );
 
-  useEffect(() => {
-    setSelectedDate(new Date(value));
-  }, [value]);
-
   const handleDateChange = (date: Date | null) => {
     setSelectedDate(date);
   };
@@ -30,13 +26,21 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
     }
   };
 
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter") {
+      handleDateClose();
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <DateTimePicker
-        value={selectedDate}
-        onChange={handleDateChange}
-        onClose={handleDateClose}
-      />
+      <div onKeyDown={handleKeyPress}>
+        <DateTimePicker
+          value={selectedDate}
+          onChange={handleDateChange}
+          onClose={handleDateClose}
+        />
+      </div>
     </LocalizationProvider>
   );
 };

@@ -23,7 +23,7 @@ const styles = (theme: any) =>
     ".current-folder": {
       position: "absolute",
       top: "2em",
-      right: "3em",
+      right: "2em",
       textAlign: "right",
       margin: "0",
       padding: "0"
@@ -31,7 +31,7 @@ const styles = (theme: any) =>
     ".selected-asset-info": {
       position: "absolute",
       top: "2em",
-      right: "3em",
+      right: "2em",
       maxWidth: "500px",
       textAlign: "right"
     },

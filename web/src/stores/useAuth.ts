@@ -7,6 +7,7 @@ export type OAuthProvider = "google" | "facebook";
 
 export interface LoginStore {
   user: User | null;
+  getUser: () => User | null;
   setUser: (user: User | null) => void;
   oauthLogin: (provider: OAuthProvider, redirect_uri?: string) => Promise<void>;
   oauthCallback: (req: OAuthAuthorizeRequest) => Promise<User>;
@@ -18,6 +19,20 @@ export interface LoginStore {
 
 export const useAuth = create<LoginStore>((set, get) => ({
   user: null,
+
+  /**
+   * Get user
+   */
+  getUser: () => {
+    const user = get().user;
+    if (user) {
+      return user;
+    } else {
+      const u = get().readFromStorage();
+      set({ user: u });
+      return u;
+    }
+  },
 
   /**
    * Set user
@@ -98,7 +113,9 @@ export const useAuth = create<LoginStore>((set, get) => ({
     }
     const user = localStorage.getItem("user");
     if (user) {
-      return JSON.parse(user);
+      const parsed = JSON.parse(user);
+      set({ user: parsed });
+      return parsed;
     }
     return null;
   },

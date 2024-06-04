@@ -18,6 +18,7 @@ import axios from "axios";
 import { devError, devLog } from "../../utils/DevLog";
 import { useCallback } from "react";
 import useAuth from "../../stores/useAuth";
+import Papa, { ParseResult } from "papaparse";
 
 interface DropHandler {
   onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -112,19 +113,17 @@ export const useDropHandler = (): DropHandler => {
   const createDataFrameNode = useCallback(
     (csv: string, position: XYPosition, nodeMetadata: NodeMetadata) => {
       const newNode = createNode(nodeMetadata, position);
-      // transform csv into dataframe
-      const data = csv
-        .split("\n")
-        .map((row) => row.split(","))
-        .filter((row) => row.length > 0);
-      const columnDefs = data[0].map((col) => ({
+
+      const res: ParseResult<string[]> = Papa.parse(csv);
+      const columnDefs = res.data[0].map((col: string) => ({
         name: col,
         data_type: "object"
       }));
+      const data = res.data.slice(1);
       newNode.data.properties.value = {
         type: "dataframe",
         columns: columnDefs,
-        data: data.slice(1)
+        data: data
       };
       addNode(newNode);
     },
@@ -168,10 +167,6 @@ export const useDropHandler = (): DropHandler => {
                     comfy_workflow: comfyWorkflow
                   })
                     .then((workflow) => {
-                      const edges = workflow.graph.edges;
-                      const nodes = workflow.graph.nodes;
-                      workflow.graph.nodes = autoLayout(edges, nodes);
-
                       setWorkflow(workflow);
                     })
                     .catch((error) => {

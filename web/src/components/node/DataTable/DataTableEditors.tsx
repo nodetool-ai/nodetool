@@ -5,9 +5,9 @@ import {
   ValueBooleanCallback,
   ValueVoidCallback
 } from "tabulator-tables";
-
 import { createRoot } from "react-dom/client";
 import CustomDatePicker from "../../inputs/DatePicker";
+import { isValid, parseISO } from "date-fns";
 
 export const integerEditor: Editor = (
   cell: CellComponent,
@@ -91,7 +91,12 @@ export const datetimeEditor: Editor = (
   editor.style.boxSizing = "border-box";
 
   const handleDateChange = (date: string) => {
-    success(date);
+    const parsedDate = parseISO(date);
+    if (isValid(parsedDate)) {
+      success(parsedDate.toISOString());
+    } else {
+      cancel(null);
+    }
   };
 
   onRendered(() => {

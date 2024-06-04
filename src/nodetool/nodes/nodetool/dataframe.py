@@ -70,6 +70,25 @@ class ColumnToList(BaseNode):
         return df[self.column_name].tolist()
 
 
+class RowsToStrings(BaseNode):
+    """
+    Convert rows in a dataframe to strings.
+    dataframe, columns
+    """
+
+    dataframe: DataframeRef = Field(
+        default=DataframeRef(), description="The input dataframe."
+    )
+    template: str = Field(
+        default="",
+        description="The template for the string representation. Each column can be referenced by {column_name}.",
+    )
+
+    async def process(self, context: ProcessingContext) -> list[str]:
+        df = await context.dataframe_to_pandas(self.dataframe)
+        return [self.template.format(**row) for _, row in df.iterrows()]
+
+
 class ListToColumn(BaseNode):
     """
     Convert a list of objects into a column in a dataframe.
@@ -165,10 +184,10 @@ class Concat(BaseNode):
     """
 
     dataframe_a: DataframeRef = Field(
-        default_factory=DataframeRef, description="First DataFrame to be merged."
+        default=DataframeRef(), description="First DataFrame to be merged."
     )
     dataframe_b: DataframeRef = Field(
-        default_factory=DataframeRef, description="Second DataFrame to be merged."
+        default=DataframeRef(), description="Second DataFrame to be merged."
     )
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
@@ -186,10 +205,10 @@ class Append(BaseNode):
     """
 
     dataframe_a: DataframeRef = Field(
-        default_factory=DataframeRef, description="First DataFrame to be appended."
+        default=DataframeRef(), description="First DataFrame to be appended."
     )
     dataframe_b: DataframeRef = Field(
-        default_factory=DataframeRef, description="Second DataFrame to be appended."
+        default=DataframeRef(), description="Second DataFrame to be appended."
     )
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
@@ -211,10 +230,10 @@ class Join(BaseNode):
     """
 
     dataframe_a: DataframeRef = Field(
-        default_factory=DataframeRef, description="First DataFrame to be merged."
+        default=DataframeRef(), description="First DataFrame to be merged."
     )
     dataframe_b: DataframeRef = Field(
-        default_factory=DataframeRef, description="Second DataFrame to be merged."
+        default=DataframeRef(), description="Second DataFrame to be merged."
     )
     join_on: str = Field(
         default="",
@@ -239,7 +258,7 @@ class ToTensor(BaseNode):
     """
 
     dataframe: DataframeRef = Field(
-        default_factory=DataframeRef, description="The input dataframe."
+        default=DataframeRef(), description="The input dataframe."
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
@@ -284,7 +303,7 @@ class Plot(BaseNode):
         SCATTER = "scatter"
 
     dataframe: DataframeRef = Field(
-        default_factory=DataframeRef, description="The input dataframe."
+        default=DataframeRef(), description="The input dataframe."
     )
     x_column: str = Field(
         default="",
@@ -301,9 +320,9 @@ class Plot(BaseNode):
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         df = await context.dataframe_to_pandas(self.dataframe)
-        if self.x_column not in df.columns:
+        if self.x_column not in df.columns:  # type: ignore
             raise ValueError(f"Invalid x_column: {self.x_column}")
-        if self.y_column not in df.columns:
+        if self.y_column not in df.columns:  # type: ignore
             raise ValueError(f"Invalid y_column: {self.y_column}")
         if self.plot_type == self.PlotType.LINE:
             plot = sns.lineplot(x=self.x_column, y=self.y_column, data=df)
@@ -329,7 +348,7 @@ class PlotHistogram(BaseNode):
     """
 
     dataframe: DataframeRef = Field(
-        default_factory=DataframeRef, description="The input dataframe."
+        default=DataframeRef(), description="The input dataframe."
     )
     column: str = Field(title="Column", default="", description="The column to plot.")
 
@@ -353,7 +372,7 @@ class PlotHeatmap(BaseNode):
     """
 
     dataframe: DataframeRef = Field(
-        default_factory=DataframeRef, description="The input dataframe."
+        default=DataframeRef(), description="The input dataframe."
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -374,7 +393,7 @@ class Filter(BaseNode):
     """
 
     df: DataframeRef = Field(
-        default_factory=DataframeRef, description="The DataFrame to filter."
+        default=DataframeRef(), description="The DataFrame to filter."
     )
     condition: str = Field(
         default="",
@@ -393,7 +412,7 @@ class Sort(BaseNode):
     dataframe, sort, order
     """
 
-    df: DataframeRef = Field(default_factory=DataframeRef)
+    df: DataframeRef = Field(default=DataframeRef())
     column: str = Field(default="", description="The column to sort the DataFrame by.")
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
@@ -408,9 +427,7 @@ class DropDuplicates(BaseNode):
     duplicate, dataframe, unique
     """
 
-    df: DataframeRef = Field(
-        default_factory=DataframeRef, description="The input DataFrame."
-    )
+    df: DataframeRef = Field(default=DataframeRef(), description="The input DataFrame.")
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)
@@ -424,9 +441,7 @@ class DropNA(BaseNode):
     na, dataframe, missing
     """
 
-    df: DataframeRef = Field(
-        default_factory=DataframeRef, description="The input DataFrame."
-    )
+    df: DataframeRef = Field(default=DataframeRef(), description="The input DataFrame.")
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)

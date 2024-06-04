@@ -34,6 +34,7 @@ import useMetadataStore from "./MetadataStore";
 
 type NodeUIProperties = {
   selected: boolean | undefined;
+  selectable: boolean | undefined;
   position: XYPosition;
   width: number | undefined;
   height: number | undefined;
@@ -55,8 +56,10 @@ export function graphNodeToReactFlowNode(
     id: node.id,
     parentId: node.parent_id || undefined,
     dragHandle: ".node-header",
+    selectable: ui_properties?.selectable,
     data: {
       properties: node.data || {},
+      selectable: ui_properties?.selectable,
       dirty: true,
       collapsed: false,
       workflow_id: workflow.id
@@ -76,8 +79,10 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     position: node.position,
     zIndex: node.zIndex || 0,
     width: undefined,
-    height: undefined
+    height: undefined,
+    selectable: true
   };
+
   if (
     node.type === "nodetool.group.Loop" ||
     node.type === "nodetool.workflows.base_node.Comment" ||
@@ -86,6 +91,11 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     ui_properties.width = node.width || 200;
     ui_properties.height = node.height || 200;
   }
+
+  if (node.type === "nodetool.group.Loop") {
+    ui_properties.selectable = false;
+  }
+
   return {
     id: node.id,
     type: node.type,
@@ -264,6 +274,7 @@ export const useNodeStore = create<NodeStore>()(
             properties: properties,
             collapsed: false,
             dirty: true,
+            selectable: true,
             workflow_id: get().workflow.id
           },
           targetPosition: Position.Left,
@@ -313,7 +324,11 @@ export const useNodeStore = create<NodeStore>()(
         for (const node of nodes) {
           json[node.id] = {
             type: node.type,
-            inputs: node.data.properties
+            inputs: node.data.properties,
+            parent_id: node.parentId,
+            position: node.position,
+            width: node.style?.width,
+            height: node.style?.height
           };
         }
 

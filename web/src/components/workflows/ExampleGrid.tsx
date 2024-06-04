@@ -51,12 +51,12 @@ const ExampleGrid = () => {
 
   const onClickWorkflow = useCallback(
     (workflow: Workflow) => {
-      setShouldAutoLayout(true);
+      // setShouldAutoLayout(true);
       copyWorkflow(workflow).then((workflow) => {
         navigate("/editor/" + workflow.id);
       });
     },
-    [copyWorkflow, navigate, setShouldAutoLayout]
+    [copyWorkflow, navigate]
   );
 
   return (

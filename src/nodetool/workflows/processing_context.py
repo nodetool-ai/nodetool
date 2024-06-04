@@ -119,9 +119,7 @@ class ProcessingContext:
         graph: Graph = Graph(),
         queue: Queue | asyncio.Queue | None = None,
         capabilities: list[str] | None = None,
-        http_client: httpx.AsyncClient = httpx.AsyncClient(
-            follow_redirects=True, timeout=600
-        ),
+        http_client: httpx.AsyncClient | None = None,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -134,7 +132,11 @@ class ProcessingContext:
             capabilities if capabilities else Environment.get_capabilities()
         )
         self.api_client = Environment.get_nodetool_api_client(self.auth_token)
-        self.http_client = http_client
+        self.http_client = (
+            httpx.AsyncClient(follow_redirects=True, timeout=600)
+            if http_client is None
+            else http_client
+        )
         assert self.auth_token is not None, "Auth token is required"
 
     async def pop_message_async(self) -> ProcessingMessage:
@@ -713,7 +715,8 @@ class ProcessingContext:
         import pandas as pd
 
         if df.columns:
-            return pd.DataFrame(df.data, columns=df.columns)
+            column_names = [col.name for col in df.columns]
+            return pd.DataFrame(df.data, columns=column_names)
         else:
             io = await self.asset_to_io(df)
             df = loads(io.read())

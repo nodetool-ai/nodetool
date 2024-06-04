@@ -69,9 +69,10 @@ const styles = (theme: any) =>
       width: "100%",
       color: theme.palette.c_gray5
     },
-    "& .tabulator": {
-      // height: "calc(100% - 5px) !important",
-      height: "600px",
+    // tabulator
+    ".datatable.tabulator": {
+      height: "calc(100% - 10px) !important",
+      // height: "100%",
       maxHeight: "800px",
       overflowX: "scroll"
     },
@@ -82,6 +83,7 @@ const styles = (theme: any) =>
     ".table-actions": {
       padding: ".5em 0 0 .5em"
     },
+    // tensor
     "& .tensor": {
       width: "100%",
       maxHeight: "500px",

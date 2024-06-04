@@ -23,7 +23,7 @@ const styles = (theme: any) =>
     },
     ".image-info": {
       position: "absolute",
-      bottom: "90px",
+      bottom: "125px",
       right: "1em",
       zIndex: 1000
     },
