@@ -39,12 +39,12 @@ class Paste(GraphNode):
 
 
 
-class SaveImg(GraphNode):
+class SaveImage(GraphNode):
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description=None)
     folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to save the image in.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='%Y-%m-%d_%H-%M-%S.png', description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.image.SaveImg"
+    def get_node_type(cls): return "nodetool.image.SaveImage"
 
 
 

@@ -36,7 +36,7 @@ from nodetool.models.asset import (
 from nodetool.models.user import User
 from nodetool.nodes.nodetool.constant import Image
 from nodetool.nodes.nodetool.dataframe import SaveDataframe
-from nodetool.nodes.nodetool.image import Blend, Composite, SaveImg
+from nodetool.nodes.nodetool.image import Blend, Composite, SaveImage
 from nodetool.nodes.nodetool.image.source import Background
 from nodetool.nodes.nodetool.image.transform import (
     Blur,
@@ -299,7 +299,7 @@ async def test_save_image_node(context: ProcessingContext, user: User, http_clie
     folder = Asset.create(user.id, "test", "folder", user.id)
     image_ref = await context.image_from_pil(PIL.Image.open(test_file))
 
-    node = SaveImg(
+    node = SaveImage(
         name="TestImage",
         image=image_ref,
         folder=FolderRef(asset_id=folder.id),

@@ -77,7 +77,7 @@ class LoadImageMask(ComfyNode):
 
 class SaveImage(ComfyNode):
     """
-    The Save Image node can be used to save images. To simply preview an image inside the node graph use the Preview Image node. It can be hard to keep track of all the images that you generate. To help with organizing your images you can pass specially formatted strings to an output node with a file_prefix widget. For more information about how to format your string see this page.
+    The Save Image node can be used to save images. To simply preview an image inside the node graph use the Preview Image node. It can be hard to keep track of all the images that you generate. To help with organizing your images you can pass specially formatted strings to an output node with a file_prefix widget.
     """
 
     images: ImageTensor = Field(default=ImageTensor(), description="The image to save.")

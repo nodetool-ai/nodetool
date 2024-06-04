@@ -13,10 +13,9 @@ import numpy as np
 from pydantic import Field
 
 
-# Distinguish from comfy SaveImage
-class SaveImg(BaseNode):
+class SaveImage(BaseNode):
     """
-    Save an image to a folder.
+    Save an image to your assets. You can choose a folder or save into the root folder.
     """
 
     image: ImageRef = ImageRef()

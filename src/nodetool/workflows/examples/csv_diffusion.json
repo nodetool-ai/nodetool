@@ -119,7 +119,7 @@
     }
   },
   "9": {
-    "type": "nodetool.image.SaveImg",
+    "type": "nodetool.image.SaveImage",
     "inputs": {
       "image": ["11", "output"],
       "folder": {

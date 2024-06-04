@@ -1,9 +1,10 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import ViewWeekIcon from "@mui/icons-material/ViewWeek";
+import SaveAltIcon from "@mui/icons-material/SaveAlt";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -26,40 +27,62 @@ const OutputContextMenu: React.FC = () => {
   const generateEdgeId = useNodeStore((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
+  const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
 
-  const datatypeLabel = labelForType(type || "").replaceAll(" ", "");
-  const outputNodePath = `nodetool.output.${datatypeLabel}Output`;
-  const outputNodeMetadata = getMetadata(outputNodePath);
+  const fetchMetadata = useCallback(
+    (nodeType: string) => {
+      devLog(`Fetching metadata for node type: ${nodeType}`);
+      const datatypeLabel = labelForType(nodeType || "").replaceAll(" ", "");
+      const adjustedLabel = datatypeLabel === "String" ? "Text" : datatypeLabel;
+      const outputNodePath = `nodetool.output.${datatypeLabel}Output`;
+      const outputMetadata = getMetadata(outputNodePath);
+      setOutputNodeMetadata(outputMetadata);
 
-  const createPreviewNode = useCallback(
-    (event: React.MouseEvent) => {
-      const metadata = getMetadata("nodetool.workflows.base_node.Preview");
-      if (!metadata) return;
+      const saveNodePath = `nodetool.${adjustedLabel.toLowerCase()}.Save${adjustedLabel}`;
+      const saveMetadata = getMetadata(saveNodePath);
+      setSaveNodeMetadata(saveMetadata);
+    },
+    [getMetadata]
+  );
+
+  useEffect(() => {
+    if (type) {
+      fetchMetadata(type);
+    }
+  }, [type, fetchMetadata]);
+
+  const createNodeWithEdge = useCallback(
+    (metadata: any, position: { x: number; y: number }) => {
+      if (!metadata) {
+        devLog("Metadata is undefined, cannot create node.");
+        return;
+      }
       const newNode = createNode(
         metadata,
         reactFlowInstance.project({
-          x: event.clientX - 20,
-          y: event.clientY - 150
+          x: position.x + 150,
+          y: position.y
         })
       );
       newNode.data.size = {
         width: 200,
         height: 200
       };
-      newNode.data.properties.type = "nodetool.workflows.base_node.Preview";
       addNode(newNode);
+
+      const targetHandle = type === "image" ? "image" : "value";
       addEdge({
         id: generateEdgeId(),
         source: nodeId || "",
         target: newNode.id,
         sourceHandle: "output",
-        targetHandle: "value",
+        targetHandle: targetHandle,
         type: "default",
         className: Slugify(type || "")
       });
     },
     [
-      getMetadata,
       createNode,
       reactFlowInstance,
       addNode,
@@ -70,41 +93,44 @@ const OutputContextMenu: React.FC = () => {
     ]
   );
 
-  const createOutputNode = useCallback(
+  const createPreviewNode = useCallback(
     (event: React.MouseEvent) => {
-      if (!outputNodeMetadata) return;
-      const newNode = createNode(
-        outputNodeMetadata,
-        reactFlowInstance.project({
-          x: event.clientX - 20,
-          y: event.clientY - 220
-        })
-      );
-      newNode.data.size = {
-        width: 200,
-        height: 200
-      };
-      addNode(newNode);
-      addEdge({
-        id: generateEdgeId(),
-        source: nodeId || "",
-        target: newNode.id,
-        sourceHandle: "output",
-        targetHandle: "value",
-        type: "default",
-        className: Slugify(type || "")
+      const metadata = getMetadata("nodetool.workflows.base_node.Preview");
+      if (!metadata) {
+        return;
+      }
+      createNodeWithEdge(metadata, {
+        x: event.clientX - 20,
+        y: event.clientY - 150
       });
     },
-    [
-      outputNodeMetadata,
-      createNode,
-      reactFlowInstance,
-      addNode,
-      addEdge,
-      generateEdgeId,
-      nodeId,
-      type
-    ]
+    [getMetadata, createNodeWithEdge]
+  );
+
+  const createOutputNode = useCallback(
+    (event: React.MouseEvent) => {
+      if (!outputNodeMetadata) {
+        return;
+      }
+      createNodeWithEdge(outputNodeMetadata, {
+        x: event.clientX - 20,
+        y: event.clientY - 220
+      });
+    },
+    [outputNodeMetadata, createNodeWithEdge]
+  );
+
+  const createSaveNode = useCallback(
+    (event: React.MouseEvent) => {
+      if (!saveNodeMetadata) {
+        return;
+      }
+      createNodeWithEdge(saveNodeMetadata, {
+        x: event.clientX - 250,
+        y: event.clientY - 200
+      });
+    },
+    [saveNodeMetadata, createNodeWithEdge]
   );
 
   const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
@@ -128,7 +154,6 @@ const OutputContextMenu: React.FC = () => {
       event.stopPropagation();
       createPreviewNode(event);
     }
-    devLog("Create Preview Node");
     closeContextMenu();
   };
 
@@ -137,6 +162,15 @@ const OutputContextMenu: React.FC = () => {
       event.preventDefault();
       event.stopPropagation();
       createOutputNode(event);
+    }
+    closeContextMenu();
+  };
+
+  const handleCreateSaveNode = (event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      createSaveNode(event);
     }
     closeContextMenu();
   };
@@ -177,6 +211,21 @@ const OutputContextMenu: React.FC = () => {
           label="Create Output Node"
           addButtonClassName="create-output-node"
           IconComponent={<LogoutIcon />}
+          tooltip={"..."}
+        />
+      )}
+      {saveNodeMetadata && (
+        <ContextMenuItem
+          onClick={handleCreateSaveNode}
+          label={`Create Save${
+            type === "string"
+              ? "Text"
+              : type
+              ? type.charAt(0).toUpperCase() + type.slice(1)
+              : ""
+          } Node`}
+          addButtonClassName="create-save-node"
+          IconComponent={<SaveAltIcon />}
           tooltip={"..."}
         />
       )}
