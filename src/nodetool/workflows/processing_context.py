@@ -700,7 +700,7 @@ class ProcessingContext:
                 uri=ref.uri,
             )
 
-    async def dataframe_to_pandas(self, df: DataframeRef):
+    async def dataframe_to_pandas(self, df: DataframeRef) -> "pd.DataFrame":
         """
         Converts a DataframeRef object to a pandas DataFrame.
 

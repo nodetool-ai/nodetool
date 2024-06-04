@@ -41,7 +41,7 @@ class SelectColumn(BaseNode):
     """
 
     dataframe: DataframeRef = Field(
-        default_factory=DataframeRef,
+        default=DataframeRef(),
         description="a dataframe from which columns are to be selected",
     )
     columns: str = Field("", description="comma separated list of column names")
@@ -59,7 +59,7 @@ class ColumnToList(BaseNode):
     """
 
     dataframe: DataframeRef = Field(
-        default_factory=DataframeRef, description="The input dataframe."
+        default=DataframeRef(), description="The input dataframe."
     )
     column_name: str = Field(
         default="", description="The name of the column to be converted to a list."
@@ -77,7 +77,7 @@ class ListToColumn(BaseNode):
     """
 
     dataframe: DataframeRef = Field(
-        default_factory=DataframeRef,
+        default=DataframeRef(),
         description="Dataframe object to add a new column to.",
     )
     column_name: str = Field(
