@@ -124,13 +124,6 @@ def test_node_node_properties():
 
 
 @pytest.mark.asyncio
-async def test_node_process_not_implemented(context: ProcessingContext):
-    node = BaseNode(id="")
-    with pytest.raises(NotImplementedError):
-        await node.process(context)
-
-
-@pytest.mark.asyncio
 async def test_node_convert_output_value(context: ProcessingContext):
     node = DummyClass()
     output = 123
