@@ -9,6 +9,8 @@ import SouthEastIcon from "@mui/icons-material/SouthEast";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useKeyPressedListener from "../../utils/KeyPressedListener";
 import { NodeHeader } from "./NodeHeader";
+import { getMousePosition } from "../../utils/MousePosition";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 const styles = (theme: any) =>
   css({
@@ -51,6 +53,7 @@ const styles = (theme: any) =>
 const LoopNode = (props: NodeProps<NodeData>) => {
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const spaceKeyPressed = useKeyPressedListener(" ");
+  const { openNodeMenu } = useNodeMenuStore();
   const nodeHovered = useNodeStore((state) =>
     state.hoveredNodes.includes(props.id)
   );
@@ -62,12 +65,25 @@ const LoopNode = (props: NodeProps<NodeData>) => {
       size: { width: newWidth, height: newHeight }
     });
   };
+
+  const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    openNodeMenu(getMousePosition().x, getMousePosition().y, true, "", "");
+  };
+
   return (
     <>
       <div
         className={`loop-node ${nodeHovered ? "hovered" : ""} ${
           spaceKeyPressed ? "space-pressed" : ""
         } `}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          handleOpenNodeMenu();
+        }}
         css={styles}
         style={
           nodeHovered
@@ -90,7 +106,6 @@ const LoopNode = (props: NodeProps<NodeData>) => {
             <SouthEastIcon />
           </NodeResizeControl>
         </div>
-        {/* <Typography variant="h6">Loop</Typography> */}
       </div>
     </>
   );
