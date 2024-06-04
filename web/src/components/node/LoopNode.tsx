@@ -8,6 +8,7 @@ import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useKeyPressedListener from "../../utils/KeyPressedListener";
+import { NodeHeader } from "./NodeHeader";
 
 const styles = (theme: any) =>
   css({
@@ -40,6 +41,10 @@ const styles = (theme: any) =>
       width: "1.5em",
       height: "1.5em",
       background: "#222 !important"
+    },
+    ".node-header": {
+      height: "3em",
+      backgroundColor: "rgba(0,0,0,0.1)"
     }
   });
 
@@ -70,6 +75,11 @@ const LoopNode = (props: NodeProps<NodeData>) => {
             : {}
         }
       >
+        <NodeHeader
+          id={props.id}
+          nodeTitle={"Loop"}
+          // isLoading={isLoading}
+        />
         <div className="tools">
           <NodeResizeControl
             style={{ background: "transparent", border: "none" }}
@@ -80,7 +90,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
             <SouthEastIcon />
           </NodeResizeControl>
         </div>
-        <Typography variant="h6">Loop</Typography>
+        {/* <Typography variant="h6">Loop</Typography> */}
       </div>
     </>
   );
