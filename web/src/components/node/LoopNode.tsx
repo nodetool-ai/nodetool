@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
 import { css } from "@emotion/react";
-import { Typography } from "@mui/material";
 import { useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
@@ -91,11 +90,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
             : {}
         }
       >
-        <NodeHeader
-          id={props.id}
-          nodeTitle={"Loop"}
-          // isLoading={isLoading}
-        />
+        <NodeHeader id={props.id} nodeTitle={"Loop"} />
         <div className="tools">
           <NodeResizeControl
             style={{ background: "transparent", border: "none" }}
