@@ -31,6 +31,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_DELAY } from "../../config/constants";
 //hooks
 import { useHotkeys } from "react-hotkeys-hook";
+import { useNodeStore } from "../../stores/NodeStore";
+import useSessionStateStore from "../../stores/SessionStateStore";
 
 const styles = (theme: any) => ({
   button: {
@@ -47,6 +49,25 @@ const styles = (theme: any) => ({
   },
   "button svg": {
     marginRight: "0.1em"
+  },
+  ".action-button": {
+    fontSize: theme.fontSizeSmaller,
+    color: theme.palette.c_gray6,
+    "&:hover": {
+      backgroundColor: theme.palette.c_gray2
+    }
+  },
+  ".action-button:hover": {
+    color: theme.palette.c_hl1
+  },
+  ".action-button.disabled": {
+    color: theme.palette.c_gray4
+  },
+  ".divider": {
+    display: "inline-block",
+    width: "1.5em",
+    color: theme.palette.c_gray4,
+    padding: "0 0.5em"
   }
 });
 
@@ -57,7 +78,10 @@ function AppHeader() {
   const reactFlowInstance = useReactFlow();
   const [openCommandMenu, setOpenCommandMenu] = useState(false);
   const { openNodeMenu } = useNodeMenuStore();
-
+  const autoLayout = useNodeStore((state) => state.autoLayout);
+  const selectedNodeIds = useSessionStateStore(
+    (state) => state.selectedNodeIds
+  );
   useHotkeys("Alt+s", () => fitScreen());
   useHotkeys("Meta+s", () => fitScreen());
   useHotkeys("Alt+h", () => handleOpenHelp());
@@ -99,6 +123,9 @@ function AppHeader() {
     openNodeMenu(400, 200);
   };
 
+  const handleAutoLayout = () => {
+    autoLayout();
+  };
   return (
     <AppBar css={styles} position="static" className="app-header">
       <Toolbar variant="dense">
@@ -131,7 +158,6 @@ function AppHeader() {
               Workflows
             </Button>
           </Tooltip>
-
           <Tooltip title="View and manage Assets" enterDelay={TOOLTIP_DELAY}>
             <Button
               className={`nav-button ${path === "/assets" ? "active" : ""}`}
@@ -153,44 +179,59 @@ function AppHeader() {
               Assets
             </Button>
           </Tooltip>
+          <div className="divider">|</div>
+          {path.startsWith("/editor") && (
+            <Tooltip
+              title={
+                <>
+                  <span
+                    style={{
+                      fontSize: "1.2em",
+                      color: "white",
+                      textAlign: "center",
+                      display: "block"
+                    }}
+                  >
+                    Open NodeMenu
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "1em",
+                      color: "white",
+                      textAlign: "center",
+                      display: "block"
+                    }}
+                  >
+                    Ctrl+Space
+                    <br /> Double Click on Canvas
+                  </span>
+                </>
+              }
+              enterDelay={TOOLTIP_DELAY}
+            >
+              <Button className="action-button" onClick={handleOpenNodeMenu}>
+                {<AdjustIcon />}
+                Nodes
+              </Button>
+            </Tooltip>
+          )}
+        </Box>
 
+        {path.startsWith("/editor") && (
           <Tooltip
-            title={
-              <>
-                <span
-                  style={{
-                    fontSize: "1.2em",
-                    color: "white",
-                    textAlign: "center",
-                    display: "block"
-                  }}
-                >
-                  Open NodeMenu
-                </span>
-                <span
-                  style={{
-                    fontSize: "1em",
-                    color: "white",
-                    textAlign: "center",
-                    display: "block"
-                  }}
-                >
-                  Ctrl+Space
-                  <br /> Double Click on Canvas
-                </span>
-              </>
-            }
+            title="Layout all selected nodes "
             enterDelay={TOOLTIP_DELAY}
           >
             <Button
-              className={`nav-button ${path === "/assets" ? "active" : ""}`}
-              onClick={handleOpenNodeMenu}
+              className={`action-button ${
+                selectedNodeIds.length === 0 ? "disabled" : ""
+              }`}
+              onClick={handleAutoLayout}
             >
-              {<AdjustIcon />}
-              Nodes
+              AutoLayout
             </Button>
           </Tooltip>
-        </Box>
+        )}
 
         <Box sx={{ flexGrow: 1 }} />
 

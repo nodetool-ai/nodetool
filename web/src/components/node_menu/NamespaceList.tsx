@@ -161,7 +161,7 @@ const namespaceStyles = (theme: any) =>
       gap: ".5em",
       cursor: "default"
     },
-    ".inputs-outputs .item:nth-child(odd)": {
+    ".inputs-outputs .item:nth-of-type(odd)": {
       backgroundColor: "#1e1e1e"
     },
     ".inputs-outputs .item .type": {

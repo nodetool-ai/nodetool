@@ -301,7 +301,7 @@ export default memo(
               <>
                 <Button
                   className="color-button"
-                  key={index}
+                  key={datatype + "_" + index}
                   style={{
                     background: createLinearGradient(
                       datatype.color,

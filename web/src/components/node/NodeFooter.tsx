@@ -1,24 +1,31 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { iconForType, datatypeByName } from "../../config/data_types";
+import { Button, Tooltip } from "@mui/material";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { NodeMetadata } from "../../stores/ApiTypes";
+
 export interface NodeFooterProps {
   nodeNamespace: string;
   type: string;
+  metadata: NodeMetadata;
 }
 export const footerStyles = (theme: any) =>
   css({
     display: "flex",
     justifyContent: "center",
-    alignItems: "center",
+    alignItems: "left",
     margin: "0.6em 0 0 0",
     padding: 0,
     background: theme.palette.c_node_header_bg,
     borderRadius: "0 0 0.3em 0.3em",
     overflow: "hidden",
-    ".namespace": {
+    ".namespace-button": {
       display: "block",
       margin: 0,
       padding: "0.2em 0.5em 0.2em 0.5em",
+      borderRadius: 0,
+      backgroundColor: "transparent",
       color: theme.palette.c_gray4,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeTinyer,
@@ -26,37 +33,71 @@ export const footerStyles = (theme: any) =>
       textAlign: "left",
       flexGrow: 1,
       overflow: "hidden"
+    },
+    ".namespace-button:hover": {
+      backgroundColor: "transparent",
+      color: theme.palette.c_hl1
+    },
+    ".icon": {
+      paddingLeft: "auto"
     }
   });
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
   nodeNamespace,
-  type
+  type,
+  metadata
 }) => {
   const datatype = datatypeByName(type);
+  const { openNodeMenu } = useNodeMenuStore();
+  const { setHighlightedNamespaces, setSelectedPath, setHoveredNode } =
+    useNodeMenuStore();
+
+  const handleOpenNodeMenu = () => {
+    openNodeMenu(500, 200, false, metadata.namespace);
+    requestAnimationFrame(() => {
+      setSelectedPath(metadata.namespace.split("."));
+      setHoveredNode(metadata);
+      setHighlightedNamespaces(metadata.namespace.split("."));
+    });
+  };
+
   return (
     <div css={footerStyles}>
-      <span className="namespace"> {nodeNamespace} </span>
-      {datatype &&
-        iconForType(datatype.value, {
-          fill: datatype.textColor,
-          containerStyle: {
-            borderRadius: "0 0 3px 0",
-            marginLeft: "0.1em",
-            marginTop: "0"
-          },
-          bgStyle: {
-            backgroundColor: datatype.color,
-            margin: "0",
-            padding: "1px",
-            borderRadius: "0 0 3px 0",
-            boxShadow: "inset 1px 1px 2px #00000044",
-            width: "15px",
-            height: "15px"
-          },
-          width: "10px",
-          height: "10px"
-        })}
+      <Tooltip
+        title="Select node then click to show in NodeMenu "
+        placement="bottom-start"
+      >
+        <Button
+          className="namespace-button"
+          size="small"
+          onClick={handleOpenNodeMenu}
+        >
+          {nodeNamespace}
+        </Button>
+      </Tooltip>
+      <div className="icon">
+        {datatype &&
+          iconForType(datatype.value, {
+            fill: datatype.textColor,
+            containerStyle: {
+              borderRadius: "0 0 3px 0",
+              marginLeft: "0.1em",
+              marginTop: "0"
+            },
+            bgStyle: {
+              backgroundColor: datatype.color,
+              margin: "0",
+              padding: "1px",
+              borderRadius: "0 0 3px 0",
+              boxShadow: "inset 1px 1px 2px #00000044",
+              width: "15px",
+              height: "15px"
+            },
+            width: "10px",
+            height: "10px"
+          })}
+      </div>
     </div>
   );
 };

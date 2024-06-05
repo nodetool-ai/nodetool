@@ -140,17 +140,25 @@ export function subgraph(
   return result;
 }
 
+type NodePosition = { x: number; y: number };
+type NodePositions = { [id: string]: NodePosition };
+
 export const autoLayout = (edges: Edge[], nodes: Node[]) => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-
   dagreGraph.setGraph({ rankdir: "LR" });
+
+  const originalPositions: NodePositions = nodes.reduce(
+    (acc: NodePositions, node) => {
+      acc[node.id] = { x: node.position.x, y: node.position.y };
+      return acc;
+    },
+    {}
+  );
 
   nodes.forEach((node) => {
     if (node.type === "comment") return;
     dagreGraph.setNode(node.id, {
-      x: node.position?.x,
-      y: node.position?.y,
       width: node.width,
       height: node.height
     });
@@ -162,12 +170,31 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
 
   dagre.layout(dagreGraph);
 
-  return nodes.map((node: Node) => {
+  let minX = Infinity;
+  let minY = Infinity;
+
+  nodes.forEach((node) => {
+    if (node.type === "nodetool.workflows.base_node.Comment") return;
+    const dnode = dagreGraph.node(node.id);
+    minX = Math.min(minX, dnode.x - dnode.width / 2);
+    minY = Math.min(minY, dnode.y - dnode.height / 2);
+  });
+
+  const originalTopLeft = {
+    x: Math.min(
+      ...Object.values(originalPositions).map((pos: NodePosition) => pos.x)
+    ),
+    y: Math.min(
+      ...Object.values(originalPositions).map((pos: NodePosition) => pos.y)
+    )
+  };
+
+  const layoutedNodes = nodes.map((node: Node) => {
     if (node.type === "nodetool.workflows.base_node.Comment") return node;
     const dnode = dagreGraph.node(node.id);
     const position = {
-      x: dnode.x - (node.width ?? 0) / 2,
-      y: dnode.y - (node.height ?? 0) / 2
+      x: dnode.x - minX + originalTopLeft.x - 50,
+      y: dnode.y - minY + originalTopLeft.y - 50
     };
     return {
       ...node,
@@ -175,4 +202,6 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
       size: { width: dnode.width, height: dnode.height }
     };
   });
+
+  return layoutedNodes;
 };

@@ -242,12 +242,26 @@ export const useNodeStore = create<NodeStore>()(
        * Automatically layout the workflow.
        */
       autoLayout: () => {
-        const nodes = get().nodes;
+        const allNodes = get().nodes;
+        const selectedNodes = allNodes.filter((node) => node.selected);
+        const nonSelectedNodes = allNodes.filter((node) => !node.selected);
         const edges = get().edges;
-        const layoutedNodes = autoLayout(edges, nodes);
 
-        set({ nodes: layoutedNodes });
+        const layoutedNodes = autoLayout(edges, selectedNodes);
+
+        // Merge layouted nodes with non-selected nodes
+        const updatedNodes = [...nonSelectedNodes, ...layoutedNodes];
+
+        set({ nodes: updatedNodes });
       },
+
+      // autoLayout: () => {
+      //   const nodes = get().nodes;
+      //   const edges = get().edges;
+      //   const layoutedNodes = autoLayout(edges, nodes);
+
+      //   set({ nodes: layoutedNodes });
+      // },
 
       /**
        * Create a new node. The nodes is not added to the workflow.
