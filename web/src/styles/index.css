@@ -144,6 +144,7 @@ img::selection {
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: top;
+  text-transform: uppercase;
 }
 
 .gsi-material-button .gsi-material-button-state {

@@ -36,6 +36,16 @@ const AppIconMenu: React.FC<AppIconMenuProps> = ({ anchorEl, handleClose }) => {
     >
       <MenuItem onClick={handleClose}>
         <a
+          href="https://artistai.nl/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          nodetool Forum
+        </a>
+      </MenuItem>
+      <MenuItem onClick={handleClose}>
+        <a
           href="https://github.com/nodetool-ai/nodetool"
           target="_blank"
           rel="noopener noreferrer"

@@ -12,30 +12,55 @@ const styles = (theme: any) =>
     justifyContent: "center",
     backgroundColor: "#222",
     height: "75vh",
-    h1: {
-      fontSize: "1.5em",
-      margin: ".1em 0",
-      padding: "1em 2em",
-      backgroundColor: "#bcdaba",
-      color: "#111",
-      borderRadius: ".1em",
-      border: "1px solid #111",
-      lineHeight: "1.2em",
-      textAlign: "center"
-    },
     ".nt": {
-      lineHeight: "0.3em",
-      fontWeight: "bold"
+      color: "#bcdaba",
+      width: "200px",
+      height: "200px",
+      backgroundColor: "transparent"
+    },
+    ".nodetool": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "200px",
+      height: "200px",
+      textAlign: "center",
+      fontSize: "60px",
+      lineHeight: ".9em",
+      padding: "10px 0 0",
+      color: "#222",
+      borderRadius: ".1em",
+      boxShadow: "0 0 24px rgba(200,200,200,0.3)",
+      cursor: "pointer",
+      border: "0px dashed #2229",
+      boxSizing: "border-box",
+      backgroundColor: "#bcdaba",
+      transition: "all .3s ease-out",
+      outline: "1px solid #bcdaba"
+    },
+    ".nt:hover .nodetool": {
+      color: "#000",
+      width: "200px",
+      height: "200px",
+      borderRadius: "1.92em",
+      backgroundColor: "#bcdaba",
+      border: "9px dashed #222",
+      textShadow: "0 0 2px rgba(0,0,0,1)",
+      fontSize: "54px",
+      filter: "blur(0.3px)",
+      boxShadow: "0 0 33px #bcdaba",
+      outline: "8px solid #bcdaba"
     },
     h3: {
       fontFamily: "monospace",
       wordSpacing: "-0.2em",
       fontSize: "1.2em",
-      margin: ".25em 0 3em",
+      margin: "0 0 3em",
       padding: "1em 2em",
-      color: "#999",
-      lineHeight: "1.25em",
-      textAlign: "center"
+      color: "#bcdaba",
+      textAlign: "center",
+      textTransform: "uppercase",
+      lineHeight: "1.25em"
     },
     h4: {
       fontFamily: "monospace",
@@ -45,7 +70,8 @@ const styles = (theme: any) =>
       padding: "1em 2em",
       color: "#777",
       lineHeight: "1.25em",
-      textAlign: "center"
+      textAlign: "center",
+      textTransform: "uppercase"
     },
     ".gsi-material-button": {
       fontSize: "1em",
@@ -58,21 +84,19 @@ const styles = (theme: any) =>
 function Login() {
   return (
     <div css={styles}>
-      <Typography component="h1">
-        <div style={{ marginBottom: "-.6em" }}>´´´´´´</div>
-        <span className="nt">
-          NODE
-          <br />
-          TOOL
-        </span>
-        <div style={{ marginBottom: "-.75em" }}>``````</div>
-      </Typography>
+      <div className="nt">
+        <div className="nodetool">
+          {/* <div style={{ marginBottom: "-.6em" }}>´´´´´´</div> */}
+          NODE <br /> TOOL
+          {/* <div style={{ marginBottom: "-.75em" }}>``````</div> */}
+        </div>
+      </div>
       <Typography component="h3">
         Visual programming
         <br /> for generative AI
       </Typography>
       <GoogleAuthButton />
-      <Typography component="h4">MinimalIntelligence.com</Typography>
+      {/* <Typography component="h4">MinimalIntelligence.com</Typography> */}
     </div>
   );
 }
