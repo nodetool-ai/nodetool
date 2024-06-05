@@ -219,15 +219,10 @@ function AppHeader() {
 
         {path.startsWith("/editor") && (
           <Tooltip
-            title="Layout all selected nodes "
+            title="Arranges all nodes or selected nodes"
             enterDelay={TOOLTIP_DELAY}
           >
-            <Button
-              className={`action-button ${
-                selectedNodeIds.length === 0 ? "disabled" : ""
-              }`}
-              onClick={handleAutoLayout}
-            >
+            <Button className="action-button" onClick={handleAutoLayout}>
               AutoLayout
             </Button>
           </Tooltip>
