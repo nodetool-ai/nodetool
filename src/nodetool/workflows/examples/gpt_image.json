@@ -37,10 +37,7 @@
       },
       "width": 1024,
       "height": 1024,
-      "prompt": [
-        "1",
-        "output"
-      ],
+      "prompt": ["1", "output"],
       "refine": "no_refiner",
       "scheduler": "K_EULER",
       "lora_scale": 0.6,
@@ -59,11 +56,7 @@
   "3": {
     "type": "nodetool.workflows.base_node.Preview",
     "inputs": {
-      "value": [
-        "2",
-        "output"
-      ],
-      "type": "nodetool.workflows.base_node.Preview"
+      "value": ["2", "output"]
     }
   }
 }

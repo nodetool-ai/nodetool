@@ -170,7 +170,6 @@
   "12": {
     "type": "nodetool.workflows.base_node.Preview",
     "inputs": {
-      "type": "nodetool.workflows.base_node.Preview",
       "value": ["11", "output"]
     },
     "parent_id": "6",

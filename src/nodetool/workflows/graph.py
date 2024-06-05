@@ -171,7 +171,9 @@ class Graph(BaseModel):
             graph (dict[str, Any]): The dictionary representing the Graph.
         """
         return cls(
-            nodes=[BaseNode.from_dict(node) for node in graph["nodes"]],
+            nodes=[
+                BaseNode.from_dict(node, skip_errors=True) for node in graph["nodes"]
+            ],
             edges=graph["edges"],
         )
 

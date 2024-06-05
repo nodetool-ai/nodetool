@@ -121,6 +121,9 @@ class Workflow(DBModel):
         Returns the graph object for the workflow.
         """
         return Graph(
-            nodes=[BaseNode.from_dict(node) for node in self.graph["nodes"]],
+            nodes=[
+                BaseNode.from_dict(node, skip_errors=True)
+                for node in self.graph["nodes"]
+            ],
             edges=self.graph["edges"],
         )

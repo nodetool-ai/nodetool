@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from pydantic.fields import FieldInfo
 
-from typing import Any, Type
+from typing import Any, Literal, Type
 from nodetool.api.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import NameToType, TypeToName
@@ -166,7 +166,7 @@ class BaseNode(BaseModel):
         add_node_type(cls)
 
     @staticmethod
-    def from_dict(node: dict[str, Any]):
+    def from_dict(node: dict[str, Any], skip_errors: bool = False) -> "BaseNode":
         """
         Create a Node object from a dictionary representation.
 
@@ -183,12 +183,14 @@ class BaseNode(BaseModel):
             raise ValueError(f"Invalid node type: {node['type']}")
         if "id" not in node:
             raise ValueError("Node must have an id")
-        return node_type(
+        n = node_type(
             id=node["id"],
             parent_id=node.get("parent_id"),
             ui_properties=node.get("ui_properties", {}),
-            **node.get("data", {}),
         )
+        data = node.get("data", {})
+        n.set_node_properties(data, skip_errors=skip_errors)
+        return n
 
     @classmethod
     def get_node_type(cls) -> str:
@@ -276,7 +278,12 @@ class BaseNode(BaseModel):
                 f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
             )
         elif hasattr(prop.type.get_python_type(), "model_validate"):
-            v = prop.type.get_python_type().model_validate(value)  # type: ignore
+            try:
+                v = prop.type.get_python_type().model_validate(value)  # type: ignore
+            except ValueError as e:
+                raise ValueError(
+                    f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} ({e})"
+                )
         else:
             v = value
 

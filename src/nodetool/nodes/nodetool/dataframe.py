@@ -168,7 +168,7 @@ class CSVToDataframe(BaseNode):
     """
 
     csv_data: str = Field(
-        ..., title="CSV Data", description="String input of CSV formatted text."
+        default="", title="CSV Data", description="String input of CSV formatted text."
     )
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
