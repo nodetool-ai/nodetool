@@ -1,10 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
+import { css, useTheme } from "@emotion/react";
+import { useState, useEffect } from "react";
 import { Typography } from "@mui/material";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
+import { DATA_TYPES } from "../config/data_types";
 
-const styles = (theme: any) =>
+const randomDatatypeColor = () => {
+  return DATA_TYPES[Math.floor(Math.random() * DATA_TYPES.length)].color;
+};
+
+const styles = (theme: any, col1: string, opacity: number) =>
   css({
     display: "flex",
     flexDirection: "column",
@@ -13,10 +18,12 @@ const styles = (theme: any) =>
     backgroundColor: "#222",
     height: "75vh",
     ".nt": {
-      color: theme.palette.c_hl1,
+      color: "white",
       width: "200px",
       height: "200px",
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
+      opacity: opacity,
+      transition: "opacity 1s ease-in-out"
     },
     ".nodetool": {
       display: "flex",
@@ -35,22 +42,22 @@ const styles = (theme: any) =>
       cursor: "pointer",
       border: "0px dashed #2229",
       boxSizing: "border-box",
-      backgroundColor: theme.palette.c_hl1,
+      backgroundColor: "white",
       transition: "all .3s ease-out",
-      outline: "1px solid " + theme.palette.c_hl1
+      outline: "1px solid white"
     },
     ".nt:hover .nodetool": {
       color: "#000",
       width: "200px",
       height: "200px",
       borderRadius: "1.92em",
-      backgroundColor: theme.palette.c_hl1,
-      border: "9px dashed #222",
+      backgroundColor: col1,
+      border: "6px dashed #222",
       textShadow: "0 0 2px rgba(0,0,0,1)",
       fontSize: "54px",
       filter: "blur(0.3px)",
-      boxShadow: "0 0 33px" + theme.palette.c_hl1,
-      outline: "8px solid " + theme.palette.c_hl1
+      boxShadow: `0 0 33px ${col1}`,
+      outline: `8px solid ${col1}`
     },
     h3: {
       fontFamily: "monospace",
@@ -58,7 +65,7 @@ const styles = (theme: any) =>
       fontSize: "1.2em",
       margin: "0 0 3em",
       padding: "1em 2em",
-      color: theme.palette.c_hl1,
+      color: "white",
       textAlign: "center",
       textTransform: "uppercase",
       lineHeight: "1.25em"
@@ -77,19 +84,31 @@ const styles = (theme: any) =>
     ".gsi-material-button": {
       fontSize: "1em",
       border: "none",
-      background: "#333",
-      padding: "2em 1em"
+      background: theme.palette.c_white,
+      padding: "1.5em 1em"
+    },
+    ".gsi-material-button:hover": {
+      background: theme.palette.c_gray6
     }
   });
 
 function Login() {
+  const [hoverColor, setHoverColor] = useState(randomDatatypeColor());
+  const [opacity, setOpacity] = useState(0);
+  const theme = useTheme();
+
+  const handleMouseEnter = () => {
+    setHoverColor(randomDatatypeColor());
+  };
+  useEffect(() => {
+    setOpacity(1);
+  }, []);
+
   return (
-    <div css={styles}>
-      <div className="nt">
+    <div css={styles(theme, hoverColor, opacity)}>
+      <div className="nt" onMouseEnter={handleMouseEnter}>
         <div className="nodetool">
-          {/* <div style={{ marginBottom: "-.6em" }}>´´´´´´</div> */}
           NODE <br /> TOOL
-          {/* <div style={{ marginBottom: "-.75em" }}>``````</div> */}
         </div>
       </div>
       <Typography component="h3">
@@ -97,7 +116,6 @@ function Login() {
         <br /> for generative AI
       </Typography>
       <GoogleAuthButton />
-      {/* <Typography component="h4">MinimalIntelligence.com</Typography> */}
     </div>
   );
 }

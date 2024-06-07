@@ -86,14 +86,14 @@ img::selection {
   -ms-user-select: none;
   appearance: none;
   -webkit-appearance: none;
-  background-color: #131314;
+  background-color: #fff;
   background-image: none;
-  border: 1px solid #747775;
+  border: 1px solid #fff;
   -webkit-border-radius: 4px;
   border-radius: 4px;
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
-  color: #e3e3e3;
+  color: #000;
   cursor: pointer;
   font-family: var(--font_family), "Roboto", arial, sans-serif;
   font-size: 14px;
@@ -160,12 +160,12 @@ img::selection {
 
 .gsi-material-button:disabled {
   cursor: default;
-  background-color: #13131461;
+  background-color: #fff;
   border-color: #8e918f1f;
 }
 
 .gsi-material-button:disabled .gsi-material-button-state {
-  background-color: #e3e3e31f;
+  background-color: #fff;
 }
 
 .gsi-material-button:disabled .gsi-material-button-contents {
