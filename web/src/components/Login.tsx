@@ -19,18 +19,18 @@ const styles = (theme: any, col1: string, opacity: number) =>
     height: "75vh",
     ".nt": {
       color: "white",
-      width: "200px",
-      height: "200px",
+      width: "250px",
+      height: "250px",
       backgroundColor: "transparent",
       opacity: opacity,
-      transition: "opacity 1s ease-in-out"
+      transition: "opacity 1s ease-in-out .2s"
     },
     ".nodetool": {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      width: "200px",
-      height: "200px",
+      width: "250px",
+      height: "250px",
       textAlign: "center",
       userSelect: "none",
       fontSize: "60px",
@@ -43,18 +43,16 @@ const styles = (theme: any, col1: string, opacity: number) =>
       border: "0px dashed #2229",
       boxSizing: "border-box",
       backgroundColor: "white",
-      transition: "all .3s ease-out",
+      transition: "all .4s ease-out",
       outline: "1px solid white"
     },
     ".nt:hover .nodetool": {
       color: "#000",
-      width: "200px",
-      height: "200px",
-      borderRadius: "1.92em",
+      borderRadius: "3em",
       backgroundColor: col1,
-      border: "6px dashed #222",
+      // border: "6px dashed #222",
       textShadow: "0 0 2px rgba(0,0,0,1)",
-      fontSize: "54px",
+      // fontSize: "54px",
       filter: "blur(0.3px)",
       boxShadow: `0 0 33px ${col1}`,
       outline: `8px solid ${col1}`
@@ -82,6 +80,7 @@ const styles = (theme: any, col1: string, opacity: number) =>
       textTransform: "uppercase"
     },
     ".gsi-material-button": {
+      width: "240px",
       fontSize: "1em",
       border: "none",
       background: theme.palette.c_white,
