@@ -298,7 +298,7 @@ export default memo(
           </div>
           <DialogContent>
             {dataTypesFiltered.map((datatype, index) => (
-              <>
+              <div key={datatype.slug} className="dt">
                 <Button
                   className="color-button"
                   key={datatype + "_" + index}
@@ -320,7 +320,7 @@ export default memo(
                     {datatype.label}
                   </Typography>
                 </Button>
-              </>
+              </div>
             ))}
           </DialogContent>
         </Dialog>
