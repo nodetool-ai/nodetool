@@ -101,7 +101,7 @@ const styles = (theme: any) =>
       transition: "opacity 0.2s",
       maxHeight: "3em",
       overflow: "hidden",
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
       // zIndex: 5000
     },
     ".filetype": {
@@ -471,8 +471,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   return (
     <div
       css={styles}
-      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
-        } ${isParent ? "parent" : ""}`}
+      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
+        isDragHovered ? "drag-hover" : ""
+      } ${isParent ? "parent" : ""}`}
       onDragEnter={isFolder ? handleDragEnter : undefined}
       onDragLeave={isFolder ? handleDragLeave : undefined}
       onContextMenu={(e) =>
@@ -494,7 +495,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           }
         }
       }}
-      onMouseDown={() => {
+      onClick={() => {
         if (isParent) {
           onClickParent && onClickParent(asset.id);
         }
@@ -527,16 +528,18 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"
-                  })`
+                backgroundImage: `url(${
+                  asset.thumb_url || "/images/placeholder.png"
+                })`
               }}
               aria-label={asset.id}
             />
             <div
               className="image-aspect-ratio"
               style={{
-                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"
-                  })`
+                backgroundImage: `url(${
+                  asset.thumb_url || "/images/placeholder.png"
+                })`
               }}
               aria-label={asset.id}
             />
@@ -551,7 +554,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <>
             <AudioFileIcon
               style={{ color: `var(--c_${assetType})` }}
-              onMouseDown={() => props.onSetCurrentAudioAsset?.(asset)}
+              onClick={() => props.onSetCurrentAudioAsset?.(asset)}
               className="placeholder"
             />
             {showDuration && asset.duration && assetItemSize > 1 && (
@@ -570,8 +573,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"
-                  })`
+                backgroundImage: `url(${
+                  asset.thumb_url || "/images/placeholder.png"
+                })`
               }}
               aria-label={asset.id}
             />
