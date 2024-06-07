@@ -36,7 +36,7 @@ const AppIconMenu: React.FC<AppIconMenuProps> = ({ anchorEl, handleClose }) => {
     >
       <MenuItem onClick={handleClose}>
         <a
-          href="https://artistai.nl/"
+          href="https:forum.nodetool.ai"
           target="_blank"
           rel="noopener noreferrer"
           style={{ textDecoration: "none", color: "inherit" }}

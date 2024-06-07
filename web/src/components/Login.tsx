@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { Box, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 
 const styles = (theme: any) =>
@@ -13,7 +13,7 @@ const styles = (theme: any) =>
     backgroundColor: "#222",
     height: "75vh",
     ".nt": {
-      color: "#bcdaba",
+      color: theme.palette.c_hl1,
       width: "200px",
       height: "200px",
       backgroundColor: "transparent"
@@ -25,6 +25,7 @@ const styles = (theme: any) =>
       width: "200px",
       height: "200px",
       textAlign: "center",
+      userSelect: "none",
       fontSize: "60px",
       lineHeight: ".9em",
       padding: "10px 0 0",
@@ -34,22 +35,22 @@ const styles = (theme: any) =>
       cursor: "pointer",
       border: "0px dashed #2229",
       boxSizing: "border-box",
-      backgroundColor: "#bcdaba",
+      backgroundColor: theme.palette.c_hl1,
       transition: "all .3s ease-out",
-      outline: "1px solid #bcdaba"
+      outline: "1px solid " + theme.palette.c_hl1
     },
     ".nt:hover .nodetool": {
       color: "#000",
       width: "200px",
       height: "200px",
       borderRadius: "1.92em",
-      backgroundColor: "#bcdaba",
+      backgroundColor: theme.palette.c_hl1,
       border: "9px dashed #222",
       textShadow: "0 0 2px rgba(0,0,0,1)",
       fontSize: "54px",
       filter: "blur(0.3px)",
-      boxShadow: "0 0 33px #bcdaba",
-      outline: "8px solid #bcdaba"
+      boxShadow: "0 0 33px" + theme.palette.c_hl1,
+      outline: "8px solid " + theme.palette.c_hl1
     },
     h3: {
       fontFamily: "monospace",
@@ -57,7 +58,7 @@ const styles = (theme: any) =>
       fontSize: "1.2em",
       margin: "0 0 3em",
       padding: "1em 2em",
-      color: "#bcdaba",
+      color: theme.palette.c_hl1,
       textAlign: "center",
       textTransform: "uppercase",
       lineHeight: "1.25em"

@@ -339,7 +339,7 @@ function SettingsMenu() {
                   color="primary"
                   onClick={() => {
                     signout();
-                    navigate("/");
+                    navigate("/login");
                   }}
                 >
                   Logout
