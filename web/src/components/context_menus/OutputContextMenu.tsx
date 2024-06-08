@@ -30,7 +30,7 @@ const OutputContextMenu: React.FC = () => {
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
 
-  type HandleType = "image" | "value" | "df" | "output" | "values";
+  type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(
     (type: string, nodeType: string): HandleType => {
       const typeMap: { [key: string]: HandleType } = {
