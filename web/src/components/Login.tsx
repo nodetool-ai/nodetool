@@ -40,7 +40,6 @@ const styles = (theme: any, col1: string, opacity: number) =>
       borderRadius: ".1em",
       boxShadow: "0 0 24px rgba(200,200,200,0.3)",
       cursor: "pointer",
-      border: "0px dashed #2229",
       boxSizing: "border-box",
       backgroundColor: "white",
       transition: "all .4s ease-out",
@@ -50,9 +49,7 @@ const styles = (theme: any, col1: string, opacity: number) =>
       color: "#000",
       borderRadius: "3em",
       backgroundColor: col1,
-      // border: "6px dashed #222",
       textShadow: "0 0 2px rgba(0,0,0,1)",
-      // fontSize: "54px",
       filter: "blur(0.3px)",
       boxShadow: `0 0 33px ${col1}`,
       outline: `8px solid ${col1}`
