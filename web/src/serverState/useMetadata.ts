@@ -5,6 +5,28 @@ import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 
+const defaultMetadata: Record<string, NodeMetadata> = {
+  "nodetool.workflows.base_node.Preview": {
+    title: "Preview",
+    description: "Preview",
+    namespace: "default",
+    node_type: "nodetool.workflows.base_node.Preview",
+    layout: "default",
+    primary_field: "value",
+    secondary_field: "",
+    properties: [
+      {
+        name: "value",
+        type: {
+          type: "any"
+        }
+      }
+    ],
+    outputs: [],
+    model_info: {}
+  }
+};
+
 export const metadataQuery = async () => {
   const { data, error } = await client.GET("/api/nodes/metadata", {});
   if (error) {
@@ -21,7 +43,7 @@ export const metadataQuery = async () => {
       ...result,
       [md.node_type]: md
     }),
-    {}
+    defaultMetadata
   );
 
   useMetadataStore.getState().setMetadata(metadataByType);
