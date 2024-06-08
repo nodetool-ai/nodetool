@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useReactFlow } from "reactflow";
 // store
-import useWorkflowRunnner from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 // components
 import SettingsMenu from "../menus/SettingsMenu";
@@ -23,6 +22,8 @@ import {
 } from "@mui/material";
 import WorkflowsIcon from "@mui/icons-material/ListAlt";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
+import SaveIcon from "@mui/icons-material/Save";
+import LayoutIcon from "@mui/icons-material/ViewModule";
 
 //utils
 import { iconForType } from "../../config/data_types";
@@ -32,7 +33,8 @@ import { TOOLTIP_DELAY } from "../../config/constants";
 //hooks
 import { useHotkeys } from "react-hotkeys-hook";
 import { useNodeStore } from "../../stores/NodeStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { Workflow } from "../../stores/ApiTypes";
 
 const styles = (theme: any) => ({
   button: {
@@ -71,27 +73,30 @@ const styles = (theme: any) => ({
   }
 });
 
-// function AppHeader({ openCommandMenu }: Props) {
 function AppHeader() {
   const navigate = useNavigate();
   const path = useLocation().pathname;
   const reactFlowInstance = useReactFlow();
-  const [openCommandMenu, setOpenCommandMenu] = useState(false);
   const { openNodeMenu } = useNodeMenuStore();
   const autoLayout = useNodeStore((state) => state.autoLayout);
-  const selectedNodeIds = useSessionStateStore(
-    (state) => state.selectedNodeIds
-  );
-  useHotkeys("Alt+s", () => fitScreen());
-  useHotkeys("Meta+s", () => fitScreen());
+  const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
+  const addNotification = useNotificationStore((state) => state.addNotification);
+
+  const onWorkflowSaved = useCallback((workflow: Workflow) => {
+    addNotification({
+      content: `Workflow ${workflow.name} saved`,
+      type: "success",
+      alert: true
+    });
+  }, [addNotification]);
+
+  useHotkeys("Alt+s", () => saveWorkflow().then(onWorkflowSaved));
+  useHotkeys("Meta+s", () => saveWorkflow().then(onWorkflowSaved));
   useHotkeys("Alt+h", () => handleOpenHelp());
   useHotkeys("Meta+h", () => handleOpenHelp());
   useHotkeys("Ctrl+Space", () => handleOpenNodeMenu());
 
   // cmd menu
-  useHotkeys("Alt+k", () => setOpenCommandMenu(true));
-  useHotkeys("Meta+k", () => setOpenCommandMenu(true));
-
   const fitScreen = () => {
     reactFlowInstance.fitView({
       padding: 0.6
@@ -149,9 +154,8 @@ function AppHeader() {
             <Button
               aria-controls="simple-menu"
               aria-haspopup="true"
-              className={`nav-button ${
-                path.startsWith("/workflows") ? "active" : ""
-              }`}
+              className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
+                }`}
               onClick={() => navigate("/workflows")}
             >
               <WorkflowsIcon />
@@ -210,7 +214,7 @@ function AppHeader() {
               enterDelay={TOOLTIP_DELAY}
             >
               <Button className="action-button" onClick={handleOpenNodeMenu}>
-                {<AdjustIcon />}
+                <AdjustIcon />
                 Nodes
               </Button>
             </Tooltip>
@@ -218,14 +222,25 @@ function AppHeader() {
         </Box>
 
         {path.startsWith("/editor") && (
-          <Tooltip
-            title="Arranges all nodes or selected nodes"
-            enterDelay={TOOLTIP_DELAY}
-          >
-            <Button className="action-button" onClick={handleAutoLayout}>
-              AutoLayout
-            </Button>
-          </Tooltip>
+          <>
+            <Tooltip
+              title="Arranges all nodes or selected nodes"
+              enterDelay={TOOLTIP_DELAY}
+            >
+              <Button className="action-button" onClick={handleAutoLayout}>
+                <LayoutIcon />
+                AutoLayout
+              </Button>
+            </Tooltip>
+            <Tooltip
+              title="Save workflow"
+              enterDelay={TOOLTIP_DELAY}>
+              <Button className="action-button" onClick={() => saveWorkflow().then(onWorkflowSaved)}>
+                <SaveIcon />
+                Save
+              </Button>
+            </Tooltip>
+          </>
         )}
 
         <Box sx={{ flexGrow: 1 }} />
