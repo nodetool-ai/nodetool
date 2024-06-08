@@ -30,6 +30,25 @@ const OutputContextMenu: React.FC = () => {
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
 
+  type HandleType = "image" | "value" | "df" | "output" | "values";
+  const getTargetHandle = useCallback(
+    (type: string, nodeType: string): HandleType => {
+      const typeMap: { [key: string]: HandleType } = {
+        image: "image",
+        dataframe: "df",
+        list: "values"
+      };
+      if (nodeType === "preview") {
+        return "value";
+      } else if (nodeType === "output") {
+        return "value";
+      } else {
+        return typeMap[type] || "value";
+      }
+    },
+    []
+  );
+
   const fetchMetadata = useCallback(
     (nodeType: string) => {
       devLog(`Fetching metadata for node type: ${nodeType}`);
@@ -53,7 +72,7 @@ const OutputContextMenu: React.FC = () => {
   }, [type, fetchMetadata]);
 
   const createNodeWithEdge = useCallback(
-    (metadata: any, position: { x: number; y: number }) => {
+    (metadata: any, position: { x: number; y: number }, nodeType: string) => {
       if (!metadata) {
         devLog("Metadata is undefined, cannot create node.");
         return;
@@ -70,8 +89,7 @@ const OutputContextMenu: React.FC = () => {
         height: 200
       };
       addNode(newNode);
-
-      const targetHandle = type === "image" ? "image" : "value";
+      const targetHandle = getTargetHandle(type || "", nodeType);
       addEdge({
         id: generateEdgeId(),
         source: nodeId || "",
@@ -86,10 +104,11 @@ const OutputContextMenu: React.FC = () => {
       createNode,
       reactFlowInstance,
       addNode,
+      getTargetHandle,
+      type,
       addEdge,
       generateEdgeId,
-      nodeId,
-      type
+      nodeId
     ]
   );
 
@@ -99,10 +118,14 @@ const OutputContextMenu: React.FC = () => {
       if (!metadata) {
         return;
       }
-      createNodeWithEdge(metadata, {
-        x: event.clientX - 20,
-        y: event.clientY - 150
-      });
+      createNodeWithEdge(
+        metadata,
+        {
+          x: event.clientX - 20,
+          y: event.clientY - 150
+        },
+        "preview"
+      );
     },
     [getMetadata, createNodeWithEdge]
   );
@@ -112,10 +135,14 @@ const OutputContextMenu: React.FC = () => {
       if (!outputNodeMetadata) {
         return;
       }
-      createNodeWithEdge(outputNodeMetadata, {
-        x: event.clientX - 20,
-        y: event.clientY - 220
-      });
+      createNodeWithEdge(
+        outputNodeMetadata,
+        {
+          x: event.clientX - 20,
+          y: event.clientY - 220
+        },
+        "output"
+      );
     },
     [outputNodeMetadata, createNodeWithEdge]
   );
@@ -125,10 +152,14 @@ const OutputContextMenu: React.FC = () => {
       if (!saveNodeMetadata) {
         return;
       }
-      createNodeWithEdge(saveNodeMetadata, {
-        x: event.clientX - 250,
-        y: event.clientY - 200
-      });
+      createNodeWithEdge(
+        saveNodeMetadata,
+        {
+          x: event.clientX - 250,
+          y: event.clientY - 200
+        },
+        "save"
+      );
     },
     [saveNodeMetadata, createNodeWithEdge]
   );

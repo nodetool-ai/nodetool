@@ -131,7 +131,7 @@ export default function useConnectionHandlers() {
   /* CONNECT END */
   // called after onConnect
   const onConnectEnd = useCallback(
-    // create input, output, preview, constant nodes
+    // open contextMenu for input/output
     (event: any) => {
       const targetIsPane = event.target.classList.contains("react-flow__pane");
 
