@@ -295,8 +295,17 @@ export const useNodeStore = create<NodeStore>()(
        * @param id The id of the node to delete.
        */
       deleteNode: (id: string) => {
+        const nodes: Node<NodeData>[] = get()
+          .nodes.filter((node) => node.id !== id)
+          .map((node) => {
+            return {
+              ...node,
+              parentId: node.parentId === id ? undefined : node.parentId
+            };
+          });
+
         set({
-          nodes: get().nodes.filter((node) => node.id !== id),
+          nodes: nodes,
           edges: get().edges.filter((edge) => edge.source !== id)
         });
       },
