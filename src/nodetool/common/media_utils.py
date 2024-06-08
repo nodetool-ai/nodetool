@@ -1,14 +1,13 @@
 import subprocess
-from typing import IO
+from typing import IO, Union
 import PIL.Image
 import pydub
 from io import BytesIO
 import tempfile
 import numpy as np
 import asyncio
-import subprocess
 import cv2
-
+import os
 
 def create_empty_video(fps: int, width: int, height: int, duration: int, filename: str):
     """
@@ -18,7 +17,7 @@ def create_empty_video(fps: int, width: int, height: int, duration: int, filenam
         fps (int): The frames per second of the video.
         duration (int): The duration of the video in seconds.
         width (int): The width of each frame.
-        height (int): The height of each frame.i
+        height (int): The height of each frame.
         filename (str): The filename of the output video file.
 
     Returns:
@@ -41,7 +40,6 @@ def create_empty_video(fps: int, width: int, height: int, duration: int, filenam
     # Release the VideoWriter object
     out.release()
 
-
 async def create_image_thumbnail(input_io: IO, width: int, height: int) -> BytesIO:
     """
     Generate a thumbnail image from an image using PIL.
@@ -62,25 +60,27 @@ async def create_image_thumbnail(input_io: IO, width: int, height: int) -> Bytes
 
     return output_io
 
-
 async def create_video_thumbnail(input_io: IO, width: int, height: int) -> BytesIO:
     """
     Generate a thumbnail image from a video file using OpenCV.
     """
     # Create a temporary file to store the video
-    with tempfile.NamedTemporaryFile() as temp_file:
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         # Write the input BytesIO object to the temporary file
         temp_file.write(input_io.read())
         temp_file.flush()
         input_io.seek(0)
 
+        temp_file_path = temp_file.name  # Store the temporary file path
+
+    try:
         # Use ffmpeg to generate thumbnail
         # select the most representative frame in a given sequence of consecutive frames
         # automatically from the video.
         cmd = [
             "ffmpeg",
             "-i",
-            temp_file.name,
+            temp_file_path,
             "-vf",
             "thumbnail=300",
             "-frames:v",
@@ -101,10 +101,11 @@ async def create_video_thumbnail(input_io: IO, width: int, height: int) -> Bytes
         if process.returncode == 0:
             return BytesIO(output)
         else:
-            raise Exception(f"ffmpeg error: {errors}")
+            raise Exception(f"ffmpeg error: {errors.decode()}")
+    finally:
+        os.remove(temp_file_path)  # Ensure the temporary file is deleted
 
-
-async def get_video_duration(input_io: BytesIO) -> float | None:
+async def get_video_duration(input_io: BytesIO) -> Union[float, None]:
     """
     Get the duration of a media file using ffprobe.
 
@@ -114,7 +115,15 @@ async def get_video_duration(input_io: BytesIO) -> float | None:
     Returns:
         float: The duration of the media file in seconds.
     """
-    with tempfile.NamedTemporaryFile() as temp_file:
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        # write the input bytes to the temporary file
+        temp_file.write(input_io.read())
+        temp_file.flush()
+        input_io.seek(0)
+
+        temp_file_path = temp_file.name  # Store the temporary file path
+
+    try:
         cmd = [
             "ffprobe",
             "-v",
@@ -124,12 +133,8 @@ async def get_video_duration(input_io: BytesIO) -> float | None:
             "-of",
             "default=noprint_wrappers=1:nokey=1",  # Output format for the duration
             "-i",
-            temp_file.name,  # Read from the temporary file
+            temp_file_path,  # Read from the temporary file
         ]
-        # write the input bytes to the temporary file
-        temp_file.write(input_io.read())
-        temp_file.flush()
-        input_io.seek(0)
 
         process = await asyncio.create_subprocess_exec(
             *cmd,
@@ -149,10 +154,12 @@ async def get_video_duration(input_io: BytesIO) -> float | None:
                     return None
             return None
         else:
-            print(f"ffprobe error: {errors}")
+            print(f"ffprobe error: {errors.decode()}")
+            return None
+    finally:
+        os.remove(temp_file_path)
 
-
-def get_audio_duration(source_io: BytesIO):
+def get_audio_duration(source_io: BytesIO) -> float:
     """
     Get the duration of an audio file using pydub.
 
@@ -160,7 +167,7 @@ def get_audio_duration(source_io: BytesIO):
         source_io: BytesIO object containing the media file.
 
     Returns:
-        BytesIO: BytesIO object containing the WebM file.
+        float: The duration of the audio file in seconds.
     """
     audio = pydub.AudioSegment.from_file(source_io)
     duration = len(audio) / 1000.0
