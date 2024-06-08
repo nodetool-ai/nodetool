@@ -536,19 +536,23 @@ class Environment(object):
         """
         The nodetool api client is a wrapper around the nodetool api.
         """
-        from fastapi.testclient import TestClient
         from nodetool.api.server import create_app
+        import httpx
 
         if not hasattr(cls, "nodetool_api_client"):
             if cls.get_nodetool_api_url():
                 cls.nodetool_api_client = NodetoolAPIClient(
-                    auth_token=auth_token, base_url=cls.get_nodetool_api_url()
+                    auth_token=auth_token,
+                    base_url=cls.get_nodetool_api_url(),
+                    client=httpx.AsyncClient(),
                 )
             else:
+                app = create_app()
+                transport = httpx.ASGITransport(app=app)  # type: ignore
                 cls.nodetool_api_client = NodetoolAPIClient(
                     auth_token=auth_token,
-                    base_url="http://localhost:8000",
-                    app=create_app(),
+                    base_url="http://127.0.0.1:123",
+                    client=httpx.AsyncClient(transport=transport),
                 )
         return cls.nodetool_api_client
 

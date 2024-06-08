@@ -50,6 +50,7 @@ def create_app(
         expose_headers=["*"],
         max_age=3600,
     )
+
     for router in routers:
         app.include_router(router)
 
