@@ -1,6 +1,6 @@
 from typing import Any
 from pydantic import Field
-from nodetool.metadata.types import ImageTensor
+from nodetool.metadata.types import DataframeRef, ImageTensor
 from nodetool.metadata.types import asset_to_ref
 from nodetool.models.asset import Asset
 from nodetool.metadata.types import FolderRef
@@ -304,7 +304,7 @@ class GroupInput(BaseNode):
     Input node for any group node.
     """
 
-    items: list[Any] = []
+    items: list[Any] | DataframeRef = []
     name: str = ""
     _value: Any = None
 
