@@ -1,8 +1,8 @@
 from abc import ABC
 import json
 import httpx
-from typing import IO, AsyncIterator, Dict, Any
-from fastapi.testclient import TestClient
+from typing import AsyncIterator, Dict, Any
+from httpx import ASGITransport
 
 
 class Response:
@@ -45,12 +45,13 @@ class Response:
 class NodetoolAPIClient:
     auth_token: str
     base_url: str
+    client: httpx.AsyncClient
     app: Any
 
-    def __init__(self, auth_token: str, base_url: str, app: Any | None = None):
+    def __init__(self, auth_token: str, base_url: str, client: httpx.AsyncClient):
         self.auth_token = auth_token
         self.base_url = base_url
-        self.app = app
+        self.client = client
         assert self.auth_token != "", "auth_token is required"
 
     def get_base_url(self):
@@ -67,24 +68,22 @@ class NodetoolAPIClient:
         return f"{self.base_url}/{key}"
 
     async def get(self, path: str, **kwargs) -> Response:
-        async with httpx.AsyncClient(app=self.app) as client:
-            response = await client.get(
-                self._get_url(path),
-                headers=self._get_headers(),
-                **kwargs,
-            )
-            response.raise_for_status()
-            return Response.from_httpx(response)
+        response = await self.client.get(
+            self._get_url(path),
+            headers=self._get_headers(),
+            **kwargs,
+        )
+        response.raise_for_status()
+        return Response.from_httpx(response)
 
     async def head(self, path: str, **kwargs) -> Response:
-        async with httpx.AsyncClient(app=self.app) as client:
-            response = await client.head(
-                self._get_url(path),
-                headers=self._get_headers(),
-                **kwargs,
-            )
-            response.raise_for_status()
-            return Response.from_httpx(response)
+        response = await self.client.head(
+            self._get_url(path),
+            headers=self._get_headers(),
+            **kwargs,
+        )
+        response.raise_for_status()
+        return Response.from_httpx(response)
 
     async def stream(
         self,
@@ -92,37 +91,33 @@ class NodetoolAPIClient:
         path: str,
         **kwargs,
     ) -> AsyncIterator[bytes]:
-        async with httpx.AsyncClient(app=self.app) as client:
-            async with client.stream(
-                method,
-                self._get_url(path),
-                headers=self._get_headers(),
-                **kwargs,
-            ) as response:
-                response.raise_for_status()
-                async for chunk in response.aiter_bytes():
-                    yield chunk
+        async with self.client.stream(
+            method,
+            self._get_url(path),
+            headers=self._get_headers(),
+            **kwargs,
+        ) as response:
+            response.raise_for_status()
+            async for chunk in response.aiter_bytes():
+                yield chunk
 
     async def post(self, path: str, **kwargs) -> Response:
-        async with httpx.AsyncClient(app=self.app) as client:
-            response = await client.post(
-                self._get_url(path), headers=self._get_headers(), **kwargs
-            )
-            response.raise_for_status()
-            return Response.from_httpx(response)
+        response = await self.client.post(
+            self._get_url(path), headers=self._get_headers(), **kwargs
+        )
+        response.raise_for_status()
+        return Response.from_httpx(response)
 
     async def put(self, path: str, **kwargs) -> Response:
-        async with httpx.AsyncClient(app=self.app) as client:
-            response = await client.put(
-                self._get_url(path), headers=self._get_headers(), **kwargs
-            )
-            response.raise_for_status()
-            return Response.from_httpx(response)
+        response = await self.client.put(
+            self._get_url(path), headers=self._get_headers(), **kwargs
+        )
+        response.raise_for_status()
+        return Response.from_httpx(response)
 
     async def delete(self, path: str) -> Response:
-        async with httpx.AsyncClient(app=self.app) as client:
-            response = await client.delete(
-                self._get_url(path), headers=self._get_headers()
-            )
-            response.raise_for_status()
-            return Response.from_httpx(response)
+        response = await self.client.delete(
+            self._get_url(path), headers=self._get_headers()
+        )
+        response.raise_for_status()
+        return Response.from_httpx(response)

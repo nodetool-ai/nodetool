@@ -1,4 +1,5 @@
 from datetime import datetime
+from nodetool.metadata.types import DataframeRef
 from nodetool.nodes.nodetool.input import GroupInput
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.workflows.base_node import GroupNode
@@ -34,13 +35,18 @@ class Loop(GroupNode):
         input_nodes = [n for n in self._nodes if isinstance(n, GroupInput)]
         output_nodes = [n for n in self._nodes if isinstance(n, GroupOutput)]
 
+        for name, value in self._properties.items():
+            if isinstance(value, DataframeRef):
+                df = await context.dataframe_to_pandas(value)
+                self._properties[name] = df.to_dict(orient="records")
+
         if len(input_nodes) == 0:
             raise ValueError("Loop node must have at least one input node.")
 
         # Validate all inputs to be list
         assert all(
             isinstance(value, list) for value in self._properties.values()
-        ), "Input data must be a list."
+        ), "Input data must be a list or dataframe."
 
         # Get the length of the input data and check for equal length.
         lengths = [len(value) for value in self._properties.values()]
@@ -62,7 +68,10 @@ class Loop(GroupNode):
             )
             # Provide the item as input to the subgraph.
             for input_node in input_nodes:
-                input_node._value = self._properties[input_node.name][i]
+                if input_node.name in self._properties:
+                    input_sequence = self._properties[input_node.name]
+                    if len(input_sequence) > i:
+                        input_node._value = input_sequence[i]
 
             graph = Graph(nodes=self._nodes, edges=self._edges)
             await runner.process_graph(sub_context, graph)
