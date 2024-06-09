@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Button, CircularProgress, Snackbar, Typography } from "@mui/material";
+import { Button, CircularProgress, Typography } from "@mui/material";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   WaveRecorderProps,
@@ -10,7 +10,6 @@ import {
 const WaveRecorder = (props: WaveRecorderProps) => {
   const {
     error,
-    setError,
     micRef,
     handleRecord,
     isRecording,
@@ -68,26 +67,6 @@ const WaveRecorder = (props: WaveRecorderProps) => {
 
   return (
     <div className="waverecorder" css={styles}>
-      {/* <Snackbar
-        open={error !== null}
-        className="nodrag"
-        autoHideDuration={30000}
-        anchorOrigin={{ vertical: "top", horizontal: "left" }}
-        sx={{
-          top: "20px",
-          left: "-50px"
-        }}
-        onClose={() => setError(null)}
-        message={
-          <>
-            <span style={{ color: "#ff5555", display: "block" }}>
-              CHECK RECORDING DEVICE{" "}
-            </span>
-            <span>{error}</span>
-          </>
-        }
-      /> */}
-
       <Button
         onClick={handleRecord}
         className={`record-button nodrag ${isRecording ? " recording" : ""}`}
