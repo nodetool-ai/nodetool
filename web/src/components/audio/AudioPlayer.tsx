@@ -1,27 +1,30 @@
-// EVENTS: https://wavesurfer.xyz/examples/?events.js
-
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
 import WaveSurfer from "wavesurfer.js";
 import Minimap from "wavesurfer.js/dist/plugins/minimap";
 import { Typography } from "@mui/material";
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo
+} from "react";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
-import { throttle } from "lodash";
+import { set, throttle } from "lodash";
 import AudioControls from "./AudioControls";
 import { devLog, devError } from "../../utils/DevLog";
 
 type WaveSurferProps = {
-  fontSize?: "normal" | "small" | "tiny" | undefined;
+  fontSize?: "normal" | "small" | "tiny";
   alwaysShowControls?: boolean;
   filename?: string;
   cursorColor?: string;
   waveColor?: string;
   progressColor?: string;
   url: string;
-  //
   barAlign?: "top" | "bottom";
   barGap?: number;
   barWidth?: number;
@@ -40,14 +43,8 @@ type WaveSurferProps = {
   dragToSeek?: boolean;
   autoplay?: boolean;
   playOnLoad?: boolean;
-  //
-  //audioRate?: number;
-  //autoCenter?: boolean;
-  //autoScroll?: boolean;
-  //interact?: boolean;
-  //normalize?: boolean;
-  //splitChannels?: WaveSurferOptions[];
 };
+
 const wsprops: WaveSurferProps = {
   fontSize: "tiny",
   alwaysShowControls: false,
@@ -57,7 +54,6 @@ const wsprops: WaveSurferProps = {
   waveColor: "#ddd",
   progressColor: "#555",
   url: "",
-  //
   barAlign: "bottom",
   barGap: 1,
   barRadius: 0,
@@ -75,22 +71,10 @@ const wsprops: WaveSurferProps = {
   dragToSeek: true,
   autoplay: false,
   playOnLoad: false
-  //
-  //audioRate: 1,
-  //autoCenter: true,
-  //autoScroll: true,
-  //interact: true,
-  //normalize: false,
-  //splitChannels: undefined,
 };
 
 const styles = (theme: any) =>
   css({
-    // "&": {
-    // },
-    // audioPlayer: {
-    //   scrollbarWidth: "thin"
-    // },
     button: {
       width: "25px !important",
       height: "25px !important",
@@ -99,7 +83,6 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       border: "1px solid rgba(70, 70, 70, 0.3)",
       marginLeft: "0",
-
       "&:hover": {
         backgroundColor: "transparent",
         border: "1px solid rgba(90, 90, 90, 0.4)"
@@ -115,10 +98,14 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeBig
     },
     ".waveform": {
-      scrollbarWidth: "none",
-      msOverflowStyle: "none"
+      width: "100%",
+      maxWidth: "99% !important"
+      // scrollbarWidth: "none",
+      // msOverflowStyle: "none"
     },
     ".minimap": {
+      width: "100%",
+      maxWidth: "99% !important",
       marginTop: "2px",
       cursor: "pointer",
       opacity: "0",
@@ -127,32 +114,12 @@ const styles = (theme: any) =>
     ".minimap.visible": {
       opacity: "1"
     }
-
-    // sliderRoot: {
-    //   margin: "0"
-    // },
-    // sliderValue: {
-    //   margin: "0"
-    // },
-    // tinyValue: {
-    //   margin: "0",
-    //   padding: "0",
-    //   right: "0",
-    //   top: "4px"
-    // },
-    // waveformScrollbar: {
-    //   display: "none"
-    // },
-
-    // zoomedMinimap: {
-    //   opacity: "1"
-    // },
   });
 
 const formatTime = (time: number) => {
   const hours = Math.floor(time / 3600);
   const minutes = Math.floor((time % 3600) / 60);
-  const seconds = ("00" + Math.floor(time % 60)).slice(-2); // padded with zeros
+  const seconds = ("00" + Math.floor(time % 60)).slice(-2);
   return hours > 0
     ? `${hours}:${minutes < 10 ? "0" : ""}${minutes}:${seconds}`
     : `${minutes < 10 ? "0" : ""}${minutes}:${seconds}`;
@@ -180,33 +147,36 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
+  const currentTimeRef = useRef(0);
   const [loop, setLoop] = useState(false);
   const [mute, setMute] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [fitsContainer, setFitsContainer] = useState(true);
-
-  const handlePlayPause = () => {
+  const minimapId = useMemo(() => `minimap-${uuidv4()}`, []);
+  const handlePlayPause = useCallback(() => {
     try {
       waveSurferRef.current?.playPause();
     } catch (error) {
       devError("Audio Playback Error:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    devLog("Audio Player mounted.");
+    return () => {
+      devLog("Audio Player unmounted.");
+    };
+  }, []);
+
   const onPlay = useCallback(() => {
     setIsPlaying(true);
   }, []);
+
   const onPause = useCallback(() => {
     setIsPlaying(false);
   }, []);
 
-  // set isPlaying to false when audio loads
-  useEffect(() => {
-    setIsPlaying(false);
-  }, [url]);
-
-  const minimapId = useRef(`minimap-${uuidv4()}`);
-  const checkWaveformFit = () => {
+  const checkWaveformFit = useCallback(() => {
     const waveformElement = waveSurferRef.current?.getWrapper();
     const waveformWidth = waveformElement?.scrollWidth || 0;
     const containerWidth = waveFormRef.current?.clientWidth || 0;
@@ -216,32 +186,34 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     } else {
       setFitsContainer(false);
     }
-  };
+  }, []);
 
   const loadWaveSurfer = useCallback(async () => {
     if (!url || lastLoadedUrlRef.current === url) return;
+
     const abortCtrl = new AbortController();
 
     try {
       const response = await axios.get(url, {
-        headers: {
-          Accept: "audio/mp3"
-        },
+        headers: { Accept: "audio/mp3" },
         responseType: "blob",
         signal: abortCtrl.signal
       });
+
       if (
         response.status === 200 &&
         waveFormRef.current &&
         (!prevUrl || prevUrl !== url)
       ) {
-        waveSurferRef.current?.destroy();
+        if (waveSurferRef.current) {
+          waveSurferRef.current.destroy();
+          waveSurferRef.current = null;
+        }
 
-        // MINIMAP
         const minimap = Minimap.create({
-          container: `#${minimapId.current}`,
-          waveColor: waveColor,
-          progressColor: progressColor,
+          container: `#${minimapId}`,
+          waveColor,
+          progressColor,
           cursorColor: "#eee",
           height: minimapHeight,
           barHeight: minimapBarHeight,
@@ -254,12 +226,13 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         });
 
         const handleAudioProcess = throttle(() => {
-          const currentTime = waveSurfer.getCurrentTime();
-          setCurrentTime(currentTime);
+          const currentTime = waveSurferRef.current?.getCurrentTime() || 0;
+          currentTimeRef.current = currentTime;
         }, 100);
+
         const handleSeekingProcess = throttle(() => {
-          const currentTime = waveSurfer.getCurrentTime();
-          setCurrentTime(currentTime);
+          const currentTime = waveSurferRef.current?.getCurrentTime() || 0;
+          currentTimeRef.current = currentTime;
         }, 100);
 
         const waveSurfer = WaveSurfer.create({
@@ -270,7 +243,8 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           plugins: [minimap]
         });
         waveSurferRef.current = waveSurfer;
-        waveSurfer.on("error" as any, (err) => {
+
+        waveSurfer.on("error", (err) => {
           devError("Wavesurfer audio error:", err);
         });
         waveSurfer.on("play", onPlay);
@@ -283,30 +257,21 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
             waveSurfer.play();
           }
         });
-        waveSurfer.on("loading", (percent) => {
-          // devLog("Loading: ", percent + "%");
-        });
         waveSurfer.on("decode", (duration) => {
           setDuration(duration);
           devLog("Decode: ", duration + "s");
         });
-        waveSurfer.on("audioprocess", () => {
-          handleAudioProcess();
-        });
-        waveSurfer.on("seeking", () => {
-          handleSeekingProcess();
-        });
-        waveSurfer.on("zoom", () => {
-          checkWaveformFit();
-        });
+        waveSurfer.on("audioprocess", handleAudioProcess);
+        waveSurfer.on("seeking", handleSeekingProcess as any);
+        waveSurfer.on("zoom", checkWaveformFit);
         waveSurfer.on("finish", () => {
           if (loopRef.current) {
             waveSurfer.seekTo(0);
             waveSurfer.play();
             setIsPlaying(true);
           } else {
-            waveSurfer.stop();
             waveSurfer.seekTo(0);
+            setIsPlaying(false);
           }
         });
         setPrevUrl(url);
@@ -320,41 +285,39 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         devError("Error while checking or loading audio:", error);
       }
     }
+
     lastLoadedUrlRef.current = url;
+
     return () => {
       abortCtrl.abort();
     };
   }, [
     url,
     prevUrl,
+    minimapId,
     waveColor,
     progressColor,
     minimapHeight,
     minimapBarHeight,
+    minPxPerSec,
     otherProps,
     onPlay,
     onPause,
-    minPxPerSec
+    checkWaveformFit
   ]);
 
   useEffect(() => {
     return () => {
       if (waveSurferRef.current) {
-        // waveSurferRef.current.destroy();
-        // waveSurferRef.current = null;
+        waveSurferRef.current.destroy();
+        waveSurferRef.current = null;
       }
     };
-  }, [loadWaveSurfer]);
+  }, []);
 
   useEffect(() => {
     loadWaveSurfer();
   }, [loadWaveSurfer]);
-
-  useEffect(() => {
-    return () => {
-      waveSurferRef.current?.destroy();
-    };
-  }, []);
 
   useEffect(() => {
     waveSurferRef.current?.setMuted(mute);
@@ -399,19 +362,27 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         className={`${fontSize} filename`}
         style={{ color: "#999" }}
       >
-        {`${formatTime(currentTime)} | ${formatTime(duration)}`}
+        {`${formatTime(currentTimeRef.current)} | ${formatTime(duration)}`}
       </Typography>
       <div
         id="waveform"
-        className=" waveform nodrag"
+        className="waveform nodrag"
         style={{ height: `${waveformHeight}px` }}
         ref={waveFormRef}
         onClick={(e) => {
           e.stopPropagation();
+          const bbox = waveSurferRef.current
+            ?.getWrapper()
+            .getBoundingClientRect();
+          if (bbox) {
+            const x = e.clientX - bbox.left;
+            const progress = x / bbox.width;
+            waveSurferRef.current?.seekTo(progress);
+          }
         }}
       ></div>
       <div
-        id={minimapId.current}
+        id={minimapId}
         className={`minimap ${
           waveSurferRef?.current && waveSurferRef.current.getDuration() > 15
             ? "visible"
@@ -433,8 +404,10 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           fontSize={fontSize}
           onZoomChange={(value) => {
             try {
-              setZoom(value);
-              waveSurferRef.current?.zoom(value);
+              requestAnimationFrame(() => {
+                setZoom(value);
+                waveSurferRef.current?.zoom(value);
+              });
             } catch (error: any) {
               devLog("Zoom audio failed: ", error.message);
             }

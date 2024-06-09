@@ -50,7 +50,7 @@ const logoStyles = (
       backgroundColor: col1,
       textShadow: small ? "0" : "0 0 2px rgba(0,0,0,1)",
       filter: small ? "none" : "blur(0.3px)",
-      boxShadow: small ? `0` : "0 0 33px ${col1}"
+      boxShadow: small ? `0` : `0 0 11px ${col1}`
     }
   });
 

@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
 import { Button, CircularProgress, Snackbar, Typography } from "@mui/material";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
@@ -13,7 +12,6 @@ const WaveRecorder = (props: WaveRecorderProps) => {
     error,
     setError,
     micRef,
-    recordingsRef,
     handleRecord,
     isRecording,
     isLoading,
@@ -60,12 +58,17 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         backgroundColor: theme.palette.c_error,
         color: theme.palette.c_gray0,
         minWidth: "33px"
+      },
+      "& .error": {
+        color: theme.palette.c_error,
+        fontSize: theme.fontSizeTiny,
+        lineHeight: "1.1em"
       }
     });
 
   return (
     <div className="waverecorder" css={styles}>
-      <Snackbar
+      {/* <Snackbar
         open={error !== null}
         className="nodrag"
         autoHideDuration={30000}
@@ -83,7 +86,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
             <span>{error}</span>
           </>
         }
-      />
+      /> */}
 
       <Button
         onClick={handleRecord}
@@ -108,6 +111,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
           <SettingsInputComponentIcon className="toggle-off" />
         )}
       </Button>
+      {error && <div className="error">{error}</div>}
 
       {isDeviceListVisible && (
         <div className="audio-device-list" style={{ marginLeft: "5px" }}>
@@ -124,7 +128,6 @@ const WaveRecorder = (props: WaveRecorderProps) => {
       )}
 
       <div ref={micRef}></div>
-      <div ref={recordingsRef}></div>
     </div>
   );
 };
