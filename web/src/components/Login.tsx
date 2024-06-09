@@ -51,7 +51,13 @@ function Login() {
 
   return (
     <div css={styles(theme)}>
-      <Logo width="250px" height="250px" fontSize="60px" borderRadius="3em" outline="8px" />
+      <Logo
+        width="250px"
+        height="250px"
+        fontSize="80px"
+        borderRadius="3em"
+        small={false}
+      />
       <Typography component="h3">
         Visual programming
         <br /> for generative AI
