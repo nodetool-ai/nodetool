@@ -442,6 +442,7 @@ replicate_nodes = [
         "model_id": "ryan5453/demucs",
         "node_name": "Demucs",
         "namespace": "audio.separate",
+        "overrides": {"audio": AudioRef},
         "return_type": {
             "vocals": AudioRef,
             "drums": AudioRef,
