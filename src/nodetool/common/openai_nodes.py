@@ -119,7 +119,7 @@ async def create_whisper(
     file = base64.b64decode(params["file"])
     audio_segment: pydub.AudioSegment = pydub.AudioSegment.from_file(BytesIO(file))
 
-    if params["translate"]:
+    if params.get("translate", False):
         res = await client.audio.translations.create(
             model=prediction.model,
             file=("file.mp3", file, "audio/mp3"),
