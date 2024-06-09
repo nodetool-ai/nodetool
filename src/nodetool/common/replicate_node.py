@@ -211,6 +211,7 @@ def calculate_llm_cost(model: str, input_tokens: int, output_tokens: int) -> flo
         "mistralai/mistral-7b-v0.2": (0.05, 0.25),
         "mistralai/mistral-7b-instruct-v0.2": (0.05, 0.25),
         "mistralai/mixtral-8x7b-instruct-v0.1": (0.30, 1.00),
+        "snowflake/snowflake-arctic-instruct": (20.00, 20.00),
     }
 
     model = model.split(":")[0]
