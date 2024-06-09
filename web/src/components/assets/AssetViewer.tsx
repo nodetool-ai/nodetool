@@ -110,11 +110,11 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "row",
       justifyContent: "center",
-      alignItems: "center",
+      alignItems: "self-end",
       gap: "1em",
       width: "100%",
       height: "120px",
-      padding: "0",
+      padding: "0 0 .5em 0",
       backgroundColor: theme.palette.c_gray1,
       bottom: 0,
       zIndex: 200
@@ -165,10 +165,12 @@ const styles = (theme: any) =>
       justifyContent: "center",
       gap: ".5em",
       alignItems: "center",
-      width: "430px"
+      width: "430px",
+      maxWidth: "30vw"
     },
     ".prev-next-items.left": {
-      justifyContent: "flex-end"
+      justifyContent: "flex-end",
+      marginLeft: "auto"
     },
     ".prev-next-items.right": {
       justifyContent: "flex-start"

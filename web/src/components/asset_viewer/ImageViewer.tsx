@@ -15,7 +15,7 @@ const styles = (theme: any) =>
   css({
     "&": {
       width: "100%",
-      height: "100%",
+      height: "calc(100% - 120px)",
       overflow: "hidden",
       margin: "0",
       position: "relative",
@@ -23,14 +23,15 @@ const styles = (theme: any) =>
     },
     ".image-info": {
       position: "absolute",
-      bottom: "125px",
+      bottom: "0",
       right: "1em",
       zIndex: 1000
     },
     ".image-info p": {
       fontSize: theme.fontSizeSmall,
       textAlign: "right",
-      color: theme.palette.c_gray4
+      color: theme.palette.c_gray6,
+      textShadow: "0 0 4px rgba(0,0,0,0.9)"
     }
   });
 
