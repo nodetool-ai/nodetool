@@ -55,7 +55,7 @@ function Login() {
         width="250px"
         height="250px"
         fontSize="80px"
-        borderRadius="3em"
+        borderRadius="1.5em"
         small={false}
       />
       <Typography component="h3">

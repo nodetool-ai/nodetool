@@ -3,12 +3,13 @@ import { css } from "@emotion/react";
 import { useEffect, useState } from "react";
 import { DATA_TYPES } from "../config/data_types";
 
-const randomDatatypeColor = () => {
-  return DATA_TYPES[Math.floor(Math.random() * DATA_TYPES.length)].color;
+const randomDatatype = () => {
+  return DATA_TYPES[Math.floor(Math.random() * DATA_TYPES.length)];
 };
 
 const logoStyles = (
-  col1: string,
+  bgColor: string,
+  textColor: string,
   opacity: number,
   width: string,
   height: string,
@@ -42,15 +43,15 @@ const logoStyles = (
       cursor: "pointer",
       boxSizing: "border-box",
       backgroundColor: "white",
-      transition: "all .4s ease-out"
+      transition: "all .4s ease-in-out"
     },
     ".nt:hover .nodetool": {
-      color: "#000",
       borderRadius: borderRadius,
-      backgroundColor: col1,
-      textShadow: small ? "0" : "0 0 2px rgba(0,0,0,1)",
+      backgroundColor: bgColor,
+      color: textColor,
+      textShadow: small ? "0" : `0 0 2px ${textColor}`,
       filter: small ? "none" : "blur(0.3px)",
-      boxShadow: small ? `0` : `0 0 11px ${col1}`
+      boxShadow: small ? `0` : `0 0 11px ${bgColor}`
     }
   });
 
@@ -63,11 +64,15 @@ type LogoProps = {
 };
 
 const Logo = ({ width, height, fontSize, borderRadius, small }: LogoProps) => {
-  const [hoverColor, setHoverColor] = useState(randomDatatypeColor());
+  const [rdt, setRdt] = useState(randomDatatype());
+  const [hoverColor, setHoverColor] = useState(rdt.color);
+  const [textColor, setTextColor] = useState(rdt.textColor);
   const [opacity, setOpacity] = useState(0);
 
   const handleMouseEnter = () => {
-    setHoverColor(randomDatatypeColor());
+    setRdt(randomDatatype());
+    setHoverColor(rdt.color);
+    setTextColor(rdt.textColor);
   };
 
   useEffect(() => {
@@ -78,6 +83,7 @@ const Logo = ({ width, height, fontSize, borderRadius, small }: LogoProps) => {
     <div
       css={logoStyles(
         hoverColor,
+        textColor,
         opacity,
         width,
         height,
