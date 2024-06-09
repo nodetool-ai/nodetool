@@ -3,7 +3,9 @@ import subprocess
 from pathlib import Path
 
 
-def update_version_in_file(file_path: Path, regex: str, new_version: str):
+def update_version_in_file(
+    file_path: Path, regex: str, new_version: str, count: int = 1
+):
     content = file_path.read_text()
     updated_content = re.sub(regex, new_version, content)
     file_path.write_text(updated_content)
