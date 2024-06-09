@@ -18,18 +18,12 @@ def calculate_cost(
 ) -> float:
     # Pricing information for different models
     pricing: dict[str, Any] = {
-        "gpt-4-0125-preview": {"input": 10.00, "output": 30.00},
-        "gpt-4-1106-preview": {"input": 10.00, "output": 30.00},
-        "gpt-4-1106-vision-preview": {"input": 10.00, "output": 30.00},
-        "gpt-4": {"input": 30.00, "output": 60.00},
-        "gpt-4-32k": {"input": 60.00, "output": 120.00},
+        "gpt-4o": {"input": 5.00, "output": 15.00},
         "gpt-3.5-turbo-0125": {"input": 0.50, "output": 1.50},
         "gpt-3.5-turbo-instruct": {"input": 1.50, "output": 2.00},
         "text-embedding-3-small": {"usage": 0.02},
         "text-embedding-3-large": {"usage": 0.13},
         "ada v2": {"usage": 0.10},
-        "davinci-002": {"usage": 2.00},
-        "babbage-002": {"usage": 0.40},
         "whisper-1": {"usage": 0.0001},
         "tts-1": {"usage": 15.00},
         "tts-1-hd": {"usage": 30.00},
@@ -119,7 +113,7 @@ async def create_whisper(
     file = base64.b64decode(params["file"])
     audio_segment: pydub.AudioSegment = pydub.AudioSegment.from_file(BytesIO(file))
 
-    if params["translate"]:
+    if params.get("translate", False):
         res = await client.audio.translations.create(
             model=prediction.model,
             file=("file.mp3", file, "audio/mp3"),

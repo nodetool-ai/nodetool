@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "nodetool"
-version = "0.1.40"
+version = "0.1.44"
 description = "Nodetool is a no-code development environment for Artificial Intelligence, enabling the simple and intuitive creation of powerful AI workflows and their integration into existing applications."
 readme = "README.md"
 authors = ["Matthias Georgi <matti.georgi@gmail.com>"]

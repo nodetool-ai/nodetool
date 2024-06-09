@@ -147,8 +147,7 @@ class ModelFile(BaseType):
 
 class GPTModel(str, enum.Enum):
     GPT3 = "gpt-3.5-turbo-0125"
-    GPT4 = "gpt-4-1106-preview"
-    GPT4_VISION = "gpt-4-1106-vision-preview"
+    GPT4 = "gpt-4o"
 
 
 class LanguageModel(ModelFile):

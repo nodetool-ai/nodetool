@@ -189,6 +189,12 @@ replicate_nodes = [
         "overrides": {"image": ImageRef, "mask": ImageRef},
     },
     {
+        "model_id": "fofr/epicrealismxl-lightning-hades",
+        "node_name": "EpicRealismXL_Lightning_Hades",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
         "model_id": "swartype/sdxl-pixar",
         "node_name": "SDXL_Pixar",
         "namespace": "image.generate",
@@ -301,6 +307,24 @@ replicate_nodes = [
         "return_type": VideoRef,
     },
     {
+        "node_name": "Tooncrafter",
+        "namespace": "video.generate",
+        "model_id": "fofr/tooncrafter",
+        "return_type": VideoRef,
+        "overrides": {
+            "image_1": ImageRef,
+            "image_2": ImageRef,
+            "image_3": ImageRef,
+            "image_4": ImageRef,
+            "image_5": ImageRef,
+            "image_6": ImageRef,
+            "image_7": ImageRef,
+            "image_8": ImageRef,
+            "image_9": ImageRef,
+            "image_10": ImageRef,
+        },
+    },
+    {
         "node_name": "Zeroscope_V2_XL",
         "namespace": "video.generate",
         "model_id": "anotherjesse/zeroscope-v2-xl",
@@ -407,6 +431,23 @@ replicate_nodes = [
         "node_name": "Llama3_70B_Instruct",
         "namespace": "text.generate",
         "return_type": str,
+    },
+    {
+        "model_id": "snowflake/snowflake-arctic-instruct",
+        "node_name": "Snowflake_Arctic_Instruct",
+        "namespace": "text.generate",
+        "return_type": str,
+    },
+    {
+        "model_id": "ryan5453/demucs",
+        "node_name": "Demucs",
+        "namespace": "audio.separate",
+        "return_type": {
+            "vocals": AudioRef,
+            "drums": AudioRef,
+            "bass": AudioRef,
+            "other": AudioRef,
+        },
     },
     {
         "model_id": "openai/whisper",

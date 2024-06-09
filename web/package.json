@@ -1,6 +1,6 @@
 {
   "name": "nodetool",
-  "version": "0.1.0",
+  "version": "0.1.44",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -70,6 +70,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "jest",
+    "release": "ts-node release.ts",
     "openapi": "openapi-typescript http://127.0.0.1:8000/openapi.json -o ./src/api.ts"
   },
   "eslintConfig": {
