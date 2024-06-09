@@ -26,7 +26,7 @@ class AdInpaint(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A100 (40GB) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/3ZmtvTJWj3a0Al9XR7SSKqpAfLTZtrkM7t5KjLvz7Nqsv3pIA/ad_inpaint_3.jpg', 'created_at': '2023-04-03T11:25:28.290524Z', 'description': 'Product advertising image generator', 'github_url': None, 'license_url': None, 'name': 'ad-inpaint', 'owner': 'logerzhu', 'paper_url': None, 'run_count': 378511, 'url': 'https://replicate.com/logerzhu/ad-inpaint', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/3ZmtvTJWj3a0Al9XR7SSKqpAfLTZtrkM7t5KjLvz7Nqsv3pIA/ad_inpaint_3.jpg', 'created_at': '2023-04-03T11:25:28.290524Z', 'description': 'Product advertising image generator', 'github_url': None, 'license_url': None, 'name': 'ad-inpaint', 'owner': 'logerzhu', 'paper_url': None, 'run_count': 378550, 'url': 'https://replicate.com/logerzhu/ad-inpaint', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -41,6 +41,75 @@ class AdInpaint(ReplicateNode):
     guidance_scale: float = Field(title='Guidance Scale', description='Guidance Scale', default=7.5)
     negative_prompt: str = Field(title='Negative Prompt', description="Anything you don't want in the photo", default='low quality, out of frame, illustration, 3d, sepia, painting, cartoons, sketch, watermark, text, Logo, advertisement')
     num_inference_steps: int = Field(title='Num Inference Steps', description='Inference Steps', default=20)
+
+class Output_format(str, Enum):
+    WEBP = 'webp'
+    JPG = 'jpg'
+    PNG = 'png'
+
+
+class ConsistentCharacter(ReplicateNode):
+    """Create images of a given character in different poses"""
+
+    @classmethod
+    def replicate_model_id(cls): return 'fofr/consistent-character:9c77a3c2f884193fcee4d89645f02a0b9def9434f9e03cb98460456b831c8772'
+    @classmethod
+    def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
+    @classmethod
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/0PQLx9Zz5fQkb6ZQmldEB2ElI9e61eYCeqWiaZSbCzUIqgnLB/ComfyUI_00005_.webp', 'created_at': '2024-05-30T16:48:52.345721Z', 'description': 'Create images of a given character in different poses', 'github_url': 'https://github.com/fofr/cog-consistent-character', 'license_url': 'https://github.com/fofr/cog-consistent-character/blob/main/LICENSE', 'name': 'consistent-character', 'owner': 'fofr', 'paper_url': None, 'run_count': 17147, 'url': 'https://replicate.com/fofr/consistent-character', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    @classmethod
+    def return_type(cls): return ImageRef
+
+
+    seed: int | None = Field(title='Seed', description='Set a seed for reproducibility. Random by default.', default=None)
+    prompt: str = Field(title='Prompt', description='Describe the subject. Include clothes and hairstyle for more consistency.', default='A headshot photo')
+    subject: ImageRef = Field(default=ImageRef(), description='An image of a person. Best images are square close ups of a face, but they do not have to be.')
+    output_format: Output_format = Field(description='Format of the output images', default='webp')
+    output_quality: int = Field(title='Output Quality', description='Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.', ge=0.0, le=100.0, default=80)
+    negative_prompt: str = Field(title='Negative Prompt', description='Things you do not want to see in your image', default='')
+    randomise_poses: bool = Field(title='Randomise Poses', description='Randomise the poses used.', default=True)
+    number_of_outputs: int = Field(title='Number Of Outputs', description='The number of images to generate.', ge=1.0, le=20.0, default=3)
+    disable_safety_checker: bool = Field(title='Disable Safety Checker', description='Disable safety checker for generated images.', default=False)
+    number_of_images_per_pose: int = Field(title='Number Of Images Per Pose', description='The number of images to generate for each pose.', ge=1.0, le=4.0, default=1)
+
+class Face_style(str, Enum):
+    HIGH_FIDELITY = 'high-fidelity'
+    STYLIZED = 'stylized'
+class Checkpoint_model(str, Enum):
+    GENERAL___ALBEDOBASEXL_V21 = 'general - albedobaseXL_v21'
+    GENERAL___DREAMSHAPERXL_ALPHA2XL10 = 'general - dreamshaperXL_alpha2Xl10'
+    ANIMATED___STARLIGHTXLANIMATED_V3 = 'animated - starlightXLAnimated_v3'
+    ANIMATED___PIXLANIMECARTOONCOMIC_V10 = 'animated - pixlAnimeCartoonComic_v10'
+    REALISTIC___RUNDIFFUSIONXL_BETA = 'realistic - rundiffusionXL_beta'
+    REALISTIC___REALVISXL_V4_0 = 'realistic - RealVisXL_V4.0'
+    REALISTIC___SDXLUNSTABLEDIFFUSERS_NIHILMANIA = 'realistic - sdxlUnstableDiffusers_nihilmania'
+    CINEMATIC___CINEMATICREDMOND = 'cinematic - CinematicRedmond'
+
+
+class PulidBase(ReplicateNode):
+    """Use a face to make images. Uses SDXL fine-tuned checkpoints."""
+
+    @classmethod
+    def replicate_model_id(cls): return 'fofr/pulid-base:65ea75658bf120abbbdacab07e89e78a74a6a1b1f504349f4c4e3b01a655ee7a'
+    @classmethod
+    def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
+    @classmethod
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/2b168822-4407-4d18-9b58-29068d501c92/pulid-base-cover.webp', 'created_at': '2024-05-09T13:48:08.359715Z', 'description': 'Use a face to make images. Uses SDXL fine-tuned checkpoints.', 'github_url': 'https://github.com/fofr/cog-comfyui-pulid/tree/pulid-base', 'license_url': None, 'name': 'pulid-base', 'owner': 'fofr', 'paper_url': 'https://arxiv.org/abs/2404.16022', 'run_count': 35456, 'url': 'https://replicate.com/fofr/pulid-base', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    @classmethod
+    def return_type(cls): return ImageRef
+
+
+    seed: int | None = Field(title='Seed', description='Set a seed for reproducibility. Random by default.', default=None)
+    width: int = Field(title='Width', description='Width of the output image (ignored if structure image given)', default=1024)
+    height: int = Field(title='Height', description='Height of the output image (ignored if structure image given)', default=1024)
+    prompt: str = Field(title='Prompt', description='You might need to include a gender in the prompt to get the desired result', default='A photo of a person')
+    face_image: ImageRef = Field(default=ImageRef(), description='The face image to use for the generation')
+    face_style: Face_style = Field(description='Style of the face', default='high-fidelity')
+    output_format: Output_format = Field(description='Format of the output images', default='webp')
+    output_quality: int = Field(title='Output Quality', description='Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.', ge=0.0, le=100.0, default=80)
+    negative_prompt: str = Field(title='Negative Prompt', description='Things you do not want to see in your image', default='')
+    checkpoint_model: Checkpoint_model = Field(description='Model to use for the generation', default='general - dreamshaperXL_alpha2Xl10')
+    number_of_images: int = Field(title='Number Of Images', description='Number of images to generate', ge=1.0, le=10.0, default=1)
 
 class Scheduler(str, Enum):
     DDIM = 'DDIM'
@@ -61,7 +130,7 @@ class Proteus(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/3WJYR5U1mhJCHhWQKCKnr2ZifNcIeaAIBrZrZqijemJtZS1kA/out-0.png', 'created_at': '2024-02-26T19:01:05.593762Z', 'description': 'ProteusV0.4: The Style Update', 'github_url': 'https://github.com/lucataco/cog-proteus-v0.4', 'license_url': 'https://huggingface.co/models?license=license%3Agpl-3.0', 'name': 'proteus-v0.4', 'owner': 'lucataco', 'paper_url': None, 'run_count': 56382, 'url': 'https://replicate.com/lucataco/proteus-v0.4', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/3WJYR5U1mhJCHhWQKCKnr2ZifNcIeaAIBrZrZqijemJtZS1kA/out-0.png', 'created_at': '2024-02-26T19:01:05.593762Z', 'description': 'ProteusV0.4: The Style Update', 'github_url': 'https://github.com/lucataco/cog-proteus-v0.4', 'license_url': 'https://huggingface.co/models?license=license%3Agpl-3.0', 'name': 'proteus-v0.4', 'owner': 'lucataco', 'paper_url': None, 'run_count': 56475, 'url': 'https://replicate.com/lucataco/proteus-v0.4', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -125,7 +194,7 @@ class StableDiffusion(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A100 (40GB) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/sWeZFZou6v3CPKuoJbqX46ugPaHT1DcsWYx0srPmGrMOCPYIA/out-0.png', 'created_at': '2022-08-22T21:37:08.396208Z', 'description': 'A latent text-to-image diffusion model capable of generating photo-realistic images given any text input', 'github_url': 'https://github.com/replicate/cog-stable-diffusion', 'license_url': 'https://huggingface.co/spaces/CompVis/stable-diffusion-license', 'name': 'stable-diffusion', 'owner': 'stability-ai', 'paper_url': 'https://arxiv.org/abs/2112.10752', 'run_count': 108061843, 'url': 'https://replicate.com/stability-ai/stable-diffusion', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/sWeZFZou6v3CPKuoJbqX46ugPaHT1DcsWYx0srPmGrMOCPYIA/out-0.png', 'created_at': '2022-08-22T21:37:08.396208Z', 'description': 'A latent text-to-image diffusion model capable of generating photo-realistic images given any text input', 'github_url': 'https://github.com/replicate/cog-stable-diffusion', 'license_url': 'https://huggingface.co/spaces/CompVis/stable-diffusion-license', 'name': 'stable-diffusion', 'owner': 'stability-ai', 'paper_url': 'https://arxiv.org/abs/2112.10752', 'run_count': 108062635, 'url': 'https://replicate.com/stability-ai/stable-diffusion', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -150,7 +219,7 @@ class Controlnet_Realistic_Vision(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A100 (40GB) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/6SH5eZLRSZ3wXaq2mfQ6eNqen8Gc9dURnpfqym1Z14fa83UcE/output.png', 'created_at': '2023-05-19T03:51:16.901441Z', 'description': 'controlnet 1.1 lineart x realistic-vision-v2.0 (updated to v5)', 'github_url': None, 'license_url': None, 'name': 'controlnet-1.1-x-realistic-vision-v2.0', 'owner': 'usamaehsan', 'paper_url': None, 'run_count': 3510668, 'url': 'https://replicate.com/usamaehsan/controlnet-1.1-x-realistic-vision-v2.0', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/6SH5eZLRSZ3wXaq2mfQ6eNqen8Gc9dURnpfqym1Z14fa83UcE/output.png', 'created_at': '2023-05-19T03:51:16.901441Z', 'description': 'controlnet 1.1 lineart x realistic-vision-v2.0 (updated to v5)', 'github_url': None, 'license_url': None, 'name': 'controlnet-1.1-x-realistic-vision-v2.0', 'owner': 'usamaehsan', 'paper_url': None, 'run_count': 3511478, 'url': 'https://replicate.com/usamaehsan/controlnet-1.1-x-realistic-vision-v2.0', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -186,7 +255,7 @@ class StableDiffusionXL(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/61004930-fb88-4e09-9bd4-74fd8b4aa677/sdxl_cover.png', 'created_at': '2023-07-26T17:53:09.882651Z', 'description': 'A text-to-image generative AI model that creates beautiful images', 'github_url': 'https://github.com/replicate/cog-sdxl', 'license_url': 'https://github.com/Stability-AI/generative-models/blob/main/model_licenses/LICENSE-SDXL1.0', 'name': 'sdxl', 'owner': 'stability-ai', 'paper_url': 'https://arxiv.org/abs/2307.01952', 'run_count': 53634590, 'url': 'https://replicate.com/stability-ai/sdxl', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/61004930-fb88-4e09-9bd4-74fd8b4aa677/sdxl_cover.png', 'created_at': '2023-07-26T17:53:09.882651Z', 'description': 'A text-to-image generative AI model that creates beautiful images', 'github_url': 'https://github.com/replicate/cog-sdxl', 'license_url': 'https://github.com/Stability-AI/generative-models/blob/main/model_licenses/LICENSE-SDXL1.0', 'name': 'sdxl', 'owner': 'stability-ai', 'paper_url': 'https://arxiv.org/abs/2307.01952', 'run_count': 53648890, 'url': 'https://replicate.com/stability-ai/sdxl', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -221,7 +290,7 @@ class Juggernaut_XL_V9(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/I2fZYRjmiKVpWCVhi9guAaUpXrZeLfM28fkjr7NYQyh5DVtJB/out-0.png', 'created_at': '2024-02-28T21:01:49.723331Z', 'description': 'Juggernaut XL v9', 'github_url': 'https://github.com/lucataco/cog-juggernaut-xl-v9', 'license_url': 'https://github.com/Stability-AI/generative-models/blob/main/model_licenses/LICENSE-SDXL1.0', 'name': 'juggernaut-xl-v9', 'owner': 'lucataco', 'paper_url': None, 'run_count': 435789, 'url': 'https://replicate.com/lucataco/juggernaut-xl-v9', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/I2fZYRjmiKVpWCVhi9guAaUpXrZeLfM28fkjr7NYQyh5DVtJB/out-0.png', 'created_at': '2024-02-28T21:01:49.723331Z', 'description': 'Juggernaut XL v9', 'github_url': 'https://github.com/lucataco/cog-juggernaut-xl-v9', 'license_url': 'https://github.com/Stability-AI/generative-models/blob/main/model_licenses/LICENSE-SDXL1.0', 'name': 'juggernaut-xl-v9', 'owner': 'lucataco', 'paper_url': None, 'run_count': 436693, 'url': 'https://replicate.com/lucataco/juggernaut-xl-v9', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -238,10 +307,6 @@ class Juggernaut_XL_V9(ReplicateNode):
     num_inference_steps: int = Field(title='Num Inference Steps', description='Number of denoising steps', ge=1.0, le=100.0, default=5)
     disable_safety_checker: bool = Field(title='Disable Safety Checker', description='Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)', default=False)
 
-class Output_format(str, Enum):
-    WEBP = 'webp'
-    JPG = 'jpg'
-    PNG = 'png'
 
 
 class EpicRealismXL_Lightning_Hades(ReplicateNode):
@@ -252,7 +317,7 @@ class EpicRealismXL_Lightning_Hades(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/ulYZRIyAUDYpOZfl7OjhrKxxzZhSjddNP1hguuZxyq6yDndJA/R8__00001_.webp', 'created_at': '2024-06-04T12:09:51.123632Z', 'description': 'Fast and high quality lightning model, epiCRealismXL-Lightning Hades', 'github_url': None, 'license_url': 'https://civitai.com/models/354130/epicrealismxl-lightning', 'name': 'epicrealismxl-lightning-hades', 'owner': 'fofr', 'paper_url': 'https://civitai.com/models/354130/epicrealismxl-lightning', 'run_count': 9269, 'url': 'https://replicate.com/fofr/epicrealismxl-lightning-hades', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/ulYZRIyAUDYpOZfl7OjhrKxxzZhSjddNP1hguuZxyq6yDndJA/R8__00001_.webp', 'created_at': '2024-06-04T12:09:51.123632Z', 'description': 'Fast and high quality lightning model, epiCRealismXL-Lightning Hades', 'github_url': None, 'license_url': 'https://civitai.com/models/354130/epicrealismxl-lightning', 'name': 'epicrealismxl-lightning-hades', 'owner': 'fofr', 'paper_url': 'https://civitai.com/models/354130/epicrealismxl-lightning', 'run_count': 10561, 'url': 'https://replicate.com/fofr/epicrealismxl-lightning-hades', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -277,7 +342,7 @@ class SDXL_Pixar(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/68125b17-60d7-4949-8984-0d50d736a623/out-0_5.png', 'created_at': '2023-10-21T10:32:49.911227Z', 'description': 'Create Pixar poster easily with SDXL Pixar.', 'github_url': None, 'license_url': None, 'name': 'sdxl-pixar', 'owner': 'swartype', 'paper_url': None, 'run_count': 518796, 'url': 'https://replicate.com/swartype/sdxl-pixar', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/68125b17-60d7-4949-8984-0d50d736a623/out-0_5.png', 'created_at': '2023-10-21T10:32:49.911227Z', 'description': 'Create Pixar poster easily with SDXL Pixar.', 'github_url': None, 'license_url': None, 'name': 'sdxl-pixar', 'owner': 'swartype', 'paper_url': None, 'run_count': 518883, 'url': 'https://replicate.com/swartype/sdxl-pixar', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -311,7 +376,7 @@ class SDXL_Emoji(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/a3z81v5vwlKfLq1H5uBqpVmkHalOVup0jSLma9E2UaF3tawIA/out-0.png', 'created_at': '2023-09-04T09:18:11.028708Z', 'description': 'An SDXL fine-tune based on Apple Emojis', 'github_url': None, 'license_url': None, 'name': 'sdxl-emoji', 'owner': 'fofr', 'paper_url': None, 'run_count': 4582907, 'url': 'https://replicate.com/fofr/sdxl-emoji', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/a3z81v5vwlKfLq1H5uBqpVmkHalOVup0jSLma9E2UaF3tawIA/out-0.png', 'created_at': '2023-09-04T09:18:11.028708Z', 'description': 'An SDXL fine-tune based on Apple Emojis', 'github_url': None, 'license_url': None, 'name': 'sdxl-emoji', 'owner': 'fofr', 'paper_url': None, 'run_count': 4584683, 'url': 'https://replicate.com/fofr/sdxl-emoji', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -345,7 +410,7 @@ class StableDiffusionInpainting(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/5uUmO34KUZKsAJkcc82gC17WZdJgrbtRpRebyLYo9EJGHqOJA/out-0.png', 'created_at': '2023-10-17T03:53:36.563598Z', 'description': 'SDXL Inpainting developed by the HF Diffusers team', 'github_url': 'https://github.com/lucataco/cog-sdxl-inpainting', 'license_url': 'https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md', 'name': 'sdxl-inpainting', 'owner': 'lucataco', 'paper_url': 'https://huggingface.co/papers/2112.10752', 'run_count': 187879, 'url': 'https://replicate.com/lucataco/sdxl-inpainting', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/5uUmO34KUZKsAJkcc82gC17WZdJgrbtRpRebyLYo9EJGHqOJA/out-0.png', 'created_at': '2023-10-17T03:53:36.563598Z', 'description': 'SDXL Inpainting developed by the HF Diffusers team', 'github_url': 'https://github.com/lucataco/cog-sdxl-inpainting', 'license_url': 'https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md', 'name': 'sdxl-inpainting', 'owner': 'lucataco', 'paper_url': 'https://huggingface.co/papers/2112.10752', 'run_count': 188243, 'url': 'https://replicate.com/lucataco/sdxl-inpainting', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -360,6 +425,68 @@ class StableDiffusionInpainting(ReplicateNode):
     num_outputs: int = Field(title='Num Outputs', description='Number of images to output. Higher number of outputs may OOM.', ge=1.0, le=4.0, default=1)
     guidance_scale: float = Field(title='Guidance Scale', description='Guidance scale', ge=0.0, le=10.0, default=8)
     negative_prompt: str = Field(title='Negative Prompt', description='Input Negative Prompt', default='monochrome, lowres, bad anatomy, worst quality, low quality')
+
+
+
+class RealVisXL_V2(ReplicateNode):
+    """Implementation of SDXL RealVisXL_V2.0"""
+
+    @classmethod
+    def replicate_model_id(cls): return 'lucataco/realvisxl-v2.0:7d6a2f9c4754477b12c14ed2a58f89bb85128edcdd581d24ce58b6926029de08'
+    @classmethod
+    def get_hardware(cls): return 'Nvidia A40 GPU'
+    @classmethod
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/eCTbwmWQ00UbQiZdRMfgLhTRIKFUkBPei9fOQ2taGKw3NpaHB/out-0.png', 'created_at': '2023-11-01T15:03:35.114225Z', 'description': 'Implementation of SDXL RealVisXL_V2.0', 'github_url': 'https://github.com/lucataco/cog-realvisxl-v2.0', 'license_url': 'https://huggingface.co/models?license=license%3Aopenrail%2B%2B', 'name': 'realvisxl-v2.0', 'owner': 'lucataco', 'paper_url': None, 'run_count': 266790, 'url': 'https://replicate.com/lucataco/realvisxl-v2.0', 'visibility': 'public', 'hardware': 'Nvidia A40 GPU'}
+    @classmethod
+    def return_type(cls): return ImageRef
+
+
+    mask: ImageRef = Field(default=ImageRef(), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    seed: int | None = Field(title='Seed', description='Random seed. Leave blank to randomize the seed', default=None)
+    image: ImageRef = Field(default=ImageRef(), description='Input image for img2img or inpaint mode')
+    width: int = Field(title='Width', description='Width of output image', default=1024)
+    height: int = Field(title='Height', description='Height of output image', default=1024)
+    prompt: str = Field(title='Prompt', description='Input prompt', default='dark shot, front shot, closeup photo of a 25 y.o latino man, perfect eyes, natural skin, skin moles, looks at viewer, cinematic shot')
+    scheduler: Scheduler = Field(description='scheduler', default='DPMSolverMultistep')
+    lora_scale: float = Field(title='Lora Scale', description='LoRA additive scale. Only applicable on trained models.', ge=0.0, le=1.0, default=0.6)
+    num_outputs: int = Field(title='Num Outputs', description='Number of images to output.', ge=1.0, le=4.0, default=1)
+    lora_weights: str | None = Field(title='Lora Weights', description='Replicate LoRA weights to use. Leave blank to use the default weights.', default=None)
+    guidance_scale: float = Field(title='Guidance Scale', description='Scale for classifier-free guidance', ge=1.0, le=50.0, default=7)
+    apply_watermark: bool = Field(title='Apply Watermark', description='Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.', default=True)
+    negative_prompt: str = Field(title='Negative Prompt', description='Negative Input prompt', default='(worst quality, low quality, illustration, 3d, 2d, painting, cartoons, sketch), open mouth')
+    prompt_strength: float = Field(title='Prompt Strength', description='Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image', ge=0.0, le=1.0, default=0.8)
+    num_inference_steps: int = Field(title='Num Inference Steps', description='Number of denoising steps', ge=1.0, le=500.0, default=40)
+    disable_safety_checker: bool = Field(title='Disable Safety Checker', description='Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety', default=False)
+
+
+
+class RealVisXL2_LCM(ReplicateNode):
+    """RealvisXL-v2.0 with LCM LoRA - requires fewer steps (4 to 8 instead of the original 40 to 50)"""
+
+    @classmethod
+    def replicate_model_id(cls): return 'lucataco/realvisxl2-lcm:479633443fc6588e1e8ae764b79cdb3702d0c196e0cb2de6db39ce577383be77'
+    @classmethod
+    def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
+    @classmethod
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/ILTzFdAenk1JLKVb7jZbEDUOUJGz7hSFFSArhCnxin7ICY8IA/out-0.png', 'created_at': '2023-11-15T22:52:44.885044Z', 'description': 'RealvisXL-v2.0 with LCM LoRA - requires fewer steps (4 to 8 instead of the original 40 to 50)', 'github_url': 'https://github.com/lucataco/cog-realvisxl2-lcm', 'license_url': 'https://huggingface.co/models?license=license%3Aopenrail%2B%2B', 'name': 'realvisxl2-lcm', 'owner': 'lucataco', 'paper_url': None, 'run_count': 286301, 'url': 'https://replicate.com/lucataco/realvisxl2-lcm', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    @classmethod
+    def return_type(cls): return ImageRef
+
+
+    mask: ImageRef = Field(default=ImageRef(), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    seed: int | None = Field(title='Seed', description='Random seed. Leave blank to randomize the seed', default=None)
+    image: ImageRef = Field(default=ImageRef(), description='Input image for img2img or inpaint mode')
+    width: int = Field(title='Width', description='Width of output image', default=1024)
+    height: int = Field(title='Height', description='Height of output image', default=1024)
+    prompt: str = Field(title='Prompt', description='Input prompt', default='dark shot, front shot, closeup photo of a 25 y.o latino man, perfect eyes, natural skin, skin moles, looks at viewer, cinematic shot')
+    scheduler: Scheduler = Field(description='scheduler', default='LCM')
+    num_outputs: int = Field(title='Num Outputs', description='Number of images to output.', ge=1.0, le=4.0, default=1)
+    guidance_scale: float = Field(title='Guidance Scale', description='Scale for classifier-free guidance', ge=1.0, le=20.0, default=2)
+    apply_watermark: bool = Field(title='Apply Watermark', description='Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.', default=True)
+    negative_prompt: str = Field(title='Negative Prompt', description='Negative Input prompt', default='(worst quality, low quality, illustration, 3d, 2d, painting, cartoons, sketch), open mouth')
+    prompt_strength: float = Field(title='Prompt Strength', description='Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image', ge=0.0, le=1.0, default=0.8)
+    num_inference_steps: int = Field(title='Num Inference Steps', description='Number of denoising steps', ge=1.0, le=20.0, default=6)
+    disable_safety_checker: bool = Field(title='Disable Safety Checker', description='Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety', default=False)
 
 class Controlnet_1(str, Enum):
     NONE = 'none'
@@ -411,7 +538,7 @@ class RealVisXL_V3_Multi_Controlnet_Lora(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/mUtp8mKk8yI0EJ5olzsnpkeTbAcmy2OTEqnXXc8EFGLhhuEJA/out-0.png', 'created_at': '2024-01-05T14:05:27.681939Z', 'description': 'RealVisXl V3 with multi-controlnet, lora loading, img2img, inpainting', 'github_url': 'https://github.com/fofr/cog-realvisxl-3-multi-controlnet-lora', 'license_url': 'https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md', 'name': 'realvisxl-v3-multi-controlnet-lora', 'owner': 'fofr', 'paper_url': 'https://huggingface.co/SG161222/RealVisXL_V3.0', 'run_count': 341233, 'url': 'https://replicate.com/fofr/realvisxl-v3-multi-controlnet-lora', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/mUtp8mKk8yI0EJ5olzsnpkeTbAcmy2OTEqnXXc8EFGLhhuEJA/out-0.png', 'created_at': '2024-01-05T14:05:27.681939Z', 'description': 'RealVisXl V3 with multi-controlnet, lora loading, img2img, inpainting', 'github_url': 'https://github.com/fofr/cog-realvisxl-3-multi-controlnet-lora', 'license_url': 'https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md', 'name': 'realvisxl-v3-multi-controlnet-lora', 'owner': 'fofr', 'paper_url': 'https://huggingface.co/SG161222/RealVisXL_V3.0', 'run_count': 341696, 'url': 'https://replicate.com/fofr/realvisxl-v3-multi-controlnet-lora', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -461,7 +588,7 @@ class OpenDalle_Lora(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/yh0AaQWOrfS1Ua9oGIXeu6JfmSSB07xwfMkkaq374aWXuqcIB/out-0.png', 'created_at': '2023-12-29T16:10:05.714877Z', 'description': 'Better than SDXL at both prompt adherence and image quality, by dataautogpt3', 'github_url': None, 'license_url': None, 'name': 'open-dalle-1.1-lora', 'owner': 'batouresearch', 'paper_url': None, 'run_count': 111527, 'url': 'https://replicate.com/batouresearch/open-dalle-1.1-lora', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/yh0AaQWOrfS1Ua9oGIXeu6JfmSSB07xwfMkkaq374aWXuqcIB/out-0.png', 'created_at': '2023-12-29T16:10:05.714877Z', 'description': 'Better than SDXL at both prompt adherence and image quality, by dataautogpt3', 'github_url': None, 'license_url': None, 'name': 'open-dalle-1.1-lora', 'owner': 'batouresearch', 'paper_url': None, 'run_count': 111535, 'url': 'https://replicate.com/batouresearch/open-dalle-1.1-lora', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -500,7 +627,7 @@ class Controlnet_X_IP_Adapter_Realistic_Vision_V5(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/8I5Ibs22qcKMMh5VuT3abac9kgf91HB33Px5APKVe78zBHaSA/output_0.png', 'created_at': '2023-11-23T22:11:33.960507Z', 'description': 'Inpainting || multi-controlnet || single-controlnet || ip-adapter || ip adapter face || ip adapter plus || No ip adapter', 'github_url': None, 'license_url': None, 'name': 'controlnet-x-ip-adapter-realistic-vision-v5', 'owner': 'usamaehsan', 'paper_url': None, 'run_count': 332528, 'url': 'https://replicate.com/usamaehsan/controlnet-x-ip-adapter-realistic-vision-v5', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/8I5Ibs22qcKMMh5VuT3abac9kgf91HB33Px5APKVe78zBHaSA/output_0.png', 'created_at': '2023-11-23T22:11:33.960507Z', 'description': 'Inpainting || multi-controlnet || single-controlnet || ip-adapter || ip adapter face || ip adapter plus || No ip adapter', 'github_url': None, 'license_url': None, 'name': 'controlnet-x-ip-adapter-realistic-vision-v5', 'owner': 'usamaehsan', 'paper_url': None, 'run_count': 332843, 'url': 'https://replicate.com/usamaehsan/controlnet-x-ip-adapter-realistic-vision-v5', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -554,7 +681,7 @@ class SDXL_Controlnet(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/7edf6f87-bd0d-4a4f-9e11-d944bb07a3ea/output.png', 'created_at': '2023-08-14T07:15:37.417194Z', 'description': 'SDXL ControlNet - Canny', 'github_url': 'https://github.com/lucataco/cog-sdxl-controlnet', 'license_url': 'https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md', 'name': 'sdxl-controlnet', 'owner': 'lucataco', 'paper_url': None, 'run_count': 1225412, 'url': 'https://replicate.com/lucataco/sdxl-controlnet', 'visibility': 'public', 'hardware': 'Nvidia A40 GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/7edf6f87-bd0d-4a4f-9e11-d944bb07a3ea/output.png', 'created_at': '2023-08-14T07:15:37.417194Z', 'description': 'SDXL ControlNet - Canny', 'github_url': 'https://github.com/lucataco/cog-sdxl-controlnet', 'license_url': 'https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md', 'name': 'sdxl-controlnet', 'owner': 'lucataco', 'paper_url': None, 'run_count': 1225993, 'url': 'https://replicate.com/lucataco/sdxl-controlnet', 'visibility': 'public', 'hardware': 'Nvidia A40 GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -626,7 +753,7 @@ class SDXL_Ad_Inpaint(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://pbxt.replicate.delivery/ORbuWtoy0y6NI9f4DrJ2fxs92LgviBaOlzOVdYTr3pT8eKJjA/7-out.png', 'created_at': '2023-09-15T15:37:19.970710Z', 'description': 'Product advertising image generator using SDXL', 'github_url': 'https://github.com/CatacoLabs/cog-sdxl-ad-inpaint', 'license_url': 'https://github.com/huggingface/hfapi/blob/master/LICENSE', 'name': 'sdxl-ad-inpaint', 'owner': 'catacolabs', 'paper_url': None, 'run_count': 209595, 'url': 'https://replicate.com/catacolabs/sdxl-ad-inpaint', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://pbxt.replicate.delivery/ORbuWtoy0y6NI9f4DrJ2fxs92LgviBaOlzOVdYTr3pT8eKJjA/7-out.png', 'created_at': '2023-09-15T15:37:19.970710Z', 'description': 'Product advertising image generator using SDXL', 'github_url': 'https://github.com/CatacoLabs/cog-sdxl-ad-inpaint', 'license_url': 'https://github.com/huggingface/hfapi/blob/master/LICENSE', 'name': 'sdxl-ad-inpaint', 'owner': 'catacolabs', 'paper_url': None, 'run_count': 209657, 'url': 'https://replicate.com/catacolabs/sdxl-ad-inpaint', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -654,7 +781,7 @@ class Kandinsky(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A100 (40GB) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/Lca3IEjcKoJBBVS6ajROkK37sDzPsmjYxIcFzxPZp65wZzTE/out-0.png', 'created_at': '2023-07-12T21:53:29.439515Z', 'description': 'multilingual text2image latent diffusion model', 'github_url': 'https://github.com/chenxwh/Kandinsky-2/tree/v2.2', 'license_url': 'https://github.com/ai-forever/Kandinsky-2/blob/main/license', 'name': 'kandinsky-2.2', 'owner': 'ai-forever', 'paper_url': None, 'run_count': 9389924, 'url': 'https://replicate.com/ai-forever/kandinsky-2.2', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/Lca3IEjcKoJBBVS6ajROkK37sDzPsmjYxIcFzxPZp65wZzTE/out-0.png', 'created_at': '2023-07-12T21:53:29.439515Z', 'description': 'multilingual text2image latent diffusion model', 'github_url': 'https://github.com/chenxwh/Kandinsky-2/tree/v2.2', 'license_url': 'https://github.com/ai-forever/Kandinsky-2/blob/main/license', 'name': 'kandinsky-2.2', 'owner': 'ai-forever', 'paper_url': None, 'run_count': 9392029, 'url': 'https://replicate.com/ai-forever/kandinsky-2.2', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -679,7 +806,7 @@ class StableDiffusionXLLightning(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A100 (40GB) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/dYdYGKKt04pHJ1kle3eStm3q4mfPiUFlQ5xGeM3mfboYbMPUC/out-0.png', 'created_at': '2024-02-21T07:36:15.534380Z', 'description': 'SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality images in 4 steps', 'github_url': 'https://github.com/lucataco/cog-sdxl-lightning-4step', 'license_url': 'https://huggingface.co/ByteDance/SDXL-Lightning/blob/main/LICENSE.md', 'name': 'sdxl-lightning-4step', 'owner': 'bytedance', 'paper_url': 'https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_report.pdf', 'run_count': 101287290, 'url': 'https://replicate.com/bytedance/sdxl-lightning-4step', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/dYdYGKKt04pHJ1kle3eStm3q4mfPiUFlQ5xGeM3mfboYbMPUC/out-0.png', 'created_at': '2024-02-21T07:36:15.534380Z', 'description': 'SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality images in 4 steps', 'github_url': 'https://github.com/lucataco/cog-sdxl-lightning-4step', 'license_url': 'https://huggingface.co/ByteDance/SDXL-Lightning/blob/main/LICENSE.md', 'name': 'sdxl-lightning-4step', 'owner': 'bytedance', 'paper_url': 'https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_report.pdf', 'run_count': 101674971, 'url': 'https://replicate.com/bytedance/sdxl-lightning-4step', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -705,7 +832,7 @@ class PlaygroundV2(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A100 (40GB) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/XAK4XRgpjYaCGRrm9yxzO2bacj4XTE1Nl6bwaXKOHKYApJoE/out-0.png', 'created_at': '2024-02-27T22:20:16.107222Z', 'description': 'Playground v2.5 is the state-of-the-art open-source model in aesthetic quality', 'github_url': 'https://github.com/lucataco/cog-playground-v2.5-1024px-aesthetic', 'license_url': 'https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/blob/main/LICENSE.md', 'name': 'playground-v2.5-1024px-aesthetic', 'owner': 'playgroundai', 'paper_url': 'https://arxiv.org/abs/2206.00364', 'run_count': 536633, 'url': 'https://replicate.com/playgroundai/playground-v2.5-1024px-aesthetic', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/XAK4XRgpjYaCGRrm9yxzO2bacj4XTE1Nl6bwaXKOHKYApJoE/out-0.png', 'created_at': '2024-02-27T22:20:16.107222Z', 'description': 'Playground v2.5 is the state-of-the-art open-source model in aesthetic quality', 'github_url': 'https://github.com/lucataco/cog-playground-v2.5-1024px-aesthetic', 'license_url': 'https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/blob/main/LICENSE.md', 'name': 'playground-v2.5-1024px-aesthetic', 'owner': 'playgroundai', 'paper_url': 'https://arxiv.org/abs/2206.00364', 'run_count': 537630, 'url': 'https://replicate.com/playgroundai/playground-v2.5-1024px-aesthetic', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
@@ -725,6 +852,41 @@ class PlaygroundV2(ReplicateNode):
     num_inference_steps: int = Field(title='Num Inference Steps', description='Number of denoising steps', ge=1.0, le=60.0, default=25)
     disable_safety_checker: bool = Field(title='Disable Safety Checker', description='Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety', default=False)
 
+class Model(str, Enum):
+    FAST = 'fast'
+    HIGH_QUALITY = 'high-quality'
+    REALISTIC = 'realistic'
+    CINEMATIC = 'cinematic'
+    ANIMATED = 'animated'
+
+
+class StyleTransfer(ReplicateNode):
+    """Transfer the style of one image to another"""
+
+    @classmethod
+    def replicate_model_id(cls): return 'fofr/style-transfer:f1023890703bc0a5a3a2c21b5e498833be5f6ef6e70e9daf6b9b3a4fd8309cf0'
+    @classmethod
+    def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
+    @classmethod
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/wmtBOf7pSlzHF6RBbeG5YpIXEYkRlGcoTpnOMi2Fqg9EUeWlA/ComfyUI_00001_.webp', 'created_at': '2024-04-17T20:34:49.861066Z', 'description': 'Transfer the style of one image to another', 'github_url': 'https://github.com/fofr/cog-style-transfer', 'license_url': 'https://github.com/fofr/cog-style-transfer/blob/main/LICENSE', 'name': 'style-transfer', 'owner': 'fofr', 'paper_url': None, 'run_count': 89339, 'url': 'https://replicate.com/fofr/style-transfer', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    @classmethod
+    def return_type(cls): return ImageRef
+
+
+    seed: int | None = Field(title='Seed', description='Set a seed for reproducibility. Random by default.', default=None)
+    model: Model = Field(description='Model to use for the generation', default='fast')
+    width: int = Field(title='Width', description='Width of the output image (ignored if structure image given)', default=1024)
+    height: int = Field(title='Height', description='Height of the output image (ignored if structure image given)', default=1024)
+    prompt: str = Field(title='Prompt', description='Prompt for the image', default='An astronaut riding a unicorn')
+    style_image: ImageRef = Field(default=ImageRef(), description='Copy the style from this image')
+    output_format: Output_format = Field(description='Format of the output images', default='webp')
+    output_quality: int = Field(title='Output Quality', description='Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.', ge=0.0, le=100.0, default=80)
+    negative_prompt: str = Field(title='Negative Prompt', description='Things you do not want to see in your image', default='')
+    structure_image: ImageRef = Field(default=ImageRef(), description='An optional image to copy structure from. Output images will use the same aspect ratio.')
+    number_of_images: int = Field(title='Number Of Images', description='Number of images to generate', ge=1.0, le=10.0, default=1)
+    structure_depth_strength: float = Field(title='Structure Depth Strength', description='Strength of the depth controlnet', ge=0.0, le=2.0, default=1)
+    structure_denoising_strength: float = Field(title='Structure Denoising Strength', description='How much of the original image (and colors) to preserve (0 is all, 1 is none, 0.65 is a good balance)', ge=0.0, le=1.0, default=0.65)
+
 
 
 class Illusions(ReplicateNode):
@@ -735,7 +897,7 @@ class Illusions(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/0mvORZpRyI4yH5wKdpHDtgqWqUGpsO5w0EcElf7g90eYXF1RA/output-0.png', 'created_at': '2023-11-03T17:24:31.993569Z', 'description': 'Create illusions with img2img and masking support', 'github_url': 'https://github.com/fofr/cog-illusion', 'license_url': None, 'name': 'illusions', 'owner': 'fofr', 'paper_url': None, 'run_count': 5063, 'url': 'https://replicate.com/fofr/illusions', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://replicate.delivery/pbxt/0mvORZpRyI4yH5wKdpHDtgqWqUGpsO5w0EcElf7g90eYXF1RA/output-0.png', 'created_at': '2023-11-03T17:24:31.993569Z', 'description': 'Create illusions with img2img and masking support', 'github_url': 'https://github.com/fofr/cog-illusion', 'license_url': None, 'name': 'illusions', 'owner': 'fofr', 'paper_url': None, 'run_count': 5104, 'url': 'https://replicate.com/fofr/illusions', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return ImageRef
 
