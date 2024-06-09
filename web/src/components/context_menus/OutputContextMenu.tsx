@@ -16,6 +16,7 @@ import { useReactFlow } from "reactflow";
 import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
+import useConnectionStore from "../../stores/ConnectionStore";
 
 const OutputContextMenu: React.FC = () => {
   const { openMenuType, menuPosition, closeContextMenu, type, nodeId } =
@@ -29,6 +30,8 @@ const OutputContextMenu: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
+  const { connectHandleId } = useConnectionStore();
+  const [sourceHandle, setSourceHandle] = useState<string | null>(null);
 
   type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(
@@ -48,6 +51,12 @@ const OutputContextMenu: React.FC = () => {
     },
     []
   );
+
+  useEffect(() => {
+    if (connectHandleId) {
+      setSourceHandle(connectHandleId);
+    }
+  }, [connectHandleId]);
 
   const fetchMetadata = useCallback(
     (nodeType: string) => {
@@ -94,7 +103,7 @@ const OutputContextMenu: React.FC = () => {
         id: generateEdgeId(),
         source: nodeId || "",
         target: newNode.id,
-        sourceHandle: "output",
+        sourceHandle: sourceHandle,
         targetHandle: targetHandle,
         type: "default",
         className: Slugify(type || "")
@@ -108,7 +117,8 @@ const OutputContextMenu: React.FC = () => {
       type,
       addEdge,
       generateEdgeId,
-      nodeId
+      nodeId,
+      sourceHandle
     ]
   );
 
