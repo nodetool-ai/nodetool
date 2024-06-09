@@ -11,7 +11,7 @@ def update_version_in_file(file_path: Path, regex: str, new_version: str):
 
 def update_version_in_pyproject(new_version: str):
     pyproject_file = Path("pyproject.toml")
-    version_regex = r'version = ".*?"'
+    version_regex = r'^version = ".*?"'
     new_version_line = f'version = "{new_version}"'
     update_version_in_file(pyproject_file, version_regex, new_version_line)
 
