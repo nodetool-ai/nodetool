@@ -45,6 +45,9 @@ const styles = (theme: any) => ({
       backgroundColor: theme.palette.c_gray2
     }
   },
+  "button.logo:hover": {
+    backgroundColor: "transparent"
+  },
   "nav-button": {
     "&.active": {
       color: theme.palette.c_hl1
@@ -81,15 +84,20 @@ function AppHeader() {
   const { openNodeMenu } = useNodeMenuStore();
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
-  const addNotification = useNotificationStore((state) => state.addNotification);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
-  const onWorkflowSaved = useCallback((workflow: Workflow) => {
-    addNotification({
-      content: `Workflow ${workflow.name} saved`,
-      type: "success",
-      alert: true
-    });
-  }, [addNotification]);
+  const onWorkflowSaved = useCallback(
+    (workflow: Workflow) => {
+      addNotification({
+        content: `Workflow ${workflow.name} saved`,
+        type: "success",
+        alert: true
+      });
+    },
+    [addNotification]
+  );
 
   useHotkeys("Alt+s", () => saveWorkflow().then(onWorkflowSaved));
   useHotkeys("Meta+s", () => saveWorkflow().then(onWorkflowSaved));
@@ -136,6 +144,7 @@ function AppHeader() {
     <AppBar css={styles} position="static" className="app-header">
       <Toolbar variant="dense">
         <Button
+          className="logo"
           onClick={openAppIconMenu}
           sx={{
             lineHeight: "1em",
@@ -143,7 +152,13 @@ function AppHeader() {
             display: { xs: "none", sm: "block" }
           }}
         >
-          <Logo width="36px" height="36px" fontSize="14px" borderRadius="15px" outline="5px" />
+          <Logo
+            width="36px"
+            height="36px"
+            fontSize="12px"
+            borderRadius="15px"
+            small={true}
+          />
         </Button>
         <AppIconMenu anchorEl={anchorEl} handleClose={closeAppIconMenu} />
 
@@ -153,8 +168,9 @@ function AppHeader() {
             <Button
               aria-controls="simple-menu"
               aria-haspopup="true"
-              className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
-                }`}
+              className={`nav-button ${
+                path.startsWith("/workflows") ? "active" : ""
+              }`}
               onClick={() => navigate("/workflows")}
             >
               <WorkflowsIcon />
@@ -231,10 +247,11 @@ function AppHeader() {
                 AutoLayout
               </Button>
             </Tooltip>
-            <Tooltip
-              title="Save workflow"
-              enterDelay={TOOLTIP_DELAY}>
-              <Button className="action-button" onClick={() => saveWorkflow().then(onWorkflowSaved)}>
+            <Tooltip title="Save workflow" enterDelay={TOOLTIP_DELAY}>
+              <Button
+                className="action-button"
+                onClick={() => saveWorkflow().then(onWorkflowSaved)}
+              >
                 <SaveIcon />
                 Save
               </Button>
