@@ -35,6 +35,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { Workflow } from "../../stores/ApiTypes";
+import Logo from "../Logo";
 
 const styles = (theme: any) => ({
   button: {
@@ -142,9 +143,7 @@ function AppHeader() {
             display: { xs: "none", sm: "block" }
           }}
         >
-          NODE
-          <br />
-          TOOL
+          <Logo width="36px" height="36px" fontSize="14px" borderRadius="15px" outline="5px" />
         </Button>
         <AppIconMenu anchorEl={anchorEl} handleClose={closeAppIconMenu} />
 
