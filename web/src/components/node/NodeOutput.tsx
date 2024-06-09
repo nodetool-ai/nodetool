@@ -78,8 +78,9 @@ const NodeOutput = ({ id, output }: NodeOutputProps) => {
             borderRadius: ".5em",
             fontSize: ThemeNodetool.fontSizeSmall
           }}
-          // className={Slugify(output.type.type)}
+        // className={Slugify(output.type.type)}
         >
+          {output.name} :
           {typeToString(output.type)}
         </span>
       }

@@ -175,7 +175,13 @@ class ReplicateNode(BaseNode):
         """
         t = self.return_type()
         if isinstance(t, dict):
-            return output
+            return {
+                key: await convert_output_value(
+                    output[key],
+                    t[key],
+                )
+                for key in t
+            }
         if isinstance(t, Type):
             output = await convert_output_value(
                 output,
@@ -510,6 +516,17 @@ def default_for(datatype: DataType | list[DataType] | None) -> Any:
         return None
 
 
+def return_type_repr(return_type: type) -> str:
+    if isinstance(return_type, dict):
+        return (
+            "{"
+            + ", ".join(f"'{k}': {type_to_string(v)}" for k, v in return_type.items())
+            + "}\n"
+        )
+    else:
+        return type_to_string(return_type)
+
+
 def generate_model_source_code(
     model_name: str,
     model_info: dict[str, Any],
@@ -565,7 +582,7 @@ def generate_model_source_code(
     if return_type:
         lines += [
             "    @classmethod",
-            f"    def return_type(cls): return {type_to_string(return_type)}",
+            f"    def return_type(cls): return {return_type_repr(return_type)}",
         ]
 
     if output_index > 0:

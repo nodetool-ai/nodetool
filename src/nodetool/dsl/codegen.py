@@ -43,6 +43,8 @@ def type_to_string(field_type: type) -> str:
     """
     if isinstance(field_type, UnionType):
         return str(field_type)
+    if isinstance(field_type, dict):
+        return "dict"
     if field_type == Union:
         return " | ".join(field_type.__args__)
     if isinstance(field_type, GenericAlias):

@@ -5,6 +5,54 @@ from nodetool.common.replicate_node import ReplicateNode
 from enum import Enum
 
 
+class Mode(str, Enum):
+    SMALL = 'small'
+    MEDIUM = 'medium'
+    UPSCALED = 'upscaled'
+    UPSCALED_AND_INTERPOLATED = 'upscaled-and-interpolated'
+class Checkpoint(str, Enum):
+    REALISTIC = 'realistic'
+    ILLUSTRATED = 'illustrated'
+    ANIME = 'anime'
+    _3D = '3D'
+    ANY = 'any'
+class Aspect_ratio(str, Enum):
+    _16_9 = '16:9'
+    _4_3 = '4:3'
+    _3_2 = '3:2'
+    _1_1 = '1:1'
+    _2_3 = '2:3'
+    _3_4 = '3:4'
+    _9_16 = '9:16'
+
+
+class VideoMorpher(ReplicateNode):
+    """Generate a video that morphs between subjects, with an optional style"""
+
+    @classmethod
+    def replicate_model_id(cls): return 'fofr/video-morpher:e70e975067d2b5dbe9e2d9022833d27230a1bdeb3f4af6fe6bb49a548a3039a7'
+    @classmethod
+    def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
+    @classmethod
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/cd22e70a-5a93-463d-87ae-bb328d3a2573/ezgif-7-39b54a9237.gif', 'created_at': '2024-04-24T13:25:30.032622Z', 'description': 'Generate a video that morphs between subjects, with an optional style', 'github_url': 'https://github.com/fofr/cog-video-morpher', 'license_url': 'https://github.com/fofr/cog-video-morpher/blob/main/LICENSE', 'name': 'video-morpher', 'owner': 'fofr', 'paper_url': None, 'run_count': 6491, 'url': 'https://replicate.com/fofr/video-morpher', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    @classmethod
+    def return_type(cls): return VideoRef
+
+
+    mode: Mode = Field(description='Determines if you produce a quick experimental video or an upscaled interpolated one. (small ~20s, medium ~60s, upscaled ~2min, upscaled-and-interpolated ~4min)', default='medium')
+    seed: int | None = Field(title='Seed', description='Set a seed for reproducibility. Random by default.', default=None)
+    prompt: str = Field(title='Prompt', description='The prompt has a small effect, but most of the video is driven by the subject images', default='')
+    checkpoint: Checkpoint = Field(description='The checkpoint to use for the model', default='realistic')
+    style_image: ImageRef = Field(default=ImageRef(), description='Apply the style from this image to the whole video')
+    aspect_ratio: Aspect_ratio = Field(description='The aspect ratio of the video', default='2:3')
+    style_strength: float = Field(title='Style Strength', description='How strong the style is applied', ge=0.0, le=2.0, default=1)
+    use_controlnet: bool = Field(title='Use Controlnet', description='Use geometric circles to guide the generation', default=True)
+    negative_prompt: str = Field(title='Negative Prompt', description='What you do not want to see in the video', default='')
+    subject_image_1: ImageRef = Field(default=ImageRef(), description='The first subject of the video')
+    subject_image_2: ImageRef = Field(default=ImageRef(), description='The second subject of the video')
+    subject_image_3: ImageRef = Field(default=ImageRef(), description='The third subject of the video')
+    subject_image_4: ImageRef = Field(default=ImageRef(), description='The fourth subject of the video')
+
 class Width(int, Enum):
     _256 = 256
     _320 = 320
@@ -53,7 +101,7 @@ class HotshotXL(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/ed1749eb-87a6-45a9-bff3-cac89b7df97a/output.gif', 'created_at': '2023-10-05T04:09:21.646870Z', 'description': '😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL', 'github_url': 'https://github.com/lucataco/cog-hotshot-xl', 'license_url': 'https://github.com/hotshotco/Hotshot-XL/blob/main/LICENSE', 'name': 'hotshot-xl', 'owner': 'lucataco', 'paper_url': 'https://huggingface.co/hotshotco/SDXL-512', 'run_count': 100293, 'url': 'https://replicate.com/lucataco/hotshot-xl', 'visibility': 'public', 'hardware': 'Nvidia A40 GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/ed1749eb-87a6-45a9-bff3-cac89b7df97a/output.gif', 'created_at': '2023-10-05T04:09:21.646870Z', 'description': '😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL', 'github_url': 'https://github.com/lucataco/cog-hotshot-xl', 'license_url': 'https://github.com/hotshotco/Hotshot-XL/blob/main/LICENSE', 'name': 'hotshot-xl', 'owner': 'lucataco', 'paper_url': 'https://huggingface.co/hotshotco/SDXL-512', 'run_count': 100582, 'url': 'https://replicate.com/lucataco/hotshot-xl', 'visibility': 'public', 'hardware': 'Nvidia A40 GPU'}
     @classmethod
     def return_type(cls): return VideoRef
 
@@ -86,7 +134,7 @@ class AnimateDiff(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/336d5c4e-4fd1-415a-a3f7-4a40fa5bdf2b/a_middle-aged_woman_utilizing__zo.gif', 'created_at': '2023-09-26T19:55:56.734880Z', 'description': '🎨 AnimateDiff (w/ MotionLoRAs for Panning, Zooming, etc): Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning', 'github_url': 'https://github.com/guoyww/AnimateDiff', 'license_url': 'https://github.com/guoyww/AnimateDiff/blob/main/LICENSE.txt', 'name': 'animate-diff', 'owner': 'zsxkib', 'paper_url': 'https://arxiv.org/abs/2307.04725', 'run_count': 39363, 'url': 'https://replicate.com/zsxkib/animate-diff', 'visibility': 'public', 'hardware': 'Nvidia A40 GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/336d5c4e-4fd1-415a-a3f7-4a40fa5bdf2b/a_middle-aged_woman_utilizing__zo.gif', 'created_at': '2023-09-26T19:55:56.734880Z', 'description': '🎨 AnimateDiff (w/ MotionLoRAs for Panning, Zooming, etc): Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning', 'github_url': 'https://github.com/guoyww/AnimateDiff', 'license_url': 'https://github.com/guoyww/AnimateDiff/blob/main/LICENSE.txt', 'name': 'animate-diff', 'owner': 'zsxkib', 'paper_url': 'https://arxiv.org/abs/2307.04725', 'run_count': 39379, 'url': 'https://replicate.com/zsxkib/animate-diff', 'visibility': 'public', 'hardware': 'Nvidia A40 GPU'}
     @classmethod
     def return_type(cls): return VideoRef
 
@@ -120,7 +168,7 @@ class Tooncrafter(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A100 (40GB) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/e3adaa0a-c534-496c-81d1-281f9000fbb4/tooncrafter.gif', 'created_at': '2024-06-02T21:29:15.300292Z', 'description': 'Create videos from illustrated input images', 'github_url': 'https://github.com/fofr/cog-comfyui-tooncrafter', 'license_url': 'https://github.com/fofr/cog-comfyui-tooncrafter/blob/main/LICENSE', 'name': 'tooncrafter', 'owner': 'fofr', 'paper_url': 'https://doubiiu.github.io/projects/ToonCrafter/', 'run_count': 7323, 'url': 'https://replicate.com/fofr/tooncrafter', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/e3adaa0a-c534-496c-81d1-281f9000fbb4/tooncrafter.gif', 'created_at': '2024-06-02T21:29:15.300292Z', 'description': 'Create videos from illustrated input images', 'github_url': 'https://github.com/fofr/cog-comfyui-tooncrafter', 'license_url': 'https://github.com/fofr/cog-comfyui-tooncrafter/blob/main/LICENSE', 'name': 'tooncrafter', 'owner': 'fofr', 'paper_url': 'https://doubiiu.github.io/projects/ToonCrafter/', 'run_count': 7390, 'url': 'https://replicate.com/fofr/tooncrafter', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
     @classmethod
     def return_type(cls): return VideoRef
 
@@ -159,7 +207,7 @@ class Zeroscope_V2_XL(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A100 (40GB) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/021a0a2e-b57b-4b45-a5c7-e29773aa5345/1mrNnh8.png', 'created_at': '2023-06-24T18:30:41.874899Z', 'description': 'Zeroscope V2 XL & 576w', 'github_url': 'https://github.com/anotherjesse/cog-text2video', 'license_url': 'https://github.com/anotherjesse/cog-text2video/blob/main/LICENSE', 'name': 'zeroscope-v2-xl', 'owner': 'anotherjesse', 'paper_url': 'https://huggingface.co/cerspense/zeroscope_v2_576w', 'run_count': 261990, 'url': 'https://replicate.com/anotherjesse/zeroscope-v2-xl', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/021a0a2e-b57b-4b45-a5c7-e29773aa5345/1mrNnh8.png', 'created_at': '2023-06-24T18:30:41.874899Z', 'description': 'Zeroscope V2 XL & 576w', 'github_url': 'https://github.com/anotherjesse/cog-text2video', 'license_url': 'https://github.com/anotherjesse/cog-text2video/blob/main/LICENSE', 'name': 'zeroscope-v2-xl', 'owner': 'anotherjesse', 'paper_url': 'https://huggingface.co/cerspense/zeroscope_v2_576w', 'run_count': 262043, 'url': 'https://replicate.com/anotherjesse/zeroscope-v2-xl', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
     @classmethod
     def return_type(cls): return VideoRef
 
@@ -193,7 +241,7 @@ class RobustVideoMatting(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia T4 GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/1f92fd8f-2b90-4998-b5ae-1e23678ab004/showreel.gif', 'created_at': '2022-11-25T14:06:18.152759Z', 'description': 'extract foreground of a video', 'github_url': 'https://github.com/PeterL1n/RobustVideoMatting', 'license_url': 'https://github.com/PeterL1n/RobustVideoMatting/blob/master/LICENSE', 'name': 'robust_video_matting', 'owner': 'arielreplicate', 'paper_url': 'https://arxiv.org/abs/2108.11515', 'run_count': 44449, 'url': 'https://replicate.com/arielreplicate/robust_video_matting', 'visibility': 'public', 'hardware': 'Nvidia T4 GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/1f92fd8f-2b90-4998-b5ae-1e23678ab004/showreel.gif', 'created_at': '2022-11-25T14:06:18.152759Z', 'description': 'extract foreground of a video', 'github_url': 'https://github.com/PeterL1n/RobustVideoMatting', 'license_url': 'https://github.com/PeterL1n/RobustVideoMatting/blob/master/LICENSE', 'name': 'robust_video_matting', 'owner': 'arielreplicate', 'paper_url': 'https://arxiv.org/abs/2108.11515', 'run_count': 44458, 'url': 'https://replicate.com/arielreplicate/robust_video_matting', 'visibility': 'public', 'hardware': 'Nvidia T4 GPU'}
     @classmethod
     def return_type(cls): return VideoRef
 
@@ -211,7 +259,7 @@ class StableDiffusionInfiniteZoom(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A100 (40GB) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/0d244e1c-0f30-49ee-acb4-6a451c27f82f/infinite_zoom.gif', 'created_at': '2022-10-30T16:19:54.154872Z', 'description': "Use Runway's Stable-diffusion inpainting model to create an infinite loop video", 'github_url': 'https://github.com/ArielReplicate/stable-diffusion-infinite-zoom', 'license_url': 'https://github.com/ArielReplicate/stable-diffusion-infinite-zoom/blob/add-cog/LICENSE', 'name': 'stable_diffusion_infinite_zoom', 'owner': 'arielreplicate', 'paper_url': None, 'run_count': 35783, 'url': 'https://replicate.com/arielreplicate/stable_diffusion_infinite_zoom', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/0d244e1c-0f30-49ee-acb4-6a451c27f82f/infinite_zoom.gif', 'created_at': '2022-10-30T16:19:54.154872Z', 'description': "Use Runway's Stable-diffusion inpainting model to create an infinite loop video", 'github_url': 'https://github.com/ArielReplicate/stable-diffusion-infinite-zoom', 'license_url': 'https://github.com/ArielReplicate/stable-diffusion-infinite-zoom/blob/add-cog/LICENSE', 'name': 'stable_diffusion_infinite_zoom', 'owner': 'arielreplicate', 'paper_url': None, 'run_count': 35788, 'url': 'https://replicate.com/arielreplicate/stable_diffusion_infinite_zoom', 'visibility': 'public', 'hardware': 'Nvidia A100 (40GB) GPU'}
     @classmethod
     def return_type(cls): return VideoRef
 
@@ -230,7 +278,7 @@ class AnimateDiffIllusions(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'Nvidia A40 (Large) GPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/f6b87381-05b4-44d2-a1fd-f6bf45cf2580/output.gif', 'created_at': '2023-10-26T12:08:10.288839Z', 'description': "Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Prompt Travel (Motion Module SD 1.5 v2)", 'github_url': 'https://github.com/s9roll7/animatediff-cli-prompt-travel', 'license_url': 'https://github.com/s9roll7/animatediff-cli-prompt-travel/blob/main/LICENSE.md', 'name': 'animatediff-illusions', 'owner': 'zsxkib', 'paper_url': 'https://arxiv.org/abs/2307.04725', 'run_count': 8426, 'url': 'https://replicate.com/zsxkib/animatediff-illusions', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/f6b87381-05b4-44d2-a1fd-f6bf45cf2580/output.gif', 'created_at': '2023-10-26T12:08:10.288839Z', 'description': "Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Prompt Travel (Motion Module SD 1.5 v2)", 'github_url': 'https://github.com/s9roll7/animatediff-cli-prompt-travel', 'license_url': 'https://github.com/s9roll7/animatediff-cli-prompt-travel/blob/main/LICENSE.md', 'name': 'animatediff-illusions', 'owner': 'zsxkib', 'paper_url': 'https://arxiv.org/abs/2307.04725', 'run_count': 8431, 'url': 'https://replicate.com/zsxkib/animatediff-illusions', 'visibility': 'public', 'hardware': 'Nvidia A40 (Large) GPU'}
     @classmethod
     def return_type(cls): return VideoRef
 
@@ -272,7 +320,7 @@ class AudioToWaveform(ReplicateNode):
     @classmethod
     def get_hardware(cls): return 'CPU'
     @classmethod
-    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/5d5cad9c-d4ba-44e1-8c4f-dc08648bbf5e/fofr_a_waveform_bar_chart_video_e.png', 'created_at': '2023-06-13T15:26:38.672021Z', 'description': 'Create a waveform video from audio', 'github_url': 'https://github.com/fofr/audio-to-waveform', 'license_url': 'https://github.com/fofr/audio-to-waveform/blob/main/LICENSE', 'name': 'audio-to-waveform', 'owner': 'fofr', 'paper_url': 'https://gradio.app/docs/#make_waveform', 'run_count': 368949, 'url': 'https://replicate.com/fofr/audio-to-waveform', 'visibility': 'public', 'hardware': 'CPU'}
+    def model_info(cls): return {'cover_image_url': 'https://tjzk.replicate.delivery/models_models_cover_image/5d5cad9c-d4ba-44e1-8c4f-dc08648bbf5e/fofr_a_waveform_bar_chart_video_e.png', 'created_at': '2023-06-13T15:26:38.672021Z', 'description': 'Create a waveform video from audio', 'github_url': 'https://github.com/fofr/audio-to-waveform', 'license_url': 'https://github.com/fofr/audio-to-waveform/blob/main/LICENSE', 'name': 'audio-to-waveform', 'owner': 'fofr', 'paper_url': 'https://gradio.app/docs/#make_waveform', 'run_count': 368988, 'url': 'https://replicate.com/fofr/audio-to-waveform', 'visibility': 'public', 'hardware': 'CPU'}
     @classmethod
     def return_type(cls): return VideoRef
 
