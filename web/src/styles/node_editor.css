@@ -198,8 +198,14 @@
   color: var(--c_hl1);
 }
 .value-changed textarea,
+.value-changed .MuiSwitch-track,
 .value-changed .MuiInput-root {
   border-right: 2px solid var(--c_hl1) !important;
+}
+
+.value-changed .MuiSwitch-track {
+  background-color: var(--c_hl1) !important;
+  opacity: 0.6;
 }
 
 /* NODE MENU BOTTOM */
