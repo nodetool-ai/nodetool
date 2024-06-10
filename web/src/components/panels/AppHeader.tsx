@@ -77,6 +77,29 @@ const styles = (theme: any) => ({
     width: "1.5em",
     color: theme.palette.c_gray4,
     padding: "0 0.5em"
+  },
+  ".last-workflow": {
+    fontSize: theme.fontSizeSmaller,
+    fontFamily: theme.fontFamily,
+    TextTransform: "none",
+    color: theme.palette.c_white,
+    padding: ".2em .3em",
+    minHeight: "unset",
+    height: "1.5em",
+    TextDecoration: "none !important",
+    marginLeft: "0.5em",
+    fontWeight: "normal",
+    "&:hover": {
+      color: theme.palette.c_hl1
+    }
+  },
+  ".last-workflow.disabled": {
+    color: theme.palette.c_gray5
+  },
+  ".last-workflow span": {
+    color: theme.palette.c_attention,
+    fontSize: "1.2em",
+    marginLeft: "0.2em"
   }
 });
 
@@ -87,10 +110,11 @@ function AppHeader() {
   const { openNodeMenu } = useNodeMenuStore();
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
+  const workflowIsDirty = useNodeStore((state) => state.workflowIsDirty);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-
+  const lastWorkflow = useNodeStore((state) => state.lastWorkflow);
   const onWorkflowSaved = useCallback(
     (workflow: Workflow) => {
       addNotification({
@@ -143,6 +167,13 @@ function AppHeader() {
   const handleAutoLayout = () => {
     autoLayout();
   };
+
+  const handleNavigateToLastWorkflow = () => {
+    if (lastWorkflow) {
+      navigate(`/editor/${lastWorkflow.id}`);
+    }
+  };
+
   return (
     <AppBar css={styles} position="static" className="app-header">
       <Toolbar variant="dense">
@@ -261,6 +292,17 @@ function AppHeader() {
             </Tooltip>
           </>
         )}
+
+        <Button
+          onClick={handleNavigateToLastWorkflow}
+          disabled={path.startsWith("/editor")}
+          className={`last-workflow ${
+            path.startsWith("/editor") ? "disabled" : ""
+          }`}
+        >
+          {lastWorkflow?.name}
+          {workflowIsDirty && <span>*</span>}
+        </Button>
 
         <Box sx={{ flexGrow: 1 }} />
 

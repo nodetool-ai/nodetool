@@ -126,6 +126,7 @@ export interface NodeStore {
   setExplicitSave: (value: boolean) => void;
   setShouldAutoLayout: (value: boolean) => void;
   workflow: WorkflowAttributes;
+  lastWorkflow: WorkflowAttributes | null;
   nodes: Node<NodeData>[];
   hoveredNodes: string[];
   setHoveredNodes: (ids: string[]) => void;
@@ -196,6 +197,7 @@ export const useNodeStore = create<NodeStore>()(
           updated_at: new Date().toISOString(),
           created_at: new Date().toISOString()
         },
+        lastWorkflow: null,
         workflowIsDirty: false,
         nodes: [] as Node<NodeData>[],
         edges: [] as Edge[],
@@ -389,6 +391,7 @@ export const useNodeStore = create<NodeStore>()(
 
           set({
             workflow: workflow,
+            lastWorkflow: workflow,
             shouldAutoLayout: false,
             edges: (workflow.graph?.edges || []).map(graphEdgeToReactFlowEdge),
             nodes: (workflow.graph?.nodes || []).map((n: GraphNode) =>
@@ -402,7 +405,6 @@ export const useNodeStore = create<NodeStore>()(
             }, 100);
           }
         },
-
         /**
          * Set workflow attributes.
          */
