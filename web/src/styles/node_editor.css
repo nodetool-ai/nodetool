@@ -205,7 +205,7 @@
 
 .value-changed .MuiSwitch-track {
   background-color: var(--c_hl1) !important;
-  opacity: 0.6;
+  opacity: 0.4;
 }
 
 /* NODE MENU BOTTOM */
