@@ -27,7 +27,7 @@ class VideoLlava(ReplicateNode):
             "name": "video-llava",
             "owner": "nateraw",
             "paper_url": "https://arxiv.org/abs/2311.10122",
-            "run_count": 280571,
+            "run_count": 369655,
             "url": "https://replicate.com/nateraw/video-llava",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",

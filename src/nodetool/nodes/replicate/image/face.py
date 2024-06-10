@@ -5,17 +5,16 @@ from nodetool.common.replicate_node import ReplicateNode
 from enum import Enum
 
 
-class Style(str, Enum):
-    _3D = "3D"
-    EMOJI = "Emoji"
-    VIDEO_GAME = "Video game"
-    PIXELS = "Pixels"
-    CLAY = "Clay"
-    TOY = "Toy"
-
-
 class FaceToMany(ReplicateNode):
     """Turn a face into 3D, emoji, pixel art, video game, claymation or toy"""
+
+    class Style(str, Enum):
+        _3D = "3D"
+        EMOJI = "Emoji"
+        VIDEO_GAME = "Video game"
+        PIXELS = "Pixels"
+        CLAY = "Clay"
+        TOY = "Toy"
 
     @classmethod
     def replicate_model_id(cls):
@@ -36,7 +35,7 @@ class FaceToMany(ReplicateNode):
             "name": "face-to-many",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 10579948,
+            "run_count": 10891149,
             "url": "https://replicate.com/fofr/face-to-many",
             "visibility": "public",
         }
@@ -53,7 +52,7 @@ class FaceToMany(ReplicateNode):
     image: ImageRef = Field(
         default=ImageRef(), description="An image of a person to be converted"
     )
-    style: Style = Field(description="Style to convert to", default="3D")
+    style: Style = Field(description="Style to convert to", default=Style("3D"))
     prompt: str = Field(title="Prompt", default="a person")
     lora_scale: float = Field(
         title="Lora Scale",
@@ -124,7 +123,7 @@ class BecomeImage(ReplicateNode):
             "name": "become-image",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 176043,
+            "run_count": 247254,
             "url": "https://replicate.com/fofr/become-image",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -207,22 +206,21 @@ class BecomeImage(ReplicateNode):
     )
 
 
-class Style_name(str, Enum):
-    NO_STYLE = "(No style)"
-    CINEMATIC = "Cinematic"
-    DISNEY_CHARACTOR = "Disney Charactor"
-    DIGITAL_ART = "Digital Art"
-    PHOTOGRAPHIC__DEFAULT = "Photographic (Default)"
-    FANTASY_ART = "Fantasy art"
-    NEONPUNK = "Neonpunk"
-    ENHANCE = "Enhance"
-    COMIC_BOOK = "Comic book"
-    LOWPOLY = "Lowpoly"
-    LINE_ART = "Line art"
-
-
 class PhotoMaker(ReplicateNode):
     """Create photos, paintings and avatars for anyone in any style within seconds."""
+
+    class Style_name(str, Enum):
+        NO_STYLE = "(No style)"
+        CINEMATIC = "Cinematic"
+        DISNEY_CHARACTOR = "Disney Charactor"
+        DIGITAL_ART = "Digital Art"
+        PHOTOGRAPHIC__DEFAULT = "Photographic (Default)"
+        FANTASY_ART = "Fantasy art"
+        NEONPUNK = "Neonpunk"
+        ENHANCE = "Enhance"
+        COMIC_BOOK = "Comic book"
+        LOWPOLY = "Lowpoly"
+        LINE_ART = "Line art"
 
     @classmethod
     def replicate_model_id(cls):
@@ -243,7 +241,7 @@ class PhotoMaker(ReplicateNode):
             "name": "photomaker",
             "owner": "tencentarc",
             "paper_url": "https://huggingface.co/papers/2312.04461",
-            "run_count": 1120348,
+            "run_count": 2204855,
             "url": "https://replicate.com/tencentarc/photomaker",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -274,7 +272,7 @@ class PhotoMaker(ReplicateNode):
     )
     style_name: Style_name = Field(
         description="Style template. The style template will add a style-specific prompt and negative prompt to the user's prompt.",
-        default="Photographic (Default)",
+        default=Style_name("Photographic (Default)"),
     )
     input_image: str | None = Field(
         title="Input Image",
@@ -332,6 +330,19 @@ class PhotoMaker(ReplicateNode):
 class PhotoMakerStyle(ReplicateNode):
     """Create photos, paintings and avatars for anyone in any style within seconds.  (Stylization version)"""
 
+    class Style_name(str, Enum):
+        NO_STYLE = "(No style)"
+        CINEMATIC = "Cinematic"
+        DISNEY_CHARACTOR = "Disney Charactor"
+        DIGITAL_ART = "Digital Art"
+        PHOTOGRAPHIC__DEFAULT = "Photographic (Default)"
+        FANTASY_ART = "Fantasy art"
+        NEONPUNK = "Neonpunk"
+        ENHANCE = "Enhance"
+        COMIC_BOOK = "Comic book"
+        LOWPOLY = "Lowpoly"
+        LINE_ART = "Line art"
+
     @classmethod
     def replicate_model_id(cls):
         return "tencentarc/photomaker-style:467d062309da518648ba89d226490e02b8ed09b5abc15026e54e31c5a8cd0769"
@@ -351,7 +362,7 @@ class PhotoMakerStyle(ReplicateNode):
             "name": "photomaker-style",
             "owner": "tencentarc",
             "paper_url": "https://huggingface.co/papers/2312.04461",
-            "run_count": 283721,
+            "run_count": 455875,
             "url": "https://replicate.com/tencentarc/photomaker-style",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -382,7 +393,7 @@ class PhotoMakerStyle(ReplicateNode):
     )
     style_name: Style_name = Field(
         description="Style template. The style template will add a style-specific prompt and negative prompt to the user's prompt.",
-        default="(No style)",
+        default=Style_name("(No style)"),
     )
     input_image: ImageRef = Field(
         default=ImageRef(),
@@ -452,7 +463,7 @@ class FaceToSticker(ReplicateNode):
             "name": "face-to-sticker",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 679389,
+            "run_count": 1010377,
             "url": "https://replicate.com/fofr/face-to-sticker",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -514,47 +525,46 @@ class FaceToSticker(ReplicateNode):
     )
 
 
-class Scheduler(str, Enum):
-    DEISMULTISTEPSCHEDULER = "DEISMultistepScheduler"
-    HEUNDISCRETESCHEDULER = "HeunDiscreteScheduler"
-    EULERDISCRETESCHEDULER = "EulerDiscreteScheduler"
-    DPMSOLVERMULTISTEPSCHEDULER = "DPMSolverMultistepScheduler"
-    DPMSOLVERMULTISTEPSCHEDULER_KARRAS = "DPMSolverMultistepScheduler-Karras"
-    DPMSOLVERMULTISTEPSCHEDULER_KARRAS_SDE = "DPMSolverMultistepScheduler-Karras-SDE"
-
-
-class Sdxl_weights(str, Enum):
-    STABLE_DIFFUSION_XL_BASE_1_0 = "stable-diffusion-xl-base-1.0"
-    JUGGERNAUT_XL_V8 = "juggernaut-xl-v8"
-    AFRODITE_XL_V2 = "afrodite-xl-v2"
-    ALBEDOBASE_XL_20 = "albedobase-xl-20"
-    ALBEDOBASE_XL_V13 = "albedobase-xl-v13"
-    ANIMAGINE_XL_30 = "animagine-xl-30"
-    ANIME_ART_DIFFUSION_XL = "anime-art-diffusion-xl"
-    ANIME_ILLUST_DIFFUSION_XL = "anime-illust-diffusion-xl"
-    DREAMSHAPER_XL = "dreamshaper-xl"
-    DYNAVISION_XL_V0610 = "dynavision-xl-v0610"
-    GUOFENG4_XL = "guofeng4-xl"
-    NIGHTVISION_XL_0791 = "nightvision-xl-0791"
-    OMNIGEN_XL = "omnigen-xl"
-    PONY_DIFFUSION_V6_XL = "pony-diffusion-v6-xl"
-    PROTOVISION_XL_HIGH_FIDEL = "protovision-xl-high-fidel"
-    REALVISXL_V3_0_TURBO = "RealVisXL_V3.0_Turbo"
-    REALVISXL_V4_0_LIGHTNING = "RealVisXL_V4.0_Lightning"
-
-
-class Output_format(str, Enum):
-    WEBP = "webp"
-    JPG = "jpg"
-    PNG = "png"
-
-
 class InstantId(ReplicateNode):
     """Make realistic images of real people instantly"""
 
+    class Scheduler(str, Enum):
+        DEISMULTISTEPSCHEDULER = "DEISMultistepScheduler"
+        HEUNDISCRETESCHEDULER = "HeunDiscreteScheduler"
+        EULERDISCRETESCHEDULER = "EulerDiscreteScheduler"
+        DPMSOLVERMULTISTEPSCHEDULER = "DPMSolverMultistepScheduler"
+        DPMSOLVERMULTISTEPSCHEDULER_KARRAS = "DPMSolverMultistepScheduler-Karras"
+        DPMSOLVERMULTISTEPSCHEDULER_KARRAS_SDE = (
+            "DPMSolverMultistepScheduler-Karras-SDE"
+        )
+
+    class Sdxl_weights(str, Enum):
+        STABLE_DIFFUSION_XL_BASE_1_0 = "stable-diffusion-xl-base-1.0"
+        JUGGERNAUT_XL_V8 = "juggernaut-xl-v8"
+        AFRODITE_XL_V2 = "afrodite-xl-v2"
+        ALBEDOBASE_XL_20 = "albedobase-xl-20"
+        ALBEDOBASE_XL_V13 = "albedobase-xl-v13"
+        ANIMAGINE_XL_30 = "animagine-xl-30"
+        ANIME_ART_DIFFUSION_XL = "anime-art-diffusion-xl"
+        ANIME_ILLUST_DIFFUSION_XL = "anime-illust-diffusion-xl"
+        DREAMSHAPER_XL = "dreamshaper-xl"
+        DYNAVISION_XL_V0610 = "dynavision-xl-v0610"
+        GUOFENG4_XL = "guofeng4-xl"
+        NIGHTVISION_XL_0791 = "nightvision-xl-0791"
+        OMNIGEN_XL = "omnigen-xl"
+        PONY_DIFFUSION_V6_XL = "pony-diffusion-v6-xl"
+        PROTOVISION_XL_HIGH_FIDEL = "protovision-xl-high-fidel"
+        REALVISXL_V3_0_TURBO = "RealVisXL_V3.0_Turbo"
+        REALVISXL_V4_0_LIGHTNING = "RealVisXL_V4.0_Lightning"
+
+    class Output_format(str, Enum):
+        WEBP = "webp"
+        JPG = "jpg"
+        PNG = "png"
+
     @classmethod
     def replicate_model_id(cls):
-        return "zsxkib/instant-id:491ddf5be6b827f8931f088ef10c6d015f6d99685e6454e6f04c8ac298979686"
+        return "zsxkib/instant-id:f1ca369da43885a347690a98f6b710afbf5f167cb9bf13bd5af512ba4a9f7b63"
 
     @classmethod
     def get_hardware(cls):
@@ -571,7 +581,7 @@ class InstantId(ReplicateNode):
             "name": "instant-id",
             "owner": "zsxkib",
             "paper_url": "https://arxiv.org/abs/2401.07519",
-            "run_count": 375650,
+            "run_count": 457929,
             "url": "https://replicate.com/zsxkib/instant-id",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -589,7 +599,7 @@ class InstantId(ReplicateNode):
     image: ImageRef = Field(default=ImageRef(), description="Input face image")
     prompt: str = Field(title="Prompt", description="Input prompt", default="a person")
     scheduler: Scheduler = Field(
-        description="Scheduler", default="EulerDiscreteScheduler"
+        description="Scheduler", default=Scheduler("EulerDiscreteScheduler")
     )
     enable_lcm: bool = Field(
         title="Enable Lcm",
@@ -608,10 +618,10 @@ class InstantId(ReplicateNode):
     )
     sdxl_weights: Sdxl_weights = Field(
         description="Pick which base weights you want to use",
-        default="stable-diffusion-xl-base-1.0",
+        default=Sdxl_weights("stable-diffusion-xl-base-1.0"),
     )
     output_format: Output_format = Field(
-        description="Format of the output images", default="webp"
+        description="Format of the output images", default=Output_format("webp")
     )
     pose_strength: float = Field(
         title="Pose Strength",
@@ -703,6 +713,20 @@ class InstantId(ReplicateNode):
         ge=1.0,
         le=10.0,
         default=5,
+    )
+    face_detection_input_width: int = Field(
+        title="Face Detection Input Width",
+        description="Width of the input image for face detection",
+        ge=640.0,
+        le=4096.0,
+        default=640,
+    )
+    face_detection_input_height: int = Field(
+        title="Face Detection Input Height",
+        description="Height of the input image for face detection",
+        ge=640.0,
+        le=4096.0,
+        default=640,
     )
     controlnet_conditioning_scale: float = Field(
         title="Controlnet Conditioning Scale",

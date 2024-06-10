@@ -1,4 +1,7 @@
-from nodetool.common.replicate_codegen import create_replicate_node
+from nodetool.common.replicate_codegen import (
+    create_replicate_namespace,
+    create_replicate_node,
+)
 from nodetool.metadata.types import AudioRef, ImageRef, VideoRef
 import argparse
 import dotenv
@@ -457,6 +460,12 @@ replicate_nodes = [
         "overrides": {"image": ImageRef},
     },
     {
+        "model_id": "andreasjansson/clip-features",
+        "node_name": "ClipFeatures",
+        "namespace": "image.analyze",
+        "return_type": list[dict],
+    },
+    {
         "model_id": "meta/meta-llama-3-8b",
         "node_name": "Llama3_8B",
         "namespace": "text.generate",
@@ -605,11 +614,21 @@ if __name__ == "__main__":
     parser.add_argument("--namespace", help="Specify the namespace argument")
     args = parser.parse_args()
 
-    # Use the namespace argument here
     if args.namespace:
+        nodes = []
         for node in replicate_nodes:
             if node["namespace"] == args.namespace:
-                create_replicate_node(**node)
+                nodes.append(node)
+
+        print(f"Creating namespace: {args.namespace}")
+        create_replicate_namespace(args.namespace, nodes)
     else:
+        nodes_by_namespace = {}
         for node in replicate_nodes:
-            create_replicate_node(**node)
+            if node["namespace"] not in nodes_by_namespace:
+                nodes_by_namespace[node["namespace"]] = []
+            nodes_by_namespace[node["namespace"]].append(node)
+
+        for namespace, nodes in nodes_by_namespace.items():
+            print(f"Creating namespace: {namespace}")
+            create_replicate_namespace(namespace, nodes)

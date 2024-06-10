@@ -27,7 +27,7 @@ class AudioSuperResolution(ReplicateNode):
             "name": "audio-super-resolution",
             "owner": "nateraw",
             "paper_url": "https://arxiv.org/abs/2309.07314",
-            "run_count": 36587,
+            "run_count": 40455,
             "url": "https://replicate.com/nateraw/audio-super-resolution",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",

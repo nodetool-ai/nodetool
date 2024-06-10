@@ -5,6 +5,10 @@ import { PropertyProps } from "../node/PropertyInput";
 
 export default function EnumProperty(props: PropertyProps) {
   const id = `enum-${props.property.name}-${props.propertyIndex}`;
+  const values =
+    props.property.type.type === "enum"
+      ? props.property.type.values
+      : props.property.type.type_args?.[0].values;
 
   return (
     <>
@@ -12,7 +16,8 @@ export default function EnumProperty(props: PropertyProps) {
         <PropertyLabel
           name={props.property.name}
           description={props.property.description}
-          id={id} />
+          id={id}
+        />
         <Select
           id={id}
           labelId={id}
@@ -33,7 +38,7 @@ export default function EnumProperty(props: PropertyProps) {
             }
           }}
         >
-          {props.property.type.values?.map((value) => (
+          {values?.map((value) => (
             <MenuItem key={value} value={value}>
               {value}
             </MenuItem>

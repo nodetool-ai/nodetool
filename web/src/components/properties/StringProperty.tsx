@@ -10,7 +10,8 @@ export default function StringProperty(props: PropertyProps) {
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
-        id={id} />
+        id={id}
+      />
       <TextareaAutosize
         // causing too many re-renders, see https://stackoverflow.com/questions/64837884/material-ui-too-many-re-renders-the-layout-is-unstable-textareaautosize-limit
         // > trying to fix this by using TextareaAutosize instead.
@@ -27,7 +28,8 @@ export default function StringProperty(props: PropertyProps) {
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
-        spellCheck="false" />
+        spellCheck="false"
+      />
     </div>
   );
 }
