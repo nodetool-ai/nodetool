@@ -63,6 +63,12 @@ import { generateCSS } from "../themes/GenerateCSS";
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import LoopNode from "../node/LoopNode";
 
+declare global {
+  interface Window {
+    __beforeUnloadListenerAdded?: boolean;
+  }
+}
+
 const NodeEditor: React.FC<unknown> = () => {
   const nodes = useNodeStore((state) => state.nodes);
   const edges = useNodeStore((state) => state.edges);
@@ -78,7 +84,6 @@ const NodeEditor: React.FC<unknown> = () => {
   };
 
   const { closeDescription } = useNodeMenuStore();
-
   const { connecting } = useConnectionStore();
 
   /* REACTFLOW */
@@ -95,6 +100,28 @@ const NodeEditor: React.FC<unknown> = () => {
   const { shouldFitToScreen, setShouldFitToScreen } = useWorkflowStore(
     (state: any) => state
   );
+
+  /* CLOSE WINDOW */
+  const addBeforeUnloadListener = () => {
+    if (window.__beforeUnloadListenerAdded) {
+      return;
+    }
+    window.addEventListener("beforeunload", (event) => {
+      if (!window.location.pathname.includes("editor")) {
+        return;
+      }
+      const workflowIsDirty = useNodeStore.getState().workflowIsDirty;
+      if (!workflowIsDirty) {
+        return;
+      }
+      event.preventDefault();
+      event.returnValue = "";
+      return "";
+    });
+    window.__beforeUnloadListenerAdded = true;
+  };
+  addBeforeUnloadListener();
+
   /* DEFINE NODE TYPES */
   nodeTypes["nodetool.group.Loop"] = LoopNode;
   nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;

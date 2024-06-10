@@ -173,6 +173,7 @@ export interface NodeStore {
   loadJSON: (json: string) => void;
   createNode: (metadata: NodeMetadata, position: XYPosition) => Node<NodeData>;
   autoLayout: () => void;
+  workflowIsDirty: boolean;
 }
 
 export const useTemporalStore = <T>(
@@ -195,6 +196,7 @@ export const useNodeStore = create<NodeStore>()(
           updated_at: new Date().toISOString(),
           created_at: new Date().toISOString()
         },
+        workflowIsDirty: false,
         nodes: [] as Node<NodeData>[],
         edges: [] as Edge[],
         edgeUpdateSuccessful: false as boolean,
@@ -416,6 +418,7 @@ export const useNodeStore = create<NodeStore>()(
           get().setWorkflow(newWorkflow);
           get().syncWorkflow();
           get().saveWorkflow();
+          set({ workflowIsDirty: false });
           return newWorkflow.id;
         },
 
@@ -447,7 +450,7 @@ export const useNodeStore = create<NodeStore>()(
         saveWorkflow: async () => {
           const updateWorkflow = useWorkflowStore.getState().update;
           const workflow = get().getWorkflow();
-
+          set({ workflowIsDirty: false });
           return updateWorkflow(workflow);
         },
 
@@ -601,7 +604,8 @@ export const useNodeStore = create<NodeStore>()(
                       }
                     }
                   : node) as Node
-            )
+            ),
+            workflowIsDirty: true
           });
         },
 
@@ -698,6 +702,7 @@ export const useNodeStore = create<NodeStore>()(
               node.data.workflow_id = get().workflow.id;
             });
           }
+          set({ workflowIsDirty: true });
           set({ nodes });
         },
 
@@ -707,6 +712,7 @@ export const useNodeStore = create<NodeStore>()(
          * @param edges The edges of the workflow.
          */
         setEdges: (edges: Edge[]) => {
+          set({ workflowIsDirty: true });
           set({ edges });
         },
 
@@ -718,6 +724,7 @@ export const useNodeStore = create<NodeStore>()(
         onNodesChange: (changes: NodeChange[]) => {
           const nodes = applyNodeChanges(changes, get().nodes);
           set({ nodes });
+          set({ workflowIsDirty: true });
         },
 
         /**
