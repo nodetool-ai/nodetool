@@ -153,10 +153,10 @@ function AppHeader() {
           }}
         >
           <Logo
-            width="36px"
-            height="36px"
-            fontSize="12px"
-            borderRadius="15px"
+            width="40px"
+            height="40px"
+            fontSize="14px"
+            borderRadius="20px"
             small={true}
           />
         </Button>

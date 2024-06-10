@@ -19,7 +19,7 @@ export function secondsToHMS(seconds: number) {
 }
 
 export function prettyDate(
-  dateStr: string | undefined,
+  dateStr: string | number | undefined,
   formatStyle: "normal" | "verbose" = "normal",
   settings?: Settings
 ): string {
@@ -27,8 +27,15 @@ export function prettyDate(
     return "-";
   }
 
-  const compliantDateStr = dateStr.replace(" ", "T");
-  const dateTime = DateTime.fromISO(compliantDateStr);
+  // Handle numeric timestamp input
+  let dateTime: DateTime;
+  if (typeof dateStr === "number") {
+    dateTime = DateTime.fromMillis(dateStr);
+  } else {
+    const compliantDateStr = dateStr.replace(" ", "T");
+    dateTime = DateTime.fromISO(compliantDateStr);
+  }
+
   if (!dateTime.isValid) {
     devWarn(dateTime.invalidReason);
     return "Invalid Date";
@@ -49,9 +56,13 @@ export function prettyDate(
   } else {
     if (timeFormat === "24h") {
       const dateFormat = "dd.MM.yyyy";
-      return dateTime.toFormat(`${dateFormat} | HH:mm:ss `);
+      return dateTime.toFormat(`${dateFormat} | HH:mm:ss`);
     } else {
       return dateTime.toFormat("yyyy-MM-dd | hh:mm:ss a");
     }
   }
+}
+
+export function getTimestampForFilename(): string {
+  return DateTime.now().toFormat("yyyy-MM-dd_HH-mm-ss");
 }

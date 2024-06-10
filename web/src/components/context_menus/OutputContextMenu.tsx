@@ -17,6 +17,8 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
 import useConnectionStore from "../../stores/ConnectionStore";
+import { TypeMetadata } from "../../stores/ApiTypes";
+import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 
 const OutputContextMenu: React.FC = () => {
   const { openMenuType, menuPosition, closeContextMenu, type, nodeId } =
@@ -30,8 +32,9 @@ const OutputContextMenu: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
-  const { connectHandleId } = useConnectionStore();
+  const { connectHandleId, connectType } = useConnectionStore();
   const [sourceHandle, setSourceHandle] = useState<string | null>(null);
+  const [sourceType, setSourceType] = useState<TypeMetadata | null>(null);
 
   type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(
@@ -55,8 +58,9 @@ const OutputContextMenu: React.FC = () => {
   useEffect(() => {
     if (connectHandleId) {
       setSourceHandle(connectHandleId);
+      setSourceType(connectType);
     }
-  }, [connectHandleId]);
+  }, [connectHandleId, connectType]);
 
   const fetchMetadata = useCallback(
     (nodeType: string) => {
@@ -97,6 +101,12 @@ const OutputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
+      newNode.data.properties.name =
+        sourceType?.type +
+          "_" +
+          sourceHandle +
+          "_" +
+          getTimestampForFilename() || "";
       addNode(newNode);
       const targetHandle = getTargetHandle(type || "", nodeType);
       addEdge({
@@ -118,7 +128,8 @@ const OutputContextMenu: React.FC = () => {
       addEdge,
       generateEdgeId,
       nodeId,
-      sourceHandle
+      sourceHandle,
+      sourceType
     ]
   );
 
