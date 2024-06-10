@@ -68,3 +68,28 @@ class PredictionCreateRequest(BaseModel):
     data: str | None = None
     version: str | None = None
     workflow_id: str | None = None
+
+
+class PredictionResult(BaseModel):
+    type: Literal["prediction_result"] = "prediction_result"
+    prediction: Prediction
+    encoding: Literal["json"] | Literal["base64"]
+    content: Any
+
+    def decode_content(self) -> Any:
+        if self.encoding == "base64":
+            return self.content.encode("utf-8")
+        return self.content
+
+    @staticmethod
+    def from_result(prediction: Prediction, content: Any):
+        if isinstance(content, bytes):
+            encoding = "base64"
+            content = content.decode("utf-8")
+        else:
+            encoding = "json"
+        return PredictionResult(
+            prediction=prediction,
+            encoding=encoding,
+            content=content,
+        )

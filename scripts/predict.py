@@ -7,7 +7,9 @@ from nodetool.api.types.prediction import PredictionCreateRequest
 user, _ = User.create(email="test@example.com", verified=True)
 assert user.auth_token
 
-api_client = Environment.get_nodetool_api_client(auth_token=user.auth_token)
+api_client = Environment.get_nodetool_api_client(
+    user_id=user.id, auth_token=user.auth_token
+)
 
 
 sample_request = PredictionCreateRequest(

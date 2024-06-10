@@ -1,7 +1,8 @@
+import json
 from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
-from nodetool.api.types.prediction import PredictionCreateRequest
+from nodetool.api.types.prediction import PredictionCreateRequest, PredictionResult
 from nodetool.models.prediction import Prediction as PredictionModel
 from nodetool.models.user import User
 
@@ -52,17 +53,20 @@ def test_get_nonexistent_prediction(client: TestClient, user: User):
 @patch("nodetool.api.prediction.run_huggingface")
 def test_create_prediction(run_huggingface, client: TestClient, user: User):
     run_huggingface.return_value = {"result": "test_result"}
-
-    response = client.post(
-        "/api/predictions/",
-        json=PredictionCreateRequest(
-            node_id="test_node_id",
-            model="test_model",
-            workflow_id="test_workflow_id",
-            provider="huggingface",
-        ).model_dump(),
-        headers={"Authorization": f"Bearer {user.auth_token}"},
+    req = PredictionCreateRequest(
+        node_id="test_node_id",
+        model="test_model",
+        workflow_id="test_workflow_id",
+        provider="huggingface",
     )
-    assert response.status_code == 200
-    data = response.json()
-    assert data == {"result": "test_result"}
+
+    with client.stream(
+        "POST",
+        "/api/predictions/",
+        json=req.model_dump(),
+        headers={"Authorization": f"Bearer {user.auth_token}"},
+    ) as response:
+        assert response.status_code == 200
+        for line in response.iter_lines():
+            prediction_result = PredictionResult(**json.loads(line))
+            assert prediction_result.decode_content() == {"result": "test_result"}

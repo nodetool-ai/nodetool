@@ -47,7 +47,7 @@ class Embedding(BaseNode):
             self.id, provider="openai", params={"input": chunks}, model=self.model.value
         )
 
-        res = CreateEmbeddingResponse(**response.json())
+        res = CreateEmbeddingResponse(**response)
 
         all = [i.embedding for i in res.data]
         avg = np.mean(all, axis=0)
@@ -116,7 +116,7 @@ class GPT(BaseNode):
             model=self.model.value,
         )
 
-        res = ChatCompletion(**response.json())
+        res = ChatCompletion(**response)
 
         assert len(res.choices) > 0
         assert res.choices[0].message.content is not None

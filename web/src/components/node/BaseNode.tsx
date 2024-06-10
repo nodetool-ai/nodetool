@@ -81,11 +81,11 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-            name: "output",
-            type: {
-              type: "string"
-            }
-          };
+          name: "output",
+          type: {
+            type: "string"
+          }
+        };
 
     return (
       <Container className={className}>
@@ -127,13 +127,12 @@ export default memo(
           <>
             <ProcessTimer isLoading={isLoading} status={status} />
             <NodeProgress id={props.id} />
-
+            <NodeLogs id={props.id} workflowId={workflowId} />
             <NodeFooter
               nodeNamespace={node_namespace}
               type={firstOutput.type.type}
               metadata={nodeMetadata}
             />
-            <NodeLogs id={props.id} />
           </>
         )}
       </Container>
