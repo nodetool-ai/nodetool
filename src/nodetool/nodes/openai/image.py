@@ -53,7 +53,7 @@ class Dall_E(BaseNode):
                 "quality": self.quality.value,
             },
         )
-        image = ImagesResponse(**response.json())
+        image = ImagesResponse(**response)
 
         assert len(image.data) > 0
         b64 = image.data[0].b64_json

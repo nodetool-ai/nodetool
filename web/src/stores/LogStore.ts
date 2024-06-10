@@ -7,7 +7,7 @@ type LogsStore = {
   clearLogs: (workflowId: string) => void;
 };
 
-const hashKey = (workflowId: string, nodeId: string) =>
+export const hashKey = (workflowId: string, nodeId: string) =>
   `${workflowId}:${nodeId}`;
 
 const useLogsStore = create<LogsStore>((set, get) => ({

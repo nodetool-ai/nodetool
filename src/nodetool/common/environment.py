@@ -4,6 +4,7 @@ from typing import Any
 
 from nodetool.common.nodetool_api_client import (
     NodetoolAPIClient,
+    NODETOOL_INTERNAL_API,
 )
 
 
@@ -532,27 +533,31 @@ class Environment(object):
             return "http://localhost:8000/api/storage/"
 
     @classmethod
-    def get_nodetool_api_client(cls, auth_token: str) -> NodetoolAPIClient:
+    def get_nodetool_api_client(
+        cls, user_id: str, auth_token: str
+    ) -> NodetoolAPIClient:
         """
         The nodetool api client is a wrapper around the nodetool api.
         """
         from nodetool.api.server import create_app
-        import httpx
+        from httpx import AsyncClient, ASGITransport
 
         if not hasattr(cls, "nodetool_api_client"):
             if cls.get_nodetool_api_url():
                 cls.nodetool_api_client = NodetoolAPIClient(
+                    user_id=user_id,
                     auth_token=auth_token,
                     base_url=cls.get_nodetool_api_url(),
-                    client=httpx.AsyncClient(),
+                    client=AsyncClient(),
                 )
             else:
                 app = create_app()
-                transport = httpx.ASGITransport(app=app)  # type: ignore
+                transport = ASGITransport(app=app)  # type: ignore
                 cls.nodetool_api_client = NodetoolAPIClient(
+                    user_id=user_id,
                     auth_token=auth_token,
-                    base_url="http://127.0.0.1:123",
-                    client=httpx.AsyncClient(transport=transport),
+                    base_url=NODETOOL_INTERNAL_API,
+                    client=AsyncClient(transport=transport),
                 )
         return cls.nodetool_api_client
 

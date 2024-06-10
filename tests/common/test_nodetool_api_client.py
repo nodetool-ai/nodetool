@@ -20,6 +20,7 @@ def async_client():
 def nodetool_client(async_client: httpx.AsyncClient, user: User):
     assert user.auth_token
     return NodetoolAPIClient(
+        user_id=user.id,
         auth_token=user.auth_token,
         base_url="http://127.0.0.1:9000",
         client=async_client,

@@ -1,4 +1,4 @@
-from nodetool.common.replicate_node import replicate_node
+from nodetool.common.replicate_codegen import create_replicate_node
 from nodetool.metadata.types import AudioRef, ImageRef, VideoRef
 import argparse
 import dotenv
@@ -609,7 +609,7 @@ if __name__ == "__main__":
     if args.namespace:
         for node in replicate_nodes:
             if node["namespace"] == args.namespace:
-                replicate_node(**node)
+                create_replicate_node(**node)
     else:
         for node in replicate_nodes:
-            replicate_node(**node)
+            create_replicate_node(**node)

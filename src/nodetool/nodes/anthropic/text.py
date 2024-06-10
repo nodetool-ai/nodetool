@@ -89,6 +89,6 @@ class Claude(BaseNode):
             },
         )
 
-        message = Message(**response.json())
+        message = Message(**response)
 
         return "".join([i.text for i in message.content if isinstance(i, TextBlock)])

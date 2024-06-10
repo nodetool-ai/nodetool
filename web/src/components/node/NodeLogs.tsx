@@ -1,11 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useRef, useEffect } from "react";
 import { Typography } from "@mui/material";
-import useLogsStore from "../../stores/LogStore";
+import useLogsStore, { hashKey } from "../../stores/LogStore";
 
-export const NodeLogs = memo(function NodeLogs({ id }: { id: string; }) {
+type NodeLogsProps = {
+  id: string;
+  workflowId: string;
+};
+
+export const NodeLogs = memo(function NodeLogs({ id, workflowId }: NodeLogsProps) {
   const logsRef = useRef<HTMLDivElement>(null);
-  const logs = useLogsStore((state) => state.logs[id]);
+  const key = hashKey(workflowId, id);
+  const logs = useLogsStore((state) => state.logs[key]);
+
   useEffect(() => {
     if (logsRef.current) {
       logsRef.current.scrollTop = logsRef.current.scrollHeight;
@@ -15,8 +22,8 @@ export const NodeLogs = memo(function NodeLogs({ id }: { id: string; }) {
   return (
     <>
       {logs?.length > 0 && (
-        <div className="node-logs">
-          <Typography variant="h6" component="h6" style={{ marginTop: "1em" }}>
+        <div className="node-logs" style={{ margin: "10px" }}>
+          <Typography variant="h6" component="h6">
             Logs
           </Typography>
           <div
@@ -24,8 +31,8 @@ export const NodeLogs = memo(function NodeLogs({ id }: { id: string; }) {
             style={{
               fontFamily: "monospaced",
               fontSize: "8px",
-              width: "200px",
-              height: "100px",
+              width: "120px",
+              height: "80px",
               overflow: "auto",
               backgroundColor: "#000"
             }}

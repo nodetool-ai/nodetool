@@ -19,7 +19,11 @@ from nodetool.api.types.chat import (
     TaskCreateRequest,
     TaskList,
 )
-from nodetool.api.types.prediction import PredictionCreateRequest
+from nodetool.api.types.prediction import (
+    Prediction,
+    PredictionCreateRequest,
+    PredictionResult,
+)
 from nodetool.api.types.workflow import Workflow
 from nodetool.common.async_iterators import AsyncByteStream
 from nodetool.common.nodetool_api_client import NodetoolAPIClient, Response
@@ -131,7 +135,9 @@ class ProcessingContext:
         self.capabilities = (
             capabilities if capabilities else Environment.get_capabilities()
         )
-        self.api_client = Environment.get_nodetool_api_client(self.auth_token)
+        self.api_client = Environment.get_nodetool_api_client(
+            self.user_id, self.auth_token
+        )
         self.http_client = (
             httpx.AsyncClient(follow_redirects=True, timeout=600)
             if http_client is None
@@ -305,7 +311,7 @@ class ProcessingContext:
         model: str,
         params: dict[str, Any] | None = None,
         data: bytes | None = None,
-    ) -> Response:
+    ) -> Any:
         """
         Run a prediction on a third-party provider.
 
@@ -317,7 +323,7 @@ class ProcessingContext:
             data (bytes | None, optional): Input data for the prediction. Defaults to None.
 
         Returns:
-            Response: The response from the prediction API.
+            Any: The result of the prediction.
 
         """
 
@@ -325,18 +331,27 @@ class ProcessingContext:
             base64.b64encode(data).decode("utf-8") if isinstance(data, bytes) else None
         )
 
-        res = await self.api_client.post(
-            "api/predictions/",
-            json=PredictionCreateRequest(
-                provider=provider,
-                model=model,
-                node_id=node_id,
-                workflow_id=self.workflow_id if self.workflow_id else "",
-                params=params or {},
-                data=data_encoded,
-            ).model_dump(),
+        req = PredictionCreateRequest(
+            provider=provider,
+            model=model,
+            node_id=node_id,
+            workflow_id=self.workflow_id if self.workflow_id else "",
+            params=params or {},
+            data=data_encoded,
         )
-        return res
+
+        async for line in self.api_client.stream(
+            "POST",
+            "api/predictions/",
+            json=req.model_dump(),
+        ):
+            msg = json.loads(line)
+            if msg.get("type") == "prediction_result":
+                return PredictionResult(**msg).decode_content()
+            elif msg.get("type") == "prediction":
+                self.post_message(Prediction(**msg))
+
+        raise ValueError("Prediction did not return a result")
 
     async def paginate_assets(
         self,

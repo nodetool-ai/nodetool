@@ -46,7 +46,7 @@ class TextToSpeech(BaseNode):
             },
         )
 
-        segment = AudioSegment.from_mp3(BytesIO(res.content))
+        segment = AudioSegment.from_mp3(BytesIO(res))
         audio = await context.audio_from_segment(segment)  # type: ignore
         return audio
 
@@ -77,7 +77,7 @@ class Transcribe(BaseNode):
             },
         )
 
-        res = Transcription(**response.json())
+        res = Transcription(**response)
 
         return res.text
 
@@ -108,6 +108,6 @@ class Translate(BaseNode):
                 "translate": True,
             },
         )
-        res = Translation(**response.json())
+        res = Translation(**response)
 
         return res.text
