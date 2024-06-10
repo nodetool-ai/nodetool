@@ -353,7 +353,26 @@ ThemeNodes.components = {
 
   MuiSwitch: {
     styleOverrides: {
+      root: {
+        margin: "0",
+        padding: "0",
+        width: "2.4em",
+        height: "1em",
+        overflow: "visible"
+      },
+      thumb: {
+        width: "1em !important",
+        height: "1em !important",
+        borderRadius: "0.25em",
+        margin: "0",
+        padding: "0"
+      },
+      track: {
+        borderRadius: ".25em"
+      },
       switchBase: {
+        margin: "0",
+        padding: "0 !important",
         color: ThemeNodes.palette.c_gray4,
         "&.Mui-checked": {
           color: ThemeNodes.palette.c_hl1
