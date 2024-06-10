@@ -38,6 +38,9 @@ import { Workflow } from "../../stores/ApiTypes";
 import Logo from "../Logo";
 
 const styles = (theme: any) => ({
+  ".nodetool-logo": {
+    marginLeft: "-0.5em"
+  },
   button: {
     margin: "0 0 0 0.4em",
     color: theme.palette.c_white,

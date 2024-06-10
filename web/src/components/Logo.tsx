@@ -81,6 +81,7 @@ const Logo = ({ width, height, fontSize, borderRadius, small }: LogoProps) => {
 
   return (
     <div
+      className="nodetool-logo"
       css={logoStyles(
         hoverColor,
         textColor,
