@@ -208,14 +208,14 @@ class ReplicateNode(BaseNode):
         t = self.return_type()
         if isinstance(t, dict):
             return {
-                key: convert_output_value(
+                key: await convert_output_value(
                     output[key],
                     t[key],
                 )
                 for key in t
             }
         if isinstance(t, Type):
-            output = convert_output_value(
+            output = await convert_output_value(
                 output,
                 t,
                 output_index=self.get_output_index(),

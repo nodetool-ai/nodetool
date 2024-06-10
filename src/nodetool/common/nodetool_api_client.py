@@ -113,7 +113,6 @@ class NodetoolAPIClient:
             assert json is not None, "json is required"
             req = PredictionCreateRequest(**json)
             async for msg in run_prediction(req, self.user_id):
-                print(msg)
                 yield msg.model_dump_json() + "\n"
         else:
             async with self.client.stream(
