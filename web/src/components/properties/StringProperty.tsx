@@ -4,10 +4,6 @@ import { PropertyProps } from "../node/PropertyInput";
 
 export default function StringProperty(props: PropertyProps) {
   const id = `textfield-${props.property.name}-${props.propertyIndex}`;
-  const value =
-    props.property.type.type === "string"
-      ? props.value
-      : props.property.type.type_args?.[0];
 
   return (
     <div>
@@ -25,7 +21,7 @@ export default function StringProperty(props: PropertyProps) {
         minRows={1}
         maxRows={4}
         className="nodrag nowheel"
-        value={value || ""}
+        value={props.value}
         onChange={(e) => {
           props.onChange(e.target.value);
         }}
