@@ -4,6 +4,7 @@ import Record from "wavesurfer.js/dist/plugins/record";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useNodeStore } from "../../stores/NodeStore";
 import { Asset } from "../../stores/ApiTypes";
+import { devLog } from "../../utils/DevLog";
 
 export type WaveRecorderProps = {
   onChange: (asset: Asset) => void;
@@ -28,7 +29,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
       setError("No media devices available");
       return;
     }
-    console.log("Fetching audio devices");
+    devLog("Fetching audio devices");
     const abortCtrl = new AbortController();
     abortControllerRef.current = abortCtrl;
 
@@ -63,7 +64,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
       })
       .catch((error) => {
         if (error.name === "AbortError") {
-          console.log("Fetch aborted");
+          devLog("Fetch aborted");
         } else {
           setError(`Error enumerating devices: ${error.message}`);
         }
@@ -141,13 +142,13 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
         });
       });
 
-      recordRef.current.on("ready", () => {
-        console.log("Recorder ready");
-      });
+      // recordRef.current.on("ready", () => {
+      //   console.log("Recorder ready");
+      // });
 
-      recordRef.current.on("start", () => {
-        console.log("Recording started");
-      });
+      // recordRef.current.on("start", () => {
+      //   console.log("Recording started");
+      // });
     }
   }, [audioDeviceNames, defaultFileType, onChange, uploadAsset, workflow.id]);
 
