@@ -4,25 +4,22 @@ from nodetool.dsl.graph import GraphNode
 from nodetool.common.replicate_node import ReplicateNode
 from enum import Enum
 
-from nodetool.metadata.types import ImageRef
-
-
-class Model(str, Enum):
-    IMAGE_DENOISING = "Image Denoising"
-    IMAGE_DEBLURRING__GOPRO = "Image Deblurring (GoPro)"
-    IMAGE_DEBLURRING__REDS = "Image Deblurring (REDS)"
-    IMAGE_DEBLURRING__REALBLUR_R = "Image Deblurring (RealBlur_R)"
-    IMAGE_DEBLURRING__REALBLUR_J = "Image Deblurring (RealBlur_J)"
-    IMAGE_DERAINING__RAIN_STREAK = "Image Deraining (Rain streak)"
-    IMAGE_DERAINING__RAIN_DROP = "Image Deraining (Rain drop)"
-    IMAGE_DEHAZING__INDOOR = "Image Dehazing (Indoor)"
-    IMAGE_DEHAZING__OUTDOOR = "Image Dehazing (Outdoor)"
-    IMAGE_ENHANCEMENT__LOW_LIGHT = "Image Enhancement (Low-light)"
-    IMAGE_ENHANCEMENT__RETOUCHING = "Image Enhancement (Retouching)"
-
 
 class Maxim(ReplicateNode):
     """Multi-Axis MLP for Image Processing"""
+
+    class Model(str, Enum):
+        IMAGE_DENOISING = "Image Denoising"
+        IMAGE_DEBLURRING__GOPRO = "Image Deblurring (GoPro)"
+        IMAGE_DEBLURRING__REDS = "Image Deblurring (REDS)"
+        IMAGE_DEBLURRING__REALBLUR_R = "Image Deblurring (RealBlur_R)"
+        IMAGE_DEBLURRING__REALBLUR_J = "Image Deblurring (RealBlur_J)"
+        IMAGE_DERAINING__RAIN_STREAK = "Image Deraining (Rain streak)"
+        IMAGE_DERAINING__RAIN_DROP = "Image Deraining (Rain drop)"
+        IMAGE_DEHAZING__INDOOR = "Image Dehazing (Indoor)"
+        IMAGE_DEHAZING__OUTDOOR = "Image Dehazing (Outdoor)"
+        IMAGE_ENHANCEMENT__LOW_LIGHT = "Image Enhancement (Low-light)"
+        IMAGE_ENHANCEMENT__RETOUCHING = "Image Enhancement (Retouching)"
 
     @classmethod
     def replicate_model_id(cls):
@@ -43,7 +40,7 @@ class Maxim(ReplicateNode):
             "name": "maxim",
             "owner": "google-research",
             "paper_url": "https://arxiv.org/abs/2201.02973",
-            "run_count": 406317,
+            "run_count": 422184,
             "url": "https://replicate.com/google-research/maxim",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -54,7 +51,7 @@ class Maxim(ReplicateNode):
         return ImageRef
 
     image: ImageRef = Field(default=ImageRef(), description="Input image.")
-    model: Model = Field(description="Choose a model.", default=None)
+    model: Model | None = Field(description="Choose a model.", default=None)
 
 
 class OldPhotosRestoration(ReplicateNode):
@@ -79,7 +76,7 @@ class OldPhotosRestoration(ReplicateNode):
             "name": "bringing-old-photos-back-to-life",
             "owner": "microsoft",
             "paper_url": "https://arxiv.org/abs/2004.09484",
-            "run_count": 852778,
+            "run_count": 867781,
             "url": "https://replicate.com/microsoft/bringing-old-photos-back-to-life",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -124,7 +121,7 @@ class CodeFormer(ReplicateNode):
             "name": "codeformer",
             "owner": "lucataco",
             "paper_url": "https://arxiv.org/abs/2206.11253",
-            "run_count": 275732,
+            "run_count": 304979,
             "url": "https://replicate.com/lucataco/codeformer",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",

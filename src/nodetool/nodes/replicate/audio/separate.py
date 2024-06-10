@@ -5,54 +5,48 @@ from nodetool.common.replicate_node import ReplicateNode
 from enum import Enum
 
 
-class Stem(str, Enum):
-    NONE = "none"
-    DRUMS = "drums"
-    BASS = "bass"
-    OTHER = "other"
-    VOCALS = "vocals"
-    GUITAR = "guitar"
-    PIANO = "piano"
-
-
-class Model(str, Enum):
-    HTDEMUCS = "htdemucs"
-    HTDEMUCS_FT = "htdemucs_ft"
-    HTDEMUCS_6S = "htdemucs_6s"
-    HDEMUCS_MMI = "hdemucs_mmi"
-    MDX_Q = "mdx_q"
-    MDX_EXTRA_Q = "mdx_extra_q"
-
-
-class Clip_mode(str, Enum):
-    RESCALE = "rescale"
-    CLAMP = "clamp"
-    NONE = "none"
-
-
-class Mp3_preset(int, Enum):
-    _2 = 2
-    _3 = 3
-    _4 = 4
-    _5 = 5
-    _6 = 6
-    _7 = 7
-
-
-class Wav_format(str, Enum):
-    INT16 = "int16"
-    INT24 = "int24"
-    FLOAT32 = "float32"
-
-
-class Output_format(str, Enum):
-    MP3 = "mp3"
-    FLAC = "flac"
-    WAV = "wav"
-
-
 class Demucs(ReplicateNode):
     """Demucs is an audio source separator created by Facebook Research."""
+
+    class Stem(str, Enum):
+        NONE = "none"
+        DRUMS = "drums"
+        BASS = "bass"
+        OTHER = "other"
+        VOCALS = "vocals"
+        GUITAR = "guitar"
+        PIANO = "piano"
+
+    class Model(str, Enum):
+        HTDEMUCS = "htdemucs"
+        HTDEMUCS_FT = "htdemucs_ft"
+        HTDEMUCS_6S = "htdemucs_6s"
+        HDEMUCS_MMI = "hdemucs_mmi"
+        MDX_Q = "mdx_q"
+        MDX_EXTRA_Q = "mdx_extra_q"
+
+    class Clip_mode(str, Enum):
+        RESCALE = "rescale"
+        CLAMP = "clamp"
+        NONE = "none"
+
+    class Mp3_preset(int, Enum):
+        _2 = 2
+        _3 = 3
+        _4 = 4
+        _5 = 5
+        _6 = 6
+        _7 = 7
+
+    class Wav_format(str, Enum):
+        INT16 = "int16"
+        INT24 = "int24"
+        FLOAT32 = "float32"
+
+    class Output_format(str, Enum):
+        MP3 = "mp3"
+        FLAC = "flac"
+        WAV = "wav"
 
     @classmethod
     def replicate_model_id(cls):
@@ -73,7 +67,7 @@ class Demucs(ReplicateNode):
             "name": "demucs",
             "owner": "ryan5453",
             "paper_url": "https://arxiv.org/abs/2111.03600",
-            "run_count": 342104,
+            "run_count": 342154,
             "url": "https://replicate.com/ryan5453/demucs",
             "visibility": "public",
             "hardware": "Nvidia A40 GPU",
@@ -95,14 +89,14 @@ class Demucs(ReplicateNode):
     )
     stem: Stem = Field(
         description="If you just want to isolate one stem, you can choose it here.",
-        default="none",
+        default=Stem("none"),
     )
     audio: AudioRef = Field(
         default=AudioRef(), description="Upload the file to be processed here."
     )
     model: Model = Field(
         description="Choose the demucs audio that proccesses your audio. The readme has more information on what to choose.",
-        default="htdemucs",
+        default=Model("htdemucs"),
     )
     split: bool = Field(
         title="Split",
@@ -126,15 +120,15 @@ class Demucs(ReplicateNode):
     )
     clip_mode: Clip_mode = Field(
         description="Choose the strategy for avoiding clipping. Rescale will rescale entire signal if necessary or clamp will allow hard clipping.",
-        default="rescale",
+        default=Clip_mode("rescale"),
     )
     mp3_preset: Mp3_preset = Field(
-        description="Choose the preset for the MP3 output. Higher is faster but worse quality. If MP3 is not selected as the output type, this has no effect.",
-        default=2,
+        description="Choose the preset for the MP3 output. Higher is faster but worse wuality. If MP3 is not selected as the output type, this has no effect.",
+        default=Mp3_preset(2),
     )
     wav_format: Wav_format = Field(
         description="Choose format for the WAV output. If WAV is not selected as the output type, this has no effect.",
-        default="int24",
+        default=Wav_format("int24"),
     )
     mp3_bitrate: int = Field(
         title="Mp3 Bitrate",
@@ -143,5 +137,5 @@ class Demucs(ReplicateNode):
     )
     output_format: Output_format = Field(
         description="Choose the audio format you would like the result to be returned in.",
-        default="mp3",
+        default=Output_format("mp3"),
     )

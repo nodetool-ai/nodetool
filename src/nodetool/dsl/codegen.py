@@ -3,7 +3,7 @@ import os
 import inspect
 import pkgutil
 from types import GenericAlias, UnionType
-from typing import get_type_hints, Union, Tuple
+from typing import Any, Optional, get_type_hints, Union, Tuple
 import importlib
 
 from nodetool.metadata.utils import is_enum_type
@@ -37,14 +37,19 @@ def type_to_string(field_type: type) -> str:
 
     Args:
       field_type (type): The Python type to convert.
+      enum_name (str): The name of the enum type if the field type is an enum.
 
     Returns:
       str: The string representation of the type.
     """
     if isinstance(field_type, UnionType):
         return str(field_type)
+    if isinstance(field_type, str):
+        return field_type
     if isinstance(field_type, dict):
         return "dict"
+    if field_type.__name__ == "Optional":
+        return f"{type_to_string(field_type.__args__[0])} | None"
     if field_type == Union:
         return " | ".join(field_type.__args__)
     if isinstance(field_type, GenericAlias):
@@ -60,12 +65,13 @@ def type_to_string(field_type: type) -> str:
     return field_type.__name__
 
 
-def field_default(default_value):
+def field_default(default_value: Any, enum_name: str | None = None) -> str:
     """
     Returns a string representation of the default value for a field.
 
     Args:
       default_value: The default value of the field.
+      enum_name: The name of the enum type if the default value is an enum.
 
     Returns:
       str: The string representation of the default value.
@@ -75,6 +81,8 @@ def field_default(default_value):
         return "None"
     if isinstance(type(default_value), EnumMeta):
         return f"{type(default_value).__name__}({repr(default_value.value)})"
+    if enum_name is not None:
+        return f"{enum_name}({repr(default_value)})"
     return repr(default_value)
 
 
@@ -89,7 +97,6 @@ def generate_class_source(node_cls: type[BaseNode]) -> str:
     Returns:
       str: The generated source code for the class.
     """
-
     imports = ""
     class_body = f"class {node_cls.__name__}(GraphNode):\n"
     fields = node_cls.inherited_fields()

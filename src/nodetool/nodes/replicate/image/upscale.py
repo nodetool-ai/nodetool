@@ -6,31 +6,31 @@ from enum import Enum
 
 
 class RealEsrGan(ReplicateNode):
-    """Real-ESRGAN with optional face correction and adjustable upscale"""
+    """Real-ESRGAN for image upscaling on an A100"""
 
     @classmethod
     def replicate_model_id(cls):
-        return "nightmareai/real-esrgan:350d32041630ffbe63c8352783a26d94126809164e54085352f8326e53999085"
+        return "daanelson/real-esrgan-a100:499940604f95b416c3939423df5c64a5c95cfd32b464d755dacfe2192a2de7ef"
 
     @classmethod
     def get_hardware(cls):
-        return "Nvidia T4 GPU"
+        return "Nvidia A100 (40GB) GPU"
 
     @classmethod
     def model_info(cls):
         return {
-            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/90563818-e1bc-4585-a626-62b5ab5ff22d/ApplicationFrameHost_3Bs5DdjGnX.png",
-            "created_at": "2022-06-22T01:08:15.680509Z",
-            "description": "Real-ESRGAN with optional face correction and adjustable upscale",
-            "github_url": "https://github.com/NightmareAI/Real-ESRGAN",
-            "license_url": "https://github.com/NightmareAI/Real-ESRGAN/blob/master/LICENSE",
-            "name": "real-esrgan",
-            "owner": "nightmareai",
+            "cover_image_url": "https://replicate.delivery/pbxt/lv0iOW3u6DrNOd30ybfmufqWebiuW10YjILw05YZGbeipZZCB/output.png",
+            "created_at": "2023-03-10T22:36:15.201038Z",
+            "description": "Real-ESRGAN for image upscaling on an A100",
+            "github_url": "https://github.com/daanelson/Real-ESRGAN/",
+            "license_url": None,
+            "name": "real-esrgan-a100",
+            "owner": "daanelson",
             "paper_url": None,
-            "run_count": 42537712,
-            "url": "https://replicate.com/nightmareai/real-esrgan",
+            "run_count": 9943669,
+            "url": "https://replicate.com/daanelson/real-esrgan-a100",
             "visibility": "public",
-            "hardware": "Nvidia T4 GPU",
+            "hardware": "Nvidia A100 (40GB) GPU",
         }
 
     @classmethod
@@ -46,97 +46,105 @@ class RealEsrGan(ReplicateNode):
         default=4,
     )
     face_enhance: bool = Field(
-        title="Face Enhance", description="Face enhance", default=True
+        title="Face Enhance",
+        description="Run GFPGAN face enhancement along with upscaling",
+        default=False,
     )
-
-
-class Sd_model(str, Enum):
-    EPICREALISM_NATURALSINRC1VAE_SAFETENSORS__84D76A0328 = (
-        "epicrealism_naturalSinRC1VAE.safetensors [84d76a0328]"
-    )
-    JUGGERNAUT_REBORN_SAFETENSORS__338B85BC4F = (
-        "juggernaut_reborn.safetensors [338b85bc4f]"
-    )
-    FLAT2DANIMERGE_V45SHARP_SAFETENSORS = "flat2DAnimerge_v45Sharp.safetensors"
-
-
-class Scheduler(str, Enum):
-    DPM___2M_KARRAS = "DPM++ 2M Karras"
-    DPM___SDE_KARRAS = "DPM++ SDE Karras"
-    DPM___2M_SDE_EXPONENTIAL = "DPM++ 2M SDE Exponential"
-    DPM___2M_SDE_KARRAS = "DPM++ 2M SDE Karras"
-    EULER_A = "Euler a"
-    EULER = "Euler"
-    LMS = "LMS"
-    HEUN = "Heun"
-    DPM2 = "DPM2"
-    DPM2_A = "DPM2 a"
-    DPM___2S_A = "DPM++ 2S a"
-    DPM___2M = "DPM++ 2M"
-    DPM___SDE = "DPM++ SDE"
-    DPM___2M_SDE = "DPM++ 2M SDE"
-    DPM___2M_SDE_HEUN = "DPM++ 2M SDE Heun"
-    DPM___2M_SDE_HEUN_KARRAS = "DPM++ 2M SDE Heun Karras"
-    DPM___2M_SDE_HEUN_EXPONENTIAL = "DPM++ 2M SDE Heun Exponential"
-    DPM___3M_SDE = "DPM++ 3M SDE"
-    DPM___3M_SDE_KARRAS = "DPM++ 3M SDE Karras"
-    DPM___3M_SDE_EXPONENTIAL = "DPM++ 3M SDE Exponential"
-    DPM_FAST = "DPM fast"
-    DPM_ADAPTIVE = "DPM adaptive"
-    LMS_KARRAS = "LMS Karras"
-    DPM2_KARRAS = "DPM2 Karras"
-    DPM2_A_KARRAS = "DPM2 a Karras"
-    DPM___2S_A_KARRAS = "DPM++ 2S a Karras"
-    RESTART = "Restart"
-    DDIM = "DDIM"
-    PLMS = "PLMS"
-    UNIPC = "UniPC"
-
-
-class Tiling_width(int, Enum):
-    _16 = 16
-    _32 = 32
-    _48 = 48
-    _64 = 64
-    _80 = 80
-    _96 = 96
-    _112 = 112
-    _128 = 128
-    _144 = 144
-    _160 = 160
-    _176 = 176
-    _192 = 192
-    _208 = 208
-    _224 = 224
-    _240 = 240
-    _256 = 256
-
-
-class Tiling_height(int, Enum):
-    _16 = 16
-    _32 = 32
-    _48 = 48
-    _64 = 64
-    _80 = 80
-    _96 = 96
-    _112 = 112
-    _128 = 128
-    _144 = 144
-    _160 = 160
-    _176 = 176
-    _192 = 192
-    _208 = 208
-    _224 = 224
-    _240 = 240
-    _256 = 256
 
 
 class ClarityUpscaler(ReplicateNode):
-    """High resolution image Upscaler and Enhancer. Use at ClarityAI.cc. A free Magnific alternative. Twitter/X: @philz1337x"""
+    """High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnific alternative. Twitter/X: @philz1337x"""
+
+    class Handfix(str, Enum):
+        DISABLED = "disabled"
+        HANDS_ONLY = "hands_only"
+        IMAGE_AND_HANDS = "image_and_hands"
+
+    class Sd_model(str, Enum):
+        EPICREALISM_NATURALSINRC1VAE_SAFETENSORS__84D76A0328 = (
+            "epicrealism_naturalSinRC1VAE.safetensors [84d76a0328]"
+        )
+        JUGGERNAUT_REBORN_SAFETENSORS__338B85BC4F = (
+            "juggernaut_reborn.safetensors [338b85bc4f]"
+        )
+        FLAT2DANIMERGE_V45SHARP_SAFETENSORS = "flat2DAnimerge_v45Sharp.safetensors"
+
+    class Scheduler(str, Enum):
+        DPM___2M_KARRAS = "DPM++ 2M Karras"
+        DPM___SDE_KARRAS = "DPM++ SDE Karras"
+        DPM___2M_SDE_EXPONENTIAL = "DPM++ 2M SDE Exponential"
+        DPM___2M_SDE_KARRAS = "DPM++ 2M SDE Karras"
+        EULER_A = "Euler a"
+        EULER = "Euler"
+        LMS = "LMS"
+        HEUN = "Heun"
+        DPM2 = "DPM2"
+        DPM2_A = "DPM2 a"
+        DPM___2S_A = "DPM++ 2S a"
+        DPM___2M = "DPM++ 2M"
+        DPM___SDE = "DPM++ SDE"
+        DPM___2M_SDE = "DPM++ 2M SDE"
+        DPM___2M_SDE_HEUN = "DPM++ 2M SDE Heun"
+        DPM___2M_SDE_HEUN_KARRAS = "DPM++ 2M SDE Heun Karras"
+        DPM___2M_SDE_HEUN_EXPONENTIAL = "DPM++ 2M SDE Heun Exponential"
+        DPM___3M_SDE = "DPM++ 3M SDE"
+        DPM___3M_SDE_KARRAS = "DPM++ 3M SDE Karras"
+        DPM___3M_SDE_EXPONENTIAL = "DPM++ 3M SDE Exponential"
+        DPM_FAST = "DPM fast"
+        DPM_ADAPTIVE = "DPM adaptive"
+        LMS_KARRAS = "LMS Karras"
+        DPM2_KARRAS = "DPM2 Karras"
+        DPM2_A_KARRAS = "DPM2 a Karras"
+        DPM___2S_A_KARRAS = "DPM++ 2S a Karras"
+        RESTART = "Restart"
+        DDIM = "DDIM"
+        PLMS = "PLMS"
+        UNIPC = "UniPC"
+
+    class Tiling_width(int, Enum):
+        _16 = 16
+        _32 = 32
+        _48 = 48
+        _64 = 64
+        _80 = 80
+        _96 = 96
+        _112 = 112
+        _128 = 128
+        _144 = 144
+        _160 = 160
+        _176 = 176
+        _192 = 192
+        _208 = 208
+        _224 = 224
+        _240 = 240
+        _256 = 256
+
+    class Output_format(str, Enum):
+        WEBP = "webp"
+        JPG = "jpg"
+        PNG = "png"
+
+    class Tiling_height(int, Enum):
+        _16 = 16
+        _32 = 32
+        _48 = 48
+        _64 = 64
+        _80 = 80
+        _96 = 96
+        _112 = 112
+        _128 = 128
+        _144 = 144
+        _160 = 160
+        _176 = 176
+        _192 = 192
+        _208 = 208
+        _224 = 224
+        _240 = 240
+        _256 = 256
 
     @classmethod
     def replicate_model_id(cls):
-        return "philz1337x/clarity-upscaler:b8a46b09384dc1ac996596bc14058e2b7604971128ee7de709a40d4bbf982d2c"
+        return "philz1337x/clarity-upscaler:5bd0e37172efef85d38698ff2a570f4ce67a9c40c486de0bfddcc5b022acbbd8"
 
     @classmethod
     def get_hardware(cls):
@@ -147,13 +155,13 @@ class ClarityUpscaler(ReplicateNode):
         return {
             "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/76fbe6df-517d-480a-a6e4-dce383b40bbb/Bildschirmfoto_2024-03-30_um_09.2.png",
             "created_at": "2024-03-15T02:35:32.167345Z",
-            "description": "High resolution image Upscaler and Enhancer. Use at ClarityAI.cc. A free Magnific alternative. Twitter/X: @philz1337x",
+            "description": "High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnific alternative. Twitter/X: @philz1337x",
             "github_url": "https://github.com/philz1337x/clarity-upscaler",
             "license_url": "https://github.com/philz1337x/clarity-upscaler/blob/main/LICENSE.txt",
             "name": "clarity-upscaler",
             "owner": "philz1337x",
-            "paper_url": "https://clarityai.cc",
-            "run_count": 873564,
+            "paper_url": "https://clarityai.co",
+            "run_count": 2219516,
             "url": "https://replicate.com/philz1337x/clarity-upscaler",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -163,6 +171,11 @@ class ClarityUpscaler(ReplicateNode):
     def return_type(cls):
         return ImageRef
 
+    mask: str | None = Field(
+        title="Mask",
+        description="Mask image to mark areas that should be preserved during upscaling",
+        default=None,
+    )
     seed: int = Field(
         title="Seed",
         description="Random seed. Leave blank to randomize the seed",
@@ -177,11 +190,23 @@ class ClarityUpscaler(ReplicateNode):
     dynamic: float = Field(
         title="Dynamic", description="HDR, try from 3 - 9", ge=1.0, le=50.0, default=6
     )
+    handfix: Handfix = Field(
+        description="Use clarity to fix hands in the image", default=Handfix("disabled")
+    )
+    sharpen: float = Field(
+        title="Sharpen",
+        description="Sharpen the image after upscaling. The higher the value, the more sharpening is applied. 0 for no sharpening",
+        ge=0.0,
+        le=10.0,
+        default=0,
+    )
     sd_model: Sd_model = Field(
         description="Stable Diffusion model checkpoint",
-        default="juggernaut_reborn.safetensors [338b85bc4f]",
+        default=Sd_model("juggernaut_reborn.safetensors [338b85bc4f]"),
     )
-    scheduler: Scheduler = Field(description="scheduler", default="DPM++ 3M SDE Karras")
+    scheduler: Scheduler = Field(
+        description="scheduler", default=Scheduler("DPM++ 3M SDE Karras")
+    )
     creativity: float = Field(
         title="Creativity",
         description="Creativity, try from 0.3 - 0.9",
@@ -211,11 +236,14 @@ class ClarityUpscaler(ReplicateNode):
     )
     tiling_width: Tiling_width = Field(
         description="Fractality, set lower tile width for a high Fractality",
-        default=112,
+        default=Tiling_width(112),
+    )
+    output_format: Output_format = Field(
+        description="Format of the output images", default=Output_format("png")
     )
     tiling_height: Tiling_height = Field(
         description="Fractality, set lower tile height for a high Fractality",
-        default=144,
+        default=Tiling_height(144),
     )
     custom_sd_model: str = Field(title="Custom Sd Model", default="")
     negative_prompt: str = Field(
@@ -237,14 +265,19 @@ class ClarityUpscaler(ReplicateNode):
     )
 
 
-class Resolution(str, Enum):
-    ORIGINAL = "original"
-    _1024 = "1024"
-    _2048 = "2048"
-
-
 class MagicImageRefiner(ReplicateNode):
     """A better alternative to SDXL refiners, providing a lot of quality and detail. Can also be used for inpainting or upscaling."""
+
+    class Scheduler(str, Enum):
+        DDIM = "DDIM"
+        DPMSOLVERMULTISTEP = "DPMSolverMultistep"
+        K_EULER_ANCESTRAL = "K_EULER_ANCESTRAL"
+        K_EULER = "K_EULER"
+
+    class Resolution(str, Enum):
+        ORIGINAL = "original"
+        _1024 = "1024"
+        _2048 = "2048"
 
     @classmethod
     def replicate_model_id(cls):
@@ -265,7 +298,7 @@ class MagicImageRefiner(ReplicateNode):
             "name": "magic-image-refiner",
             "owner": "batouresearch",
             "paper_url": None,
-            "run_count": 517166,
+            "run_count": 683802,
             "url": "https://replicate.com/batouresearch/magic-image-refiner",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -292,7 +325,9 @@ class MagicImageRefiner(ReplicateNode):
     prompt: str | None = Field(
         title="Prompt", description="Prompt for the model", default=None
     )
-    scheduler: Scheduler = Field(description="Choose a scheduler.", default="DDIM")
+    scheduler: Scheduler = Field(
+        description="Choose a scheduler.", default=Scheduler("DDIM")
+    )
     creativity: float = Field(
         title="Creativity",
         description="Denoising strength. 1 means total destruction of the original image",
@@ -305,7 +340,9 @@ class MagicImageRefiner(ReplicateNode):
         description="In this mode, the ControlNet encoder will try best to recognize the content of the input image even if you remove all prompts. The `guidance_scale` between 3.0 and 5.0 is recommended.",
         default=False,
     )
-    resolution: Resolution = Field(description="Image resolution", default="original")
+    resolution: Resolution = Field(
+        description="Image resolution", default=Resolution("original")
+    )
     resemblance: float = Field(
         title="Resemblance",
         description="Conditioning scale for controlnet",
@@ -327,14 +364,13 @@ class MagicImageRefiner(ReplicateNode):
     )
 
 
-class Scale(int, Enum):
-    _2 = 2
-    _4 = 4
-    _8 = 8
-
-
 class ruDallE_SR(ReplicateNode):
     """Real-ESRGAN super-resolution model from ruDALL-E"""
+
+    class Scale(int, Enum):
+        _2 = 2
+        _4 = 4
+        _8 = 8
 
     @classmethod
     def replicate_model_id(cls):
@@ -355,7 +391,7 @@ class ruDallE_SR(ReplicateNode):
             "name": "rudalle-sr",
             "owner": "cjwbw",
             "paper_url": "https://arxiv.org/abs/2107.10833",
-            "run_count": 464731,
+            "run_count": 473516,
             "url": "https://replicate.com/cjwbw/rudalle-sr",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -366,11 +402,21 @@ class ruDallE_SR(ReplicateNode):
         return ImageRef
 
     image: ImageRef = Field(default=ImageRef(), description="Input image")
-    scale: Scale = Field(description="Choose up-scaling factor", default=4)
+    scale: Scale = Field(description="Choose up-scaling factor", default=Scale(4))
 
 
 class HighResolutionControlNetTile(ReplicateNode):
     """Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination."""
+
+    class Scheduler(str, Enum):
+        DDIM = "DDIM"
+        DPMSOLVERMULTISTEP = "DPMSolverMultistep"
+        K_EULER_ANCESTRAL = "K_EULER_ANCESTRAL"
+        K_EULER = "K_EULER"
+
+    class Resolution(int, Enum):
+        _2048 = 2048
+        _2560 = 2560
 
     @classmethod
     def replicate_model_id(cls):
@@ -391,7 +437,7 @@ class HighResolutionControlNetTile(ReplicateNode):
             "name": "high-resolution-controlnet-tile",
             "owner": "batouresearch",
             "paper_url": None,
-            "run_count": 298038,
+            "run_count": 380716,
             "url": "https://replicate.com/batouresearch/high-resolution-controlnet-tile",
             "visibility": "public",
             "hardware": "Nvidia A100 (80GB) GPU",
@@ -416,7 +462,9 @@ class HighResolutionControlNetTile(ReplicateNode):
     prompt: str | None = Field(
         title="Prompt", description="Prompt for the model", default=None
     )
-    scheduler: Scheduler = Field(description="Choose a scheduler.", default="DDIM")
+    scheduler: Scheduler = Field(
+        description="Choose a scheduler.", default=Scheduler("DDIM")
+    )
     creativity: float = Field(
         title="Creativity",
         description="Denoising strength. 1 means total destruction of the original image",
@@ -429,7 +477,9 @@ class HighResolutionControlNetTile(ReplicateNode):
         description="In this mode, the ControlNet encoder will try best to recognize the content of the input image even if you remove all prompts. The `guidance_scale` between 3.0 and 5.0 is recommended.",
         default=False,
     )
-    resolution: Resolution = Field(description="Image resolution", default=2048)
+    resolution: Resolution = Field(
+        description="Image resolution", default=Resolution(2048)
+    )
     resemblance: float = Field(
         title="Resemblance",
         description="Conditioning scale for controlnet",
@@ -451,51 +501,55 @@ class HighResolutionControlNetTile(ReplicateNode):
     )
 
 
-class Upscaler(str, Enum):
-    _4X_NMKD_SIAX_200K = "4x_NMKD-Siax_200k"
-    _4X_ULTRASHARP = "4x-UltraSharp"
-    REALESRGAN_X4PLUS = "RealESRGAN_x4plus"
-    REALESRGAN_X4PLUS_ANIME_6B = "RealESRGAN_x4plus_anime_6B"
-
-
-class Mode_type(str, Enum):
-    LINEAR = "Linear"
-    CHESS = "Chess"
-    NONE = "None"
-
-
-class Sampler_name(str, Enum):
-    EULER = "euler"
-    EULER_ANCESTRAL = "euler_ancestral"
-    HEUN = "heun"
-    DPM_2 = "dpm_2"
-    DPM_2_ANCESTRAL = "dpm_2_ancestral"
-    LMS = "lms"
-    DPM_FAST = "dpm_fast"
-    DPM_ADAPTIVE = "dpm_adaptive"
-    DPMPP_2S_ANCESTRAL = "dpmpp_2s_ancestral"
-    DPMPP_SDE = "dpmpp_sde"
-    DPMPP_SDE_GPU = "dpmpp_sde_gpu"
-    DPMPP_2M = "dpmpp_2m"
-    DPMPP_2M_SDE = "dpmpp_2m_sde"
-    DPMPP_2M_SDE_GPU = "dpmpp_2m_sde_gpu"
-    DPMPP_3M_SDE = "dpmpp_3m_sde"
-    DPMPP_3M_SDE_GPU = "dpmpp_3m_sde_gpu"
-    DPMPP = "dpmpp"
-    DDIM = "ddim"
-    UNI_PC = "uni_pc"
-    UNI_PC_BH2 = "uni_pc_bh2"
-
-
-class Seam_fix_mode(str, Enum):
-    NONE = "None"
-    BAND_PASS = "Band Pass"
-    HALF_TILE = "Half Tile"
-    HALF_TILE___INTERSECTIONS = "Half Tile + Intersections"
-
-
 class UltimateSDUpscale(ReplicateNode):
     """Ultimate SD Upscale with ControlNet Tile"""
+
+    class Upscaler(str, Enum):
+        _4X_NMKD_SIAX_200K = "4x_NMKD-Siax_200k"
+        _4X_ULTRASHARP = "4x-UltraSharp"
+        REALESRGAN_X4PLUS = "RealESRGAN_x4plus"
+        REALESRGAN_X4PLUS_ANIME_6B = "RealESRGAN_x4plus_anime_6B"
+
+    class Mode_type(str, Enum):
+        LINEAR = "Linear"
+        CHESS = "Chess"
+        NONE = "None"
+
+    class Scheduler(str, Enum):
+        NORMAL = "normal"
+        KARRAS = "karras"
+        EXPONENTIAL = "exponential"
+        SGM_UNIFORM = "sgm_uniform"
+        SIMPLE = "simple"
+        DDIM_UNIFORM = "ddim_uniform"
+
+    class Sampler_name(str, Enum):
+        EULER = "euler"
+        EULER_ANCESTRAL = "euler_ancestral"
+        HEUN = "heun"
+        DPM_2 = "dpm_2"
+        DPM_2_ANCESTRAL = "dpm_2_ancestral"
+        LMS = "lms"
+        DPM_FAST = "dpm_fast"
+        DPM_ADAPTIVE = "dpm_adaptive"
+        DPMPP_2S_ANCESTRAL = "dpmpp_2s_ancestral"
+        DPMPP_SDE = "dpmpp_sde"
+        DPMPP_SDE_GPU = "dpmpp_sde_gpu"
+        DPMPP_2M = "dpmpp_2m"
+        DPMPP_2M_SDE = "dpmpp_2m_sde"
+        DPMPP_2M_SDE_GPU = "dpmpp_2m_sde_gpu"
+        DPMPP_3M_SDE = "dpmpp_3m_sde"
+        DPMPP_3M_SDE_GPU = "dpmpp_3m_sde_gpu"
+        DPMPP = "dpmpp"
+        DDIM = "ddim"
+        UNI_PC = "uni_pc"
+        UNI_PC_BH2 = "uni_pc_bh2"
+
+    class Seam_fix_mode(str, Enum):
+        NONE = "None"
+        BAND_PASS = "Band Pass"
+        HALF_TILE = "Half Tile"
+        HALF_TILE___INTERSECTIONS = "Half Tile + Intersections"
 
     @classmethod
     def replicate_model_id(cls):
@@ -516,7 +570,7 @@ class UltimateSDUpscale(ReplicateNode):
             "name": "ultimate-sd-upscale",
             "owner": "fewjative",
             "paper_url": None,
-            "run_count": 93784,
+            "run_count": 113206,
             "url": "https://replicate.com/fewjative/ultimate-sd-upscale",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -533,20 +587,26 @@ class UltimateSDUpscale(ReplicateNode):
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     steps: int = Field(title="Steps", description="Steps", default=20)
     denoise: float = Field(title="Denoise", description="Denoise", default=0.2)
-    upscaler: Upscaler = Field(description="Upscaler", default="4x-UltraSharp")
+    upscaler: Upscaler = Field(
+        description="Upscaler", default=Upscaler("4x-UltraSharp")
+    )
     mask_blur: int = Field(title="Mask Blur", description="Mask Blur", default=8)
-    mode_type: Mode_type = Field(description="Mode Type", default="Linear")
-    scheduler: Scheduler = Field(description="Scheduler", default="normal")
+    mode_type: Mode_type = Field(description="Mode Type", default=Mode_type("Linear"))
+    scheduler: Scheduler = Field(description="Scheduler", default=Scheduler("normal"))
     tile_width: int = Field(title="Tile Width", description="Tile Width", default=512)
     upscale_by: float = Field(title="Upscale By", description="Upscale By", default=2)
     tile_height: int = Field(
         title="Tile Height", description="Tile Height", default=512
     )
-    sampler_name: Sampler_name = Field(description="Sampler", default="euler")
+    sampler_name: Sampler_name = Field(
+        description="Sampler", default=Sampler_name("euler")
+    )
     tile_padding: int = Field(
         title="Tile Padding", description="Tile Padding", default=32
     )
-    seam_fix_mode: Seam_fix_mode = Field(description="Seam Fix Mode", default="None")
+    seam_fix_mode: Seam_fix_mode = Field(
+        description="Seam Fix Mode", default=Seam_fix_mode("None")
+    )
     seam_fix_width: int = Field(
         title="Seam Fix Width", description="Seam Fix Width", default=64
     )
@@ -578,24 +638,24 @@ class UltimateSDUpscale(ReplicateNode):
     )
 
 
-class Noise(int, Enum):
-    _15 = 15
-    _25 = 25
-    _50 = 50
-
-
-class Task_type(str, Enum):
-    REAL_WORLD_IMAGE_SUPER_RESOLUTION_LARGE = "Real-World Image Super-Resolution-Large"
-    REAL_WORLD_IMAGE_SUPER_RESOLUTION_MEDIUM = (
-        "Real-World Image Super-Resolution-Medium"
-    )
-    GRAYSCALE_IMAGE_DENOISING = "Grayscale Image Denoising"
-    COLOR_IMAGE_DENOISING = "Color Image Denoising"
-    JPEG_COMPRESSION_ARTIFACT_REDUCTION = "JPEG Compression Artifact Reduction"
-
-
 class SwinIR(ReplicateNode):
     """Image Restoration Using Swin Transformer"""
+
+    class Noise(int, Enum):
+        _15 = 15
+        _25 = 25
+        _50 = 50
+
+    class Task_type(str, Enum):
+        REAL_WORLD_IMAGE_SUPER_RESOLUTION_LARGE = (
+            "Real-World Image Super-Resolution-Large"
+        )
+        REAL_WORLD_IMAGE_SUPER_RESOLUTION_MEDIUM = (
+            "Real-World Image Super-Resolution-Medium"
+        )
+        GRAYSCALE_IMAGE_DENOISING = "Grayscale Image Denoising"
+        COLOR_IMAGE_DENOISING = "Color Image Denoising"
+        JPEG_COMPRESSION_ARTIFACT_REDUCTION = "JPEG Compression Artifact Reduction"
 
     @classmethod
     def replicate_model_id(cls):
@@ -616,7 +676,7 @@ class SwinIR(ReplicateNode):
             "name": "swinir",
             "owner": "jingyunliang",
             "paper_url": "https://arxiv.org/abs/2108.10257",
-            "run_count": 5597357,
+            "run_count": 5666819,
             "url": "https://replicate.com/jingyunliang/swinir",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -634,21 +694,21 @@ class SwinIR(ReplicateNode):
     image: ImageRef = Field(default=ImageRef(), description="input image")
     noise: Noise = Field(
         description="noise level, activated for Grayscale Image Denoising and Color Image Denoising. Leave it as default or arbitrary if other tasks are selected",
-        default=15,
+        default=Noise(15),
     )
     task_type: Task_type = Field(
-        description="Choose a task", default="Real-World Image Super-Resolution-Large"
+        description="Choose a task",
+        default=Task_type("Real-World Image Super-Resolution-Large"),
     )
-
-
-class Task(str, Enum):
-    CLASSICAL_SR = "classical_sr"
-    REAL_SR = "real_sr"
-    COMPRESSED_SR = "compressed_sr"
 
 
 class Swin2SR(ReplicateNode):
     """3 Million Runs! AI Photorealistic Image Super-Resolution and Restoration"""
+
+    class Task(str, Enum):
+        CLASSICAL_SR = "classical_sr"
+        REAL_SR = "real_sr"
+        COMPRESSED_SR = "compressed_sr"
 
     @classmethod
     def replicate_model_id(cls):
@@ -669,7 +729,7 @@ class Swin2SR(ReplicateNode):
             "name": "swin2sr",
             "owner": "mv-lab",
             "paper_url": "https://arxiv.org/abs/2209.11345",
-            "run_count": 3480904,
+            "run_count": 3509777,
             "url": "https://replicate.com/mv-lab/swin2sr",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -679,5 +739,5 @@ class Swin2SR(ReplicateNode):
     def return_type(cls):
         return ImageRef
 
-    task: Task = Field(description="Choose a task", default="real_sr")
+    task: Task = Field(description="Choose a task", default=Task("real_sr"))
     image: ImageRef = Field(default=ImageRef(), description="Input image")

@@ -5,17 +5,16 @@ from nodetool.common.replicate_node import ReplicateNode
 from enum import Enum
 
 
-class Mode(str, Enum):
-    BEST = "best"
-    FAST = "fast"
-
-
 class SDXLClipInterrogator(ReplicateNode):
     """CLIP Interrogator for SDXL optimizes text prompts to match a given image"""
 
+    class Mode(str, Enum):
+        BEST = "best"
+        FAST = "fast"
+
     @classmethod
     def replicate_model_id(cls):
-        return "lucataco/sdxl-clip-interrogator:d90ed1292165dbad1fc3fc8ce26c3a695d6a211de00e2bb5f5fec4815ea30e4c"
+        return "lucataco/sdxl-clip-interrogator:b8dd624ad312d215250b362af0ecff05d7ad4f8270f9beb034c483d70682e7b3"
 
     @classmethod
     def get_hardware(cls):
@@ -32,7 +31,7 @@ class SDXLClipInterrogator(ReplicateNode):
             "name": "sdxl-clip-interrogator",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 835178,
+            "run_count": 839717,
             "url": "https://replicate.com/lucataco/sdxl-clip-interrogator",
             "visibility": "public",
             "hardware": "Nvidia A40 GPU",
@@ -44,7 +43,7 @@ class SDXLClipInterrogator(ReplicateNode):
 
     mode: Mode = Field(
         description="Prompt Mode: fast takes 1-2 seconds, best takes 15-25 seconds.",
-        default="best",
+        default=Mode("best"),
     )
     image: ImageRef = Field(default=ImageRef(), description="Input image")
 
@@ -71,7 +70,7 @@ class Moondream2(ReplicateNode):
             "name": "moondream2",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 13929,
+            "run_count": 59180,
             "url": "https://replicate.com/lucataco/moondream2",
             "visibility": "public",
             "hardware": "Nvidia A40 GPU",
@@ -92,7 +91,7 @@ class MiniGPT4(ReplicateNode):
 
     @classmethod
     def replicate_model_id(cls):
-        return "daanelson/minigpt-4:b96a2f33cc8e4b0aa23eacfce731b9c41a7d9466d9ed4e167375587b54db9423"
+        return "daanelson/minigpt-4:e447a8583cffd86ce3b93f9c2cd24f2eae603d99ace6afa94b33a08e94a3cd06"
 
     @classmethod
     def get_hardware(cls):
@@ -109,7 +108,7 @@ class MiniGPT4(ReplicateNode):
             "name": "minigpt-4",
             "owner": "daanelson",
             "paper_url": "https://arxiv.org/pdf/2304.10592.pdf",
-            "run_count": 1341037,
+            "run_count": 1343283,
             "url": "https://replicate.com/daanelson/minigpt-4",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -191,7 +190,7 @@ class NSFWImageDetection(ReplicateNode):
             "name": "nsfw_image_detection",
             "owner": "lucataco",
             "paper_url": "https://huggingface.co/papers/2010.11929",
-            "run_count": 1465305,
+            "run_count": 1664348,
             "url": "https://replicate.com/lucataco/nsfw_image_detection",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -226,7 +225,7 @@ class Llava34B(ReplicateNode):
             "name": "llava-v1.6-34b",
             "owner": "yorickvp",
             "paper_url": None,
-            "run_count": 1076540,
+            "run_count": 1349279,
             "url": "https://replicate.com/yorickvp/llava-v1.6-34b",
             "visibility": "public",
             "hardware": "Nvidia A100 (80GB) GPU",
@@ -266,14 +265,13 @@ class Llava34B(ReplicateNode):
     )
 
 
-class Task(str, Enum):
-    IMAGE_CAPTIONING = "image_captioning"
-    VISUAL_QUESTION_ANSWERING = "visual_question_answering"
-    IMAGE_TEXT_MATCHING = "image_text_matching"
-
-
 class Blip(ReplicateNode):
-    """Bootstrapping Language-Image Pre-training"""
+    """Generate image captions"""
+
+    class Task(str, Enum):
+        IMAGE_CAPTIONING = "image_captioning"
+        VISUAL_QUESTION_ANSWERING = "visual_question_answering"
+        IMAGE_TEXT_MATCHING = "image_text_matching"
 
     @classmethod
     def replicate_model_id(cls):
@@ -288,13 +286,13 @@ class Blip(ReplicateNode):
         return {
             "cover_image_url": "https://replicate.delivery/mgxm/f4e50a7b-e8ca-432f-8e68-082034ebcc70/demo.jpg",
             "created_at": "2022-02-06T17:40:38.855280Z",
-            "description": "Bootstrapping Language-Image Pre-training",
+            "description": "Generate image captions",
             "github_url": "https://github.com/salesforce/BLIP",
             "license_url": "https://github.com/salesforce/BLIP/blob/main/LICENSE.txt",
             "name": "blip",
             "owner": "salesforce",
             "paper_url": "https://arxiv.org/abs/2201.12086",
-            "run_count": 78252387,
+            "run_count": 87187074,
             "url": "https://replicate.com/salesforce/blip",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -304,7 +302,7 @@ class Blip(ReplicateNode):
     def return_type(cls):
         return str
 
-    task: Task = Field(description="Choose a task.", default="image_captioning")
+    task: Task = Field(description="Choose a task.", default=Task("image_captioning"))
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     caption: str | None = Field(
         title="Caption",
@@ -340,7 +338,7 @@ class Blip2(ReplicateNode):
             "name": "blip-2",
             "owner": "andreasjansson",
             "paper_url": "https://arxiv.org/abs/2301.12597",
-            "run_count": 20879500,
+            "run_count": 22009291,
             "url": "https://replicate.com/andreasjansson/blip-2",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -382,14 +380,19 @@ class Blip2(ReplicateNode):
     )
 
 
-class Clip_model_name(str, Enum):
-    VIT_L_14_OPENAI = "ViT-L-14/openai"
-    VIT_H_14_LAION2B_S32B_B79K = "ViT-H-14/laion2b_s32b_b79k"
-    VIT_BIGG_14_LAION2B_S39B_B160K = "ViT-bigG-14/laion2b_s39b_b160k"
-
-
 class ClipInterrogator(ReplicateNode):
     """The CLIP Interrogator is a prompt engineering tool that combines OpenAI's CLIP and Salesforce's BLIP to optimize text prompts to match a given image. Use the resulting prompts with text-to-image models like Stable Diffusion to create cool art!"""
+
+    class Mode(str, Enum):
+        BEST = "best"
+        CLASSIC = "classic"
+        FAST = "fast"
+        NEGATIVE = "negative"
+
+    class Clip_model_name(str, Enum):
+        VIT_L_14_OPENAI = "ViT-L-14/openai"
+        VIT_H_14_LAION2B_S32B_B79K = "ViT-H-14/laion2b_s32b_b79k"
+        VIT_BIGG_14_LAION2B_S39B_B160K = "ViT-bigG-14/laion2b_s39b_b160k"
 
     @classmethod
     def replicate_model_id(cls):
@@ -410,7 +413,7 @@ class ClipInterrogator(ReplicateNode):
             "name": "clip-interrogator",
             "owner": "pharmapsychotic",
             "paper_url": None,
-            "run_count": 1569987,
+            "run_count": 1817063,
             "url": "https://replicate.com/pharmapsychotic/clip-interrogator",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -422,12 +425,12 @@ class ClipInterrogator(ReplicateNode):
 
     mode: Mode = Field(
         description="Prompt mode (best takes 10-20 seconds, fast takes 1-2 seconds).",
-        default="best",
+        default=Mode("best"),
     )
     image: ImageRef = Field(default=ImageRef(), description="Input image")
     clip_model_name: Clip_model_name = Field(
         description="Choose ViT-L for Stable Diffusion 1, ViT-H for Stable Diffusion 2, or ViT-bigG for Stable Diffusion XL.",
-        default="ViT-L-14/openai",
+        default=Clip_model_name("ViT-L-14/openai"),
     )
 
 
@@ -453,7 +456,7 @@ class Llava13b(ReplicateNode):
             "name": "llava-13b",
             "owner": "yorickvp",
             "paper_url": "https://arxiv.org/abs/2310.03744",
-            "run_count": 6850285,
+            "run_count": 9022124,
             "url": "https://replicate.com/yorickvp/llava-13b",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -485,4 +488,43 @@ class Llava13b(ReplicateNode):
         description="Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic",
         ge=0.0,
         default=0.2,
+    )
+
+
+class ClipFeatures(ReplicateNode):
+    """Return CLIP features for the clip-vit-large-patch14 model"""
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "andreasjansson/clip-features:75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a"
+
+    @classmethod
+    def get_hardware(cls):
+        return "Nvidia T4 GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://tjzk.replicate.delivery/models_models_cover_image/21f9d2a0-bb57-4c32-9bee-67784c9d6a76/clip_image.png",
+            "created_at": "2022-09-22T20:23:55.682616Z",
+            "description": "Return CLIP features for the clip-vit-large-patch14 model",
+            "github_url": "https://github.com/andreasjansson/cog-clip",
+            "license_url": None,
+            "name": "clip-features",
+            "owner": "andreasjansson",
+            "paper_url": None,
+            "run_count": 57255747,
+            "url": "https://replicate.com/andreasjansson/clip-features",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
+
+    @classmethod
+    def return_type(cls):
+        return list[dict]
+
+    inputs: str = Field(
+        title="Inputs",
+        description="Newline-separated inputs. Can either be strings of text or image URIs starting with http[s]://",
+        default="a\nb",
     )

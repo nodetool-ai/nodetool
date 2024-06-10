@@ -4,13 +4,18 @@ import { PropertyProps } from "../node/PropertyInput";
 
 export default function StringProperty(props: PropertyProps) {
   const id = `textfield-${props.property.name}-${props.propertyIndex}`;
+  const value =
+    props.property.type.type === "string"
+      ? props.value
+      : props.property.type.type_args?.[0];
 
   return (
     <div>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
-        id={id} />
+        id={id}
+      />
       <TextareaAutosize
         // causing too many re-renders, see https://stackoverflow.com/questions/64837884/material-ui-too-many-re-renders-the-layout-is-unstable-textareaautosize-limit
         // > trying to fix this by using TextareaAutosize instead.
@@ -20,14 +25,15 @@ export default function StringProperty(props: PropertyProps) {
         minRows={1}
         maxRows={4}
         className="nodrag nowheel"
-        value={props.value}
+        value={value || ""}
         onChange={(e) => {
           props.onChange(e.target.value);
         }}
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
-        spellCheck="false" />
+        spellCheck="false"
+      />
     </div>
   );
 }

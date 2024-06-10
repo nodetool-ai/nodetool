@@ -33,23 +33,28 @@ def update_version_in_constants_ts(new_version: str):
 
 
 def git_commit_and_tag(new_version: str):
-    subprocess.run(
-        [
-            "git",
-            "add",
-            "pyproject.toml",
-            "poetry.lock",
-            "web/package.json",
-            "web/src/config/constants.ts",
-        ],
-        check=True,
+    print(
+        subprocess.run(
+            [
+                "git",
+                "add",
+                "pyproject.toml",
+                "poetry.lock",
+                "web/package.json",
+                "web/src/config/constants.ts",
+            ],
+            check=True,
+            capture_output=True,
+        ).stdout.decode()
     )
-    subprocess.run(
-        ["git", "commit", "-m", f"Release version {new_version}"], check=True
-    )
-    subprocess.run(["git", "tag", f"v{new_version}"], check=True)
-    subprocess.run(["git", "push"], check=True)
-    subprocess.run(["git", "push", "origin", f"v{new_version}"], check=True)
+    commands = [
+        ["git", "commit", "-m", f"Release version {new_version}"],
+        ["git", "tag", "-f", f"v{new_version}"],
+        ["git", "push"],
+        ["git", "push", "origin", "-f", f"v{new_version}"],
+    ]
+    for command in commands:
+        print(subprocess.run(command, check=True, capture_output=True).stderr.decode())
 
 
 def run_poetry_lock():
