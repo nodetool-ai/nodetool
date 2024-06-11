@@ -453,6 +453,7 @@ export const useNodeStore = create<NodeStore>()(
           const updateWorkflow = useWorkflowStore.getState().update;
           const workflow = get().getWorkflow();
           set({ workflowIsDirty: false });
+          set({ lastWorkflow: workflow });
           return updateWorkflow(workflow);
         },
 
