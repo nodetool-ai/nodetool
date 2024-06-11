@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css, useTheme } from "@emotion/react";
-import { Typography } from "@mui/material";
+import { Button, Typography } from "@mui/material";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
 
@@ -10,8 +10,8 @@ const styles = (theme: any) =>
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#222",
-    height: "75vh",
+    marginTop: "10vh",
+    height: "80vh",
     ".flex": {
       display: "flex",
       flexDirection: "column",
@@ -21,13 +21,12 @@ const styles = (theme: any) =>
     },
     h3: {
       fontFamily: theme.fontFamily,
-      fontSize: "1.0em",
+      fontSize: "2em",
       color: "white",
-      textAlign: "left",
-      // wordSpacing: "-0.2em",
-      // textTransform: "uppercase",
+      textAlign: "center",
       lineHeight: "1.25em",
-      width: "230px"
+      width: "260px",
+      padding: "0 0 1.5em 0"
     },
     h4: {
       fontFamily: "monospace",
@@ -37,20 +36,22 @@ const styles = (theme: any) =>
       textAlign: "left",
       textTransform: "uppercase"
     },
-    ".list": {
-      width: "230px",
-      listStyleType: "none",
-      padding: "0",
-      "& li": {
-        padding: "0.1em 0",
-        "&:before": {
-          content: '"\\2022"',
-          color: theme.palette.c_gray5,
-          display: "inline-block",
-          width: "1em",
-          marginLeft: "-1em"
-        }
-      }
+    ".button-group": {
+      display: "flex",
+      flexDirection: "row",
+      gap: "0.5em",
+      marginTop: "auto"
+    },
+    ".list-button": {
+      fontSize: theme.fontSizeNormal,
+      fontFamily: theme.fontFamily1,
+      background: theme.palette.c_gray0,
+      color: theme.palette.c_gray5,
+      textTransform: "none",
+      padding: "0 .5em"
+    },
+    ".list-button:hover": {
+      color: theme.palette.c_white
     },
     ".gsi-material-button": {
       width: "240px",
@@ -66,6 +67,16 @@ const styles = (theme: any) =>
 
 function Login() {
   const theme = useTheme();
+  const linkItems = [
+    { name: "Anthropic", url: "https://www.anthropic.com" },
+    { name: "HuggingFace", url: "https://huggingface.co" },
+    { name: "OpenAI", url: "https://openai.com" },
+    { name: "Replicate", url: "https://replicate.com" },
+    { name: "StabilityAI", url: "https://stability.ai/" }
+  ];
+  const handleClick = (url: string) => {
+    window.open(url, "_blank");
+  };
 
   return (
     <div css={styles(theme)}>
@@ -78,17 +89,22 @@ function Login() {
           small={false}
         />
         <Typography component="h3">
-          Node-based AI workflows for text, image, audio, and video.
+          Node-based AI <br />
+          for text, image, audio & video.
         </Typography>
-        <ul className="list">
-          <li>OpenAI</li>
-          <li>HuggingFace</li>
-          <li>Replicate</li>
-          <li>Anthropic</li>
-          <li>ComfyUI</li>
-        </ul>
       </div>
       <GoogleAuthButton />
+      <div className="button-group">
+        {linkItems.map((item) => (
+          <Button
+            key={item.name}
+            onClick={() => handleClick(item.url)}
+            className="list-button"
+          >
+            {item.name}
+          </Button>
+        ))}
+      </div>
     </div>
   );
 }
