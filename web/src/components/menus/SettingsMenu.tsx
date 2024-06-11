@@ -30,6 +30,7 @@ const styles = (theme: any) =>
       borderRadius: "1em"
     },
     ".settings-menu": {
+      backgroundColor: theme.palette.c_gray1,
       width: "60vw",
       minWidth: "400px",
       maxWidth: "800px",
@@ -52,12 +53,11 @@ const styles = (theme: any) =>
       "div label": {
         transform: "none",
         margin: 0,
-        fontSize: theme.fontSizeSmall,
+        fontSize: theme.fontSizeNormal,
         fontFamily: theme.fontFamily1,
-        fontWeight: 500,
-        color: theme.palette.c_gray1,
-        backgroundColor: theme.palette.c_hl1,
-        padding: "0.5em 0.5em",
+        color: theme.palette.c_hl1,
+        backgroundColor: "transparent",
+        padding: "0 0.5em 0.5em",
         width: "100%"
       },
       ".MuiInput-root": {
@@ -92,6 +92,18 @@ const styles = (theme: any) =>
         margin: "0.25em 0 0",
         listStyleType: "disc"
       }
+    },
+    ".bottom": {
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      position: "sticky",
+      backgroundColor: theme.palette.c_gray1,
+      width: "100%",
+      height: "100px",
+      bottom: "0",
+      zIndex: 100
     }
   });
 
@@ -117,7 +129,8 @@ function SettingsMenu() {
     setWorkflowLayout,
     setWorkflowOrder,
     setAssetItemSize,
-    setTimeFormat
+    setTimeFormat,
+    setButtonAppearance
   } = useSettingsStore();
 
   const id = open ? "docs" : undefined;
@@ -320,43 +333,67 @@ function SettingsMenu() {
             </Typography>
           </div>
 
-          {user && (
-            <div>
-              <hr />
-              <Typography
-                style={{
-                  display: "inline-block",
-                  margin: "0 10px 0 0",
-                  fontSize: "0.9em"
-                }}
+          <div className="settings-item">
+            <FormControl>
+              <InputLabel htmlFor={id}>Button Appearance</InputLabel>
+              <Select
+                id={id}
+                labelId={id}
+                value={settings.buttonAppearance}
+                variant="standard"
+                onChange={(e) =>
+                  setButtonAppearance(
+                    e.target.value as "text" | "icon" | "both"
+                  )
+                }
               >
-                {user.email}
-              </Typography>
-              {user.email && (
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    signout();
-                    navigate("/login");
+                <MenuItem value={"text"}>Text</MenuItem>
+                <MenuItem value={"icon"}>Icon</MenuItem>
+                <MenuItem value={"both"}>Both</MenuItem>
+              </Select>
+            </FormControl>
+            <Typography className="description">
+              Display time in 12h or 24h format.
+            </Typography>
+          </div>
+          <div className="bottom">
+            {user && (
+              <div>
+                <Typography
+                  style={{
+                    display: "inline-block",
+                    margin: "0 10px 0 0",
+                    fontSize: "0.9em"
                   }}
                 >
-                  Logout
-                </Button>
-              )}
-            </div>
-          )}
-          <Typography
-            variant="body2"
-            style={{
-              color: "#666",
-              marginTop: "2em",
-              fontSize: ThemeNodetool.fontSizeSmaller
-            }}
-          >
-            NODETOOL {VERSION}
-          </Typography>
+                  {user.email}
+                </Typography>
+                {user.email && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                      signout();
+                      navigate("/login");
+                    }}
+                  >
+                    Logout
+                  </Button>
+                )}
+              </div>
+            )}
+            <Typography
+              variant="body2"
+              style={{
+                color: "#666",
+                marginTop: "2em",
+                fontSize: ThemeNodetool.fontSizeSmaller
+              }}
+            >
+              NODETOOL {VERSION}
+            </Typography>
+          </div>
         </div>
       </Menu>
     </>

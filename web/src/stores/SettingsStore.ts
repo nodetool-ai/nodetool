@@ -11,6 +11,7 @@ export interface Settings {
   assetsOrder: "name" | "date";
   assetItemSize: number;
   timeFormat: "12h" | "24h";
+  buttonAppearance: "text" | "icon" | "both";
 }
 
 interface SettingsStore {
@@ -26,6 +27,7 @@ interface SettingsStore {
   setAssetsOrder: (value: "name" | "date") => void;
   setAssetItemSize: (value: number) => void;
   setTimeFormat: (value: "12h" | "24h") => void;
+  setButtonAppearance: (value: "text" | "icon" | "both") => void;
 }
 
 export const defaultSettings: Settings = {
@@ -37,7 +39,8 @@ export const defaultSettings: Settings = {
   workflowOrder: "name",
   assetsOrder: "name",
   assetItemSize: 2,
-  timeFormat: "12h"
+  timeFormat: "12h",
+  buttonAppearance: "both"
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -122,8 +125,17 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: { ...state.settings, ...newSettings }
         })),
 
-      resetSettings: () => set({ settings: { ...defaultSettings } })
+      resetSettings: () => set({ settings: { ...defaultSettings } }),
+
+      setButtonAppearance: (value: "text" | "icon" | "both") =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            buttonAppearance: value || defaultSettings.buttonAppearance
+          }
+        }))
     }),
+
     {
       name: "settings-storage" // name of the item in the storage (must be unique)
       //storage: createJSONStorage(() => sessionStorage), // this will use 'sessionStorage'. Remove this line to default to 'localStorage'.

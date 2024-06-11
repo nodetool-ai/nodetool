@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { useReactFlow } from "reactflow";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 // components
 import SettingsMenu from "../menus/SettingsMenu";
 import Help from "../content/Help/Help";
@@ -36,17 +37,41 @@ import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { Workflow } from "../../stores/ApiTypes";
 import Logo from "../Logo";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
-const styles = (theme: any) => ({
+const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") => ({
   ".nodetool-logo": {
     marginLeft: "-0.5em"
   },
   button: {
+    fontSize:
+      buttonAppearance === "text" || buttonAppearance === "both"
+        ? theme.fontSizeSmall
+        : "0",
     margin: "0 0 0 0.4em",
     color: theme.palette.c_white,
     "&:hover": {
       backgroundColor: theme.palette.c_gray2
     }
+  },
+  ".icon-container svg": {
+    display:
+      buttonAppearance === "icon" || buttonAppearance === "both"
+        ? "block"
+        : "none",
+    minWidth: "25px",
+    minHeight: "25px",
+    fontSize:
+      buttonAppearance === "icon" || buttonAppearance === "both"
+        ? theme.fontSizeSmall
+        : "0"
+  },
+  "button svg": {
+    display:
+      buttonAppearance === "icon" || buttonAppearance === "both"
+        ? "block"
+        : "none",
+    marginRight: "0.1em"
   },
   "button.logo:hover": {
     backgroundColor: "transparent"
@@ -56,11 +81,11 @@ const styles = (theme: any) => ({
       color: theme.palette.c_hl1
     }
   },
-  "button svg": {
-    marginRight: "0.1em"
-  },
   ".action-button": {
-    fontSize: theme.fontSizeSmaller,
+    fontSize:
+      buttonAppearance === "text" || buttonAppearance === "both"
+        ? theme.fontSizeSmall
+        : "0",
     color: theme.palette.c_gray6,
     "&:hover": {
       backgroundColor: theme.palette.c_gray2
@@ -111,6 +136,9 @@ function AppHeader() {
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
   const workflowIsDirty = useNodeStore((state) => state.workflowIsDirty);
+  const buttonAppearance = useSettingsStore(
+    (state) => state.settings.buttonAppearance
+  );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -175,7 +203,11 @@ function AppHeader() {
   };
 
   return (
-    <AppBar css={styles} position="static" className="app-header">
+    <AppBar
+      css={styles(ThemeNodetool, buttonAppearance)}
+      position="static"
+      className="app-header"
+    >
       <Toolbar variant="dense">
         <Button
           className="logo"
@@ -211,12 +243,12 @@ function AppHeader() {
               Workflows
             </Button>
           </Tooltip>
+
           <Tooltip title="View and manage Assets" enterDelay={TOOLTIP_DELAY}>
             <Button
               className={`nav-button ${path === "/assets" ? "active" : ""}`}
               onClick={() => navigate("/assets")}
             >
-              {/* <ExploreIcon /> */}
               {iconForType("asset", {
                 fill: "white",
                 containerStyle: {
