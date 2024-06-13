@@ -133,6 +133,17 @@ class DBModel(BaseModel):
             return None
         return cls(**item)
 
+    def reload(self):
+        """
+        Reload the model instance from the DB.
+        """
+        item = self.adapter.get(self.partition_value())
+        if item is None:
+            raise ValueError(f"Item not found: {self.partition_value()}")
+        for key, value in item.items():
+            setattr(self, key, value)
+        return self
+
     def partition_value(self) -> str:
         """
         Get the value of the hash key.

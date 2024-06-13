@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime
 import json
 import threading
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from nodetool.api.utils import current_user, User
 
@@ -81,29 +81,37 @@ async def update(id: str, req: JobUpdate, user: User = Depends(current_user)) ->
 
 @router.post("/")
 async def run(
-    req: RunJobRequest, execute: bool = True, user: User = Depends(current_user)
+    request: Request,
+    job_request: RunJobRequest,
+    execute: bool = True,
+    user: User = Depends(current_user),
 ):
     from nodetool.workflows.workflow_runner import WorkflowRunner
     from nodetool.workflows.processing_context import (
         ProcessingContext,
     )
 
-    if req.graph is None:
-        workflow = Workflow.find(user.id, req.workflow_id)
+    if job_request.graph is None:
+        workflow = Workflow.find(user.id, job_request.workflow_id)
         if workflow is None:
             raise HTTPException(status_code=404, detail="Workflow not found")
         else:
-            req.graph = workflow.get_api_graph()
+            job_request.graph = workflow.get_api_graph()
 
-    assert req.graph is not None, "Graph is required"
+    assert job_request.graph is not None, "Graph is required"
 
     job = Job.create(
-        job_type=req.job_type,
-        workflow_id=req.workflow_id,
+        job_type=job_request.job_type,
+        workflow_id=job_request.workflow_id,
         user_id=user.id,
-        graph=req.graph.model_dump(),
+        graph=job_request.graph.model_dump(),
         status="running",
     )
+    assert job
+    job_id = job.id
+
+    def job_update_message():
+        return JobUpdate.from_model(job).model_dump_json() + "\n"
 
     if execute is False:
         return job
@@ -113,29 +121,35 @@ async def run(
     context = ProcessingContext(
         user_id=user.id,
         auth_token=user.auth_token,
-        workflow_id=req.workflow_id,
+        workflow_id=job_request.workflow_id,
     )
 
     runner = WorkflowRunner()
 
     async def run():
         try:
-            await runner.run(req, context)
+            await runner.run(job_request, context)
         except Exception as e:
             log.exception(e)
             context.post_message(Error(error=str(e)))
 
     async def generate():
-        yield json.dumps(JobUpdate(status="running").model_dump()) + "\n"
+        yield job_update_message()
 
         thread = threading.Thread(target=lambda: asyncio.run(run()))
         thread.start()
+        job = Job.get(job_id)
         try:
             while runner.is_running():
+                job = Job.get(job_id)
+                assert job
+                if job.status != "running":
+                    break
                 if context.has_messages():
                     msg = await context.pop_message_async()
                     if isinstance(msg, Prediction):
                         msg = APIPrediction.from_model(msg)
+                        job.reload()
                     if isinstance(msg, WorkflowUpdate):
                         job.finished_at = datetime.now()
                         job.status = "completed"
@@ -153,13 +167,14 @@ async def run(
 
         except Exception as e:
             log.exception(e)
+            assert job
+            job = Job.get(job.id)
+            assert job
             job.finished_at = datetime.now()
             job.status = "failed"
             job.error = str(e)[:256]
             job.cost = context.cost
             job.save()
-            yield json.dumps(
-                JobUpdate(status="failed", error=str(e)).model_dump()
-            ) + "\n"
+            yield job_update_message()
 
     return StreamingResponse(generate(), media_type="application/x-ndjson")

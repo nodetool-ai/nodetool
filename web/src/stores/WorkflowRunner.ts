@@ -40,6 +40,7 @@ export type NodeState = {
 };
 
 export type WorkflowRunner = {
+  job_id: string | null;
   state: "idle" | "running" | "error" | "cancelled";
   statusMessage: string | null;
   setStatusMessage: (message: string | null) => void;
@@ -51,7 +52,7 @@ export type WorkflowRunner = {
   addNotification: (
     notification: Omit<Notification, "id" | "timestamp">
   ) => void;
-  cancel: () => void;
+  cancel: () => Promise<void>;
   run: (params?: any, noCache?: boolean) => Promise<void>;
 };
 
@@ -86,6 +87,7 @@ async function* lineIterator(reader: ReadableStreamDefaultReader) {
 }
 
 const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
+  job_id: null,
   state: "idle",
   statusMessage: null,
   setStatusMessage: (message: string | null) => {
@@ -120,6 +122,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
 
       if (data.type === "job_update") {
         const job = data as JobUpdate;
+        set({ job_id: job.job_id });
         switch (job.status) {
           case "running":
             set({ state: "running" });
@@ -220,18 +223,17 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const edges = useNodeStore.getState().edges;
     const nodes = useNodeStore.getState().nodes;
     const workflow = useNodeStore.getState().workflow;
-    const readFromStorage = useAuth.getState().readFromStorage;
+    const getUser = useAuth.getState().getUser;
     const readMessage = get().readMessage;
     const getInputEdges = useNodeStore.getState().getInputEdges;
     const getResult = useResultsStore.getState().getResult;
-    const setStatus = useStatusStore.getState().setStatus;
     const clearStatuses = useStatusStore.getState().clearStatuses;
     const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
 
     // make a deep copy of nodes
     const nodesCopy = JSON.parse(JSON.stringify(nodes)) as Node<NodeData>[];
-    const user = readFromStorage();
+    const user = getUser();
 
     // ****** caching is still buggy ******
     noCache = true;
@@ -319,7 +321,6 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
           console.error("error parsing json", error);
         }
       }
-
       console.log("Stream complete");
       clearStatuses(workflow.id);
     }
@@ -353,7 +354,27 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   /**
    * Cancel the current workflow run.
    */
-  cancel: () => {
+  cancel: async () => {
+    const job_id = get().job_id;
+    const user = useAuth.getState().getUser();
+    if (!job_id || !user) {
+      return;
+    }
+    const response = await fetch(WORKER_URL + job_id, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + user.auth_token
+      },
+      body: JSON.stringify({
+        job_id: job_id,
+        status: "cancelled"
+      })
+    });
+    if (!response.ok) {
+      throw new Error("Failed to cancel job");
+    }
+
     set({ state: "cancelled" });
   }
 }));

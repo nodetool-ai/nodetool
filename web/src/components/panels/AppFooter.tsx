@@ -114,7 +114,7 @@ function AppFooter() {
   const areMessagesVisible = true;
 
   useHotkeys("Control+Enter", () => runWorkflow());
-  useHotkeys("Escape", () => cancelWorkflow());
+  // useHotkeys("Escape", () => cancelWorkflow());
 
   return (
     <div css={footerStyles} onContextMenu={(e) => e.preventDefault()}>
@@ -144,9 +144,8 @@ function AppFooter() {
             >
               <Button
                 size="large"
-                className={`run-workflow ${
-                  isWorkflowRunning ? "disabled" : ""
-                }`}
+                className={`run-workflow ${isWorkflowRunning ? "disabled" : ""
+                  }`}
                 onClick={() => !isWorkflowRunning && runWorkflow()}
               >
                 <PlayArrow />
@@ -173,9 +172,8 @@ function AppFooter() {
             >
               <Button
                 size="large"
-                className={`stop-workflow ${
-                  !isWorkflowRunning ? "disabled" : ""
-                }`}
+                className={`stop-workflow ${!isWorkflowRunning ? "disabled" : ""
+                  }`}
                 onClick={() => cancelWorkflow()}
               >
                 <StopIcon />
