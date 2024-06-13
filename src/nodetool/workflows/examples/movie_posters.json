@@ -1,0 +1,161 @@
+{
+  "1": {
+    "type": "nodetool.constant.DataFrame",
+    "inputs": {
+      "value": {
+        "type": "dataframe",
+        "columns": [
+          {
+            "name": "Title",
+            "data_type": "object"
+          },
+          {
+            "name": "Main Character",
+            "data_type": "object"
+          },
+          {
+            "name": "Character Description",
+            "data_type": "object"
+          }
+        ],
+        "data": [
+          [
+            "The Shawshank Redemption",
+            "Andy Dufresne",
+            "A banker sentenced to life in Shawshank State Penitentiary for the murders of his wife and her lover."
+          ],
+          [
+            "The Godfather",
+            "Michael Corleone",
+            "The youngest son of Vito Corleone who becomes the new Don of the Corleone crime family."
+          ],
+          [
+            "The Dark Knight",
+            "Bruce Wayne / Batman",
+            "A wealthy playboy who fights crime as the vigilante Batman in Gotham City."
+          ],
+          [
+            "Pulp Fiction",
+            "Vincent Vega",
+            "A hitman working for mob boss Marsellus Wallace."
+          ],
+          [
+            "The Lord of the Rings: The Return of the King",
+            "Frodo Baggins",
+            "A hobbit entrusted with the task of destroying the One Ring to save Middle-earth."
+          ],
+          [
+            "Forrest Gump",
+            "Forrest Gump",
+            "A kind-hearted man with a low IQ who witnesses and unwittingly influences several historical events."
+          ],
+          [
+            "Inception",
+            "Dom Cobb",
+            "A skilled thief who enters the dreams of others to steal secrets."
+          ],
+          [
+            "Fight Club",
+            "The Narrator",
+            "A disillusioned white-collar worker who forms an underground fight club."
+          ],
+          [
+            "The Matrix",
+            "Neo",
+            "A computer hacker who discovers the truth about reality and his role in saving humanity."
+          ],
+          [
+            "Interstellar",
+            "Cooper",
+            "A former NASA pilot who leads a mission to find a new habitable planet for humanity."
+          ],
+          [""]
+        ]
+      }
+    },
+    "position": {
+      "x": 80,
+      "y": 232
+    }
+  },
+  "2": {
+    "type": "nodetool.group.Loop",
+    "inputs": {},
+    "position": {
+      "x": 403,
+      "y": 294
+    },
+    "width": 743,
+    "height": 492
+  },
+  "3": {
+    "type": "nodetool.input.GroupInput",
+    "inputs": {
+      "name": "",
+      "items": ["1", "output"]
+    },
+    "parent_id": "2",
+    "position": {
+      "x": 27,
+      "y": 99
+    }
+  },
+  "6": {
+    "type": "nodetool.image.SaveImage",
+    "inputs": {
+      "folder": {
+        "type": "folder",
+        "uri": "",
+        "asset_id": null,
+        "temp_id": null
+      },
+      "image": ["8", "output"]
+    },
+    "parent_id": "2",
+    "position": {
+      "x": 576,
+      "y": 113
+    }
+  },
+  "7": {
+    "type": "nodetool.text.Template",
+    "inputs": {
+      "string": "Movie Poste from the motion picture {Title}, Close up of {Main Character}: {Character Description}",
+      "values": ["3", "output"]
+    },
+    "parent_id": "2",
+    "position": {
+      "x": 217,
+      "y": 108
+    }
+  },
+  "8": {
+    "type": "replicate.image.generate.PlaygroundV2",
+    "inputs": {
+      "mask": null,
+      "seed": null,
+      "image": {
+        "type": "image",
+        "uri": "",
+        "asset_id": null,
+        "temp_id": null
+      },
+      "width": 1024,
+      "height": 1024,
+      "prompt": ["7", "output"],
+      "scheduler": "DPMSolver++",
+      "num_outputs": 1,
+      "guidance_scale": 3,
+      "apply_watermark": true,
+      "negative_prompt": "ugly, deformed, noisy, blurry, distorted",
+      "prompt_strength": 0.8,
+      "num_inference_steps": 25,
+      "disable_safety_checker": false
+    },
+    "parent_id": "2",
+    "position": {
+      "x": 403,
+      "y": 16
+    }
+  }
+}

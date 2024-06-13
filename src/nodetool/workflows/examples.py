@@ -38,6 +38,16 @@ def get_examples() -> list[Workflow]:
             thumbnail_url="/examples/csv_diffusion.png",
             graph=load_example("csv_diffusion"),
         ),
+        Workflow(
+            id="movie_posters",
+            access="private",
+            created_at="2021-01-01T00:00:00",
+            updated_at="2021-01-01T00:00:00",
+            name="Movie Posters",
+            description="Generate movie posters from a list of movie titles",
+            thumbnail_url="/examples/movie_posters.png",
+            graph=load_example("movie_posters"),
+        ),
     ]
 
 
