@@ -1,6 +1,7 @@
 from nodetool.models.prediction import Prediction as PredictionModel
 from pydantic import BaseModel
 from typing import Any, List, Literal
+import base64
 
 
 class Prediction(BaseModel):
@@ -78,14 +79,14 @@ class PredictionResult(BaseModel):
 
     def decode_content(self) -> Any:
         if self.encoding == "base64":
-            return self.content.encode("utf-8")
+            return base64.b64decode(self.content)
         return self.content
 
     @staticmethod
     def from_result(prediction: Prediction, content: Any):
         if isinstance(content, bytes):
             encoding = "base64"
-            content = content.decode("utf-8")
+            content = base64.b64encode(content).decode("ASCII")
         else:
             encoding = "json"
         return PredictionResult(

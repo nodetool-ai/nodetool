@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from datetime import timezone
 from io import BytesIO
 import os
 from fastapi import APIRouter, Depends, Request, Response
@@ -58,6 +59,8 @@ async def get(bucket: str, key: str, request: Request):
 
     if "If-Modified-Since" in request.headers:
         if_modified_since = parsedate_to_datetime(request.headers["If-Modified-Since"])
+        # if_modified_since = if_modified_since.replace(tzinfo=timezone.utc)
+        last_modified = last_modified.replace(tzinfo=timezone.utc)
         if if_modified_since >= last_modified:
             raise HTTPException(status_code=304)
 
