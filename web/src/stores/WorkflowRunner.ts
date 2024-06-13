@@ -181,7 +181,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
           if (update.result) {
             Object.entries(update.result).forEach(([key, value]) => {
               const ref = value as AssetRef;
-              if (ref && "asset_id" in ref) {
+              if (typeof ref === "object" && "asset_id" in ref) {
                 const asset_id = ref.asset_id;
                 if (asset_id) {
                   getAsset(asset_id).then((res) => {

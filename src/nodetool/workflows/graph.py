@@ -230,7 +230,8 @@ def topological_sort(edges: list[Edge], nodes: list[BaseNode]) -> List[List[str]
     indegree: dict[str, int] = {node.id: 0 for node in nodes}
 
     for edge in edges:
-        indegree[edge.target] += 1
+        if edge.target in indegree:
+            indegree[edge.target] += 1
 
     queue = deque(node_id for node_id, degree in indegree.items() if degree == 0)
 
@@ -243,7 +244,8 @@ def topological_sort(edges: list[Edge], nodes: list[BaseNode]) -> List[List[str]
             for edge in edges.copy():
                 if edge.source == n:
                     edges.remove(edge)
-                    indegree[edge.target] -= 1
+                    if edge.target in indegree:
+                        indegree[edge.target] -= 1
                     if indegree[edge.target] == 0:
                         queue.append(edge.target)
 
