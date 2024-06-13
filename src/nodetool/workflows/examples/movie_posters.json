@@ -109,7 +109,8 @@
         "asset_id": null,
         "temp_id": null
       },
-      "image": ["8", "output"]
+      "image": ["8", "output"],
+      "name": ["bedbc384-1dc9-40e4-8b13-edf61a010ea7", "output"]
     },
     "parent_id": "2",
     "position": {
@@ -125,37 +126,41 @@
     },
     "parent_id": "2",
     "position": {
-      "x": 217,
-      "y": 108
+      "x": 205,
+      "y": 114
     }
   },
   "8": {
-    "type": "replicate.image.generate.PlaygroundV2",
+    "type": "replicate.image.generate.Juggernaut_XL_V9",
     "inputs": {
-      "mask": null,
       "seed": null,
-      "image": {
-        "type": "image",
-        "uri": "",
-        "asset_id": null,
-        "temp_id": null
-      },
       "width": 1024,
       "height": 1024,
-      "prompt": ["7", "output"],
-      "scheduler": "DPMSolver++",
+      "scheduler": "DPM++SDE",
       "num_outputs": 1,
-      "guidance_scale": 3,
+      "guidance_scale": 2,
       "apply_watermark": true,
-      "negative_prompt": "ugly, deformed, noisy, blurry, distorted",
-      "prompt_strength": 0.8,
-      "num_inference_steps": 25,
-      "disable_safety_checker": false
+      "negative_prompt": "CGI, Unreal, Airbrushed, Digital",
+      "num_inference_steps": 5,
+      "disable_safety_checker": false,
+      "prompt": ["7", "output"]
     },
     "parent_id": "2",
     "position": {
-      "x": 403,
-      "y": 16
+      "x": 394,
+      "y": 17
+    }
+  },
+  "bedbc384-1dc9-40e4-8b13-edf61a010ea7": {
+    "type": "nodetool.text.Template",
+    "inputs": {
+      "string": "{Title}.png",
+      "values": ["3", "output"]
+    },
+    "parent_id": "2",
+    "position": {
+      "x": 201,
+      "y": 288
     }
   }
 }
