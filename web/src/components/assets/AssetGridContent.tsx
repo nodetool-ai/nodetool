@@ -9,7 +9,7 @@ import { useAssetStore } from "../../hooks/AssetStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 //utils
-import { devLog } from "../../utils/DevLog";
+// import { devLog } from "../../utils/DevLog";
 //components
 import InfiniteScroll from "react-infinite-scroll-component";
 import useAssets from "../../serverState/useAssets";
@@ -243,7 +243,7 @@ const AssetGridContent = ({
                       }}
                       onDragStart={() => onDragStart(asset.id)}
 
-                    // onDragStart={() => [...selectedAssetIds, asset.id]}
+                      // onDragStart={() => [...selectedAssetIds, asset.id]}
                     />
                   </Box>
                 ))}
