@@ -11,8 +11,17 @@ class JobRequest(BaseModel):
 
 class JobUpdate(BaseModel):
     type: Literal["job_update"] = "job_update"
+    job_id: str
     status: str
     error: str | None = None
+
+    @classmethod
+    def from_model(cls, job: Job):
+        return cls(
+            job_id=job.id,
+            status=job.status,
+            error=job.error,
+        )
 
 
 class JobList(BaseModel):

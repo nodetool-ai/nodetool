@@ -465,6 +465,8 @@ export interface components {
        * @constant
        */
       type?: "job_update";
+      /** Job Id */
+      job_id: string;
       /** Status */
       status: string;
       /** Error */
