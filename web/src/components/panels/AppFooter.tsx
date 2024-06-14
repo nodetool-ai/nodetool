@@ -81,21 +81,6 @@ const footerStyles = (theme: any) =>
       width: "2.5em",
       height: "2.5em"
     },
-    ".status-message": {
-      position: "fixed",
-      zIndex: 100,
-      top: "0.5em",
-      maxWidth: "50%",
-      left: "0",
-      right: "0",
-      margin: "auto",
-      minWidth: "50%",
-      textAlign: "center",
-      padding: "0.3em 1em",
-      color: theme.palette.c_gray5,
-      backgroundColor: "transparent",
-      transform: "translateX(0%)"
-    },
     ".options": {
       marginLeft: "2em"
     },
@@ -110,9 +95,6 @@ function AppFooter() {
   const cancelWorkflow = useWorkflowRunnner((state) => state.cancel);
   const state = useWorkflowRunnner((state) => state.state);
   const isWorkflowRunning = state === "running";
-  const statusMessage = useWorkflowRunnner((state) => state.statusMessage);
-  const areMessagesVisible = true;
-
   useHotkeys("Control+Enter", () => runWorkflow());
   useHotkeys("Escape", () => cancelWorkflow());
 
@@ -186,13 +168,6 @@ function AppFooter() {
           {/* <LoadingAnimation /> */}
         </Toolbar>
       </AppBar>
-      {areMessagesVisible && state !== "idle" && (
-        <Box className="status-message ">
-          <Typography variant="caption" color="inherit">
-            {statusMessage || ""}
-          </Typography>
-        </Box>
-      )}
     </div>
   );
 }

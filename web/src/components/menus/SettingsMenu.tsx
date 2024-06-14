@@ -38,11 +38,15 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
-      gap: "1.5em",
+      gap: "1em",
       ".settings-item": {
         display: "flex",
         flexDirection: "row",
         alignItems: "flex-start",
+        borderTop: `1px solid ${theme.palette.c_gray0}`,
+        backgroundColor: theme.palette.c_gray0,
+        padding: ".5em .2em",
+        width: "100%",
         gap: "1.5em"
       },
       ".MuiSelect-select": {
@@ -67,7 +71,9 @@ const styles = (theme: any) =>
       },
       ".MuiFormControl-root": {
         width: "auto",
-        minWidth: "200px"
+        minWidth: "200px",
+        margin: 0,
+        padding: "0 0 0.25em 0"
       },
       "input, label": {
         fontSize: "1em"
@@ -145,6 +151,7 @@ function SettingsMenu() {
           onClick={handleClick}
         >
           <SettingsIcon />
+          Settings
         </Button>
       </Tooltip>
       <Menu
@@ -339,7 +346,7 @@ function SettingsMenu() {
               <Select
                 id={id}
                 labelId={id}
-                value={settings.buttonAppearance}
+                value={settings.buttonAppearance || "both"}
                 variant="standard"
                 onChange={(e) =>
                   setButtonAppearance(

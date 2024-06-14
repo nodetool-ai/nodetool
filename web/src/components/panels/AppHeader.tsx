@@ -1,4 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import { useCallback, useState } from "react";
 import { useReactFlow } from "reactflow";
 // store
@@ -38,95 +40,127 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { Workflow } from "../../stores/ApiTypes";
 import Logo from "../Logo";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import useWorkflowRunnner from "../../stores/WorkflowRunner";
 
-const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") => ({
-  ".nodetool-logo": {
-    marginLeft: "-0.5em"
-  },
-  button: {
-    fontSize:
-      buttonAppearance === "text" || buttonAppearance === "both"
-        ? theme.fontSizeSmall
-        : "0",
-    margin: "0 0 0 0.4em",
-    color: theme.palette.c_white,
-    "&:hover": {
-      backgroundColor: theme.palette.c_gray2
-    }
-  },
-  ".icon-container svg": {
-    display:
-      buttonAppearance === "icon" || buttonAppearance === "both"
-        ? "block"
-        : "none",
-    minWidth: "25px",
-    minHeight: "25px",
-    fontSize:
-      buttonAppearance === "icon" || buttonAppearance === "both"
-        ? theme.fontSizeSmall
-        : "0"
-  },
-  "button svg": {
-    display:
-      buttonAppearance === "icon" || buttonAppearance === "both"
-        ? "block"
-        : "none",
-    marginRight: "0.1em"
-  },
-  "button.logo:hover": {
-    backgroundColor: "transparent"
-  },
-  "nav-button": {
-    "&.active": {
+const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
+  css({
+    ".nodetool-logo": {
+      marginLeft: "-0.5em"
+    },
+    button: {
+      fontSize:
+        buttonAppearance === "text" || buttonAppearance === "both"
+          ? theme.fontSizeSmall
+          : "0",
+      margin: "0 0 0 0.4em",
+      color: theme.palette.c_white,
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2
+      }
+    },
+    ".icon-container svg": {
+      display:
+        buttonAppearance === "icon" || buttonAppearance === "both"
+          ? "block"
+          : "none",
+      minWidth: "25px",
+      minHeight: "25px",
+      fontSize:
+        buttonAppearance === "icon" || buttonAppearance === "both"
+          ? theme.fontSizeSmall
+          : "0"
+    },
+    "button svg": {
+      display:
+        buttonAppearance === "icon" || buttonAppearance === "both"
+          ? "block"
+          : "none",
+      marginRight: "0.1em"
+    },
+    "button.logo:hover": {
+      backgroundColor: "transparent"
+    },
+    ".nav-buttons": {
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "flex-start",
+      alignItems: "center",
+      gap: "0.5em"
+    },
+    "nav-button": {
+      flexShrink: 0,
+      minWidth: "5em",
+      "&.active": {
+        color: theme.palette.c_hl1
+      }
+    },
+    ".action-button": {
+      flexShrink: 0,
+      minWidth: "6em",
+      fontSize:
+        buttonAppearance === "text" || buttonAppearance === "both"
+          ? theme.fontSizeSmall
+          : "0",
+      color: theme.palette.c_gray6,
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray2
+      }
+    },
+    ".action-button:hover": {
       color: theme.palette.c_hl1
+    },
+    ".action-button.disabled": {
+      color: theme.palette.c_gray4
+    },
+    ".divider": {
+      display: "inline-block",
+      width: ".2em",
+      color: theme.palette.c_gray4,
+      padding: "0 .1em"
+    },
+    ".last-workflow": {
+      fontSize: theme.fontSizeSmaller,
+      fontFamily: theme.fontFamily,
+      lineHeight: "1.1em",
+      textTransform: "none",
+      color: theme.palette.c_white,
+      padding: ".2em .3em",
+      minHeight: "unset",
+      height: "1.5em",
+      textDecoration: "none !important",
+      marginLeft: "0.5em",
+      fontWeight: "normal",
+      "&:hover": {
+        color: theme.palette.c_hl1
+      }
+    },
+    ".last-workflow.disabled": {
+      color: theme.palette.c_gray5
+    },
+    ".last-workflow span": {
+      color: theme.palette.c_attention,
+      fontSize: "1.2em",
+      marginLeft: "0.2em"
+    },
+    ".status-message": {
+      margin: "auto",
+      padding: "0 .5em",
+      flexGrow: 0,
+      flexShrink: 1,
+      lineHeight: "1.1em",
+      textAlign: "right",
+      color: theme.palette.c_gray5,
+      backgroundColor: "transparent",
+      transform: "translateX(0%)"
+    },
+    ".buttons-right": {
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      alignItems: "center",
+      gap: "0"
     }
-  },
-  ".action-button": {
-    fontSize:
-      buttonAppearance === "text" || buttonAppearance === "both"
-        ? theme.fontSizeSmall
-        : "0",
-    color: theme.palette.c_gray6,
-    "&:hover": {
-      backgroundColor: theme.palette.c_gray2
-    }
-  },
-  ".action-button:hover": {
-    color: theme.palette.c_hl1
-  },
-  ".action-button.disabled": {
-    color: theme.palette.c_gray4
-  },
-  ".divider": {
-    display: "inline-block",
-    width: "1.5em",
-    color: theme.palette.c_gray4,
-    padding: "0 0.5em"
-  },
-  ".last-workflow": {
-    fontSize: theme.fontSizeSmaller,
-    fontFamily: theme.fontFamily,
-    TextTransform: "none",
-    color: theme.palette.c_white,
-    padding: ".2em .3em",
-    minHeight: "unset",
-    height: "1.5em",
-    TextDecoration: "none !important",
-    marginLeft: "0.5em",
-    fontWeight: "normal",
-    "&:hover": {
-      color: theme.palette.c_hl1
-    }
-  },
-  ".last-workflow.disabled": {
-    color: theme.palette.c_gray5
-  },
-  ".last-workflow span": {
-    color: theme.palette.c_attention,
-    fontSize: "1.2em",
-    marginLeft: "0.2em"
-  }
-});
+  });
 
 function AppHeader() {
   const navigate = useNavigate();
@@ -136,6 +170,7 @@ function AppHeader() {
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
   const workflowIsDirty = useNodeStore((state) => state.workflowIsDirty);
+  const areMessagesVisible = true;
   const buttonAppearance = useSettingsStore(
     (state) => state.settings.buttonAppearance
   );
@@ -143,6 +178,9 @@ function AppHeader() {
     (state) => state.addNotification
   );
   const lastWorkflow = useNodeStore((state) => state.lastWorkflow);
+  const statusMessage = useWorkflowRunnner((state) => state.statusMessage);
+  const state = useWorkflowRunnner((state) => state.state);
+
   const onWorkflowSaved = useCallback(
     (workflow: Workflow) => {
       addNotification({
@@ -203,182 +241,197 @@ function AppHeader() {
   };
 
   return (
-    <AppBar
-      css={styles(ThemeNodetool, buttonAppearance)}
-      position="static"
-      className="app-header"
-    >
-      <Toolbar variant="dense">
-        <Button
-          className="logo"
-          onClick={openAppIconMenu}
-          sx={{
-            lineHeight: "1em",
-            margin: 0,
-            display: { xs: "none", sm: "block" }
-          }}
-        >
-          <Logo
-            width="40px"
-            height="40px"
-            fontSize="14px"
-            borderRadius="20px"
-            small={true}
-          />
-        </Button>
-        <AppIconMenu anchorEl={anchorEl} handleClose={closeAppIconMenu} />
-
-        <Box sx={{ flexGrow: 0.02 }} />
-        <Box>
-          <Tooltip title="Load and create workflows" enterDelay={TOOLTIP_DELAY}>
-            <Button
-              aria-controls="simple-menu"
-              aria-haspopup="true"
-              className={`nav-button ${
-                path.startsWith("/workflows") ? "active" : ""
-              }`}
-              onClick={() => navigate("/workflows")}
-            >
-              <WorkflowsIcon />
-              Workflows
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="View and manage Assets" enterDelay={TOOLTIP_DELAY}>
-            <Button
-              className={`nav-button ${path === "/assets" ? "active" : ""}`}
-              onClick={() => navigate("/assets")}
-            >
-              {iconForType("asset", {
-                fill: "white",
-                containerStyle: {
-                  margin: "0 .25em 0 0"
-                },
-                bgStyle: {
-                  width: "1.7em",
-                  height: "1.7em"
-                },
-                width: "1.7em",
-                height: "1.7em"
-              })}
-              Assets
-            </Button>
-          </Tooltip>
-          <div className="divider">|</div>
-          {path.startsWith("/editor") && (
-            <Tooltip
-              title={
-                <>
-                  <span
-                    style={{
-                      fontSize: "1.2em",
-                      color: "white",
-                      textAlign: "center",
-                      display: "block"
-                    }}
-                  >
-                    Open NodeMenu
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "1em",
-                      color: "white",
-                      textAlign: "center",
-                      display: "block"
-                    }}
-                  >
-                    Ctrl+Space
-                    <br /> Double Click on Canvas
-                  </span>
-                </>
-              }
-              enterDelay={TOOLTIP_DELAY}
-            >
-              <Button className="action-button" onClick={handleOpenNodeMenu}>
-                <AdjustIcon />
-                Nodes
-              </Button>
-            </Tooltip>
-          )}
-        </Box>
-
-        {path.startsWith("/editor") && (
-          <>
-            <Tooltip
-              title="Arranges all nodes or selected nodes"
-              enterDelay={TOOLTIP_DELAY}
-            >
-              <Button className="action-button" onClick={handleAutoLayout}>
-                <LayoutIcon />
-                AutoLayout
-              </Button>
-            </Tooltip>
-            <Tooltip title="Save workflow" enterDelay={TOOLTIP_DELAY}>
-              <Button
-                className="action-button"
-                onClick={() => saveWorkflow().then(onWorkflowSaved)}
-              >
-                <SaveIcon />
-                Save
-              </Button>
-            </Tooltip>
-          </>
-        )}
-
-        <Button
-          onClick={handleNavigateToLastWorkflow}
-          disabled={path.startsWith("/editor")}
-          className={`last-workflow ${
-            path.startsWith("/editor") ? "disabled" : ""
-          }`}
-        >
-          {lastWorkflow?.name}
-          {workflowIsDirty && <span>*</span>}
-        </Button>
-
-        <Box sx={{ flexGrow: 1 }} />
-
-        <Box>
-          <Alert />
-          {/* help */}
-          <Popover
-            open={helpOpen}
-            onClose={handleCloseHelp}
-            anchorReference="none"
-            style={{
-              position: "fixed",
-              width: "100%",
-              height: "100%",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)"
+    <div css={styles(ThemeNodetool, buttonAppearance)} className="app-header">
+      <AppBar position="static" className="app-header">
+        <Toolbar variant="dense">
+          <Button
+            className="logo"
+            onClick={openAppIconMenu}
+            sx={{
+              lineHeight: "1em",
+              margin: 0,
+              display: { xs: "none", sm: "block" }
             }}
           >
-            <Help />
-          </Popover>
-          <Tooltip
-            enterDelay={TOOLTIP_DELAY}
-            title={
-              <div style={{ textAlign: "center" }}>
-                <Typography variant="inherit">Help</Typography>
-                <Typography variant="inherit">[ALT+H | OPTION+H]</Typography>
-              </div>
-            }
+            <Logo
+              width="40px"
+              height="40px"
+              fontSize="14px"
+              borderRadius="20px"
+              small={true}
+            />
+          </Button>
+          <AppIconMenu anchorEl={anchorEl} handleClose={closeAppIconMenu} />
+
+          <Box sx={{ flexGrow: 0.02 }} />
+          <Box className="nav-buttons">
+            <Tooltip
+              title="Load and create workflows"
+              enterDelay={TOOLTIP_DELAY}
+            >
+              <Button
+                aria-controls="simple-menu"
+                aria-haspopup="true"
+                className={`nav-button ${
+                  path.startsWith("/workflows") ? "active" : ""
+                }`}
+                onClick={() => navigate("/workflows")}
+              >
+                <WorkflowsIcon />
+                Workflows
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="View and manage Assets" enterDelay={TOOLTIP_DELAY}>
+              <Button
+                className={`nav-button ${path === "/assets" ? "active" : ""}`}
+                onClick={() => navigate("/assets")}
+              >
+                {iconForType("asset", {
+                  fill: "white",
+                  containerStyle: {
+                    margin: "0 .25em 0 0"
+                  },
+                  bgStyle: {
+                    width: "1.7em",
+                    height: "1.7em"
+                  },
+                  width: "1.7em",
+                  height: "1.7em"
+                })}
+                Assets
+              </Button>
+            </Tooltip>
+            <div className="divider">|</div>
+            {path.startsWith("/editor") && (
+              <Tooltip
+                title={
+                  <>
+                    <span
+                      style={{
+                        fontSize: "1.2em",
+                        color: "white",
+                        textAlign: "center",
+                        display: "block"
+                      }}
+                    >
+                      Open NodeMenu
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "1em",
+                        color: "white",
+                        textAlign: "center",
+                        display: "block"
+                      }}
+                    >
+                      Ctrl+Space
+                      <br /> Double Click on Canvas
+                    </span>
+                  </>
+                }
+                enterDelay={TOOLTIP_DELAY}
+              >
+                <Button className="action-button" onClick={handleOpenNodeMenu}>
+                  <AdjustIcon />
+                  Nodes
+                </Button>
+              </Tooltip>
+            )}
+          </Box>
+
+          {path.startsWith("/editor") && (
+            <>
+              <Tooltip
+                title="Arranges all nodes or selected nodes"
+                enterDelay={TOOLTIP_DELAY}
+              >
+                <Button className="action-button" onClick={handleAutoLayout}>
+                  <LayoutIcon />
+                  AutoLayout
+                </Button>
+              </Tooltip>
+              <Tooltip title="Save workflow" enterDelay={TOOLTIP_DELAY}>
+                <Button
+                  className="action-button"
+                  onClick={() => saveWorkflow().then(onWorkflowSaved)}
+                >
+                  <SaveIcon />
+                  Save
+                </Button>
+              </Tooltip>
+            </>
+          )}
+
+          <Button
+            onClick={handleNavigateToLastWorkflow}
+            disabled={path.startsWith("/editor")}
+            className={`last-workflow ${
+              path.startsWith("/editor") ? "disabled" : ""
+            }`}
           >
-            <Button
-              className="command-icon"
-              onClick={(e) => {
-                e.preventDefault();
-                handleOpenHelp();
+            {lastWorkflow?.name}
+            {workflowIsDirty && <span>*</span>}
+          </Button>
+          {/* {!areMessagesVisible && state !== "idle" && ( */}
+          <Box sx={{ flexGrow: 1 }} />
+          {areMessagesVisible && (
+            <Typography
+              className="status-message"
+              variant="caption"
+              color="inherit"
+            >
+              {statusMessage ||
+                "status message status messagestatus message status message"}
+            </Typography>
+          )}
+
+          {/* ALERT */}
+          <Alert />
+
+          {/* BUTTONS RIGHT */}
+          <Box className="buttons-right">
+            {/* help */}
+            <Popover
+              open={helpOpen}
+              onClose={handleCloseHelp}
+              anchorReference="none"
+              style={{
+                position: "fixed",
+                width: "100%",
+                height: "100%",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)"
               }}
             >
-              <QuestionMarkIcon />
-            </Button>
-          </Tooltip>
-          <SettingsMenu />
-        </Box>
-      </Toolbar>
-    </AppBar>
+              <Help />
+            </Popover>
+            <Tooltip
+              enterDelay={TOOLTIP_DELAY}
+              title={
+                <div style={{ textAlign: "center" }}>
+                  <Typography variant="inherit">Help</Typography>
+                  <Typography variant="inherit">[ALT+H | OPTION+H]</Typography>
+                </div>
+              }
+            >
+              <Button
+                className="command-icon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleOpenHelp();
+                }}
+              >
+                <QuestionMarkIcon />
+                Help
+              </Button>
+            </Tooltip>
+            <SettingsMenu />
+          </Box>
+        </Toolbar>
+      </AppBar>
+    </div>
   );
 }
 
