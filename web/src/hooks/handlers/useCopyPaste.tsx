@@ -18,9 +18,7 @@ const findNewNodeId = (
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
   const { nodes, edges, setEdges, setNodes } = useNodeStore();
-  const clipboardData = useSessionStateStore.getState().clipboardData;
-  const isClipboardValid = useSessionStateStore.getState().isClipboardValid;
-  const { writeClipboard } = useClipboard();
+  const { readClipboard, writeClipboard } = useClipboard();
   const selectedNodes = useSessionStateStore.getState().selectedNodes;
 
   const handleCopy = async (nodeId?: string) => {
@@ -62,6 +60,8 @@ export const useCopyPaste = () => {
   };
 
   const handlePaste = async () => {
+    await readClipboard();
+    const { clipboardData, isClipboardValid } = useSessionStateStore.getState();
     if (!isClipboardValid || clipboardData === null) {
       return;
     }
