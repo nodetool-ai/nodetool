@@ -1,9 +1,22 @@
-import { Property, TypeMetadata } from "../stores/ApiTypes";
+import { TypeMetadata } from "../stores/ApiTypes";
 
+/**
+ * Rules to reduce union type to a single type.
+ * For example, if the union type is [int, float], then the type is float.
+ * If the union type is [int, float, tensor], then the type is float.
+ *
+ * The key is the joined typeArgs with underscore in alphabetical order, and the value is the reduced type.
+ */
 const reduceTypeRules: Record<string, string> = {
   str_text: "str",
   int_float: "float",
-  int_float_tensor: "float"
+  int_float_tensor: "float",
+  none_str: "str",
+  none_str_text: "str",
+  none_text: "str",
+  int_none: "int",
+  float_int_none: "float",
+  float_none: "float"
 };
 
 /**
