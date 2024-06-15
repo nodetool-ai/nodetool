@@ -83,12 +83,35 @@ const DictTable: React.FC<DictTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
   const { writeClipboard } = useClipboard();
+  const [showSelect, setShowSelect] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
 
   const columns = useMemo(
     () => [
+      ...(showSelect
+        ? [
+            {
+              title: "",
+              field: "select",
+              formatter: "rowSelection" as Formatter,
+              titleFormatter: "rowSelection" as Formatter,
+              hozAlign: "left" as ColumnDefinitionAlign,
+              headerSort: false,
+              width: 25,
+              minWidth: 25,
+              resizable: false,
+              frozen: true,
+              cellClick: function (e: any, cell: CellComponent) {
+                cell.getRow().toggleSelect();
+              },
+              editable: false,
+              cssClass: "row-select"
+            }
+          ]
+        : []),
       {
         title: "Key",
         field: "key",
@@ -121,12 +144,12 @@ const DictTable: React.FC<DictTableProps> = ({
             : undefined
       }
     ],
-    [data_type, editable]
+    [data_type, editable, showSelect]
   );
 
   const onCellEdited = useCallback(
     (cell: CellComponent) => {
-      const { key: oldKey } = cell.getInitialValue();
+      const { key: oldKey } = cell.getOldValue() || cell.getInitialValue();
       const { key, value } = cell.getData();
       const newData = Object.keys(data).reduce((acc, k) => {
         if (k !== oldKey) {
@@ -147,6 +170,19 @@ const DictTable: React.FC<DictTableProps> = ({
     const newData = { ...data, "": "" };
     onDataChange(newData);
   }, [data, onDataChange]);
+
+  console.log(selectedRows);
+
+  const removeSelectedRows = useCallback(() => {
+    if (!onDataChange) return;
+    const newData = Object.keys(data).reduce((acc, key) => {
+      if (!selectedRows.some((row) => row.key === key)) {
+        acc[key] = data[key];
+      }
+      return acc;
+    }, {} as Record<string, any>);
+    onDataChange(newData);
+  }, [data, onDataChange, selectedRows]);
 
   useEffect(() => {
     if (!tableRef.current) return;
@@ -172,6 +208,9 @@ const DictTable: React.FC<DictTableProps> = ({
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
+    tabulatorInstance.on("rowSelectionChanged", (rows: any) => {
+      setSelectedRows(rows);
+    });
     setTabulator(tabulatorInstance);
 
     return () => {
@@ -202,12 +241,24 @@ const DictTable: React.FC<DictTableProps> = ({
             Copy Data
           </Button>
         </Tooltip>
+        <Tooltip title="Show Select column">
+          <Button variant="outlined" onClick={() => setShowSelect(!showSelect)}>
+            Show Select
+          </Button>
+        </Tooltip>
         {editable && (
-          <Tooltip title="Add a new row">
-            <Button variant="outlined" onClick={addRow}>
-              Add Row
-            </Button>
-          </Tooltip>
+          <>
+            <Tooltip title="Add a new row">
+              <Button variant="outlined" onClick={addRow}>
+                Add Row
+              </Button>
+            </Tooltip>
+            <Tooltip title="Delete selected rows">
+              <Button variant="outlined" onClick={removeSelectedRows}>
+                Delete Row
+              </Button>
+            </Tooltip>
+          </>
         )}
       </div>
       <div ref={tableRef} className="dicttable" />

@@ -12,7 +12,12 @@ import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import { Button, Tooltip } from "@mui/material";
+import {
+  Button,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip
+} from "@mui/material";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 
 export type ListDataType = "int" | "string" | "datetime" | "float";
@@ -138,9 +143,32 @@ const ListTable: React.FC<ListTableProps> = ({
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [showSelect, setShowSelect] = useState(true);
 
   const columns = useMemo(
     () => [
+      ...(showSelect
+        ? [
+            {
+              title: "",
+              field: "select",
+              formatter: "rowSelection" as Formatter,
+              titleFormatter: "rowSelection" as Formatter,
+              hozAlign: "left" as ColumnDefinitionAlign,
+              headerSort: false,
+              width: 25,
+              minWidth: 25,
+              resizable: false,
+              frozen: true,
+              cellClick: function (e: any, cell: CellComponent) {
+                cell.getRow().toggleSelect();
+              },
+              editable: false,
+              cssClass: "row-select"
+            }
+          ]
+        : []),
       {
         title: "Index",
         field: "rownum",
@@ -178,7 +206,7 @@ const ListTable: React.FC<ListTableProps> = ({
             : undefined
       }
     ],
-    [data_type, editable]
+    [data_type, editable, showSelect]
   );
 
   const onCellEdited = useCallback(
@@ -202,6 +230,14 @@ const ListTable: React.FC<ListTableProps> = ({
     if (!onDataChange) return;
     onDataChange([...data, defaultValueForType(data_type)]);
   }, [data, data_type, onDataChange]);
+
+  const removeSelectedRows = useCallback(() => {
+    if (!onDataChange) return;
+    const newData = data.filter((_, index) => {
+      return !selectedRows.some((row) => row.getData().rownum === index);
+    });
+    onDataChange(newData);
+  }, [data, onDataChange, selectedRows]);
 
   useEffect(() => {
     if (!tableRef.current) return;
@@ -227,6 +263,9 @@ const ListTable: React.FC<ListTableProps> = ({
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
+    tabulatorInstance.on("rowSelectionChanged", (data, rows) => {
+      setSelectedRows(rows);
+    });
     setTabulator(tabulatorInstance);
 
     return () => {
@@ -235,16 +274,14 @@ const ListTable: React.FC<ListTableProps> = ({
   }, [data, columns, onCellEdited, data_type]);
 
   const copyData = useCallback(() => {
-    if (tabulator) {
-      const data = tabulator.getData().map((row) => row.value);
-      writeClipboard(JSON.stringify(data), true);
-      addNotification({
-        content: "Copied to clipboard",
-        type: "success",
-        alert: true
-      });
-    }
-  }, [tabulator, writeClipboard, addNotification]);
+    const dataToCopy = data.map((row) => row.value);
+    writeClipboard(JSON.stringify(dataToCopy), true);
+    addNotification({
+      content: "Copied to clipboard",
+      type: "success",
+      alert: true
+    });
+  }, [data, writeClipboard, addNotification]);
 
   return (
     <div className="listtable nowheel nodrag" css={styles}>
@@ -254,12 +291,34 @@ const ListTable: React.FC<ListTableProps> = ({
             Copy Data
           </Button>
         </Tooltip>
+        <Tooltip title="Show Select column">
+          <ToggleButtonGroup
+            className="toggle select-row"
+            value={showSelect ? "selected" : null}
+            exclusive
+            onChange={() => setShowSelect(!showSelect)}
+          >
+            <ToggleButton value="selected">Show Select</ToggleButton>
+          </ToggleButtonGroup>
+        </Tooltip>
+
         {editable && (
-          <Tooltip title="Add a new row">
-            <Button variant="outlined" onClick={addRow}>
-              Add Row
-            </Button>
-          </Tooltip>
+          <>
+            <Tooltip title="Add a new row">
+              <Button variant="outlined" onClick={addRow}>
+                Add Row
+              </Button>
+            </Tooltip>
+            <Tooltip title="Remove selected rows">
+              <Button
+                variant="outlined"
+                onClick={removeSelectedRows}
+                disabled={selectedRows.length === 0}
+              >
+                Remove Selected
+              </Button>
+            </Tooltip>
+          </>
         )}
       </div>
       <div ref={tableRef} className="listtable" />
