@@ -147,7 +147,7 @@ const styles = (theme: any) =>
       gap: "1px",
       justifyContent: "flex-start",
       alignItems: "flex-start",
-      height: "2em",
+      height: "2.5em",
       padding: "0.5em 0 0 0"
     },
     ".table-actions .disabled": {
