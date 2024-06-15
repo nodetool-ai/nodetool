@@ -28,9 +28,6 @@ package/
 # Environment variables
 *.override.env
 
-# Visual Studio Code
-# https://github.com/github/gitignore/blob/master/Global/VisualStudioCode.gitignore
-.vscode/*
 # macOS
 # https://github.com/github/gitignore/blob/master/Global/macOS.gitignore
 .DS_Store
