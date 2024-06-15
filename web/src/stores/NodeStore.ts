@@ -617,8 +617,6 @@ export const useNodeStore = create<NodeStore>()(
             ),
             workflowIsDirty: true
           });
-
-          devLog("updateNodeProperties", get().nodes);
         },
 
         /**

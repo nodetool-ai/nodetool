@@ -30,6 +30,9 @@ import {
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
 
+/**
+ * Formatter for datetime columns
+ */
 export const datetimeFormatter: Formatter = (cell) => {
   const value = cell.getValue();
   const date = typeof value === "string" ? parseISO(value) : new Date(value);
@@ -39,6 +42,9 @@ export const datetimeFormatter: Formatter = (cell) => {
   return value;
 };
 
+/**
+ * Coerce a value to the correct type
+ */
 const coerceValue = (value: any, column: ColumnDef) => {
   if (column.data_type === "int") {
     return parseInt(value);
@@ -50,13 +56,22 @@ const coerceValue = (value: any, column: ColumnDef) => {
   return value;
 };
 
-const coerceRow = (row: Record<string, any>, columns: ColumnDef[]) => {
-  return columns.reduce((acc, col) => {
-    acc[col.name] = coerceValue(row[col.name], col);
-    return acc;
-  }, {} as Record<string, any>);
+/**
+ * Coerce a row to the correct types
+ */
+const coerceRow = (rownum: number, row: any[], columns: ColumnDef[]) => {
+  return columns.reduce(
+    (acc, col, index) => {
+      acc[col.name] = coerceValue(row[index], col);
+      return acc;
+    },
+    { rownum } as Record<string, any>
+  );
 };
 
+/**
+ * Default value for a column
+ */
 const defaultValue = (column: ColumnDef) => {
   if (column.data_type === "int") {
     return 0;
@@ -68,6 +83,9 @@ const defaultValue = (column: ColumnDef) => {
   return "";
 };
 
+/**
+ * Default row for a set of columns
+ */
 const defaultRow = (columns: ColumnDef[]) => {
   return columns.reduce((acc, col) => {
     acc[col.name] = defaultValue(col);
@@ -252,17 +270,25 @@ const DataTable: React.FC<DataTableProps> = ({
   );
 
   const data = useMemo(() => {
-    if (!dataframe.data || !dataframe.columns) return [];
-    return dataframe.data.map((row) => {
-      return dataframe.columns!.reduce(
-        (acc: Record<string, any>, col, index) => {
-          acc[col.name] = row[index];
-          return acc;
-        },
-        {}
-      );
+    if (!dataframe.data) return [];
+    return dataframe.data.map((row, index) => {
+      return coerceRow(index, row, dataframe.columns || []);
     });
   }, [dataframe.columns, dataframe.data]);
+
+  const onChangeRows = useCallback(
+    (newData: any[]) => {
+      if (onChange) {
+        onChange({
+          ...dataframe,
+          data: newData.map(
+            (row) => dataframe.columns?.map((col) => row[col.name]) || []
+          )
+        });
+      }
+    },
+    [dataframe, onChange]
+  );
 
   const columns: ColumnDefinition[] = useMemo(() => {
     if (!dataframe.columns) return [];
@@ -310,7 +336,6 @@ const DataTable: React.FC<DataTableProps> = ({
         headerTooltip: col.data_type,
         editable: editable,
         formatter: col.data_type === "datetime" ? datetimeFormatter : undefined,
-        data_type: col.data_type,
         editor:
           col.data_type === "int"
             ? integerEditor
@@ -337,27 +362,21 @@ const DataTable: React.FC<DataTableProps> = ({
   const onCellEdited = useCallback(
     (cell: CellComponent) => {
       const rownum = cell.getData().rownum;
-      const newData = data.map((row, index) => {
-        if (!row) {
-          return {};
-        }
-        const newRow = { ...row };
+      onChangeRows(
+        data.map((row, index) => {
+          if (!row) {
+            return {};
+          }
+          const newRow = { ...row };
 
-        if (index === rownum) {
-          newRow[cell.getField()] = cell.getValue();
-        }
-        return newRow;
-      });
-      if (onChange) {
-        onChange({
-          ...dataframe,
-          data: newData.map(
-            (row) => dataframe.columns?.map((col) => row[col.name]) || []
-          )
-        });
-      }
+          if (index === rownum) {
+            newRow[cell.getField()] = cell.getValue();
+          }
+          return newRow;
+        })
+      );
     },
-    [data, dataframe, onChange]
+    [data, onChangeRows]
   );
 
   useEffect(() => {
@@ -365,11 +384,7 @@ const DataTable: React.FC<DataTableProps> = ({
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "300px",
-      data: data.map((value, index) => {
-        const row = coerceRow(value, dataframe.columns || []);
-        row.rownum = index;
-        return row;
-      }),
+      data: data,
       columns: columns,
       columnDefaults: {
         headerSort: true,
@@ -396,28 +411,34 @@ const DataTable: React.FC<DataTableProps> = ({
   }, [data, columns, onCellEdited, dataframe.columns]);
 
   const handleClick = useCallback(() => {
-    if (tabulator) {
-      writeClipboard(JSON.stringify(tabulator.getData()), true);
-      addNotification({
-        content: "Copied to clipboard",
-        type: "success",
-        alert: true
-      });
-    }
-  }, [tabulator, writeClipboard, addNotification]);
+    const dataWithoutRowNum = data.map((row) => {
+      const newRow = { ...row };
+      delete newRow.rownum;
+      return newRow;
+    });
+    writeClipboard(JSON.stringify(dataWithoutRowNum), true);
+    addNotification({
+      content: "Copied to clipboard",
+      type: "success",
+      alert: true
+    });
+  }, [writeClipboard, data, addNotification]);
 
   const handleAddRow = useCallback(() => {
-    if (tabulator) {
-      tabulator.addRow(defaultRow(dataframe.columns || []));
-    }
-  }, [tabulator, dataframe.columns]);
+    const newRow = defaultRow(dataframe.columns || []);
+    onChangeRows([...data, newRow]);
+  }, [data, dataframe, onChangeRows]);
 
   const handleDeleteRows = useCallback(() => {
-    if (tabulator) {
-      tabulator.deleteRow(selectedRows);
-      setSelectedRows([]);
-    }
-  }, [tabulator, selectedRows]);
+    onChangeRows(
+      data.filter((row, index) => {
+        return !selectedRows.some(
+          (selectedRow) => selectedRow.getData().rownum === index
+        );
+      })
+    );
+    setSelectedRows([]);
+  }, [onChangeRows, data, selectedRows]);
 
   const handleResetSorting = useCallback(() => {
     if (tabulator) {
