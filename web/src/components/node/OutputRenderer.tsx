@@ -1,35 +1,22 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import {
-  DataframeRef,
-  Message,
-  Tensor,
-  TypeMetadata
-} from "../../stores/ApiTypes";
+import { DataframeRef, Message, Tensor } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
 import AssetViewer from "../assets/AssetViewer";
 import { useState } from "react";
-import reduceUnionType from "../../hooks/reduceUnionType";
 import ThreadMessageList from "./ThreadMessageList";
 import ImageList from "./ImageList";
 import { Button, ButtonGroup, Container, Typography } from "@mui/material";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { MIN_ZOOM } from "../../config/constants";
-import { useStore } from "reactflow";
 import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
-export type OutputRendererForTypeProps = {
-  value: any;
-  type: string;
-};
 
 export type OutputRendererProps = {
   value: any;
-  type: TypeMetadata;
 };
 
 const styles = (theme: any) =>
@@ -92,12 +79,20 @@ const styles = (theme: any) =>
     }
   });
 
-export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
-  value,
-  type
-}) => {
+const typeFor = (value: any): string => {
+  if (value === undefined || value === null) {
+    return "null";
+  }
+  if (typeof value === "object" && "type" in value) {
+    return value.type;
+  }
+  return typeof value;
+};
+
+const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   const [openViewer, setOpenViewer] = useState(false);
   const { writeClipboard } = useClipboard();
+  const type = typeFor(value);
 
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -198,11 +193,19 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
         if (typeof value[0] === "number") {
           return <ListTable data={value} data_type="float" editable={false} />;
         }
+        if (typeof value[0] === "object") {
+          if (value[0].type === "thread_message") {
+            return <ThreadMessageList messages={value as Message[]} />;
+          }
+          if (value[0].type === "image") {
+            return <ImageList images={value} />;
+          }
+        }
       }
       return (
         <Container>
           {value.map((v: any, i: number) => (
-            <OutputRendererForType key={i} value={v} type={typeFor(v)} />
+            <OutputRenderer key={i} value={v} />
           ))}
         </Container>
       );
@@ -210,11 +213,7 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
       return (
         <div>
           {Object.entries(value).map((v: any) => (
-            <OutputRendererForType
-              key={v[0]}
-              value={v[1]}
-              type={typeFor(v[1])}
-            />
+            <OutputRenderer key={v[0]} value={v[1]} />
           ))}
         </div>
       );
@@ -242,50 +241,6 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
           )}
         </div>
       );
-  }
-};
-
-export const typeFor = (value: any): string => {
-  if (typeof value === "object" && "type" in value) {
-    return value.type;
-  } else {
-    return typeof value;
-  }
-};
-
-const OutputRenderer: React.FC<OutputRendererProps> = ({ value, type }) => {
-  const currentZoom = useStore((state) => state.transform[2]);
-  const isMinZoom = currentZoom === MIN_ZOOM;
-
-  if (value === null || value === undefined) {
-    return null;
-  }
-  if (!isMinZoom) {
-    if (type.type === "union") {
-      const reducedType = reduceUnionType(type);
-      return <OutputRendererForType value={value} type={reducedType} />;
-    } else if (type.type === "list") {
-      const type_args = type?.type_args;
-
-      if (type_args === undefined || type_args.length === 0) {
-        throw new Error("List type must have type arguments");
-      }
-
-      switch (type_args[0].type) {
-        case "thread_message":
-          return <ThreadMessageList messages={value as Message[]} />;
-        case "image":
-          return <ImageList images={value} />;
-        default:
-          return value.map((v: any, i: number) => (
-            <OutputRendererForType key={i} value={v} type={typeFor(v)} />
-          ));
-      }
-    } else {
-      return <OutputRendererForType value={value} type={type.type} />;
-    }
-  } else {
-    <div className="property-spacer" style={{ height: "20px" }}></div>;
   }
 };
 

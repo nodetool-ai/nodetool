@@ -1,7 +1,7 @@
 import asyncio
 import json
 from pydantic import Field
-from nodetool.api.types.chat import MessageCreateRequest
+from nodetool.api.types.chat import MessageCreateRequest, TaskUpdateRequest
 from nodetool.common.chat import process_messages
 from nodetool.metadata.types import (
     FunctionModel,
@@ -10,7 +10,6 @@ from nodetool.metadata.types import (
     Task,
     ToolCall,
 )
-from nodetool.models.task import Task as TaskModel
 from nodetool.metadata.types import GPTModel
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -31,15 +30,11 @@ class Agent(BaseNode):
         default="",
         description="The user prompt",
     )
-    n_gpu_layers: int = Field(default=0, description="Number of layers on the GPU")
+    # n_gpu_layers: int = Field(default=0, description="Number of layers on the GPU")
 
     @classmethod
     def return_type(cls):
-        return {
-            "messages": list[Message],
-            "tasks": list[Task],
-            "thread_id": str,
-        }
+        return {"thread_id": str, "tasks": list[Task]}
 
     async def process(self, context: ProcessingContext):
         message = await context.create_message(
@@ -57,23 +52,21 @@ class Agent(BaseNode):
         ]
         assert message.thread_id is not None, "Thread ID is required"
 
-        messages, tasks, _ = await process_messages(
+        print(self.model)
+
+        messages, tasks, tool_calls = await process_messages(
             context=context,
             thread_id=message.thread_id,
             model=self.model,
             messages=input_messages,
-            n_gpu_layers=self.n_gpu_layers,
+            # n_gpu_layers=self.n_gpu_layers,
         )
-        return {
-            "messages": messages,
-            "tasks": tasks,
-            "thread_id": message.thread_id,
-        }
+        return {"thread_id": message.thread_id, "tasks": tasks}
 
 
 class TaskNode(BaseNode):
     """
-    LLM Task agent with access to workflows and nodes.
+    Process the next task in a thread.
     llm, language model, agent, chat, conversation
     """
 
@@ -81,14 +74,14 @@ class TaskNode(BaseNode):
         default=FunctionModel(name=GPTModel.GPT4.value),
         description="The language model to use.",
     )
-    thread_id: str = Field(
-        default="",
-        description="The thread ID of the conversation.",
+    task: Task = Field(
+        default=Task(),
+        description="The task to process.",
     )
-    tasks: list[Task] = Field(
-        default=[],
-        description="The tasks to be executed by this agent.",
-    )
+    # tasks: list[Task] = Field(
+    #     default=[],
+    #     description="The tasks to be executed by this agent.",
+    # )
     # workflows: list[WorkflowRef] = Field(
     #     default=[],
     #     description="The workflows to to use as tools.",
@@ -102,12 +95,12 @@ class TaskNode(BaseNode):
         raise NotImplementedError
 
     async def process_task(
-        self, context: ProcessingContext, task: TaskModel, **kwargs
+        self, context: ProcessingContext, task: Task, **kwargs
     ) -> tuple[list[Message], list[ToolCall]]:
         messages, _, tool_calls = await process_messages(
             context=context,
             model_name=self.model.name,
-            thread_id=self.thread_id,
+            thread_id=task.thread_id,
             can_create_tasks=False,
             # workflow_ids=[w.id for w in self.workflows],
             node_types=[n.id for n in self.nodes],
@@ -130,57 +123,32 @@ class TaskNode(BaseNode):
         return messages, tool_calls
 
 
-class TextTasks(TaskNode):
+class ProcessTextTask(TaskNode):
     """
-    LLM Text Task agent with access to workflows and nodes.
+    Process the next text generation task in a thread.
     llm, language model, agent, chat, conversation
     """
-
-    @classmethod
-    def return_type(cls):
-        return {
-            "texts": list[str],
-            "messages": list[Message],
-        }
 
     def get_system_prompt(self):
-        return "Generate text based on the instructions below."
+        return "Generate text based on the instructions below. Use tools if necessary."
 
-    async def process(self, context: ProcessingContext):
-        async def process_task(task: Task):
-            t = TaskModel.find(context.user_id, task.id)
-            if t and t.task_type == "generate_text":
-                messages, tool_calls = await self.process_task(context, t)
-                if len(tool_calls) > 0:
-                    res = tool_calls[-1].function_response
-                    t.result = res["output"]
-                    t.save()
-                else:
-                    t.result = messages[-1].content
-                    t.save()
-                return messages, t.result or ""
-            else:
-                return [], ""
+    async def process(self, context: ProcessingContext) -> str | None:
+        messages, tool_calls = await self.process_task(context, self.task)
 
-        res = await asyncio.gather(*[process_task(task) for task in self.tasks])
-        return {
-            "texts": [r[1] for r in res],
-            "messages": [m for r in res for m in r[0]],
-        }
+        if len(tool_calls) > 0:
+            result = tool_calls[-1].function_response["output"]
+        else:
+            result = str(messages[-1].content)
+
+        await context.update_task(self.task.id, TaskUpdateRequest(result=result))
+        return result
 
 
-class ImageTask(TaskNode):
+class ProcessImageTask(TaskNode):
     """
-    LLM Image Task agent with access to workflows and nodes.
+    Process the next image generation task in a thread.
     llm, language model, agent, chat, conversation
     """
-
-    @classmethod
-    def return_type(cls):
-        return {
-            "images": list[ImageRef],
-            "messages": list[Message],
-        }
 
     def get_system_prompt(self):
         return """
@@ -189,32 +157,19 @@ class ImageTask(TaskNode):
         Perform exactly one tool call.
         """
 
-    async def process(self, context: ProcessingContext):
-        async def process_task(task: Task):
-            try:
-                t = TaskModel.find(context.user_id, task.id)
-                if t and t.task_type == "generate_image":
-                    messages, tool_calls = await self.process_task(context, t)
-                    res = tool_calls[-1].function_response
-                    assert isinstance(res, dict)
-                    assert "output" in res
-                    if isinstance(res["output"], ImageRef):
-                        t.result = res["output"].model_dump_json()
-                        t.save()
-                        return messages, res["output"]
-                    else:
-                        t.result = json.dumps(res["output"])
-                        t.save()
-                        return messages, ImageRef(**res["output"])
-                else:
-                    return [], ImageRef()
-            except Exception as e:
-                print(e)
-                return [], ImageRef()
+    async def process(self, context: ProcessingContext) -> ImageRef | None:
+        messages, tool_calls = await self.process_task(context, self.task)
+        res = tool_calls[-1].function_response
 
-        res = await asyncio.gather(*[process_task(task) for task in self.tasks])
+        assert isinstance(res, dict)
+        assert "output" in res
 
-        return {
-            "images": [r[1] for r in res],
-            "messages": [m for r in res for m in r[0]],
-        }
+        if isinstance(res["output"], ImageRef):
+            result = res["output"]
+        else:
+            result = ImageRef(**res["output"])
+
+        await context.update_task(
+            self.task.id, TaskUpdateRequest(result=result.model_dump_json())
+        )
+        return result

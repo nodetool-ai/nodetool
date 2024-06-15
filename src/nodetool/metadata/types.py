@@ -150,19 +150,17 @@ class GPTModel(str, enum.Enum):
     GPT4 = "gpt-4o"
 
 
-class LanguageModel(ModelFile):
-    type: Literal["language_model"] = "language_model"
-
-
-class FunctionModel(LanguageModel):
+class FunctionModel(BaseType):
     type: Literal["function_model"] = "function_model"
+    name: str = ""
     repo_id: str = ""
     filename: str = ""
     local_path: Path | None = None
 
 
-class LlamaModel(LanguageModel):
+class LlamaModel(BaseType):
     type: Literal["llama_model"] = "llama_model"
+    name: str = ""
     repo_id: str = ""
     filename: str = ""
     local_path: Path | None = None
@@ -428,20 +426,6 @@ def is_output_type(type):
         return issubclass(type, OutputType)
     except:
         return False
-
-
-ModelFileEnums = (
-    "comfy.checkpoint_file",
-    "comfy.vae_file",
-    "comfy.clip_file",
-    "comfy.unclip_file",
-    "comfy.gligen_file",
-    "comfy.clip_vision_file",
-    "comfy.control_net_file",
-    "comfy.upscale_model_file",
-    "comfy.lora_file",
-    "comfy.ip_adapter_file",
-)
 
 
 class TypeMetadata(BaseModel):

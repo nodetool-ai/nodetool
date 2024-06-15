@@ -95,14 +95,20 @@ export const isConnectable = (
     return true;
   }
 
+  if (source.type === "union") {
+    return source.type_args
+      ? source.type_args.every((t) => isConnectable(t, target))
+      : false;
+  }
+
+  if (target.type === "union") {
+    return target.type_args
+      ? target.type_args.some((t) => isConnectable(source, t))
+      : false;
+  }
+
   switch (source.type) {
     case "union":
-      // A union type is connectable to another union type if all of its type
-      // arguments are connectable to at least one of the type arguments of the
-      // other union type.
-      return source.type_args
-        ? source.type_args.some((t) => isConnectable(t, target))
-        : false;
     case "enum":
       return target.type === "enum" && isEnumConnectable(source, target);
     case "list":
@@ -130,11 +136,6 @@ export const isConnectable = (
         return false;
       }
     default:
-      if (target.type === "union") {
-        return target.type_args
-          ? target.type_args.some((t) => isConnectable(source, t))
-          : false;
-      }
       return equalType(source, target);
   }
 };
