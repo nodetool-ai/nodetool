@@ -299,6 +299,13 @@ export const useNodeStore = create<NodeStore>()(
          * @param id The id of the node to delete.
          */
         deleteNode: (id: string) => {
+          const focusedElement = document.activeElement as HTMLElement;
+          if (
+            focusedElement.classList.contains("MuiInput-input") ||
+            focusedElement.tagName === "TEXTAREA"
+          ) {
+            return;
+          }
           const nodes: Node<NodeData>[] = get()
             .nodes.filter((node) => node.id !== id)
             .map((node) => {
@@ -611,7 +618,7 @@ export const useNodeStore = create<NodeStore>()(
             workflowIsDirty: true
           });
 
-          console.log(get().nodes);
+          devLog("updateNodeProperties", get().nodes);
         },
 
         /**

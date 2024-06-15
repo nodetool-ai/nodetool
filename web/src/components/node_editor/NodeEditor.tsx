@@ -503,7 +503,7 @@ const NodeEditor: React.FC<unknown> = () => {
               onDoubleClick={handleDoubleClick}
               proOptions={proOptions}
               onInit={handleOnInit}
-              deleteKeyCode={["Delete"]}
+              deleteKeyCode={["Delete", "Backspace"]}
             >
               <Background
                 id="1"
