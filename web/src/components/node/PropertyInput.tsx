@@ -26,6 +26,7 @@ import NodeListProperty from "../properties/NodeListProperty";
 import WorkflowListProperty from "../properties/WorkflowListProperty";
 import NonEditableProperty from "../properties/NonEditableProperty";
 import DataframeProperty from "../properties/DataframeProperty";
+import DictProperty from "../properties/DictProperty";
 
 export type PropertyProps = {
   property: Property;
@@ -68,6 +69,7 @@ const componentTypeMap: Record<string, (props: PropertyProps) => JSX.Element> =
     enum: EnumProperty,
     bool: BoolProperty,
     list: ListProperty,
+    dict: DictProperty,
     thread: NonEditableProperty,
     thread_message: ThreadMessageProperty,
     file: FileProperty,
