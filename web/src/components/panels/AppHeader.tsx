@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 import { useCallback, useState } from "react";
 import { useReactFlow } from "reactflow";
@@ -38,9 +39,10 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { Workflow } from "../../stores/ApiTypes";
-import Logo from "../Logo";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
+// components
+import Logo from "../Logo";
+import Welcome from "../content/Welcome/Welcome";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -179,7 +181,6 @@ function AppHeader() {
   );
   const lastWorkflow = useNodeStore((state) => state.lastWorkflow);
   const statusMessage = useWorkflowRunnner((state) => state.statusMessage);
-  const state = useWorkflowRunnner((state) => state.state);
 
   const onWorkflowSaved = useCallback(
     (workflow: Workflow) => {
@@ -196,40 +197,46 @@ function AppHeader() {
   useHotkeys("Meta+s", () => saveWorkflow().then(onWorkflowSaved));
   useHotkeys("Alt+h", () => handleOpenHelp());
   useHotkeys("Meta+h", () => handleOpenHelp());
+  useHotkeys("Alt+w", () => handleOpenWelcome());
+  useHotkeys("Meta+w", () => handleOpenWelcome());
   useHotkeys("Ctrl+Space", () => handleOpenNodeMenu());
 
   // cmd menu
-  const fitScreen = () => {
-    reactFlowInstance.fitView({
-      padding: 0.6
-    });
-  };
+  // const fitScreen = () => {
+  //   reactFlowInstance.fitView({
+  //     padding: 0.6
+  //   });
+  // };
 
-  const [helpOpen, sethelpOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(true);
 
   // open help popover
   const handleOpenHelp = () => {
-    sethelpOpen(true);
+    setHelpOpen(true);
   };
 
   // close help popover
   const handleCloseHelp = () => {
-    sethelpOpen(false);
+    setHelpOpen(false);
   };
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const openAppIconMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
+  // open welcome popover
+  const handleOpenWelcome = () => {
+    setWelcomeOpen(true);
   };
 
-  const closeAppIconMenu = () => {
-    setAnchorEl(null);
+  // close welcome popover
+  const handleCloseWelcome = () => {
+    setWelcomeOpen(false);
   };
 
+  // node menu
   const handleOpenNodeMenu = () => {
     openNodeMenu(400, 200);
   };
 
+  // auto layout
   const handleAutoLayout = () => {
     autoLayout();
   };
@@ -244,24 +251,51 @@ function AppHeader() {
     <div css={styles(ThemeNodetool, buttonAppearance)} className="app-header">
       <AppBar position="static" className="app-header">
         <Toolbar variant="dense">
-          <Button
-            className="logo"
-            onClick={openAppIconMenu}
-            sx={{
-              lineHeight: "1em",
-              margin: 0,
-              display: { xs: "none", sm: "block" }
+          <Tooltip
+            enterDelay={TOOLTIP_DELAY}
+            title={
+              <div style={{ textAlign: "center" }}>
+                <Typography variant="inherit">NodeTool</Typography>
+                <Typography variant="inherit">[ALT+W | OPTION+W]</Typography>
+              </div>
+            }
+          >
+            <Button
+              className="logo"
+              onClick={(e) => {
+                e.preventDefault();
+                handleOpenWelcome();
+              }}
+              sx={{
+                lineHeight: "1em",
+                margin: 0,
+                display: { xs: "none", sm: "block" }
+              }}
+            >
+              <Logo
+                width="40px"
+                height="40px"
+                fontSize="14px"
+                borderRadius="20px"
+                small={true}
+              />
+            </Button>
+          </Tooltip>
+          <Popover
+            open={welcomeOpen}
+            onClose={handleCloseWelcome}
+            anchorReference="none"
+            style={{
+              position: "fixed",
+              width: "100%",
+              height: "100%",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)"
             }}
           >
-            <Logo
-              width="40px"
-              height="40px"
-              fontSize="14px"
-              borderRadius="20px"
-              small={true}
-            />
-          </Button>
-          <AppIconMenu anchorEl={anchorEl} handleClose={closeAppIconMenu} />
+            <Welcome />
+          </Popover>
 
           <Box sx={{ flexGrow: 0.02 }} />
           <Box className="nav-buttons">
