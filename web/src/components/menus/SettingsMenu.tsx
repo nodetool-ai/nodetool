@@ -321,7 +321,7 @@ function SettingsMenu() {
 
           <div className="settings-item">
             <FormControl>
-              <InputLabel htmlFor={id}>Timeformat</InputLabel>
+              <InputLabel htmlFor={id}>Time Format</InputLabel>
               <Select
                 id={id}
                 labelId={id}

@@ -47,6 +47,7 @@ const welcomeStyles = (theme: any) =>
     },
     ".body": {
       marginTop: "1em",
+      maxWidth: "650px",
       color: theme.palette.c_white,
       fontSize: theme.fontSizeNormal,
       fontFamily: theme.fontFamily1,
@@ -102,8 +103,9 @@ const Welcome = () => {
 
         <Typography className="body">
           NodeTool lets you create workflows by combining nodes that perform
-          various tasks. It&apos;s designed to be simple yet powerful and
-          flexible.
+          various tasks.
+          <br />
+          It&apos;s designed to be simple yet powerful and flexible.
           <br />
           Combine Machine Learning models from sources like OpenAI, HuggingFace,
           Replicate, and more.
