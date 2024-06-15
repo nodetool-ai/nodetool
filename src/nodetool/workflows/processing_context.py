@@ -18,6 +18,7 @@ from nodetool.api.types.chat import (
     MessageCreateRequest,
     TaskCreateRequest,
     TaskList,
+    TaskUpdateRequest,
 )
 from nodetool.api.types.prediction import (
     Prediction,
@@ -495,6 +496,20 @@ class ProcessingContext:
             Task: The created task.
         """
         res = await self.api_client.post("api/tasks/", json=task.model_dump())
+        return Task(**res.json())
+
+    async def update_task(self, task_id: str, task: TaskUpdateRequest):
+        """
+        Updates a task.
+
+        Args:
+            task_id (str): The ID of the task to update.
+            task (TaskUpdateRequest): The task update request.
+
+        Returns:
+            Task: The updated task.
+        """
+        res = await self.api_client.put(f"api/tasks/{task_id}", json=task.model_dump())
         return Task(**res.json())
 
     async def get_tasks(self, thread_id: str):

@@ -1,5 +1,5 @@
 from enum import Enum
-from nodetool.metadata.types import NameToType, ModelFileEnums
+from nodetool.metadata.types import NameToType
 
 from nodetool.metadata.types import TypeMetadata
 from nodetool.metadata.types import Tensor
@@ -28,6 +28,9 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
 
     if type_meta.is_comfy_type():
         return True
+
+    if python_type == dict and "type" in value:
+        return value["type"] == type_meta.type
 
     if type_meta.type == "list" and python_type == list:
         t = type_meta.type_args[0]
@@ -62,9 +65,5 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
             return value in type_meta.values
         else:
             return False
-    if type_meta.type in ModelFileEnums:
-        if isinstance(value, dict):
-            value = value.get("name", "")
-        return isinstance(value, str)
 
     return python_type == NameToType[type_meta.type]

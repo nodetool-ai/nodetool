@@ -171,8 +171,6 @@ const DictTable: React.FC<DictTableProps> = ({
     onDataChange(newData);
   }, [data, onDataChange]);
 
-  console.log(selectedRows);
-
   const removeSelectedRows = useCallback(() => {
     if (!onDataChange) return;
     const newData = Object.keys(data).reduce((acc, key) => {

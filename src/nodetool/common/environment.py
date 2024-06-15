@@ -771,30 +771,12 @@ class Environment(object):
         ]
 
     @classmethod
-    def get_language_models(cls):
-        """
-        Find all language models.
-        """
-        from nodetool.metadata.types import LanguageModel, GPTModel
-
-        return [
-            LanguageModel(
-                name=GPTModel.GPT3.value,
-            ),
-            LanguageModel(
-                name=GPTModel.GPT4.value,
-            ),
-        ] + [LanguageModel(**model.model_dump()) for model in cls.get_llama_models()]
-
-    @classmethod
     def get_model_files(cls, folder: str):
         """
         Get the files in a model folder.
         """
 
-        if folder == "language_model":
-            return [m.name for m in cls.get_language_models()]
-        elif folder == "function_model":
+        if folder == "function_model":
             return [m.name for m in cls.get_function_models()]
         elif folder == "llama_model":
             return [m.name for m in cls.get_llama_models()]

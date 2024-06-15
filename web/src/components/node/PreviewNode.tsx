@@ -8,7 +8,7 @@ import { NodeData } from "../../stores/NodeData";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import React from "react";
 import { NodeHeader } from "../node/NodeHeader";
-import OutputRendererForType from "./OutputRenderer";
+import OutputRenderer from "./OutputRenderer";
 import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "reactflow";
 
@@ -98,22 +98,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
   const getResult = useResultsStore((state) => state.getResult);
   const result = getResult(props.data.workflow_id, props.id);
 
-  const getType = (value: any): string => {
-    if (value === undefined) {
-      return "null";
-    }
-    if (value.type) {
-      return value.type;
-    }
-    if (Array.isArray(value)) {
-      return "array";
-    }
-    if (typeof value === "object" && "type" in value) {
-      return value.type;
-    }
-    return typeof value;
-  };
-
   return (
     <Container css={styles}>
       <Handle
@@ -144,10 +128,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
         position={Position.Left}
         isConnectable={true}
       />
-      <OutputRendererForType
-        value={result?.output ?? {}}
-        type={{ type: getType(result?.output ?? {}) }}
-      />
+      <OutputRenderer value={result?.output ?? {}} />
     </Container>
   );
 });

@@ -17,6 +17,10 @@ dist/
 package/
 .ipynb_checkpoints
 
+.bin
+.vite
+node_modules
+
 # Cache
 .cache
 .eslintcache
