@@ -10,7 +10,6 @@ import {
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
-import DictTable from "./DictTable";
 import AssetViewer from "../assets/AssetViewer";
 import { useState } from "react";
 import reduceUnionType from "../../hooks/reduceUnionType";
@@ -22,6 +21,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { MIN_ZOOM } from "../../config/constants";
 import { useStore } from "reactflow";
 import ListTable from "./DataTable/ListTable";
+import DictTable from "./DataTable/DictTable";
 export type OutputRendererForTypeProps = {
   value: any;
   type: string;
@@ -180,7 +180,16 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
         </div>
       );
     case "object":
-      return <DictTable data={value} />;
+      if (Object.values(value).length === 0) {
+        const val = Object.values(value);
+        if (typeof val[0] === "string") {
+          return <DictTable data={value} data_type="string" editable={false} />;
+        }
+        if (typeof val[0] === "number") {
+          return <DictTable data={value} data_type="float" editable={false} />;
+        }
+      }
+      return <DictTable data={value} editable={false} data_type="string" />;
     case "array":
       if (value.length > 0) {
         if (typeof value[0] === "string") {
