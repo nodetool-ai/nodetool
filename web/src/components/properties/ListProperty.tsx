@@ -1,32 +1,81 @@
-import PropertyLabel from "../node/PropertyLabel";
-import ListItemProperty from "./ListItemProperty";
 import { PropertyProps } from "../node/PropertyInput";
+import ListTable, { ListDataType } from "../node/DataTable/ListTable";
+import { useCallback, useState } from "react";
+import {
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  SelectChangeEvent
+} from "@mui/material";
+
+const detectTypeFromList = (list: any[]) => {
+  if (list.length === 0) {
+    return "string";
+  }
+  const first = list[0];
+  if (typeof first === "number") {
+    if (Number.isInteger(first)) {
+      return "int";
+    }
+    return "float";
+  } else if (typeof first === "string") {
+    return "string";
+  } else if (typeof first === "object") {
+    return "string";
+  }
+  return "string";
+};
 
 export default function ListProperty(props: PropertyProps) {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
-  const type = props.property.type.type_args?.[0] || {
-    type: "none",
-    type_args: []
-  };
+  const dataTypes = ["int", "string", "datetime", "float"];
+  const [dataType, setDataType] = useState<ListDataType>(
+    detectTypeFromList(props.value)
+  );
+
+  const handleDataTypeChange = useCallback(
+    (event: SelectChangeEvent<ListDataType>) => {
+      setDataType(event.target.value as ListDataType);
+    },
+    []
+  );
+
   return (
     <>
-      <PropertyLabel
-        name={props.property.name}
-        description={props.property.description}
-        id={id} />
-      <ul className="list-view">
-        {props.value?.map((item: any, i: number) => {
-          let itemType = type;
-          if (typeof item === "object" && "type" in item) {
-            itemType = {
-              type: item.type
-            };
-          }
-          return (
-            <ListItemProperty type={itemType} value={item} key={i} id={id} />
-          );
-        })}
-      </ul>
+      <FormControl fullWidth style={{ marginBottom: "8px" }}>
+        <InputLabel id={id}>Data Type</InputLabel>
+        <Select
+          labelId={id}
+          value={dataType}
+          onChange={handleDataTypeChange}
+          variant="standard"
+          className="mui-select nodrag"
+          disableUnderline={true}
+          MenuProps={{
+            anchorOrigin: {
+              vertical: "bottom",
+              horizontal: "left"
+            },
+            transformOrigin: {
+              vertical: "top",
+              horizontal: "left"
+            }
+          }}
+        >
+          {dataTypes.map((dataType) => (
+            <MenuItem key={dataType} value={dataType}>
+              {dataType}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <ListTable
+        data={props.value}
+        onDataChange={props.onChange}
+        editable={true}
+        data_type={dataType}
+      />
     </>
   );
 }

@@ -2,11 +2,33 @@ import sys
 import anthropic
 import os
 import dotenv
+import argparse
+
+"""
+This script generates code using the Anthropic model.
+It takes a system prompt and a list of files as input.
+The content of the files is used to generate the code.
+
+Usage:
+    python ask.py "<system_prompt>" <file1> <file2> ...
+
+Examples:
+    python ask.py "Generate code to implement a TextField component" web/src/components/
+    python ask.py "Generate code to implement a task api" src/api/
+
+The system prompt should be a short description of the code you want to generate.
+
+The files should be the paths to the files you want to include in the generation.
+
+The generated code will be printed to the console.
+
+Note: You need to have the `ANTHROPIC_API_KEY` environment variable set.
+"""
 
 dotenv.load_dotenv()
 
 
-def get_files(path: str, extensions: list[str] = [".py"]):
+def get_files(path: str, extensions: list[str] = [".py", ".js", ".ts", ".jsx", ".tsx"]):
     """
     Recursively retrieves all files with specified extensions in the given path.
 
@@ -17,7 +39,8 @@ def get_files(path: str, extensions: list[str] = [".py"]):
     Returns:
         list[str]: A list of file paths matching the specified extensions.
     """
-    if os.path.isfile(path) and os.path.splitext(path)[1] in extensions:
+    ext = os.path.splitext(path)[1]
+    if os.path.isfile(path) and ext in extensions:
         return [path]
     files = []
     if os.path.isdir(path):
@@ -26,7 +49,9 @@ def get_files(path: str, extensions: list[str] = [".py"]):
     return files
 
 
-def get_content(paths: list[str], extensions: list[str] = [".py"]):
+def get_content(
+    paths: list[str], extensions: list[str] = [".py", ".js", ".ts", ".jsx", ".tsx"]
+):
     """
     Retrieves the content of files with specified extensions in the given paths.
 
@@ -47,11 +72,21 @@ def get_content(paths: list[str], extensions: list[str] = [".py"]):
     return content
 
 
-system_prompt = sys.argv[1]
-files = sys.argv[2:]
-combined = get_content(files)
+parser = argparse.ArgumentParser(description="Generate text using Anthropic model")
 
-print(system_prompt)
+parser.add_argument("prompt", type=str, help="The system prompt for generating text")
+parser.add_argument(
+    "files", nargs="+", type=str, help="The files to include for generating text"
+)
+
+args = parser.parse_args()
+
+system_prompt = args.prompt
+files = args.files
+
+print(files)
+
+combined = get_content(files)
 
 print("Number of characters in the combined content:", len(combined))
 
@@ -59,7 +94,7 @@ client = anthropic.Anthropic()
 message = client.messages.create(
     model="claude-3-haiku-20240307",
     max_tokens=4000,
-    temperature=0.7,
+    temperature=1.0,
     system=system_prompt,
     messages=[
         {

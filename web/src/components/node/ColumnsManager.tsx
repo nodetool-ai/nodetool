@@ -149,10 +149,22 @@ const Column = memo(
 
       <div className="item-right">
         <Select
-          className="select"
           labelId={`${field}-${index}-type`}
           value={field.data_type}
           onChange={(e) => handleDataTypeChange(index, e.target.value)}
+          variant="standard"
+          className="mui-select nodrag"
+          disableUnderline={true}
+          MenuProps={{
+            anchorOrigin: {
+              vertical: "bottom",
+              horizontal: "left"
+            },
+            transformOrigin: {
+              vertical: "top",
+              horizontal: "left"
+            }
+          }}
         >
           {validDataTypes.map((type) => (
             <MenuItem key={type} value={type}>

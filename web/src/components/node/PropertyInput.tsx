@@ -51,6 +51,11 @@ function InputProperty(props: PropertyProps) {
   );
 }
 
+/**
+ * Map of property type to component.
+ *
+ * The key is the property type, and the value is the component that renders the property.
+ */
 const componentTypeMap: Record<string, (props: PropertyProps) => JSX.Element> =
   {
     str: StringProperty,
@@ -85,6 +90,14 @@ const componentTypeMap: Record<string, (props: PropertyProps) => JSX.Element> =
     "comfy.lora_file": ModelProperty
   };
 
+/**
+ * Get the component for the property.
+ *
+ * @param property The property.
+ * @returns The component for the property.
+ * @returns null if the property type is not supported.
+ * @returns InputProperty if the property type is supported.
+ */
 function componentFor(
   property: Property
 ): React.ComponentType<PropertyProps> | null {
@@ -116,6 +129,9 @@ function componentFor(
   }
 }
 
+/**
+ * Properties for the PropertyInput component.
+ */
 export type PropertyInputProps = {
   id: string;
   nodeType: string;

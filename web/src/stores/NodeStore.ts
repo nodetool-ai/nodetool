@@ -610,6 +610,8 @@ export const useNodeStore = create<NodeStore>()(
             ),
             workflowIsDirty: true
           });
+
+          console.log(get().nodes);
         },
 
         /**

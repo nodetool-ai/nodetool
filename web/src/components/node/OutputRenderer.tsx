@@ -21,6 +21,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { MIN_ZOOM } from "../../config/constants";
 import { useStore } from "reactflow";
+import ListTable from "./DataTable/ListTable";
 export type OutputRendererForTypeProps = {
   value: any;
   type: string;
@@ -171,7 +172,7 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
     case "video":
       return <video src={value?.uri} controls style={{ width: "100%" }} />;
     case "dataframe":
-      return <DataTable dataframe={value as DataframeRef} />;
+      return <DataTable dataframe={value as DataframeRef} editable={false} />;
     case "tensor":
       return (
         <div className="tensor nodrag nowheel">
@@ -181,6 +182,14 @@ export const OutputRendererForType: React.FC<OutputRendererForTypeProps> = ({
     case "object":
       return <DictTable data={value} />;
     case "array":
+      if (value.length > 0) {
+        if (typeof value[0] === "string") {
+          return <ListTable data={value} data_type="string" editable={false} />;
+        }
+        if (typeof value[0] === "number") {
+          return <ListTable data={value} data_type="float" editable={false} />;
+        }
+      }
       return (
         <Container>
           {value.map((v: any, i: number) => (

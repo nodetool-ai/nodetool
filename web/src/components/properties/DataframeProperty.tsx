@@ -67,14 +67,6 @@ export default function DataframeProperty({
     [value, onChange]
   );
 
-  const addRow = useCallback(() => {
-    const newRow = Array(value.columns?.length).fill("");
-    onChange({
-      ...value,
-      data: (value.data || []).concat([newRow])
-    });
-  }, [onChange, value]);
-
   const addColumn = useCallback(() => {
     const columns = value.columns || [];
     let newColumnName = "Column 1";
@@ -100,16 +92,13 @@ export default function DataframeProperty({
           <Button onClick={addColumn}>
             <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column
           </Button>
-          <Button onClick={addRow}>
-            <TableRowsIcon /> Add Row
-          </Button>
         </ButtonGroup>
         <ColumnsManager
           columns={value.columns || []}
           onChange={onChangeColumns}
           allData={value.data || []}
         />
-        <DataTable dataframe={value} onChange={onCellChange} />
+        <DataTable dataframe={value} onChange={onCellChange} editable={true} />
       </div>
     );
   } else {

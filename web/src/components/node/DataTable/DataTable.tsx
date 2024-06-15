@@ -18,7 +18,7 @@ import {
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
-import { DataframeRef } from "../../../stores/ApiTypes";
+import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import {
@@ -30,17 +30,49 @@ import {
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
 
-export const datetimeFormatter: Formatter = (
-  cell,
-  formatterParams,
-  onRendered
-) => {
+export const datetimeFormatter: Formatter = (cell) => {
   const value = cell.getValue();
   const date = typeof value === "string" ? parseISO(value) : new Date(value);
   if (isValid(date)) {
     return format(date, "PPpp");
   }
   return value;
+};
+
+const coerceValue = (value: any, column: ColumnDef) => {
+  if (column.data_type === "int") {
+    return parseInt(value);
+  } else if (column.data_type === "float") {
+    return parseFloat(value);
+  } else if (column.data_type === "datetime") {
+    return value;
+  }
+  return value;
+};
+
+const coerceRow = (row: Record<string, any>, columns: ColumnDef[]) => {
+  return columns.reduce((acc, col) => {
+    acc[col.name] = coerceValue(row[col.name], col);
+    return acc;
+  }, {} as Record<string, any>);
+};
+
+const defaultValue = (column: ColumnDef) => {
+  if (column.data_type === "int") {
+    return 0;
+  } else if (column.data_type === "float") {
+    return 0.0;
+  } else if (column.data_type === "datetime") {
+    return "";
+  }
+  return "";
+};
+
+const defaultRow = (columns: ColumnDef[]) => {
+  return columns.reduce((acc, col) => {
+    acc[col.name] = defaultValue(col);
+    return acc;
+  }, {} as Record<string, any>);
 };
 
 const styles = (theme: any) =>
@@ -112,10 +144,11 @@ const styles = (theme: any) =>
     ".table-actions": {
       display: "flex",
       width: "100%",
-      gap: ".5em",
+      gap: "1px",
       justifyContent: "flex-start",
       alignItems: "flex-start",
-      height: "2em"
+      height: "2em",
+      padding: "0.5em 0 0 0"
     },
     ".table-actions .disabled": {
       opacity: 0.5
@@ -199,10 +232,15 @@ const styles = (theme: any) =>
 
 interface DataTableProps {
   dataframe: DataframeRef;
+  editable?: boolean;
   onChange?: (data: DataframeRef) => void;
 }
 
-const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
+const DataTable: React.FC<DataTableProps> = ({
+  dataframe,
+  onChange,
+  editable
+}) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
   const { writeClipboard } = useClipboard();
@@ -270,6 +308,7 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
         title: col.name,
         field: col.name,
         headerTooltip: col.data_type,
+        editable: editable,
         formatter: col.data_type === "datetime" ? datetimeFormatter : undefined,
         data_type: col.data_type,
         editor:
@@ -293,20 +332,18 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
       }))
     ];
     return cols;
-  }, [dataframe.columns, showRowNumbers, showSelect]);
+  }, [dataframe.columns, editable, showRowNumbers, showSelect]);
 
   const onCellEdited = useCallback(
     (cell: CellComponent) => {
+      const rownum = cell.getData().rownum;
       const newData = data.map((row, index) => {
         if (!row) {
           return {};
         }
-        const newRow =
-          dataframe.columns?.reduce((acc, col) => {
-            acc[col.name] = row[col.name];
-            return acc;
-          }, {} as Record<string, any>) || {};
-        if (index === cell.getRow().getIndex()) {
+        const newRow = { ...row };
+
+        if (index === rownum) {
           newRow[cell.getField()] = cell.getValue();
         }
         return newRow;
@@ -328,7 +365,11 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "300px",
-      data: data,
+      data: data.map((value, index) => {
+        const row = coerceRow(value, dataframe.columns || []);
+        row.rownum = index;
+        return row;
+      }),
       columns: columns,
       columnDefaults: {
         headerSort: true,
@@ -352,9 +393,9 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
     return () => {
       tabulatorInstance.destroy();
     };
-  }, [data, columns, onCellEdited]);
+  }, [data, columns, onCellEdited, dataframe.columns]);
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     if (tabulator) {
       writeClipboard(JSON.stringify(tabulator.getData()), true);
       addNotification({
@@ -363,20 +404,26 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
         alert: true
       });
     }
-  };
+  }, [tabulator, writeClipboard, addNotification]);
 
-  const handleDeleteRows = () => {
+  const handleAddRow = useCallback(() => {
+    if (tabulator) {
+      tabulator.addRow(defaultRow(dataframe.columns || []));
+    }
+  }, [tabulator, dataframe.columns]);
+
+  const handleDeleteRows = useCallback(() => {
     if (tabulator) {
       tabulator.deleteRow(selectedRows);
       setSelectedRows([]);
     }
-  };
+  }, [tabulator, selectedRows]);
 
-  const handleResetSorting = () => {
+  const handleResetSorting = useCallback(() => {
     if (tabulator) {
       tabulator.clearSort();
     }
-  };
+  }, [tabulator]);
 
   return (
     <div className="datatable nowheel nodrag" css={styles}>
@@ -393,19 +440,29 @@ const DataTable: React.FC<DataTableProps> = ({ dataframe, onChange }) => {
           </Button>
         </Tooltip>
 
-        <Tooltip title="Delete selected rows">
-          <Button
-            className={selectedRows.length > 0 ? "" : " disabled"}
-            variant="outlined"
-            onClick={() => {
-              if (tabulator?.getSelectedRows().length) {
-                handleDeleteRows();
-              }
-            }}
-          >
-            Delete Rows
-          </Button>
-        </Tooltip>
+        {editable && (
+          <>
+            <Tooltip title="Add new row">
+              <Button variant="outlined" onClick={handleAddRow}>
+                Add Row
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="Delete selected rows">
+              <Button
+                className={selectedRows.length > 0 ? "" : " disabled"}
+                variant="outlined"
+                onClick={() => {
+                  if (tabulator?.getSelectedRows().length) {
+                    handleDeleteRows();
+                  }
+                }}
+              >
+                Delete Rows
+              </Button>
+            </Tooltip>
+          </>
+        )}
 
         <Tooltip title="Show Select column">
           <ToggleButtonGroup
