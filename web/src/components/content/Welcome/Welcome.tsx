@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Typography, Button, Tabs, Tab, Box } from "@mui/material";
+import { Typography, Tabs, Tab, Box } from "@mui/material";
 import { useState } from "react";
+import CloseButton from "../../buttons/CloseButton";
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -82,7 +83,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const Welcome = () => {
+const Welcome = ({ handleClose }: { handleClose: () => void }) => {
   const [value, setValue] = useState(0);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -91,6 +92,7 @@ const Welcome = () => {
 
   return (
     <div className="welcome" css={welcomeStyles}>
+      <CloseButton onClick={handleClose} />
       <Typography variant="h4">NodeTool</Typography>
       <Tabs className="welcome-tabs" value={value} onChange={handleChange}>
         <Tab label="Overview" />

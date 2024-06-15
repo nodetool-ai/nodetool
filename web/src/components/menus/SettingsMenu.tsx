@@ -21,20 +21,51 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useNavigate } from "react-router";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
+import CloseButton from "../buttons/CloseButton";
 
 const styles = (theme: any) =>
   css({
     ".MuiPaper-root": {
       backgroundColor: theme.palette.c_gray0,
       border: `2px solid ${theme.palette.c_gray3}`,
-      borderRadius: "1em"
+      borderRadius: "1em",
+      height: "80vh",
+      overflow: "hidden"
+    },
+    ".settings": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      gap: "1em",
+      backgroundColor: theme.palette.c_gray0,
+      width: "100%",
+      height: "100%",
+      padding: ".5em 1em"
+    },
+    ".top": {
+      height: "50px",
+      padding: "0.5em 1em",
+      borderBottom: "1px solid" + theme.palette.c_gray0,
+      backgroundColor: "transparent"
+    },
+    ".bottom": {
+      height: "40px",
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+      padding: "0.25em 1.5em",
+      borderTop: "1px solid" + theme.palette.c_gray0
     },
     ".settings-menu": {
+      flexGrow: 1,
       backgroundColor: theme.palette.c_gray1,
       width: "60vw",
+      height: "70vh",
+      overflowY: "auto",
       minWidth: "400px",
       maxWidth: "800px",
-      padding: "0 1.5em",
+      padding: "1em",
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
@@ -98,18 +129,6 @@ const styles = (theme: any) =>
         margin: "0.25em 0 0",
         listStyleType: "disc"
       }
-    },
-    ".bottom": {
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      position: "sticky",
-      backgroundColor: theme.palette.c_gray1,
-      width: "100%",
-      height: "100px",
-      bottom: "0",
-      zIndex: 100
     }
   });
 
@@ -142,7 +161,7 @@ function SettingsMenu() {
   const id = open ? "docs" : undefined;
 
   return (
-    <>
+    <div className="settings">
       <Tooltip title="Settings" enterDelay={TOOLTIP_DELAY}>
         <Button
           aria-controls={open ? "basic-menu" : undefined}
@@ -173,8 +192,11 @@ function SettingsMenu() {
           horizontal: "center"
         }}
       >
-        <div className="settings-menu">
+        <div className="top">
+          <CloseButton onClick={handleClose} />
           <Typography variant="h4">Settings</Typography>
+        </div>
+        <div className="settings-menu">
           <div className="settings-item">
             <FormControl>
               <InputLabel htmlFor={id}>Pan Controls</InputLabel>
@@ -363,47 +385,47 @@ function SettingsMenu() {
               Display time in 12h or 24h format.
             </Typography>
           </div>
-          <div className="bottom">
-            {user && (
-              <div>
-                <Typography
-                  style={{
-                    display: "inline-block",
-                    margin: "0 10px 0 0",
-                    fontSize: "0.9em"
+        </div>
+        <div className="bottom">
+          {user && (
+            <div>
+              <Typography
+                style={{
+                  display: "inline-block",
+                  margin: "0 10px 0 0",
+                  fontSize: "0.9em"
+                }}
+              >
+                {user.email}
+              </Typography>
+              {user.email && (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  onClick={() => {
+                    signout();
+                    navigate("/login");
                   }}
                 >
-                  {user.email}
-                </Typography>
-                {user.email && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="primary"
-                    onClick={() => {
-                      signout();
-                      navigate("/login");
-                    }}
-                  >
-                    Logout
-                  </Button>
-                )}
-              </div>
-            )}
-            <Typography
-              variant="body2"
-              style={{
-                color: "#666",
-                marginTop: "2em",
-                fontSize: ThemeNodetool.fontSizeSmaller
-              }}
-            >
-              NODETOOL {VERSION}
-            </Typography>
-          </div>
+                  Logout
+                </Button>
+              )}
+            </div>
+          )}
+          <Typography
+            variant="body2"
+            style={{
+              color: "#666",
+              marginTop: "2em",
+              fontSize: ThemeNodetool.fontSizeSmaller
+            }}
+          >
+            NODETOOL {VERSION}
+          </Typography>
         </div>
       </Menu>
-    </>
+    </div>
   );
 }
 

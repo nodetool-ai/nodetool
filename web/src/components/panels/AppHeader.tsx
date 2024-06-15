@@ -11,7 +11,6 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import SettingsMenu from "../menus/SettingsMenu";
 import Help from "../content/Help/Help";
 import Alert from "../node_editor/Alert";
-import AppIconMenu from "../menus/AppIconMenu";
 // icons
 import AdjustIcon from "@mui/icons-material/Adjust";
 // mui
@@ -209,7 +208,7 @@ function AppHeader() {
   // };
 
   const [helpOpen, setHelpOpen] = useState(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(true);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
 
   // open help popover
   const handleOpenHelp = () => {
@@ -289,12 +288,31 @@ function AppHeader() {
               position: "fixed",
               width: "100%",
               height: "100%",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)"
+              top: "50%"
+              // left: "50%"
+              // transform: "translate(-50%, -50%)"
+            }}
+            slotProps={{
+              root: {
+                sx: {
+                  top: "60px !important", // Set the whole Popover 60px from the top
+                  "& .MuiBackdrop-root": {
+                    top: "60px !important", // Set the backdrop 60px from the top
+                    position: "fixed"
+                  }
+                }
+              },
+              paper: {
+                sx: {
+                  position: "absolute",
+                  top: "60px", // This will apply the top offset to the paper content inside the popover
+                  left: "50%",
+                  transform: "translate(-50%, 0)" // Adjust the transform if necessary
+                }
+              }
             }}
           >
-            <Welcome />
+            <Welcome handleClose={handleCloseWelcome} />
           </Popover>
 
           <Box sx={{ flexGrow: 0.02 }} />
@@ -439,7 +457,7 @@ function AppHeader() {
                 transform: "translate(-50%, -50%)"
               }}
             >
-              <Help />
+              <Help handleClose={handleCloseHelp} />
             </Popover>
             <Tooltip
               enterDelay={TOOLTIP_DELAY}
