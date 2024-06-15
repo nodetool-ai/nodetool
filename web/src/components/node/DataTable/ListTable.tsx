@@ -46,7 +46,7 @@ const styles = (theme: any) =>
       gap: ".5em",
       justifyContent: "flex-start",
       alignItems: "flex-start",
-      height: "2em"
+      height: "2.5em"
     },
     ".table-actions .disabled": {
       opacity: 0.5

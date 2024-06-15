@@ -26,15 +26,16 @@ const styles = (theme: any) =>
     },
     button: {
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray4,
+      color: theme.palette.c_gray6,
       display: "flex",
       alignItems: "center",
       margin: 0,
       gap: "0.25em",
-      padding: ".1em 1em 0 .5em"
+      padding: ".1em 1em 0 .5em",
+      borderRadius: "0"
     },
     "button:hover": {
-      color: theme.palette.c_gray5
+      color: theme.palette.c_white
     },
     "button svg": {
       fontSize: theme.fontSizeSmall
@@ -59,6 +60,7 @@ export default function DataframeProperty({
 
   const onChangeColumns = useCallback(
     (columns: ColumnDef[]) => {
+      console.log("1 columns", columns);
       onChange({
         ...value,
         columns
