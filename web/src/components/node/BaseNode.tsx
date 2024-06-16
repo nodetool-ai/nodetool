@@ -2,7 +2,7 @@
 import { memo } from "react";
 import { NodeProps } from "reactflow";
 import { isEqual } from "lodash";
-import { Container } from "@mui/material";
+import { Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
 
@@ -51,7 +51,7 @@ export default memo(
     const result = useResultsStore((state) => state.results[nodeKey]);
     const edges = getInputEdges(props.id);
     const isLoading =
-      status === "running" || status === "starting" || status === "processing";
+      status === "running" || status === "starting" || status === "processing" || status === "booting";
     const isConstantNode = props.type.startsWith("nodetool.constant");
     const isInputNode = props.type.startsWith("nodetool.input");
     const isOutputNode =
@@ -81,11 +81,11 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-            name: "output",
-            type: {
-              type: "string"
-            }
-          };
+          name: "output",
+          type: {
+            type: "string"
+          }
+        };
 
     return (
       <Container className={className}>
@@ -97,6 +97,11 @@ export default memo(
           />
           <div className="node-content-hidden" />
           <NodeErrors id={props.id} />
+          {status === "booting" && (
+            <Typography variant="body2" color="textSecondary" sx={{ padding: "10px", color: "red" }}>
+              Model is booting, this can take up to 3 minutes.
+            </Typography>
+          )}
         </>
         <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
         <NodeInputs

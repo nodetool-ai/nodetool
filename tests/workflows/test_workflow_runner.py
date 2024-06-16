@@ -2,13 +2,14 @@ import PIL.Image
 import PIL.ImageChops
 import pytest
 from nodetool.api.types.graph import Node, Edge
+from nodetool.api.types.job import JobUpdate
+from nodetool.models.job import Job
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef
-from nodetool.workflows.types import WorkflowUpdate
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.models.user import User
 from nodetool.workflows.graph import Graph
@@ -26,16 +27,22 @@ from nodetool.nodes.nodetool.input import (
 from nodetool.nodes.nodetool.group import Loop
 from nodetool.nodes.nodetool.math import Add, Multiply
 from nodetool.nodes.nodetool.output import ImageOutput, IntegerOutput
+from tests.conftest import make_job
 
 
 @pytest.fixture
-def workflow_runner(user: User):
-    return WorkflowRunner()
+def job(user: User) -> Job:
+    return make_job(user)
+
+
+@pytest.fixture
+def workflow_runner(job: Job) -> WorkflowRunner:
+    return WorkflowRunner(job.id)
 
 
 @pytest.mark.asyncio
 async def test_process_node(user: User, workflow_runner: WorkflowRunner):
-    node = String(id="1", value="test")
+    node = String(id="1", value="test")  # type: ignore
     context = ProcessingContext(user_id="", workflow_id="", auth_token="token")
     await workflow_runner.process_node(context, node)
     assert context.get_result("1", "output") == "test"
@@ -81,7 +88,7 @@ async def get_workflow_updates(context: ProcessingContext):
     while context.has_messages():
         messages.append(await context.pop_message_async())
 
-    return list(filter(lambda x: isinstance(x, WorkflowUpdate), messages))
+    return list(filter(lambda x: isinstance(x, JobUpdate), messages))
 
 
 @pytest.mark.asyncio
@@ -209,13 +216,14 @@ async def test_process_node_image_blend(user: User):
         graph=graph,
     )
 
-    workflow_runner = WorkflowRunner()
+    job = make_job(user)
+    workflow_runner = WorkflowRunner(job.id)
     out = await workflow_runner.run(req, context)
 
-    workflow_updates = await get_workflow_updates(context)
+    job_updates = await get_workflow_updates(context)
 
-    assert len(workflow_updates) == 1
-    assert type(workflow_updates[0].result["output"]) == ImageRef
+    assert len(job_updates) == 1
+    assert type(job_updates[0].result["output"]) == ImageRef
 
 
 @pytest.mark.asyncio

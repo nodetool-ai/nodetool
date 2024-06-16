@@ -20,6 +20,7 @@ from nodetool.api.types.chat import (
     TaskList,
     TaskUpdateRequest,
 )
+from nodetool.api.types.job import JobCancelledException, JobUpdate
 from nodetool.api.types.prediction import (
     Prediction,
     PredictionCreateRequest,
@@ -34,7 +35,6 @@ from nodetool.workflows.types import (
     NodeProgress,
     NodeUpdate,
     ProcessingMessage,
-    WorkflowUpdate,
 )
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.metadata.types import (
@@ -111,6 +111,7 @@ class ProcessingContext:
     capabilities: list[str]
     graph: Graph
     cost: float = 0.0
+    is_cancelled: bool = False
     results: dict[str, Any]
     processed_nodes: set[str]
     message_queue: Queue | asyncio.Queue
@@ -346,6 +347,8 @@ class ProcessingContext:
             "api/predictions/",
             json=req.model_dump(),
         ):
+            if self.is_cancelled:
+                raise JobCancelledException()
             msg = json.loads(line)
             if msg.get("type") == "prediction_result":
                 return PredictionResult(**msg).decode_content()
@@ -1120,8 +1123,8 @@ class ProcessingContext:
                         elif message["type"] == "node_update":
                             self.post_message(NodeUpdate(**message))
 
-                        elif message["type"] == "workflow_update":
-                            self.post_message(WorkflowUpdate(**message))
+                        elif message["type"] == "job_update":
+                            self.post_message(JobUpdate(**message))
 
                         elif message["type"] == "error":
                             raise Exception(message["error"])

@@ -1,4 +1,6 @@
 from typing import AsyncGenerator
+
+import httpx
 from nodetool.api.types.prediction import Prediction as APIPrediction, PredictionResult
 from nodetool.common.replicate_cost import calculate_cost, calculate_llm_cost
 from nodetool.common.environment import Environment
@@ -20,6 +22,18 @@ REPLICATE_STATUS_MAP = {
     "failed": "failed",
     "canceled": "canceled",
 }
+
+
+async def get_model_status(owner: str, name: str) -> str:
+    """
+    Get the status of a model on Replicate
+    """
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"https://replicate.com/{owner}/{name}/status")
+            return response.json()["status"]
+        except Exception as e:
+            return "offline"
 
 
 async def run_replicate(
@@ -48,16 +62,26 @@ async def run_replicate(
         input=params,
     )
 
-    current_status = "starting"
+    model_status = await get_model_status(match.group("owner"), match.group("name"))
+
+    print("model status: ", model_status)
+
+    if model_status == "offline":
+        current_status = "booting"
+    else:
+        current_status = "starting"
 
     for i in range(1800):
         replicate_pred = replicate.predictions.get(replicate_pred.id)
 
-        if replicate_pred.status != current_status:
-            log.info(f"Prediction status: {replicate_pred.status}")
-            current_status = replicate_pred.status
+        if current_status == "booting" and replicate_pred.status == "starting":
+            prediction.status = "booting"
 
-        prediction.status = REPLICATE_STATUS_MAP[replicate_pred.status]
+        elif replicate_pred.status != current_status:
+            current_status = replicate_pred.status
+            prediction.status = REPLICATE_STATUS_MAP[replicate_pred.status]
+
+        log.info(f"Prediction status: {prediction.status}")
         prediction.logs = replicate_pred.logs
         prediction.error = replicate_pred.error
         prediction.duration = (datetime.now() - started_at).total_seconds()

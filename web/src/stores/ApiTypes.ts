@@ -39,7 +39,6 @@ export type RunJobRequest = components["schemas"]["RunJobRequest"];
 export type NodeUpdate = components["schemas"]["NodeUpdate"];
 export type NodeProgress = components["schemas"]["NodeProgress"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
-export type WorkflowUpdate = components["schemas"]["WorkflowUpdate"];
 
 // a type that allows arbitrary members
 export type TypeName = string;

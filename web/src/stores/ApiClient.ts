@@ -31,7 +31,7 @@ const authMiddleware: Middleware = {
     if (res.status == 401) {
       console.log("Unauthorized, signing out");
       useAuth.getState().signout();
-      window.history.pushState({}, "", "/login");
+      window.location.href = "/login";
     }
     return res;
   }

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from typing import Any, Literal
 
+from nodetool.api.types.job import JobUpdate
 from nodetool.api.types.prediction import Prediction
 
 
@@ -26,14 +27,9 @@ class NodeProgress(BaseModel):
     total: int
 
 
-class WorkflowUpdate(BaseModel):
-    type: Literal["workflow_update"] = "workflow_update"
-    result: dict[str, Any]
-
-
 class Error(BaseModel):
     type: Literal["error"] = "error"
     error: str
 
 
-ProcessingMessage = NodeUpdate | NodeProgress | WorkflowUpdate | Error | Prediction
+ProcessingMessage = NodeUpdate | NodeProgress | JobUpdate | Error | Prediction

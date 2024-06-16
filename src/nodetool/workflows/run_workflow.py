@@ -1,21 +1,24 @@
 from queue import Queue
+from nodetool.api.types.job import JobUpdate
 from nodetool.common.environment import Environment
+from nodetool.models.job import Job
 from nodetool.workflows.run_job_request import RunJobRequest
 
 import asyncio
 import threading
 import time
-from sys import stdout
 
 log = Environment.get_logger()
 
 
 def run_workflow(req: RunJobRequest):
-    from nodetool.workflows.types import Error, WorkflowUpdate
+    from nodetool.workflows.types import Error
     from nodetool.workflows.processing_context import (
         ProcessingContext,
     )
     from nodetool.workflows.workflow_runner import WorkflowRunner
+
+    assert req.graph is not None, "Graph is required"
 
     context = ProcessingContext(
         user_id=req.user_id,
@@ -23,10 +26,18 @@ def run_workflow(req: RunJobRequest):
         workflow_id=req.workflow_id,
         queue=Queue(),
     )
+    job = Job.create(
+        job_type=req.job_type,
+        workflow_id=req.workflow_id,
+        user_id=req.user_id,
+        graph=req.graph.model_dump(),
+        status="running",
+    )
+    assert job
 
     loop = asyncio.get_event_loop()
     loop.set_debug(True)
-    runner = WorkflowRunner()
+    runner = WorkflowRunner(job_id=job.id)
 
     async def run():
         try:
@@ -45,7 +56,7 @@ def run_workflow(req: RunJobRequest):
                 yield msg.model_dump_json() + "\n"
                 if isinstance(msg, Error):
                     break
-                elif isinstance(msg, WorkflowUpdate):
+                elif isinstance(msg, JobUpdate):
                     pass
             else:
                 time.sleep(0.1)

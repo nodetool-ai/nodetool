@@ -310,13 +310,15 @@ const ListTable: React.FC<ListTableProps> = ({
               </Button>
             </Tooltip>
             <Tooltip title="Remove selected rows">
-              <Button
-                variant="outlined"
-                onClick={removeSelectedRows}
-                disabled={selectedRows.length === 0}
-              >
-                Remove Selected
-              </Button>
+              <>
+                <Button
+                  variant="outlined"
+                  onClick={removeSelectedRows}
+                  disabled={selectedRows.length === 0}
+                >
+                  Remove Selected
+                </Button>
+              </>
             </Tooltip>
           </>
         )}

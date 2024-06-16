@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "nodetool"
-version = "0.1.51"
+version = "0.2.1"
 description = "Nodetool is a no-code development environment for Artificial Intelligence, enabling the simple and intuitive creation of powerful AI workflows and their integration into existing applications."
 readme = "README.md"
 authors = ["Matthias Georgi <matti.georgi@gmail.com>"]
@@ -36,7 +36,7 @@ librosa = "*"
 matplotlib = "*"
 moto = { version = "*", extras = ["s3"] }
 moviepy = "*"
-numpy = "*"
+numpy = "<2"
 openai = ">=1.10.0"
 openapi-pydantic = "*"
 opencv-python-headless = "*"

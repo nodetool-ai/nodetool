@@ -12,7 +12,7 @@ from nodetool.workflows.base_node import InputNode, OutputNode
 from nodetool.workflows.graph import Graph
 from typing import Any, Type
 
-from nodetool.workflows.types import NodeProgress, NodeUpdate, WorkflowUpdate
+from nodetool.workflows.types import NodeProgress, NodeUpdate
 
 
 def properties_from_input_nodes(nodes: list[BaseNode]):
@@ -119,7 +119,9 @@ class WorkflowNode(BaseNode):
                 )
             if msg["type"] == "error":
                 raise Exception(msg["error"])
-            if msg["type"] == "workflow_update":
-                output = msg["result"]
+            if msg["type"] == "job_update":
+                if msg["status"] == "completed":
+                    assert "result" in msg, "No result in job update"
+                    output = msg["result"]
 
         return output

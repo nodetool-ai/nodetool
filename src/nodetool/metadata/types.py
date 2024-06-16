@@ -90,7 +90,7 @@ class AssetRef(BaseType):
         return res
 
     def is_empty(self):
-        return self.uri == "" and self.asset_id is None
+        return self.uri == "" and self.asset_id is None and self.temp_id is None
 
     @classmethod
     def __init_subclass__(cls):
@@ -327,6 +327,9 @@ class Tensor(BaseType):
     value: list[Any] = []
     dtype: Optional[str] = None
 
+    def is_empty(self):
+        return len(self.value) == 0
+
     def to_numpy(self) -> np.ndarray:
         if self.value is None:
             raise ValueError("Tensor is empty")
@@ -506,8 +509,6 @@ class TypeMetadata(BaseModel):
                 "type": "string",
                 "enum": self.values,
             }
-        if self.type in ModelFileEnums:
-            return {"type": "object", "properties": {"name": {"type": "string"}}}
         raise ValueError(f"Unknown type: {self.type}")
 
 

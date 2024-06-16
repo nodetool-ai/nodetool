@@ -5,6 +5,7 @@ import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import AssetViewer from "../assets/AssetViewer";
 import { PropertyProps } from "../node/PropertyInput";
+import { Button, TextField } from "@mui/material";
 
 export default function ImageProperty(props: PropertyProps) {
   const id = `image-${props.property.name}-${props.propertyIndex}`;
@@ -17,6 +18,8 @@ export default function ImageProperty(props: PropertyProps) {
   const { asset, uri } = useAsset({ image: props.value });
   const [openViewer, setOpenViewer] = useState(false);
 
+  const [showTextField, setShowTextField] = useState(false);
+
   return (
     <>
       <PropertyLabel
@@ -24,6 +27,18 @@ export default function ImageProperty(props: PropertyProps) {
         description={props.property.description}
         id={id}
       />
+      <Button variant="text" onClick={() => setShowTextField(!showTextField)}>
+        Enter Image URL
+      </Button>
+      {showTextField && (
+        <TextField
+          value={uri || ""}
+          onChange={(e) =>
+            props.onChange({ uri: e.target.value, type: "image" })
+          }
+          placeholder="Enter image URL"
+        />
+      )}
       <div
         className={`dropzone ${uri ? "dropped" : ""}`}
         aria-labelledby={id}

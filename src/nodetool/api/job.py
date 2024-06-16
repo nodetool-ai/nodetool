@@ -2,24 +2,24 @@
 
 import asyncio
 from datetime import datetime
-import json
 import threading
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from nodetool.api.utils import current_user, User
 
 from nodetool.api.types.job import (
+    Job,
     JobList,
     JobUpdate,
 )
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.common.environment import Environment
 
-from nodetool.models.job import Job
+from nodetool.models.job import Job as JobModel
 from nodetool.models.workflow import Workflow
 from nodetool.models.prediction import Prediction
 from nodetool.api.types.prediction import Prediction as APIPrediction
-from nodetool.workflows.types import Error, WorkflowUpdate
+from nodetool.workflows.types import Error
 
 
 log = Environment.get_logger()
@@ -31,14 +31,14 @@ async def get(id: str, user: User = Depends(current_user)) -> Job:
     """
     Returns the status of a job.
     """
-    job = Job.find(user.id, id)
+    job = JobModel.find(user.id, id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     else:
         if job.user_id != user.id:
             raise HTTPException(status_code=403, detail="Forbidden")
         else:
-            return job
+            return Job.from_model(job)
 
 
 @router.get("/")
@@ -54,11 +54,11 @@ async def index(
     if page_size is None:
         page_size = 10
 
-    jobs, next_cursor = Job.paginate(
+    jobs, next_cursor = JobModel.paginate(
         user_id=user.id, workflow_id=workflow_id, limit=page_size, start_key=cursor
     )
 
-    return JobList(next=next_cursor, jobs=jobs)
+    return JobList(next=next_cursor, jobs=[Job.from_model(job) for job in jobs])
 
 
 @router.put("/{id}")
@@ -66,7 +66,7 @@ async def update(id: str, req: JobUpdate, user: User = Depends(current_user)) ->
     """
     Update a job.
     """
-    job = Job.find(user.id, id)
+    job = JobModel.find(user.id, id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     else:
@@ -76,7 +76,7 @@ async def update(id: str, req: JobUpdate, user: User = Depends(current_user)) ->
             job.status = req.status
             job.error = req.error
             job.save()
-            return job
+            return Job.from_model(job)
 
 
 @router.post("/")
@@ -100,7 +100,7 @@ async def run(
 
     assert job_request.graph is not None, "Graph is required"
 
-    job = Job.create(
+    job = JobModel.create(
         job_type=job_request.job_type,
         workflow_id=job_request.workflow_id,
         user_id=user.id,
@@ -108,9 +108,8 @@ async def run(
         status="running",
     )
     assert job
-    job_id = job.id
 
-    def job_update_message():
+    def job_update_message(job: JobModel):
         return JobUpdate.from_model(job).model_dump_json() + "\n"
 
     if execute is False:
@@ -124,7 +123,7 @@ async def run(
         workflow_id=job_request.workflow_id,
     )
 
-    runner = WorkflowRunner()
+    runner = WorkflowRunner(job.id)
 
     async def run():
         try:
@@ -133,26 +132,33 @@ async def run(
             log.exception(e)
             context.post_message(Error(error=str(e)))
 
-    async def generate():
-        yield job_update_message()
+    async def generate(job_id: str):
+        job = JobModel.get(job_id)
+        assert job, "Job not found"
+
+        yield job_update_message(job)
 
         thread = threading.Thread(target=lambda: asyncio.run(run()))
         thread.start()
-        job = Job.get(job_id)
+
         try:
             while runner.is_running():
-                job = Job.get(job_id)
-                assert job
-                if job.status != "running":
-                    break
+                # read job status from database
+                job = JobModel.get(job_id)
+                assert job, "Job not found"
+
+                if job.status == "cancelled":
+                    runner.cancel()
+                    context.is_cancelled = True
+
                 if context.has_messages():
                     msg = await context.pop_message_async()
                     if isinstance(msg, Prediction):
                         msg = APIPrediction.from_model(msg)
                         job.reload()
-                    if isinstance(msg, WorkflowUpdate):
+                    if isinstance(msg, JobUpdate):
                         job.finished_at = datetime.now()
-                        job.status = "completed"
+                        job.status = msg.status
                         job.cost = context.cost
                         job.save()
                     if isinstance(msg, Error):
@@ -167,14 +173,13 @@ async def run(
 
         except Exception as e:
             log.exception(e)
-            assert job
-            job = Job.get(job.id)
+            job = JobModel.get(job_id)
             assert job
             job.finished_at = datetime.now()
             job.status = "failed"
             job.error = str(e)[:256]
             job.cost = context.cost
             job.save()
-            yield job_update_message()
+            yield job_update_message(job)
 
-    return StreamingResponse(generate(), media_type="application/x-ndjson")
+    return StreamingResponse(generate(job.id), media_type="application/x-ndjson")

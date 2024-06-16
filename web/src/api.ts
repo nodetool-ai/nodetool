@@ -416,39 +416,20 @@ export interface components {
     Job: {
       /** Id */
       id: string;
-      /**
-       * User Id
-       * @default
-       */
-      user_id?: string;
-      /**
-       * Job Type
-       * @default
-       */
-      job_type?: string;
-      /**
-       * Status
-       * @default starting
-       */
-      status?: string;
-      /**
-       * Workflow Id
-       * @default
-       */
-      workflow_id?: string;
-      /**
-       * Started At
-       * Format: date-time
-       */
-      started_at?: string;
+      /** Job Type */
+      job_type: string;
+      /** Status */
+      status: string;
+      /** Workflow Id */
+      workflow_id: string;
+      /** Started At */
+      started_at: string;
       /** Finished At */
-      finished_at?: string | null;
-      /** Graph */
-      graph?: Record<string, never>;
+      finished_at: string | null;
       /** Error */
-      error?: string | null;
+      error: string | null;
       /** Cost */
-      cost?: number | null;
+      cost: number | null;
     };
     /** JobList */
     JobList: {
@@ -465,10 +446,12 @@ export interface components {
        * @constant
        */
       type?: "job_update";
-      /** Job Id */
-      job_id: string;
       /** Status */
       status: string;
+      /** Job Id */
+      job_id?: string | null;
+      /** Result */
+      result?: Record<string, never> | null;
       /** Error */
       error?: string | null;
     };
@@ -1164,17 +1147,6 @@ export interface components {
       /** Comfy Workflow */
       comfy_workflow?: Record<string, never> | null;
     };
-    /** WorkflowUpdate */
-    WorkflowUpdate: {
-      /**
-       * Type
-       * @default workflow_update
-       * @constant
-       */
-      type?: "workflow_update";
-      /** Result */
-      result: Record<string, never>;
-    };
   };
   responses: never;
   parameters: never;
@@ -1683,7 +1655,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["FileRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["WorkflowUpdate"] | Record<string, never>;
+          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["FileRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | Record<string, never>;
         };
       };
     };

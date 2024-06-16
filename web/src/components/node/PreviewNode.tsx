@@ -128,7 +128,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
         position={Position.Left}
         isConnectable={true}
       />
-      <OutputRenderer value={result?.output ?? {}} />
+      {result?.output && <OutputRenderer value={result?.output} />}
     </Container>
   );
 });
