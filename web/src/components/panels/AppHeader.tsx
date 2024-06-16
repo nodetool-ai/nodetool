@@ -425,7 +425,7 @@ function AppHeader() {
             {lastWorkflow?.name}
             {workflowIsDirty && <span>*</span>}
           </Button>
-          {/* {!areMessagesVisible && state !== "idle" && ( */}
+
           <Box sx={{ flexGrow: 1 }} />
           {areMessagesVisible && (
             <Typography
@@ -433,8 +433,7 @@ function AppHeader() {
               variant="caption"
               color="inherit"
             >
-              {statusMessage ||
-                "status message status messagestatus message status message"}
+              {statusMessage || ""}
             </Typography>
           )}
 

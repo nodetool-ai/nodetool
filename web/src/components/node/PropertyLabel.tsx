@@ -36,7 +36,7 @@ const labelStyles = (theme: any) =>
       maxWidth: "250px",
       wordWrap: "break-word",
       whiteSpace: "normal",
-      fontSize: ".6em",
+      fontSize: theme.fontSizeSmall,
       pointerEvents: "none",
       transition:
         "all var(--microtip-transition-duration) var(--microtip-transition-easing) .1s"

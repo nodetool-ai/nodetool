@@ -1,12 +1,12 @@
 :root {
   --font_family: Inter, Arial, sans-serif;
   --font_family2: "Jetbrains Mono", Inter, Arial, sans-serif;
-  --font-size-bigger: 20px;
-  --font-size-big: 18px;
-  --font-size-normal: 15px;
-  --font-size-small: 11px;
-  --font-size-smaller: 10px;
-  --font-size-tiny: 9px;
+  --font-size-bigger: 15px;
+  --font-size-big: 13.5px;
+  --font-size-normal: 12px;
+  --font-size-small: 10.5px;
+  --font-size-smaller: 9px;
+  --font-size-tiny: 7.8px;
 
   /* General */
   --c_black: #020202;

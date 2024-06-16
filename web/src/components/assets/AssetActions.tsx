@@ -164,8 +164,9 @@ const AssetActions = ({
               setCurrentFolderId(currentFolder?.parent_id || "");
               setSelectedAssetIds([]);
             }}
-            className={`folder-up-button ${currentFolder?.parent_id !== "" ? " enabled" : " disabled"
-              }`}
+            className={`folder-up-button ${
+              currentFolder?.parent_id !== "" ? " enabled" : " disabled"
+            }`}
           >
             <NorthWestIcon />
           </Button>
@@ -256,6 +257,7 @@ const AssetActions = ({
               className="input-field"
               inputRef={inputRef}
               autoFocus
+              autoComplete="off"
               id="name"
               onChange={(e) => setCreateFolderName(e.target.value)}
               fullWidth

@@ -245,8 +245,10 @@
   max-width: 100%;
   overflow-y: auto !important;
   margin-top: 0.2em;
-  font-size: var(--font-size-tiny);
+  padding: 0.2em .5em;
   font-family: var(--font_family);
+  font-size: var(--font-size-tiny);
+  line-height: 1.1em;
   color: var(--c_white);
   background-color: var(--c_gray2);
   border: 0;

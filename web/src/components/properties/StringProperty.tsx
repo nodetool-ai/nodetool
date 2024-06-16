@@ -21,7 +21,7 @@ export default function StringProperty(props: PropertyProps) {
         minRows={1}
         maxRows={4}
         className="nodrag nowheel"
-        value={props.value}
+        value={props.value || ""}
         onChange={(e) => {
           props.onChange(e.target.value);
         }}

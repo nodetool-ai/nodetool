@@ -61,13 +61,13 @@ declare module "@mui/material/styles" {
 }
 
 const ThemeNodes: Theme = createTheme({
-  fontSizeBigger: "1.25em",
-  fontSizeBig: "1.125em",
-  fontSizeNormal: "12px",
-  fontSizeSmall: "10px",
-  fontSizeSmaller: "8px",
-  fontSizeTiny: "9px",
-  fontSizeTinyer: "7px",
+  fontSizeBigger: "1.25em", // 15px
+  fontSizeBig: "1.125em", // 13.5px
+  fontSizeNormal: "12px", // 12px
+  fontSizeSmall: "0.875em", // 10.5px
+  fontSizeSmaller: "0.75em", // 9px
+  fontSizeTiny: "0.65em", // 7.8px
+  fontSizeTinyer: "0.55em", // 6.6px
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
   palette: {
