@@ -73,13 +73,20 @@ class NodetoolAPIClient:
             key = key[1:]
         return f"{self.base_url}/{key}"
 
+    def check_status(self, response: httpx.Response):
+        if response.status_code >= 400:
+            client_info = f"user_id={self.user_id} len_token={len(self.auth_token)}"
+            raise Exception(
+                f"Error: {response.status_code} {response.content} {client_info}"
+            )
+
     async def get(self, path: str, **kwargs) -> Response:
         response = await self.client.get(
             self._get_url(path),
             headers=self._get_headers(),
             **kwargs,
         )
-        response.raise_for_status()
+        self.check_status(response)
         return Response.from_httpx(response)
 
     async def head(self, path: str, **kwargs) -> Response:
@@ -88,7 +95,7 @@ class NodetoolAPIClient:
             headers=self._get_headers(),
             **kwargs,
         )
-        response.raise_for_status()
+        self.check_status(response)
         return Response.from_httpx(response)
 
     async def stream(
@@ -122,7 +129,7 @@ class NodetoolAPIClient:
                 json=json,
                 **kwargs,
             ) as response:
-                response.raise_for_status()
+                self.check_status(response)
                 async for line in response.aiter_lines():
                     yield line
 
@@ -130,19 +137,19 @@ class NodetoolAPIClient:
         response = await self.client.post(
             self._get_url(path), headers=self._get_headers(), **kwargs
         )
-        response.raise_for_status()
+        self.check_status(response)
         return Response.from_httpx(response)
 
     async def put(self, path: str, **kwargs) -> Response:
         response = await self.client.put(
             self._get_url(path), headers=self._get_headers(), **kwargs
         )
-        response.raise_for_status()
+        self.check_status(response)
         return Response.from_httpx(response)
 
     async def delete(self, path: str) -> Response:
         response = await self.client.delete(
             self._get_url(path), headers=self._get_headers()
         )
-        response.raise_for_status()
+        self.check_status(response)
         return Response.from_httpx(response)
