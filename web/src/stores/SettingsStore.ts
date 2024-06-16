@@ -12,6 +12,7 @@ export interface Settings {
   assetItemSize: number;
   timeFormat: "12h" | "24h";
   buttonAppearance: "text" | "icon" | "both";
+  alertBeforeTabClose: boolean;
 }
 
 interface SettingsStore {
@@ -28,6 +29,7 @@ interface SettingsStore {
   setAssetItemSize: (value: number) => void;
   setTimeFormat: (value: "12h" | "24h") => void;
   setButtonAppearance: (value: "text" | "icon" | "both") => void;
+  setAlertBeforeTabClose: (value: boolean) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -40,7 +42,8 @@ export const defaultSettings: Settings = {
   assetsOrder: "name",
   assetItemSize: 2,
   timeFormat: "12h",
-  buttonAppearance: "both"
+  buttonAppearance: "both",
+  alertBeforeTabClose: true
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -132,6 +135,14 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             buttonAppearance: value || defaultSettings.buttonAppearance
+          }
+        })),
+
+      setAlertBeforeTabClose: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            alertBeforeTabClose: value
           }
         }))
     }),
