@@ -327,7 +327,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
           console.error("error parsing json", error);
         }
       }
-      console.log("Stream complete");
+      set({ job_id: null, state: "idle" });
       clearStatuses(workflow.id);
     }
 
