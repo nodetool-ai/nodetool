@@ -103,10 +103,10 @@ const OutputContextMenu: React.FC = () => {
       };
       newNode.data.properties.name =
         sourceType?.type +
-        "_" +
-        sourceHandle +
-        "_" +
-        getTimestampForFilename() || "";
+          "_" +
+          sourceHandle +
+          "_" +
+          getTimestampForFilename(false) || "";
       addNode(newNode);
       const targetHandle = getTargetHandle(type || "", nodeType);
       addEdge({
@@ -269,12 +269,13 @@ const OutputContextMenu: React.FC = () => {
       {saveNodeMetadata && (
         <ContextMenuItem
           onClick={handleCreateSaveNode}
-          label={`Create Save${type === "string"
-            ? "Text"
-            : type
+          label={`Create Save${
+            type === "string"
+              ? "Text"
+              : type
               ? type.charAt(0).toUpperCase() + type.slice(1)
               : ""
-            } Node`}
+          } Node`}
           addButtonClassName="create-save-node"
           IconComponent={<SaveAltIcon />}
           tooltip={"..."}

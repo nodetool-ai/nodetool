@@ -63,6 +63,10 @@ export function prettyDate(
   }
 }
 
-export function getTimestampForFilename(): string {
-  return DateTime.now().toFormat("yyyy-MM-dd_HH-mm-ss");
+export function getTimestampForFilename(includeTime: boolean = true): string {
+  if (includeTime) {
+    return DateTime.now().toFormat("yyyy-MM-dd_HH-mm-ss");
+  } else {
+    return DateTime.now().toFormat("yyyy-MM-dd");
+  }
 }
