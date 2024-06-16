@@ -36,7 +36,7 @@ librosa = "*"
 matplotlib = "*"
 moto = { version = "*", extras = ["s3"] }
 moviepy = "*"
-numpy = "*"
+numpy = "<2"
 openai = ">=1.10.0"
 openapi-pydantic = "*"
 opencv-python-headless = "*"
