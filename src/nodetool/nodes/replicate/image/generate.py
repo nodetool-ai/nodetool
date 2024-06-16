@@ -598,7 +598,7 @@ class Controlnet_Realistic_Vision(ReplicateNode):
 
 
 class StableDiffusionXL(ReplicateNode):
-    """A text-to-image generative AI model that creates beautiful images"""
+    """SDXL is a text-to-image generation model trained on 1024x1024px images"""
 
     class Refine(str, Enum):
         NO_REFINER = "no_refiner"
