@@ -23,7 +23,7 @@ const labelStyles = (theme: any) =>
     },
     '[role~="tooltip"][data-microtip-position|="bottom"]::after': {
       position: "absolute",
-      bottom: "2.5em",
+      bottom: "2.2em",
       top: "unset",
       left: "-3px",
       transform: "none",
@@ -31,12 +31,12 @@ const labelStyles = (theme: any) =>
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily1,
       lineHeight: "1.1em",
-      padding: ".5em 1em",
+      padding: ".5em .75em",
       display: "block",
       maxWidth: "250px",
       wordWrap: "break-word",
       whiteSpace: "normal",
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeTiny,
       pointerEvents: "none",
       transition:
         "all var(--microtip-transition-duration) var(--microtip-transition-easing) .1s"

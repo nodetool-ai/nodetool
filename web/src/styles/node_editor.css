@@ -333,17 +333,24 @@
 .dropzone {
   position: relative;
   outline: 1px dashed #55555599;
-  margin: 6px auto 2px auto;
+  margin: 0;
+  /* margin: 6px auto 2px auto; */
 }
 
 .node-property .dropzone:hover {
   outline: 1px dashed #77777799;
-  margin: 6px auto 2px auto;
+  /* margin: 6px auto 2px auto; */
 }
 
 .dropzone p.centered {
   margin: auto;
-  padding: 4px;
+  text-align: left;
+}
+
+.dropzone p.centered {
+  margin: auto;
+  text-align: left;
+  padding: 0 4px;
   font-size: var(--font-size-small);
   color: var(--c_gray4);
 }

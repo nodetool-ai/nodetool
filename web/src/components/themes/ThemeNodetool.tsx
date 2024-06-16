@@ -58,7 +58,7 @@ declare module "@mui/material/styles" {
     c_hl1_1?: string;
     c_hl2?: string;
     c_selection?: string;
-    /* Statuses */
+    /* Status */
     c_attention?: string;
     c_delete?: string;
     c_debug?: string;
@@ -78,15 +78,17 @@ declare module "@mui/material/styles" {
 }
 
 const ThemeNodetool: Theme = createTheme({
-  fontSizeBigger: "1.25em",
-  fontSizeBig: "1.125em",
+  fontSizeBigger: "1.25em", // 20px
+  fontSizeBig: "1.125em", // 18px
   fontSizeNormal: "16px",
-  fontSizeSmall: "0.875em",
-  fontSizeSmaller: "0.75em",
-  fontSizeTiny: "0.65em",
-  fontSizeTinyer: "0.55em",
+  fontSizeSmall: "0.875em", // 14px
+  fontSizeSmaller: "0.75em", // 12px
+  fontSizeTiny: "0.65em", // 10.4px
+  fontSizeTinyer: "0.55em", // 8.8px
+
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
+
   palette: {
     /* General */
     c_black: "#020202",
