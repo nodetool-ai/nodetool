@@ -148,6 +148,9 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       if (data.type === "prediction") {
         const pred = data as Prediction;
         setLogs(workflow.id, pred.node_id, pred.logs || "");
+        if (pred.status === "booting") {
+          setStatus(workflow.id, pred.node_id, "booting");
+        }
       }
 
       if (data.type === "node_progress") {
@@ -363,6 +366,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   cancel: async () => {
     const job_id = get().job_id;
     const user = useAuth.getState().getUser();
+
     if (!job_id || !user) {
       return;
     }
