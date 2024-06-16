@@ -18,13 +18,16 @@ class SaveImage(BaseNode):
     Save an image to your assets. You can choose a folder or save into the root folder.
     """
 
-    image: ImageRef = ImageRef()
+    image: ImageRef = Field(default=ImageRef(), description="The image to save.")
     folder: FolderRef = Field(
         default=FolderRef(), description="The folder to save the image in."
     )
     name: str = Field(default="%Y-%m-%d_%H-%M-%S.png")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.image.is_empty():
+            raise ValueError("The input image is not connected.")
+
         image = await context.image_to_pil(self.image)
 
         name = datetime.now().strftime(self.name)
@@ -40,10 +43,14 @@ class ImageToTensor(BaseNode):
     """
 
     image: ImageRef = Field(
-        description="The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels."
+        default=ImageRef(),
+        description="The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels.",
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
+        if self.image.is_empty():
+            raise ValueError("The input image is not connected.")
+
         image = await context.image_to_pil(self.image)
         image_data = np.array(image)
         tensor_data = image_data / 255.0
@@ -58,10 +65,14 @@ class TensorToImage(BaseNode):
     """
 
     tensor: Tensor = Field(
-        description="The input tensor to convert to an image. Should have either 1, 3, or 4 channels."
+        default=Tensor(),
+        description="The input tensor to convert to an image. Should have either 1, 3, or 4 channels.",
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.tensor.is_empty():
+            raise ValueError("The input tensor is not connected.")
+
         tensor_data = self.tensor.to_numpy()
         if tensor_data.ndim not in [2, 3]:
             raise ValueError("The tensor should have 2 or 3 dimensions (HxW or HxWxC).")
@@ -87,6 +98,11 @@ class Paste(BaseNode):
     top: int = Field(default=0, ge=0, le=4096, description="The top coordinate.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.image.is_empty():
+            raise ValueError("The input image is not connected.")
+        if self.paste.is_empty():
+            raise ValueError("The paste image is not connected.")
+
         image = await context.image_to_pil(self.image)
         paste = await context.image_to_pil(self.paste)
         image.paste(paste, (self.left, self.top))
@@ -107,6 +123,12 @@ class Blend(BaseNode):
     alpha: float = Field(default=0.5, ge=0.0, le=1.0, description="The mix ratio.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.image1.is_empty():
+            raise ValueError("The first image is not connected.")
+
+        if self.image2.is_empty():
+            raise ValueError("The second image is not connected.")
+
         image1 = await context.image_to_pil(self.image1)
         image2 = await context.image_to_pil(self.image2)
         if image1.size != image2.size:
@@ -131,6 +153,12 @@ class Composite(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.image1.is_empty():
+            raise ValueError("The first image is not connected.")
+
+        if self.image2.is_empty():
+            raise ValueError("The second image is not connected.")
+
         image1 = await context.image_to_pil(self.image1)
         image2 = await context.image_to_pil(self.image2)
         mask = await context.image_to_pil(self.mask)

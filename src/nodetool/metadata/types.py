@@ -90,7 +90,7 @@ class AssetRef(BaseType):
         return res
 
     def is_empty(self):
-        return self.uri == "" and self.asset_id is None
+        return self.uri == "" and self.asset_id is None and self.temp_id is None
 
     @classmethod
     def __init_subclass__(cls):
@@ -326,6 +326,9 @@ class Tensor(BaseType):
     type: Literal["tensor"] = "tensor"
     value: list[Any] = []
     dtype: Optional[str] = None
+
+    def is_empty(self):
+        return len(self.value) == 0
 
     def to_numpy(self) -> np.ndarray:
         if self.value is None:
