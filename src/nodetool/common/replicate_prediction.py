@@ -80,14 +80,14 @@ async def run_replicate(
         elif replicate_pred.status != current_status:
             current_status = replicate_pred.status
             prediction.status = REPLICATE_STATUS_MAP[replicate_pred.status]
+            prediction.logs = replicate_pred.logs
+            prediction.error = replicate_pred.error
+            prediction.duration = (datetime.now() - started_at).total_seconds()
+            prediction.save()
 
-        log.info(f"Prediction status: {prediction.status}")
-        prediction.logs = replicate_pred.logs
-        prediction.error = replicate_pred.error
-        prediction.duration = (datetime.now() - started_at).total_seconds()
-        prediction.save()
+            log.info(f"Prediction status: {prediction.status}")
 
-        yield APIPrediction.from_model(prediction)
+            yield APIPrediction.from_model(prediction)
 
         if replicate_pred.status in ("failed", "canceled"):
             raise ValueError(replicate_pred.error or "Prediction failed")
