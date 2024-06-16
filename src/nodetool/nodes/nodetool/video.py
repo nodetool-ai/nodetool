@@ -18,7 +18,7 @@ class SaveVideo(BaseNode):
     video, save, file, output
     """
 
-    value: VideoRef = VideoRef()
+    value: VideoRef = Field(default=VideoRef(), description="The video to save.")
     folder: FolderRef = Field(
         default=FolderRef(), description="Name of the output folder."
     )
@@ -39,7 +39,9 @@ class ExtractVideoFrames(BaseNode):
     video, frames, extract, sequence
     """
 
-    video: VideoRef = Field(description="The input video to adjust the brightness for.")
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to adjust the brightness for."
+    )
     start: int = Field(default=0, description="The frame to start extracting from.")
     end: int = Field(default=-1, description="The frame to stop extracting from.")
 
@@ -66,7 +68,9 @@ class VideoFps(BaseNode):
     Outputs the numerical FPS value of the input video.
     """
 
-    video: VideoRef = Field(description="The input video to adjust the brightness for.")
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to adjust the brightness for."
+    )
 
     async def process(self, context: ProcessingContext) -> float:
         import imageio.v3 as iio
@@ -85,7 +89,9 @@ class FramesToVideo(BaseNode):
     Returns a video file from the provided frame sequence.
     """
 
-    frames: list[ImageRef] = []
+    frames: list[ImageRef] = Field(
+        default_factory=list, description="The frames to combine into a video."
+    )
     fps: float = Field(default=30, description="The FPS of the output video.")
 
     async def process(self, context: ProcessingContext) -> VideoRef:
