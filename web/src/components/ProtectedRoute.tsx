@@ -9,7 +9,8 @@ type Props = {
 
 const ProtectedRoute: React.FC<Props> = ({ children }) => {
   const navigate = useNavigate();
-  const { user, signout } = useAuth();
+  const { getUser, signout } = useAuth();
+  const user = getUser();
 
   const verify = useCallback(async () => {
     if (!useRemoteAuth) {

@@ -1,12 +1,12 @@
 import asyncio
 from contextlib import contextmanager
 from datetime import datetime
-import gc
 
 from pydantic import BaseModel
 
+from nodetool.api.types.job import JobUpdate, JobCancelledException
 from nodetool.workflows.base_node import GroupNode
-from nodetool.workflows.types import NodeProgress, NodeUpdate, WorkflowUpdate
+from nodetool.workflows.types import NodeProgress, NodeUpdate
 from nodetool.workflows.run_job_request import RunJobRequest
 
 from nodetool.workflows.processing_context import (
@@ -30,11 +30,20 @@ class WorkflowRunner:
     If the workflow requires gpu, it will be executed on a worker.
     """
 
+    job_id: str
     status: str = "running"
+    is_cancelled: bool = False
     current_node: str | None = None
+
+    def __init__(self, job_id: str):
+        self.job_id = job_id
 
     def is_running(self):
         return self.status == "running"
+
+    def cancel(self):
+        self.status = "cancelled"
+        self.is_cancelled = True
 
     async def run(self, req: RunJobRequest, context: ProcessingContext):
         """
@@ -70,11 +79,19 @@ class WorkflowRunner:
         with self.torch_capabilities(graph_capabilities, context):
             await self.process_graph(context, graph)
 
+        if self.is_cancelled:
+            print("Job cancelled")
+            context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
+            self.status = "cancelled"
+            return
+
         output = {}
         for node in output_nodes:
             output[node.name] = context.get_result(node._id, "output")
 
-        context.post_message(WorkflowUpdate(result=output))
+        context.post_message(
+            JobUpdate(job_id=self.job_id, status="completed", result=output)
+        )
 
         self.status = "completed"
 
@@ -111,6 +128,8 @@ class WorkflowRunner:
         Returns:
             None
         """
+        if self.is_cancelled:
+            return
 
         self.current_node = node._id
 
@@ -118,11 +137,14 @@ class WorkflowRunner:
         if node._id in context.processed_nodes:
             return
 
-        # If the node is a loop node, run the loop node, which will process the subgraph.
-        if isinstance(node, GroupNode):
-            await self.run_group_node(node, context)
-        else:
-            await self.process_regular_node(context, node)
+        try:
+            # If the node is a loop node, run the loop node, which will process the subgraph.
+            if isinstance(node, GroupNode):
+                await self.run_group_node(node, context)
+            else:
+                await self.process_regular_node(context, node)
+        except JobCancelledException:
+            self.cancel()
 
     async def run_group_node(self, group_node: GroupNode, context: ProcessingContext):
         """

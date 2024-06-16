@@ -1,5 +1,3 @@
-import { User } from "../stores/ApiTypes";
-import { useAuth } from "../stores/useAuth";
 import { useNodeStore } from "../stores/NodeStore";
 import { useWorkflowStore } from "../stores/WorkflowStore";
 
@@ -7,10 +5,8 @@ const initiateEditor = async (workflowId: string | undefined) => {
   const getWorkflow = useWorkflowStore.getState().get;
   const getFromCache = useWorkflowStore.getState().getFromCache;
   const setWorkflow = useNodeStore.getState().setWorkflow;
-  const readFromStorage = useAuth.getState().readFromStorage;
-  const user: User | null = readFromStorage();
 
-  if (!workflowId || !user) {
+  if (!workflowId) {
     return { workflow: null };
   }
   const cachedWorkflow = getFromCache(workflowId);

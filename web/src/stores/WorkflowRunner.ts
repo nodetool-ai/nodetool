@@ -17,7 +17,6 @@ import {
   JobUpdate,
   RunJobRequest,
   AssetRef,
-  WorkflowUpdate,
   WorkflowAttributes
 } from "./ApiTypes";
 import { Omit } from "lodash";
@@ -96,7 +95,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   notifications: [],
   readMessage: (
     workflow: WorkflowAttributes,
-    data: JobUpdate | Prediction | NodeProgress | NodeUpdate | WorkflowUpdate
+    data: JobUpdate | Prediction | NodeProgress | NodeUpdate
   ) => {
     const getAsset = useAssetStore.getState().get;
     const setResult = useResultsStore.getState().setResult;
@@ -111,24 +110,31 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     try {
       devLog("WofkflowRunner data:", data);
 
-      if (data.type === "workflow_update") {
-        set({ state: "idle" });
-        addNotification({
-          type: "info",
-          alert: true,
-          content: "Workflow finished"
-        });
-      }
-
       if (data.type === "job_update") {
         const job = data as JobUpdate;
         set({ job_id: job.job_id });
         switch (job.status) {
+          case "completed":
+            set({ state: "idle" });
+            addNotification({
+              type: "info",
+              alert: true,
+              content: "Job completed"
+            });
+            break;
           case "running":
             set({ state: "running" });
             break;
+          case "cancelled":
+            set({ state: "idle" });
+            addNotification({
+              type: "info",
+              alert: true,
+              content: "Job cancelled"
+            });
+            break;
           case "failed":
-            set({ state: "error" });
+            set({ state: "idle" });
             addNotification({
               type: "error",
               alert: true,
@@ -367,15 +373,12 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
         Authorization: "Bearer " + user.auth_token
       },
       body: JSON.stringify({
-        job_id: job_id,
         status: "cancelled"
       })
     });
     if (!response.ok) {
       throw new Error("Failed to cancel job");
     }
-
-    set({ state: "cancelled" });
   }
 }));
 

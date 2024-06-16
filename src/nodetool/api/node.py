@@ -20,10 +20,6 @@ from nodetool.metadata.types import (
     VideoRef,
 )
 from nodetool.workflows.base_node import get_registered_node_classes
-from nodetool.workflows.types import (
-    WorkflowUpdate,
-)
-
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
     FileRef,
@@ -52,7 +48,6 @@ UnionType = (
     | JobUpdate
     | NodeUpdate
     | NodeProgress
-    | WorkflowUpdate
     | dict
 )
 

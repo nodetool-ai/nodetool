@@ -509,8 +509,6 @@ class TypeMetadata(BaseModel):
                 "type": "string",
                 "enum": self.values,
             }
-        if self.type in ModelFileEnums:
-            return {"type": "object", "properties": {"name": {"type": "string"}}}
         raise ValueError(f"Unknown type: {self.type}")
 
 
