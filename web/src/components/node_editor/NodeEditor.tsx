@@ -15,22 +15,21 @@ import ReactFlow, {
 } from "reactflow";
 
 import { CircularProgress, Grid } from "@mui/material";
-//store
+// store
 import {
   NodeStore,
   useNodeStore,
   useTemporalStore
 } from "../../stores/NodeStore";
-import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useMetadata, useNodeTypes } from "../../serverState/useMetadata";
-import useConnectionStore from "../../stores/ConnectionStore";
 import { HistoryManager } from "../../HistoryManager";
+// store
+import { useWorkflowStore } from "../../stores/WorkflowStore";
+import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
-//components
+// components
 import CommandMenu from "../menus/CommandMenu";
 import ConnectionLine from "./ConnectionLine";
 import NodeContextMenu from "../context_menus/NodeContextMenu";
@@ -42,26 +41,28 @@ import InputContextMenu from "../context_menus/InputContextMenu";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
+import AxisMarker from "./AxisMarker";
+import LoopNode from "../node/LoopNode";
 //utils
-import { useDropHandler } from "../../hooks/handlers/useDropHandler";
-import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
-import { useDuplicateNodes } from "../../hooks/useDuplicate";
-import useAlignNodes from "../../hooks/useAlignNodes";
 import { getMousePosition } from "../../utils/MousePosition";
+import { useHotkeys } from "react-hotkeys-hook";
 //css
+import { generateCSS } from "../themes/GenerateCSS";
 import "reactflow/dist/style.css";
 import "../../styles/node_editor.css";
 import "../../styles/node_editor_handle_edge_tooltip.css";
 //hooks
+import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { useMetadata, useNodeTypes } from "../../serverState/useMetadata";
+import { useDropHandler } from "../../hooks/handlers/useDropHandler";
+import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
+import { useDuplicateNodes } from "../../hooks/useDuplicate";
+import useAlignNodes from "../../hooks/useAlignNodes";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
-import { useHotkeys } from "react-hotkeys-hook";
-//router
-import AxisMarker from "./AxisMarker";
-import { generateCSS } from "../themes/GenerateCSS";
+// constants
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
-import LoopNode from "../node/LoopNode";
 
 declare global {
   interface Window {
@@ -100,27 +101,6 @@ const NodeEditor: React.FC<unknown> = () => {
   const { shouldFitToScreen, setShouldFitToScreen } = useWorkflowStore(
     (state: any) => state
   );
-
-  /* CLOSE WINDOW */
-  const addBeforeUnloadListener = () => {
-    if (window.__beforeUnloadListenerAdded) {
-      return;
-    }
-    window.addEventListener("beforeunload", (event) => {
-      if (!window.location.pathname.includes("editor")) {
-        return;
-      }
-      const workflowIsDirty = useNodeStore.getState().workflowIsDirty;
-      if (!workflowIsDirty) {
-        return;
-      }
-      event.preventDefault();
-      event.returnValue = "";
-      return "";
-    });
-    window.__beforeUnloadListenerAdded = true;
-  };
-  addBeforeUnloadListener();
 
   /* DEFINE NODE TYPES */
   nodeTypes["nodetool.group.Loop"] = LoopNode;
@@ -166,6 +146,27 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* LOADING*/
   const showLoading = loadingMetadata || metadata?.length === 0;
+
+  /* CLOSE BROWSER TAB */
+  const addBeforeUnloadListener = () => {
+    if (window.__beforeUnloadListenerAdded) {
+      return;
+    }
+    window.addEventListener("beforeunload", (event) => {
+      if (!window.location.pathname.includes("editor")) {
+        return;
+      }
+      const workflowIsDirty = useNodeStore.getState().workflowIsDirty;
+      if (!workflowIsDirty || settings.alertBeforeTabClose === false) {
+        return;
+      }
+      event.preventDefault();
+      event.returnValue = "";
+      return "";
+    });
+    window.__beforeUnloadListenerAdded = true;
+  };
+  addBeforeUnloadListener();
 
   // OPEN NODE MENU
   const { openNodeMenu, closeNodeMenu, isMenuOpen, isDescriptionOpen } =

@@ -126,6 +126,9 @@ const styles = (theme: any) =>
       },
       ul: {
         paddingLeft: "1em",
+        fontSize: theme.fontSizeNormal,
+        fontFamily: theme.fontFamily1,
+        color: theme.palette.gray3,
         margin: "0.25em 0 0",
         listStyleType: "disc"
       }
@@ -155,7 +158,8 @@ function SettingsMenu() {
     setWorkflowOrder,
     setAssetItemSize,
     setTimeFormat,
-    setButtonAppearance
+    setButtonAppearance,
+    setAlertBeforeTabClose
   } = useSettingsStore();
 
   const id = open ? "docs" : undefined;
@@ -217,11 +221,11 @@ function SettingsMenu() {
               <br />
               With RightMouseButton selected, you can also pan with:
               <br />
-              <ul>
-                <li> Space + LeftClick </li>
-                <li> Middle Mouse Button</li>
-              </ul>
             </Typography>
+            <ul>
+              <li> Space + LeftClick </li>
+              <li> Middle Mouse Button</li>
+            </ul>
           </div>
 
           <div className="settings-item">
@@ -382,7 +386,32 @@ function SettingsMenu() {
               </Select>
             </FormControl>
             <Typography className="description">
-              Display time in 12h or 24h format.
+              Display the buttons in the top panel as text, icon or both.
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <FormControl>
+              <InputLabel htmlFor={id}>Show alert on close</InputLabel>
+              <Select
+                id={id}
+                labelId={id}
+                value={
+                  settings.alertBeforeTabClose === true ? "enabled" : "disabled"
+                }
+                variant="standard"
+                onChange={(e) =>
+                  setAlertBeforeTabClose(
+                    e.target.value === "enabled" ? true : false
+                  )
+                }
+              >
+                <MenuItem value={"enabled"}>Enabled</MenuItem>
+                <MenuItem value={"disabled"}>Diabled</MenuItem>
+              </Select>
+            </FormControl>
+            <Typography className="description">
+              Prevent closing of the browser tab when there are unsaved changes.
             </Typography>
           </div>
         </div>
