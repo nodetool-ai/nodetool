@@ -9,6 +9,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import AssetViewer from "../assets/AssetViewer";
 import { PropertyProps } from "../node/PropertyInput";
 import { Button, TextField } from "@mui/material";
+import ThemeNodes from "../themes/ThemeNodes";
 
 export default function ImageProperty(props: PropertyProps) {
   const id = `image-${props.property.name}-${props.propertyIndex}`;
@@ -30,7 +31,7 @@ export default function ImageProperty(props: PropertyProps) {
       ".drop-container": {
         position: "relative",
         width: "100%",
-        marginTop: "-5px",
+        marginTop: "-3px",
         display: "flex",
         flexDirection: "column",
         alignItems: "normal",
@@ -43,18 +44,18 @@ export default function ImageProperty(props: PropertyProps) {
         zIndex: 2,
         color: theme.palette.c_gray6,
         backgroundColor: theme.palette.c_gray2,
-        borderRadius: "0",
+        fontSize: theme.fontSizeTinyer,
         lineHeight: "1.1em",
         width: "20px",
         height: "15px",
         minWidth: "unset",
-        fontSize: theme.fontSizeTinyer,
         margin: "0",
-        padding: ".2em"
+        padding: ".2em",
+        borderRadius: "0"
       },
       ".url-input": {
         height: "1em",
-        width: "calc(100% - 25px)",
+        width: "calc(100% - 24px)",
         zIndex: 1,
         bottom: "0em",
         borderRadius: "0",
@@ -72,7 +73,14 @@ export default function ImageProperty(props: PropertyProps) {
       ".url-input fieldset": {
         border: "0"
       },
+      ".dropzone": {
+        // width: "calc(100% - 25px)",
+        width: showUrlInput ? "100%" : "calc(100% - 25px)",
+        border: "0",
+        maxWidth: "180px"
+      },
       ".dropzone.dropped": {
+        width: "100%",
         border: "0",
         maxWidth: "180px"
       }
