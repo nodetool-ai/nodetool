@@ -60,7 +60,6 @@ export default function DataframeProperty({
 
   const onChangeColumns = useCallback(
     (columns: ColumnDef[]) => {
-      console.log("1 columns", columns);
       onChange({
         ...value,
         columns
