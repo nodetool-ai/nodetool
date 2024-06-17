@@ -1,6 +1,5 @@
 from nodetool.api.types.graph import Edge, Node
 import uuid
-
 from nodetool.workflows.base_node import get_node_class, get_node_class_by_name
 
 
@@ -100,7 +99,7 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
         data = {
             name: value
             for name, value in node_inputs.items()
-            if not isinstance(value, list)
+            if not (isinstance(value, list) and len(value) == 2)
         }
 
         parent_id = node.get("parent_id", None)
@@ -133,9 +132,8 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
 
         # loop through the inputs and connect them
         for input_name, input_value in node_inputs.items():
-            # a list value means that the input is connected to an output
-            # the list contains the source node ID and the output handle
-            if isinstance(input_value, list):
+            # Check if the input value is a list and if it has exactly 2 elements
+            if isinstance(input_value, list) and len(input_value) == 2:
                 source_id, source_handle = input_value
 
                 # look up the source node by ID, so we can find the output handle
@@ -148,8 +146,6 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
                 # supporting comfy workflow format, which uses index instead of handle
                 # the index will be resolved in the workflow runner
                 if isinstance(source_handle, int):
-                    source_node = node_by_id.get(source_id)
-                    assert source_node
                     source_node_class = get_node_class(source_node.type)
                     assert source_node_class
                     source_handle = str(

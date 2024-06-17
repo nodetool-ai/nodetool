@@ -48,6 +48,16 @@ def get_examples() -> list[Workflow]:
             thumbnail_url="/examples/movie_posters.png",
             graph=load_example("movie_posters"),
         ),
+        Workflow(
+            id="abandoned_places",
+            access="private",
+            created_at="2021-01-01T00:00:00",
+            updated_at="2021-01-01T00:00:00",
+            name="Abandoned Places",
+            description="Generate images of abandoned places using GPT, LoopNode, ControlNet, Upscaler",
+            thumbnail_url="/examples/abandoned_places.png",
+            graph=load_example("abandoned_places"),
+        ),
     ]
 
 

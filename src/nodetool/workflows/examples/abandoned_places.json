@@ -1,0 +1,336 @@
+{
+  "1": {
+    "type": "openai.text.GPT",
+    "inputs": {
+      "model": "gpt-4o",
+      "system": "You are a friendly assistant.",
+      "prompt": "output only csv with 4 rows: place, description\n\nplace: any secret or abandoned place in the world\n\ndescription: only focus on distinct visual attributes of the place\ndo not use commas inside description.\n\ndo not use code region",
+      "image": {
+        "type": "image",
+        "uri": "",
+        "asset_id": null,
+        "temp_id": null
+      },
+      "presence_penalty": 0,
+      "frequency_penalty": 0,
+      "temperature": 1.2,
+      "max_tokens": 100,
+      "top_p": 1,
+      "response_format": "text"
+    },
+    "position": {
+      "x": 94,
+      "y": 82
+    }
+  },
+  "2": {
+    "type": "nodetool.dataframe.CSVToDataframe",
+    "inputs": {
+      "csv_data": [
+        "1",
+        "output"
+      ]
+    },
+    "position": {
+      "x": 259,
+      "y": 82
+    }
+  },
+  "3": {
+    "type": "nodetool.group.Loop",
+    "inputs": {},
+    "position": {
+      "x": 839,
+      "y": 65
+    },
+    "width": 1540,
+    "height": 1042
+  },
+  "6": {
+    "type": "nodetool.input.GroupInput",
+    "inputs": {
+      "name": "",
+      "items": [
+        "db52e4ea-f434-4ca2-ae7f-26acd76867a6",
+        "output"
+      ]
+    },
+    "parent_id": "3",
+    "position": {
+      "x": 19,
+      "y": 60
+    }
+  },
+  "7": {
+    "type": "nodetool.workflows.base_node.Preview",
+    "inputs": {
+      "name": "any_output_2024-06-17",
+      "value": [
+        "20",
+        "output"
+      ]
+    },
+    "parent_id": "3",
+    "position": {
+      "x": 538,
+      "y": 196
+    },
+    "width": 150,
+    "height": 150
+  },
+  "8": {
+    "type": "nodetool.workflows.base_node.Preview",
+    "inputs": {
+      "name": "str_output_2024-06-17",
+      "value": [
+        "1",
+        "output"
+      ]
+    },
+    "position": {
+      "x": 454,
+      "y": 292
+    },
+    "width": 241,
+    "height": 150
+  },
+  "13": {
+    "type": "nodetool.workflows.base_node.Preview",
+    "inputs": {
+      "name": "dataframe_output_2024-06-17",
+      "value": [
+        "2",
+        "output"
+      ]
+    },
+    "position": {
+      "x": 446,
+      "y": 460
+    },
+    "width": 264,
+    "height": 181
+  },
+  "14": {
+    "type": "replicate.image.generate.Juggernaut_XL_V9",
+    "inputs": {
+      "seed": 112,
+      "width": 1024,
+      "height": 1024,
+      "scheduler": "DPM++SDE",
+      "num_outputs": 1,
+      "guidance_scale": 2,
+      "apply_watermark": false,
+      "negative_prompt": "color",
+      "num_inference_steps": 5,
+      "disable_safety_checker": false,
+      "prompt": [
+        "16",
+        "output"
+      ]
+    },
+    "parent_id": "3",
+    "position": {
+      "x": 352,
+      "y": 60
+    }
+  },
+  "16": {
+    "type": "nodetool.text.Concat",
+    "inputs": {
+      "a": "charcoal sketch of ",
+      "b": [
+        "6",
+        "output"
+      ]
+    },
+    "parent_id": "3",
+    "position": {
+      "x": 176,
+      "y": 60
+    }
+  },
+  "20": {
+    "type": "nodetool.image.transform.ConvertToGrayscale",
+    "inputs": {
+      "image": [
+        "14",
+        "output"
+      ]
+    },
+    "parent_id": "3",
+    "position": {
+      "x": 535,
+      "y": 60
+    }
+  },
+  "21": {
+    "type": "replicate.image.upscale.ClarityUpscaler",
+    "inputs": {
+      "mask": null,
+      "seed": 1337,
+      "prompt": "masterpiece, best quality, highres, <lora:more_details:0.5> <lora:SDXLrender_v2.0:1>",
+      "dynamic": 6,
+      "handfix": "disabled",
+      "sharpen": 0,
+      "sd_model": "juggernaut_reborn.safetensors [338b85bc4f]",
+      "scheduler": "DPM++ 3M SDE Karras",
+      "creativity": 0.4,
+      "lora_links": "",
+      "downscaling": false,
+      "resemblance": 0.6,
+      "scale_factor": 2,
+      "tiling_width": 112,
+      "output_format": "png",
+      "tiling_height": 144,
+      "custom_sd_model": "",
+      "negative_prompt": "(worst quality, low quality, normal quality:2) JuggernautNegative-neg",
+      "num_inference_steps": 18,
+      "downscaling_resolution": 768,
+      "image": [
+        "23",
+        "output"
+      ]
+    },
+    "parent_id": "3",
+    "position": {
+      "x": 1016,
+      "y": 297
+    }
+  },
+  "23": {
+    "type": "replicate.image.generate.Controlnet_Realistic_Vision",
+    "inputs": {
+      "seed": 208,
+      "steps": 20,
+      "prompt": "color photography, detailed",
+      "strength": 0.8,
+      "max_width": 612,
+      "max_height": 612,
+      "guidance_scale": 6,
+      "negative_prompt": "(deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime:1.4), text, close up, cropped, out of frame, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck",
+      "image": [
+        "20",
+        "output"
+      ]
+    },
+    "parent_id": "3",
+    "position": {
+      "x": 799,
+      "y": 60
+    }
+  },
+  "24": {
+    "type": "nodetool.workflows.base_node.Preview",
+    "inputs": {
+      "name": "image_output_2024-06-18",
+      "value": [
+        "23",
+        "output"
+      ]
+    },
+    "parent_id": "3",
+    "position": {
+      "x": 1025,
+      "y": 83
+    },
+    "width": 237,
+    "height": 192
+  },
+  "25": {
+    "type": "nodetool.workflows.base_node.Comment",
+    "inputs": {
+      "headline": "Abandoned Places",
+      "comment": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "- ask GPT to generate a comma separated list with places and descriptions"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "- convert to Dataframe and select rows"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "- use a Loop node to generate an image for each entry"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "- convert to grayscale, use ControlNet, then Upscale and SaveImage"
+            }
+          ]
+        }
+      ]
+    },
+    "position": {
+      "x": 1,
+      "y": -114
+    },
+    "width": 345,
+    "height": 105
+  },
+  "11ce06b5-a7f9-4346-8ed8-e0ca928245bd": {
+    "type": "nodetool.dataframe.RowsToStrings",
+    "inputs": {
+      "template": "{place}  {description}",
+      "dataframe": [
+        "2",
+        "output"
+      ]
+    },
+    "position": {
+      "x": 423,
+      "y": 82
+    }
+  },
+  "db52e4ea-f434-4ca2-ae7f-26acd76867a6": {
+    "type": "nodetool.list.Slice",
+    "inputs": {
+      "start": 1,
+      "stop": 3,
+      "step": 1,
+      "values": [
+        "11ce06b5-a7f9-4346-8ed8-e0ca928245bd",
+        "output"
+      ]
+    },
+    "position": {
+      "x": 588,
+      "y": 82
+    }
+  },
+  "8d8edbbf-f036-40a3-85d7-a96ffc04ebc3": {
+    "type": "nodetool.image.SaveImage",
+    "inputs": {
+      "folder": {
+        "type": "folder",
+        "uri": "",
+        "asset_id": null,
+        "temp_id": null
+      },
+      "name": "Abandoned",
+      "image": [
+        "21",
+        "output"
+      ]
+    },
+    "parent_id": "3",
+    "position": {
+      "x": 1320,
+      "y": 516
+    }
+  }
+}

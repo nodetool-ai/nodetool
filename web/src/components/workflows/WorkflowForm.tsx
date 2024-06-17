@@ -186,6 +186,9 @@ const WorkflowForm = () => {
           <OutlinedInput
             fullWidth
             name="name"
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
             value={localWorkflow.name}
             onChange={handleChange}
             onBlur={handleBlur}
@@ -199,6 +202,9 @@ const WorkflowForm = () => {
             onChange={handleChange}
             onBlur={handleBlur}
             multiline
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
             minRows={4}
             style={{
               width: "100%",

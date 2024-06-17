@@ -25,7 +25,7 @@ const styles = (theme: any) =>
     display: "flex",
     borderRadius: "5px",
     border: `1px solid ${theme.palette.c_gray1}`,
-    backgroundColor: "#44444455",
+    backgroundColor: "#33333311",
     h6: {
       display: "block",
       position: "absolute",
