@@ -123,7 +123,7 @@ class Demucs(ReplicateNode):
         default=Clip_mode("rescale"),
     )
     mp3_preset: Mp3_preset = Field(
-        description="Choose the preset for the MP3 output. Higher is faster but worse wuality. If MP3 is not selected as the output type, this has no effect.",
+        description="Choose the preset for the MP3 output. Higher is faster but worse quality. If MP3 is not selected as the output type, this has no effect.",
         default=Mp3_preset(2),
     )
     wav_format: Wav_format = Field(
