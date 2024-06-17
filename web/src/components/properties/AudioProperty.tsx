@@ -1,64 +1,46 @@
-import { useState } from "react";
-import { Asset } from "../../stores/ApiTypes";
-import WaveRecorder from "../audio/WaveRecorder";
-import { useFileDrop } from "../../hooks/handlers/useFileDrop";
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import { useAsset } from "../../serverState/useAsset";
-import AudioPlayer from "../audio/AudioPlayer";
 import PropertyLabel from "../node/PropertyLabel";
-import AssetViewer from "../assets/AssetViewer";
 import { PropertyProps } from "../node/PropertyInput";
+import PropertyDropzone from "./PropertyDropzone";
+
+const styles = (theme: any) =>
+  css({
+    "& .property-label": {
+      marginBottom: "5px"
+    },
+    "& .toggle-url-button": {
+      top: "-2.5em",
+      right: "0"
+    },
+    "& .dropzone": {
+      width: "100%"
+    },
+    "& .url-input": {
+      width: "100%"
+    }
+  });
 
 export default function AudioProperty(props: PropertyProps) {
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
-  const onChangeAsset = (asset: Asset) =>
-    props.onChange({ asset_id: asset.id, uri: asset.get_url, type: "audio" });
-  const { onDrop, onDragOver, filename } = useFileDrop({
-    onChangeAsset,
-    uploadAsset: true,
-    type: "audio"
-  });
   const { asset, uri } = useAsset({ audio: props.value });
-  const [openViewer, setOpenViewer] = useState(false);
 
   return (
-    <>
+    <div className="audio-property" css={styles}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
         id={id}
       />
-
-      <WaveRecorder onChange={onChangeAsset} />
-      <div id={id} aria-labelledby={id} className="audio-drop">
-        <div
-          className={`dropzone ${uri ? "dropped" : ""}`}
-          onDragOver={onDragOver}
-          onDrop={onDrop}
-        >
-          {asset || uri ? (
-            <>
-              <AssetViewer
-                contentType="audio/*"
-                asset={asset ? asset : undefined}
-                url={uri ? uri : undefined}
-                open={openViewer}
-                onClose={() => setOpenViewer(false)}
-              />
-              <audio
-                style={{ width: "100%", height: "20px" }}
-                onVolumeChange={(e) => (e.currentTarget.volume = 1)}
-                src={uri as string}
-              >
-                Your browser does not support the audio element.
-              </audio>
-              <p className="centered uppercase">{filename}</p>
-              <AudioPlayer filename={filename} url={uri as string} />
-            </>
-          ) : (
-            <p className="centered uppercase">Drop audio</p>
-          )}
-        </div>
-      </div>
-    </>
+      <PropertyDropzone
+        asset={asset}
+        uri={uri}
+        onChange={props.onChange}
+        contentType="audio"
+        props={props}
+      />
+    </div>
   );
 }

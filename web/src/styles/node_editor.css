@@ -350,8 +350,10 @@
 .dropzone p.centered {
   margin: auto;
   text-align: left;
-  padding: 0 4px;
-  font-size: var(--font-size-small);
+  padding: 3px 4px;
+  min-width: 70px;
+  min-height: 14px;
+  /* font-size: var(--font-size-small); */
   color: var(--c_gray4);
 }
 

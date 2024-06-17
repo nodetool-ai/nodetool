@@ -1,32 +1,42 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
-import { useState, ReactNode } from "react";
+import { useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Button, TextField } from "@mui/material";
+import AssetViewer from "../assets/AssetViewer"; // Import AssetViewer if not already imported
+import WaveRecorder from "../audio/WaveRecorder";
+import AudioPlayer from "../audio/AudioPlayer";
+import { PropertyProps } from "../node/PropertyInput";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
   uri: string | undefined;
   onChange: (value: { uri: string; type: string }) => void;
-  children: ReactNode;
+  contentType: string;
+  props: PropertyProps;
 }
 
 const PropertyDropzone = ({
   asset,
   uri,
+  props,
   onChange,
-  children
+  contentType
 }: PropertyDropzoneProps) => {
-  const { onDrop, onDragOver } = useFileDrop({
+  const onChangeAsset = (asset: Asset) =>
+    props.onChange({ asset_id: asset.id, uri: asset.get_url, type: "audio" });
+
+  const { onDrop, onDragOver, filename } = useFileDrop({
     uploadAsset: true,
     onChangeAsset: (asset: Asset) =>
-      onChange({ uri: asset.get_url || "", type: "image" }),
-    type: "image"
+      onChange({ uri: asset.get_url || "", type: contentType }),
+    type: contentType as "image" | "audio" | "video" | "all"
   });
 
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [openViewer, setOpenViewer] = useState(false);
+  const id = `audio-${props.property.name}-${props.propertyIndex}`;
 
   const styles = (theme: any) =>
     css({
@@ -58,6 +68,7 @@ const PropertyDropzone = ({
       ".url-input": {
         height: "1em",
         width: "calc(100% - 24px)",
+        maxWidth: "120px",
         zIndex: 1,
         bottom: "0em",
         borderRadius: "0",
@@ -84,16 +95,100 @@ const PropertyDropzone = ({
       ".dropzone.dropped": {
         width: "100%",
         border: "0",
-        maxWidth: "180px",
-        textAlign: "center"
+        maxWidth: "180px"
+        // textAlign: "center"
       },
       ".dropzone p": {
         textAlign: "left"
       },
       ".dropzone.dropped p": {
         textAlign: "center"
+      },
+      ".prop-drop": {
+        fontSize: theme.fontSizeTiny,
+        lineHeight: "1.1em"
       }
     });
+
+  const renderViewer = () => {
+    if (!uri) return null;
+    switch (contentType.split("/")[0]) {
+      case "image":
+        return (
+          <>
+            <AssetViewer
+              contentType={contentType + "/*"}
+              url={uri}
+              open={openViewer}
+              onClose={() => setOpenViewer(false)}
+            />
+            <img
+              src={asset?.get_url || uri || ""}
+              alt=""
+              style={{ width: "100%" }}
+              onDoubleClick={() => setOpenViewer(true)}
+            />
+          </>
+        );
+      case "audio":
+        return (
+          <>
+            <WaveRecorder onChange={onChangeAsset} />
+            {asset || uri ? (
+              <div id={id} aria-labelledby={id} className="audio-drop">
+                <AssetViewer
+                  contentType={contentType + "/*"}
+                  asset={asset ? asset : undefined}
+                  url={uri ? uri : undefined}
+                  open={openViewer}
+                  onClose={() => setOpenViewer(false)}
+                />
+                <audio
+                  style={{ width: "100%", height: "20px" }}
+                  onVolumeChange={(e) => (e.currentTarget.volume = 1)}
+                  src={uri as string}
+                >
+                  Your browser does not support the audio element.
+                </audio>
+                <p className="centered uppercase">{filename}</p>
+                <AudioPlayer filename={filename} url={uri as string} />
+              </div>
+            ) : (
+              <p className="centered uppercase">Drop audio</p>
+            )}
+          </>
+        );
+      case "video":
+        return (
+          <>
+            {uri ? (
+              <>
+                <AssetViewer
+                  contentType="video/*"
+                  asset={asset ? asset : undefined}
+                  url={uri ? uri : undefined}
+                  open={openViewer}
+                  onClose={() => setOpenViewer(false)}
+                />
+                <video
+                  style={{ width: "100%", height: "auto" }}
+                  controls
+                  src={uri}
+                >
+                  Your browser does not support the video element.
+                </video>
+                <p className="centered uppercase">{filename}</p>
+              </>
+            ) : (
+              <p className="centered uppercase">Drop video</p>
+            )}
+            {/* <video controls src={uri} style={{ width: "100%" }} /> */}
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div css={styles}>
@@ -106,8 +201,10 @@ const PropertyDropzone = ({
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
-            onChange={(e) => onChange({ uri: e.target.value, type: "image" })}
-            placeholder="Enter Image URL"
+            onChange={(e) =>
+              onChange({ uri: e.target.value, type: contentType })
+            }
+            placeholder={`Enter ${contentType.split("/")[0]} URL`}
           />
         )}
         <Button
@@ -128,7 +225,11 @@ const PropertyDropzone = ({
           onDragOver={onDragOver}
           onDrop={onDrop}
         >
-          {uri ? children : <p className="centered uppercase">Drop image</p>}
+          {uri ? (
+            renderViewer()
+          ) : (
+            <p className="prop-drop centered uppercase">Drop {contentType}</p>
+          )}
         </div>
       </div>
     </div>
