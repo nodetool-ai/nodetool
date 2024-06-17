@@ -4,14 +4,7 @@ import { css } from "@emotion/react";
 // store
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
 // mui
-import {
-  AppBar,
-  Button,
-  Tooltip,
-  Toolbar,
-  Box,
-  Typography
-} from "@mui/material";
+import { AppBar, Button, Tooltip, Toolbar, Box } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 //hooks
@@ -26,7 +19,7 @@ const footerStyles = (theme: any) =>
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
-      width: "40%",
+      width: "240px",
       height: "80px",
       color: "#FCFCFC",
       backgroundColor: "transparent",
@@ -126,8 +119,9 @@ function AppFooter() {
             >
               <Button
                 size="large"
-                className={`run-workflow ${isWorkflowRunning ? "disabled" : ""
-                  }`}
+                className={`run-workflow ${
+                  isWorkflowRunning ? "disabled" : ""
+                }`}
                 onClick={() => !isWorkflowRunning && runWorkflow()}
               >
                 <PlayArrow />
@@ -154,8 +148,9 @@ function AppFooter() {
             >
               <Button
                 size="large"
-                className={`stop-workflow ${!isWorkflowRunning ? "disabled" : ""
-                  }`}
+                className={`stop-workflow ${
+                  !isWorkflowRunning ? "disabled" : ""
+                }`}
                 onClick={() => cancelWorkflow()}
               >
                 <StopIcon />

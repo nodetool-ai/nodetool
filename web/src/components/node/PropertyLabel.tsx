@@ -30,7 +30,7 @@ const labelStyles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1,
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily1,
-      lineHeight: "1.1em",
+      lineHeight: "1.2em",
       padding: ".5em .75em",
       display: "block",
       maxWidth: "250px",

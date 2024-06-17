@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
 import { useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Button, TextField } from "@mui/material";
-import AssetViewer from "../assets/AssetViewer"; // Import AssetViewer if not already imported
+import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import { PropertyProps } from "../node/PropertyInput";
@@ -43,6 +44,7 @@ const PropertyDropzone = ({
       ".drop-container": {
         position: "relative",
         width: "100%",
+        maxWidth: "140px",
         marginTop: "-3px",
         display: "flex",
         flexDirection: "column",
@@ -96,7 +98,6 @@ const PropertyDropzone = ({
         width: "100%",
         border: "0",
         maxWidth: "180px"
-        // textAlign: "center"
       },
       ".dropzone p": {
         textAlign: "left"
@@ -182,7 +183,6 @@ const PropertyDropzone = ({
             ) : (
               <p className="centered uppercase">Drop video</p>
             )}
-            {/* <video controls src={uri} style={{ width: "100%" }} /> */}
           </>
         );
       default:

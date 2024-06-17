@@ -511,9 +511,9 @@ const NodeEditor: React.FC<unknown> = () => {
                 gap={100}
                 offset={0.15}
                 size={8}
-                color="#333"
+                color="#555"
                 lineWidth={1}
-                style={{ backgroundColor: "rgb(122, 122, 120)" }}
+                style={{ backgroundColor: "rgb(110, 110, 100)" }}
                 variant={BackgroundVariant.Cross}
               />
               {reactFlowInstance && <AxisMarker />}
