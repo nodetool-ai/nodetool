@@ -96,8 +96,10 @@ export const isConnectable = (
   }
 
   if (source.type === "union") {
+    // this is not 100% safe but we want to be able to connect
+    // if the union is a subset of the target
     return source.type_args
-      ? source.type_args.every((t) => isConnectable(t, target))
+      ? source.type_args.some((t) => isConnectable(t, target))
       : false;
   }
 
