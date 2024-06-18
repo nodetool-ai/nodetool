@@ -136,18 +136,18 @@ async def test_process_message_with_tool_call(
             )
         ]
         model = MagicMock(name="gpt")
-        result, tasks, tool_calls = await process_messages(
+        res = await process_messages(
             model=model,
             context=context,
             thread_id=thread.id,
             messages=messages,
             node_types=["nodetool.constant.Text"],
         )
-        assert len(tasks) == 0
-        assert len(tool_calls) == 1
-        assert tool_calls[0].function_name == "node__nodetool_constant_String"
-        assert tool_calls[0].function_args == {"value": "Text"}
-        assert tool_calls[0].function_response, "Text"
+        assert len(res.tasks) == 0
+        assert len(res.tool_calls) == 1
+        assert res.tool_calls[0].function_name == "node__nodetool_constant_String"
+        assert res.tool_calls[0].function_args == {"value": "Text"}
+        assert res.tool_calls[0].function_response, "Text"
 
 
 @pytest.mark.asyncio
@@ -185,7 +185,7 @@ async def test_process_message_with_task_creation(
             )
         ]
         model = MagicMock(name="gpt")
-        result, tasks, tool_calls = await process_messages(
+        res = await process_messages(
             model=model,
             context=context,
             thread_id=thread.id,
@@ -193,7 +193,7 @@ async def test_process_message_with_task_creation(
             node_types=["nodetool.constant.Text"],
             can_create_tasks=True,
         )
-        assert len(tasks) == 1
-        assert tasks[0].task_type == "generate_text"
-        assert tasks[0].name == "Generate a summary"
-        assert tasks[0].instructions == "Generate a summary of the given text."
+        assert len(res.tasks) == 1
+        assert res.tasks[0].task_type == "generate_text"
+        assert res.tasks[0].name == "Generate a summary"
+        assert res.tasks[0].instructions == "Generate a summary of the given text."

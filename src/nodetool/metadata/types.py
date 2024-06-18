@@ -382,8 +382,9 @@ class ChatConversation(OutputType):
 class ColumnDef(BaseModel):
     name: str
     data_type: (
-        Literal["int"] | Literal["float"] | Literal["datetime"] | Literal["object"]
+        Literal["int"] | Literal["float"] | Literal["datetime"] | Literal["string"]
     )
+    description: str = ""
 
 
 def dtype_name(dtype: str):
@@ -394,6 +395,11 @@ def dtype_name(dtype: str):
     if dtype.startswith("datetime"):
         return "datetime"
     return "object"
+
+
+class RecordType(BaseType):
+    type: Literal["record_type"] = "record_type"
+    columns: list[ColumnDef] = []
 
 
 class DataframeRef(AssetRef):

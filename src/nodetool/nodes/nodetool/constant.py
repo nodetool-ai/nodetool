@@ -1,5 +1,5 @@
 from typing import Any, Literal
-from nodetool.metadata.types import Tensor
+from nodetool.metadata.types import ColumnDef, Tensor
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef

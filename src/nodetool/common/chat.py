@@ -1,10 +1,11 @@
 import asyncio
+from datetime import datetime
 import json
 from typing import Any
 
 from pydantic import BaseModel
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import FunctionModel, Message, Task, ToolCall
+from nodetool.metadata.types import ColumnDef, FunctionModel, Message, Task, ToolCall
 from nodetool.models.workflow import Workflow
 from nodetool.workflows.base_node import get_node_class
 from nodetool.workflows.graph import Graph
@@ -127,6 +128,22 @@ def create_task_tool():
     return ChatCompletionToolParam(function=function_definition, type="function")
 
 
+def create_record_tool(columns: list[ColumnDef]):
+    properties = {
+        column.name: {
+            "type": column.data_type,
+            "description": column.description,
+        }
+        for column in columns
+    }
+    function_definition = FunctionDefinition(
+        name="create_record",
+        description="Create a data record.",
+        parameters={"type": "object", "properties": properties},
+    )
+    return ChatCompletionToolParam(function=function_definition, type="function")
+
+
 def default_serializer(obj: Any) -> dict:
     if isinstance(obj, BaseModel):
         return obj.model_dump()
@@ -201,6 +218,38 @@ async def process_workflow_function(
     }
 
 
+def create_record(columns: list[ColumnDef], params: dict):
+    """
+    Create a record with the given parameters.
+
+    Args:
+        context (ProcessingContext): The processing context.
+        columns (list[ColumnDef]): The columns of the record.
+        params (dict): The parameters of the record.
+    """
+    properties = {
+        column.name: {
+            "type": column.data_type,
+        }
+        for column in columns
+    }
+
+    def coerce(key, value):
+        if key not in properties:
+            raise ValueError(f"Unknown property {key}")
+        if properties[key]["type"] == "number":
+            return float(value)
+        if properties[key]["type"] == "integer":
+            return int(value)
+        if properties[key]["type"] == "string":
+            return str(value)
+        if properties[key]["type"] == "datetime":
+            return datetime.fromisoformat(value)
+        return value
+
+    return {key: coerce(key, value) for key, value in params.items()}
+
+
 async def create_task(context: ProcessingContext, thread_id: str, params: dict):
     """
     Create a task for an agent to be executed.
@@ -261,6 +310,13 @@ async def create_completion(
     return completion
 
 
+class ChatResponse(BaseModel):
+    messages: list[Message]
+    tasks: list[Task]
+    tool_calls: list[ToolCall]
+    records: list[dict[str, Any]]
+
+
 async def process_messages(
     context: ProcessingContext,
     messages: list[Message],
@@ -269,8 +325,10 @@ async def process_messages(
     workflow_ids: list[str] = [],
     node_types: list[str] = [],
     can_create_tasks: bool = True,
+    can_create_records: bool = True,
+    columns: list[ColumnDef] = [],
     **kwargs,
-) -> tuple[list[Message], list[Task], list[ToolCall]]:
+) -> ChatResponse:
     """
     Process a message in a thread.
 
@@ -287,12 +345,17 @@ async def process_messages(
         {"role": str(message.role), "content": message.content} for message in messages
     ]
 
+    records = []
     tasks = []
     tools = []
     messages_to_return = []
 
     if can_create_tasks:
         tools.append(create_task_tool())
+
+    if can_create_records:
+        tools.append(create_record_tool(columns))
+
     tools += await asyncio.gather(
         *[
             function_tool_from_workflow(context, workflow_id)
@@ -346,6 +409,10 @@ async def process_messages(
                 context, thread_id, function_args
             )
             tasks.append(task)
+        elif function_name.startswith("create_record"):
+            record = create_record(columns, function_args)
+            records.append(record)
+            function_response = record
         elif function_name.startswith(WORKFLOW_PREFIX):
             function_response = await process_workflow_function(
                 context, function_name[len(WORKFLOW_PREFIX) :], function_args
@@ -414,4 +481,9 @@ async def process_messages(
     else:
         tool_calls = []
 
-    return messages_to_return, tasks, tool_calls
+    return ChatResponse(
+        messages=messages_to_return,
+        tasks=tasks,
+        tool_calls=tool_calls,
+        records=records,
+    )

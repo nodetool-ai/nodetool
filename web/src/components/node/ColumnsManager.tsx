@@ -106,7 +106,7 @@ const styles = (theme: any) =>
 
 interface ColumnDef {
   name: string;
-  data_type: "object" | "float" | "int" | "datetime";
+  data_type: "string" | "float" | "int" | "datetime";
 }
 
 interface ColumnsManagerProps {
@@ -224,13 +224,13 @@ const ColumnsManager = ({
     }, 0);
   };
 
-  const validDataTypes = ["object", "float", "int", "datetime"];
+  const validDataTypes = ["string", "float", "int", "datetime"];
 
   const handleDataTypeChange = (index: number, newType: string) => {
     if (!validDataTypes.includes(newType)) {
       return;
     }
-    const validatedType = newType as "object" | "float" | "int" | "datetime";
+    const validatedType = newType as "string" | "float" | "int" | "datetime";
 
     const newColumns = localColumns.map((col, i) =>
       i === index ? { ...col, data_type: validatedType } : col

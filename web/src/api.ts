@@ -274,6 +274,7 @@ export interface components {
        * Type
        * @default audio
        * @constant
+       * @enum {string}
        */
       type?: "audio";
       /**
@@ -303,7 +304,12 @@ export interface components {
       /** Name */
       name: string;
       /** Data Type */
-      data_type: "int" | "float" | "datetime" | "object";
+      data_type: "int" | "float" | "datetime" | "string";
+      /**
+       * Description
+       * @default
+       */
+      description?: string;
     };
     /** DataframeRef */
     DataframeRef: {
@@ -311,6 +317,7 @@ export interface components {
        * Type
        * @default dataframe
        * @constant
+       * @enum {string}
        */
       type?: "dataframe";
       /**
@@ -350,6 +357,7 @@ export interface components {
        * Type
        * @default file
        * @constant
+       * @enum {string}
        */
       type?: "file";
     };
@@ -359,6 +367,7 @@ export interface components {
        * Type
        * @default folder
        * @constant
+       * @enum {string}
        */
       type?: "folder";
       /**
@@ -392,6 +401,7 @@ export interface components {
        * Type
        * @default image
        * @constant
+       * @enum {string}
        */
       type?: "image";
       /**
@@ -444,6 +454,7 @@ export interface components {
        * Type
        * @default job_update
        * @constant
+       * @enum {string}
        */
       type?: "job_update";
       /** Status */
@@ -518,6 +529,7 @@ export interface components {
        * Type
        * @default image_url
        * @constant
+       * @enum {string}
        */
       type?: "image_url";
       /**
@@ -540,6 +552,7 @@ export interface components {
        * Type
        * @default text
        * @constant
+       * @enum {string}
        */
       type?: "text";
       /**
@@ -554,6 +567,7 @@ export interface components {
        * Type
        * @default model_ref
        * @constant
+       * @enum {string}
        */
       type?: "model_ref";
       /**
@@ -620,6 +634,7 @@ export interface components {
        * Type
        * @default node_progress
        * @constant
+       * @enum {string}
        */
       type?: "node_progress";
       /** Node Id */
@@ -635,6 +650,7 @@ export interface components {
        * Type
        * @default node
        * @constant
+       * @enum {string}
        */
       type?: "node";
       /**
@@ -649,6 +665,7 @@ export interface components {
        * Type
        * @default node_update
        * @constant
+       * @enum {string}
        */
       type?: "node_update";
       /** Node Id */
@@ -721,6 +738,7 @@ export interface components {
        * Type
        * @default prediction
        * @constant
+       * @enum {string}
        */
       type?: "prediction";
       /** Id */
@@ -809,6 +827,7 @@ export interface components {
        * Type
        * @default run_job_request
        * @constant
+       * @enum {string}
        */
       type?: "run_job_request";
       /**
@@ -843,6 +862,7 @@ export interface components {
        * Type
        * @default task
        * @constant
+       * @enum {string}
        */
       type?: "task";
       /**
@@ -960,6 +980,7 @@ export interface components {
        * Type
        * @default tensor
        * @constant
+       * @enum {string}
        */
       type?: "tensor";
       /**
@@ -976,6 +997,7 @@ export interface components {
        * Type
        * @default text
        * @constant
+       * @enum {string}
        */
       type?: "text";
       /**
@@ -1072,6 +1094,7 @@ export interface components {
        * Type
        * @default video
        * @constant
+       * @enum {string}
        */
       type?: "video";
       /**
@@ -1125,6 +1148,7 @@ export interface components {
        * Type
        * @default workflow
        * @constant
+       * @enum {string}
        */
       type?: "workflow";
       /**

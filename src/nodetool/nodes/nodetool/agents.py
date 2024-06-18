@@ -1,12 +1,16 @@
 import asyncio
 import json
+from typing import Any
 from pydantic import Field
 from nodetool.api.types.chat import MessageCreateRequest, TaskUpdateRequest
 from nodetool.common.chat import process_messages
 from nodetool.metadata.types import (
+    ColumnDef,
+    DataframeRef,
     FunctionModel,
     ImageRef,
     NodeRef,
+    RecordType,
     Task,
     ToolCall,
 )
@@ -14,6 +18,55 @@ from nodetool.metadata.types import GPTModel
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import Message
+
+
+class DataframeAgent(BaseNode):
+    """
+    LLM Agent to create a dataframe based on a user prompt.
+    llm, language model, agent, chat, conversation
+    """
+
+    model: FunctionModel = Field(
+        default=FunctionModel(),
+        description="The language model to use.",
+    )
+    prompt: str = Field(
+        default="",
+        description="The user prompt",
+    )
+    columns: RecordType = Field(
+        default=RecordType(),
+        description="The columns to use in the dataframe.",
+    )
+
+    async def process(self, context: ProcessingContext) -> DataframeRef:
+        message = await context.create_message(
+            MessageCreateRequest(
+                role="user",
+                content=self.prompt,
+            )
+        )
+        input_messages = [
+            Message(
+                role="system",
+                content="Generate records by calling the create_record tool. Follow the instructions below.",
+            ),
+            message,
+        ]
+        assert message.thread_id is not None, "Thread ID is required"
+
+        res = await process_messages(
+            context=context,
+            thread_id=message.thread_id,
+            model=self.model,
+            messages=input_messages,
+            columns=self.columns.columns,
+            # n_gpu_layers=self.n_gpu_layers,
+        )
+        data = [
+            [record[col.name] for col in self.columns.columns] for record in res.records
+        ]
+        return DataframeRef(columns=self.columns.columns, data=data)
 
 
 class Agent(BaseNode):
@@ -52,16 +105,14 @@ class Agent(BaseNode):
         ]
         assert message.thread_id is not None, "Thread ID is required"
 
-        print(self.model)
-
-        messages, tasks, tool_calls = await process_messages(
+        res = await process_messages(
             context=context,
             thread_id=message.thread_id,
             model=self.model,
             messages=input_messages,
             # n_gpu_layers=self.n_gpu_layers,
         )
-        return {"thread_id": message.thread_id, "tasks": tasks}
+        return {"thread_id": message.thread_id, "tasks": res.tasks}
 
 
 class TaskNode(BaseNode):
@@ -97,7 +148,7 @@ class TaskNode(BaseNode):
     async def process_task(
         self, context: ProcessingContext, task: Task, **kwargs
     ) -> tuple[list[Message], list[ToolCall]]:
-        messages, _, tool_calls = await process_messages(
+        res = await process_messages(
             context=context,
             model_name=self.model.name,
             thread_id=task.thread_id,
@@ -120,7 +171,7 @@ class TaskNode(BaseNode):
             **kwargs,
         )
 
-        return messages, tool_calls
+        return res.messages, res.tool_calls
 
 
 class ProcessTextTask(TaskNode):
