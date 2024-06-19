@@ -63,6 +63,8 @@ export default memo(
       .replace(/\s+/g, " ")
       .trim();
 
+    console.log("BaseNode", props.id, props.data, metadata, metadataLoading, metadataError, nodedata, getInputEdges, workflowId, nodeKey, status, result, edges, isLoading, isConstantNode, isInputNode, isOutputNode, className);
+
     if (!metadata) {
       return (
         <Container className={className}>

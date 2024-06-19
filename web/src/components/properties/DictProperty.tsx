@@ -8,6 +8,7 @@ import {
   SelectChangeEvent
 } from "@mui/material";
 import DictTable, { DictDataType } from "../node/DataTable/DictTable";
+import PropertyLabel from "../node/PropertyLabel";
 
 const detectTypeFromDict = (dict: any) => {
   if (dict.length === 0) {
@@ -27,7 +28,7 @@ const detectTypeFromDict = (dict: any) => {
   return "string";
 };
 
-export default function ListProperty(props: PropertyProps) {
+export default function DictProperty(props: PropertyProps) {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
   const dataTypes = ["int", "string", "datetime", "float"];
   const [dataType, setDataType] = useState<DictDataType>(
@@ -40,6 +41,16 @@ export default function ListProperty(props: PropertyProps) {
     },
     []
   );
+
+  const property = props.property;
+
+  if (props.nodeType !== "nodetool.constant.Dict") {
+    return <PropertyLabel
+      name={property.name}
+      description={property.description}
+      id={id}
+    />;
+  }
 
   return (
     <>
