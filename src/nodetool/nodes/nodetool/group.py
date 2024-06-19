@@ -38,7 +38,12 @@ class Loop(GroupNode):
         for name, value in self._properties.items():
             if isinstance(value, DataframeRef):
                 df = await context.dataframe_to_pandas(value)
-                self._properties[name] = df.to_dict(orient="records")
+                df_dict = df.to_dict(orient="index")
+                df_list = []
+                for index, row in df_dict.items():
+                    row["index"] = index
+                    df_list.append(row)
+                self._properties[name] = df_list
 
         if len(input_nodes) == 0:
             raise ValueError("Loop node must have at least one input node.")
