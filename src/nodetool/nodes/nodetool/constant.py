@@ -1,4 +1,6 @@
 from typing import Any, Literal
+
+from pydantic import Field
 from nodetool.metadata.types import ColumnDef, Tensor
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -46,7 +48,7 @@ class DataFrame(Constant):
     table, data, dataframe
     """
 
-    value: DataFrameRef = DataFrameRef()
+    value: DataFrameRef = Field(title="DataFrame", default=DataFrameRef())
 
     async def process(self, context: ProcessingContext) -> DataFrameRef:
         return self.value

@@ -177,7 +177,7 @@ def generate_model_source_code(
 
     lines = [
         f"class {model_name}(ReplicateNode):",
-        '    """' + description + '"""',
+        f'    """{description}"""',
         *enums,
         "",
         "    @classmethod",

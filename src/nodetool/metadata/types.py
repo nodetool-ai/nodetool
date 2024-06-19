@@ -382,7 +382,11 @@ class ChatConversation(OutputType):
 class ColumnDef(BaseModel):
     name: str
     data_type: (
-        Literal["int"] | Literal["float"] | Literal["datetime"] | Literal["string"]
+        Literal["int"]
+        | Literal["float"]
+        | Literal["datetime"]
+        | Literal["string"]
+        | Literal["object"]
     )
     description: str = ""
 

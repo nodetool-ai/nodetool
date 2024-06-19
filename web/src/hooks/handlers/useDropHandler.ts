@@ -117,7 +117,7 @@ export const useDropHandler = (): DropHandler => {
       const res: ParseResult<string[]> = Papa.parse(csv);
       const columnDefs = res.data[0].map((col: string) => ({
         name: col,
-        data_type: "object"
+        data_type: "string"
       }));
       const data = res.data.slice(1);
       newNode.data.properties.value = {

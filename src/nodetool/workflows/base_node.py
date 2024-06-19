@@ -263,10 +263,11 @@ class BaseNode(BaseModel):
         Sets the value of a property.
         """
         prop = self.find_property(name)
+        python_type = prop.type.get_python_type()
 
         if prop.type.is_enum_type():
             try:
-                v = prop.type.get_python_type()(value)
+                v = python_type(value)
             except ValueError:
                 log.warn(
                     f"[{self.get_node_type()}] Invalid value for property `{name}`: {value} (expected {prop.type})"
@@ -277,9 +278,9 @@ class BaseNode(BaseModel):
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
             )
-        elif hasattr(prop.type.get_python_type(), "model_validate"):
+        elif hasattr(python_type, "model_validate"):
             try:
-                v = prop.type.get_python_type().model_validate(value)  # type: ignore
+                v = python_type.model_validate(value)  # type: ignore
             except ValueError as e:
                 raise ValueError(
                     f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} ({e})"
@@ -299,6 +300,7 @@ class BaseNode(BaseModel):
             try:
                 self.assign_property(name, value)
             except ValueError as e:
+                print(f"Error setting property {name}: {e}")
                 if not skip_errors:
                     raise e
 

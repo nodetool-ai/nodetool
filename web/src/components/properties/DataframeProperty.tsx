@@ -78,7 +78,7 @@ export default function DataframeProperty({
     }
     const newColumn: ColumnDef = {
       name: newColumnName,
-      data_type: "object"
+      data_type: "string"
     };
     onChange({
       ...value,

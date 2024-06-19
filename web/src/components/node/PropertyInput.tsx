@@ -218,6 +218,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     value === property.default ? "value-default" : "value-changed";
 
   const componentType = componentFor(property);
+
   let inputField = null;
   if (componentType) {
     inputField = createElement(componentType, propertyProps);

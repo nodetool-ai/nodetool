@@ -40,7 +40,7 @@ class AdInpaint(ReplicateNode):
             "name": "ad-inpaint",
             "owner": "logerzhu",
             "paper_url": None,
-            "run_count": 379012,
+            "run_count": 382841,
             "url": "https://replicate.com/logerzhu/ad-inpaint",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -113,7 +113,7 @@ class ConsistentCharacter(ReplicateNode):
             "name": "consistent-character",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 18930,
+            "run_count": 30200,
             "url": "https://replicate.com/fofr/consistent-character",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -219,7 +219,7 @@ class PulidBase(ReplicateNode):
             "name": "pulid-base",
             "owner": "fofr",
             "paper_url": "https://arxiv.org/abs/2404.16022",
-            "run_count": 36341,
+            "run_count": 40995,
             "url": "https://replicate.com/fofr/pulid-base",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -315,7 +315,7 @@ class Proteus(ReplicateNode):
             "name": "proteus-v0.4",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 57166,
+            "run_count": 61047,
             "url": "https://replicate.com/lucataco/proteus-v0.4",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -466,7 +466,7 @@ class StableDiffusion(ReplicateNode):
             "name": "stable-diffusion",
             "owner": "stability-ai",
             "paper_url": "https://arxiv.org/abs/2112.10752",
-            "run_count": 108068677,
+            "run_count": 108114037,
             "url": "https://replicate.com/stability-ai/stable-diffusion",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -547,7 +547,7 @@ class Controlnet_Realistic_Vision(ReplicateNode):
             "name": "controlnet-1.1-x-realistic-vision-v2.0",
             "owner": "usamaehsan",
             "paper_url": None,
-            "run_count": 3518170,
+            "run_count": 3565926,
             "url": "https://replicate.com/usamaehsan/controlnet-1.1-x-realistic-vision-v2.0",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -598,7 +598,7 @@ class Controlnet_Realistic_Vision(ReplicateNode):
 
 
 class StableDiffusionXL(ReplicateNode):
-    """SDXL is a text-to-image generation model trained on 1024x1024px images"""
+    """A text-to-image generative AI model that creates beautiful images"""
 
     class Refine(str, Enum):
         NO_REFINER = "no_refiner"
@@ -642,7 +642,7 @@ class StableDiffusionXL(ReplicateNode):
             "name": "sdxl",
             "owner": "stability-ai",
             "paper_url": "https://arxiv.org/abs/2307.01952",
-            "run_count": 53788230,
+            "run_count": 54819212,
             "url": "https://replicate.com/stability-ai/sdxl",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -744,6 +744,283 @@ class StableDiffusionXL(ReplicateNode):
     )
 
 
+class StableDiffusion3(ReplicateNode):
+    """A text-to-image model with greatly improved performance in image quality, typography, complex prompt understanding, and resource-efficiency"""
+
+    class Aspect_ratio(str, Enum):
+        _1_1 = "1:1"
+        _16_9 = "16:9"
+        _21_9 = "21:9"
+        _2_3 = "2:3"
+        _3_2 = "3:2"
+        _4_5 = "4:5"
+        _5_4 = "5:4"
+        _9_16 = "9:16"
+        _9_21 = "9:21"
+
+    class Output_format(str, Enum):
+        WEBP = "webp"
+        JPG = "jpg"
+        PNG = "png"
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "stability-ai/stable-diffusion-3:3a1a11ffb268059b7f68a898c8b872324256df188bb98efffe3a8a84a3e55b46"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/xSNDMDlOk4IzHxJZ1ntRe80wu1JD65y2lLRkO0YWxnBXP7eSA/R8_SD3_00001_.webp",
+            "created_at": "2024-06-12T13:56:04.517937Z",
+            "description": "A text-to-image model with greatly improved performance in image quality, typography, complex prompt understanding, and resource-efficiency",
+            "github_url": "https://github.com/fofr/cog-comfyui-sd3",
+            "license_url": "https://github.com/replicate/cog-stable-diffusion-3/blob/main/LICENSE",
+            "name": "stable-diffusion-3",
+            "owner": "stability-ai",
+            "paper_url": "https://arxiv.org/pdf/2403.03206",
+            "run_count": 130720,
+            "url": "https://replicate.com/stability-ai/stable-diffusion-3",
+            "visibility": "public",
+        }
+
+    @classmethod
+    def return_type(cls):
+        return ImageRef
+
+    seed: int | None = Field(
+        title="Seed",
+        description="Random seed. Leave blank to randomize the seed",
+        default=None,
+    )
+    image: str | None = Field(
+        title="Image", description="Input image for img2img mode", default=None
+    )
+    prompt: str = Field(title="Prompt", description="Input prompt", default="")
+    num_outputs: int = Field(
+        title="Num Outputs",
+        description="Number of images to output.",
+        ge=1.0,
+        le=4.0,
+        default=1,
+    )
+    aspect_ratio: Aspect_ratio = Field(
+        description="Aspect ratio for the generated image", default=Aspect_ratio("1:1")
+    )
+    output_format: Output_format = Field(
+        description="Format of the output images", default=Output_format("webp")
+    )
+    guidance_scale: float = Field(
+        title="Guidance Scale",
+        description="Scale for classifier-free guidance",
+        ge=0.0,
+        le=50.0,
+        default=4.5,
+    )
+    output_quality: int = Field(
+        title="Output Quality",
+        description="Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        ge=0.0,
+        le=100.0,
+        default=80,
+    )
+    negative_prompt: str = Field(
+        title="Negative Prompt", description="Input negative prompt", default=""
+    )
+    prompt_strength: float = Field(
+        title="Prompt Strength",
+        description="Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image",
+        ge=0.0,
+        le=1.0,
+        default=0.6,
+    )
+    disable_safety_checker: bool = Field(
+        title="Disable Safety Checker",
+        description="Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)",
+        default=False,
+    )
+
+
+class SD3_Explorer(ReplicateNode):
+    """A model for experimenting with all the SD3 settings. Non-commercial use only unless you have a Stability AI membership."""
+
+    class Model(str, Enum):
+        SD3_MEDIUM_INCL_CLIPS_SAFETENSORS = "sd3_medium_incl_clips.safetensors"
+        SD3_MEDIUM_INCL_CLIPS_T5XXLFP16_SAFETENSORS = (
+            "sd3_medium_incl_clips_t5xxlfp16.safetensors"
+        )
+        SD3_MEDIUM_INCL_CLIPS_T5XXLFP8_SAFETENSORS = (
+            "sd3_medium_incl_clips_t5xxlfp8.safetensors"
+        )
+
+    class Sampler(str, Enum):
+        EULER = "euler"
+        EULER_ANCESTRAL = "euler_ancestral"
+        HEUN = "heun"
+        HEUNPP2 = "heunpp2"
+        DPM_2 = "dpm_2"
+        DPM_2_ANCESTRAL = "dpm_2_ancestral"
+        LMS = "lms"
+        DPM_FAST = "dpm_fast"
+        DPM_ADAPTIVE = "dpm_adaptive"
+        DPMPP_2S_ANCESTRAL = "dpmpp_2s_ancestral"
+        DPMPP_SDE = "dpmpp_sde"
+        DPMPP_SDE_GPU = "dpmpp_sde_gpu"
+        DPMPP_2M = "dpmpp_2m"
+        DPMPP_2M_SDE = "dpmpp_2m_sde"
+        DPMPP_2M_SDE_GPU = "dpmpp_2m_sde_gpu"
+        DPMPP_3M_SDE = "dpmpp_3m_sde"
+        DPMPP_3M_SDE_GPU = "dpmpp_3m_sde_gpu"
+        DDPM = "ddpm"
+        LCM = "lcm"
+        DDIM = "ddim"
+        UNI_PC = "uni_pc"
+        UNI_PC_BH2 = "uni_pc_bh2"
+
+    class Scheduler(str, Enum):
+        NORMAL = "normal"
+        KARRAS = "karras"
+        EXPONENTIAL = "exponential"
+        SGM_UNIFORM = "sgm_uniform"
+        SIMPLE = "simple"
+        DDIM_UNIFORM = "ddim_uniform"
+
+    class Output_format(str, Enum):
+        WEBP = "webp"
+        JPG = "jpg"
+        PNG = "png"
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "fofr/sd3-explorer:ba3320806125ae93991c899010c998e4ee6a9dc6bdd89aeb6ecbd992815650a9"
+
+    @classmethod
+    def get_hardware(cls):
+        return "Nvidia A40 (Large) GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/BnkJxF51oYZsBdGsgn6vGIkeQUO17GgTPloJCuM0LpQNR5fSA/SD3_00001_.webp",
+            "created_at": "2024-06-18T11:17:24.775662Z",
+            "description": "A model for experimenting with all the SD3 settings. Non-commercial use only unless you have a Stability AI membership.",
+            "github_url": "https://github.com/fofr/cog-comfyui-sd3-explorer",
+            "license_url": "https://huggingface.co/stabilityai/stable-diffusion-3-medium",
+            "name": "sd3-explorer",
+            "owner": "fofr",
+            "paper_url": "https://arxiv.org/pdf/2403.03206",
+            "run_count": 1064,
+            "url": "https://replicate.com/fofr/sd3-explorer",
+            "visibility": "public",
+            "hardware": "Nvidia A40 (Large) GPU",
+        }
+
+    @classmethod
+    def return_type(cls):
+        return ImageRef
+
+    seed: int | None = Field(
+        title="Seed",
+        description="Set a seed for reproducibility. Random by default.",
+        default=None,
+    )
+    model: Model = Field(
+        description="Pick whether to use T5-XXL in fp16, fp8 or not at all",
+        default=Model("sd3_medium_incl_clips_t5xxlfp16.safetensors"),
+    )
+    shift: float = Field(
+        title="Shift",
+        description="The timestep scheduling shift. Try values 6.0 and 2.0 to experiment with effects.",
+        ge=0.0,
+        le=20.0,
+        default=3,
+    )
+    steps: int = Field(
+        title="Steps",
+        description="The number of steps to run the diffusion model for",
+        default=28,
+    )
+    width: int = Field(
+        title="Width", description="The width of the image", default=1024
+    )
+    height: int = Field(
+        title="Height", description="The height of the image", default=1024
+    )
+    prompt: str = Field(
+        title="Prompt",
+        description="This prompt is ignored when using the triple prompt mode. See below.",
+        default="",
+    )
+    sampler: Sampler = Field(
+        description="The sampler to use for the diffusion model",
+        default=Sampler("dpmpp_2m"),
+    )
+    scheduler: Scheduler = Field(
+        description="The scheduler to use for the diffusion model",
+        default=Scheduler("sgm_uniform"),
+    )
+    output_format: Output_format = Field(
+        description="Format of the output images", default=Output_format("webp")
+    )
+    guidance_scale: float = Field(
+        title="Guidance Scale",
+        description="The guidance scale tells the model how similar the output should be to the prompt.",
+        ge=0.0,
+        le=20.0,
+        default=4.5,
+    )
+    output_quality: int = Field(
+        title="Output Quality",
+        description="Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.",
+        ge=0.0,
+        le=100.0,
+        default=80,
+    )
+    negative_prompt: str = Field(
+        title="Negative Prompt",
+        description="Negative prompts do not really work in SD3. This will simply cause your output image to vary in unpredictable ways.",
+        default="",
+    )
+    number_of_images: int = Field(
+        title="Number Of Images",
+        description="The number of images to generate",
+        ge=1.0,
+        le=10.0,
+        default=1,
+    )
+    triple_prompt_t5: str = Field(
+        title="Triple Prompt T5",
+        description="The prompt that will be passed to just the T5-XXL model.",
+        default="",
+    )
+    use_triple_prompt: bool = Field(title="Use Triple Prompt", default=False)
+    triple_prompt_clip_g: str = Field(
+        title="Triple Prompt Clip G",
+        description="The prompt that will be passed to just the CLIP-G model.",
+        default="",
+    )
+    triple_prompt_clip_l: str = Field(
+        title="Triple Prompt Clip L",
+        description="The prompt that will be passed to just the CLIP-L model.",
+        default="",
+    )
+    negative_conditioning_end: float = Field(
+        title="Negative Conditioning End",
+        description="When the negative conditioning should stop being applied. By default it is disabled.",
+        ge=0.0,
+        le=1.0,
+        default=0,
+    )
+    triple_prompt_empty_padding: bool = Field(
+        title="Triple Prompt Empty Padding",
+        description="Whether to add padding for empty prompts. Useful if you only want to pass a prompt to one or two of the three text encoders. Has no effect when all prompts are filled. Disable this for interesting effects.",
+        default=True,
+    )
+
+
 class Juggernaut_XL_V9(ReplicateNode):
     """Juggernaut XL v9"""
 
@@ -776,7 +1053,7 @@ class Juggernaut_XL_V9(ReplicateNode):
             "name": "juggernaut-xl-v9",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 441401,
+            "run_count": 477012,
             "url": "https://replicate.com/lucataco/juggernaut-xl-v9",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -866,7 +1143,7 @@ class EpicRealismXL_Lightning_Hades(ReplicateNode):
             "name": "epicrealismxl-lightning-hades",
             "owner": "fofr",
             "paper_url": "https://civitai.com/models/354130/epicrealismxl-lightning",
-            "run_count": 16789,
+            "run_count": 29976,
             "url": "https://replicate.com/fofr/epicrealismxl-lightning-hades",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -949,7 +1226,7 @@ class SDXL_Pixar(ReplicateNode):
             "name": "sdxl-pixar",
             "owner": "swartype",
             "paper_url": None,
-            "run_count": 519027,
+            "run_count": 521967,
             "url": "https://replicate.com/swartype/sdxl-pixar",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1082,7 +1359,7 @@ class SDXL_Emoji(ReplicateNode):
             "name": "sdxl-emoji",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 4599531,
+            "run_count": 4711188,
             "url": "https://replicate.com/fofr/sdxl-emoji",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1209,7 +1486,7 @@ class StableDiffusionInpainting(ReplicateNode):
             "name": "sdxl-inpainting",
             "owner": "lucataco",
             "paper_url": "https://huggingface.co/papers/2112.10752",
-            "run_count": 192907,
+            "run_count": 223345,
             "url": "https://replicate.com/lucataco/sdxl-inpainting",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1298,7 +1575,7 @@ class RealVisXL_V2(ReplicateNode):
             "name": "realvisxl-v2.0",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 267516,
+            "run_count": 270924,
             "url": "https://replicate.com/lucataco/realvisxl-v2.0",
             "visibility": "public",
             "hardware": "Nvidia A40 GPU",
@@ -1421,7 +1698,7 @@ class RealVisXL2_LCM(ReplicateNode):
             "name": "realvisxl2-lcm",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 286391,
+            "run_count": 286612,
             "url": "https://replicate.com/lucataco/realvisxl2-lcm",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1577,7 +1854,7 @@ class RealVisXL_V3_Multi_Controlnet_Lora(ReplicateNode):
             "name": "realvisxl-v3-multi-controlnet-lora",
             "owner": "fofr",
             "paper_url": "https://huggingface.co/SG161222/RealVisXL_V3.0",
-            "run_count": 344796,
+            "run_count": 369524,
             "url": "https://replicate.com/fofr/realvisxl-v3-multi-controlnet-lora",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1793,7 +2070,7 @@ class OpenDalle_Lora(ReplicateNode):
             "name": "open-dalle-1.1-lora",
             "owner": "batouresearch",
             "paper_url": None,
-            "run_count": 111673,
+            "run_count": 113535,
             "url": "https://replicate.com/batouresearch/open-dalle-1.1-lora",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1938,7 +2215,7 @@ class Controlnet_X_IP_Adapter_Realistic_Vision_V5(ReplicateNode):
             "name": "controlnet-x-ip-adapter-realistic-vision-v5",
             "owner": "usamaehsan",
             "paper_url": None,
-            "run_count": 334918,
+            "run_count": 345232,
             "url": "https://replicate.com/usamaehsan/controlnet-x-ip-adapter-realistic-vision-v5",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -2123,7 +2400,7 @@ class SDXL_Controlnet(ReplicateNode):
             "name": "sdxl-controlnet",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 1231315,
+            "run_count": 1273878,
             "url": "https://replicate.com/lucataco/sdxl-controlnet",
             "visibility": "public",
             "hardware": "Nvidia A40 GPU",
@@ -2250,7 +2527,7 @@ class SDXL_Ad_Inpaint(ReplicateNode):
             "name": "sdxl-ad-inpaint",
             "owner": "catacolabs",
             "paper_url": None,
-            "run_count": 210306,
+            "run_count": 215722,
             "url": "https://replicate.com/catacolabs/sdxl-ad-inpaint",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -2368,7 +2645,7 @@ class Kandinsky(ReplicateNode):
             "name": "kandinsky-2.2",
             "owner": "ai-forever",
             "paper_url": None,
-            "run_count": 9414108,
+            "run_count": 9539161,
             "url": "https://replicate.com/ai-forever/kandinsky-2.2",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -2459,7 +2736,7 @@ class StableDiffusionXLLightning(ReplicateNode):
             "name": "sdxl-lightning-4step",
             "owner": "bytedance",
             "paper_url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_report.pdf",
-            "run_count": 104627650,
+            "run_count": 127783542,
             "url": "https://replicate.com/bytedance/sdxl-lightning-4step",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -2553,7 +2830,7 @@ class PlaygroundV2(ReplicateNode):
             "name": "playground-v2.5-1024px-aesthetic",
             "owner": "playgroundai",
             "paper_url": "https://arxiv.org/abs/2206.00364",
-            "run_count": 546853,
+            "run_count": 609602,
             "url": "https://replicate.com/playgroundai/playground-v2.5-1024px-aesthetic",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -2678,7 +2955,7 @@ class StyleTransfer(ReplicateNode):
             "name": "style-transfer",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 92580,
+            "run_count": 117291,
             "url": "https://replicate.com/fofr/style-transfer",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -2783,7 +3060,7 @@ class Illusions(ReplicateNode):
             "name": "illusions",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 5328,
+            "run_count": 7244,
             "url": "https://replicate.com/fofr/illusions",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
