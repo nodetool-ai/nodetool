@@ -192,10 +192,10 @@ const PropertyDropzone = ({
 
   return (
     <div css={styles}>
-      <div className="drop-container nowheel nodrag">
+      <div className="drop-container">
         {showUrlInput && (
           <TextField
-            className="url-input"
+            className="url-input nowheel nodrag"
             value={uri || ""}
             autoComplete="off"
             autoCorrect="off"
