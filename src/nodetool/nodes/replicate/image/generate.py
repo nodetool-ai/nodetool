@@ -113,7 +113,7 @@ class ConsistentCharacter(ReplicateNode):
             "name": "consistent-character",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 30189,
+            "run_count": 30200,
             "url": "https://replicate.com/fofr/consistent-character",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -219,7 +219,7 @@ class PulidBase(ReplicateNode):
             "name": "pulid-base",
             "owner": "fofr",
             "paper_url": "https://arxiv.org/abs/2404.16022",
-            "run_count": 40993,
+            "run_count": 40995,
             "url": "https://replicate.com/fofr/pulid-base",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -315,7 +315,7 @@ class Proteus(ReplicateNode):
             "name": "proteus-v0.4",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 61044,
+            "run_count": 61047,
             "url": "https://replicate.com/lucataco/proteus-v0.4",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -466,7 +466,7 @@ class StableDiffusion(ReplicateNode):
             "name": "stable-diffusion",
             "owner": "stability-ai",
             "paper_url": "https://arxiv.org/abs/2112.10752",
-            "run_count": 108113871,
+            "run_count": 108114037,
             "url": "https://replicate.com/stability-ai/stable-diffusion",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -547,7 +547,7 @@ class Controlnet_Realistic_Vision(ReplicateNode):
             "name": "controlnet-1.1-x-realistic-vision-v2.0",
             "owner": "usamaehsan",
             "paper_url": None,
-            "run_count": 3565890,
+            "run_count": 3565926,
             "url": "https://replicate.com/usamaehsan/controlnet-1.1-x-realistic-vision-v2.0",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -642,7 +642,7 @@ class StableDiffusionXL(ReplicateNode):
             "name": "sdxl",
             "owner": "stability-ai",
             "paper_url": "https://arxiv.org/abs/2307.01952",
-            "run_count": 54817964,
+            "run_count": 54819212,
             "url": "https://replicate.com/stability-ai/sdxl",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -744,7 +744,107 @@ class StableDiffusionXL(ReplicateNode):
     )
 
 
-class SD3Explorer(ReplicateNode):
+class StableDiffusion3(ReplicateNode):
+    """A text-to-image model with greatly improved performance in image quality, typography, complex prompt understanding, and resource-efficiency"""
+
+    class Aspect_ratio(str, Enum):
+        _1_1 = "1:1"
+        _16_9 = "16:9"
+        _21_9 = "21:9"
+        _2_3 = "2:3"
+        _3_2 = "3:2"
+        _4_5 = "4:5"
+        _5_4 = "5:4"
+        _9_16 = "9:16"
+        _9_21 = "9:21"
+
+    class Output_format(str, Enum):
+        WEBP = "webp"
+        JPG = "jpg"
+        PNG = "png"
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "stability-ai/stable-diffusion-3:3a1a11ffb268059b7f68a898c8b872324256df188bb98efffe3a8a84a3e55b46"
+
+    @classmethod
+    def get_hardware(cls):
+        return "None"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/xSNDMDlOk4IzHxJZ1ntRe80wu1JD65y2lLRkO0YWxnBXP7eSA/R8_SD3_00001_.webp",
+            "created_at": "2024-06-12T13:56:04.517937Z",
+            "description": "A text-to-image model with greatly improved performance in image quality, typography, complex prompt understanding, and resource-efficiency",
+            "github_url": "https://github.com/fofr/cog-comfyui-sd3",
+            "license_url": "https://github.com/replicate/cog-stable-diffusion-3/blob/main/LICENSE",
+            "name": "stable-diffusion-3",
+            "owner": "stability-ai",
+            "paper_url": "https://arxiv.org/pdf/2403.03206",
+            "run_count": 130720,
+            "url": "https://replicate.com/stability-ai/stable-diffusion-3",
+            "visibility": "public",
+        }
+
+    @classmethod
+    def return_type(cls):
+        return ImageRef
+
+    seed: int | None = Field(
+        title="Seed",
+        description="Random seed. Leave blank to randomize the seed",
+        default=None,
+    )
+    image: str | None = Field(
+        title="Image", description="Input image for img2img mode", default=None
+    )
+    prompt: str = Field(title="Prompt", description="Input prompt", default="")
+    num_outputs: int = Field(
+        title="Num Outputs",
+        description="Number of images to output.",
+        ge=1.0,
+        le=4.0,
+        default=1,
+    )
+    aspect_ratio: Aspect_ratio = Field(
+        description="Aspect ratio for the generated image", default=Aspect_ratio("1:1")
+    )
+    output_format: Output_format = Field(
+        description="Format of the output images", default=Output_format("webp")
+    )
+    guidance_scale: float = Field(
+        title="Guidance Scale",
+        description="Scale for classifier-free guidance",
+        ge=0.0,
+        le=50.0,
+        default=4.5,
+    )
+    output_quality: int = Field(
+        title="Output Quality",
+        description="Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        ge=0.0,
+        le=100.0,
+        default=80,
+    )
+    negative_prompt: str = Field(
+        title="Negative Prompt", description="Input negative prompt", default=""
+    )
+    prompt_strength: float = Field(
+        title="Prompt Strength",
+        description="Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image",
+        ge=0.0,
+        le=1.0,
+        default=0.6,
+    )
+    disable_safety_checker: bool = Field(
+        title="Disable Safety Checker",
+        description="Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)",
+        default=False,
+    )
+
+
+class SD3_Explorer(ReplicateNode):
     """A model for experimenting with all the SD3 settings. Non-commercial use only unless you have a Stability AI membership."""
 
     class Model(str, Enum):
@@ -812,7 +912,7 @@ class SD3Explorer(ReplicateNode):
             "name": "sd3-explorer",
             "owner": "fofr",
             "paper_url": "https://arxiv.org/pdf/2403.03206",
-            "run_count": 1063,
+            "run_count": 1064,
             "url": "https://replicate.com/fofr/sd3-explorer",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -953,7 +1053,7 @@ class Juggernaut_XL_V9(ReplicateNode):
             "name": "juggernaut-xl-v9",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 476924,
+            "run_count": 477012,
             "url": "https://replicate.com/lucataco/juggernaut-xl-v9",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1043,7 +1143,7 @@ class EpicRealismXL_Lightning_Hades(ReplicateNode):
             "name": "epicrealismxl-lightning-hades",
             "owner": "fofr",
             "paper_url": "https://civitai.com/models/354130/epicrealismxl-lightning",
-            "run_count": 29962,
+            "run_count": 29976,
             "url": "https://replicate.com/fofr/epicrealismxl-lightning-hades",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1126,7 +1226,7 @@ class SDXL_Pixar(ReplicateNode):
             "name": "sdxl-pixar",
             "owner": "swartype",
             "paper_url": None,
-            "run_count": 521962,
+            "run_count": 521967,
             "url": "https://replicate.com/swartype/sdxl-pixar",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1259,7 +1359,7 @@ class SDXL_Emoji(ReplicateNode):
             "name": "sdxl-emoji",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 4711061,
+            "run_count": 4711188,
             "url": "https://replicate.com/fofr/sdxl-emoji",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1386,7 +1486,7 @@ class StableDiffusionInpainting(ReplicateNode):
             "name": "sdxl-inpainting",
             "owner": "lucataco",
             "paper_url": "https://huggingface.co/papers/2112.10752",
-            "run_count": 223312,
+            "run_count": 223345,
             "url": "https://replicate.com/lucataco/sdxl-inpainting",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -1475,7 +1575,7 @@ class RealVisXL_V2(ReplicateNode):
             "name": "realvisxl-v2.0",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 270880,
+            "run_count": 270924,
             "url": "https://replicate.com/lucataco/realvisxl-v2.0",
             "visibility": "public",
             "hardware": "Nvidia A40 GPU",
@@ -1754,7 +1854,7 @@ class RealVisXL_V3_Multi_Controlnet_Lora(ReplicateNode):
             "name": "realvisxl-v3-multi-controlnet-lora",
             "owner": "fofr",
             "paper_url": "https://huggingface.co/SG161222/RealVisXL_V3.0",
-            "run_count": 369490,
+            "run_count": 369524,
             "url": "https://replicate.com/fofr/realvisxl-v3-multi-controlnet-lora",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -2115,7 +2215,7 @@ class Controlnet_X_IP_Adapter_Realistic_Vision_V5(ReplicateNode):
             "name": "controlnet-x-ip-adapter-realistic-vision-v5",
             "owner": "usamaehsan",
             "paper_url": None,
-            "run_count": 345210,
+            "run_count": 345232,
             "url": "https://replicate.com/usamaehsan/controlnet-x-ip-adapter-realistic-vision-v5",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -2300,7 +2400,7 @@ class SDXL_Controlnet(ReplicateNode):
             "name": "sdxl-controlnet",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 1273826,
+            "run_count": 1273878,
             "url": "https://replicate.com/lucataco/sdxl-controlnet",
             "visibility": "public",
             "hardware": "Nvidia A40 GPU",
@@ -2427,7 +2527,7 @@ class SDXL_Ad_Inpaint(ReplicateNode):
             "name": "sdxl-ad-inpaint",
             "owner": "catacolabs",
             "paper_url": None,
-            "run_count": 215719,
+            "run_count": 215722,
             "url": "https://replicate.com/catacolabs/sdxl-ad-inpaint",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -2545,7 +2645,7 @@ class Kandinsky(ReplicateNode):
             "name": "kandinsky-2.2",
             "owner": "ai-forever",
             "paper_url": None,
-            "run_count": 9538992,
+            "run_count": 9539161,
             "url": "https://replicate.com/ai-forever/kandinsky-2.2",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -2636,7 +2736,7 @@ class StableDiffusionXLLightning(ReplicateNode):
             "name": "sdxl-lightning-4step",
             "owner": "bytedance",
             "paper_url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_report.pdf",
-            "run_count": 127741122,
+            "run_count": 127783542,
             "url": "https://replicate.com/bytedance/sdxl-lightning-4step",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -2730,7 +2830,7 @@ class PlaygroundV2(ReplicateNode):
             "name": "playground-v2.5-1024px-aesthetic",
             "owner": "playgroundai",
             "paper_url": "https://arxiv.org/abs/2206.00364",
-            "run_count": 609524,
+            "run_count": 609602,
             "url": "https://replicate.com/playgroundai/playground-v2.5-1024px-aesthetic",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -2855,7 +2955,7 @@ class StyleTransfer(ReplicateNode):
             "name": "style-transfer",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 117282,
+            "run_count": 117291,
             "url": "https://replicate.com/fofr/style-transfer",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -2960,7 +3060,7 @@ class Illusions(ReplicateNode):
             "name": "illusions",
             "owner": "fofr",
             "paper_url": None,
-            "run_count": 7239,
+            "run_count": 7244,
             "url": "https://replicate.com/fofr/illusions",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",

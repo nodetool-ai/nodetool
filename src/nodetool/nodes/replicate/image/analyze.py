@@ -31,7 +31,7 @@ class SDXLClipInterrogator(ReplicateNode):
             "name": "sdxl-clip-interrogator",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 839717,
+            "run_count": 840052,
             "url": "https://replicate.com/lucataco/sdxl-clip-interrogator",
             "visibility": "public",
             "hardware": "Nvidia A40 GPU",
@@ -45,6 +45,41 @@ class SDXLClipInterrogator(ReplicateNode):
         description="Prompt Mode: fast takes 1-2 seconds, best takes 15-25 seconds.",
         default=Mode("best"),
     )
+    image: ImageRef = Field(default=ImageRef(), description="Input image")
+
+
+class Img2Prompt(ReplicateNode):
+    """Get an approximate text prompt, with style, matching an image.  (Optimized for stable-diffusion (clip ViT-L/14))"""
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "methexis-inc/img2prompt:50adaf2d3ad20a6f911a8a9e3ccf777b263b8596fbd2c8fc26e8888f8a0edbb5"
+
+    @classmethod
+    def get_hardware(cls):
+        return "Nvidia T4 GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/mgxm/8b4d747d-feca-477d-8069-ee4d5f89ad8e/a_high_detail_shot_of_a_cat_wearing_a_suit_realism_8k_-n_9_.png",
+            "created_at": "2022-08-24T08:53:28.614572Z",
+            "description": "Get an approximate text prompt, with style, matching an image.  (Optimized for stable-diffusion (clip ViT-L/14))",
+            "github_url": "https://github.com/pharmapsychotic/clip-interrogator",
+            "license_url": "https://github.com/pharmapsychotic/clip-interrogator/blob/main/LICENSE",
+            "name": "img2prompt",
+            "owner": "methexis-inc",
+            "paper_url": None,
+            "run_count": 2590067,
+            "url": "https://replicate.com/methexis-inc/img2prompt",
+            "visibility": "public",
+            "hardware": "Nvidia T4 GPU",
+        }
+
+    @classmethod
+    def return_type(cls):
+        return str
+
     image: ImageRef = Field(default=ImageRef(), description="Input image")
 
 
@@ -70,7 +105,7 @@ class Moondream2(ReplicateNode):
             "name": "moondream2",
             "owner": "lucataco",
             "paper_url": None,
-            "run_count": 59180,
+            "run_count": 65100,
             "url": "https://replicate.com/lucataco/moondream2",
             "visibility": "public",
             "hardware": "Nvidia A40 GPU",
@@ -108,7 +143,7 @@ class MiniGPT4(ReplicateNode):
             "name": "minigpt-4",
             "owner": "daanelson",
             "paper_url": "https://arxiv.org/pdf/2304.10592.pdf",
-            "run_count": 1343283,
+            "run_count": 1343562,
             "url": "https://replicate.com/daanelson/minigpt-4",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -118,9 +153,7 @@ class MiniGPT4(ReplicateNode):
     def return_type(cls):
         return str
 
-    image: str | None = Field(
-        title="Image", description="Image to discuss", default=None
-    )
+    image: ImageRef = Field(default=ImageRef(), description="Image to discuss")
     top_p: float = Field(
         title="Top P",
         description="Sample from the top p percent most likely tokens",
@@ -168,6 +201,42 @@ class MiniGPT4(ReplicateNode):
     )
 
 
+class GLM_4V_9B(ReplicateNode):
+    """GLM-4V is a multimodal model competitive with GPT-4o and other top models."""
+
+    @classmethod
+    def replicate_model_id(cls):
+        return "cuuupid/glm-4v-9b:a75c919339f65bf00afa96511af653fdbd0ec3cb0f5e6f4350809445eee0e14f"
+
+    @classmethod
+    def get_hardware(cls):
+        return "Nvidia A40 GPU"
+
+    @classmethod
+    def model_info(cls):
+        return {
+            "cover_image_url": "https://replicate.delivery/pbxt/L4xKZdxJyTzXJWgiLgvyaeHHhKvZDu2TdTukDoUKMC6eMRxD/replicate-prediction-3a2y5bv2e1rgg0cfxqysh6g9v0%20(1).png",
+            "created_at": "2024-06-11T17:01:39.744025Z",
+            "description": "GLM-4V is a multimodal model competitive with GPT-4o and other top models.",
+            "github_url": "https://github.com/THUDM/GLM-4",
+            "license_url": "https://huggingface.co/THUDM/glm-4-9b/blob/main/LICENSE",
+            "name": "glm-4v-9b",
+            "owner": "cuuupid",
+            "paper_url": None,
+            "run_count": 699,
+            "url": "https://replicate.com/cuuupid/glm-4v-9b",
+            "visibility": "public",
+            "hardware": "Nvidia A40 GPU",
+        }
+
+    @classmethod
+    def return_type(cls):
+        return str
+
+    image: ImageRef = Field(default=ImageRef(), description="Image input")
+    prompt: str | None = Field(title="Prompt", description="Propmt", default=None)
+
+
 class NSFWImageDetection(ReplicateNode):
     """Falcons.ai Fine-Tuned Vision Transformer (ViT) for NSFW Image Classification"""
 
@@ -190,7 +259,7 @@ class NSFWImageDetection(ReplicateNode):
             "name": "nsfw_image_detection",
             "owner": "lucataco",
             "paper_url": "https://huggingface.co/papers/2010.11929",
-            "run_count": 1664348,
+            "run_count": 1748854,
             "url": "https://replicate.com/lucataco/nsfw_image_detection",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -225,7 +294,7 @@ class Llava34B(ReplicateNode):
             "name": "llava-v1.6-34b",
             "owner": "yorickvp",
             "paper_url": None,
-            "run_count": 1349279,
+            "run_count": 1385384,
             "url": "https://replicate.com/yorickvp/llava-v1.6-34b",
             "visibility": "public",
             "hardware": "Nvidia A100 (80GB) GPU",
@@ -292,7 +361,7 @@ class Blip(ReplicateNode):
             "name": "blip",
             "owner": "salesforce",
             "paper_url": "https://arxiv.org/abs/2201.12086",
-            "run_count": 87187074,
+            "run_count": 88954949,
             "url": "https://replicate.com/salesforce/blip",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -338,7 +407,7 @@ class Blip2(ReplicateNode):
             "name": "blip-2",
             "owner": "andreasjansson",
             "paper_url": "https://arxiv.org/abs/2301.12597",
-            "run_count": 22009291,
+            "run_count": 22156911,
             "url": "https://replicate.com/andreasjansson/blip-2",
             "visibility": "public",
             "hardware": "Nvidia A100 (40GB) GPU",
@@ -413,7 +482,7 @@ class ClipInterrogator(ReplicateNode):
             "name": "clip-interrogator",
             "owner": "pharmapsychotic",
             "paper_url": None,
-            "run_count": 1817063,
+            "run_count": 1857156,
             "url": "https://replicate.com/pharmapsychotic/clip-interrogator",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
@@ -456,7 +525,7 @@ class Llava13b(ReplicateNode):
             "name": "llava-13b",
             "owner": "yorickvp",
             "paper_url": "https://arxiv.org/abs/2310.03744",
-            "run_count": 9022124,
+            "run_count": 9322203,
             "url": "https://replicate.com/yorickvp/llava-13b",
             "visibility": "public",
             "hardware": "Nvidia A40 (Large) GPU",
@@ -513,7 +582,7 @@ class ClipFeatures(ReplicateNode):
             "name": "clip-features",
             "owner": "andreasjansson",
             "paper_url": None,
-            "run_count": 57255747,
+            "run_count": 57962795,
             "url": "https://replicate.com/andreasjansson/clip-features",
             "visibility": "public",
             "hardware": "Nvidia T4 GPU",
