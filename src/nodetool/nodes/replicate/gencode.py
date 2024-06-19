@@ -199,6 +199,12 @@ replicate_nodes = [
         "overrides": {"image": ImageRef, "mask": ImageRef},
     },
     {
+        "model_id": "fofr/sd3-explorer",
+        "node_name": "SD3Explorer",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
         "model_id": "lucataco/juggernaut-xl-v9",
         "node_name": "Juggernaut_XL_V9",
         "namespace": "image.generate",
