@@ -30,8 +30,10 @@ const detectTypeFromList = (list: any[]) => {
 export default function ListProperty(props: PropertyProps) {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
   const dataTypes = ["int", "string", "datetime", "float"];
+
+  const value = props.value || [];
   const [dataType, setDataType] = useState<ListDataType>(
-    detectTypeFromList(props.value)
+    detectTypeFromList(value)
   );
 
   const handleDataTypeChange = useCallback(
@@ -71,7 +73,7 @@ export default function ListProperty(props: PropertyProps) {
         </Select>
       </FormControl>
       <ListTable
-        data={props.value}
+        data={value}
         onDataChange={props.onChange}
         editable={true}
         data_type={dataType}
