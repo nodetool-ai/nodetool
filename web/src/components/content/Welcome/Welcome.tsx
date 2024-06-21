@@ -197,8 +197,8 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           </li>
           <li>Drag and drop assets onto the canvas to create nodes</li>
           <li>
-            Click on any asset in a node or inside the AssetBrowser to open the
-            gallery
+            DoubleClick on any asset in a node or inside the AssetBrowser to
+            open the gallery
           </li>
 
           <b>Help</b>
