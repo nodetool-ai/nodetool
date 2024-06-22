@@ -9,6 +9,25 @@ import asyncio
 import cv2
 import os
 
+"""
+Media Utilities Module
+
+This module provides various utility functions for handling media files, including image and video processing.
+
+Functions:
+    create_empty_video: Create a video file with empty frames.
+    create_image_thumbnail: Generate a thumbnail image from an image using PIL.
+    create_video_thumbnail: Generate a thumbnail image from a video file using OpenCV.
+    get_video_duration: Get the duration of a media file using ffprobe.
+    get_audio_duration: Get the duration of an audio file using pydub.
+
+The module relies on external libraries such as PIL, OpenCV, pydub, and ffmpeg for media processing tasks.
+It includes both synchronous and asynchronous functions to handle different types of media operations efficiently.
+
+Note: Some functions require external command-line tools like ffmpeg and ffprobe to be installed and accessible in the system path.
+"""
+
+
 def create_empty_video(fps: int, width: int, height: int, duration: int, filename: str):
     """
     Create a video file with empty frames.
@@ -40,6 +59,7 @@ def create_empty_video(fps: int, width: int, height: int, duration: int, filenam
     # Release the VideoWriter object
     out.release()
 
+
 async def create_image_thumbnail(input_io: IO, width: int, height: int) -> BytesIO:
     """
     Generate a thumbnail image from an image using PIL.
@@ -59,6 +79,7 @@ async def create_image_thumbnail(input_io: IO, width: int, height: int) -> Bytes
     output_io.seek(0)
 
     return output_io
+
 
 async def create_video_thumbnail(input_io: IO, width: int, height: int) -> BytesIO:
     """
@@ -104,6 +125,7 @@ async def create_video_thumbnail(input_io: IO, width: int, height: int) -> Bytes
             raise Exception(f"ffmpeg error: {errors.decode()}")
     finally:
         os.remove(temp_file_path)  # Ensure the temporary file is deleted
+
 
 async def get_video_duration(input_io: BytesIO) -> Union[float, None]:
     """
@@ -158,6 +180,7 @@ async def get_video_duration(input_io: BytesIO) -> Union[float, None]:
             return None
     finally:
         os.remove(temp_file_path)
+
 
 def get_audio_duration(source_io: BytesIO) -> float:
     """

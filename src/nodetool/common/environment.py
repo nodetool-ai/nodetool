@@ -642,7 +642,7 @@ class Environment(object):
 
     @classmethod
     def get_function_models(cls):
-        from nodetool.metadata.types import FunctionModel, GPTModel
+        from nodetool.metadata.types import FunctionModel, GPTModel, AnthropicModel
 
         return [
             FunctionModel(
@@ -651,6 +651,8 @@ class Environment(object):
             FunctionModel(
                 name=GPTModel.GPT4.value,
             ),
+            FunctionModel(name=AnthropicModel.claude_3_5_sonnet),
+            FunctionModel(name=AnthropicModel.claude_3_haiku),
         ] + cls.get_functionary_models()
 
     @classmethod

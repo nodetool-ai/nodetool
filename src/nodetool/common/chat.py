@@ -1,25 +1,52 @@
 import asyncio
 from datetime import datetime
 import json
-from typing import Any
+from typing import Any, Sequence
 
 from pydantic import BaseModel
+from anthropic.types.message_param import MessageParam
+from anthropic.types.text_block import TextBlock
+from anthropic.types.tool_use_block import ToolUseBlock
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import ColumnDef, FunctionModel, Message, Task, ToolCall
+from openai.types.chat import (
+    ChatCompletionMessageParam as OpenAIChatCompletionMessageParam,
+    ChatCompletionToolMessageParam as OpenAIChatCompletionToolMessageParam,
+    ChatCompletionSystemMessageParam as OpenAIChatCompletionSystemMessageParam,
+    ChatCompletionUserMessageParam as OpenAIChatCompletionUserMessageParam,
+    ChatCompletionAssistantMessageParam as OpenAIChatCompletionAssistantMessageParam,
+    ChatCompletionMessageToolCallParam as OpenAIChatCompletionMessageToolCallParam,
+    ChatCompletionContentPartParam as OpenAIChatCompletionContentPartParam,
+)
+from openai.types.chat.chat_completion_message_tool_call_param import (
+    Function as OpenAIFunction,
+)
+from nodetool.metadata.types import (
+    ChatCompletionAssistantMessageParam,
+    ChatCompletionMessageParam,
+    ChatCompletionMessageToolCall,
+    ChatCompletionSystemMessageParam,
+    ChatCompletionToolMessageParam,
+    ChatCompletionToolParam,
+    ChatCompletionUserMessageParam,
+    ColumnDef,
+    ColumnType,
+    Function,
+    FunctionDefinition,
+    FunctionModel,
+    Message,
+    Task,
+    ToolCall,
+)
+from nodetool.models.message import (
+    MessageContent,
+    MessageImageContent,
+    MessageTextContent,
+)
 from nodetool.models.workflow import Workflow
-from nodetool.workflows.base_node import get_node_class
+from nodetool.workflows.base_node import BaseNode, get_node_class
 from nodetool.workflows.graph import Graph
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.api.types.chat import MessageCreateRequest, MessageList, TaskCreateRequest
-from openai.types.shared_params import FunctionDefinition
-from openai.types.chat.chat_completion import ChatCompletion
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-from openai._types import NotGiven
-from openai.types.chat.chat_completion_message_tool_call import (
-    ChatCompletionMessageToolCall,
-)
-from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
-
+from nodetool.api.types.chat import MessageCreateRequest, TaskCreateRequest
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_workflow import run_workflow
 
@@ -50,33 +77,94 @@ def desanitize_node_name(node_name: str) -> str:
     return node_name.replace("_", ".")
 
 
+def json_schema_for_column(column: ColumnDef) -> dict:
+    """
+    Create a JSON schema for a column.
+
+    Args:
+        column (ColumnDef): The column definition.
+
+    Returns:
+        dict: The JSON schema for the column.
+    """
+    data_type = column.data_type
+    description = column.description or "Required field for the record."
+
+    if data_type == "string":
+        return {"type": "string", "description": description}
+    if data_type == "number":
+        return {"type": "number", "description": description}
+    if data_type == "int":
+        return {"type": "integer", "description": description}
+    if data_type == "datetime":
+        return {"type": "string", "format": "date-time", "description": description}
+    raise ValueError(f"Unknown data type {data_type}")
+
+
 NODE_PREFIX = "node__"
 WORKFLOW_PREFIX = "workflow__"
 
 
-def function_tool_from_node(node_name: str):
-    """
-    Create a function tool from a node definition.
+class Tool:
+    name: str
+    description: str
+    input_schema: Any
 
-    A node is technically a function, where the parameters are the properties of the node.
-    The interface of the function is the JSON schema of the node.
+    def __init__(self, name: str, description: str):
+        self.name = name
+        self.description = description
 
-    Args:
-        node_name (str): The name of the node.
-    """
-    node_type = get_node_class(node_name)
-    if node_type is None:
-        raise ValueError(f"Node {node_name} does not exist")
+    def tool_param(self) -> ChatCompletionToolParam:
+        function_definition = FunctionDefinition(
+            name=self.name,
+            description=self.description,
+            parameters=self.input_schema,
+        )
+        return ChatCompletionToolParam(function=function_definition, type="function")
 
-    function_definition = FunctionDefinition(
-        name=NODE_PREFIX + sanitize_node_name(node_name),
-        description=node_type.get_description(),
-        parameters=node_type.get_json_schema(),
-    )
-    return ChatCompletionToolParam(function=function_definition, type="function")
+    async def process(
+        self, context: ProcessingContext, thread_id: str, params: dict
+    ) -> Any:
+        raise NotImplementedError()
+
+
+class ProcessNodeTool(Tool):
+    node_name: str
+    node_type: type[BaseNode]
+
+    def __init__(self, node_name: str):
+        super().__init__(
+            name=NODE_PREFIX + sanitize_node_name(node_name),
+            description=f"Process node {node_name}",
+        )
+        self.node_name = node_name
+        node_type = get_node_class(self.node_name)
+        if node_type is None:
+            raise ValueError(f"Node {self.node_name} does not exist")
+        self.node_type = node_type
+        self.input_schema = self.node_type.get_json_schema()
+
+    async def process(
+        self, context: ProcessingContext, thread_id: str, params: dict
+    ) -> Any:
+        return process_node_function(context, self.node_name, params)
 
 
 async def function_tool_from_workflow(context: ProcessingContext, workflow_id: str):
+    """
+    Create a function tool from a workflow.
+
+    Args:
+        context (ProcessingContext): The processing context.
+        workflow_id (str): The ID of the workflow.
+
+    Returns:
+        ChatCompletionToolParam: The chat completion tool parameter.
+
+    Raises:
+        ValueError: If the workflow does not exist.
+    """
+
     workflow = await context.get_workflow(workflow_id)
 
     if workflow is None:
@@ -90,56 +178,6 @@ async def function_tool_from_workflow(context: ProcessingContext, workflow_id: s
         name=WORKFLOW_PREFIX + workflow_id,
         description=workflow.description or "",
         parameters=parameters,
-    )
-    return ChatCompletionToolParam(function=function_definition, type="function")
-
-
-def create_task_tool():
-    function_definition = FunctionDefinition(
-        name="create_task",
-        description="Create a task for an agent to be executed.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "task_type": {
-                    "type": "string",
-                    "description": "The type of task. Describes the output of the task. For example, 'generate_text' or 'generate_image'.",
-                    "enum": ["generate_text", "generate_image"],
-                },
-                "name": {
-                    "type": "string",
-                    "description": "The name of the task.",
-                },
-                "instructions": {
-                    "type": "string",
-                    "description": "Specific instructions for the agent to execute. For example, 'Generate a summary of the article.'",
-                },
-                "dependencies": {
-                    "type": "array",
-                    "description": "The dependencies of the task. Output of these tasks will be passed as context to the task.",
-                    "items": {
-                        "type": "string",
-                        "description": "The name of the dependent task.",
-                    },
-                },
-            },
-        },
-    )
-    return ChatCompletionToolParam(function=function_definition, type="function")
-
-
-def create_record_tool(columns: list[ColumnDef]):
-    properties = {
-        column.name: {
-            "type": column.data_type,
-            "description": column.description,
-        }
-        for column in columns
-    }
-    function_definition = FunctionDefinition(
-        name="create_record",
-        description="Create a data record.",
-        parameters={"type": "object", "properties": properties},
     )
     return ChatCompletionToolParam(function=function_definition, type="function")
 
@@ -218,117 +256,430 @@ async def process_workflow_function(
     }
 
 
-def create_record(columns: list[ColumnDef], params: dict):
+def message_content_to_openai_content_part(
+    content: MessageContent,
+) -> OpenAIChatCompletionContentPartParam:
     """
-    Create a record with the given parameters.
+    Convert a message content to an OpenAI content part.
 
     Args:
-        context (ProcessingContext): The processing context.
-        columns (list[ColumnDef]): The columns of the record.
-        params (dict): The parameters of the record.
+        content (MessageContent): The message content to convert.
+
+    Returns:
+        OpenAIChatCompletionContentPartParam: The OpenAI content part.
     """
-    properties = {
-        column.name: {
-            "type": column.data_type,
-        }
-        for column in columns
-    }
-
-    def coerce(key, value):
-        if key not in properties:
-            raise ValueError(f"Unknown property {key}")
-        if properties[key]["type"] == "number":
-            return float(value)
-        if properties[key]["type"] == "integer":
-            return int(value)
-        if properties[key]["type"] == "string":
-            return str(value)
-        if properties[key]["type"] == "datetime":
-            return datetime.fromisoformat(value)
-        return value
-
-    return {key: coerce(key, value) for key, value in params.items()}
+    if isinstance(content, MessageTextContent):
+        return {"type": "text", "text": content.text}
+    elif isinstance(content, MessageImageContent):
+        return {"type": "image_url", "image_url": {"url": content.image_url.url}}
+    else:
+        raise ValueError(f"Unknown content type {content}")
 
 
-async def create_task(context: ProcessingContext, thread_id: str, params: dict):
+def convert_to_openai_message(
+    message: ChatCompletionMessageParam,
+) -> OpenAIChatCompletionMessageParam:
     """
-    Create a task for an agent to be executed.
+    Convert a message to an OpenAI message.
 
     Args:
-        context (ProcessingContext): The processing context.
-        thread_id (str): The ID of the thread.
-        user_id (str): The ID of the user.
-        params (dict): The parameters of the task.
+        message (ChatCompletionMessageParam): The message to convert.
+
+    Returns:
+        dict: The OpenAI message.
     """
-    task = await context.create_task(
-        TaskCreateRequest(
-            thread_id=thread_id,
-            task_type=params["task_type"],
-            name=params["name"],
-            instructions=params["instructions"],
-            dependencies=params.get("dependencies", []),
+    if isinstance(message, ChatCompletionToolMessageParam):
+        if isinstance(message.content, BaseModel):
+            content = message.content.model_dump_json()
+        else:
+            content = json.dumps(message.content)
+        return OpenAIChatCompletionToolMessageParam(
+            role=message.role,
+            content=content,
+            tool_call_id=message.tool_call_id,
         )
+    elif isinstance(message, ChatCompletionSystemMessageParam):
+        return OpenAIChatCompletionSystemMessageParam(
+            role=message.role, content=message.content
+        )
+    elif isinstance(message, ChatCompletionUserMessageParam):
+        assert message.content is not None, "User message content must not be None"
+        if isinstance(message.content, str):
+            content = message.content
+        else:
+            content = [
+                message_content_to_openai_content_part(c) for c in message.content
+            ]
+
+        return OpenAIChatCompletionUserMessageParam(role=message.role, content=content)
+    elif isinstance(message, ChatCompletionAssistantMessageParam):
+        assert message.tool_calls is not None, "Tool calls must not be None"
+        tool_calls = [
+            OpenAIChatCompletionMessageToolCallParam(
+                type="function",
+                id=tool_call.id,
+                function=OpenAIFunction(
+                    name=tool_call.function_name,
+                    arguments=json.dumps(tool_call.function_args),
+                ),
+            )
+            for tool_call in message.tool_calls
+        ]
+        return OpenAIChatCompletionAssistantMessageParam(
+            role=message.role, content=message.content, tool_calls=tool_calls
+        )
+    else:
+        raise ValueError(f"Unknown message type {message}")
+
+
+async def create_openai_completion(
+    model: FunctionModel,
+    messages: Sequence[ChatCompletionMessageParam],
+    tools: Sequence[Tool] = [],
+    **kwargs,
+) -> Message:
+    """
+    Creates an OpenAI completion using the provided messages.
+
+    Args:
+        model (FunctionModel): The model to use for the completion.
+        messages (list[ChatCompletionMessageParam]): Entire conversation history.
+        tools (list[ChatCompletionToolParam]): A list of tools to be used by the model.
+        **kwargs: Additional keyword arguments passed to openai API.
+
+    Returns:
+        Message: The message returned by the OpenAI API.
+    """
+
+    client = Environment.get_openai_client()
+    kwargs = {}
+
+    if len(tools) > 0:
+        kwargs["tools"] = [tool.tool_param() for tool in tools]
+
+    openai_messages = [convert_to_openai_message(m) for m in messages]
+
+    completion = await client.chat.completions.create(
+        model=model.name,
+        messages=openai_messages,
+        **kwargs,
+    )  # type: ignore
+    response_message = completion.choices[0].message
+    tool_calls = []
+
+    if response_message.tool_calls:
+        for tool_call in response_message.tool_calls:
+            tool_calls.append(
+                ToolCall(
+                    id=tool_call.id,
+                    function_name=tool_call.function.name,
+                    function_args=json.loads(tool_call.function.arguments),
+                )
+            )
+
+    return Message(
+        role="assistant", content=response_message.content, tool_calls=tool_calls
     )
-    return task, {
-        "type": "task",
-        "task_type": task.task_type,
-        "id": task.id,
-        "name": task.name,
-        "instructions": task.instructions,
-        "dependencies": task.dependencies,
-    }
+
+
+async def create_anthropic_completion(
+    model: FunctionModel,
+    messages: Sequence[ChatCompletionMessageParam],
+    tools: Sequence[Tool] = [],
+    **kwargs,
+) -> Message:
+    """
+    Creates an anthropic completion by sending messages to the anthropic client.
+
+    Args:
+        model (FunctionModel): The model to use for generating the completion.
+        messages (list[ChatCompletionMessageParam]): Entire conversation history.
+        tools (list[Tool], optional): The list of tools to use. Defaults to [].
+        **kwargs: Additional keyword arguments passed to the anthropic client.
+
+    Returns:
+        Message: The message returned by the anthropic client.
+
+    Raises:
+        ValueError: If no completion content is returned.
+    """
+
+    client = Environment.get_anthropic_client()
+
+    def convert_message(message: ChatCompletionMessageParam) -> MessageParam:
+        if isinstance(message, ChatCompletionToolMessageParam):
+            return {
+                "role": "tool",
+                "content": {
+                    "type": "tool_result",
+                    "tool_use_id": message.tool_call_id,
+                    "content": [{"type": "text", "text": str(message.content)}],
+                    "is_error": False,
+                },  # type: ignore
+            }
+        else:
+            return {"role": message.role, "content": message.content}  # type: ignore
+
+    def convert_tool(tool: Tool) -> dict:
+        return {
+            "name": tool.name,
+            "description": tool.description,
+            "input_schema": tool.input_schema,
+        }
+
+    system_messages = [
+        message
+        for message in messages
+        if isinstance(message, ChatCompletionSystemMessageParam)
+    ]
+    messages = [
+        message
+        for message in messages
+        if not isinstance(message, ChatCompletionSystemMessageParam)
+    ]
+
+    completion = await client.messages.create(
+        system=system_messages[0].content if len(system_messages) > 0 else "",
+        messages=[convert_message(message) for message in messages],
+        model=model.name,
+        tools=[convert_tool(tool) for tool in tools],  # type: ignore
+        **kwargs,
+    )
+    if len(completion.content) == 0:
+        raise ValueError("No completion content returned")
+
+    message = None
+    tool_calls = []
+
+    for content in completion.content:
+        if isinstance(content, TextBlock):
+            message = Message(role="assistant", content=content.text)
+        elif isinstance(content, ToolUseBlock):
+            tool_calls.append(
+                ToolCall(
+                    id=content.id,
+                    function_name=content.name,
+                    function_args=dict(content.input),  # type: ignore
+                )
+            )
+
+    assert message is not None, "No completion content returned"
+
+    message.tool_calls = tool_calls
+
+    return message
 
 
 async def create_completion(
     context: ProcessingContext,
     model: FunctionModel,
-    messages: list[ChatCompletionMessageParam],
-    tools: list[ChatCompletionToolParam],
+    messages: Sequence[ChatCompletionMessageParam],
+    tools: Sequence[Tool],
     **kwargs,
-) -> ChatCompletion:
+) -> Message:
     print(f"Creating completion with model {model.name}")
 
     if model.name.startswith("gpt"):
-        client = Environment.get_openai_client()
-        completion = await client.chat.completions.create(
-            model=model.name, messages=messages, tools=tools if len(tools) > 0 else NotGiven()  # type: ignore
-        )
+        return await create_openai_completion(model, messages, tools, **kwargs)
+    elif model.name.startswith("claude"):
+        return await create_anthropic_completion(model, messages, tools, **kwargs)
     else:
-        llm = context.load_llama_model(
-            name=model.name,
-            n_gpu_layers=kwargs.pop("n_gpu_layers", 0),
-        )
+        raise ValueError(f"Unknown model type {model.name}")
 
-        completion = ChatCompletion(
-            **llm.create_chat_completion(
-                messages=messages,  # type: ignore
-                tools=tools,  # type: ignore
-                **kwargs,
+
+def message_param(message: Message) -> ChatCompletionMessageParam:
+    """
+    Converts a given message object to the corresponding ChatCompletionMessageParam object based on the message role.
+
+    Args:
+        message (Message): The message object to convert.
+
+    Returns:
+        ChatCompletionMessageParam: The converted ChatCompletionMessageParam object.
+
+    Raises:
+        ValueError: If the message role is unknown.
+        AssertionError: If the message content or tool call ID is not of the expected type.
+    """
+
+    if message.role == "assistant":
+        assert (
+            isinstance(message.content, str) or message.content is None
+        ), "Assistant message content must be a string or None"
+        return ChatCompletionAssistantMessageParam(
+            role="assistant", content=message.content, tool_calls=message.tool_calls
+        )
+    elif message.role == "tool":
+        assert message.tool_call_id is not None, "Tool message must have a tool call ID"
+        assert isinstance(message.content, str), "Tool message content must be a string"
+        return ChatCompletionToolMessageParam(
+            role="tool",
+            tool_call_id=message.tool_call_id,
+            content=message.content,
+        )
+    elif message.role == "system":
+        assert isinstance(
+            message.content, str
+        ), "System message content must be a string"
+        return ChatCompletionSystemMessageParam(role="system", content=message.content)
+    elif message.role == "user":
+        assert message.content is not None, "User message content must not be None"
+        return ChatCompletionUserMessageParam(role="user", content=message.content)
+    else:
+        raise ValueError(f"Unknown message role {message.role}")
+
+
+async def run_tool(
+    context: ProcessingContext,
+    thread_id: str,
+    tool_call: ChatCompletionMessageToolCall,
+    tools: Sequence[Tool],
+) -> ToolCall:
+    """
+    Executes a tool call based on the provided tool_call object.
+
+    Args:
+        context (ProcessingContext): The processing context.
+        thread_id (str): The ID of the thread.
+        tool_call (ChatCompletionMessageToolCall): The tool call object containing the function name and arguments.
+        tools (list[Tool]): The list of tools to use for the tool call.
+
+    Returns:
+        ToolCall: The tool call object containing the function name, arguments, and response.
+    """
+
+    print(f"******* [[TOOL]] {tool_call.function.name} *******")
+
+    function_name = tool_call.function.name.strip()
+    function_args = tool_call.function.arguments
+
+    def find_tool(name):
+        for tool in tools:
+            if tool.name == name:
+                return tool
+        return None
+
+    tool = find_tool(function_name)
+
+    assert tool is not None, f"Tool {function_name} not found"
+
+    function_response = await tool.process(context, thread_id, function_args)
+
+    content = json.dumps(function_response, default=default_serializer)
+    message = await context.create_message(
+        MessageCreateRequest(
+            thread_id=thread_id,
+            user_id=context.user_id,
+            role="tool",
+            tool_call_id=tool_call.id,
+            name=function_name,
+            content=content,
+        )
+    )
+
+    print(f"******* [[TOOL RESPONSE]] {function_response} *******")
+
+    return ToolCall(
+        id=tool_call.id,
+        function_name=function_name,
+        function_args=function_args,
+        function_response=function_response,
+    )
+
+
+async def process_tool_calls(
+    context: ProcessingContext,
+    thread_id: str,
+    message: Message,
+    tools: Sequence[Tool],
+) -> list[ToolCall]:
+    """
+    Process tool calls from the last message.
+
+    Args:
+        model (FunctionModel): The function model.
+        context (ProcessingContext): The processing context.
+        thread_id (str): The thread ID.
+        message (Message): The last message in the thread.
+        columns (list[ColumnDef] | None, optional): The list of column definitions for the create_record tool. Defaults to None.
+
+    Returns:
+        Message: The assistant message.
+
+    """
+
+    tool_calls = message.tool_calls
+
+    assert tool_calls is not None, "Tool calls must not be None"
+    assert len(tool_calls) > 0, "At least one tool call is required"
+
+    tool_call_messages = [
+        ChatCompletionMessageToolCall(
+            type="function",
+            id=tool_call.id,
+            function=Function(
+                name=tool_call.function_name,
+                arguments=tool_call.function_args,
+            ),
+        )
+        for tool_call in tool_calls
+    ]
+    tool_responses = await asyncio.gather(
+        *[
+            run_tool(
+                context=context,
+                thread_id=thread_id,
+                tool_call=tool_call_message,
+                tools=tools,
             )
+            for tool_call_message in tool_call_messages
+        ]
+    )
+    return tool_responses
+
+
+async def process_tool_responses(
+    context: ProcessingContext,
+    model: FunctionModel,
+    thread_id: str,
+    messages: list[Message],
+    tool_responses: Sequence[ToolCall],
+    **kwargs,
+):
+    messages_for_request = messages + [
+        ChatCompletionToolMessageParam(
+            role="tool",
+            tool_call_id=tool_call.id,
+            content=tool_call.function_response,
         )
-
-    return completion
-
-
-class ChatResponse(BaseModel):
-    messages: list[Message]
-    tasks: list[Task]
-    tool_calls: list[ToolCall]
-    records: list[dict[str, Any]]
+        for tool_call in tool_responses
+    ]
+    response = await create_completion(
+        context=context,
+        model=model,
+        messages=messages_for_request,  # type: ignore
+        **kwargs,
+    )
+    assistant_message = await context.create_message(
+        MessageCreateRequest(
+            thread_id=thread_id,
+            user_id=context.user_id,
+            role="assistant",
+            content=response.content,
+            tool_calls=response.tool_calls,
+        )
+    )
+    return assistant_message
 
 
 async def process_messages(
     context: ProcessingContext,
-    messages: list[Message],
+    messages: Sequence[Message],
     model: FunctionModel,
     thread_id: str,
-    workflow_ids: list[str] = [],
-    node_types: list[str] = [],
-    can_create_tasks: bool = True,
-    can_create_records: bool = True,
-    columns: list[ColumnDef] = [],
+    tools: Sequence[Tool] = [],
     **kwargs,
-) -> ChatResponse:
+) -> Message:
     """
     Process a message in a thread.
 
@@ -337,153 +688,30 @@ async def process_messages(
         messages (list[Message]): The messages in the thread.
         model (str): The model to use for the completion.
         thread_id (str): The ID of the thread.
-        workflow_ids (list[str]): The workflow IDs to use as tools.
-        node_types (list[str]): The node types to use as tools.
+        tools (list[Tool], optional): The tools to use for the completion. Defaults to [].
+
+    Returns:
+        tuple[Message, list[ToolCall]]: The assistant message and the tool calls.
     """
 
-    messages_for_request = [
-        {"role": str(message.role), "content": message.content} for message in messages
-    ]
+    messages_for_request = [message_param(message) for message in messages]
 
-    records = []
-    tasks = []
-    tools = []
-    messages_to_return = []
-
-    if can_create_tasks:
-        tools.append(create_task_tool())
-
-    if can_create_records:
-        tools.append(create_record_tool(columns))
-
-    tools += await asyncio.gather(
-        *[
-            function_tool_from_workflow(context, workflow_id)
-            for workflow_id in workflow_ids
-        ]
-    )
-    tools += [function_tool_from_node(node_type) for node_type in node_types]
-
-    completion = await create_completion(
-        context,
-        model,
-        messages_for_request,  # type: ignore
-        tools,
+    response_message = await create_completion(
+        context=context,
+        model=model,
+        messages=messages_for_request,  # type: ignore
+        tools=tools,
         **kwargs,
     )
 
-    response_message = completion.choices[0].message  # type: ignore
-    messages_for_request.append(response_message)  # type: ignore
     assistant_message = await context.create_message(
         MessageCreateRequest(
             thread_id=thread_id,
             user_id=context.user_id,
             role="assistant",
             content=response_message.content,
-            tool_calls=(
-                [
-                    {
-                        "function": {
-                            "name": c.function.name,
-                            "arguments": c.function.arguments,
-                        }
-                    }
-                    for c in response_message.tool_calls
-                ]
-                if response_message.tool_calls
-                else None
-            ),
+            tool_calls=response_message.tool_calls,
         )
     )
 
-    messages_to_return.append(assistant_message)
-
-    async def run_tool(tool_call: ChatCompletionMessageToolCall):
-        print(f"******* [[TOOL]] {tool_call.function.name} *******")
-
-        function_name = tool_call.function.name.strip()
-        function_args = json.loads(tool_call.function.arguments)
-
-        if function_name == "create_task":
-            task, function_response = await create_task(
-                context, thread_id, function_args
-            )
-            tasks.append(task)
-        elif function_name.startswith("create_record"):
-            record = create_record(columns, function_args)
-            records.append(record)
-            function_response = record
-        elif function_name.startswith(WORKFLOW_PREFIX):
-            function_response = await process_workflow_function(
-                context, function_name[len(WORKFLOW_PREFIX) :], function_args
-            )
-        elif function_name.startswith(NODE_PREFIX):
-            function_response = await process_node_function(
-                context,
-                desanitize_node_name(function_name[len(NODE_PREFIX) :]),
-                function_args,
-            )
-        else:
-            raise ValueError(f"Unknown function type {function_name}")
-
-        content = json.dumps(function_response, default=default_serializer)
-        message = await context.create_message(
-            MessageCreateRequest(
-                thread_id=thread_id,
-                user_id=context.user_id,
-                role="tool",
-                tool_call_id=tool_call.id,
-                name=function_name,
-                content=content,
-            )
-        )
-
-        call = ToolCall(
-            function_name=function_name,
-            function_args=function_args,
-            function_response=function_response,
-        )
-        return message, call
-
-    if response_message.tool_calls:
-        results = await asyncio.gather(
-            *[run_tool(tool_call) for tool_call in response_message.tool_calls]
-        )
-        tool_messages = [result[0] for result in results]
-        tool_calls = [result[1] for result in results]
-        for tool_message in tool_messages:
-            messages_for_request.append(
-                {
-                    "tool_call_id": tool_message.tool_call_id or "",
-                    "role": "tool",
-                    "name": tool_message.name,
-                    "content": tool_message.content or "",
-                }
-            )
-        second_response = await create_completion(
-            context=context,
-            model=model,
-            messages=messages_for_request,  # type: ignore
-            tools=[],
-            **kwargs,
-        )
-        print("SECOND RESPONSE", second_response)
-        second_message = second_response.choices[0].message
-        second_assistant_message = await context.create_message(
-            MessageCreateRequest(
-                thread_id=thread_id,
-                user_id=context.user_id,
-                role="assistant",
-                content=second_message.content,
-            )
-        )
-        messages_to_return.append(second_assistant_message)
-    else:
-        tool_calls = []
-
-    return ChatResponse(
-        messages=messages_to_return,
-        tasks=tasks,
-        tool_calls=tool_calls,
-        records=records,
-    )
+    return assistant_message

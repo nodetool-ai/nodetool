@@ -3,6 +3,24 @@ import json
 import httpx
 from typing import AsyncGenerator, Dict, Any
 
+"""
+This module provides a client for interacting with the Nodetool API.
+
+It defines a custom Response class to handle HTTP responses and a NodetoolAPIClient
+class that encapsulates the logic for making authenticated requests to the Nodetool API.
+
+The NodetoolAPIClient supports various HTTP methods (GET, HEAD, POST, PUT, DELETE)
+and includes a special method for handling streaming responses. It also includes
+error checking and custom header handling for authentication.
+
+Classes:
+    Response: A custom class to represent HTTP responses.
+    NodetoolAPIClient: The main client class for interacting with the Nodetool API.
+
+Constants:
+    NODETOOL_INTERNAL_API: The base URL for internal API calls.
+"""
+
 
 class Response:
     """

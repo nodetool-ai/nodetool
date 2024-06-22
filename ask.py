@@ -92,7 +92,7 @@ print("Number of characters in the combined content:", len(combined))
 
 client = anthropic.Anthropic()
 message = client.messages.create(
-    model="claude-3-haiku-20240307",
+    model="claude-3-5-sonnet-20240620",
     max_tokens=4000,
     temperature=1.0,
     system=system_prompt,
@@ -105,4 +105,7 @@ message = client.messages.create(
 )
 
 for m in message.content:
-    print(m.text)
+    if isinstance(m, anthropic.types.text_block.TextBlock):
+        print(m.text)
+    else:
+        print(m.to_json())

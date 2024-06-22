@@ -5,6 +5,28 @@ import asyncio
 from datetime import datetime
 from typing import Any
 
+"""
+This module provides functionality to run predictions using Hugging Face's inference API.
+
+It contains an asynchronous function `run_huggingface` that sends requests to the Hugging Face
+API to run machine learning models. The module handles model loading, retrying on temporary
+failures, and updating the prediction status.
+
+Functions:
+    run_huggingface(prediction: Prediction, params: dict, data: bytes | None = None) -> Any:
+        Runs a prediction using a specified Hugging Face model.
+
+Constants:
+    API_URL: The base URL for the Hugging Face inference API.
+    MAX_RETRY_COUNT: The maximum number of retry attempts for booting models.
+
+The module uses environment variables for configuration and logging, and it updates
+the prediction status in a database or storage system.
+
+Note:
+    This module requires a valid Hugging Face API token to be set in the environment.
+"""
+
 log = Environment.get_logger()
 API_URL = "https://api-inference.huggingface.co/models"
 MAX_RETRY_COUNT = 10

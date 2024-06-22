@@ -2,6 +2,29 @@ from nodetool.api.types.graph import Edge, Node
 import uuid
 from nodetool.workflows.base_node import get_node_class, get_node_class_by_name
 
+"""
+This module provides functionality to read and parse graph structures from JSON representations.
+
+The main function in this module is `read_graph`, which takes a dictionary representation of a graph
+and converts it into a tuple of Edge and Node lists. This function supports both a custom graph format
+and the Comfy workflow format.
+
+The module also includes utility functions for generating unique edge IDs and finding node classes.
+
+Key Functions:
+- read_graph: Converts a JSON representation of a graph into Edge and Node objects.
+- generate_edge_id: Generates a unique ID for new edges.
+
+The module relies on other parts of the nodetool package, particularly the types and base_node modules.
+
+Example Usage:
+    json_graph = {
+        "node1": {"type": "InputNode", "data": {}},
+        "node2": {"type": "ProcessNode", "data": {"input": ["node1", "output"]}}
+    }
+    edges, nodes = read_graph(json_graph)
+"""
+
 
 def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
     """

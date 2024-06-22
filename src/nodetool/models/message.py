@@ -1,8 +1,15 @@
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+
+
+class ToolCall(BaseModel):
+    id: str = ""
+    function_name: str = ""
+    function_args: dict[str, Any] = {}
+    function_response: Any = None
 
 
 class MessageTextContent(BaseModel):
@@ -43,7 +50,7 @@ class Message(DBModel):
     role: str = DBField(default="")
     name: str = DBField(default="")
     content: str | list[MessageContent] | None = DBField(default=None)
-    tool_calls: list[dict] | None = DBField(default=None)
+    tool_calls: list[ToolCall] | None = DBField(default=None)
     created_at: datetime = DBField(default_factory=datetime.now)
 
     @classmethod

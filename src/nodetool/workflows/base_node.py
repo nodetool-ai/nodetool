@@ -24,6 +24,30 @@ from nodetool.metadata.utils import (
 
 from nodetool.workflows.run_job_request import RunJobRequest
 
+"""
+This module defines the base classes and core functionality for nodes in a workflow graph.
+
+It includes:
+- BaseNode: The foundational class for all nodes, defining common properties and methods.
+- InputNode and OutputNode: Special node types for workflow inputs and outputs.
+- Comment and Preview: Utility node types for annotations and previewing data.
+- GroupNode: A container node type that can hold a subgraph of nodes.
+
+The module also provides functions for node registration, retrieval, and metadata handling:
+- add_node_type: Register a new node type.
+- get_node_class: Retrieve a node class by its type string.
+- get_registered_node_classes: Get all registered visible node classes.
+- requires_capabilities: Determine required capabilities for a set of nodes.
+
+Key features:
+- Dynamic node type registration and retrieval
+- Metadata generation for nodes, including properties and outputs
+- Type checking and conversion for node properties
+- Support for nested workflows through GroupNode
+
+This module is central to the workflow system, providing the building blocks for
+constructing and managing complex computational graphs.
+"""
 
 NODE_BY_TYPE: dict[str, type["BaseNode"]] = {}
 NODES_BY_CLASSNAME: dict[str, list[type["BaseNode"]]] = {}

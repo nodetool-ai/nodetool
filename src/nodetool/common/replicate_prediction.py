@@ -9,11 +9,29 @@ from nodetool.common.replicate_node import (
     log,
 )
 from nodetool.models.prediction import Prediction
-
-
 import asyncio
 import re
 from datetime import datetime
+
+"""
+This module provides functionality for generating Python code for Replicate nodes based on OpenAPI specifications.
+
+It includes functions for:
+- Retrieving API specifications from the Replicate API
+- Converting OpenAPI schemas to Pydantic models
+- Generating source code for Replicate nodes
+- Creating enum classes from OpenAPI schemas
+- Formatting generated code using Black
+
+The main functions in this module are:
+- get_model_api: Retrieves API specifications for a Replicate model
+- generate_model_source_code: Generates source code for a Pydantic model from an OpenAPI schema
+- create_replicate_node: Creates a Replicate node class from a model ID and version
+- create_replicate_namespace: Creates a namespace file containing multiple Replicate nodes
+
+This module is used to automate the process of creating Python classes that represent Replicate models,
+making it easier to interact with these models in a type-safe manner within the nodetool framework.
+"""
 
 REPLICATE_STATUS_MAP = {
     "starting": "starting",

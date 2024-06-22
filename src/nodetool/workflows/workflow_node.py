@@ -14,6 +14,25 @@ from typing import Any, Type
 
 from nodetool.workflows.types import NodeProgress, NodeUpdate
 
+"""
+This module defines the WorkflowNode class, which represents a node in a workflow that can execute a sub-workflow.
+
+The WorkflowNode class extends BaseNode and provides functionality to:
+- Load and manage workflow definitions from JSON files
+- Generate properties based on input nodes in the workflow
+- Execute sub-workflows within a larger workflow context
+- Handle progress updates and logging during workflow execution
+
+Key components:
+- WorkflowNode: The main class representing a workflow node
+- properties_from_input_nodes: Helper function to generate properties from input nodes
+
+The module also includes imports for various dependencies and type definitions used in workflow processing.
+
+This module is part of the nodetool package and integrates with other components
+for workflow management, graph processing, and job execution.
+"""
+
 
 def properties_from_input_nodes(nodes: list[BaseNode]):
     return [

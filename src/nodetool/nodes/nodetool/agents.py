@@ -1,23 +1,150 @@
 import asyncio
+from datetime import datetime
 import json
-from typing import Any
+from typing import Any, Sequence
 from pydantic import Field
-from nodetool.api.types.chat import MessageCreateRequest, TaskUpdateRequest
-from nodetool.common.chat import process_messages
+from nodetool.api.types.chat import (
+    MessageCreateRequest,
+    TaskCreateRequest,
+    TaskUpdateRequest,
+)
+from nodetool.common.chat import (
+    Tool,
+    json_schema_for_column,
+    process_messages,
+    process_tool_calls,
+)
 from nodetool.metadata.types import (
     ColumnDef,
     DataframeRef,
     FunctionModel,
-    ImageRef,
-    NodeRef,
     RecordType,
     Task,
-    ToolCall,
 )
-from nodetool.metadata.types import GPTModel
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import Message
+
+
+def create_record(
+    columns: Sequence[ColumnDef], params: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Create a record with the given parameters.
+
+    Args:
+        context (ProcessingContext): The processing context.
+        columns (Sequence[ColumnDef]): The columns of the record.
+        params (dict): The parameters of the record.
+    """
+    properties = {
+        column.name: {
+            "type": column.data_type,
+        }
+        for column in columns
+    }
+
+    def coerce(key, value):
+        if key not in properties:
+            raise ValueError(f"Unknown property {key}")
+        if properties[key]["type"] == "number":
+            return float(value)
+        if properties[key]["type"] == "integer":
+            return int(value)
+        if properties[key]["type"] == "string":
+            return str(value)
+        if properties[key]["type"] == "datetime":
+            return datetime.fromisoformat(value)
+        return value
+
+    return {key: coerce(key, value) for key, value in params.items()}
+
+
+async def create_task(context: ProcessingContext, thread_id: str, params: dict):
+    """
+    Create a task for an agent to be executed.
+
+    Args:
+        context (ProcessingContext): The processing context.
+        thread_id (str): The ID of the thread.
+        user_id (str): The ID of the user.
+        params (dict): The parameters of the task.
+    """
+    return await context.create_task(
+        TaskCreateRequest(
+            thread_id=thread_id,
+            task_type=params["task_type"],
+            name=params["name"],
+            instructions=params["instructions"],
+            dependencies=params.get("dependencies", []),
+        )
+    )
+
+
+class CreateRecordTool(Tool):
+    columns: Sequence[ColumnDef]
+
+    def __init__(self, columns: list[ColumnDef]):
+        super().__init__(
+            name="create_record",
+            description="Create a data record.",
+        )
+        self.columns = columns
+        self.input_schema = {
+            "type": "object",
+            "properties": {
+                column.name: json_schema_for_column(column) for column in columns
+            },
+            "required": [column.name for column in columns],
+        }
+
+    async def process(
+        self, context: ProcessingContext, thread_id: str, params: dict
+    ) -> Any:
+        return create_record(self.columns, params)
+
+
+class CreateTaskTool(Tool):
+    def __init__(self):
+        super().__init__(
+            name="create_task",
+            description="Create a task for an agent to be executed.",
+        )
+        self.input_schema = {
+            "type": "object",
+            "properties": {
+                "task_type": {
+                    "type": "string",
+                    "description": "The type of task. Describes the output of the task. For example, 'generate_text' or 'generate_image'.",
+                    "enum": ["generate_text", "generate_image"],
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The name of the task.",
+                },
+                "instructions": {
+                    "type": "string",
+                    "description": "Specific instructions for the agent to execute. For example, 'Generate a summary of the article.'",
+                },
+                "dependencies": {
+                    "type": "array",
+                    "description": "The dependencies of the task. Output of these tasks will be passed as context to the task.",
+                    "items": {
+                        "type": "string",
+                        "description": "The name of the dependent task.",
+                    },
+                },
+            },
+        }
+
+    async def process(
+        self, context: ProcessingContext, thread_id: str, params: dict
+    ) -> Any:
+        return await create_task(
+            context=context,
+            thread_id=thread_id,
+            params=params,
+        )
 
 
 class DataframeAgent(BaseNode):
@@ -34,6 +161,22 @@ class DataframeAgent(BaseNode):
         default="",
         description="The user prompt",
     )
+    max_tokens: int = Field(
+        default=1000,
+        description="The maximum number of tokens to generate.",
+    )
+    temperature: float = Field(
+        default=0.0,
+        description="The temperature to use for sampling.",
+    )
+    top_k: int = Field(
+        default=50,
+        description="The number of tokens to sample from.",
+    )
+    top_p: float = Field(
+        default=1.0,
+        description="The cumulative probability for sampling.",
+    )
     columns: RecordType = Field(
         default=RecordType(),
         description="The columns to use in the dataframe.",
@@ -46,32 +189,52 @@ class DataframeAgent(BaseNode):
                 content=self.prompt,
             )
         )
-        input_messages = [
+        messages = [
             Message(
                 role="system",
-                content="Generate records by calling the create_record tool. Follow the instructions below.",
+                content="Generate records by calling the create_record tool. Supply all fields for each record.",
             ),
             message,
         ]
         assert message.thread_id is not None, "Thread ID is required"
 
-        res = await process_messages(
+        tools = [CreateRecordTool(self.columns.columns)]
+
+        assistant_message = await process_messages(
             context=context,
             thread_id=message.thread_id,
             model=self.model,
-            messages=input_messages,
-            columns=self.columns.columns,
-            # n_gpu_layers=self.n_gpu_layers,
+            messages=messages,
+            tools=tools,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            top_k=self.top_k,
+            top_p=self.top_p,
         )
+
+        tool_calls = await process_tool_calls(
+            context=context,
+            thread_id=message.thread_id,
+            message=assistant_message,
+            tools=tools,
+        )
+
         data = [
-            [record[col.name] for col in self.columns.columns] for record in res.records
+            [
+                (
+                    call.function_response[col.name]
+                    if col.name in call.function_response
+                    else None
+                )
+                for col in self.columns.columns
+            ]
+            for call in tool_calls
         ]
         return DataframeRef(columns=self.columns.columns, data=data)
 
 
-class Agent(BaseNode):
+class CreateTaskNode(BaseNode):
     """
-    LLM Agent with access to workflows and nodes.
     llm, language model, agent, chat, conversation
     """
 
@@ -83,13 +246,8 @@ class Agent(BaseNode):
         default="",
         description="The user prompt",
     )
-    # n_gpu_layers: int = Field(default=0, description="Number of layers on the GPU")
 
-    @classmethod
-    def return_type(cls):
-        return {"thread_id": str, "tasks": list[Task]}
-
-    async def process(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext) -> list[Task]:
         message = await context.create_message(
             MessageCreateRequest(
                 role="user",
@@ -105,122 +263,63 @@ class Agent(BaseNode):
         ]
         assert message.thread_id is not None, "Thread ID is required"
 
-        res = await process_messages(
+        tools = [CreateTaskTool()]
+
+        assistant_message = await process_messages(
             context=context,
             thread_id=message.thread_id,
             model=self.model,
             messages=input_messages,
-            # n_gpu_layers=self.n_gpu_layers,
+            tools=tools,
         )
-        return {"thread_id": message.thread_id, "tasks": res.tasks}
+
+        tool_calls = await process_tool_calls(
+            context=context,
+            thread_id=message.thread_id,
+            message=assistant_message,
+            tools=tools,
+        )
+
+        return [call.function_response for call in tool_calls for call in tool_calls]
 
 
-class TaskNode(BaseNode):
+class ProcessTextTask(BaseNode):
     """
-    Process the next task in a thread.
+    Process a test generation task in a thread.
     llm, language model, agent, chat, conversation
     """
 
     model: FunctionModel = Field(
-        default=FunctionModel(name=GPTModel.GPT4.value),
+        default=FunctionModel(),
         description="The language model to use.",
     )
     task: Task = Field(
         default=Task(),
         description="The task to process.",
     )
-    # tasks: list[Task] = Field(
-    #     default=[],
-    #     description="The tasks to be executed by this agent.",
-    # )
-    # workflows: list[WorkflowRef] = Field(
-    #     default=[],
-    #     description="The workflows to to use as tools.",
-    # )
-    nodes: list[NodeRef] = Field(
-        default=[],
-        description="The nodes to use as tools.",
-    )
 
-    def get_system_prompt(self):
-        raise NotImplementedError
+    async def process(self, context: ProcessingContext) -> str:
+        message = await context.create_message(
+            MessageCreateRequest(
+                role="user",
+                content=self.task.instructions,
+            )
+        )
+        assert message.thread_id is not None, "Thread ID is required"
 
-    async def process_task(
-        self, context: ProcessingContext, task: Task, **kwargs
-    ) -> tuple[list[Message], list[ToolCall]]:
-        res = await process_messages(
+        input_messages = [
+            Message(
+                role="system",
+                content="Generate a response to the task below.",
+            ),
+            message,
+        ]
+
+        assistant_message = await process_messages(
             context=context,
-            model_name=self.model.name,
-            thread_id=task.thread_id,
-            can_create_tasks=False,
-            # workflow_ids=[w.id for w in self.workflows],
-            node_types=[n.id for n in self.nodes],
-            messages=[
-                Message(
-                    id="",
-                    role="system",
-                    content=self.get_system_prompt(),
-                ),
-                Message(
-                    id="",
-                    role="user",
-                    content=task.instructions,
-                ),
-            ],
+            thread_id=message.thread_id,
             model=self.model,
-            **kwargs,
+            messages=input_messages,
         )
 
-        return res.messages, res.tool_calls
-
-
-class ProcessTextTask(TaskNode):
-    """
-    Process the next text generation task in a thread.
-    llm, language model, agent, chat, conversation
-    """
-
-    def get_system_prompt(self):
-        return "Generate text based on the instructions below. Use tools if necessary."
-
-    async def process(self, context: ProcessingContext) -> str | None:
-        messages, tool_calls = await self.process_task(context, self.task)
-
-        if len(tool_calls) > 0:
-            result = tool_calls[-1].function_response["output"]
-        else:
-            result = str(messages[-1].content)
-
-        await context.update_task(self.task.id, TaskUpdateRequest(result=result))
-        return result
-
-
-class ProcessImageTask(TaskNode):
-    """
-    Process the next image generation task in a thread.
-    llm, language model, agent, chat, conversation
-    """
-
-    def get_system_prompt(self):
-        return """
-        Follow the instructions below.
-        Use tools to generate images.
-        Perform exactly one tool call.
-        """
-
-    async def process(self, context: ProcessingContext) -> ImageRef | None:
-        messages, tool_calls = await self.process_task(context, self.task)
-        res = tool_calls[-1].function_response
-
-        assert isinstance(res, dict)
-        assert "output" in res
-
-        if isinstance(res["output"], ImageRef):
-            result = res["output"]
-        else:
-            result = ImageRef(**res["output"])
-
-        await context.update_task(
-            self.task.id, TaskUpdateRequest(result=result.model_dump_json())
-        )
-        return result
+        return str(assistant_message.content)

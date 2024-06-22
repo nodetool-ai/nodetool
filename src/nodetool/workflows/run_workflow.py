@@ -8,6 +8,22 @@ import asyncio
 import threading
 import time
 
+"""
+This module contains the `run_workflow` function, which is responsible for executing a workflow based on a given RunJobRequest.
+
+The main function, `run_workflow`, performs the following tasks:
+1. Creates a ProcessingContext and Job based on the input request.
+2. Initializes a WorkflowRunner with the created job ID.
+3. Runs the workflow asynchronously in a separate thread.
+4. Yields messages from the context queue as JSON strings.
+5. Handles errors and exceptions, yielding them as Error messages.
+
+The module uses asyncio for asynchronous execution and threading for parallel processing.
+It also utilizes various components from the nodetool package, including types, models, and workflow-related classes.
+
+Note: This module assumes that the necessary components and configurations are properly set up in the nodetool package.
+"""
+
 log = Environment.get_logger()
 
 

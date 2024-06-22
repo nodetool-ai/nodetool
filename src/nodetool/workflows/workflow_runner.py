@@ -19,6 +19,28 @@ from nodetool.workflows.base_node import requires_capabilities_from_request
 from nodetool.common.environment import Environment
 from nodetool.workflows.graph import Graph, topological_sort
 
+"""
+This module contains the WorkflowRunner class, which is responsible for executing a graph of nodes in a workflow.
+
+The WorkflowRunner class provides the following main functionalities:
+1. Running a workflow graph by processing nodes in topological order.
+2. Handling parallel execution of nodes at each level of the graph.
+3. Managing the execution context, including input/output handling and result collection.
+4. Supporting cancellation of running jobs.
+5. Handling special node types like GroupNodes (e.g., loop nodes).
+6. Managing capabilities required by the workflow, such as GPU support for ComfyUI nodes.
+
+Key components:
+- WorkflowRunner: The main class that orchestrates the execution of a workflow.
+- run: The primary method to execute a workflow given a RunJobRequest and ProcessingContext.
+- process_graph: Processes the entire graph in topological order.
+- process_node: Handles the execution of individual nodes, including special cases like GroupNodes.
+- torch_capabilities: A context manager to handle GPU-related setups for ComfyUI nodes.
+
+This module is central to the execution of workflows in the nodetool system, providing a flexible
+and extensible way to process complex node graphs with various node types and capabilities.
+"""
+
 
 log = Environment.get_logger()
 

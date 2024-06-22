@@ -14,6 +14,24 @@ from nodetool.workflows.base_node import (
 from nodetool.metadata.types import TypeMetadata
 from nodetool.workflows.base_node import get_node_class
 
+"""
+This module provides functionality for working with graph structures in the nodetool workflow system.
+
+It includes classes and functions for:
+- Representing and manipulating graphs with nodes and edges
+- Checking type compatibility between nodes
+- Building and managing subgraphs
+- Topological sorting of graphs
+
+Key components:
+- Graph: Main class for representing a graph structure
+- is_connectable: Function to check if two types are compatible for connection
+- topological_sort: Function to sort graph nodes topologically
+
+The module is designed to support the creation, manipulation, and analysis of workflow graphs,
+particularly focusing on type checking, subgraph management, and execution order determination.
+"""
+
 
 def any_type_in_union(union_type: TypeMetadata, other_type: TypeMetadata):
     """

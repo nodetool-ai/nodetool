@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from typing import Any, Literal, Optional, Type, Union
 
 from nodetool.models.asset import Asset
-from nodetool.models.message import Message as MessageModel, MessageContent
+from nodetool.models.message import Message as MessageModel, MessageContent, ToolCall
 from nodetool.models.task import Task as TaskModel
 
 
@@ -148,6 +148,12 @@ class ModelFile(BaseType):
 class GPTModel(str, enum.Enum):
     GPT3 = "gpt-3.5-turbo-0125"
     GPT4 = "gpt-4o"
+
+
+class AnthropicModel(str, enum.Enum):
+    claude_3_opus = "claude-3-opus-20240229"
+    claude_3_haiku = "claude-3-haiku-20240307"
+    claude_3_5_sonnet = "claude-3-5-sonnet-20240620"
 
 
 class FunctionModel(BaseType):
@@ -315,11 +321,61 @@ class Task(BaseType):
         )
 
 
-class ToolCall(BaseType):
-    type: Literal["tool_call"] = "tool_call"
-    function_name: str = ""
-    function_args: dict[str, Any] = {}
-    function_response: Any = None
+class FunctionDefinition(BaseModel):
+    name: str
+    description: str
+    parameters: Any
+
+
+class ChatCompletionToolParam(BaseModel):
+    type: Literal["function"]
+    function: FunctionDefinition
+
+
+class Function(BaseModel):
+    arguments: dict[str, Any]
+    name: str
+
+
+class ChatCompletionMessageToolCall(BaseModel):
+    type: Literal["function"]
+    id: str
+    function: Function
+
+
+class ChatCompletionMessageParam(BaseModel):
+    role: str
+
+
+class ChatCompletionSystemMessageParam(ChatCompletionMessageParam):
+    role: Literal["system"]
+    content: str
+    name: Optional[str] = None
+
+
+class ChatCompletionUserMessageParam(ChatCompletionMessageParam):
+    role: Literal["user"]
+    content: str | list[MessageContent]
+    name: Optional[str] = None
+
+
+class ChatCompletionAssistantMessageParam(ChatCompletionMessageParam):
+    role: Literal["assistant"]
+    content: Optional[str] = None
+    name: Optional[str] = None
+    tool_calls: Optional[list] = None
+
+
+class ChatCompletionToolMessageParam(ChatCompletionMessageParam):
+    role: Literal["tool"]
+    content: Any
+    tool_call_id: str
+
+
+class ChatCompletionFunctionMessageParam(ChatCompletionMessageParam):
+    role: Literal["function"]
+    content: str
+    name: str
 
 
 class Tensor(BaseType):
@@ -379,15 +435,18 @@ class ChatConversation(OutputType):
     response: str = Field(default="", description="The response from the chat system")
 
 
+ColumnType = Union[
+    Literal["int"],
+    Literal["float"],
+    Literal["datetime"],
+    Literal["string"],
+    Literal["object"],
+]
+
+
 class ColumnDef(BaseModel):
     name: str
-    data_type: (
-        Literal["int"]
-        | Literal["float"]
-        | Literal["datetime"]
-        | Literal["string"]
-        | Literal["object"]
-    )
+    data_type: ColumnType
     description: str = ""
 
 
@@ -560,7 +619,7 @@ class Message(BaseType):
     role: str = ""
     name: str = ""
     content: str | list[MessageContent] | None = None
-    tool_calls: list[dict] | None = None
+    tool_calls: list[ToolCall] | None = None
     created_at: str | None = None
 
     @staticmethod
