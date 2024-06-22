@@ -1,7 +1,7 @@
 from nodetool.common.environment import Environment
 from datetime import datetime
-from nodetool.common.replicate_node import convert_enum_value
-from nodetool.common.replicate_node import convert_output_value
+from nodetool.providers.replicate.replicate_node import convert_enum_value
+from nodetool.providers.replicate.replicate_node import convert_output_value
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from typing import Any, Type

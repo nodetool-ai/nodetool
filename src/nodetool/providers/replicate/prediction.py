@@ -2,9 +2,12 @@ from typing import AsyncGenerator
 
 import httpx
 from nodetool.api.types.prediction import Prediction as APIPrediction, PredictionResult
-from nodetool.common.replicate_cost import calculate_cost, calculate_llm_cost
+from nodetool.providers.replicate.cost_calculation import (
+    calculate_cost,
+    calculate_llm_cost,
+)
 from nodetool.common.environment import Environment
-from nodetool.common.replicate_node import (
+from nodetool.providers.replicate.replicate_node import (
     REPLICATE_MODELS,
     log,
 )

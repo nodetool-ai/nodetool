@@ -6,7 +6,7 @@ import httpx
 from openapi_pydantic.v3.parser import OpenAPIv3
 from nodetool.common.environment import Environment
 from openapi_pydantic.v3 import DataType, Reference, Schema, parse_obj
-from nodetool.common.replicate_node import (
+from nodetool.providers.replicate.replicate_node import (
     capitalize,
     log,
     parse_model_info,

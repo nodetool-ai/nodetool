@@ -1,16 +1,20 @@
 import json
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
-from nodetool.metadata.types import Message
-from nodetool.metadata.types import TextRef
-from nodetool.common.chat import (
+from nodetool.chat.tools import (
+    ProcessNodeTool,
     Tool,
     process_node_function,
+    process_workflow_function,
+)
+from nodetool.metadata.types import Message
+from nodetool.metadata.types import TextRef
+from nodetool.chat.tools import (
     sanitize_node_name,
     desanitize_node_name,
-    process_workflow_function,
+)
+from nodetool.chat.chat import (
     process_messages,
-    ProcessNodeTool,
 )
 from nodetool.models.user import User
 from nodetool.workflows.base_node import BaseNode
@@ -78,7 +82,7 @@ async def test_process_node_function_invalid():
 @pytest.mark.asyncio
 async def test_process_message_valid(thread: Thread, context: ProcessingContext):
     with patch(
-        "nodetool.common.chat.Environment.get_openai_client"
+        "nodetool.chat.chat.Environment.get_openai_client"
     ) as get_openai_client_mock:
         response_message = MagicMock(tool_calls=None, content="Hello world")
         completion = AsyncMock(choices=[MagicMock(message=response_message)])
@@ -133,7 +137,7 @@ async def test_process_message_with_tool_call(
     thread: Thread, context: ProcessingContext
 ):
     with patch(
-        "nodetool.common.chat.Environment.get_openai_client"
+        "nodetool.chat.chat.Environment.get_openai_client"
     ) as get_openai_client_mock:
         tool_call = MagicMock(
             function=MockFunction(

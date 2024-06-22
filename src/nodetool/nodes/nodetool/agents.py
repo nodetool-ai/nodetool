@@ -8,12 +8,12 @@ from nodetool.api.types.chat import (
     TaskCreateRequest,
     TaskUpdateRequest,
 )
-from nodetool.common.chat import (
-    Tool,
+from nodetool.chat.chat import (
     json_schema_for_column,
     process_messages,
     process_tool_calls,
 )
+from nodetool.chat.tools import Tool
 from nodetool.metadata.types import (
     ColumnDef,
     DataframeRef,

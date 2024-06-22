@@ -1,4 +1,4 @@
-from nodetool.common.replicate_codegen import (
+from nodetool.providers.replicate.code_generation import (
     create_replicate_namespace,
     create_replicate_node,
 )

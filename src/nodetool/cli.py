@@ -126,7 +126,7 @@ def chat():
     import argparse
     import uuid
     import asyncio
-    from nodetool.common.chat import process_messages
+    from nodetool.chat.chat import process_messages
     from nodetool.models.thread import Thread
     from nodetool.workflows.processing_context import ProcessingContext
     import argparse

@@ -2,7 +2,7 @@ import asyncio
 from typing import Any
 from pydantic import Field
 from nodetool.metadata.types import ImageRef
-from nodetool.common.huggingface_node import HuggingfaceNode
+from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 

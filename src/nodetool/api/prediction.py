@@ -14,9 +14,9 @@ from nodetool.api.types.prediction import (
 from nodetool.api.utils import current_user, User
 from nodetool.common.environment import Environment
 from typing import AsyncGenerator, Optional
-from nodetool.common.huggingface_prediction import run_huggingface
-from nodetool.common.openai_nodes import run_openai
-from nodetool.common.replicate_prediction import run_replicate
+from nodetool.providers.huggingface.prediction import run_huggingface
+from nodetool.providers.openai.prediction import run_openai
+from nodetool.providers.replicate.prediction import run_replicate
 from nodetool.models.prediction import (
     Prediction as PredictionModel,
 )
