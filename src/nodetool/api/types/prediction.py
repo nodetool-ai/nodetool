@@ -1,3 +1,4 @@
+from nodetool.metadata.types import Provider
 from nodetool.models.prediction import Prediction as PredictionModel
 from pydantic import BaseModel
 from typing import Any, List, Literal
@@ -62,7 +63,7 @@ class PredictionCreateRequest(BaseModel):
     The request body for creating a prediction.
     """
 
-    provider: str
+    provider: Provider
     model: str
     node_id: str
     params: dict[str, Any] = {}

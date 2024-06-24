@@ -1,5 +1,6 @@
 from nodetool.common.environment import Environment
 from datetime import datetime
+from nodetool.metadata.types import Provider
 from nodetool.providers.replicate.replicate_node import convert_enum_value
 from nodetool.providers.replicate.replicate_node import convert_output_value
 from nodetool.workflows.base_node import BaseNode
@@ -51,7 +52,7 @@ class HuggingfaceNode(BaseNode):
         )
 
         return await context.run_prediction(
-            provider="huggingface",
+            provider=Provider.HuggingFace,
             node_id=self.id,
             model=model_id,
             params=input_params,

@@ -14,59 +14,9 @@ import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { Button, Tooltip } from "@mui/material";
 import { datetimeEditor, floatEditor, integerEditor } from "./DataTableEditors";
+import { styles } from "./TableStyles";
 
 export type DictDataType = "int" | "string" | "datetime" | "float";
-
-const styles = (theme: any) =>
-  css({
-    "&.dicttable": {
-      width: "100%",
-      height: "calc(100% - 20px)",
-      maxHeight: "800px",
-      position: "relative",
-      overflow: "hidden"
-    },
-    // rows
-    ".tabulator-row": {
-      minHeight: "20px",
-      minWidth: "20px"
-    },
-    // header
-    ".tabulator .tabulator-header": {
-      minHeight: "20px",
-      maxHeight: "30px",
-      fontFamily: theme.fontFamily2,
-      wordSpacing: "-.2em",
-      fontWeight: "normal"
-    },
-    // actions
-    ".table-actions": {
-      display: "flex",
-      width: "100%",
-      gap: ".5em",
-      justifyContent: "flex-start",
-      alignItems: "flex-start",
-      height: "2em"
-    },
-    ".table-actions .disabled": {
-      opacity: 0.5
-    },
-    ".table-actions button": {
-      lineHeight: "1em",
-      textAlign: "left",
-      padding: ".5em",
-      border: 0,
-      fontSize: theme.fontSizeTinyer,
-      color: theme.palette.c_gray6,
-      margin: "0",
-      borderRadius: "0",
-      backgroundColor: theme.palette.c_gray0
-    },
-    ".table-actions button:hover": {
-      color: theme.palette.c_hl1
-    }
-  });
-
 export type DictTableProps = {
   data: Record<string, any>;
   editable: boolean;
@@ -93,24 +43,24 @@ const DictTable: React.FC<DictTableProps> = ({
     () => [
       ...(showSelect
         ? [
-            {
-              title: "",
-              field: "select",
-              formatter: "rowSelection" as Formatter,
-              titleFormatter: "rowSelection" as Formatter,
-              hozAlign: "left" as ColumnDefinitionAlign,
-              headerSort: false,
-              width: 25,
-              minWidth: 25,
-              resizable: false,
-              frozen: true,
-              cellClick: function (e: any, cell: CellComponent) {
-                cell.getRow().toggleSelect();
-              },
-              editable: false,
-              cssClass: "row-select"
-            }
-          ]
+          {
+            title: "",
+            field: "select",
+            formatter: "rowSelection" as Formatter,
+            titleFormatter: "rowSelection" as Formatter,
+            hozAlign: "left" as ColumnDefinitionAlign,
+            headerSort: false,
+            width: 25,
+            minWidth: 25,
+            resizable: false,
+            frozen: true,
+            cellClick: function (e: any, cell: CellComponent) {
+              cell.getRow().toggleSelect();
+            },
+            editable: false,
+            cssClass: "row-select"
+          }
+        ]
         : []),
       {
         title: "Key",
@@ -128,20 +78,20 @@ const DictTable: React.FC<DictTableProps> = ({
           data_type === "int"
             ? integerEditor
             : data_type === "float"
-            ? floatEditor
-            : data_type === "datetime"
-            ? datetimeEditor
-            : "input",
+              ? floatEditor
+              : data_type === "datetime"
+                ? datetimeEditor
+                : "input",
         headerHozAlign: "left" as ColumnDefinitionAlign,
         cssClass: data_type,
         validator:
           data_type === "int"
             ? (["required", "integer"] as StandardValidatorType[])
             : data_type === "float"
-            ? (["required", "numeric"] as StandardValidatorType[])
-            : data_type === "datetime"
-            ? (["required", "date"] as StandardValidatorType[])
-            : undefined
+              ? (["required", "numeric"] as StandardValidatorType[])
+              : data_type === "datetime"
+                ? (["required", "date"] as StandardValidatorType[])
+                : undefined
       }
     ],
     [data_type, editable, showSelect]

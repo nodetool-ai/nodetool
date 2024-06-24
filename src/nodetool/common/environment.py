@@ -642,18 +642,31 @@ class Environment(object):
 
     @classmethod
     def get_function_models(cls):
-        from nodetool.metadata.types import FunctionModel, GPTModel, AnthropicModel
+        from nodetool.metadata.types import (
+            FunctionModel,
+            GPTModel,
+            AnthropicModel,
+            Provider,
+        )
 
         return [
             FunctionModel(
+                provider=Provider.OpenAI,
                 name=GPTModel.GPT3.value,
             ),
             FunctionModel(
+                provider=Provider.OpenAI,
                 name=GPTModel.GPT4.value,
             ),
-            FunctionModel(name=AnthropicModel.claude_3_5_sonnet),
-            FunctionModel(name=AnthropicModel.claude_3_haiku),
-        ] + cls.get_functionary_models()
+            FunctionModel(
+                provider=Provider.Anthropic, name=AnthropicModel.claude_3_5_sonnet
+            ),
+            FunctionModel(
+                provider=Provider.Anthropic, name=AnthropicModel.claude_3_haiku
+            ),
+        ]
+        # Functionary does not work yet
+        # + cls.get_functionary_models()
 
     @classmethod
     def get_functionary_models(cls):
@@ -777,12 +790,7 @@ class Environment(object):
         """
         Get the files in a model folder.
         """
-
-        if folder == "function_model":
-            return [m.name for m in cls.get_function_models()]
-        elif folder == "llama_model":
-            return [m.name for m in cls.get_llama_models()]
-        elif len(cls.model_files) > 0:
+        if len(cls.model_files) > 0:
             return cls.model_files.get(folder, [])
         else:
             import comfy.folder_paths

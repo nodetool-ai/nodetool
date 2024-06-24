@@ -1,7 +1,8 @@
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+from types import UnionType
+from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 
-from typing import Any, Literal, Type
+from typing import Any, Type
 from nodetool.api.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import NameToType, TypeToName
@@ -81,7 +82,7 @@ def add_node_type(node_class: type["BaseNode"]) -> None:
     add_node_classname(node_class)
 
 
-def type_metadata(python_type: Type) -> TypeMetadata:
+def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
     """
     Returns the metadata for a type.
     """
@@ -98,6 +99,11 @@ def type_metadata(python_type: Type) -> TypeMetadata:
             type="dict",
             type_args=[type_metadata(t) for t in python_type.__args__],  # type: ignore
         )
+    # check optional type before union type as optional is a union of None and the type
+    elif is_optional_type(python_type):
+        res = type_metadata(python_type.__args__[0])
+        res.optional = True
+        return res
     elif is_union_type(python_type):
         return TypeMetadata(
             type="union",
@@ -105,16 +111,13 @@ def type_metadata(python_type: Type) -> TypeMetadata:
         )
     elif is_enum_type(python_type):
         # hacky...
-        NameToType[python_type.__name__] = python_type
+        # NameToType[python_type.__name__] = python_type
+        assert not isinstance(python_type, UnionType)
         return TypeMetadata(
             type="enum",
             type_name=python_type.__name__,
-            values=[e.value for e in python_type],
+            values=[e.value for e in python_type.__members__.values()],
         )
-    elif is_optional_type(python_type):
-        res = type_metadata(python_type.__args__[0])  # type: ignore
-        res.optional = True
-        return res
     else:
         raise ValueError(f"Unknown type: {python_type}")
 
@@ -288,27 +291,23 @@ class BaseNode(BaseModel):
         """
         prop = self.find_property(name)
         python_type = prop.type.get_python_type()
+        type_args = prop.type.type_args
 
-        if prop.type.is_enum_type():
-            try:
-                v = python_type(value)
-            except ValueError:
-                log.warn(
-                    f"[{self.get_node_type()}] Invalid value for property `{name}`: {value} (expected {prop.type})"
-                )
-                return
-
-        elif not is_assignable(prop.type, value):
+        if not is_assignable(prop.type, value):
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
             )
+
+        if prop.type.is_enum_type():
+            v = python_type(value)
+        elif prop.type.is_list_type() and len(type_args) == 1:
+            subtype = prop.type.type_args[0].get_python_type()
+            if hasattr(subtype, "model_validate"):
+                v = [subtype.model_validate(x) for x in value]
+            else:
+                v = value
         elif hasattr(python_type, "model_validate"):
-            try:
-                v = python_type.model_validate(value)  # type: ignore
-            except ValueError as e:
-                raise ValueError(
-                    f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} ({e})"
-                )
+            v = python_type.model_validate(value)
         else:
             v = value
 

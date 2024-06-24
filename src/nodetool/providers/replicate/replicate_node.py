@@ -13,7 +13,7 @@ from enum import Enum
 
 from pydantic import ConfigDict
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import AudioRef, ImageRef, Tensor, VideoRef
+from nodetool.metadata.types import AudioRef, ImageRef, Provider, Tensor, VideoRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -170,7 +170,7 @@ class ReplicateNode(BaseNode):
         input_params = {**input_params, **(params or {})}
 
         return await context.run_prediction(
-            provider="replicate",
+            provider=Provider.Replicate,
             node_id=self.id,
             model=self.replicate_model_id(),
             params=input_params,

@@ -1,29 +1,38 @@
 import { create } from "zustand";
 import { client } from "./ApiClient";
+import { FunctionModel } from "./ApiTypes";
 
 type ModelStore = {
-  models: Record<string, string[]>;
-  load: (folder: string) => Promise<string[]>;
+  modelFiles: Record<string, string[]>;
+  functionModels: FunctionModel[];
+  loadFunctionModels: () => Promise<FunctionModel[]>;
+  loadFiles: (folder: string) => Promise<string[]>;
 };
 
 const useModelStore = create<ModelStore>((set, get) => ({
-  models: {},
-  load: async (folder: string) => {
+  modelFiles: {},
+  functionModels: [],
+  loadFunctionModels: async () => {
+    const { error, data } = await client.GET("/api/models/function_model", {});
+    if (error) {
+      throw new Error("Failed to fetch models: " + error);
+    }
+    set({
+      functionModels: data
+    });
+    return data;
+  },
+  loadFiles: async (folder: string) => {
     const { error, data } = await client.GET("/api/models/{folder}", {
       params: { path: { folder } }
     });
-    const models = get().models;
+    const modelFiles = get().modelFiles;
     if (error) {
-      console.error("Failed to fetch models:", error);
-      return [];
-    }
-    if (!data) {
-      console.error("No data returned from server");
-      return [];
+      throw new Error("Failed to fetch models: " + error);
     }
     set({
-      models: {
-        ...models,
+      modelFiles: {
+        ...modelFiles,
         [folder]: data
       }
     });

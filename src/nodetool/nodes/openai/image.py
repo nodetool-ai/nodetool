@@ -4,7 +4,7 @@ from io import BytesIO
 from nodetool.common.environment import Environment
 from nodetool.providers.openai.cost_calculation import calculate_cost
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import ImageRef
+from nodetool.metadata.types import ImageRef, Provider
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from enum import Enum
@@ -44,7 +44,7 @@ class Dall_E(BaseNode):
     async def process(self, context: ProcessingContext) -> ImageRef:
         response = await context.run_prediction(
             node_id=self._id,
-            provider="openai",
+            provider=Provider.OpenAI,
             model="dall-e-3",
             params={
                 "prompt": self.prompt,

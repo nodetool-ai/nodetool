@@ -69,7 +69,6 @@ const componentTypeMap: Record<string, (props: PropertyProps) => JSX.Element> =
   float: FloatProperty,
   enum: EnumProperty,
   bool: BoolProperty,
-  list: ListProperty,
   dict: DictProperty,
   thread: NonEditableProperty,
   thread_message: ThreadMessageProperty,

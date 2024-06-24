@@ -1,5 +1,5 @@
 import numpy as np
-from nodetool.metadata.types import ImageRef, Tensor
+from nodetool.metadata.types import ImageRef, Provider, Tensor
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import GPTModel
@@ -44,7 +44,10 @@ class Embedding(BaseNode):
         ]
 
         response = await context.run_prediction(
-            self.id, provider="openai", params={"input": chunks}, model=self.model.value
+            self.id,
+            provider=Provider.OpenAI,
+            params={"input": chunks},
+            model=self.model.value,
         )
 
         res = CreateEmbeddingResponse(**response)
@@ -103,7 +106,7 @@ class GPT(BaseNode):
 
         response = await context.run_prediction(
             node_id=self.id,
-            provider="openai",
+            provider=Provider.OpenAI,
             params={
                 "messages": messages,
                 "max_tokens": self.max_tokens,

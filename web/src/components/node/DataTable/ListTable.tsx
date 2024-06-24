@@ -19,85 +19,9 @@ import {
   Tooltip
 } from "@mui/material";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
+import { styles } from "./TableStyles";
 
 export type ListDataType = "int" | "string" | "datetime" | "float";
-
-const styles = (theme: any) =>
-  css({
-    "&.listtable": {
-      width: "100%",
-      height: "calc(100% - 20px)",
-      maxHeight: "800px",
-      position: "relative",
-      overflow: "hidden"
-    },
-    // rows
-    ".tabulator-row": {
-      minHeight: "20px",
-      minWidth: "20px"
-    },
-    // header
-    ".tabulator .tabulator-header": {
-      minHeight: "20px",
-      maxHeight: "30px",
-      fontFamily: theme.fontFamily2,
-      wordSpacing: "-.2em",
-      fontWeight: "normal"
-    },
-    // actions
-    ".table-actions": {
-      display: "flex",
-      width: "100%",
-      gap: ".5em",
-      justifyContent: "flex-start",
-      alignItems: "flex-start",
-      height: "2.5em"
-    },
-    ".table-actions .disabled": {
-      opacity: 0.5
-    },
-    ".table-actions button": {
-      lineHeight: "1em",
-      textAlign: "left",
-      padding: ".5em",
-      border: 0,
-      fontSize: theme.fontSizeTinyer,
-      color: theme.palette.c_gray6,
-      margin: "0",
-      borderRadius: "0",
-      backgroundColor: theme.palette.c_gray0
-    },
-    ".table-actions button:hover": {
-      color: theme.palette.c_hl1
-    },
-    ".toggle": {
-      height: "2em",
-      display: "flex",
-      flexDirection: "column",
-      gap: ".5em",
-      padding: "0",
-      margin: "0",
-      "& .MuiToggleButton-root": {
-        fontSize: theme.fontSizeTinyer,
-        color: theme.palette.c_gray5,
-        backgroundColor: theme.palette.c_gray0,
-        margin: "0",
-        border: 0,
-        borderRadius: "0",
-        lineHeight: "1em",
-        textAlign: "left",
-        padding: ".5em"
-      },
-      "& .MuiToggleButton-root:hover, & .MuiToggleButton-root.Mui-selected:hover":
-        {
-          color: theme.palette.c_hl1
-        },
-      "& .MuiToggleButton-root.Mui-selected": {
-        color: theme.palette.c_white
-      }
-    }
-  });
-
 export type ListTableProps = {
   data: any[];
   editable: boolean;
@@ -138,7 +62,6 @@ const ListTable: React.FC<ListTableProps> = ({
   onDataChange
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
-  const [tabulator, setTabulator] = useState<Tabulator>();
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -150,24 +73,24 @@ const ListTable: React.FC<ListTableProps> = ({
     () => [
       ...(showSelect
         ? [
-            {
-              title: "",
-              field: "select",
-              formatter: "rowSelection" as Formatter,
-              titleFormatter: "rowSelection" as Formatter,
-              hozAlign: "left" as ColumnDefinitionAlign,
-              headerSort: false,
-              width: 25,
-              minWidth: 25,
-              resizable: false,
-              frozen: true,
-              cellClick: function (e: any, cell: CellComponent) {
-                cell.getRow().toggleSelect();
-              },
-              editable: false,
-              cssClass: "row-select"
-            }
-          ]
+          {
+            title: "",
+            field: "select",
+            formatter: "rowSelection" as Formatter,
+            titleFormatter: "rowSelection" as Formatter,
+            hozAlign: "left" as ColumnDefinitionAlign,
+            headerSort: false,
+            width: 25,
+            minWidth: 25,
+            resizable: false,
+            frozen: true,
+            cellClick: function (e: any, cell: CellComponent) {
+              cell.getRow().toggleSelect();
+            },
+            editable: false,
+            cssClass: "row-select"
+          }
+        ]
         : []),
       {
         title: "Index",
@@ -190,20 +113,20 @@ const ListTable: React.FC<ListTableProps> = ({
           data_type === "int"
             ? integerEditor
             : data_type === "float"
-            ? floatEditor
-            : data_type === "datetime"
-            ? datetimeEditor
-            : "input",
+              ? floatEditor
+              : data_type === "datetime"
+                ? datetimeEditor
+                : "input",
         headerHozAlign: "left" as ColumnDefinitionAlign,
         cssClass: data_type,
         validator:
           data_type === "int"
             ? (["required", "integer"] as StandardValidatorType[])
             : data_type === "float"
-            ? (["required", "numeric"] as StandardValidatorType[])
-            : data_type === "datetime"
-            ? (["required", "date"] as StandardValidatorType[])
-            : undefined
+              ? (["required", "numeric"] as StandardValidatorType[])
+              : data_type === "datetime"
+                ? (["required", "date"] as StandardValidatorType[])
+                : undefined
       }
     ],
     [data_type, editable, showSelect]
@@ -266,7 +189,6 @@ const ListTable: React.FC<ListTableProps> = ({
     tabulatorInstance.on("rowSelectionChanged", (data, rows) => {
       setSelectedRows(rows);
     });
-    setTabulator(tabulatorInstance);
 
     return () => {
       tabulatorInstance.destroy();

@@ -4,7 +4,7 @@ from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from io import BytesIO
 from pydub import AudioSegment
-from nodetool.metadata.types import AudioRef
+from nodetool.metadata.types import AudioRef, Provider
 from nodetool.workflows.processing_context import ProcessingContext
 from openai.types.audio.transcription import Transcription
 from openai.types.audio.translation import Translation
@@ -37,7 +37,7 @@ class TextToSpeech(BaseNode):
     async def process(self, context: ProcessingContext) -> AudioRef:
         res = await context.run_prediction(
             node_id=self._id,
-            provider="openai",
+            provider=Provider.OpenAI,
             model=self.model.value,
             params={
                 "input": self.input,
@@ -70,7 +70,7 @@ class Transcribe(BaseNode):
 
         response = await context.run_prediction(
             node_id=self._id,
-            provider="openai",
+            provider=Provider.OpenAI,
             model="whisper-1",
             params={
                 "file": base64.b64encode(audio_bytes.read()).decode(),
@@ -100,7 +100,7 @@ class Translate(BaseNode):
         audio_bytes = await context.asset_to_io(self.audio)
         response = await context.run_prediction(
             node_id=self._id,
-            provider="openai",
+            provider=Provider.OpenAI,
             model="whisper-1",
             params={
                 "file": base64.b64encode(audio_bytes.read()).decode(),

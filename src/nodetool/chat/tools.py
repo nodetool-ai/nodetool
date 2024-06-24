@@ -1,6 +1,6 @@
 import json
 from pydantic import BaseModel
-from nodetool.metadata.types import ChatCompletionToolParam, FunctionDefinition
+from nodetool.metadata.types import ChatToolParam, FunctionDefinition
 from nodetool.models.workflow import Workflow
 from nodetool.workflows.base_node import BaseNode, get_node_class
 from nodetool.workflows.graph import Graph
@@ -11,7 +11,6 @@ from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_workflow import run_workflow
 
 
-NODE_PREFIX = "node__"
 WORKFLOW_PREFIX = "workflow__"
 
 
@@ -28,19 +27,6 @@ def sanitize_node_name(node_name: str) -> str:
     return node_name.replace(".", "_")
 
 
-def desanitize_node_name(node_name: str) -> str:
-    """
-    Desanitize a node name.
-
-    Args:
-        node_name (str): The node name.
-
-    Returns:
-        str: The desanitized node name.
-    """
-    return node_name.replace("_", ".")
-
-
 class Tool:
     name: str
     description: str
@@ -50,45 +36,18 @@ class Tool:
         self.name = name
         self.description = description
 
-    def tool_param(self) -> ChatCompletionToolParam:
+    def tool_param(self) -> ChatToolParam:
         function_definition = FunctionDefinition(
             name=self.name,
             description=self.description,
             parameters=self.input_schema,
         )
-        return ChatCompletionToolParam(function=function_definition, type="function")
+        return ChatToolParam(function=function_definition, type="function")
 
     async def process(
         self, context: ProcessingContext, thread_id: str, params: dict
     ) -> Any:
         raise NotImplementedError()
-
-
-async def process_node_function(
-    context: ProcessingContext, node_type: str, params: dict
-):
-    """
-    Process a node function with the given parameters.
-
-    Args:
-        context (ProcessingContext): The processing context.
-        node_type (str): The node type.
-        params (dict): The parameters passed to the node.
-    """
-    node_class = get_node_class(node_type)
-    if node_class is None:
-        raise ValueError(f"Node {node_type} does not exist")
-
-    print(f"Processing node {node_type} with params {params}")
-
-    node = node_class(id="")
-
-    for key, value in params.items():
-        node.assign_property(key, value)
-
-    res = await node.process(context)
-    out = await node.convert_output(context, res)
-    return out
 
 
 class ProcessNodeTool(Tool):
@@ -97,7 +56,7 @@ class ProcessNodeTool(Tool):
 
     def __init__(self, node_name: str):
         super().__init__(
-            name=NODE_PREFIX + sanitize_node_name(node_name),
+            name=sanitize_node_name(node_name),
             description=f"Process node {node_name}",
         )
         self.node_name = node_name
@@ -110,7 +69,14 @@ class ProcessNodeTool(Tool):
     async def process(
         self, context: ProcessingContext, thread_id: str, params: dict
     ) -> Any:
-        return process_node_function(context, self.node_name, params)
+        node = self.node_type(id="")
+
+        for key, value in params.items():
+            node.assign_property(key, value)
+
+        res = await node.process(context)
+        out = await node.convert_output(context, res)
+        return out
 
 
 async def function_tool_from_workflow(context: ProcessingContext, workflow_id: str):
@@ -142,7 +108,7 @@ async def function_tool_from_workflow(context: ProcessingContext, workflow_id: s
         description=workflow.description or "",
         parameters=parameters,
     )
-    return ChatCompletionToolParam(function=function_definition, type="function")
+    return ChatToolParam(function=function_definition, type="function")
 
 
 async def process_workflow_function(

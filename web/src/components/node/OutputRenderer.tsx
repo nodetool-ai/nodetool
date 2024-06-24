@@ -14,6 +14,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
+import TaskTable from "./DataTable/TaskTable";
 
 export type OutputRendererProps = {
   value: any;
@@ -82,6 +83,9 @@ const styles = (theme: any) =>
 const typeFor = (value: any): string => {
   if (value === undefined || value === null) {
     return "null";
+  }
+  if (Array.isArray(value)) {
+    return "array";
   }
   if (typeof value === "object" && "type" in value) {
     return value.type;
@@ -196,6 +200,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         if (typeof value[0] === "object") {
           if (value[0].type === "thread_message") {
             return <ThreadMessageList messages={value as Message[]} />;
+          }
+          if (value[0].type === "task") {
+            return <TaskTable data={value} />;
           }
           if (value[0].type === "image") {
             return <ImageList images={value} />;

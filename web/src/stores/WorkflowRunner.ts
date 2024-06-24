@@ -108,7 +108,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const setProgress = useResultsStore.getState().setProgress;
 
     try {
-      devLog("WofkflowRunner data:", data);
+      devLog(`WofkflowRunner ${data.type}`, data);
 
       if (data.type === "job_update") {
         const job = data as JobUpdate;

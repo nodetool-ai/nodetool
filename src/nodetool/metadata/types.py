@@ -145,6 +145,16 @@ class ModelFile(BaseType):
     name: str = ""
 
 
+class Provider(str, enum.Enum):
+    OpenAI = "openai"
+    Anthropic = "anthropic"
+    Replicate = "replicate"
+    HuggingFace = "huggingface"
+    Comfy = "comfy"
+    Local = "local"
+    Empty = "empty"
+
+
 class GPTModel(str, enum.Enum):
     GPT3 = "gpt-3.5-turbo-0125"
     GPT4 = "gpt-4o"
@@ -158,6 +168,7 @@ class AnthropicModel(str, enum.Enum):
 
 class FunctionModel(BaseType):
     type: Literal["function_model"] = "function_model"
+    provider: Provider = Provider.Empty
     name: str = ""
     repo_id: str = ""
     filename: str = ""
@@ -327,55 +338,38 @@ class FunctionDefinition(BaseModel):
     parameters: Any
 
 
-class ChatCompletionToolParam(BaseModel):
+class ChatToolParam(BaseModel):
     type: Literal["function"]
     function: FunctionDefinition
 
 
-class Function(BaseModel):
-    arguments: dict[str, Any]
-    name: str
-
-
-class ChatCompletionMessageToolCall(BaseModel):
-    type: Literal["function"]
-    id: str
-    function: Function
-
-
-class ChatCompletionMessageParam(BaseModel):
+class ChatMessageParam(BaseModel):
     role: str
 
 
-class ChatCompletionSystemMessageParam(ChatCompletionMessageParam):
+class ChatSystemMessageParam(ChatMessageParam):
     role: Literal["system"]
     content: str
     name: Optional[str] = None
 
 
-class ChatCompletionUserMessageParam(ChatCompletionMessageParam):
+class ChatUserMessageParam(ChatMessageParam):
     role: Literal["user"]
     content: str | list[MessageContent]
     name: Optional[str] = None
 
 
-class ChatCompletionAssistantMessageParam(ChatCompletionMessageParam):
+class ChatAssistantMessageParam(ChatMessageParam):
     role: Literal["assistant"]
     content: Optional[str] = None
     name: Optional[str] = None
     tool_calls: Optional[list] = None
 
 
-class ChatCompletionToolMessageParam(ChatCompletionMessageParam):
+class ChatToolMessageParam(ChatMessageParam):
     role: Literal["tool"]
     content: Any
     tool_call_id: str
-
-
-class ChatCompletionFunctionMessageParam(ChatCompletionMessageParam):
-    role: Literal["function"]
-    content: str
-    name: str
 
 
 class Tensor(BaseType):
@@ -523,6 +517,9 @@ class TypeMetadata(BaseModel):
     def is_enum_type(self):
         return self.type == "enum"
 
+    def is_list_type(self):
+        return self.type == "list"
+
     def is_union_type(self):
         return self.type == "union"
 
@@ -611,19 +608,69 @@ def asset_to_ref(asset: Asset):
 
 
 class Message(BaseType):
+    """
+    Abstract representation for a chat message.
+    Independent of the underlying chat system, such as OpenAI or Anthropic.
+    """
+
     type: str = "message"
     id: str | None = None
+    """
+    The unique identifier of the message.
+    """
+
     thread_id: str | None = None
+    """
+    The unique identifier of the thread the message belongs to.
+    """
+
     user_id: str | None = None
+    """
+    The unique identifier of the user who sent the message.
+    """
+
     tool_call_id: str | None = None
+    """
+    The unique identifier of the tool call associated with the message.
+    """
+
     role: str = ""
+    """
+    One of "user", "assistant", "system", or "tool".
+    """
+
     name: str = ""
+    """
+    The name of the user who sent the message.
+    """
+
     content: str | list[MessageContent] | None = None
+    """
+    Text content or a list of message content objects, which can be text, images, or other types of content.
+    """
+
     tool_calls: list[ToolCall] | None = None
+    """
+    The list of tool calls returned by the model.
+    """
+
     created_at: str | None = None
+    """
+    The timestamp when the message was created.
+    It is represented as a string in ISO 8601 format.
+    """
 
     @staticmethod
     def from_model(message: MessageModel):
+        """
+        Convert a Model object to a Message object.
+
+        Args:
+            message (Message): The Message object to convert.
+
+        Returns:
+            Message: The abstract Message object.
+        """
         return Message(
             id=message.id,
             thread_id=message.thread_id,

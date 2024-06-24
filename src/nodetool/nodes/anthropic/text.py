@@ -1,6 +1,6 @@
 import numpy as np
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import ImageRef
+from nodetool.metadata.types import ImageRef, Provider
 from nodetool.models.prediction import Prediction
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -77,7 +77,7 @@ class Claude(BaseNode):
 
         response = await context.run_prediction(
             node_id=self.id,
-            provider="anthropic",
+            provider=Provider.Anthropic,
             model=self.model.value,
             params={
                 "system": self.system,

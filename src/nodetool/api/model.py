@@ -2,11 +2,17 @@
 
 from nodetool.common.environment import Environment
 from nodetool.api.utils import current_user
+from nodetool.metadata.types import FunctionModel
 from nodetool.models.user import User
 from fastapi import APIRouter, Depends, HTTPException, Response
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/models", tags=["models"])
+
+
+@router.get("/function_model")
+async def function_model(user: User = Depends(current_user)) -> list[FunctionModel]:
+    return Environment.get_function_models()
 
 
 @router.get("/{folder}")

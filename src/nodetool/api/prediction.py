@@ -14,6 +14,7 @@ from nodetool.api.types.prediction import (
 from nodetool.api.utils import current_user, User
 from nodetool.common.environment import Environment
 from typing import AsyncGenerator, Optional
+from nodetool.metadata.types import Provider
 from nodetool.providers.huggingface.prediction import run_huggingface
 from nodetool.providers.openai.prediction import run_openai
 from nodetool.providers.replicate.prediction import run_replicate
@@ -38,33 +39,33 @@ async def run_prediction(
         node_id=req.node_id,
         user_id=user_id,
         workflow_id=req.workflow_id,
-        provider=req.provider,
+        provider=req.provider.value,
         started_at=datetime.now(),
     )
 
     data_decoded = base64.b64decode(req.data) if isinstance(req.data, str) else None
 
-    if req.provider == "huggingface":
+    if req.provider == Provider.HuggingFace:
         result = await run_huggingface(
             prediction=prediction,
             params=req.params,
             data=data_decoded,
         )
         yield PredictionResult.from_result(Prediction.from_model(prediction), result)
-    elif req.provider == "replicate":
+    elif req.provider == Provider.Replicate:
         async for msg in run_replicate(
             prediction=prediction,
             params=req.params,
         ):
             yield msg
 
-    elif req.provider == "openai":
+    elif req.provider == Provider.OpenAI:
         result = await run_openai(
             prediction=prediction,
             params=req.params,
         )
         yield PredictionResult.from_result(Prediction.from_model(prediction), result)
-    elif req.provider == "anthropic":
+    elif req.provider == Provider.Anthropic:
         result = await run_anthropic(
             prediction=prediction,
             params=req.params,

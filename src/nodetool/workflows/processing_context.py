@@ -29,7 +29,7 @@ from nodetool.api.types.prediction import (
 from nodetool.api.types.workflow import Workflow
 from nodetool.common.async_iterators import AsyncByteStream
 from nodetool.common.nodetool_api_client import NodetoolAPIClient, Response
-from nodetool.metadata.types import Message, Task
+from nodetool.metadata.types import Message, Provider, Task
 from nodetool.workflows.graph import Graph
 from nodetool.workflows.types import (
     NodeProgress,
@@ -297,7 +297,7 @@ class ProcessingContext:
     async def run_prediction(
         self,
         node_id: str,
-        provider: Literal["huggingface", "replicate", "openai", "anthropic"],
+        provider: Provider,
         model: str,
         params: dict[str, Any] | None = None,
         data: bytes | None = None,

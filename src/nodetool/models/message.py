@@ -7,9 +7,9 @@ from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uui
 
 class ToolCall(BaseModel):
     id: str = ""
-    function_name: str = ""
-    function_args: dict[str, Any] = {}
-    function_response: Any = None
+    name: str = ""
+    args: dict[str, Any] = {}
+    result: Any = None
 
 
 class MessageTextContent(BaseModel):

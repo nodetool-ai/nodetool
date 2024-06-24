@@ -192,6 +192,10 @@ export interface paths {
      */
     delete: operations["delete_api_tasks__id__delete"];
   };
+  "/api/models/function_model": {
+    /** Function Model */
+    get: operations["function_model_api_models_function_model_get"];
+  };
   "/api/models/{folder}": {
     /** Index */
     get: operations["index_api_models__folder__get"];
@@ -304,7 +308,7 @@ export interface components {
       /** Name */
       name: string;
       /** Data Type */
-      data_type: "int" | "float" | "datetime" | "string";
+      data_type: "int" | "float" | "datetime" | "string" | "object";
       /**
        * Description
        * @default
@@ -379,6 +383,35 @@ export interface components {
       asset_id?: string | null;
       /** Temp Id */
       temp_id?: string | null;
+    };
+    /** FunctionModel */
+    FunctionModel: {
+      /**
+       * Type
+       * @default function_model
+       * @constant
+       * @enum {string}
+       */
+      type?: "function_model";
+      /** @default empty */
+      provider?: components["schemas"]["Provider"];
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Filename
+       * @default
+       */
+      filename?: string;
+      /** Local Path */
+      local_path?: string | null;
     };
     /** Graph */
     Graph: {
@@ -466,7 +499,11 @@ export interface components {
       /** Error */
       error?: string | null;
     };
-    /** Message */
+    /**
+     * Message
+     * @description Abstract representation for a chat message.
+     * Independent of the underlying chat system, such as OpenAI or Anthropic.
+     */
     Message: {
       /**
        * Type
@@ -494,7 +531,7 @@ export interface components {
       /** Content */
       content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
       /** Tool Calls */
-      tool_calls?: Record<string, never>[] | null;
+      tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
       created_at?: string | null;
     };
@@ -519,7 +556,7 @@ export interface components {
       /** Content */
       content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
       /** Tool Calls */
-      tool_calls?: Record<string, never>[] | null;
+      tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
       created_at?: string | null;
     };
@@ -777,8 +814,7 @@ export interface components {
      * @description The request body for creating a prediction.
      */
     PredictionCreateRequest: {
-      /** Provider */
-      provider: string;
+      provider: components["schemas"]["Provider"];
       /** Model */
       model: string;
       /** Node Id */
@@ -821,6 +857,11 @@ export interface components {
       /** Max */
       max?: number | null;
     };
+    /**
+     * Provider
+     * @enum {string}
+     */
+    Provider: "openai" | "anthropic" | "replicate" | "huggingface" | "comfy" | "local" | "empty";
     /** RunJobRequest */
     RunJobRequest: {
       /**
@@ -1014,6 +1055,26 @@ export interface components {
     TokenResponse: {
       /** Valid */
       valid: boolean;
+    };
+    /** ToolCall */
+    ToolCall: {
+      /**
+       * Id
+       * @default
+       */
+      id?: string;
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+      /**
+       * Args
+       * @default {}
+       */
+      args?: Record<string, never>;
+      /** Result */
+      result?: unknown;
     };
     /**
      * TypeMetadata
@@ -2288,6 +2349,31 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Function Model */
+  function_model_api_models_function_model_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["FunctionModel"][];
         };
       };
       /** @description Validation Error */

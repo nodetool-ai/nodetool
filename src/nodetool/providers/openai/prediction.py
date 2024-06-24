@@ -30,9 +30,8 @@ async def create_speech(prediction: Prediction, params: dict) -> Any:
     res = await client.audio.speech.create(
         model=prediction.model,
         input=params["input"],
-        voice=params["voice"],
-        speed=params["speed"],
         response_format="mp3",
+        **params,
     )
     prediction.cost = calculate_cost(prediction.model, len(params["input"]), 0)
     prediction.save()
@@ -47,13 +46,7 @@ async def create_chat_completion(
 
     res: ChatCompletion = await client.chat.completions.create(
         model=prediction.model,
-        messages=params["messages"],
-        max_tokens=params["max_tokens"],
-        temperature=params["temperature"],
-        top_p=params["top_p"],
-        presence_penalty=params["presence_penalty"],
-        frequency_penalty=params["frequency_penalty"],
-        response_format={"type": params["response_format"]},
+        **params,
     )
     assert res.usage is not None
     prediction.cost = calculate_cost_for_completion_usage(prediction.model, res.usage)
@@ -97,8 +90,8 @@ async def create_image(prediction: Prediction, params: dict) -> Any:
         prompt=params["prompt"],
         size=params["size"],
         quality=params["quality"],
-        style=params["style"],
         response_format="b64_json",
+        **params,
     )
     cost_model = f"dalle-3 {params['quality']} {params['size']}"
     prediction.cost = calculate_cost(cost_model, len(params["prompt"]), 0)
@@ -108,7 +101,6 @@ async def create_image(prediction: Prediction, params: dict) -> Any:
 
 
 async def run_openai(prediction: Prediction, params: dict) -> Any:
-    client = Environment.get_openai_client()
     model = prediction.model
 
     if model.startswith("text-embedding-"):
