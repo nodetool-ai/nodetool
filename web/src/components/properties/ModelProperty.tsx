@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { Select } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import PropertyLabel from "../node/PropertyLabel";
 import useModelStore from "../../stores/ModelStore";
 import { PropertyProps } from "../node/PropertyInput";
-import { FunctionModel, TypeName } from "../../stores/ApiTypes";
+import { FunctionModel, LlamaModel, TypeName } from "../../stores/ApiTypes";
 import { useQuery } from "react-query";
 
 export function modelFolder(type: TypeName) {
@@ -41,22 +41,27 @@ export function modelFolder(type: TypeName) {
 export default function ModelProperty(props: PropertyProps) {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const loadModelFiles = useModelStore((state) => state.loadFiles);
+  const functionModels = useModelStore((state) => state.functionModels);
   const loadFunctionModels = useModelStore((state) => state.loadFunctionModels);
+  const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
   const folder = modelFolder(props.property.type.type);
 
-  const { data, error, isError } = useQuery(
+  const { data, isError } = useQuery(
     ["models", folder],
     async () => {
       if (folder === undefined) return [];
       if (folder === "function_model") return loadFunctionModels();
-      return [];
-      // return loadModelFiles(folder);
+      if (folder === "llama_model") return loadLlamaModels();
+      return loadModelFiles(folder);
     },
   );
 
+  const modelNames = data?.map((model: FunctionModel | LlamaModel | string) =>
+    typeof model === "string" ? model : model.name) || [];
+
   const providerFor = useCallback((name: string) => {
-    return data?.find((model: FunctionModel) => model.name === name)?.provider;
-  }, [data]);
+    return functionModels.find((model: FunctionModel) => model.name === name)?.provider;
+  }, [functionModels]);
 
   const selectValue = props.value?.name || "";
 
@@ -95,9 +100,9 @@ export default function ModelProperty(props: PropertyProps) {
       >
         {isError && <MenuItem value="">Error loading models</MenuItem>}
         {folder === undefined && <MenuItem value="">No models available</MenuItem>}
-        {folder === "function_model" && data && data.map((model: FunctionModel) => (
-          <MenuItem key={model.name} value={model.name}>
-            {model.name}
+        {modelNames.map((modelName) => (
+          <MenuItem key={modelName} value={modelName}>
+            {modelName}
           </MenuItem>
         ))}
       </Select>

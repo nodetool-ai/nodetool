@@ -40,6 +40,7 @@ export type NodeUpdate = components["schemas"]["NodeUpdate"];
 export type NodeProgress = components["schemas"]["NodeProgress"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type FunctionModel = components["schemas"]["FunctionModel"];
+export type LlamaModel = components["schemas"]["LlamaModel"];
 export type Task = components["schemas"]["Task"];
 
 // a type that allows arbitrary members

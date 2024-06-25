@@ -61,7 +61,6 @@ DEFAULT_ENV = {
     "COMFY_FOLDER": None,
     "ASSET_FOLDER": str(get_data_path("assets")),
     "DB_PATH": str(get_data_path("nodetool.sqlite3")),
-    "LM_STUDIO_FOLDER": os.path.join(os.path.expanduser("~/.cache/lm-studio/models")),
     "REPLICATE_API_TOKEN": None,
     "OPENAI_API_KEY": None,
     "HF_TOKEN": None,
@@ -685,105 +684,10 @@ class Environment(object):
 
     @classmethod
     def get_llama_models(cls):
-        import huggingface_hub
         from nodetool.metadata.types import LlamaModel
+        import ollama
 
-        return [
-            LlamaModel(
-                name=file.file_name,
-                repo_id=repo.repo_id,
-                filename=file.file_name,
-                local_path=file.file_path,
-            )
-            for repo in huggingface_hub.scan_cache_dir().repos
-            for rev in repo.revisions
-            for file in rev.files
-            if file.file_name.endswith(".gguf")
-        ] + cls.get_lm_studio_models()
-
-    @classmethod
-    def get_all_llama_models(cls):
-        from nodetool.metadata.types import LlamaModel
-
-        models = [
-            LlamaModel(
-                repo_id="TheBloke/phi-2-GGUF",
-                filename="*Q4_K_S.gguf",
-                name="phi-2-GGUF",
-            ),
-            LlamaModel(
-                repo_id="lmstudio-ai/gemma-2b-it-GGUF",
-                filename="*q8_0.gguf",
-                name="gemma-2b-it-GGUF",
-            ),
-            LlamaModel(
-                repo_id="Qwen/Qwen1.5-0.5B-Chat-GGUF",
-                filename="*q8_0.gguf",
-                name="Qwen1.5-0.5B-Chat-GGUF",
-            ),
-            LlamaModel(
-                repo_id="Qwen/Qwen1.5-1.8B-Chat-GGUF",
-                filename="*q8_0.gguf",
-                name="Qwen1.5-1.8B-Chat-GGUF",
-            ),
-            LlamaModel(
-                repo_id="Qwen/Qwen1.5-4.0B-Chat-GGUF",
-                filename="*q8_0.gguf",
-                name="Qwen1.5-4.0B-Chat-GGUF",
-            ),
-            LlamaModel(
-                repo_id="Qwen/Qwen1.5-7.0B-Chat-GGUF",
-                filename="*q4_0.gguf",
-                name="Qwen1.5-7.0B-Chat-GGUF",
-            ),
-            LlamaModel(
-                repo_id="TheBloke/Mistral-7B-Instruct-v0.1-GGUF",
-                filename="*Q4_0.gguf",
-                name="Mistral-7B-Instruct-v0.1-GGUF",
-            ),
-            LlamaModel(
-                repo_id="TheBloke/Mistral-8x-7B-Instruct-v0.1-GGUF",
-                filename="*Q2_K.gguf",
-                name="Mistral-8x-7B-Instruct-v0.1-GGUF",
-            ),
-            LlamaModel(
-                repo_id="TheBloke/CapybaraHermes-2.5-Mistral-7B-GGUF",
-                filename="*Q4_0.gguf",
-                name="CapybaraHermes-2.5-Mistral-7B-GGUF",
-            ),
-            LlamaModel(
-                repo_id="TheBloke/Dolphin-2.5-Mixtral-8x7B-GGUF",
-                filename="*Q2_K.gguf",
-                name="Dolphin-2.5-Mixtral-8x7B-GGUF",
-            ),
-            LlamaModel(
-                repo_id="TheBloke/zephyr-7B-beta-GGUF",
-                filename="*Q4_0.gguf",
-                name="zephyr-7B-beta-GGUF",
-            ),
-        ]
-
-        return models
-
-    @classmethod
-    def get_lm_studio_models(cls):
-        """
-        Find all llama models in known folders.
-        Currently it only looks in the LM Studio folder.
-        """
-        import glob
-        from nodetool.metadata.types import LlamaModel
-
-        folder = cls.get_lm_studio_folder()
-        files = glob.glob(f"{folder}/**/*.gguf", recursive=True)
-        return [
-            LlamaModel(
-                filename=os.path.basename(file),
-                name=os.path.basename(file),
-                local_path=Path(file),
-            )
-            for file in files
-        ]
+        return [LlamaModel(**model) for model in ollama.list()["models"]]
 
     @classmethod
     def get_model_files(cls, folder: str):

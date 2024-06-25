@@ -2,7 +2,7 @@
 
 from nodetool.common.environment import Environment
 from nodetool.api.utils import current_user
-from nodetool.metadata.types import FunctionModel
+from nodetool.metadata.types import FunctionModel, LlamaModel
 from nodetool.models.user import User
 from fastapi import APIRouter, Depends, HTTPException, Response
 
@@ -10,7 +10,12 @@ log = Environment.get_logger()
 router = APIRouter(prefix="/api/models", tags=["models"])
 
 
-@router.get("/function_model")
+@router.get("/llama_models")
+async def llama_model(user: User = Depends(current_user)) -> list[LlamaModel]:
+    return Environment.get_llama_models()
+
+
+@router.get("/function_models")
 async def function_model(user: User = Depends(current_user)) -> list[FunctionModel]:
     return Environment.get_function_models()
 

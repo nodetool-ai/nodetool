@@ -150,6 +150,7 @@ class Provider(str, enum.Enum):
     Anthropic = "anthropic"
     Replicate = "replicate"
     HuggingFace = "huggingface"
+    Ollama = "ollama"
     Comfy = "comfy"
     Local = "local"
     Empty = "empty"
@@ -178,9 +179,11 @@ class FunctionModel(BaseType):
 class LlamaModel(BaseType):
     type: Literal["llama_model"] = "llama_model"
     name: str = ""
-    repo_id: str = ""
-    filename: str = ""
-    local_path: Path | None = None
+    model: str = ""
+    modified_at: str = ""
+    size: int = 0
+    digest: str = ""
+    details: dict = Field(default_factory=dict)
 
 
 class CheckpointFile(ModelFile):

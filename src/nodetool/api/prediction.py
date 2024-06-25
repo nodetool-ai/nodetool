@@ -16,6 +16,7 @@ from nodetool.common.environment import Environment
 from typing import AsyncGenerator, Optional
 from nodetool.metadata.types import Provider
 from nodetool.providers.huggingface.prediction import run_huggingface
+from nodetool.providers.ollama.prediction import run_ollama
 from nodetool.providers.openai.prediction import run_openai
 from nodetool.providers.replicate.prediction import run_replicate
 from nodetool.models.prediction import (
@@ -70,6 +71,9 @@ async def run_prediction(
             prediction=prediction,
             params=req.params,
         )
+        yield PredictionResult.from_result(Prediction.from_model(prediction), result)
+    elif req.provider == Provider.Ollama:
+        result = await run_ollama(prediction=prediction, params=req.params)
         yield PredictionResult.from_result(Prediction.from_model(prediction), result)
     else:
         raise HTTPException(status_code=400, detail="Provider not supported")

@@ -192,9 +192,13 @@ export interface paths {
      */
     delete: operations["delete_api_tasks__id__delete"];
   };
-  "/api/models/function_model": {
+  "/api/models/llama_models": {
+    /** Llama Model */
+    get: operations["llama_model_api_models_llama_models_get"];
+  };
+  "/api/models/function_models": {
     /** Function Model */
-    get: operations["function_model_api_models_function_model_get"];
+    get: operations["function_model_api_models_function_models_get"];
   };
   "/api/models/{folder}": {
     /** Index */
@@ -498,6 +502,43 @@ export interface components {
       result?: Record<string, never> | null;
       /** Error */
       error?: string | null;
+    };
+    /** LlamaModel */
+    LlamaModel: {
+      /**
+       * Type
+       * @default llama_model
+       * @constant
+       * @enum {string}
+       */
+      type?: "llama_model";
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+      /**
+       * Model
+       * @default
+       */
+      model?: string;
+      /**
+       * Modified At
+       * @default
+       */
+      modified_at?: string;
+      /**
+       * Size
+       * @default 0
+       */
+      size?: number;
+      /**
+       * Digest
+       * @default
+       */
+      digest?: string;
+      /** Details */
+      details?: Record<string, never>;
     };
     /**
      * Message
@@ -861,7 +902,7 @@ export interface components {
      * Provider
      * @enum {string}
      */
-    Provider: "openai" | "anthropic" | "replicate" | "huggingface" | "comfy" | "local" | "empty";
+    Provider: "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "empty";
     /** RunJobRequest */
     RunJobRequest: {
       /**
@@ -2359,8 +2400,33 @@ export interface operations {
       };
     };
   };
+  /** Llama Model */
+  llama_model_api_models_llama_models_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["LlamaModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   /** Function Model */
-  function_model_api_models_function_model_get: {
+  function_model_api_models_function_models_get: {
     parameters: {
       header?: {
         authorization?: string | null;
