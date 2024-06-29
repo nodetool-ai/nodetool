@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
 import json
+import re
 from typing import Any, Sequence
 
 from pydantic import BaseModel
@@ -89,6 +90,28 @@ def message_content_to_openai_content_part(
         return {"type": "image_url", "image_url": {"url": content.image_url.url}}
     else:
         raise ValueError(f"Unknown content type {content}")
+
+
+def convert_to_llama_format(messages: Sequence[ChatMessageParam]) -> str:
+    """
+    Convert OpenAI-style message list to Llama chat format.
+
+    :param messages: List of dictionaries, each containing 'role' and 'content' keys
+    :return: String in Llama chat format
+    """
+    res = ""
+
+    for message in messages:
+        if isinstance(message, ChatSystemMessageParam):
+            res += f"[INST] {message.content} [/INST]\n"
+        elif isinstance(message, ChatUserMessageParam):
+            res += f"<human>: {message.content} </s>\n"
+        elif isinstance(message, ChatAssistantMessageParam):
+            res += f"<assistant>: {message.content} </s>\n"
+        else:
+            raise ValueError(f"Unknown message type {message}")
+
+    return res.strip()
 
 
 def convert_to_openai_message(
@@ -298,6 +321,75 @@ async def create_anthropic_completion(
     return message
 
 
+def parse_tool_calls(s) -> list[ToolCall]:
+    """
+    Parse a tool call from a string.
+    Example: '[{"name": "create_record", "arguments": {"name": "John"}}]\n\n[{"name": "create_record", "arguments": {"name": "Jane"}}]\n\n[{"name": "create_record", "arguments": {"name": "Bob"}}]\n\n"
+    """
+    # Find the function call JSON strings
+    calls = re.findall(r"\[.*?\]", s)
+    res = []
+    for call in calls:
+        try:
+            parsed = json.loads(call)
+            for p in parsed:
+                res.append(ToolCall(name=p["name"], args=p["arguments"]))
+        except json.JSONDecodeError:
+            continue
+    return res
+
+
+async def create_ollama_completion(
+    context: ProcessingContext,
+    model: FunctionModel,
+    node_id: str,
+    messages: Sequence[ChatMessageParam],
+    tools: Sequence[Tool] = [],
+    **kwargs,
+) -> Message:
+    """
+    Creates an Ollama completion by sending messages to the Ollama client.
+
+    Args:
+        context (ProcessingContext): The processing context.
+        model (FunctionModel): The model to use for generating the completion.
+        node_id (str): The ID of the node that is making the request.
+        messages (list[ChatCompletionMessageParam]): Entire conversation history.
+        tools (list[Tool], optional): The list of tools to use. Defaults to [].
+        **kwargs: Additional keyword arguments passed to the Ollama client.
+
+    Returns:
+        Message: The message returned by the Ollama client.
+
+    Raises:
+        ValueError: If no completion content is returned.
+    """
+
+    if len(tools) > 0:
+        tool_prompt = """[AVAILABLE_TOOLS]\n{}\n[/AVAILABLE_TOOLS]""".format(
+            json.dumps([tool.tool_param().model_dump() for tool in tools])
+        )
+        prompt = tool_prompt + convert_to_llama_format(messages)
+    else:
+        prompt = convert_to_llama_format(messages)
+
+    print(f"******* [[PROMPT]] {prompt} *******")
+
+    completion = await context.run_prediction(
+        node_id=node_id,
+        provider=Provider.Ollama,
+        model=model.name,
+        params={"raw": True, "prompt": prompt},
+    )
+    assert completion["response"] is not None, "No completion content returned"
+
+    if len(tools) > 0:
+        tool_calls = parse_tool_calls(completion["response"])
+        return Message(role="assistant", content="", tool_calls=tool_calls)
+    else:
+        return Message(role="assistant", content=completion["response"])
+
+
 async def create_completion(
     context: ProcessingContext,
     model: FunctionModel,
@@ -318,6 +410,15 @@ async def create_completion(
         )
     elif model.provider == Provider.Anthropic:
         response = await create_anthropic_completion(
+            context=context,
+            model=model,
+            node_id=node_id,
+            messages=messages,
+            tools=tools,
+            **kwargs,
+        )
+    elif model.provider == Provider.Ollama:
+        response = await create_ollama_completion(
             context=context,
             model=model,
             node_id=node_id,

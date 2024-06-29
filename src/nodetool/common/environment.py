@@ -612,32 +612,19 @@ class Environment(object):
             )
 
     @classmethod
-    def find_function_model(cls, name: str):
-        """
-        Find a function model by name.
-        """
-        from nodetool.metadata.types import FunctionModel
+    def get_llama_function_models(cls):
+        from nodetool.metadata.types import (
+            FunctionModel,
+            Provider,
+        )
+        import ollama
 
-        for model in cls.get_function_models():
-            if model.name == name:
-                return model
-
-        return FunctionModel(name=name)
-
-    @classmethod
-    def find_llama_model(cls, name: str):
-        """
-        Find a llama model by name.
-        """
-        for model in cls.get_llama_models():
-            if model.name == name:
-                return model
-
-        for model in cls.get_functionary_models():
-            if model.name == name:
-                return model
-
-        return None
+        models = ollama.list()["models"]
+        return [
+            FunctionModel(provider=Provider.Ollama, name=model["name"])
+            for model in models
+            if model["name"].startswith("mistra")
+        ]
 
     @classmethod
     def get_function_models(cls):
@@ -651,36 +638,12 @@ class Environment(object):
         return [
             FunctionModel(
                 provider=Provider.OpenAI,
-                name=GPTModel.GPT3.value,
-            ),
-            FunctionModel(
-                provider=Provider.OpenAI,
                 name=GPTModel.GPT4.value,
             ),
             FunctionModel(
                 provider=Provider.Anthropic, name=AnthropicModel.claude_3_5_sonnet
             ),
-            FunctionModel(
-                provider=Provider.Anthropic, name=AnthropicModel.claude_3_haiku
-            ),
-        ]
-        # Functionary does not work yet
-        # + cls.get_functionary_models()
-
-    @classmethod
-    def get_functionary_models(cls):
-        import huggingface_hub
-        from nodetool.metadata.types import FunctionModel
-
-        return [
-            FunctionModel(
-                repo_id=repo.repo_id, filename=file.file_name, local_path=file.file_path
-            )
-            for repo in huggingface_hub.scan_cache_dir().repos
-            for rev in repo.revisions
-            for file in rev.files
-            if "functionary" in file.file_name
-        ]
+        ] + cls.get_llama_function_models()
 
     @classmethod
     def get_llama_models(cls):

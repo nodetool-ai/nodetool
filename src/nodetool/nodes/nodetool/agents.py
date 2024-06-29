@@ -234,17 +234,11 @@ class DataframeAgent(BaseNode):
     async def process(self, context: ProcessingContext) -> DataframeRef:
         message = await context.create_message(
             MessageCreateRequest(
-                role="user",
-                content=self.prompt,
+                role="system",
+                content=self.prompt
+                + ". Generate records by calling the create_record tool.",
             )
         )
-        messages = [
-            Message(
-                role="system",
-                content="Generate records by calling the create_record tool. Supply all fields for each record.",
-            ),
-            message,
-        ]
         assert message.thread_id is not None, "Thread ID is required"
 
         tools = [CreateRecordTool(self.columns.columns)]
@@ -254,7 +248,7 @@ class DataframeAgent(BaseNode):
             thread_id=message.thread_id,
             node_id=self._id,
             model=self.model,
-            messages=messages,
+            messages=[message],
             tools=tools,
             max_tokens=self.max_tokens,
             temperature=self.temperature,

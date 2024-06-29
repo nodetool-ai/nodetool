@@ -1,5 +1,4 @@
 import asyncio
-from datetime import datetime
 from enum import Enum
 import json
 from queue import Queue
@@ -1145,24 +1144,3 @@ class ProcessingContext:
                 tenant=DEFAULT_TENANT,
                 database=DEFAULT_DATABASE,
             )
-
-    def load_llama_model(self, name, **kwargs):
-        from llama_cpp import Llama
-        from llama_cpp.llama_tokenizer import LlamaHFTokenizer
-
-        model = Environment.find_llama_model(name)
-        assert model, "model not found"
-
-        if model.local_path is None:
-            raise Exception("model path is None")
-
-        if not model.local_path.exists():
-            raise Exception(f"path doesn not exist {model.local_path}")
-
-        return Llama(
-            verbose=True,
-            model_path=str(model.local_path),
-            chat_format="functionary-v2" if isinstance(model, FunctionModel) else None,
-            # tokenizer=LlamaHFTokenizer.from_pretrained(found_model.repo_id),
-            **kwargs,
-        )
