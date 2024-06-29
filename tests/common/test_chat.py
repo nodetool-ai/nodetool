@@ -4,14 +4,12 @@ from unittest.mock import MagicMock, patch, AsyncMock
 from nodetool.chat.tools import (
     ProcessNodeTool,
     Tool,
-    process_node_function,
     process_workflow_function,
 )
 from nodetool.metadata.types import FunctionModel, Message, Provider
 from nodetool.metadata.types import TextRef
 from nodetool.chat.tools import (
     sanitize_node_name,
-    desanitize_node_name,
 )
 from nodetool.chat.chat import (
     process_messages,
@@ -40,10 +38,6 @@ def test_sanitize_node_name():
     assert sanitize_node_name(VALID_NODE_NAME) == "some_valid_node_name"
 
 
-def test_desanitize_node_name():
-    assert desanitize_node_name("some_valid_node_name") == "some.valid.node.name"
-
-
 def test_function_tool_from_node_valid():
     schema = ProcessNodeTool("nodetool.constant.Text").input_schema
 
@@ -62,15 +56,6 @@ def test_function_tool_from_node_valid():
 def test_function_tool_from_node_invalid():
     with pytest.raises(ValueError):
         ProcessNodeTool("unknown.node.name")
-
-
-@pytest.mark.asyncio
-async def test_process_node_function_valid():
-    import nodetool.nodes
-
-    context = ProcessingContext(user_id=USER_ID, auth_token="token")
-    result = await process_node_function(context, DummyNode.get_node_type(), {})
-    assert result == {"output": "dummy"}
 
 
 @pytest.mark.asyncio
