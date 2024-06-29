@@ -1653,13 +1653,13 @@ test = ["Cython (>=0.29.24,<0.30.0)"]
 
 [[package]]
 name = "httpx"
-version = "0.26.0"
+version = "0.27.0"
 description = "The next generation HTTP client."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "httpx-0.26.0-py3-none-any.whl", hash = "sha256:8915f5a3627c4d47b73e8202457cb28f1266982d1159bd5779d86a80c0eab1cd"},
-    {file = "httpx-0.26.0.tar.gz", hash = "sha256:451b55c30d5185ea6b23c2c793abf9bb237d2a7dfb901ced6ff69ad37ec1dfaf"},
+    {file = "httpx-0.27.0-py3-none-any.whl", hash = "sha256:71d5465162c13681bff01ad59b2cc68dd838ea1f10e51574bac27103f00c91a5"},
+    {file = "httpx-0.27.0.tar.gz", hash = "sha256:a0cb88a46f32dc874e04ee956e4c2764aba2aa228f650b06788ba6bda2962ab5"},
 ]
 
 [package.dependencies]
@@ -3325,21 +3325,18 @@ signals = ["blinker (>=1.4.0)"]
 signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 
 [[package]]
-name = "ollama-python"
-version = "0.1.2"
-description = ""
+name = "ollama"
+version = "0.2.1"
+description = "The official Python client for Ollama."
 optional = false
-python-versions = ">=3.9,<4.0"
+python-versions = "<4.0,>=3.8"
 files = [
-    {file = "ollama_python-0.1.2-py3-none-any.whl", hash = "sha256:0b0d2fcd97d823a424446c02febb7c7f7188287c01e5ee7210d0e42ca928644a"},
-    {file = "ollama_python-0.1.2.tar.gz", hash = "sha256:85161427858a77603bf035e1d7acefcd330d656a9b95bae79c5f55cced3b3e30"},
+    {file = "ollama-0.2.1-py3-none-any.whl", hash = "sha256:b6e2414921c94f573a903d1069d682ba2fb2607070ea9e19ca4a7872f2a460ec"},
+    {file = "ollama-0.2.1.tar.gz", hash = "sha256:fa316baa9a81eac3beb4affb0a17deb3008fdd6ed05b123c26306cfbe4c349b6"},
 ]
 
 [package.dependencies]
-httpx = ">=0.26.0,<0.27.0"
-pydantic = ">=2.5.3,<3.0.0"
-requests = ">=2.31.0,<3.0.0"
-responses = ">=0.24.1,<0.25.0"
+httpx = ">=0.27.0,<0.28.0"
 
 [[package]]
 name = "omegaconf"
@@ -4705,13 +4702,13 @@ rsa = ["oauthlib[signedtoken] (>=3.0.0)"]
 
 [[package]]
 name = "responses"
-version = "0.24.1"
+version = "0.25.3"
 description = "A utility library for mocking out the `requests` Python library."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "responses-0.24.1-py3-none-any.whl", hash = "sha256:a2b43f4c08bfb9c9bd242568328c65a34b318741d3fab884ac843c5ceeb543f9"},
-    {file = "responses-0.24.1.tar.gz", hash = "sha256:b127c6ca3f8df0eb9cc82fd93109a3007a86acb24871834c47b77765152ecf8c"},
+    {file = "responses-0.25.3-py3-none-any.whl", hash = "sha256:521efcbc82081ab8daa588e08f7e8a64ce79b91c39f6e62199b19159bea7dbcb"},
+    {file = "responses-0.25.3.tar.gz", hash = "sha256:617b9247abd9ae28313d57a75880422d55ec63c29d33d629697590a034358dba"},
 ]
 
 [package.dependencies]
@@ -6648,4 +6645,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "24fbefb0f64453c2303cd09dc89cbd33882be6fef11443615574f5e916a7fcd3"
+content-hash = "97ac74ebcc5ca6f5931b50276bb142312d70fafb7f4da26e92dcd3655bee3756"
