@@ -1,3 +1,4 @@
+from enum import EnumMeta
 from types import UnionType
 from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
@@ -110,13 +111,14 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
             type_args=[type_metadata(t) for t in python_type.__args__],  # type: ignore
         )
     elif is_enum_type(python_type):
-        # hacky...
-        # NameToType[python_type.__name__] = python_type
+        assert isinstance(python_type, EnumMeta)
+        # this is required as enum types do not derive from BaseType
+        NameToType[python_type.__name__] = python_type
         assert not isinstance(python_type, UnionType)
         return TypeMetadata(
             type="enum",
             type_name=python_type.__name__,
-            values=[e.value for e in python_type.__members__.values()],
+            values=[e.value for e in python_type.__members__.values()],  # type: ignore
         )
     else:
         raise ValueError(f"Unknown type: {python_type}")

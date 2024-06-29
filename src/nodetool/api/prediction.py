@@ -23,7 +23,7 @@ from nodetool.models.prediction import (
     Prediction as PredictionModel,
 )
 from nodetool.models.workflow import Workflow
-from nodetool.nodes.anthropic.text import run_anthropic
+from nodetool.providers.anthropic.prediction import run_anthropic
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])

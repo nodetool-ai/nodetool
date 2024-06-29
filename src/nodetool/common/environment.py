@@ -641,7 +641,7 @@ class Environment(object):
                 name=GPTModel.GPT4.value,
             ),
             FunctionModel(
-                provider=Provider.Anthropic, name=AnthropicModel.claude_3_5_sonnet
+                provider=Provider.Anthropic, name=AnthropicModel.claude_3_opus
             ),
         ] + cls.get_llama_function_models()
 

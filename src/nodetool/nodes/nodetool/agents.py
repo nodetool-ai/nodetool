@@ -17,6 +17,7 @@ from nodetool.metadata.types import (
     ColumnDef,
     DataframeRef,
     FunctionModel,
+    ImageRef,
     NodeRef,
     RecordType,
     Task,
@@ -29,11 +30,17 @@ from nodetool.metadata.types import Message
 
 class CreateRecordTool(Tool):
     columns: Sequence[ColumnDef]
+    description: str
 
-    def __init__(self, columns: list[ColumnDef]):
+    def __init__(
+        self,
+        name: str,
+        columns: list[ColumnDef],
+        description: str = "Create a data record.",
+    ):
         super().__init__(
-            name="create_record",
-            description="Create a data record.",
+            name=name,
+            description=description,
         )
         self.columns = columns
         self.input_schema = {
@@ -210,20 +217,40 @@ class DataframeAgent(BaseNode):
         default="",
         description="The user prompt",
     )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="The image to use in the prompt.",
+    )
+    tool_name: str = Field(
+        default="add_row",
+        description="The name of the tool to use.",
+    )
+    tool_description: str = Field(
+        default="Adds one row.",
+        description="The description of the tool to use.",
+    )
     max_tokens: int = Field(
         default=1000,
+        ge=0,
+        le=10000,
         description="The maximum number of tokens to generate.",
     )
     temperature: float = Field(
-        default=0.0,
+        default=1.0,
+        ge=0.0,
+        le=1.0,
         description="The temperature to use for sampling.",
     )
     top_k: int = Field(
         default=50,
+        ge=0,
+        le=1000,
         description="The number of tokens to sample from.",
     )
     top_p: float = Field(
         default=1.0,
+        ge=0.0,
+        le=1.0,
         description="The cumulative probability for sampling.",
     )
     columns: RecordType = Field(
@@ -232,24 +259,38 @@ class DataframeAgent(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
-        message = await context.create_message(
+        system_message = await context.create_message(
             MessageCreateRequest(
                 role="system",
-                content=self.prompt
-                + ". Generate records by calling the create_record tool.",
+                content="You are an assistant with access to tools.",
             )
         )
-        assert message.thread_id is not None, "Thread ID is required"
+        assert system_message.thread_id is not None, "Thread ID is required"
+        thread_id = system_message.thread_id
 
-        tools = [CreateRecordTool(self.columns.columns)]
+        user_message = await context.create_message(
+            MessageCreateRequest(
+                role="user",
+                content=self.prompt,
+                thread_id=thread_id,
+            )
+        )
+        messages = [system_message, user_message]
+
+        tools = [
+            CreateRecordTool(
+                self.tool_name, self.columns.columns, self.tool_description
+            )
+        ]
 
         assistant_message = await process_messages(
             context=context,
-            thread_id=message.thread_id,
+            thread_id=thread_id,
             node_id=self._id,
             model=self.model,
-            messages=[message],
+            messages=messages,
             tools=tools,
+            # tool_choice={"type": "tool", "name": self.tool_name},
             max_tokens=self.max_tokens,
             temperature=self.temperature,
             top_k=self.top_k,
@@ -260,7 +301,7 @@ class DataframeAgent(BaseNode):
 
         tool_calls = await process_tool_calls(
             context=context,
-            thread_id=message.thread_id,
+            thread_id=thread_id,
             tool_calls=assistant_message.tool_calls,
             tools=tools,
         )

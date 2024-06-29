@@ -53,7 +53,7 @@ def json_schema_for_column(column: ColumnDef) -> dict:
         dict: The JSON schema for the column.
     """
     data_type = column.data_type
-    description = column.description or "Required field for the record."
+    description = column.description or ""
 
     if data_type == "string":
         return {"type": "string", "description": description}
@@ -176,6 +176,7 @@ async def create_openai_completion(
     node_id: str,
     messages: Sequence[ChatMessageParam],
     tools: Sequence[Tool] = [],
+    tool_choice: dict[str, Any] = {},
     **kwargs,
 ) -> Message:
     """
@@ -187,6 +188,7 @@ async def create_openai_completion(
         node_id (str): The ID of the node that is making the request.
         messages (list[ChatCompletionMessageParam]): Entire conversation history.
         tools (list[ChatCompletionToolParam]): A list of tools to be used by the model.
+        tool_choice (str, optional): Enforce specific tool. Defaults to "auto".
         **kwargs: Additional keyword arguments passed to openai API.
 
     Returns:
@@ -197,6 +199,13 @@ async def create_openai_completion(
 
     if len(tools) > 0:
         kwargs["tools"] = [tool.tool_param() for tool in tools]
+        if len(tool_choice) > 0:
+            kwargs["tool_choice"] = {
+                "type": "function",
+                "function": {
+                    "name": tool_choice["name"],
+                },
+            }
 
     openai_messages = [convert_to_openai_message(m) for m in messages]
 
@@ -236,15 +245,19 @@ async def create_anthropic_completion(
     node_id: str,
     messages: Sequence[ChatMessageParam],
     tools: Sequence[Tool] = [],
+    tool_choice: dict[str, Any] = {},
     **kwargs,
 ) -> Message:
     """
     Creates an anthropic completion by sending messages to the anthropic client.
 
     Args:
+        context (ProcessingContext): The processing context.
         model (FunctionModel): The model to use for generating the completion.
+        node_id (str): The ID of the node that is making the request.
         messages (list[ChatCompletionMessageParam]): Entire conversation history.
         tools (list[Tool], optional): The list of tools to use. Defaults to [].
+        tool_choice (dict[str, Any], optional): Enforce specific tool.
         **kwargs: Additional keyword arguments passed to the anthropic client.
 
     Returns:
@@ -285,6 +298,8 @@ async def create_anthropic_completion(
         for message in messages
         if not isinstance(message, ChatSystemMessageParam)
     ]
+    if len(tool_choice) > 0:
+        kwargs["tool_choice"] = tool_choice
 
     completion = await context.run_prediction(
         model=model.name,
@@ -345,6 +360,7 @@ async def create_ollama_completion(
     node_id: str,
     messages: Sequence[ChatMessageParam],
     tools: Sequence[Tool] = [],
+    tool_choice: dict[str, Any] = {},
     **kwargs,
 ) -> Message:
     """
@@ -356,6 +372,7 @@ async def create_ollama_completion(
         node_id (str): The ID of the node that is making the request.
         messages (list[ChatCompletionMessageParam]): Entire conversation history.
         tools (list[Tool], optional): The list of tools to use. Defaults to [].
+        tool_choice (dict[str, Any], optional): Enforce specific tool.
         **kwargs: Additional keyword arguments passed to the Ollama client.
 
     Returns:
@@ -366,6 +383,7 @@ async def create_ollama_completion(
     """
 
     if len(tools) > 0:
+        # TODO: encode tool choice
         tool_prompt = """[AVAILABLE_TOOLS]\n{}\n[/AVAILABLE_TOOLS]""".format(
             json.dumps([tool.tool_param().model_dump() for tool in tools])
         )
@@ -397,6 +415,7 @@ async def create_completion(
     thread_id: str,
     messages: Sequence[ChatMessageParam],
     tools: Sequence[Tool],
+    tool_choice: dict[str, Any],
     **kwargs,
 ) -> Message:
     if model.provider == Provider.OpenAI:
@@ -406,6 +425,7 @@ async def create_completion(
             node_id=node_id,
             messages=messages,
             tools=tools,
+            tool_choice=tool_choice,
             **kwargs,
         )
     elif model.provider == Provider.Anthropic:
@@ -415,6 +435,7 @@ async def create_completion(
             node_id=node_id,
             messages=messages,
             tools=tools,
+            tool_choice=tool_choice,
             **kwargs,
         )
     elif model.provider == Provider.Ollama:
@@ -424,6 +445,7 @@ async def create_completion(
             node_id=node_id,
             messages=messages,
             tools=tools,
+            tool_choice=tool_choice,
             **kwargs,
         )
     else:
@@ -624,6 +646,7 @@ async def process_messages(
     thread_id: str,
     node_id: str,
     tools: Sequence[Tool] = [],
+    tool_choice: dict[str, str] = {},
     **kwargs,
 ) -> Message:
     """
@@ -640,6 +663,7 @@ async def process_messages(
         thread_id (str): The ID of the thread the message belongs to.
         node_id (str): The ID of the node making the request.
         tools (list[Tool], optional): The tools to use for the completion. Defaults to [].
+        tool_choice (str, optional): Enforce specific tool. Defaults to "auto".
 
     Returns:
         tuple[Message, list[ToolCall]]: The assistant message and the tool calls.
@@ -652,5 +676,6 @@ async def process_messages(
         node_id=node_id,
         messages=[message_param(message) for message in messages],
         tools=tools,
+        tool_choice=tool_choice,
         **kwargs,
     )
