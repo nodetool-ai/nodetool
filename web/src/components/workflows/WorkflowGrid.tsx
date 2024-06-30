@@ -260,16 +260,23 @@ const WorkflowGrid = () => {
     ]
   );
 
-  const onDeselect = useCallback((event: MouseEvent) => {
-    const target = event.target as HTMLElement;
-    if (
-      !target.closest(".workflow") &&
-      !target.closest(".MuiDialog-root") &&
-      !target.closest(".delete-selected-button")
-    ) {
-      setSelectedWorkflows([]);
-    }
-  }, []);
+  const onDeselect = useCallback(
+    (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (controlKeyPressed || shiftKeyPressed) {
+        return;
+      }
+
+      if (
+        !target.closest(".workflow") &&
+        !target.closest(".MuiDialog-root") &&
+        !target.closest(".delete-selected-button")
+      ) {
+        setSelectedWorkflows([]);
+      }
+    },
+    [controlKeyPressed, shiftKeyPressed]
+  );
 
   useEffect(() => {
     document.addEventListener("click", onDeselect);
