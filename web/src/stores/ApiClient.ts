@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth.js";
 
 export const useRemoteAuth =
   import.meta.env.MODE === "production" ||
+  import.meta.env.MODE === "staging" ||
   import.meta.env.VITE_REMOTE_AUTH === "true";
 export const isDevelopment = import.meta.env.MODE === "development";
 export const isProduction = import.meta.env.MODE === "production";
@@ -11,12 +12,11 @@ export const isProduction = import.meta.env.MODE === "production";
 export const BASE_URL =
   import.meta.env.MODE === "development"
     ? "http://" + window.location.hostname + ":8000"
+    : import.meta.env.MODE === "staging"
+    ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com/"
     : "https://api.nodetool.ai";
 
-export const WORKER_URL =
-  import.meta.env.MODE === "development"
-    ? "http://" + window.location.hostname + ":8000/api/jobs/"
-    : "https://api.nodetool.ai/api/jobs/";
+export const WORKER_URL = BASE_URL + "/api/jobs/";
 
 const authMiddleware: Middleware = {
   async onRequest(req: Request) {
