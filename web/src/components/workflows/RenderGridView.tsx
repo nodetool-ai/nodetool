@@ -9,6 +9,7 @@ import { truncateString } from "../../utils/truncateString";
 import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { rgb } from "chroma-js";
 
 interface RenderGridViewProps {
   workflows: Workflow[];
@@ -81,7 +82,6 @@ const gridStyles = (theme: any) =>
       padding: "0 .5em",
       margin: 0,
       height: "1.5em",
-      top: 0,
       fontSize: theme.fontSizeSmaller,
       backgroundColor: "transparent",
       color: theme.palette.c_gray6,
@@ -95,6 +95,17 @@ const gridStyles = (theme: any) =>
     },
     ".actions .delete-button:hover": {
       color: theme.palette.c_delete
+    },
+    ".actions button.open-button": {
+      position: "absolute",
+      display: "block",
+      top: "90px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      fontSize: theme.fontSizeBig,
+      textAlign: "center",
+      // backgroundColor: {rgba(theme.palette.c_gray1, 0.9)},
+      outline: "1px solid" + theme.palette.c_hl1
     }
   });
 
@@ -156,19 +167,20 @@ export const RenderGridView: React.FC<RenderGridViewProps> = ({
 
           <div className="actions">
             {
-              <Tooltip
-                title="DoubleClick to open directly"
-                placement="top"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+              // <Tooltip
+              //   title="DoubleClick to open directly"
+              //   placement="top"
+              //   enterDelay={TOOLTIP_ENTER_DELAY}
+              // >
+              <Button
+                size="small"
+                className="open-button"
+                color="primary"
+                onClick={() => onClickOpen(workflow)}
               >
-                <Button
-                  size="small"
-                  color="primary"
-                  onClick={() => onClickOpen(workflow)}
-                >
-                  Open
-                </Button>
-              </Tooltip>
+                Open
+              </Button>
+              // </Tooltip>
             }
             <Tooltip
               title="Make a copy of this workflow"
