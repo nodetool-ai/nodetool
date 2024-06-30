@@ -264,6 +264,7 @@ const WorkflowGrid = () => {
     const target = event.target as HTMLElement;
     if (
       !target.closest(".workflow") &&
+      !target.closest(".MuiDialog-root") &&
       !target.closest(".delete-selected-button")
     ) {
       setSelectedWorkflows([]);
@@ -293,9 +294,32 @@ const WorkflowGrid = () => {
   };
 
   // DUPLICATE WORKFLOW
-  const duplicateWorkflow = async (workflow: Workflow) => {
+  const duplicateWorkflow = async (
+    event: React.MouseEvent<Element>,
+    workflow: Workflow
+  ) => {
+    event.stopPropagation();
     const newWorkflow = await copyWorkflow(workflow);
-    newWorkflow.name = `Copy of ${newWorkflow.name}`.substring(0, 50);
+    const baseName = workflow.name.replace(/ \(\d+\)$/, "");
+    const existingNames = (data?.workflows || [])
+      .filter((w) => w.name.startsWith(baseName))
+      .map((w) => w.name);
+
+    let highestNumber = 0;
+    const regex = new RegExp(`^${baseName} \\((\\d+)\\)$`);
+    existingNames.forEach((name) => {
+      const match = name.match(regex);
+      if (match && match[1]) {
+        const number = parseInt(match[1], 10);
+        if (number > highestNumber) {
+          highestNumber = number;
+        }
+      }
+    });
+
+    const newName = `${baseName} (${highestNumber + 1})`;
+    newWorkflow.name = newName.substring(0, 50);
+
     setWorkflowCategory("user");
     await updateWorkflow(newWorkflow);
     queryClient.invalidateQueries(["workflows"]);

@@ -14,7 +14,7 @@ interface RenderGridViewProps {
   workflows: Workflow[];
   onClickOpen: (workflow: Workflow) => void;
   onDoubleClickWorkflow: (workflow: Workflow) => void;
-  onDuplicateWorkflow: (workflow: Workflow) => void;
+  onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
   onSelect: (workflow: Workflow) => void;
   onDelete: (e: any, workflow: Workflow) => void;
   selectedWorkflows: string[] | null;
@@ -178,7 +178,7 @@ export const RenderGridView: React.FC<RenderGridViewProps> = ({
               <Button
                 size="small"
                 color="primary"
-                onClick={() => onDuplicateWorkflow(workflow)}
+                onClick={(event) => onDuplicateWorkflow(event, workflow)}
               >
                 Duplicate
               </Button>
