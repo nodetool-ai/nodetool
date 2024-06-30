@@ -63,6 +63,7 @@ DEFAULT_ENV = {
     "DB_PATH": str(get_data_path("nodetool.sqlite3")),
     "REPLICATE_API_TOKEN": None,
     "OPENAI_API_KEY": None,
+    "OLLAMA_API_URL": "http://localhost:11434",
     "HF_TOKEN": None,
     "ENV": "development",
     "LOG_LEVEL": "INFO",
@@ -571,6 +572,21 @@ class Environment(object):
         from anthropic import AsyncAnthropic
 
         return AsyncAnthropic(api_key=cls.get_anthropic_api_key())
+
+    @classmethod
+    def get_ollama_api_url(cls):
+        """
+        The ollama api url is the url of the ollama api server.
+        """
+        return cls.get("OLLAMA_API_URL")
+
+    @classmethod
+    def get_ollama_client(cls):
+        from ollama import AsyncClient
+
+        print("using ollama url", cls.get_ollama_api_url())
+
+        return AsyncClient(cls.get_ollama_api_url())
 
     @classmethod
     def get_chroma_token(cls):
