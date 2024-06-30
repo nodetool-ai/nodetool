@@ -27,17 +27,16 @@ function DeleteButton<T>({
   onClick
 }: DeleteButtonProps<T>): JSX.Element {
   return (
-    <div css={styles}>
-      <Button
-        className={`${className} delete-button`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick(e, item);
-        }}
-      >
-        <ClearIcon />
-      </Button>
-    </div>
+    <Button
+      css={styles}
+      className={`${className} delete-button`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(e, item);
+      }}
+    >
+      <ClearIcon />
+    </Button>
   );
 }
 

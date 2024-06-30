@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
-import useWorkflowRunnner from "../../stores/WorkflowRunner";
 import { css } from "@emotion/react";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { Button } from "@mui/material";
@@ -15,7 +14,7 @@ export const errorStyles = (theme: any) =>
     padding: "0",
     margin: "1em",
     transition: "background-color 0.2s",
-    maxWidth: "160px",
+    maxWidth: "140px",
 
     ".error-text": {
       maxHeight: "4em",

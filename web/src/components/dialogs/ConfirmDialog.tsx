@@ -53,8 +53,10 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   };
 
   return (
-    <div css={dialogStyles}>
+    <div>
       <Dialog
+        style={{ minWidth: "100%", minHeight: "100%" }}
+        css={dialogStyles}
         className="dialog"
         open={open}
         onClose={onClose}

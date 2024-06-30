@@ -1,18 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { prettyDate } from "../../utils/formatDateAndTime";
-import { truncateString } from "../../utils/truncateString";
 import SearchInput from "../search/SearchInput";
-import DeleteButton from "../buttons/DeleteButton";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import { useSearchParams } from "react-router-dom";
+import { RenderGridView } from "./RenderGridView";
+import { RenderListView } from "./RenderListView";
 
 import {
   Typography,
-  Box,
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
@@ -27,11 +25,10 @@ import { useQuery, useQueryClient } from "react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import useKeyPressedListener from "../../utils/KeyPressedListener";
 
 const tile_width = "200px";
 const tile_height = "200px";
-
-type WorkflowCategory = "user" | "examples";
 
 const styles = (theme: any) =>
   css({
@@ -65,6 +62,10 @@ const styles = (theme: any) =>
       transition: "outline 0.2s"
     },
     ".workflow:hover": {
+      backgroundColor: theme.palette.c_gray1,
+      outline: "1px solid" + theme.palette.c_gray2
+    },
+    ".workflow.selected": {
       backgroundColor: theme.palette.c_gray1,
       outline: "1px solid" + theme.palette.c_hl1
     },
@@ -102,135 +103,33 @@ const styles = (theme: any) =>
       margin: "2em 2em",
       alignItems: "center"
     },
-
     ".workflow-buttons .MuiToggleButton-root[aria-pressed='false']": {
       color: theme.palette.c_gray4
+    },
+    ".explanations": {
+      margin: "0 1em 1em 2em",
+      fontSize: theme.fontSizeSmall,
+      color: theme.palette.c_gray5
     }
   });
 
-const gridStyles = (theme: any) =>
-  css({
-    "&": {
-      display: "flex",
-      flexWrap: "wrap",
-      margin: ".5em 1em",
-      maxHeight: "calc(100vh - 250px)",
-      overflowY: "auto"
-    },
-    ".workflow": {
-      boxSizing: "border-box",
-      position: "relative",
-      flex: `1 0 ${tile_width}`,
-      margin: "1em .5em 1em .5em",
-      borderBottom: "1px solid gray",
-      paddingBottom: ".25em",
-      maxWidth: tile_width,
-      cursor: "pointer"
-    },
-    ".image-wrapper": {
-      flexShrink: 0,
-      width: tile_width,
-      height: tile_height,
-      overflow: "hidden",
-      position: "relative"
-    },
-    ".name": {
-      top: "-5px",
-      left: "5px",
-      fontSize: theme.fontSizeSmall,
-      margin: "0.5em 0 .25em",
-      lineHeight: "1em",
-      color: theme.palette.c_hl1
-    },
-    ".description": {
-      margin: "0.25em 0 .75em"
-    },
-    ".date": {},
-    ".right": {
-      marginTop: "auto"
-    },
-    ".right button": {
-      position: "absolute",
-      bottom: "-5px",
-      right: "-5px"
-    }
-  });
-const listStyles = (theme: any) =>
-  css({
-    "&": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      margin: ".5em 1em 0 1.5em",
-      maxHeight: "calc(100vh - 280px)",
-      overflow: "hidden auto"
-    },
-    ".workflow": {
-      position: "relative",
-      display: "flex",
-      flexDirection: "row",
-      gap: "1em",
-      alignItems: "flex-start",
-      margin: ".25em 0",
-      padding: "0.4em 0",
-      width: "calc(100% - 100px)",
-      cursor: "pointer",
-      borderBottom: "1px solid black",
-      transition: "background 0.2s"
-    },
-    ".workflow:hover": {
-      backgroundColor: theme.palette.c_gray1,
-      outline: `0`
-    },
-    ".name-and-description": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.1em"
-    },
-    ".name": {
-      fontSize: theme.fontSizeNormal,
-      margin: "0",
-      lineHeight: "1em",
-      color: theme.palette.c_hl1
-    },
-    ".description": {
-      margin: "0.1em 0 .1em"
-    },
-    ".date": {
-      marginLeft: "auto",
-      paddingRight: "1em",
-      fontFamily: theme.fontFamily2,
-      right: "0",
-      minWidth: "150px"
-    },
-    ".image-wrapper": {
-      flexShrink: 0,
-      width: "40px",
-      height: "40px",
-      overflow: "hidden",
-      position: "relative"
-    },
-    ".right": {
-      display: "flex",
-      alignItems: "center",
-      minWidth: "200px",
-      marginLeft: "auto"
-    }
-  });
+type WorkflowCategory = "user" | "examples";
 
 const WorkflowGrid = () => {
   const [filterValue, setFilterValue] = useState("");
   const { settings, setWorkflowLayout, setWorkflowOrder } = useSettingsStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
+  const shiftKeyPressed = useKeyPressedListener("Shift");
+  const controlKeyPressed = useKeyPressedListener("Control");
   const loadMyWorkflows = useWorkflowStore((state) => state.load);
   const loadExampleWorkflows = useWorkflowStore((state) => state.loadExamples);
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);
   const copyWorkflow = useWorkflowStore((state) => state.copy);
+  const updateWorkflow = useWorkflowStore((state) => state.update);
   const queryClient = useQueryClient();
   const [workflowCategory, setWorkflowCategory] =
-    useState<WorkflowCategory>("user"); // Default value
+    useState<WorkflowCategory>("user");
 
   useEffect(() => {
     const categoryFromURL = searchParams.get(
@@ -258,6 +157,8 @@ const WorkflowGrid = () => {
     }
   };
 
+  const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
+
   const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>(
     ["workflows", workflowCategory],
     async () => {
@@ -272,12 +173,12 @@ const WorkflowGrid = () => {
   );
 
   const deleteWorkflow = useWorkflowStore().delete;
-  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(
-    null
-  );
+  const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
 
-  const onClickWorkflow = useCallback(
+  // OPEN WORKFLOW
+  const onDoubleClickWorkflow = useCallback(
     (workflow: Workflow) => {
       if (workflowCategory === "examples") {
         // setShouldAutoLayout(true);
@@ -291,6 +192,90 @@ const WorkflowGrid = () => {
     },
     [navigate, setShouldAutoLayout, copyWorkflow, workflowCategory]
   );
+  const onClickOpen = useCallback(
+    (workflow: Workflow) => {
+      if (workflowCategory === "examples") {
+        // setShouldAutoLayout(true);
+        copyWorkflow(workflow).then((workflow) => {
+          navigate("/editor/" + workflow.id);
+        });
+      } else {
+        setShouldAutoLayout(false);
+        navigate("/editor/" + workflow.id);
+      }
+    },
+    [navigate, setShouldAutoLayout, copyWorkflow, workflowCategory]
+  );
+
+  // SELECT WORKFLOW
+  const onSelect = useCallback(
+    (workflow: Workflow) => {
+      const sortedWorkflows = [...(data?.workflows || [])].sort((a, b) => {
+        if (settings.workflowOrder === "name") {
+          return a.name.localeCompare(b.name);
+        }
+        return b.updated_at.localeCompare(a.updated_at);
+      });
+
+      if (selectedWorkflows.includes(workflow.id)) {
+        setSelectedWorkflows([]);
+      } else if (shiftKeyPressed) {
+        if (selectedWorkflows.length > 0) {
+          const lastSelected = selectedWorkflows[selectedWorkflows.length - 1];
+          const lastIndex = sortedWorkflows.findIndex(
+            (w) => w.id === lastSelected
+          );
+          const currentIndex = sortedWorkflows.findIndex(
+            (w) => w.id === workflow.id
+          );
+          if (lastIndex !== undefined && currentIndex !== undefined) {
+            const start = Math.min(lastIndex, currentIndex);
+            const end = Math.max(lastIndex, currentIndex);
+            const newSelection = sortedWorkflows
+              .slice(start, end + 1)
+              .map((w) => w.id);
+            setSelectedWorkflows((prev) =>
+              Array.from(new Set([...prev, ...newSelection]))
+            );
+          }
+        } else {
+          setSelectedWorkflows([workflow.id]);
+        }
+      } else if (controlKeyPressed) {
+        setSelectedWorkflows((prev) =>
+          prev.includes(workflow.id)
+            ? prev.filter((id) => id !== workflow.id)
+            : [...prev, workflow.id]
+        );
+      } else {
+        setSelectedWorkflows([workflow.id]);
+      }
+    },
+    [
+      data?.workflows,
+      shiftKeyPressed,
+      controlKeyPressed,
+      settings.workflowOrder,
+      selectedWorkflows
+    ]
+  );
+
+  const onDeselect = useCallback((event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+    if (
+      !target.closest(".workflow") &&
+      !target.closest(".delete-selected-button")
+    ) {
+      setSelectedWorkflows([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("click", onDeselect);
+    return () => {
+      document.removeEventListener("click", onDeselect);
+    };
+  }, [onDeselect]);
 
   // WORKFLOW CATEGORY
   const handleWorfklowCategoryChange = (
@@ -307,20 +292,31 @@ const WorkflowGrid = () => {
     navigate(`/editor/${workflow.id}`);
   };
 
+  // DUPLICATE WORKFLOW
+  const duplicateWorkflow = async (workflow: Workflow) => {
+    const newWorkflow = await copyWorkflow(workflow);
+    newWorkflow.name = `Copy of ${newWorkflow.name}`.substring(0, 50);
+    setWorkflowCategory("user");
+    await updateWorkflow(newWorkflow);
+    queryClient.invalidateQueries(["workflows"]);
+  };
+
   // DELETE WORKFLOW
   const onDelete = (e: any, workflow: Workflow) => {
     e.stopPropagation();
-    setWorkflowToDelete(workflow);
+    setWorkflowsToDelete([workflow]);
     setIsDeleteDialogOpen(true);
   };
 
   const handleDelete = useCallback(() => {
-    if (!workflowToDelete) return;
+    workflowsToDelete.forEach((workflow) => {
+      deleteWorkflow(workflow.id);
+    });
 
-    deleteWorkflow(workflowToDelete.id);
     setIsDeleteDialogOpen(false);
-    setWorkflowToDelete(null);
-  }, [deleteWorkflow, workflowToDelete]);
+    setWorkflowsToDelete([]);
+    setSelectedWorkflows([]);
+  }, [deleteWorkflow, workflowsToDelete]);
 
   // FILTER AND SORT WORKFLOWS
   const filteredAndSortedWorkflows =
@@ -349,192 +345,151 @@ const WorkflowGrid = () => {
   const handleSearchClear = () => {
     setFilterValue("");
   };
-  // Grid view
-  const renderGridView = (workflows: any) => (
-    <Box className="container grid" css={gridStyles}>
-      {workflows.map((workflow: Workflow) => (
-        <Box
-          key={workflow.id}
-          className="workflow grid"
-          onClick={() => onClickWorkflow(workflow)}
-          sx={{ display: "flex", flexDirection: "column" }}
-        >
-          <Box
-            className="image-wrapper"
-            sx={{
-              backgroundSize: "cover",
-              backgroundPosition: "center top",
-              backgroundImage: workflow.thumbnail_url
-                ? `url(${workflow.thumbnail_url})`
-                : "none",
-              width: "200px",
-              height: "200px"
-            }}
-          >
-            {!workflow.thumbnail_url && <Box className="image-placeholder" />}
-          </Box>
-          <div
-            className="name"
-            dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-          ></div>
-          <Typography className="description">
-            {truncateString(workflow.description, 150)}
-          </Typography>
-          <div className="right">
-            <Typography className="date">
-              {prettyDate(workflow.updated_at, "verbose", settings)}
-            </Typography>
-            <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
-          </div>
-        </Box>
-      ))}
-    </Box>
-  );
 
-  // List view
-  const renderListView = (workflows: any) => (
-    <Box className="container list" css={listStyles}>
-      {workflows.map((workflow: Workflow) => (
-        <Box
-          key={workflow.id}
-          className="workflow list"
-          onClick={() => onClickWorkflow(workflow)}
-        >
-          <Box
-            className="image-wrapper"
-            sx={{
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundImage: workflow.thumbnail_url
-                ? `url(${workflow.thumbnail_url})`
-                : "none",
-              width: "50px",
-              height: "50px"
-            }}
-          >
-            {!workflow.thumbnail_url && <Box className="image-placeholder" />}
-          </Box>
-          <Box className="name-and-description">
-            <div
-              className="name"
-              dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-            ></div>
-            <Typography className="description">
-              {truncateString(workflow.description, 350)}
-            </Typography>
-          </Box>
-          <div className="right">
-            <Typography className="date">
-              {prettyDate(workflow.updated_at, "verbose", settings)}
-            </Typography>
-            <DeleteButton<Workflow>
-              className="delete-button"
-              item={workflow}
-              onClick={onDelete}
-            />
-          </div>
-        </Box>
+  const workflowsToDeleteList = (
+    <ul className="asset-names">
+      {workflowsToDelete.map((workflow) => (
+        <li key={workflow.id}>{workflow.name}</li>
       ))}
-    </Box>
+    </ul>
   );
 
   return (
-    <div css={styles}>
+    <>
       <ConfirmDialog
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDelete}
         confirmText="Delete"
         cancelText="Cancel"
-        title="Delete Workflow"
-        notificationMessage={`Workflow '${workflowToDelete?.name}' deleted`}
+        title="Delete Workflows"
+        notificationMessage={`Workflows deleted`}
         notificationType="success"
-        content={`Delete workflow '${workflowToDelete?.name}'?`}
+        content={
+          <>
+            <p>Are you sure you want to delete the following workflows?</p>
+            {workflowsToDeleteList}
+          </>
+        }
       />
+      <div css={styles}>
+        <div className="workflow-buttons">
+          <Button variant="outlined" onClick={handleCreateWorkflow}>
+            Create New
+          </Button>
+          <ToggleButtonGroup
+            className="toggle-category"
+            value={workflowCategory}
+            onChange={handleWorfklowCategoryChange}
+            exclusive
+            aria-label="Workflow category"
+          >
+            <ToggleButton color="primary" value="user" aria-label="user">
+              My Workflows
+            </ToggleButton>
+            <ToggleButton
+              color="primary"
+              value="examples"
+              aria-label="examples"
+            >
+              Examples
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </div>
 
-      <div className="workflow-buttons">
-        <Button variant="outlined" onClick={handleCreateWorkflow}>
-          Create New
-        </Button>
-        {/* <Button color="primary" onClick={handleWorfklowCategoryChange}>
-          All Workflows
-        </Button>
-        <Button color="primary" onClick={handleWorfklowCategoryChange}>
-          Example Workflows
-        </Button> */}
-        <ToggleButtonGroup
-          className="toggle-category"
-          value={workflowCategory}
-          onChange={handleWorfklowCategoryChange}
-          exclusive
-          aria-label="Workflow category"
-        >
-          <ToggleButton color="primary" value="user" aria-label="user">
-            My Workflows
-          </ToggleButton>
-          <ToggleButton color="primary" value="examples" aria-label="examples">
-            Examples
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </div>
-
-      {/* <Button
-        onClick={() => {
-          handleCreateWorkflow();
-        }}
-        variant="outlined"
-        sx={{ flexGrow: 1, margin: "2em 0 0 2em" }}
-      >
-        Create Workflow
-      </Button> */}
-      <div className="tools">
-        <SearchInput
-          onSearchChange={handleSearchChange}
-          onSearchClear={handleSearchClear}
-          focusOnTyping={true}
-        />
-        <ToggleButtonGroup
-          exclusive
-          value={settings.workflowLayout}
-          onChange={handleLayoutChange}
-          sx={{ mb: 2 }}
-        >
-          <ToggleButton value="grid">
-            <ViewModuleIcon />
-          </ToggleButton>
-          <ToggleButton value="list">
-            <FormatListBulletedIcon />
-          </ToggleButton>
-        </ToggleButtonGroup>
-        <ToggleButtonGroup
-          value={settings.workflowOrder}
-          onChange={handleOrderChange}
-          exclusive
-          aria-label="Sort workflows"
-        >
-          <ToggleButton value="name" aria-label="Sort by name">
-            Name
-          </ToggleButton>
-          <ToggleButton value="updated_at" aria-label="sort by date">
-            Date
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </div>
-      <div className="status">
-        {isLoading && <CircularProgress />}
-        {isError && (
-          <div style={{ display: "flex", gap: "1em", alignItems: "center" }}>
-            <ErrorOutlineRounded>
-              <Typography>{error?.message}</Typography>
-            </ErrorOutlineRounded>
-            <Typography>No workflows found.</Typography>
+        <div className="tools">
+          <SearchInput
+            onSearchChange={handleSearchChange}
+            onSearchClear={handleSearchClear}
+            focusOnTyping={true}
+          />
+          <ToggleButtonGroup
+            exclusive
+            value={settings.workflowLayout}
+            onChange={handleLayoutChange}
+            sx={{ mb: 2 }}
+          >
+            <ToggleButton value="grid">
+              <ViewModuleIcon />
+            </ToggleButton>
+            <ToggleButton value="list">
+              <FormatListBulletedIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <ToggleButtonGroup
+            value={settings.workflowOrder}
+            onChange={handleOrderChange}
+            exclusive
+            aria-label="Sort workflows"
+          >
+            <ToggleButton value="name" aria-label="Sort by name">
+              Name
+            </ToggleButton>
+            <ToggleButton value="updated_at" aria-label="sort by date">
+              Date
+            </ToggleButton>
+          </ToggleButtonGroup>
+          {selectedWorkflows.length > 0 && (
+            <Button
+              className="delete-selected-button"
+              onClick={() => {
+                setWorkflowsToDelete(
+                  (data?.workflows || []).filter((w) =>
+                    selectedWorkflows.includes(w.id)
+                  )
+                );
+                setIsDeleteDialogOpen(true);
+              }}
+            >
+              Delete Selected
+            </Button>
+          )}
+        </div>
+        {workflowCategory === "user" && (
+          <div className="explanations">
+            <Typography>
+              Select multiple workflows for deletion by holding SHIFT or CONTROL
+              keys.
+            </Typography>
           </div>
         )}
+
+        <div className="status">
+          {isLoading && <CircularProgress />}
+          {isError && (
+            <div style={{ display: "flex", gap: "1em", alignItems: "center" }}>
+              <ErrorOutlineRounded>
+                <Typography>{error?.message}</Typography>
+              </ErrorOutlineRounded>
+              <Typography>No workflows found.</Typography>
+            </div>
+          )}
+        </div>
+        {settings.workflowLayout === "grid" ? (
+          <RenderGridView
+            workflows={filteredAndSortedWorkflows}
+            onClickOpen={onClickOpen}
+            onDoubleClickWorkflow={onDoubleClickWorkflow}
+            onDuplicateWorkflow={duplicateWorkflow}
+            onDelete={onDelete}
+            onSelect={onSelect}
+            selectedWorkflows={selectedWorkflows}
+            workflowCategory={workflowCategory}
+          />
+        ) : (
+          <RenderListView
+            workflows={filteredAndSortedWorkflows}
+            onClickOpen={onClickOpen}
+            onDoubleClickWorkflow={onDoubleClickWorkflow}
+            onDuplicateWorkflow={duplicateWorkflow}
+            onDelete={onDelete}
+            onSelect={onSelect}
+            selectedWorkflows={selectedWorkflows}
+            workflowCategory={workflowCategory}
+          />
+        )}
       </div>
-      {settings.workflowLayout === "grid"
-        ? renderGridView(filteredAndSortedWorkflows)
-        : renderListView(filteredAndSortedWorkflows)}
-    </div>
+    </>
   );
 };
 
