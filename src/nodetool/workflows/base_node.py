@@ -111,9 +111,6 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
             type_args=[type_metadata(t) for t in python_type.__args__],  # type: ignore
         )
     elif is_enum_type(python_type):
-        assert isinstance(python_type, EnumMeta)
-        # this is required as enum types do not derive from BaseType
-        NameToType[python_type.__name__] = python_type
         assert not isinstance(python_type, UnionType)
         return TypeMetadata(
             type="enum",
@@ -193,6 +190,9 @@ class BaseNode(BaseModel):
         """
         super().__init_subclass__()
         add_node_type(cls)
+        for field_type in cls.__annotations__.values():
+            if is_enum_type(field_type):
+                NameToType[field_type.__name__] = field_type
 
     @staticmethod
     def from_dict(node: dict[str, Any], skip_errors: bool = False) -> "BaseNode":
