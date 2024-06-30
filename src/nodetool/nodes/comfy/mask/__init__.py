@@ -4,8 +4,6 @@ from nodetool.metadata.types import ImageTensor, Mask
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.comfy.image import ColorChannel
 
-se
-
 
 class ChannelEnum(str, Enum):
     RED = "red"
