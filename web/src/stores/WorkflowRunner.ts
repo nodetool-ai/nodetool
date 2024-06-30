@@ -138,7 +138,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
             addNotification({
               type: "error",
               alert: true,
-              content: job.error || "",
+              content: "Job failed " + job.error || "",
               timeout: 30000
             });
             break;
@@ -172,7 +172,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
         }
 
         if (update.error) {
-          devError("error", update.error);
+          devError("WorkflowRunner update error", update.error);
           addNotification({
             type: "error",
             alert: true,
@@ -193,7 +193,11 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
           if (update.result) {
             Object.entries(update.result).forEach(([key, value]) => {
               const ref = value as AssetRef;
-              if (typeof ref === "object" && "asset_id" in ref) {
+              if (
+                typeof ref === "object" &&
+                ref !== null &&
+                "asset_id" in ref
+              ) {
                 const asset_id = ref.asset_id;
                 if (asset_id) {
                   getAsset(asset_id).then((res) => {
@@ -202,6 +206,10 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
                     }
                     setResult(workflow.id, data.node_id, { [key]: ref });
                   });
+                } else {
+                  devError(
+                    `WorkflowRunner: Asset id is null or undefined for key: ${key}`
+                  );
                 }
               }
             });
@@ -219,7 +227,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
         }
       }
     } catch (error) {
-      console.error("WorkflowRunner WS error:", error);
+      devError("WorkflowRunner WS error:", error);
     }
   },
 
