@@ -81,8 +81,7 @@ const styles = (theme: any) =>
     },
     ".date": {
       lineHeight: "1.2em",
-
-      margin: "0.25em 0 0",
+      margin: "auto 0 0",
       fontSize: theme.fontSizeSmaller,
       color: theme.palette.c_gray5
     },
@@ -107,7 +106,8 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray4
     },
     ".explanations": {
-      margin: "0 1em 1em 2em",
+      margin: "-.5em 1em -1em 2em",
+      padding: 0,
       fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray5
     }
@@ -220,6 +220,9 @@ const WorkflowGrid = () => {
   // SELECT WORKFLOW
   const onSelect = useCallback(
     (workflow: Workflow) => {
+      if (workflowCategory === "examples") {
+        return;
+      }
       const sortedWorkflows = [...(data?.workflows || [])].sort((a, b) => {
         if (settings.workflowOrder === "name") {
           return a.name.localeCompare(b.name);

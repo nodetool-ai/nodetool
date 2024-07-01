@@ -142,23 +142,13 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
               {truncateString(workflow.description, 350)}
             </Typography>
           </Box>
-          {/* <div className="right">
-            <Typography className="date">
-              {prettyDate(workflow.updated_at, "verbose", settings)}
-            </Typography>
-            <DeleteButton<Workflow>
-              className="delete-button"
-              item={workflow}
-              onClick={onDelete}
-            />
-          </div> */}
           <div className="actions">
             <Typography className="date">
               {prettyDate(workflow.updated_at, "verbose", settings)}
             </Typography>
 
             <Tooltip
-              title="DoubleClick to open directly"
+              title="DoubleClick a workflow to open it directly"
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
@@ -170,22 +160,25 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
                 Open
               </Button>
             </Tooltip>
-
-            <Tooltip
-              title="Make a copy of this workflow"
-              placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button
-                size="small"
-                color="primary"
-                onClick={(event) => onDuplicateWorkflow(event, workflow)}
-              >
-                Duplicate
-              </Button>
-            </Tooltip>
             {workflowCategory === "user" && (
-              <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
+              <>
+                <Tooltip
+                  title="Make a copy of this workflow"
+                  placement="top"
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                >
+                  <Button
+                    size="small"
+                    color="primary"
+                    onClick={(event) => onDuplicateWorkflow(event, workflow)}
+                  >
+                    Duplicate
+                  </Button>
+                </Tooltip>
+                {workflowCategory === "user" && (
+                  <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
+                )}
+              </>
             )}
           </div>
         </Box>

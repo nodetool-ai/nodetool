@@ -1,3 +1,4 @@
+import { set } from "lodash";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -13,6 +14,7 @@ export interface Settings {
   timeFormat: "12h" | "24h";
   buttonAppearance: "text" | "icon" | "both";
   alertBeforeTabClose: boolean;
+  selectNodesOnDrag: boolean;
 }
 
 interface SettingsStore {
@@ -30,6 +32,7 @@ interface SettingsStore {
   setTimeFormat: (value: "12h" | "24h") => void;
   setButtonAppearance: (value: "text" | "icon" | "both") => void;
   setAlertBeforeTabClose: (value: boolean) => void;
+  setSelectNodesOnDrag: (value: boolean) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -43,7 +46,8 @@ export const defaultSettings: Settings = {
   assetItemSize: 2,
   timeFormat: "12h",
   buttonAppearance: "both",
-  alertBeforeTabClose: true
+  alertBeforeTabClose: true,
+  selectNodesOnDrag: false
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -143,6 +147,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             alertBeforeTabClose: value
+          }
+        })),
+      setSelectNodesOnDrag: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            selectNodesOnDrag: value ?? defaultSettings.selectNodesOnDrag
           }
         }))
     }),

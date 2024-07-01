@@ -9,7 +9,7 @@ import { truncateString } from "../../utils/truncateString";
 import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
-import { rgb } from "chroma-js";
+import { alpha } from "@mui/material/styles";
 
 interface RenderGridViewProps {
   workflows: Workflow[];
@@ -99,13 +99,18 @@ const gridStyles = (theme: any) =>
     ".actions button.open-button": {
       position: "absolute",
       display: "block",
-      top: "90px",
+      top: "35px",
       left: "50%",
       transform: "translateX(-50%)",
       fontSize: theme.fontSizeBig,
       textAlign: "center",
-      // backgroundColor: {rgba(theme.palette.c_gray1, 0.9)},
+      color: theme.palette.c_white,
+      backgroundColor: alpha(theme.palette.c_gray1, 0.6),
       outline: "1px solid" + theme.palette.c_hl1
+    },
+    ".actions button.open-button:hover": {
+      color: theme.palette.c_hl1,
+      backgroundColor: alpha(theme.palette.c_black, 0.6)
     }
   });
 
@@ -167,11 +172,6 @@ export const RenderGridView: React.FC<RenderGridViewProps> = ({
 
           <div className="actions">
             {
-              // <Tooltip
-              //   title="DoubleClick to open directly"
-              //   placement="top"
-              //   enterDelay={TOOLTIP_ENTER_DELAY}
-              // >
               <Button
                 size="small"
                 className="open-button"
@@ -180,23 +180,25 @@ export const RenderGridView: React.FC<RenderGridViewProps> = ({
               >
                 Open
               </Button>
-              // </Tooltip>
             }
-            <Tooltip
-              title="Make a copy of this workflow"
-              placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button
-                size="small"
-                color="primary"
-                onClick={(event) => onDuplicateWorkflow(event, workflow)}
-              >
-                Duplicate
-              </Button>
-            </Tooltip>
             {workflowCategory === "user" && (
-              <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
+              <>
+                <Tooltip
+                  title="Make a copy of this workflow"
+                  placement="top"
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                >
+                  <Button
+                    size="small"
+                    color="primary"
+                    onClick={(event) => onDuplicateWorkflow(event, workflow)}
+                  >
+                    Duplicate
+                  </Button>
+                </Tooltip>
+
+                <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
+              </>
             )}
           </div>
         </Box>

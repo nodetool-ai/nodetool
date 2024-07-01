@@ -470,7 +470,7 @@ const NodeEditor: React.FC<unknown> = () => {
               // edgeTypes={edgeTypes}
               connectionRadius={settings.connectionSnap}
               attributionPosition="bottom-left"
-              selectNodesOnDrag={false}
+              selectNodesOnDrag={settings.selectNodesOnDrag}
               onClick={handleClick}
               onDrop={onDrop}
               onDragOver={onDragOver}

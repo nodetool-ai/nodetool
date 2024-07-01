@@ -11,7 +11,8 @@ import {
   Typography,
   InputLabel,
   FormControl,
-  Tooltip
+  Tooltip,
+  Switch
 } from "@mui/material";
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -96,7 +97,7 @@ const styles = (theme: any) =>
         width: "100%"
       },
       ".MuiInput-root": {
-        minWidth: "200px",
+        minWidth: "210px",
         width: "200px",
         padding: "0.2em 0.5em"
       },
@@ -159,7 +160,8 @@ function SettingsMenu() {
     setAssetItemSize,
     setTimeFormat,
     setButtonAppearance,
-    setAlertBeforeTabClose
+    setAlertBeforeTabClose,
+    setSelectNodesOnDrag
   } = useSettingsStore();
 
   const id = open ? "docs" : undefined;
@@ -393,25 +395,42 @@ function SettingsMenu() {
           <div className="settings-item">
             <FormControl>
               <InputLabel htmlFor={id}>Show alert on close</InputLabel>
-              <Select
-                id={id}
-                labelId={id}
-                value={
-                  settings.alertBeforeTabClose === true ? "enabled" : "disabled"
-                }
-                variant="standard"
+              <Switch
+                sx={{
+                  "&.MuiSwitch-root": {
+                    margin: "16px 0 0"
+                  }
+                }}
+                checked={!!settings.alertBeforeTabClose}
                 onChange={(e) =>
-                  setAlertBeforeTabClose(
-                    e.target.value === "enabled" ? true : false
-                  )
+                  setAlertBeforeTabClose(e.target.checked ?? false)
                 }
-              >
-                <MenuItem value={"enabled"}>Enabled</MenuItem>
-                <MenuItem value={"disabled"}>Diabled</MenuItem>
-              </Select>
+                inputProps={{ "aria-label": id }}
+              />
             </FormControl>
             <Typography className="description">
               Prevent closing of the browser tab when there are unsaved changes.
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <FormControl>
+              <InputLabel htmlFor={id}>Select Nodes On Drag</InputLabel>
+              <Switch
+                sx={{
+                  "&.MuiSwitch-root": {
+                    margin: "16px 0 0"
+                  }
+                }}
+                checked={!!settings.selectNodesOnDrag}
+                onChange={(e) =>
+                  setSelectNodesOnDrag(e.target.checked ?? false)
+                }
+                inputProps={{ "aria-label": id }}
+              />
+            </FormControl>
+            <Typography className="description">
+              Select nodes when dragging.
             </Typography>
           </div>
         </div>
