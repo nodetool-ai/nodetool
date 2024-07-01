@@ -264,8 +264,8 @@ def topological_sort(edges: list[Edge], nodes: list[BaseNode]) -> List[List[str]
                     edges.remove(edge)
                     if edge.target in indegree:
                         indegree[edge.target] -= 1
-                    if indegree[edge.target] == 0:
-                        queue.append(edge.target)
+                        if indegree[edge.target] == 0:
+                            queue.append(edge.target)
 
         sorted_nodes.append(level_nodes)
 

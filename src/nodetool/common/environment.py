@@ -6,6 +6,7 @@ from nodetool.common.nodetool_api_client import (
     NodetoolAPIClient,
     NODETOOL_INTERNAL_API,
 )
+from nodetool.storage.abstract_node_cache import AbstractNodeCache
 
 
 def get_data_path(filename: str):
@@ -60,6 +61,8 @@ DEFAULT_ENV = {
     "CHROMA_PATH": str(get_data_path("chroma")),
     "COMFY_FOLDER": None,
     "ASSET_FOLDER": str(get_data_path("assets")),
+    "MEMCACHE_HOST": None,
+    "MEMCACHE_PORT": None,
     "DB_PATH": str(get_data_path("nodetool.sqlite3")),
     "REPLICATE_API_TOKEN": None,
     "OPENAI_API_KEY": None,
@@ -396,6 +399,34 @@ class Environment(object):
         return os.environ.get(
             "DYNAMO_SECRET_ACCESS_KEY", cls.get_aws_secret_access_key()
         )
+
+    @classmethod
+    def get_memcache_host(cls):
+        """
+        The memcache host is the host of the memcache server.
+        """
+        return os.environ.get("MEMCACHE_HOST")
+
+    @classmethod
+    def get_memcache_port(cls):
+        """
+        The memcache port is the port of the memcache server.
+        """
+        return os.environ.get("MEMCACHE_PORT")
+
+    @classmethod
+    def get_node_cache(cls) -> AbstractNodeCache:
+        memcache_host = cls.get_memcache_host()
+        memcache_port = cls.get_memcache_port()
+
+        if memcache_host and memcache_port:
+            from nodetool.storage.memcache_node_cache import MemcachedNodeCache
+
+            return MemcachedNodeCache(host=memcache_host, port=int(memcache_port))
+        else:
+            from nodetool.storage.memory_node_cache import MemoryNodeCache
+
+            return MemoryNodeCache()
 
     @classmethod
     def get_db_path(cls):

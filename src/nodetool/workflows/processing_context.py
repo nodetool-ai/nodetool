@@ -2,6 +2,7 @@ import asyncio
 from enum import Enum
 import json
 from queue import Queue
+import random
 import urllib.parse
 import uuid
 import httpx
@@ -96,6 +97,7 @@ class ProcessingContext:
     auth_token: str
     workflow_id: str
     capabilities: list[str]
+    variables: dict[str, Any]
     graph: Graph
     cost: float = 0.0
     is_cancelled: bool = False
@@ -110,6 +112,7 @@ class ProcessingContext:
         auth_token: str,
         workflow_id: str = "",
         graph: Graph = Graph(),
+        variables: dict[str, Any] | None = None,
         queue: Queue | asyncio.Queue | None = None,
         capabilities: list[str] | None = None,
         http_client: httpx.AsyncClient | None = None,
@@ -124,6 +127,9 @@ class ProcessingContext:
         self.capabilities = (
             capabilities if capabilities else Environment.get_capabilities()
         )
+        self.variables = (
+            variables if variables else {"seed": random.randint(0, 2**32 - 1)}
+        )
         self.api_client = Environment.get_nodetool_api_client(
             self.user_id, self.auth_token
         )
@@ -133,6 +139,19 @@ class ProcessingContext:
             else http_client
         )
         assert self.auth_token is not None, "Auth token is required"
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Gets the value of a variable from the context.
+
+        Args:
+            key (str): The key of the variable.
+            default (Any, optional): The default value to return if the key is not found. Defaults to None.
+
+        Returns:
+            Any: The value of the variable.
+        """
+        return self.variables.get(key, default)
 
     async def pop_message_async(self) -> ProcessingMessage:
         """
@@ -191,6 +210,23 @@ class ProcessingContext:
             key (str): The key of the asset.
         """
         return Environment.get_temp_storage().get_url(key)
+
+    def generate_node_cache_key(
+        self,
+        node: BaseNode,
+    ) -> str:
+        """Generate a cache key for a node based on current user, node type and properties."""
+        return f"{self.user_id}:{node.get_node_type()}:{hash(repr(node.node_properties()))}"
+
+    def get_cached_result(self, node: BaseNode) -> Any:
+        """Get the cached result for a node."""
+        key = self.generate_node_cache_key(node)
+        return Environment.get_node_cache().get(key)
+
+    def cache_result(self, node: BaseNode, result: Any, ttl: int = 3600):
+        """Cache the result for a node."""
+        key = self.generate_node_cache_key(node)
+        Environment.get_node_cache().set(key, result, ttl)
 
     async def find_asset(self, asset_id: str):
         """
