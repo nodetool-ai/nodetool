@@ -160,8 +160,6 @@ function getRoutes() {
           </ThemeProvider>
         </ProtectedRoute>
       ),
-      loader: async ({ params }: LoaderFunctionArgs) =>
-        await initiateEditor(params.workflow)
     }
   ];
 

@@ -1,7 +1,6 @@
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
 import { create, useStore } from "zustand";
-import { persist } from "zustand/middleware";
 import { NodeMetadata, OutputSlot, Property, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import {

@@ -159,7 +159,7 @@ export const RenderGridView: React.FC<RenderGridViewProps> = ({
 
           <div
             className="name"
-            dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
+            dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) + (workflow) }}
           ></div>
 
           <Typography className="description">
