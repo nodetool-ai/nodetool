@@ -1,80 +1,81 @@
 import asyncio
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Dict, Any, Optional
+from functools import lru_cache
 
 from pydantic import BaseModel
 
 from nodetool.api.types.job import JobUpdate, JobCancelledException
-from nodetool.workflows.base_node import GroupNode
+from nodetool.nodes.nodetool.input import GroupInput
+from nodetool.workflows.base_node import GroupNode, BaseNode
 from nodetool.workflows.types import NodeProgress, NodeUpdate
 from nodetool.workflows.run_job_request import RunJobRequest
-
-from nodetool.workflows.processing_context import (
-    ProcessingContext,
-)
-from nodetool.workflows.base_node import (
-    BaseNode,
-)
+from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.base_node import requires_capabilities_from_request
 from nodetool.common.environment import Environment
 from nodetool.workflows.graph import Graph, topological_sort
-
-"""
-This module contains the WorkflowRunner class, which is responsible for executing a graph of nodes in a workflow.
-
-The WorkflowRunner class provides the following main functionalities:
-1. Running a workflow graph by processing nodes in topological order.
-2. Handling parallel execution of nodes at each level of the graph.
-3. Managing the execution context, including input/output handling and result collection.
-4. Supporting cancellation of running jobs.
-5. Handling special node types like GroupNodes (e.g., loop nodes).
-6. Managing capabilities required by the workflow, such as GPU support for ComfyUI nodes.
-
-Key components:
-- WorkflowRunner: The main class that orchestrates the execution of a workflow.
-- run: The primary method to execute a workflow given a RunJobRequest and ProcessingContext.
-- process_graph: Processes the entire graph in topological order.
-- process_node: Handles the execution of individual nodes, including special cases like GroupNodes.
-- torch_capabilities: A context manager to handle GPU-related setups for ComfyUI nodes.
-
-This module is central to the execution of workflows in the nodetool system, providing a flexible
-and extensible way to process complex node graphs with various node types and capabilities.
-"""
-
 
 log = Environment.get_logger()
 
 
 class WorkflowRunner:
     """
-    The WorkflowRunner is responsible for executing a graph of nodes in a topological order.
-    Nodes will be executed asynchronously in parallel, and the results will be collected and returned.
-    If the workflow requires gpu, it will be executed on a worker.
-    """
+    Executes a graph of nodes in topological order with parallel processing and result caching.
 
-    job_id: str
-    status: str = "running"
-    is_cancelled: bool = False
-    current_node: str | None = None
+    The WorkflowRunner is responsible for orchestrating the execution of a workflow,
+    which is represented as a graph of interconnected nodes. It provides the following
+    key functionalities:
+
+    1. Graph Execution:
+       - Processes nodes in topological order to ensure dependencies are met.
+       - Executes nodes asynchronously in parallel at each graph level for improved performance.
+
+    2. Execution Management:
+       - Manages the overall execution context, including input/output handling and result collection.
+       - Supports job cancellation, allowing for graceful termination of running workflows.
+
+    3. Node Handling:
+       - Processes regular nodes and special node types like GroupNodes (e.g., loop nodes).
+       - Utilizes a caching mechanism to store and retrieve node results, improving efficiency
+         for repeated operations.
+
+    4. Resource Management:
+       - Handles capabilities required by the workflow, such as GPU support for ComfyUI nodes.
+       - Manages execution on appropriate workers based on workflow requirements (e.g., GPU-intensive tasks).
+
+    5. Progress Tracking and Reporting:
+       - Provides updates on node execution status and overall workflow progress.
+       - Reports errors and exceptions occurring during node execution.
+
+    The WorkflowRunner uses a NodeCache to store results across multiple workflow runs,
+    optimizing performance for repeated node executions with identical inputs and configurations.
+
+    Attributes:
+        job_id (str): Unique identifier for the current job.
+        status (str): Current status of the workflow execution (e.g., "running", "completed", "cancelled").
+        is_cancelled (bool): Flag indicating whether the job has been cancelled.
+        current_node (Optional[str]): Identifier of the node currently being processed.
+        cache (NodeCache): Instance of NodeCache used for storing and retrieving node results.
+
+    Note:
+        GPU-intensive workflows are automatically directed to appropriate workers with GPU capabilities.
+    """
 
     def __init__(self, job_id: str):
         self.job_id = job_id
+        self.status = "running"
+        self.is_cancelled = False
+        self.current_node: Optional[str] = None
 
-    def is_running(self):
+    def is_running(self) -> bool:
         return self.status == "running"
 
-    def cancel(self):
+    def cancel(self) -> None:
         self.status = "cancelled"
         self.is_cancelled = True
 
-    async def run(self, req: RunJobRequest, context: ProcessingContext):
-        """
-        Evaluates graph nodes in topological order.
-
-        Each level of the graph is processed in parallel.
-
-        Output nodes are collected and returned as a dictionary.
-        """
+    async def run(self, req: RunJobRequest, context: ProcessingContext) -> None:
         assert req.graph is not None, "Graph is required"
 
         graph_capabilities = requires_capabilities_from_request(req)
@@ -93,7 +94,7 @@ class WorkflowRunner:
         if req.params:
             for key, value in req.params.items():
                 if key not in input_nodes:
-                    raise ValueError("No input node found for param: " + str(key))
+                    raise ValueError(f"No input node found for param: {key}")
 
                 node = input_nodes[key]
                 node.assign_property("value", value)
@@ -102,14 +103,14 @@ class WorkflowRunner:
             await self.process_graph(context, graph)
 
         if self.is_cancelled:
-            print("Job cancelled")
+            log.info("Job cancelled")
             context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
             self.status = "cancelled"
             return
 
-        output = {}
-        for node in output_nodes:
-            output[node.name] = context.get_result(node._id, "output")
+        output = {
+            node.name: context.get_result(node._id, "output") for node in output_nodes
+        }
 
         context.post_message(
             JobUpdate(job_id=self.job_id, status="completed", result=output)
@@ -132,7 +133,7 @@ class WorkflowRunner:
         sorted_nodes = topological_sort(graph.edges, graph.nodes)
 
         for level in sorted_nodes:
-            nodes = [graph.find_node(i) for i in level]
+            nodes = [graph.find_node(i) for i in level if i]
             await asyncio.gather(
                 *[self.process_node(context, node) for node in nodes if node]
             )
@@ -177,10 +178,7 @@ class WorkflowRunner:
         for name, value in context.get_node_inputs(group_node._id).items():
             group_node.assign_property(name, value)
 
-        await group_node.process_subgraph(
-            context=context,
-            runner=self,
-        )
+        await group_node.process_subgraph(context=context, runner=self)
         context.processed_nodes.add(group_node._id)
 
     async def process_regular_node(self, context: ProcessingContext, node: BaseNode):
@@ -196,21 +194,48 @@ class WorkflowRunner:
         started_at = datetime.now()
 
         try:
-            # Assign the input values from edges to the node properties.
             for name, value in context.get_node_inputs(node.id).items():
                 node.assign_property(name, value)
 
+            await node.pre_process(context)
+
+            if isinstance(node, GroupInput) or isinstance(node, GroupNode):
+                cached_result = None
+            else:
+                cached_result = context.get_cached_result(node)
+
+            if cached_result is not None:
+                result = cached_result
+            else:
+                context.post_message(
+                    NodeUpdate(
+                        node_id=node.id,
+                        node_name=node.get_title(),
+                        properties=node.node_properties(),
+                        status="running",
+                        started_at=started_at.isoformat(),
+                    )
+                )
+
+                result = await node.process(context)
+                result = await node.convert_output(context, result)
+
+                context.cache_result(node, result)
+
+            res_for_update = self.prepare_result_for_update(result, node)
+
             context.post_message(
                 NodeUpdate(
-                    node_id=node.id,
+                    node_id=node._id,
                     node_name=node.get_title(),
-                    status="running",
+                    properties=node.node_properties(),
+                    status="completed",
+                    result=res_for_update,
                     started_at=started_at.isoformat(),
+                    completed_at=datetime.now().isoformat(),
                 )
             )
 
-            result = await node.process(context)
-            result = await node.convert_output(context, result)
         except Exception as e:
             context.post_message(
                 NodeUpdate(
@@ -222,35 +247,30 @@ class WorkflowRunner:
                     completed_at=datetime.now().isoformat(),
                 )
             )
-            raise e
-        else:
-            res_for_update = result.copy()
-
-            for o in node.outputs():
-                # Comfy types are not sent to the client because they are not JSON serializable.
-                if o.type.is_comfy_type():
-                    del res_for_update[o.name]
-                if isinstance(res_for_update.get(o.name), BaseModel):
-                    res_for_update[o.name] = res_for_update[o.name].model_dump()
-
-            context.post_message(
-                NodeUpdate(
-                    node_id=node._id,
-                    node_name=node.get_title(),
-                    status="completed",
-                    result=res_for_update,
-                    started_at=started_at.isoformat(),
-                    completed_at=datetime.now().isoformat(),
-                )
-            )
+            raise
 
         context.processed_nodes.add(node._id)
         context.set_result(node._id, result)
 
+    @staticmethod
+    def prepare_result_for_update(
+        result: Dict[str, Any], node: BaseNode
+    ) -> Dict[str, Any]:
+        """Prepare the result for the NodeUpdate message."""
+        res_for_update = result.copy()
+
+        for o in node.outputs():
+            if o.type.is_comfy_type():
+                del res_for_update[o.name]
+            if isinstance(res_for_update.get(o.name), BaseModel):
+                res_for_update[o.name] = res_for_update[o.name].model_dump()
+
+        return res_for_update
+
     @contextmanager
     def torch_capabilities(self, capabilities: list[str], context: ProcessingContext):
         if "comfy" in capabilities:
-            if not "comfy" in context.capabilities:
+            if "comfy" not in context.capabilities:
                 raise ValueError("Comfy nodes are not supported in this environment")
 
             import comfy.model_management

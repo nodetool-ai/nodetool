@@ -112,9 +112,10 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
         )
     elif is_enum_type(python_type):
         assert not isinstance(python_type, UnionType)
+        type_name = f"{python_type.__module__}.{python_type.__name__}"
         return TypeMetadata(
             type="enum",
-            type_name=python_type.__name__,
+            type_name=type_name,
             values=[e.value for e in python_type.__members__.values()],  # type: ignore
         )
     else:
@@ -192,7 +193,8 @@ class BaseNode(BaseModel):
         add_node_type(cls)
         for field_type in cls.__annotations__.values():
             if is_enum_type(field_type):
-                NameToType[field_type.__name__] = field_type
+                name = f"{field_type.__module__}.{field_type.__name__}"
+                NameToType[name] = field_type
 
     @staticmethod
     def from_dict(node: dict[str, Any], skip_errors: bool = False) -> "BaseNode":
@@ -485,6 +487,16 @@ class BaseNode(BaseModel):
             return output.model_dump()
         else:
             return {"output": output}
+
+    async def pre_process(self, context: Any) -> Any:
+        """
+        Pre-process the node before processing.
+        This will be called before cache key is computed.
+        Default implementation generates a seed for any field named seed.
+        """
+        for prop in self.properties():
+            if "seed" in prop.name:
+                setattr(self, prop.name, context.get("seed", 0))
 
     async def process(self, context: Any) -> Any:
         """

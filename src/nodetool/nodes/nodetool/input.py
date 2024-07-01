@@ -278,11 +278,11 @@ class ComfyImageInput(AssetSchemaMixin, InputNode):
         output_masks = []
         for i in ImageSequence.Iterator(img):
             i = ImageOps.exif_transpose(i)
-            image = i.convert("RGB")
+            image = i.convert("RGB")  # type: ignore
             image = np.array(image).astype(np.float32) / 255.0
             image = torch.from_numpy(image)[None,]
-            if "A" in i.getbands():
-                mask = np.array(i.getchannel("A")).astype(np.float32) / 255.0
+            if "A" in i.getbands():  # type: ignore
+                mask = np.array(i.getchannel("A")).astype(np.float32) / 255.0  # type: ignore
                 mask = 1.0 - torch.from_numpy(mask)
             else:
                 mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")

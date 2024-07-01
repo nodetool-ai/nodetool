@@ -178,7 +178,7 @@ def test_type_metadata_enum():
 
     metadata = type_metadata(TestEnum)
     assert metadata.type == "enum"
-    assert metadata.type_name == "TestEnum"
+    assert metadata.type_name == "nodetool.tests.workflows.test_base_node.TestEnum"
     assert metadata.values is not None
     assert set(metadata.values) == {"a", "b"}
 
