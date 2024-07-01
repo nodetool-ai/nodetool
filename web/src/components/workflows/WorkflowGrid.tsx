@@ -194,6 +194,9 @@ const WorkflowGrid = () => {
   );
   const onClickOpen = useCallback(
     (workflow: Workflow) => {
+      if (controlKeyPressed || shiftKeyPressed) {
+        return;
+      }
       if (workflowCategory === "examples") {
         // setShouldAutoLayout(true);
         copyWorkflow(workflow).then((workflow) => {
@@ -204,7 +207,14 @@ const WorkflowGrid = () => {
         navigate("/editor/" + workflow.id);
       }
     },
-    [navigate, setShouldAutoLayout, copyWorkflow, workflowCategory]
+    [
+      navigate,
+      setShouldAutoLayout,
+      copyWorkflow,
+      workflowCategory,
+      controlKeyPressed,
+      shiftKeyPressed
+    ]
   );
 
   // SELECT WORKFLOW
@@ -217,7 +227,11 @@ const WorkflowGrid = () => {
         return b.updated_at.localeCompare(a.updated_at);
       });
 
-      if (selectedWorkflows.includes(workflow.id)) {
+      if (
+        selectedWorkflows.includes(workflow.id) &&
+        !controlKeyPressed &&
+        !shiftKeyPressed
+      ) {
         setSelectedWorkflows([]);
       } else if (shiftKeyPressed) {
         if (selectedWorkflows.length > 0) {
