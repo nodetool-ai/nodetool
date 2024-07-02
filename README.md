@@ -161,7 +161,7 @@ Nodetool is made available under the terms of the [GPL3 License](LICENSE.txt), p
 For inquiries, suggestions, or contributions, please reach out to the core team:
 
 - Matthias Georgi
-- David Buerer
+- David Bürer
 - Severin Schwanck
 
-**GitHub:** [https://github.com/Gen-Flow/nodetool](https://github.com/Gen-Flow/nodetool)
+**GitHub:** [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)
