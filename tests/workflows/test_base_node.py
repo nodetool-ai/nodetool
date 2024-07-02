@@ -6,7 +6,7 @@ from nodetool.api.types.graph import Edge, Graph, Node
 from nodetool.metadata.node_metadata import NodeMetadata
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.property import Property
-from nodetool.metadata.types import TypeMetadata
+from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.workflows.processing_context import ProcessingContext
 
 from nodetool.workflows.base_node import (

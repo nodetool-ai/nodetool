@@ -11,7 +11,7 @@ from nodetool.workflows.base_node import (
     BaseNode,
     OutputNode,
 )
-from nodetool.metadata.types import TypeMetadata
+from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.workflows.base_node import get_node_class
 
 """
