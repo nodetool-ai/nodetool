@@ -52,10 +52,13 @@ def process_module(module: Type[Any], base_path: str) -> None:
         module (Type[Any]): The module to process.
         base_path (str): The base path for documentation output.
     """
-    namespace = module.__name__.replace(".", "/")
-    module_path = os.path.join(base_path, f"{namespace}.md")
+    # remove "nodetool"
+    module_name = "/".join(module.__name__.split(".")[1:])
+    if module_name == "":
+        module_name = "index"
+    module_path = os.path.join(base_path, f"{module_name}.md")
     os.makedirs(os.path.dirname(module_path), exist_ok=True)
-    print(f"Processing {module.__name__} -> {module_path}")
+    print(f"Processing {module_name} -> {module_path}")
 
     with open(module_path, "w") as file:
         file.write(f"# {module.__name__}\n\n")
@@ -65,8 +68,8 @@ def process_module(module: Type[Any], base_path: str) -> None:
         for name, obj in inspect.getmembers(module):
             if inspect.ismodule(obj) and obj.__name__.startswith(module.__name__):
                 process_module(obj, base_path)
-                module_path = obj.__name__.replace(".", "/")
-                file.write(f"- [{obj.__name__}]({module_path}.md)\n")
+                submodule_path = "/".join(obj.__name__.split(".")[1:])
+                file.write(f"- [{obj.__name__}](/{submodule_path}.md)\n")
             if name.startswith("_"):
                 continue
             if defined_in_module(obj, module):
