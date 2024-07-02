@@ -1,3 +1,3 @@
 # nodetool.api
 
-- [nodetool.api.types](/api/types.md)
+- [nodetool.api.types](/nodetool/api/types.md)

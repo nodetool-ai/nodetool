@@ -1,9 +1,9 @@
 # nodetool.models
 
-- [nodetool.models.asset](/models/asset.md)
-- [nodetool.models.base_model](/models/base_model.md)
-- [nodetool.models.job](/models/job.md)
-- [nodetool.models.message](/models/message.md)
-- [nodetool.models.prediction](/models/prediction.md)
-- [nodetool.models.task](/models/task.md)
-- [nodetool.models.workflow](/models/workflow.md)
+- [nodetool.models.asset](/nodetool/models/asset.md)
+- [nodetool.models.base_model](/nodetool/models/base_model.md)
+- [nodetool.models.job](/nodetool/models/job.md)
+- [nodetool.models.message](/nodetool/models/message.md)
+- [nodetool.models.prediction](/nodetool/models/prediction.md)
+- [nodetool.models.task](/nodetool/models/task.md)
+- [nodetool.models.workflow](/nodetool/models/workflow.md)

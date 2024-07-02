@@ -1,3 +1,3 @@
 # nodetool.nodes.replicate.text
 
-- [nodetool.nodes.replicate.text.generate](/nodes/replicate/text/generate.md)
+- [nodetool.nodes.replicate.text.generate](/nodetool/nodes/replicate/text/generate.md)

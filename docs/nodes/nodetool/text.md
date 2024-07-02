@@ -101,9 +101,9 @@ Returns the asset id.
 
 **Returns:** `nodetool.metadata.types.TextRef | str`
 
-- [nodetool.nodes.nodetool.text.extract](/nodes/nodetool/text/extract.md)
-- [nodetool.nodes.nodetool.text.generate](/nodes/nodetool/text/generate.md)
-- [nodetool.nodes.nodetool.text.rerank](/nodes/nodetool/text/rerank.md)
+- [nodetool.nodes.nodetool.text.extract](/nodetool/nodes/nodetool/text/extract.md)
+- [nodetool.nodes.nodetool.text.generate](/nodetool/nodes/nodetool/text/generate.md)
+- [nodetool.nodes.nodetool.text.rerank](/nodetool/nodes/nodetool/text/rerank.md)
 ## Function: `to_string(context: nodetool.workflows.processing_context.ProcessingContext, text: nodetool.metadata.types.TextRef | str) -> str`
 
 **Parameters:**

@@ -9,6 +9,6 @@
 
 **Returns:** `bool`
 
-- [nodetool.metadata.type_metadata](/metadata/type_metadata.md)
-- [nodetool.metadata.types](/metadata/types.md)
-- [nodetool.metadata.utils](/metadata/utils.md)
+- [nodetool.metadata.type_metadata](/nodetool/metadata/type_metadata.md)
+- [nodetool.metadata.types](/nodetool/metadata/types.md)
+- [nodetool.metadata.utils](/nodetool/metadata/utils.md)

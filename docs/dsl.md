@@ -1,3 +1,3 @@
 # nodetool.dsl
 
-- [nodetool.dsl.graph](/dsl/graph.md)
+- [nodetool.dsl.graph](/nodetool/dsl/graph.md)

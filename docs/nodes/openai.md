@@ -1,5 +1,5 @@
 # nodetool.nodes.openai
 
-- [nodetool.nodes.openai.audio](/nodes/openai/audio.md)
-- [nodetool.nodes.openai.image](/nodes/openai/image.md)
-- [nodetool.nodes.openai.text](/nodes/openai/text.md)
+- [nodetool.nodes.openai.audio](/nodetool/nodes/openai/audio.md)
+- [nodetool.nodes.openai.image](/nodetool/nodes/openai/image.md)
+- [nodetool.nodes.openai.text](/nodetool/nodes/openai/text.md)

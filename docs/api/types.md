@@ -1,8 +1,8 @@
 # nodetool.api.types
 
-- [nodetool.api.types.asset](/api/types/asset.md)
-- [nodetool.api.types.chat](/api/types/chat.md)
-- [nodetool.api.types.graph](/api/types/graph.md)
-- [nodetool.api.types.job](/api/types/job.md)
-- [nodetool.api.types.prediction](/api/types/prediction.md)
-- [nodetool.api.types.workflow](/api/types/workflow.md)
+- [nodetool.api.types.asset](/nodetool/api/types/asset.md)
+- [nodetool.api.types.chat](/nodetool/api/types/chat.md)
+- [nodetool.api.types.graph](/nodetool/api/types/graph.md)
+- [nodetool.api.types.job](/nodetool/api/types/job.md)
+- [nodetool.api.types.prediction](/nodetool/api/types/prediction.md)
+- [nodetool.api.types.workflow](/nodetool/api/types/workflow.md)

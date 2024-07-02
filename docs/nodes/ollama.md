@@ -1,3 +1,3 @@
 # nodetool.nodes.ollama
 
-- [nodetool.nodes.ollama.text](/nodes/ollama/text.md)
+- [nodetool.nodes.ollama.text](/nodetool/nodes/ollama/text.md)

@@ -68,7 +68,7 @@ def process_module(module: Type[Any], base_path: str) -> None:
         for name, obj in inspect.getmembers(module):
             if inspect.ismodule(obj) and obj.__name__.startswith(module.__name__):
                 process_module(obj, base_path)
-                submodule_path = "/".join(obj.__name__.split(".")[1:])
+                submodule_path = "/".join(obj.__name__.split("."))
                 file.write(f"- [{obj.__name__}](/{submodule_path}.md)\n")
             if name.startswith("_"):
                 continue
