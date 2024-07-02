@@ -1,3 +1,3 @@
 # nodetool.providers.replicate
 
-- [nodetool.providers.replicate.replicate_node](/nodetool/providers/replicate/replicate_node.md)
+- [nodetool.providers.replicate.replicate_node](replicate/replicate_node.md)

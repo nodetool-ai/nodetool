@@ -44,18 +44,29 @@ def defined_in_module(obj: Any, module: Type[Any]) -> bool:
     return hasattr(obj, "__module__") and obj.__module__ == module.__name__
 
 
-def process_module(module: Type[Any], base_path: str) -> None:
+def process_module(
+    module: Type[Any],
+    base_path: str,
+    root_module: str | None = None,
+    current_depth: int = 0,
+) -> None:
     """
     Process a module and generate documentation for its contents.
 
     Args:
         module (Type[Any]): The module to process.
         base_path (str): The base path for documentation output.
+        root_module (str): The name of the root module (used for relative path calculation).
+        current_depth (int): The current depth in the module hierarchy.
     """
-    # remove "nodetool"
-    module_name = "/".join(module.__name__.split(".")[1:])
-    if module_name == "":
-        module_name = "index"
+    if root_module is None:
+        root_module = module.__name__.split(".")[0]
+
+    # Calculate the relative path
+    module_parts = module.__name__.split(".")
+    relative_parts = module_parts[module_parts.index(root_module) + 1 :]
+    module_name = "/".join(relative_parts) if len(relative_parts) > 0 else "index"
+
     module_path = os.path.join(base_path, f"{module_name}.md")
     os.makedirs(os.path.dirname(module_path), exist_ok=True)
     print(f"Processing {module_name} -> {module_path}")
@@ -67,9 +78,22 @@ def process_module(module: Type[Any], base_path: str) -> None:
 
         for name, obj in inspect.getmembers(module):
             if inspect.ismodule(obj) and obj.__name__.startswith(module.__name__):
-                process_module(obj, base_path)
-                submodule_path = "/".join(obj.__name__.split("."))
-                file.write(f"- [{obj.__name__}](/{submodule_path}.md)\n")
+                process_module(obj, base_path, root_module, current_depth + 1)
+                submodule_parts = obj.__name__.split(".")
+
+                # remove parts that are common with the current module
+                common_parts = 0
+                for i in range(len(submodule_parts)):
+                    if len(module_parts) <= i:
+                        break
+                    if submodule_parts[i] != module_parts[i]:
+                        break
+                    common_parts += 1
+
+                relative_path = "/".join(submodule_parts[common_parts - 1 :])
+
+                file.write(f"- [{obj.__name__}]({relative_path}.md)\n")
+
             if name.startswith("_"):
                 continue
             if defined_in_module(obj, module):
@@ -77,6 +101,12 @@ def process_module(module: Type[Any], base_path: str) -> None:
                     document_class(file, obj)
                 elif inspect.isfunction(obj):
                     document_function(file, obj)
+
+
+# You'll need to implement these functions:
+# defined_in_module(obj, module)
+# document_class(file, obj)
+# document_function(file, obj))
 
 
 def exract_desc_and_tags(docstring: str) -> tuple[str, list[str]]:

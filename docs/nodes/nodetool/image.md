@@ -57,7 +57,7 @@ Convert a tensor to an image.
 
 - **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (`Tensor`)
 
-- [nodetool.nodes.nodetool.image.classify](/nodetool/nodes/nodetool/image/classify.md)
-- [nodetool.nodes.nodetool.image.enhance](/nodetool/nodes/nodetool/image/enhance.md)
-- [nodetool.nodes.nodetool.image.source](/nodetool/nodes/nodetool/image/source.md)
-- [nodetool.nodes.nodetool.image.transform](/nodetool/nodes/nodetool/image/transform.md)
+- [nodetool.nodes.nodetool.image.classify](image/classify.md)
+- [nodetool.nodes.nodetool.image.enhance](image/enhance.md)
+- [nodetool.nodes.nodetool.image.source](image/source.md)
+- [nodetool.nodes.nodetool.image.transform](image/transform.md)
