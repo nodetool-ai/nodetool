@@ -82,13 +82,16 @@ def process_module(
                 submodule_parts = obj.__name__.split(".")
 
                 # remove parts that are common with the current module
-                common_parts = 0
-                for i in range(len(submodule_parts)):
-                    if len(module_parts) <= i:
-                        break
-                    if submodule_parts[i] != module_parts[i]:
-                        break
-                    common_parts += 1
+                if module_name == "index":
+                    common_parts = 2
+                else:
+                    common_parts = 0
+                    for i in range(len(submodule_parts)):
+                        if len(module_parts) <= i:
+                            break
+                        if submodule_parts[i] != module_parts[i]:
+                            break
+                        common_parts += 1
 
                 relative_path = "/".join(submodule_parts[common_parts - 1 :])
 
