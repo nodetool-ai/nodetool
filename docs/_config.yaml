@@ -1,0 +1,6 @@
+title: nodetool - documentation
+url: https://nodetool-ai.github.io/nodetool
+baseurl: /nodetool
+
+markdown:
+  extension: true
