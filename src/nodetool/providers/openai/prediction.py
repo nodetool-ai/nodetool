@@ -87,9 +87,6 @@ async def create_image(prediction: Prediction, params: dict) -> Any:
     client = Environment.get_openai_client()
     image = await client.images.generate(
         model=prediction.model,
-        prompt=params["prompt"],
-        size=params["size"],
-        quality=params["quality"],
         response_format="b64_json",
         **params,
     )

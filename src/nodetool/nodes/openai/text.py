@@ -59,9 +59,8 @@ class Embedding(BaseNode):
 
 class GPT(BaseNode):
     """
-    Use GPT models for generating natural language responses based on input prompts.
+    Use GPT models for generating natural language responses based on input prompts. Produces natural language text as a response to the input query, leveraging the capabilities of GPT models for various applications.
     text, llm, t2t, ttt, text-to-text, generate, gpt, chat, chatgpt
-    Produces natural language text as a response to the input query, leveraging the capabilities of GPT models for various applications.
     """
 
     model: GPTModel = Field(title="Model", default=GPTModel.GPT3)
@@ -77,9 +76,6 @@ class GPT(BaseNode):
     temperature: float = Field(title="Temperature", default=1.0, ge=0.0, le=2.0)
     max_tokens: int = Field(title="Max Tokens", default=100, ge=1, le=2048)
     top_p: float = Field(title="Top P", default=1.0, ge=0.0, le=1.0)
-    response_format: ResponseFormat = Field(
-        title="Response Format", default=ResponseFormat.TEXT
-    )
 
     async def process(self, context: ProcessingContext) -> str:
         content = []
@@ -114,7 +110,6 @@ class GPT(BaseNode):
                 "top_p": self.top_p,
                 "presence_penalty": self.presence_penalty,
                 "frequency_penalty": self.frequency_penalty,
-                "response_format": self.response_format,
             },
             model=self.model.value,
         )
