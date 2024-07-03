@@ -5,7 +5,7 @@
 **Inherits from:** BaseNode
 
 
-#### `convert_output(self, context: nodetool.workflows.processing_context.ProcessingContext, output: Any) -> Any`
+#### `convert_output`
 
 **Parameters:**
 
@@ -14,7 +14,7 @@
 
 **Returns:** `Any`
 
-#### `extra_params(self, context: nodetool.workflows.processing_context.ProcessingContext) -> dict`
+#### `extra_params`
 
 **Parameters:**
 
@@ -22,7 +22,7 @@
 
 **Returns:** `dict`
 
-#### `run_huggingface(self, model_id: str, context: nodetool.workflows.processing_context.ProcessingContext, params: dict[str, typing.Any] | None = None, data: bytes | None = None) -> Any`
+#### `run_huggingface`
 
 **Parameters:**
 

@@ -1,7 +1,7 @@
 from typing import AsyncGenerator
 
 import httpx
-from nodetool.api.types.prediction import Prediction as APIPrediction, PredictionResult
+from nodetool.types.prediction import Prediction as APIPrediction, PredictionResult
 from nodetool.providers.replicate.cost_calculation import (
     calculate_cost,
     calculate_llm_cost,

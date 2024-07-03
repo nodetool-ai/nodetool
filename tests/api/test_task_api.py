@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from nodetool.api.types.chat import TaskCreateRequest, TaskUpdateRequest
+from nodetool.types.chat import TaskCreateRequest, TaskUpdateRequest
 from nodetool.models.task import Task
 from nodetool.models.user import User
 

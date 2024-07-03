@@ -5,7 +5,7 @@ from datetime import datetime
 import json
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import StreamingResponse
-from nodetool.api.types.prediction import (
+from nodetool.types.prediction import (
     PredictionCreateRequest,
     Prediction,
     PredictionList,

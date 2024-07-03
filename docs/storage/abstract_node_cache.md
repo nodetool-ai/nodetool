@@ -6,14 +6,14 @@ An abstract base class defining the interface for node caching implementations.
 
 **Inherits from:** ABC
 
-#### `clear(self)`
+#### `clear`
 
 Clear the entire cache.
 
 **Parameters:**
 
 
-#### `get(self, key: str) -> Any`
+#### `get`
 
 Retrieve a value from the cache.
 
@@ -29,7 +29,7 @@ Retrieve a value from the cache.
 
 **Returns:** `Any`
 
-#### `set(self, key: str, value: Any, ttl: int = 3600)`
+#### `set`
 
 Set a value in the cache with an optional TTL.
 

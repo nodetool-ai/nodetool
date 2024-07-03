@@ -6,14 +6,14 @@
 
 ## Tool
 
-#### `tool_param(self) -> nodetool.metadata.types.ChatToolParam`
+#### `tool_param`
 
 **Parameters:**
 
 
 **Returns:** `ChatToolParam`
 
-## Function: `function_tool_from_workflow(context: nodetool.workflows.processing_context.ProcessingContext, workflow_id: str)`
+#### `function_tool_from_workflow`
 
 Create a function tool from a workflow.
 
@@ -32,7 +32,7 @@ Create a function tool from a workflow.
 - `context` (ProcessingContext)
 - `workflow_id` (str)
 
-## Function: `process_workflow_function(context: nodetool.workflows.processing_context.ProcessingContext, workflow_id: str, params: dict) -> Any`
+#### `process_workflow_function`
 
 Process a workflow with the given parameters.
     If the node returns a prediction, wait for the prediction to complete.
@@ -50,7 +50,7 @@ Process a workflow with the given parameters.
 
 **Returns:** `Any`
 
-## Function: `sanitize_node_name(node_name: str) -> str`
+#### `sanitize_node_name`
 
 Sanitize a node name.
 

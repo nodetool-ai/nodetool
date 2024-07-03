@@ -2,7 +2,7 @@ import json
 from pydantic import BaseModel, Field
 import uuid
 
-from nodetool.api.types.graph import Graph, Node
+from nodetool.types.graph import Graph, Node
 from nodetool.common.environment import Environment
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_workflow import run_workflow

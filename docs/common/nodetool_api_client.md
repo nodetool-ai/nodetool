@@ -2,13 +2,13 @@
 
 ## NodetoolAPIClient
 
-#### `check_status(self, response: httpx.Response)`
+#### `check_status`
 
 **Parameters:**
 
 - `response` (Response)
 
-#### `delete(self, path: str) -> nodetool.common.nodetool_api_client.Response`
+#### `delete`
 
 **Parameters:**
 
@@ -16,21 +16,7 @@
 
 **Returns:** `Response`
 
-#### `get(self, path: str, **kwargs) -> nodetool.common.nodetool_api_client.Response`
-
-**Parameters:**
-
-- `path` (str)
-- `kwargs`
-
-**Returns:** `Response`
-
-#### `get_base_url(self)`
-
-**Parameters:**
-
-
-#### `head(self, path: str, **kwargs) -> nodetool.common.nodetool_api_client.Response`
+#### `get`
 
 **Parameters:**
 
@@ -39,7 +25,12 @@
 
 **Returns:** `Response`
 
-#### `post(self, path: str, **kwargs) -> nodetool.common.nodetool_api_client.Response`
+#### `get_base_url`
+
+**Parameters:**
+
+
+#### `head`
 
 **Parameters:**
 
@@ -48,7 +39,7 @@
 
 **Returns:** `Response`
 
-#### `put(self, path: str, **kwargs) -> nodetool.common.nodetool_api_client.Response`
+#### `post`
 
 **Parameters:**
 
@@ -57,7 +48,16 @@
 
 **Returns:** `Response`
 
-#### `stream(self, method: str, path: str, json: dict[str, typing.Any] | None = None, **kwargs) -> AsyncGenerator[str, NoneType]`
+#### `put`
+
+**Parameters:**
+
+- `path` (str)
+- `kwargs`
+
+**Returns:** `Response`
+
+#### `stream`
 
 **Parameters:**
 
@@ -79,13 +79,13 @@ media_type (str): The media type of the response.
 
 **Tags:** 
 
-#### `from_httpx(response: httpx.Response)`
+#### `from_httpx`
 
 **Parameters:**
 
 - `response` (Response)
 
-#### `json(self)`
+#### `json`
 
 **Parameters:**
 

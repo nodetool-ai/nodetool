@@ -4,7 +4,7 @@ from typing import List
 import copy
 
 from pydantic import BaseModel, Field
-from nodetool.api.types.graph import Edge
+from nodetool.types.graph import Edge
 from nodetool.workflows.base_node import GroupNode
 from nodetool.workflows.base_node import (
     InputNode,

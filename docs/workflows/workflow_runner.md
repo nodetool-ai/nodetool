@@ -43,21 +43,21 @@ GPU-intensive workflows are automatically directed to appropriate workers with G
 
 **Tags:** 
 
-#### `cancel(self) -> None`
+#### `cancel`
 
 **Parameters:**
 
 
 **Returns:** `None`
 
-#### `is_running(self) -> bool`
+#### `is_running`
 
 **Parameters:**
 
 
 **Returns:** `bool`
 
-#### `prepare_result_for_update(result: Dict[str, Any], node: nodetool.workflows.base_node.BaseNode) -> Dict[str, Any]`
+#### `prepare_result_for_update`
 
 Prepare the result for the NodeUpdate message.
 
@@ -68,7 +68,7 @@ Prepare the result for the NodeUpdate message.
 
 **Returns:** `typing.Dict[str, typing.Any]`
 
-#### `process_graph(self, context: nodetool.workflows.processing_context.ProcessingContext, graph: nodetool.workflows.graph.Graph)`
+#### `process_graph`
 
 Process the graph in a topological order, executing each node in parallel.
 
@@ -84,7 +84,7 @@ Process the graph in a topological order, executing each node in parallel.
 - `context` (ProcessingContext)
 - `graph` (Graph)
 
-#### `process_node(self, context: nodetool.workflows.processing_context.ProcessingContext, node: nodetool.workflows.base_node.BaseNode)`
+#### `process_node`
 
 Process a node in the workflow.
         Skip nodes that have already been processed.
@@ -102,7 +102,7 @@ Process a node in the workflow.
 - `context` (ProcessingContext)
 - `node` (BaseNode)
 
-#### `process_regular_node(self, context: nodetool.workflows.processing_context.ProcessingContext, node: nodetool.workflows.base_node.BaseNode)`
+#### `process_regular_node`
 
 Processes a single node in the graph.
 
@@ -117,7 +117,7 @@ Processes a single node in the graph.
 - `context` (ProcessingContext)
 - `node` (BaseNode)
 
-#### `run(self, req: nodetool.workflows.run_job_request.RunJobRequest, context: nodetool.workflows.processing_context.ProcessingContext) -> None`
+#### `run`
 
 **Parameters:**
 
@@ -126,7 +126,7 @@ Processes a single node in the graph.
 
 **Returns:** `None`
 
-#### `run_group_node(self, group_node: nodetool.workflows.base_node.GroupNode, context: nodetool.workflows.processing_context.ProcessingContext)`
+#### `run_group_node`
 
 Find all nodes from the subgraph of the loop node and pass it to
         the loop node for processing.
@@ -136,7 +136,7 @@ Find all nodes from the subgraph of the loop node and pass it to
 - `group_node` (GroupNode)
 - `context` (ProcessingContext)
 
-#### `torch_capabilities(self, capabilities: list[str], context: nodetool.workflows.processing_context.ProcessingContext)`
+#### `torch_capabilities`
 
 **Parameters:**
 

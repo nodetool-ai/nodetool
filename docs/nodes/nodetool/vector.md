@@ -5,7 +5,7 @@
 **Inherits from:** BaseNode
 
 
-#### `get_or_create_collection(self, context: nodetool.workflows.processing_context.ProcessingContext, name: str)`
+#### `get_or_create_collection`
 
 Get or create a collection with the given name.
 
@@ -18,7 +18,7 @@ Get or create a collection with the given name.
 - `context` (ProcessingContext)
 - `name` (str)
 
-#### `load_results(self, context: nodetool.workflows.processing_context.ProcessingContext, ids: list[str]) -> list[nodetool.metadata.types.AssetRef]`
+#### `load_results`
 
 **Parameters:**
 

@@ -2,7 +2,7 @@
 
 ## AssetSchemaMixin
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -47,7 +47,7 @@ Represents a boolean parameter for the workflow.
 - **description**: The description for this input node. (`str`)
 - **value** (`bool`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -65,7 +65,7 @@ Represents a chat message parameter for the workflow.
 - **description**: The description for this input node. (`str`)
 - **value** (`str`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -98,7 +98,7 @@ Represents a float parameter for the workflow.
 - **min** (`float`)
 - **max** (`float`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -168,7 +168,7 @@ Represents an integer parameter for the workflow.
 - **min** (`int`)
 - **max** (`int`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -186,7 +186,7 @@ Represents a string parameter for the workflow.
 - **description**: The description for this input node. (`str`)
 - **value** (`str`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -218,7 +218,7 @@ Represents a text parameter for the workflow.
 - **description**: The description for this input node. (`str`)
 - **value**: The text to use as input. (`TextRef`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 

@@ -1,6 +1,6 @@
 # nodetool.providers.openai.prediction
 
-## Function: `create_chat_completion(prediction: nodetool.models.prediction.Prediction, params: dict[str, typing.Any]) -> Any`
+#### `create_chat_completion`
 
 **Parameters:**
 
@@ -9,7 +9,7 @@
 
 **Returns:** `Any`
 
-## Function: `create_embedding(prediction: nodetool.models.prediction.Prediction, input: str) -> Any`
+#### `create_embedding`
 
 **Parameters:**
 
@@ -18,7 +18,7 @@
 
 **Returns:** `Any`
 
-## Function: `create_image(prediction: nodetool.models.prediction.Prediction, params: dict) -> Any`
+#### `create_image`
 
 **Parameters:**
 
@@ -27,7 +27,7 @@
 
 **Returns:** `Any`
 
-## Function: `create_speech(prediction: nodetool.models.prediction.Prediction, params: dict) -> Any`
+#### `create_speech`
 
 **Parameters:**
 
@@ -36,7 +36,7 @@
 
 **Returns:** `Any`
 
-## Function: `create_whisper(prediction: nodetool.models.prediction.Prediction, params: dict) -> Any`
+#### `create_whisper`
 
 **Parameters:**
 
@@ -45,7 +45,7 @@
 
 **Returns:** `Any`
 
-## Function: `run_openai(prediction: nodetool.models.prediction.Prediction, params: dict) -> Any`
+#### `run_openai`
 
 **Parameters:**
 

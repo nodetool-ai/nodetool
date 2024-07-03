@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 from fastapi import APIRouter
-from nodetool.api.types.job import (
+from nodetool.types.job import (
     JobUpdate,
 )
-from nodetool.api.types.prediction import Prediction
+from nodetool.types.prediction import Prediction
 from nodetool.metadata.node_metadata import NodeMetadata
 from nodetool.metadata.types import (
     AssetRef,

@@ -91,7 +91,7 @@ Returns the asset id.
 
 - **text** (`TextRef`)
 
-## Function: `convert_result(context: nodetool.workflows.processing_context.ProcessingContext, input: list[nodetool.metadata.types.TextRef | str], result: str) -> nodetool.metadata.types.TextRef | str`
+#### `convert_result`
 
 **Parameters:**
 
@@ -104,7 +104,7 @@ Returns the asset id.
 - [nodetool.nodes.nodetool.text.extract](text/extract.md)
 - [nodetool.nodes.nodetool.text.generate](text/generate.md)
 - [nodetool.nodes.nodetool.text.rerank](text/rerank.md)
-## Function: `to_string(context: nodetool.workflows.processing_context.ProcessingContext, text: nodetool.metadata.types.TextRef | str) -> str`
+#### `to_string`
 
 **Parameters:**
 

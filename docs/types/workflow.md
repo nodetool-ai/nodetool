@@ -1,4 +1,4 @@
-# nodetool.api.types.workflow
+# nodetool.types.workflow
 
 ## Workflow
 
@@ -21,7 +21,7 @@
 **Inherits from:** BaseModel
 
 - **next** (`str | None`)
-- **workflows** (`typing.List[nodetool.api.types.workflow.Workflow]`)
+- **workflows** (`typing.List[nodetool.types.workflow.Workflow]`)
 
 ## WorkflowRequest
 
@@ -31,6 +31,6 @@
 - **description** (`str`)
 - **thumbnail** (`str | None`)
 - **access** (`str`)
-- **graph** (`nodetool.api.types.graph.Graph | None`)
+- **graph** (`nodetool.types.graph.Graph | None`)
 - **comfy_workflow** (`dict[str, typing.Any] | None`)
 

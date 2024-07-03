@@ -8,7 +8,7 @@ Represents a node in a graph DSL.
 
 - **id** (`str`)
 
-## Function: `graph(*nodes)`
+#### `graph`
 
 Create a graph representation based on the given nodes.
 
@@ -22,7 +22,7 @@ Create a graph representation based on the given nodes.
 
 - `nodes`
 
-## Function: `run(graph: nodetool.api.types.graph.Graph, user_id: str = '1', auth_token: str = 'token')`
+#### `run`
 
 Run the workflow with the given graph.
 

@@ -16,7 +16,7 @@ convert_output: Converts the output to the specified type.
 **Inherits from:** BaseNode
 
 
-#### `convert_output(self, context: nodetool.workflows.processing_context.ProcessingContext, output: Any) -> Any`
+#### `convert_output`
 
 Convert the output to the specified type.
 
@@ -34,21 +34,21 @@ Convert the output to the specified type.
 
 **Returns:** `Any`
 
-#### `get_output_index(self) -> int`
+#### `get_output_index`
 
 **Parameters:**
 
 
 **Returns:** `int`
 
-#### `output_key(self) -> str`
+#### `output_key`
 
 **Parameters:**
 
 
 **Returns:** `str`
 
-#### `run_replicate(self, context: nodetool.workflows.processing_context.ProcessingContext, params: dict[str, typing.Any] | None = None)`
+#### `run_replicate`
 
 Run prediction on Replicate.
 
@@ -64,14 +64,14 @@ Run prediction on Replicate.
 - `context` (ProcessingContext)
 - `params` (dict[str, typing.Any] | None) (default: `None`)
 
-## Function: `add_replicate_model(model_id: str, model_info: dict[str, typing.Any])`
+#### `add_replicate_model`
 
 **Parameters:**
 
 - `model_id` (str)
 - `model_info` (dict[str, typing.Any])
 
-## Function: `capitalize(name: str) -> str`
+#### `capitalize`
 
 Capitalizes the first letter of a string.
 
@@ -87,7 +87,7 @@ Capitalizes the first letter of a string.
 
 **Returns:** `str`
 
-## Function: `convert_enum_value(value: Any)`
+#### `convert_enum_value`
 
 Converts an enum value to its corresponding value.
 
@@ -101,7 +101,7 @@ Converts an enum value to its corresponding value.
 
 - `value` (Any)
 
-## Function: `convert_output_value(value: Any, t: Type[Any], output_index: int = 0, output_key: str = 'output')`
+#### `convert_output_value`
 
 Converts the output value to the specified type.
     Performs automatic conversions using heuristics.
@@ -124,7 +124,7 @@ Converts the output value to the specified type.
 - `output_index` (int) (default: `0`)
 - `output_key` (str) (default: `output`)
 
-## Function: `parse_model_info(url: str)`
+#### `parse_model_info`
 
 Parses the replicate model information from the given URL.
 
@@ -138,7 +138,7 @@ Parses the replicate model information from the given URL.
 
 - `url` (str)
 
-## Function: `sanitize_enum(name: str) -> str`
+#### `sanitize_enum`
 
 Sanitizes an enum string by replacing hyphens, dots, and spaces with underscores.
 

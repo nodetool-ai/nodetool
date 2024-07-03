@@ -11,5 +11,5 @@
 - **user_id** (`str`)
 - **auth_token** (`str`)
 - **env** (`dict[str, typing.Any] | None`)
-- **graph** (`nodetool.api.types.graph.Graph | None`)
+- **graph** (`nodetool.types.graph.Graph | None`)
 

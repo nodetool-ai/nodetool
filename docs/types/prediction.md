@@ -1,4 +1,4 @@
-# nodetool.api.types.prediction
+# nodetool.types.prediction
 
 ## Prediction
 
@@ -42,7 +42,7 @@ The request body for creating a prediction.
 **Inherits from:** BaseModel
 
 - **next** (`str | None`)
-- **predictions** (`typing.List[nodetool.api.types.prediction.Prediction]`)
+- **predictions** (`typing.List[nodetool.types.prediction.Prediction]`)
 
 ## PredictionResult
 
@@ -53,14 +53,14 @@ The request body for creating a prediction.
 - **encoding** (`typing.Union[typing.Literal['json'], typing.Literal['base64']]`)
 - **content** (`Any`)
 
-#### `decode_content(self) -> Any`
+#### `decode_content`
 
 **Parameters:**
 
 
 **Returns:** `Any`
 
-#### `from_result(prediction: nodetool.api.types.prediction.Prediction, content: Any)`
+#### `from_result`
 
 **Parameters:**
 

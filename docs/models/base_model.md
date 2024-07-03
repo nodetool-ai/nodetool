@@ -1,6 +1,6 @@
 # nodetool.models.base_model
 
-## Function: `DBField(hash_key: bool = False, **kwargs: Any)`
+#### `DBField`
 
 **Parameters:**
 
@@ -12,17 +12,17 @@
 **Inherits from:** BaseModel
 
 
-#### `before_save(self)`
+#### `before_save`
 
 **Parameters:**
 
 
-#### `delete(self)`
+#### `delete`
 
 **Parameters:**
 
 
-#### `partition_value(self) -> str`
+#### `partition_value`
 
 Get the value of the hash key.
 
@@ -31,21 +31,21 @@ Get the value of the hash key.
 
 **Returns:** `str`
 
-#### `reload(self)`
+#### `reload`
 
 Reload the model instance from the DB.
 
 **Parameters:**
 
 
-#### `save(self)`
+#### `save`
 
 Save a model instance to DynamoDB and return the instance.
 
 **Parameters:**
 
 
-#### `update(self, **kwargs)`
+#### `update`
 
 Update the model instance and save it to DynamoDB.
 
@@ -53,7 +53,7 @@ Update the model instance and save it to DynamoDB.
 
 - `kwargs`
 
-## Function: `create_time_ordered_uuid() -> str`
+#### `create_time_ordered_uuid`
 
 Create an uuid that is ordered by time.
 

@@ -106,12 +106,6 @@ def process_module(
                     document_function(file, obj)
 
 
-# You'll need to implement these functions:
-# defined_in_module(obj, module)
-# document_class(file, obj)
-# document_function(file, obj))
-
-
 def exract_desc_and_tags(docstring: str) -> tuple[str, list[str]]:
     """
     Extract description and tags from a docstring.
@@ -249,10 +243,7 @@ def document_function(file: Any, func: Any, is_method: bool = False) -> None:
     signature = inspect.signature(func)
     params = signature.parameters
 
-    if is_method:
-        file.write(f"#### `{func.__name__}{signature}`\n\n")
-    else:
-        file.write(f"## Function: `{func.__name__}{signature}`\n\n")
+    file.write(f"#### `{func.__name__}`\n\n")
 
     if func.__doc__:
         file.write(f"{func.__doc__.strip()}\n\n")
@@ -281,5 +272,26 @@ if __name__ == "__main__":
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
     import nodetool.nodes.ollama
+    import nodetool.api.asset
+    import nodetool.api.auth
+    import nodetool.api.job
+    import nodetool.api.message
+    import nodetool.api.model
+    import nodetool.api.node
+    import nodetool.api.prediction
+    import nodetool.api.storage
+    import nodetool.api.task
+    import nodetool.api.workflow
+    import nodetool.models.asset
+    import nodetool.models.job
+    import nodetool.models.message
+    import nodetool.models.user
+    import nodetool.models.message
+    import nodetool.models.prediction
+    import nodetool.models.task
+    import nodetool.models.workflow
+    import nodetool.models.schema
+    import nodetool.models.sqlite_adapter
+    import nodetool.models.thread
 
     generate_documentation(nodetool)

@@ -1,4 +1,4 @@
-# nodetool.api.types.job
+# nodetool.types.job
 
 ## Job
 
@@ -22,7 +22,7 @@
 **Inherits from:** BaseModel
 
 - **next** (`typing.Optional[str]`)
-- **jobs** (`typing.List[nodetool.api.types.job.Job]`)
+- **jobs** (`typing.List[nodetool.types.job.Job]`)
 
 ## JobRequest
 

@@ -39,7 +39,7 @@ from nodetool.models.message import (
 )
 from nodetool.models.prediction import Prediction
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.api.types.chat import MessageCreateRequest, TaskCreateRequest
+from nodetool.types.chat import MessageCreateRequest, TaskCreateRequest
 
 
 def json_schema_for_column(column: ColumnDef) -> dict:

@@ -1,3 +1,13 @@
 # nodetool.api
 
-- [nodetool.api.types](api/types.md)
+- [nodetool.api.asset](api/asset.md)
+- [nodetool.api.auth](api/auth.md)
+- [nodetool.api.job](api/job.md)
+- [nodetool.api.message](api/message.md)
+- [nodetool.api.model](api/model.md)
+- [nodetool.api.node](api/node.md)
+- [nodetool.api.prediction](api/prediction.md)
+- [nodetool.api.storage](api/storage.md)
+- [nodetool.api.task](api/task.md)
+- [nodetool.api.utils](api/utils.md)
+- [nodetool.api.workflow](api/workflow.md)

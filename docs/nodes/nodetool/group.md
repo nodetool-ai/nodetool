@@ -9,7 +9,7 @@ Loops over a list of items and processes the remaining nodes for each item.
 **Inherits from:** GroupNode
 
 
-#### `process_subgraph(self, context: nodetool.workflows.processing_context.ProcessingContext, runner: nodetool.workflows.workflow_runner.WorkflowRunner) -> Any`
+#### `process_subgraph`
 
 Runs a loop node, which is a special type of node that contains a subgraph.
         The subgraph is determined by the children property of the group node.

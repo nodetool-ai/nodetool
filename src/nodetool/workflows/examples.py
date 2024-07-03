@@ -2,8 +2,8 @@ from datetime import datetime
 import json
 import os
 from typing import Any
-from nodetool.api.types.workflow import Workflow
-from nodetool.api.types.graph import Graph
+from nodetool.types.workflow import Workflow
+from nodetool.types.graph import Graph
 from nodetool.workflows.read_graph import read_graph
 
 examples_folder = os.path.join(os.path.dirname(__file__), "examples")

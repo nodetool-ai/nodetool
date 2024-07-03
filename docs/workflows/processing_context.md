@@ -29,7 +29,7 @@ Utility Methods:
 
 **Tags:** It maintains the state of the workflow and provides methods for interacting with the environment.
 
-#### `asset_storage_url(self, key: str) -> str`
+#### `asset_storage_url`
 
 Returns the URL of an asset in the asset storage.
 
@@ -42,7 +42,7 @@ Returns the URL of an asset in the asset storage.
 
 **Returns:** `str`
 
-#### `asset_to_io(self, asset_ref: nodetool.metadata.types.AssetRef) -> <class 'IO'>`
+#### `asset_to_io`
 
 Converts an AssetRef object to an IO object.
 
@@ -61,7 +61,7 @@ Converts an AssetRef object to an IO object.
 
 **Returns:** `IO`
 
-#### `audio_from_bytes(self, b: bytes, name: str | None = None, parent_id: str | None = None) -> 'AudioRef'`
+#### `audio_from_bytes`
 
 Creates an AudioRef from a bytes object.
 
@@ -81,7 +81,7 @@ Creates an AudioRef from a bytes object.
 
 **Returns:** `AudioRef`
 
-#### `audio_from_io(self, buffer: <class 'IO'>, name: str | None = None, parent_id: str | None = None) -> 'AudioRef'`
+#### `audio_from_io`
 
 Creates an AudioRef from an IO object.
 
@@ -101,7 +101,7 @@ Creates an AudioRef from an IO object.
 
 **Returns:** `AudioRef`
 
-#### `audio_from_segment(self, audio_segment: 'pydub.AudioSegment', name: str | None = None, parent_id: str | None = None, **kwargs) -> 'AudioRef'`
+#### `audio_from_segment`
 
 Converts an audio segment to an AudioRef object.
 
@@ -123,7 +123,7 @@ Converts an audio segment to an AudioRef object.
 
 **Returns:** `AudioRef`
 
-#### `audio_to_audio_segment(self, audio_ref: nodetool.metadata.types.AudioRef)`
+#### `audio_to_audio_segment`
 
 Converts the audio to an AudioSegment object.
 
@@ -134,7 +134,7 @@ Converts the audio to an AudioSegment object.
 
 - `audio_ref` (AudioRef)
 
-#### `audio_to_numpy(self, audio_ref: nodetool.metadata.types.AudioRef) -> tuple[numpy.ndarray, int]`
+#### `audio_to_numpy`
 
 **Parameters:**
 
@@ -142,7 +142,7 @@ Converts the audio to an AudioSegment object.
 
 **Returns:** `tuple[numpy.ndarray, int]`
 
-#### `cache_result(self, node: nodetool.workflows.base_node.BaseNode, result: Any, ttl: int = 3600)`
+#### `cache_result`
 
 Cache the result for a node.
 
@@ -152,7 +152,7 @@ Cache the result for a node.
 - `result` (Any)
 - `ttl` (int) (default: `3600`)
 
-#### `convert_value_for_prediction(self, property: nodetool.workflows.property.Property, value: Any)`
+#### `convert_value_for_prediction`
 
 Converts the property value for a remote api prediction on replicate or huggingface.
 
@@ -169,7 +169,7 @@ Converts the property value for a remote api prediction on replicate or huggingf
 - `property` (Property)
 - `value` (Any)
 
-#### `create_asset(self, name: str, content_type: str, content: <class 'IO'>, parent_id: str | None = None) -> nodetool.api.types.asset.Asset`
+#### `create_asset`
 
 Creates an asset with the given name, content type, content, and optional parent ID.
 
@@ -191,7 +191,7 @@ Creates an asset with the given name, content type, content, and optional parent
 
 **Returns:** `Asset`
 
-#### `create_message(self, req: nodetool.api.types.chat.MessageCreateRequest)`
+#### `create_message`
 
 Creates a message for a thread.
 
@@ -205,7 +205,7 @@ Creates a message for a thread.
 
 - `req` (MessageCreateRequest)
 
-#### `create_task(self, task: nodetool.api.types.chat.TaskCreateRequest)`
+#### `create_task`
 
 Creates a task.
 
@@ -219,7 +219,7 @@ Creates a task.
 
 - `task` (TaskCreateRequest)
 
-#### `create_temp_asset(self, content: <class 'IO'>, ext: str = '') -> nodetool.metadata.types.AssetRef`
+#### `create_temp_asset`
 
 Uploads a temporary asset with the given content and extension.
 
@@ -237,7 +237,7 @@ Uploads a temporary asset with the given content and extension.
 
 **Returns:** `AssetRef`
 
-#### `dataframe_from_pandas(self, data: 'pd.DataFrame', name: str | None = None) -> 'DataframeRef'`
+#### `dataframe_from_pandas`
 
 Converts a pandas DataFrame to a DataframeRef object.
 
@@ -255,7 +255,7 @@ Converts a pandas DataFrame to a DataframeRef object.
 
 **Returns:** `DataframeRef`
 
-#### `dataframe_to_pandas(self, df: nodetool.metadata.types.DataframeRef) -> 'pd.DataFrame'`
+#### `dataframe_to_pandas`
 
 Converts a DataframeRef object to a pandas DataFrame.
 
@@ -271,7 +271,7 @@ Converts a DataframeRef object to a pandas DataFrame.
 
 **Returns:** `pd.DataFrame`
 
-#### `download_asset(self, asset_id: str) -> <class 'IO'>`
+#### `download_asset`
 
 Downloads an asset from the asset storage api.
 
@@ -287,7 +287,7 @@ Downloads an asset from the asset storage api.
 
 **Returns:** `IO`
 
-#### `download_file(self, url: str) -> <class 'IO'>`
+#### `download_file`
 
 Download a file from URL.
 
@@ -303,7 +303,7 @@ Download a file from URL.
 
 **Returns:** `IO`
 
-#### `download_temp_asset(self, temp_id: str) -> <class 'IO'>`
+#### `download_temp_asset`
 
 Downloads a temporary asset from the temp storage.
 
@@ -319,7 +319,7 @@ Downloads a temporary asset from the temp storage.
 
 **Returns:** `IO`
 
-#### `find_asset(self, asset_id: str)`
+#### `find_asset`
 
 Finds an asset by id.
 
@@ -333,7 +333,7 @@ Finds an asset by id.
 
 - `asset_id` (str)
 
-#### `find_node(self, node_id: str) -> nodetool.workflows.base_node.BaseNode`
+#### `find_node`
 
 Finds a node by its ID.
 
@@ -352,7 +352,7 @@ Finds a node by its ID.
 
 **Returns:** `BaseNode`
 
-#### `from_estimator(self, est: 'BaseEstimator', **kwargs)`
+#### `from_estimator`
 
 Create a model asset from an estimator.
 
@@ -368,7 +368,7 @@ Create a model asset from an estimator.
 - `est` (BaseEstimator)
 - `kwargs`
 
-#### `generate_node_cache_key(self, node: nodetool.workflows.base_node.BaseNode) -> str`
+#### `generate_node_cache_key`
 
 Generate a cache key for a node based on current user, node type and properties.
 
@@ -378,7 +378,7 @@ Generate a cache key for a node based on current user, node type and properties.
 
 **Returns:** `str`
 
-#### `get(self, key: str, default: Any = None) -> Any`
+#### `get`
 
 Gets the value of a variable from the context.
 
@@ -396,7 +396,7 @@ Gets the value of a variable from the context.
 
 **Returns:** `Any`
 
-#### `get_asset_url(self, asset_id: str)`
+#### `get_asset_url`
 
 Returns the asset url.
 
@@ -410,7 +410,7 @@ Returns the asset url.
 
 - `asset_id` (str)
 
-#### `get_cached_result(self, node: nodetool.workflows.base_node.BaseNode) -> Any`
+#### `get_cached_result`
 
 Get the cached result for a node.
 
@@ -420,12 +420,12 @@ Get the cached result for a node.
 
 **Returns:** `Any`
 
-#### `get_chroma_client(self)`
+#### `get_chroma_client`
 
 **Parameters:**
 
 
-#### `get_messages(self, thread_id: str, limit: int = 10, start_key: str | None = None, reverse: bool = False)`
+#### `get_messages`
 
 Gets messages for a thread.
 
@@ -445,7 +445,7 @@ Gets messages for a thread.
 - `start_key` (str | None) (default: `None`)
 - `reverse` (bool) (default: `False`)
 
-#### `get_node_inputs(self, node_id: str) -> dict[str, typing.Any]`
+#### `get_node_inputs`
 
 Retrieves the inputs for a given node.
 
@@ -462,7 +462,7 @@ Retrieves the inputs for a given node.
 
 **Returns:** `dict[str, typing.Any]`
 
-#### `get_result(self, node_id: str, slot: str) -> Any`
+#### `get_result`
 
 Get the result of a node.
 
@@ -482,7 +482,7 @@ Get the result of a node.
 
 **Returns:** `Any`
 
-#### `get_tasks(self, thread_id: str)`
+#### `get_tasks`
 
 Gets tasks for a thread.
 
@@ -496,7 +496,7 @@ Gets tasks for a thread.
 
 - `thread_id` (str)
 
-#### `get_workflow(self, workflow_id: str)`
+#### `get_workflow`
 
 Gets the workflow by ID.
 
@@ -504,7 +504,7 @@ Gets the workflow by ID.
 
 - `workflow_id` (str)
 
-#### `has_messages(self) -> bool`
+#### `has_messages`
 
 Checks if the processing context has any messages in the message queue.
 
@@ -516,7 +516,7 @@ Checks if the processing context has any messages in the message queue.
 
 **Returns:** `bool`
 
-#### `http_get(self, url: str) -> bytes`
+#### `http_get`
 
 Sends an HTTP GET request to the specified URL.
 
@@ -532,7 +532,7 @@ Sends an HTTP GET request to the specified URL.
 
 **Returns:** `bytes`
 
-#### `image_from_base64(self, b64: str, name: str | None = None, parent_id: str | None = None) -> 'ImageRef'`
+#### `image_from_base64`
 
 Creates an ImageRef from a base64-encoded string.
 
@@ -552,7 +552,7 @@ Creates an ImageRef from a base64-encoded string.
 
 **Returns:** `ImageRef`
 
-#### `image_from_bytes(self, b: bytes, name: str | None = None, parent_id: str | None = None) -> 'ImageRef'`
+#### `image_from_bytes`
 
 Creates an ImageRef from a bytes object.
 
@@ -572,7 +572,7 @@ Creates an ImageRef from a bytes object.
 
 **Returns:** `ImageRef`
 
-#### `image_from_io(self, buffer: <class 'IO'>, name: str | None = None, parent_id: str | None = None) -> 'ImageRef'`
+#### `image_from_io`
 
 Creates an ImageRef from an IO object.
 
@@ -592,7 +592,7 @@ Creates an ImageRef from an IO object.
 
 **Returns:** `ImageRef`
 
-#### `image_from_numpy(self, image: numpy.ndarray, name: str | None = None, parent_id: str | None = None) -> 'ImageRef'`
+#### `image_from_numpy`
 
 Creates an ImageRef from a numpy array.
 
@@ -612,7 +612,7 @@ Creates an ImageRef from a numpy array.
 
 **Returns:** `ImageRef`
 
-#### `image_from_openai(self, file_id: str) -> 'ImageRef'`
+#### `image_from_openai`
 
 Creates an ImageRef from an OpenAI ImageFile object.
 
@@ -628,7 +628,7 @@ Creates an ImageRef from an OpenAI ImageFile object.
 
 **Returns:** `ImageRef`
 
-#### `image_from_pil(self, image: PIL.Image.Image, name: str | None = None, parent_id: str | None = None) -> 'ImageRef'`
+#### `image_from_pil`
 
 Creates an ImageRef from a PIL Image object.
 
@@ -648,7 +648,7 @@ Creates an ImageRef from a PIL Image object.
 
 **Returns:** `ImageRef`
 
-#### `image_from_url(self, url: str, name: str | None = None, parent_id: str | None = None) -> 'ImageRef'`
+#### `image_from_url`
 
 Creates an ImageRef from a URL.
 
@@ -668,7 +668,7 @@ Creates an ImageRef from a URL.
 
 **Returns:** `ImageRef`
 
-#### `image_to_base64(self, image_ref: nodetool.metadata.types.ImageRef) -> str`
+#### `image_to_base64`
 
 Converts the image to a base64-encoded string.
 
@@ -681,7 +681,7 @@ Converts the image to a base64-encoded string.
 
 **Returns:** `str`
 
-#### `image_to_pil(self, image_ref: nodetool.metadata.types.ImageRef) -> PIL.Image.Image`
+#### `image_to_pil`
 
 Converts the image to a PIL Image object.
 
@@ -694,7 +694,7 @@ Converts the image to a PIL Image object.
 
 **Returns:** `Image`
 
-#### `paginate_assets(self, parent_id: str | None = None, page_size: int = 100, cursor: str | None = None) -> nodetool.api.types.asset.AssetList`
+#### `paginate_assets`
 
 Lists children assets for a given parent asset.
         Lists top level assets if parent_id is None.
@@ -715,7 +715,7 @@ Lists children assets for a given parent asset.
 
 **Returns:** `AssetList`
 
-#### `pop_message(self) -> nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.NodeProgress | nodetool.api.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.api.types.prediction.Prediction`
+#### `pop_message`
 
 Removes and returns the next message from the message queue.
 
@@ -725,9 +725,9 @@ Removes and returns the next message from the message queue.
 **Parameters:**
 
 
-**Returns:** `nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.NodeProgress | nodetool.api.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.api.types.prediction.Prediction`
+**Returns:** `nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.NodeProgress | nodetool.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.types.prediction.Prediction`
 
-#### `pop_message_async(self) -> nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.NodeProgress | nodetool.api.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.api.types.prediction.Prediction`
+#### `pop_message_async`
 
 Retrieves and removes a message from the message queue.
         The message queue is used to communicate updates to upstream
@@ -739,9 +739,9 @@ Retrieves and removes a message from the message queue.
 **Parameters:**
 
 
-**Returns:** `nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.NodeProgress | nodetool.api.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.api.types.prediction.Prediction`
+**Returns:** `nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.NodeProgress | nodetool.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.types.prediction.Prediction`
 
-#### `post_message(self, message: nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.NodeProgress | nodetool.api.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.api.types.prediction.Prediction)`
+#### `post_message`
 
 Posts a message to the message queue.
 
@@ -750,9 +750,9 @@ Posts a message to the message queue.
 
 **Parameters:**
 
-- `message` (nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.NodeProgress | nodetool.api.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.api.types.prediction.Prediction)
+- `message` (nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.NodeProgress | nodetool.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.types.prediction.Prediction)
 
-#### `refresh_uri(self, asset: nodetool.metadata.types.AssetRef)`
+#### `refresh_uri`
 
 Refreshes the URI of the asset.
 
@@ -763,7 +763,7 @@ Refreshes the URI of the asset.
 
 - `asset` (AssetRef)
 
-#### `run_prediction(self, node_id: str, provider: nodetool.metadata.types.Provider, model: str, params: dict[str, typing.Any] | None = None, data: bytes | None = None) -> Any`
+#### `run_prediction`
 
 Run a prediction on a third-party provider.
 
@@ -787,7 +787,7 @@ Run a prediction on a third-party provider.
 
 **Returns:** `Any`
 
-#### `run_worker(self, req: nodetool.workflows.run_job_request.RunJobRequest) -> dict[str, typing.Any]`
+#### `run_worker`
 
 Runs the workflow using the provided graph and parameters.
 
@@ -804,7 +804,7 @@ Runs the workflow using the provided graph and parameters.
 
 **Returns:** `dict[str, typing.Any]`
 
-#### `set_result(self, node_id: str, res: dict[str, typing.Any])`
+#### `set_result`
 
 Set the result of a node.
 
@@ -819,7 +819,7 @@ Set the result of a node.
 - `node_id` (str)
 - `res` (dict[str, typing.Any])
 
-#### `temp_storage_url(self, key: str) -> str`
+#### `temp_storage_url`
 
 Returns the URL of an asset in the temp storage.
 
@@ -832,7 +832,7 @@ Returns the URL of an asset in the temp storage.
 
 **Returns:** `str`
 
-#### `text_from_str(self, s: str, name: str | None = None, content_type: str = 'text/plain', parent_id: str | None = None) -> 'TextRef'`
+#### `text_from_str`
 
 **Parameters:**
 
@@ -843,7 +843,7 @@ Returns the URL of an asset in the temp storage.
 
 **Returns:** `TextRef`
 
-#### `to_estimator(self, model_ref: nodetool.metadata.types.ModelRef)`
+#### `to_estimator`
 
 Converts a model reference to an estimator object.
 
@@ -860,7 +860,7 @@ Converts a model reference to an estimator object.
 
 - `model_ref` (ModelRef)
 
-#### `to_str(self, text_ref: nodetool.metadata.types.TextRef | str) -> str`
+#### `to_str`
 
 Converts a TextRef to a string.
 
@@ -876,7 +876,7 @@ Converts a TextRef to a string.
 
 **Returns:** `str`
 
-#### `update_task(self, task_id: str, task: nodetool.api.types.chat.TaskUpdateRequest)`
+#### `update_task`
 
 Updates a task.
 
@@ -892,7 +892,7 @@ Updates a task.
 - `task_id` (str)
 - `task` (TaskUpdateRequest)
 
-#### `video_from_io(self, buffer: <class 'IO'>, name: str | None = None, parent_id: str | None = None)`
+#### `video_from_io`
 
 Creates an VideoRef from an IO object.
 

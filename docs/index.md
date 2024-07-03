@@ -9,4 +9,5 @@
 - [nodetool.nodes](nodes.md)
 - [nodetool.providers](providers.md)
 - [nodetool.storage](storage.md)
+- [nodetool.types](types.md)
 - [nodetool.workflows](workflows.md)

@@ -11,7 +11,7 @@ which is called when the node is evaluated.
 **Inherits from:** BaseModel
 
 
-#### `assign_property(self, name: str, value: Any)`
+#### `assign_property`
 
 Sets the value of a property.
 
@@ -20,7 +20,7 @@ Sets the value of a property.
 - `name` (str)
 - `value` (Any)
 
-#### `convert_output(self, context: Any, output: Any) -> Any`
+#### `convert_output`
 
 **Parameters:**
 
@@ -29,7 +29,7 @@ Sets the value of a property.
 
 **Returns:** `Any`
 
-#### `from_dict(node: dict[str, typing.Any], skip_errors: bool = False) -> 'BaseNode'`
+#### `from_dict`
 
 Create a Node object from a dictionary representation.
 
@@ -46,17 +46,17 @@ Create a Node object from a dictionary representation.
 
 **Returns:** `BaseNode`
 
-#### `has_parent(self)`
+#### `has_parent`
 
 **Parameters:**
 
 
-#### `node_properties(self)`
+#### `node_properties`
 
 **Parameters:**
 
 
-#### `pre_process(self, context: Any) -> Any`
+#### `pre_process`
 
 Pre-process the node before processing.
         This will be called before cache key is computed.
@@ -68,7 +68,7 @@ Pre-process the node before processing.
 
 **Returns:** `Any`
 
-#### `set_node_properties(self, properties: dict[str, typing.Any], skip_errors: bool = False)`
+#### `set_node_properties`
 
 Sets the values of multiple properties.
 
@@ -90,26 +90,26 @@ A group node is a special type of node that contains a subgraph.
 **Inherits from:** BaseNode
 
 
-#### `append_edge(self, edge: nodetool.api.types.graph.Edge)`
+#### `append_edge`
 
 **Parameters:**
 
 - `edge` (Edge)
 
-#### `append_node(self, node: nodetool.workflows.base_node.BaseNode)`
+#### `append_node`
 
 **Parameters:**
 
 - `node` (BaseNode)
 
-#### `assign_property(self, name: str, value: Any)`
+#### `assign_property`
 
 **Parameters:**
 
 - `name` (str)
 - `value` (Any)
 
-#### `process_subgraph(self, context: Any, runner: Any)`
+#### `process_subgraph`
 
 **Parameters:**
 
@@ -140,7 +140,7 @@ A preview node is a special type of node that is used to preview the output of a
 
 - **value**: The value to preview. (`Any`)
 
-## Function: `add_node_classname(node_class: type['BaseNode']) -> None`
+#### `add_node_classname`
 
 **Parameters:**
 
@@ -148,7 +148,7 @@ A preview node is a special type of node that is used to preview the output of a
 
 **Returns:** `None`
 
-## Function: `add_node_type(node_class: type['BaseNode']) -> None`
+#### `add_node_type`
 
 Add a node type to the registry.
 
@@ -162,7 +162,7 @@ Add a node type to the registry.
 
 **Returns:** `None`
 
-## Function: `get_node_class(node_type: str) -> type[nodetool.workflows.base_node.BaseNode] | None`
+#### `get_node_class`
 
 Get the type of a node based on its node_type.
 
@@ -178,7 +178,7 @@ Get the type of a node based on its node_type.
 
 **Returns:** `type[nodetool.workflows.base_node.BaseNode] | None`
 
-## Function: `get_node_class_by_name(class_name: str) -> list[type[nodetool.workflows.base_node.BaseNode]]`
+#### `get_node_class_by_name`
 
 Get the class of a node based on its class_name.
 
@@ -194,7 +194,7 @@ Get the class of a node based on its class_name.
 
 **Returns:** `list[type[nodetool.workflows.base_node.BaseNode]]`
 
-## Function: `get_registered_node_classes() -> list[type[nodetool.workflows.base_node.BaseNode]]`
+#### `get_registered_node_classes`
 
 Get all registered node classes.
 
@@ -203,19 +203,19 @@ Get all registered node classes.
 
 **Returns:** `list[type[nodetool.workflows.base_node.BaseNode]]`
 
-## Function: `requires_capabilities(nodes: list[nodetool.workflows.base_node.BaseNode])`
+#### `requires_capabilities`
 
 **Parameters:**
 
 - `nodes` (list[nodetool.workflows.base_node.BaseNode])
 
-## Function: `requires_capabilities_from_request(req: nodetool.workflows.run_job_request.RunJobRequest)`
+#### `requires_capabilities_from_request`
 
 **Parameters:**
 
 - `req` (RunJobRequest)
 
-## Function: `type_metadata(python_type: Union[Type, types.UnionType]) -> nodetool.metadata.type_metadata.TypeMetadata`
+#### `type_metadata`
 
 Returns the metadata for a type.
 

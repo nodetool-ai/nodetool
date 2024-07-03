@@ -19,8 +19,7 @@ Outputs a text embedding vector that quantifies the semantic similarity of the i
 
 ## GPT
 
-Use GPT models for generating natural language responses based on input prompts.
-Produces natural language text as a response to the input query, leveraging the capabilities of GPT models for various applications.
+Use GPT models for generating natural language responses based on input prompts. Produces natural language text as a response to the input query, leveraging the capabilities of GPT models for various applications.
 
 **Tags:** text, llm, t2t, ttt, text-to-text, generate, gpt, chat, chatgpt
 
@@ -35,7 +34,6 @@ Produces natural language text as a response to the input query, leveraging the 
 - **temperature** (`float`)
 - **max_tokens** (`int`)
 - **top_p** (`float`)
-- **response_format** (`ResponseFormat`)
 
 ## ResponseFormat
 

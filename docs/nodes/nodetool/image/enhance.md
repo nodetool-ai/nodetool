@@ -199,7 +199,7 @@ An unsharp mask is a photographic sharpening technique. This node helps to enhan
 - **percent**: Unsharp mask percent. (`int`)
 - **threshold**: Unsharp mask threshold. (`int`)
 
-## Function: `adaptive_contrast(image: PIL.Image.Image, clip_limit: float, grid_size: int) -> PIL.Image.Image`
+#### `adaptive_contrast`
 
 **Parameters:**
 
@@ -209,7 +209,7 @@ An unsharp mask is a photographic sharpening technique. This node helps to enhan
 
 **Returns:** `Image`
 
-## Function: `canny_edge_detection(image: PIL.Image.Image, low_threshold: int, high_threshold: int) -> PIL.Image.Image`
+#### `canny_edge_detection`
 
 **Parameters:**
 
@@ -219,7 +219,7 @@ An unsharp mask is a photographic sharpening technique. This node helps to enhan
 
 **Returns:** `Image`
 
-## Function: `sharpen_image(image: PIL.Image.Image) -> PIL.Image.Image`
+#### `sharpen_image`
 
 **Parameters:**
 

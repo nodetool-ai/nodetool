@@ -14,12 +14,12 @@
 - **thumbnail** (`str | None`)
 - **graph** (`dict`)
 
-#### `before_save(self)`
+#### `before_save`
 
 **Parameters:**
 
 
-#### `get_api_graph(self) -> nodetool.api.types.graph.Graph`
+#### `get_api_graph`
 
 Returns the graph object for the workflow.
 
@@ -28,7 +28,7 @@ Returns the graph object for the workflow.
 
 **Returns:** `Graph`
 
-#### `get_graph(self) -> nodetool.workflows.graph.Graph`
+#### `get_graph`
 
 Returns the graph object for the workflow.
 

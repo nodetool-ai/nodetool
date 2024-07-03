@@ -1,4 +1,4 @@
-# nodetool.api.types.graph
+# nodetool.types.graph
 
 ## Edge
 
@@ -15,8 +15,8 @@
 
 **Inherits from:** BaseModel
 
-- **nodes** (`typing.List[nodetool.api.types.graph.Node]`)
-- **edges** (`typing.List[nodetool.api.types.graph.Edge]`)
+- **nodes** (`typing.List[nodetool.types.graph.Node]`)
+- **edges** (`typing.List[nodetool.types.graph.Edge]`)
 
 ## Node
 

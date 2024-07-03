@@ -1,6 +1,6 @@
 # nodetool.metadata.utils
 
-## Function: `is_async_generator_type(t)`
+#### `is_async_generator_type`
 
 Check if a type is an async generator.
 
@@ -14,7 +14,7 @@ Check if a type is an async generator.
 
 - `t`
 
-## Function: `is_class(obj: Any) -> bool`
+#### `is_class`
 
 **Parameters:**
 
@@ -22,7 +22,7 @@ Check if a type is an async generator.
 
 **Returns:** `bool`
 
-## Function: `is_dict_type(t)`
+#### `is_dict_type`
 
 Check if a type is a dictionary.
 
@@ -36,7 +36,7 @@ Check if a type is a dictionary.
 
 - `t`
 
-## Function: `is_enum_type(t)`
+#### `is_enum_type`
 
 Check if a type is an enum.
 
@@ -50,7 +50,7 @@ Check if a type is an enum.
 
 - `t`
 
-## Function: `is_generator_type(t)`
+#### `is_generator_type`
 
 Check if a type is a generator.
 
@@ -64,7 +64,7 @@ Check if a type is a generator.
 
 - `t`
 
-## Function: `is_list_type(t)`
+#### `is_list_type`
 
 Check if a type is a list.
 
@@ -78,7 +78,7 @@ Check if a type is a list.
 
 - `t`
 
-## Function: `is_number_type(t)`
+#### `is_number_type`
 
 Check if a type is a number.
 
@@ -92,7 +92,7 @@ Check if a type is a number.
 
 - `t`
 
-## Function: `is_optional_type(t)`
+#### `is_optional_type`
 
 Check if a type is an optional type.
 
@@ -106,7 +106,7 @@ Check if a type is an optional type.
 
 - `t`
 
-## Function: `is_union_type(t)`
+#### `is_union_type`
 
 Check if a type is a union.
 

@@ -18,7 +18,7 @@
 - **description**: The description for this output node. (`str`)
 - **value** (`bool`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -32,7 +32,7 @@
 - **description**: The description for this output node. (`str`)
 - **value**: The messages to display in the chat. (`list[nodetool.metadata.types.Message]`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -46,7 +46,7 @@
 - **description**: The description for this output node. (`str`)
 - **value**: A raw image tensor. (`ImageTensor`)
 
-#### `assign_property(self, name: str, value: Any)`
+#### `assign_property`
 
 **Parameters:**
 
@@ -80,7 +80,7 @@
 - **description**: The description for this output node. (`str`)
 - **value** (`float`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -103,7 +103,7 @@ Output node for any group node.
 - **description**: The description for this output node. (`str`)
 - **value**: The images to display. (`list[nodetool.metadata.types.ImageRef]`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -117,7 +117,7 @@ Output node for any group node.
 - **description**: The description for this output node. (`str`)
 - **value** (`ImageRef`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -131,7 +131,7 @@ Output node for any group node.
 - **description**: The description for this output node. (`str`)
 - **value** (`int`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -145,7 +145,7 @@ Output node for any group node.
 - **description**: The description for this output node. (`str`)
 - **value** (`list[typing.Any]`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -168,7 +168,7 @@ Output node for any group node.
 - **description**: The description for this output node. (`str`)
 - **value** (`str`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 
@@ -191,7 +191,7 @@ Output node for any group node.
 - **description**: The description for this output node. (`str`)
 - **value** (`TextRef`)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 **Parameters:**
 

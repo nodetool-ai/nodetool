@@ -12,7 +12,7 @@ Metadata for a type.
 - **type_args** (`list[nodetool.metadata.type_metadata.TypeMetadata]`)
 - **type_name** (`typing.Optional[str]`)
 
-#### `get_json_schema(self) -> dict[str, typing.Any]`
+#### `get_json_schema`
 
 Returns a JSON schema for the type.
 
@@ -21,32 +21,32 @@ Returns a JSON schema for the type.
 
 **Returns:** `dict[str, typing.Any]`
 
-#### `get_python_type(self)`
+#### `get_python_type`
 
 **Parameters:**
 
 
-#### `is_asset_type(self)`
+#### `is_asset_type`
 
 **Parameters:**
 
 
-#### `is_comfy_type(self)`
+#### `is_comfy_type`
 
 **Parameters:**
 
 
-#### `is_enum_type(self)`
+#### `is_enum_type`
 
 **Parameters:**
 
 
-#### `is_list_type(self)`
+#### `is_list_type`
 
 **Parameters:**
 
 
-#### `is_union_type(self)`
+#### `is_union_type`
 
 **Parameters:**
 

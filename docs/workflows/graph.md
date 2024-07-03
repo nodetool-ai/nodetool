@@ -10,9 +10,9 @@ in terms of handling subgraphs and their connections.
 **Inherits from:** BaseModel
 
 - **nodes** (`list[nodetool.workflows.base_node.BaseNode]`)
-- **edges** (`list[nodetool.api.types.graph.Edge]`)
+- **edges** (`list[nodetool.types.graph.Edge]`)
 
-#### `build_sub_graphs(self)`
+#### `build_sub_graphs`
 
 This method organizes nodes into their respective subgraphs based on the
         group node they belong to and reconnects the edges accordingly. It also
@@ -31,7 +31,7 @@ This method organizes nodes into their respective subgraphs based on the
 **Parameters:**
 
 
-#### `find_node(self, node_id: str) -> nodetool.workflows.base_node.BaseNode | None`
+#### `find_node`
 
 Find a node by its id.
 
@@ -41,21 +41,21 @@ Find a node by its id.
 
 **Returns:** `nodetool.workflows.base_node.BaseNode | None`
 
-#### `get_input_schema(self)`
+#### `get_input_schema`
 
 Returns a JSON schema for input nodes of the graph.
 
 **Parameters:**
 
 
-#### `get_output_schema(self)`
+#### `get_output_schema`
 
 Returns a JSON schema for the output nodes of the graph.
 
 **Parameters:**
 
 
-#### `inputs(self) -> List[nodetool.workflows.base_node.InputNode]`
+#### `inputs`
 
 Returns a list of nodes that inherit from InputNode.
 
@@ -64,7 +64,7 @@ Returns a list of nodes that inherit from InputNode.
 
 **Returns:** `typing.List[nodetool.workflows.base_node.InputNode]`
 
-#### `outputs(self) -> List[nodetool.workflows.base_node.OutputNode]`
+#### `outputs`
 
 Returns a list of nodes that have no outgoing edges.
 
@@ -73,7 +73,7 @@ Returns a list of nodes that have no outgoing edges.
 
 **Returns:** `typing.List[nodetool.workflows.base_node.OutputNode]`
 
-#### `reconnect_edges(self, group_nodes: dict[str, nodetool.workflows.base_node.GroupNode])`
+#### `reconnect_edges`
 
 Revises the graph's edge connections after nodes have been structured
         into groups.
@@ -92,7 +92,7 @@ Revises the graph's edge connections after nodes have been structured
 
 - `group_nodes` (dict[str, nodetool.workflows.base_node.GroupNode])
 
-## Function: `any_type_in_union(union_type: nodetool.metadata.type_metadata.TypeMetadata, other_type: nodetool.metadata.type_metadata.TypeMetadata)`
+#### `any_type_in_union`
 
 Matches a union type and another type.
 
@@ -103,7 +103,7 @@ Matches a union type and another type.
 - `union_type` (TypeMetadata)
 - `other_type` (TypeMetadata)
 
-## Function: `is_connectable(source: nodetool.metadata.type_metadata.TypeMetadata, target: nodetool.metadata.type_metadata.TypeMetadata) -> bool`
+#### `is_connectable`
 
 Returns true if the type
 
@@ -114,7 +114,7 @@ Returns true if the type
 
 **Returns:** `bool`
 
-## Function: `topological_sort(edges: list[nodetool.api.types.graph.Edge], nodes: list[nodetool.workflows.base_node.BaseNode]) -> List[List[str]]`
+#### `topological_sort`
 
 Sorts the graph topologically.
 
@@ -132,7 +132,7 @@ Sorts the graph topologically.
 
 **Parameters:**
 
-- `edges` (list[nodetool.api.types.graph.Edge])
+- `edges` (list[nodetool.types.graph.Edge])
 - `nodes` (list[nodetool.workflows.base_node.BaseNode])
 
 **Returns:** `typing.List[typing.List[str]]`

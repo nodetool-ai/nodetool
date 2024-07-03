@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 
 from typing import Any, Type
-from nodetool.api.types.graph import Edge
+from nodetool.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.metadata.types import NameToType, TypeToName

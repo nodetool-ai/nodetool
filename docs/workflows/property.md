@@ -14,7 +14,7 @@ Property of a node.
 - **min** (`typing.Optional[float]`)
 - **max** (`typing.Optional[float]`)
 
-#### `from_field(name: str, type_: nodetool.metadata.type_metadata.TypeMetadata, field: pydantic.fields.FieldInfo)`
+#### `from_field`
 
 **Parameters:**
 
@@ -22,7 +22,7 @@ Property of a node.
 - `type_` (TypeMetadata)
 - `field` (FieldInfo)
 
-#### `get_json_schema(self)`
+#### `get_json_schema`
 
 Returns a JSON schema for the self.
 

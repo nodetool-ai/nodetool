@@ -12,21 +12,21 @@ import PIL.Image
 import numpy as np
 import pandas as pd
 
-from nodetool.api.types.asset import Asset, AssetCreateRequest, AssetList
-from nodetool.api.types.chat import (
+from nodetool.types.asset import Asset, AssetCreateRequest, AssetList
+from nodetool.types.chat import (
     MessageList,
     MessageCreateRequest,
     TaskCreateRequest,
     TaskList,
     TaskUpdateRequest,
 )
-from nodetool.api.types.job import JobCancelledException, JobUpdate
-from nodetool.api.types.prediction import (
+from nodetool.types.job import JobCancelledException, JobUpdate
+from nodetool.types.prediction import (
     Prediction,
     PredictionCreateRequest,
     PredictionResult,
 )
-from nodetool.api.types.workflow import Workflow
+from nodetool.types.workflow import Workflow
 from nodetool.common.async_iterators import AsyncByteStream
 from nodetool.common.nodetool_api_client import NodetoolAPIClient, Response
 from nodetool.metadata.types import Message, Provider, Task

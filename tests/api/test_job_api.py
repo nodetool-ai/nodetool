@@ -2,8 +2,8 @@ import json
 import os
 
 import pytest
-from nodetool.api.types.graph import Edge
-from nodetool.api.types.graph import Graph
+from nodetool.types.graph import Edge
+from nodetool.types.graph import Graph
 from nodetool.models.job import Job
 from nodetool.workflows.run_job_request import RunJobRequest
 from tests.conftest import make_job

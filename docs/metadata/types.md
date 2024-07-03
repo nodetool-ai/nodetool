@@ -13,12 +13,12 @@
 - **asset_id** (`str | None`)
 - **temp_id** (`str | None`)
 
-#### `is_empty(self)`
+#### `is_empty`
 
 **Parameters:**
 
 
-#### `to_dict(self)`
+#### `to_dict`
 
 **Parameters:**
 
@@ -333,7 +333,7 @@ Abstract representation for a chat message.
 - **tool_calls** (`list[nodetool.models.message.ToolCall] | None`)
 - **created_at** (`str | None`)
 
-#### `from_model(message: nodetool.models.message.Message)`
+#### `from_model`
 
 Convert a Model object to a Message object.
 
@@ -448,33 +448,33 @@ This is the base class for all strucutred output types when a node
 - **value** (`list[typing.Any]`)
 - **dtype** (`typing.Optional[str]`)
 
-#### `from_list(tensor: list, **kwargs)`
+#### `from_list`
 
 **Parameters:**
 
 - `tensor` (list)
 - `kwargs`
 
-#### `from_numpy(tensor: numpy.ndarray, **kwargs)`
+#### `from_numpy`
 
 **Parameters:**
 
 - `tensor` (ndarray)
 - `kwargs`
 
-#### `is_empty(self)`
+#### `is_empty`
 
 **Parameters:**
 
 
-#### `to_list(self) -> list`
+#### `to_list`
 
 **Parameters:**
 
 
 **Returns:** `list`
 
-#### `to_numpy(self) -> numpy.ndarray`
+#### `to_numpy`
 
 **Parameters:**
 
@@ -549,7 +549,7 @@ This is the base class for all strucutred output types when a node
 - **type** (`typing.Literal['workflow']`)
 - **id** (`str`)
 
-## Function: `add_type_name(type: Type, name: str)`
+#### `add_type_name`
 
 Adds a type name to the TypeToEnum and EnumToType mappings.
 
@@ -558,7 +558,7 @@ Adds a type name to the TypeToEnum and EnumToType mappings.
 - `type` (typing.Type)
 - `name` (str)
 
-## Function: `add_type_names(types)`
+#### `add_type_names`
 
 Add type names to the TypeToEnum and EnumToType mappings.
 
@@ -566,25 +566,25 @@ Add type names to the TypeToEnum and EnumToType mappings.
 
 - `types`
 
-## Function: `asset_to_ref(asset: nodetool.models.asset.Asset)`
+#### `asset_to_ref`
 
 **Parameters:**
 
 - `asset` (Asset)
 
-## Function: `dtype_name(dtype: str)`
+#### `dtype_name`
 
 **Parameters:**
 
 - `dtype` (str)
 
-## Function: `is_output_type(type)`
+#### `is_output_type`
 
 **Parameters:**
 
 - `type`
 
-## Function: `to_numpy(num: float | int | nodetool.metadata.types.Tensor) -> numpy.ndarray`
+#### `to_numpy`
 
 **Parameters:**
 

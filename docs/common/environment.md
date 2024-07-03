@@ -24,7 +24,7 @@ respectively.
 
 **Tags:** 
 
-## Function: `get_data_path(filename: str)`
+#### `get_data_path`
 
 Get the default database path.
 
@@ -32,7 +32,7 @@ Get the default database path.
 
 - `filename` (str)
 
-## Function: `get_system_file_path(filename: str)`
+#### `get_system_file_path`
 
 Returns the path to the settings file for the current OS.
 

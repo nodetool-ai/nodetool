@@ -3,7 +3,7 @@
 from datetime import datetime
 import time
 from fastapi import APIRouter, Depends, HTTPException, Body
-from nodetool.api.types.workflow import WorkflowList, Workflow, WorkflowRequest
+from nodetool.types.workflow import WorkflowList, Workflow, WorkflowRequest
 from nodetool.api.utils import current_user, User
 from nodetool.common.environment import Environment
 from typing import Optional

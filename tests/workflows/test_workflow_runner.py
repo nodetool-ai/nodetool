@@ -1,8 +1,8 @@
 import PIL.Image
 import PIL.ImageChops
 import pytest
-from nodetool.api.types.graph import Node, Edge
-from nodetool.api.types.job import JobUpdate
+from nodetool.types.graph import Node, Edge
+from nodetool.types.job import JobUpdate
 from nodetool.models.job import Job
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.workflows.base_node import BaseNode
@@ -13,7 +13,7 @@ from nodetool.metadata.types import ImageRef
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.models.user import User
 from nodetool.workflows.graph import Graph
-from nodetool.api.types.graph import (
+from nodetool.types.graph import (
     Graph as APIGraph,
 )
 from nodetool.nodes.nodetool.constant import Float, String

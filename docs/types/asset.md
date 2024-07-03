@@ -1,4 +1,4 @@
-# nodetool.api.types.asset
+# nodetool.types.asset
 
 ## Asset
 
@@ -31,7 +31,7 @@
 **Inherits from:** BaseModel
 
 - **next** (`str | None`)
-- **assets** (`list[nodetool.api.types.asset.Asset]`)
+- **assets** (`list[nodetool.types.asset.Asset]`)
 
 ## AssetUpdateRequest
 

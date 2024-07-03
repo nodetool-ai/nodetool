@@ -1,6 +1,6 @@
 # nodetool.chat.chat
 
-## Function: `convert_to_llama_format(messages: Sequence[nodetool.metadata.types.ChatMessageParam]) -> str`
+#### `convert_to_llama_format`
 
 Convert OpenAI-style message list to Llama chat format.
 
@@ -13,7 +13,7 @@ Convert OpenAI-style message list to Llama chat format.
 
 **Returns:** `str`
 
-## Function: `convert_to_openai_message(message: nodetool.metadata.types.ChatMessageParam) -> Union[openai.types.chat.chat_completion_system_message_param.ChatCompletionSystemMessageParam, openai.types.chat.chat_completion_user_message_param.ChatCompletionUserMessageParam, openai.types.chat.chat_completion_assistant_message_param.ChatCompletionAssistantMessageParam, openai.types.chat.chat_completion_tool_message_param.ChatCompletionToolMessageParam, openai.types.chat.chat_completion_function_message_param.ChatCompletionFunctionMessageParam]`
+#### `convert_to_openai_message`
 
 Convert a message to an OpenAI message.
 
@@ -29,7 +29,7 @@ Convert a message to an OpenAI message.
 
 **Returns:** `typing.Union[openai.types.chat.chat_completion_system_message_param.ChatCompletionSystemMessageParam, openai.types.chat.chat_completion_user_message_param.ChatCompletionUserMessageParam, openai.types.chat.chat_completion_assistant_message_param.ChatCompletionAssistantMessageParam, openai.types.chat.chat_completion_tool_message_param.ChatCompletionToolMessageParam, openai.types.chat.chat_completion_function_message_param.ChatCompletionFunctionMessageParam]`
 
-## Function: `create_anthropic_completion(context: nodetool.workflows.processing_context.ProcessingContext, model: nodetool.metadata.types.FunctionModel, node_id: str, messages: Sequence[nodetool.metadata.types.ChatMessageParam], tools: Sequence[nodetool.chat.tools.Tool] = [], tool_choice: dict[str, typing.Any] = {}, **kwargs) -> nodetool.metadata.types.Message`
+#### `create_anthropic_completion`
 
 Creates an anthropic completion by sending messages to the anthropic client.
 
@@ -60,7 +60,7 @@ Creates an anthropic completion by sending messages to the anthropic client.
 
 **Returns:** `Message`
 
-## Function: `create_completion(context: nodetool.workflows.processing_context.ProcessingContext, model: nodetool.metadata.types.FunctionModel, node_id: str, thread_id: str, messages: Sequence[nodetool.metadata.types.ChatMessageParam], tools: Sequence[nodetool.chat.tools.Tool], tool_choice: dict[str, typing.Any], **kwargs) -> nodetool.metadata.types.Message`
+#### `create_completion`
 
 **Parameters:**
 
@@ -75,7 +75,7 @@ Creates an anthropic completion by sending messages to the anthropic client.
 
 **Returns:** `Message`
 
-## Function: `create_ollama_completion(context: nodetool.workflows.processing_context.ProcessingContext, model: nodetool.metadata.types.FunctionModel, node_id: str, messages: Sequence[nodetool.metadata.types.ChatMessageParam], tools: Sequence[nodetool.chat.tools.Tool] = [], tool_choice: dict[str, typing.Any] = {}, **kwargs) -> nodetool.metadata.types.Message`
+#### `create_ollama_completion`
 
 Creates an Ollama completion by sending messages to the Ollama client.
 
@@ -106,7 +106,7 @@ Creates an Ollama completion by sending messages to the Ollama client.
 
 **Returns:** `Message`
 
-## Function: `create_openai_completion(context: nodetool.workflows.processing_context.ProcessingContext, model: nodetool.metadata.types.FunctionModel, node_id: str, messages: Sequence[nodetool.metadata.types.ChatMessageParam], tools: Sequence[nodetool.chat.tools.Tool] = [], tool_choice: dict[str, typing.Any] = {}, **kwargs) -> nodetool.metadata.types.Message`
+#### `create_openai_completion`
 
 Creates an OpenAI completion using the provided messages.
 
@@ -134,7 +134,7 @@ Creates an OpenAI completion using the provided messages.
 
 **Returns:** `Message`
 
-## Function: `default_serializer(obj: Any) -> dict`
+#### `default_serializer`
 
 **Parameters:**
 
@@ -142,7 +142,7 @@ Creates an OpenAI completion using the provided messages.
 
 **Returns:** `dict`
 
-## Function: `json_schema_for_column(column: nodetool.metadata.types.ColumnDef) -> dict`
+#### `json_schema_for_column`
 
 Create a JSON schema for a column.
 
@@ -158,7 +158,7 @@ Create a JSON schema for a column.
 
 **Returns:** `dict`
 
-## Function: `message_content_to_openai_content_part(content: nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent) -> Union[openai.types.chat.chat_completion_content_part_text_param.ChatCompletionContentPartTextParam, openai.types.chat.chat_completion_content_part_image_param.ChatCompletionContentPartImageParam]`
+#### `message_content_to_openai_content_part`
 
 Convert a message content to an OpenAI content part.
 
@@ -174,7 +174,7 @@ Convert a message content to an OpenAI content part.
 
 **Returns:** `typing.Union[openai.types.chat.chat_completion_content_part_text_param.ChatCompletionContentPartTextParam, openai.types.chat.chat_completion_content_part_image_param.ChatCompletionContentPartImageParam]`
 
-## Function: `message_param(message: nodetool.metadata.types.Message) -> nodetool.metadata.types.ChatMessageParam`
+#### `message_param`
 
 Converts a given message object to the corresponding ChatMessageParam object based on the message role.
 
@@ -194,7 +194,7 @@ Converts a given message object to the corresponding ChatMessageParam object bas
 
 **Returns:** `ChatMessageParam`
 
-## Function: `parse_tool_calls(s) -> list[nodetool.models.message.ToolCall]`
+#### `parse_tool_calls`
 
 Parse a tool call from a string.
     Example: '[{"name": "create_record", "arguments": {"name": "John"}}]
@@ -211,7 +211,7 @@ Parse a tool call from a string.
 
 **Returns:** `list[nodetool.models.message.ToolCall]`
 
-## Function: `process_messages(context: nodetool.workflows.processing_context.ProcessingContext, messages: Sequence[nodetool.metadata.types.Message], model: nodetool.metadata.types.FunctionModel, thread_id: str, node_id: str, tools: Sequence[nodetool.chat.tools.Tool] = [], tool_choice: dict[str, str] = {}, **kwargs) -> nodetool.metadata.types.Message`
+#### `process_messages`
 
 Process a message by the given model.
     Creates a completion using the provided messages.
@@ -244,7 +244,7 @@ Process a message by the given model.
 
 **Returns:** `Message`
 
-## Function: `process_tool_calls(context: nodetool.workflows.processing_context.ProcessingContext, thread_id: str, tool_calls: Sequence[nodetool.models.message.ToolCall], tools: Sequence[nodetool.chat.tools.Tool]) -> list[nodetool.models.message.ToolCall]`
+#### `process_tool_calls`
 
 Process tool calls in parallel.
     Looks up the tool by name and executes the tool's process method.
@@ -268,7 +268,7 @@ Process tool calls in parallel.
 
 **Returns:** `list[nodetool.models.message.ToolCall]`
 
-## Function: `process_tool_responses(context: nodetool.workflows.processing_context.ProcessingContext, model: nodetool.metadata.types.FunctionModel, node_id: str, thread_id: str, messages: list[nodetool.metadata.types.Message], tool_responses: Sequence[nodetool.models.message.ToolCall], **kwargs)`
+#### `process_tool_responses`
 
 Process tool responses by the given chat model.
     This is used to let the chat model use the result from the tool calls to generate a response.
@@ -295,7 +295,7 @@ Process tool responses by the given chat model.
 - `tool_responses` (typing.Sequence[nodetool.models.message.ToolCall])
 - `kwargs`
 
-## Function: `run_tool(context: nodetool.workflows.processing_context.ProcessingContext, thread_id: str, tool_call: nodetool.models.message.ToolCall, tools: Sequence[nodetool.chat.tools.Tool]) -> nodetool.models.message.ToolCall`
+#### `run_tool`
 
 Executes a tool call requested by the chat model.
 

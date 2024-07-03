@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 import httpx
 import pytest
 from nodetool.api.server import create_app
-from nodetool.api.types.graph import Node, Edge
+from nodetool.types.graph import Node, Edge
 from nodetool.common.environment import Environment
 from nodetool.models.message import Message
 from nodetool.models.thread import Thread

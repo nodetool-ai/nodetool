@@ -11,7 +11,7 @@ Performs addition on two inputs.
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
 
-#### `operation(self, a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray`
+#### `operation`
 
 **Parameters:**
 
@@ -27,7 +27,7 @@ Performs addition on two inputs.
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
 
-#### `operation(self, a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray`
+#### `operation`
 
 **Parameters:**
 
@@ -58,7 +58,7 @@ Divides the first input by the second.
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
 
-#### `operation(self, a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray`
+#### `operation`
 
 **Parameters:**
 
@@ -78,7 +78,7 @@ Calculates the remainder of division of the first input by the second.
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
 
-#### `operation(self, a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray`
+#### `operation`
 
 **Parameters:**
 
@@ -98,7 +98,7 @@ Multiplies two inputs.
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
 
-#### `operation(self, a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray`
+#### `operation`
 
 **Parameters:**
 
@@ -151,7 +151,7 @@ Subtracts the second input from the first.
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
 
-#### `operation(self, a: numpy.ndarray, b: numpy.ndarray) -> numpy.ndarray`
+#### `operation`
 
 **Parameters:**
 
@@ -160,7 +160,7 @@ Subtracts the second input from the first.
 
 **Returns:** `ndarray`
 
-## Function: `convert_output(context: nodetool.workflows.processing_context.ProcessingContext, output: numpy.ndarray) -> float | int | nodetool.metadata.types.Tensor`
+#### `convert_output`
 
 **Parameters:**
 
@@ -169,7 +169,7 @@ Subtracts the second input from the first.
 
 **Returns:** `float | int | nodetool.metadata.types.Tensor`
 
-## Function: `pad_arrays(a: numpy.ndarray, b: numpy.ndarray) -> Tuple[numpy.ndarray, numpy.ndarray]`
+#### `pad_arrays`
 
 If one of the arguments is a scalar, both arguments are returned as is.
     Pads the smaller array with zeros so that both arrays are the same size.

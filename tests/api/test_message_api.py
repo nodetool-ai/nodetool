@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
-from nodetool.api.types.workflow import WorkflowRequest
-from nodetool.api.types.graph import Edge, Graph as APIGraph, Node
-from nodetool.api.types.chat import MessageList
+from nodetool.types.workflow import WorkflowRequest
+from nodetool.types.graph import Edge, Graph as APIGraph, Node
+from nodetool.types.chat import MessageList
 from nodetool.metadata.types import Message as APIMessage
 from nodetool.models.message import Message
 from nodetool.models.thread import Thread

@@ -3,7 +3,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Body
 from nodetool.api.utils import current_user, User
-from nodetool.api.types.chat import MessageCreateRequest, MessageList
+from nodetool.types.chat import MessageCreateRequest, MessageList
 from nodetool.metadata.types import Message
 from nodetool.models.message import Message as MessageModel
 from nodetool.common.environment import Environment

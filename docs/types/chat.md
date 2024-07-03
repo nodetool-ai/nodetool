@@ -1,4 +1,4 @@
-# nodetool.api.types.chat
+# nodetool.types.chat
 
 ## MessageCreateRequest
 

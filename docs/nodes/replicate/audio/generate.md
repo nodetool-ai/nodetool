@@ -13,7 +13,7 @@
 - **history_prompt**: history choice for audio cloning, choose from the list (`nodetool.nodes.replicate.audio.generate.Bark.History_prompt | None`)
 - **custom_history_prompt**: Provide your own .npz file with history choice for audio cloning, this will override the previous history_prompt setting (`str | None`)
 
-#### `output_key(self)`
+#### `output_key`
 
 **Parameters:**
 
@@ -79,7 +79,7 @@ Stable diffusion for real-time music generation
 - **seed_image_id**: Seed spectrogram to use (`Seed_image_id`)
 - **num_inference_steps**: Number of steps to run the diffusion model (`int`)
 
-#### `output_key(self)`
+#### `output_key`
 
 **Parameters:**
 

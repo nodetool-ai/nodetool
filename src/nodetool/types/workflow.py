@@ -1,5 +1,5 @@
 from typing import Any, List
-from nodetool.api.types.graph import Graph
+from nodetool.types.graph import Graph
 from nodetool.common.environment import Environment
 from nodetool.models.asset import Asset as AssetModel
 from nodetool.models.workflow import Workflow as WorkflowModel

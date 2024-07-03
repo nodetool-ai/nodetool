@@ -1,6 +1,6 @@
 # nodetool.metadata
 
-## Function: `is_assignable(type_meta: nodetool.metadata.type_metadata.TypeMetadata, value: Any) -> bool`
+#### `is_assignable`
 
 **Parameters:**
 
@@ -9,6 +9,7 @@
 
 **Returns:** `bool`
 
+- [nodetool.metadata.node_metadata](metadata/node_metadata.md)
 - [nodetool.metadata.type_metadata](metadata/type_metadata.md)
 - [nodetool.metadata.types](metadata/types.md)
 - [nodetool.metadata.utils](metadata/utils.md)

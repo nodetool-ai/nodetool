@@ -3,7 +3,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from nodetool.api.utils import current_user, User
-from nodetool.api.types.chat import (
+from nodetool.types.chat import (
     TaskCreateRequest,
     TaskUpdateRequest,
     TaskList,
