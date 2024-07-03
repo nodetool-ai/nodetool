@@ -1,6 +1,8 @@
 title: nodetool - documentation
 url: https://nodetool-ai.github.io/nodetool
 baseurl: /nodetool
+theme: jekyll-theme-minimal-mistakes
+minimal_mistakes_skin: dark
 
 markdown:
   extension: true
