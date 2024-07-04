@@ -1,11 +1,5 @@
 # nodetool.workflows.examples
 
-#### `get_comfy_examples`
-
-keep this for comfy launch
-
-**Returns:** `list[nodetool.types.workflow.Workflow]`
-
 #### `get_examples`
 
 **Returns:** `list[nodetool.types.workflow.Workflow]`
@@ -16,5 +10,5 @@ keep this for comfy launch
 
 - `name` (str)
 
-**Returns:** `Graph`
+**Returns:** `Workflow`
 

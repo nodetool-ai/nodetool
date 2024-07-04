@@ -20,15 +20,16 @@ This node enhances the contrast of the provided image on a localized level by ad
 
 ## AutoContrast
 
-This node automatically adjusts the contrast of an image.
-The purpose of the Auto Contrast Node is to enhance the quality of an image by optimizing its contrast levels. It intelligently adjusts the contrast of an image so brighter areas are brightened further and darker areas darkened, balancing the image illumination. The degree of contrast adjustment can be configured using a cutoff setting.
+Automatically adjusts image contrast for enhanced visual quality.
 
-#### Applications
-- Image processing: Enhance the visual quality of images by balancing the contrast.
-- Pre-processing in computer vision: Prepare images for further analysis by improving their readability.
-- Photo editing: Adjust the contrast in images for aesthetic or clarity purposes.
+Use cases:
+1. Enhance image clarity for better visual perception
+2. Pre-process images for computer vision tasks
+3. Improve photo aesthetics in editing workflows
+4. Correct poorly lit or low-contrast images
+5. Prepare images for printing or display
 
-**Tags:** 
+**Tags:** image, contrast, balance
 
 **Inherits from:** BaseNode
 
@@ -38,13 +39,14 @@ The purpose of the Auto Contrast Node is to enhance the quality of an image by o
 ## Brightness
 
 The Brightness Node is designed to adjust the brightness of an image.
+
 Its main purpose is to alter the brightness of an uploaded image by using a customizable factor. The brightness of an image can influence its clarity and visibility. By changing the brightness levels, we can make portions of an image more visible or less distracting based on our needs.
 
 #### Applications
 - Brightness level correction: If an image is too dark or too bright, the Brightness Node can be used to correct the brightness levels to the desired range.
 - Highlighting or dimming certain parts of an image: The Brightness Node can be used to increase the visibility of certain parts of an image by enhancing their brightness.
 
-**Tags:** 
+**Tags:** image, highlight, dim
 
 **Inherits from:** BaseNode
 
@@ -53,15 +55,16 @@ Its main purpose is to alter the brightness of an uploaded image by using a cust
 
 ## Color
 
-The ColorNode is a simple tool that applies a color filter to an image.
-It's an excellent option if you want to enhance or tweak the colors in your images for a specific visual effect. The node allows you to control the degree of color change through the factor input. A factor of 1.0 means no color change, while values greater or smaller than 1.0 increase or decrease the image's color intensity, respectively.
+Adjusts color intensity of an image using a factor-based filter.
 
-#### Applications
-- Color grading: You can use it to adjust the colors in a photo for aesthetic purposes.
-- Highlighting features: Enhance colors to make certain areas of an image stand out.
-- Color correction: Correct or adjust the color balance in an image.
+Use cases:
+1. Enhance color vibrancy in photographs
+2. Create mood-specific color grading for visual media
+3. Correct color imbalances in digital images
+4. Highlight specific features in scientific or medical imaging
+5. Prepare images for consistent brand color representation
 
-**Tags:** 
+**Tags:** image, color, enhance
 
 **Inherits from:** BaseNode
 
@@ -70,15 +73,16 @@ It's an excellent option if you want to enhance or tweak the colors in your imag
 
 ## Contrast
 
-The Contrast Node is a simple tool that adjust the contrast of an image.
-The Contrast Node is used for modifying the distinction between the lightest and darkest areas of an image. It adjusts the contrast based on a provided factor. Setting the contrast factor to 1.0 will make no changes to the original image. Higher contrast makes the image more dynamic and lower contrast makes the image less dynamic.
+Adjusts image contrast to modify light-dark differences.
 
-#### Applications
-- Altering the visibility of textures in an image.
-- Improving the clarity of an image for analysis or display.
-- Giving images a dramatic or subtle look according to preferences.
+Use cases:
+1. Enhance visibility of details in low-contrast images
+2. Prepare images for visual analysis or recognition tasks
+3. Create dramatic effects in artistic photography
+4. Correct over or underexposed photographs
+5. Improve readability of text in scanned documents
 
-**Tags:** 
+**Tags:** image, contrast, enhance
 
 **Inherits from:** BaseNode
 
@@ -88,13 +92,14 @@ The Contrast Node is used for modifying the distinction between the lightest and
 ## Detail
 
 The DetailNode is an image detail filter.
+
 This node is primarily designed to enhance the details of an image in an AI workflow by applying a detail filter. It is especially useful when you want to emphasize or highlight certain features of the image.
 
 #### Applications
 - Enhancing the details of an image to improve its clarity.
 - Highlighting certain features of an image for a deeper analysis.
 
-**Tags:** 
+**Tags:** image, enhance
 
 **Inherits from:** BaseNode
 
@@ -102,15 +107,16 @@ This node is primarily designed to enhance the details of an image in an AI work
 
 ## EdgeEnhance
 
-This is a node that applies an edge enhance filter to an image.
-The Edge Enhance Node is used to improve the visibility of edges in an image. It is a type of image processing operation that enhances the edge contrast of an image, making the boundaries of objects within the image more pronounced. This node makes use of the edge enhance filter to perform its function.
+Enhances edge visibility in images by increasing edge contrast.
 
-#### Applications
-- Image editing and enhancement: Enhancing the edges of an object in an image makes it easier to distinguish and recognize.
-- Object detection: Improving the edge contrast can make the process of object detection more accurate.
-- Digital art creation: Enhance edges of your artworks to add more contrast and depth.
+Use cases:
+1. Improve object boundaries for computer vision tasks
+2. Enhance details in medical or scientific imaging
+3. Create artistic effects in digital photography
+4. Prepare images for feature extraction in image analysis
+5. Highlight structural elements in architectural or engineering drawings
 
-**Tags:** 
+**Tags:** image, edge, enhance
 
 **Inherits from:** BaseNode
 
@@ -118,14 +124,16 @@ The Edge Enhance Node is used to improve the visibility of edges in an image. It
 
 ## Equalize
 
-The Equalize Node is used to apply an equalizing filter to an image.
-Equalizing an image helps in enhancing its contrast by spreading out the most frequent intensity values throughout the image. The Equalize Node accomplishes this by transforming the values in pixel intensity histograms to create a uniform distribution of grayscale values.
+Enhances image contrast by equalizing intensity distribution.
 
-#### Applications
-- Improving the quality of images have poor lighting conditions.
-- Enhancing the details of an image for better viewing or analysis.
+Use cases:
+1. Improve visibility in poorly lit images
+2. Enhance details for image analysis tasks
+3. Normalize image data for machine learning
+4. Correct uneven lighting in photographs
+5. Prepare images for feature extraction
 
-**Tags:** 
+**Tags:** image, contrast, histogram
 
 **Inherits from:** BaseNode
 
@@ -134,15 +142,14 @@ Equalizing an image helps in enhancing its contrast by spreading out the most fr
 ## RankFilter
 
 The Rank Filter Node is used to apply a rank filter to a given image.
-The purpose of this node is to perform a specific type of image processing technique, known as a rank filter. A rank filter considers the surrounding pixels of each pixel in the image and sorts them according to brightness. The 'rank' refers to the position of the pixel that will replace the current pixel - for example, a rank of 1 would replace each pixel with the darkest surrounding pixel, while a rank of 3 would replace it with the third darkest and so on. The 'size' indicates the total number of surrounding pixels to be considered for this process.
 
-This node is pivotal for tasks related to image enhancement and noise reduction and plays a major role in improving the visual quality of an image, making it more suitable for further processing and analysis.
+The purpose of this node is to perform a specific type of image processing technique, known as a rank filter. A rank filter considers the surrounding pixels of each pixel in the image and sorts them according to brightness. The 'rank' refers to the position of the pixel that will replace the current pixel - for example, a rank of 1 would replace each pixel with the darkest surrounding pixel, while a rank of 3 would replace it with the third darkest and so on. The 'size' indicates the total number of surrounding pixels to be considered for this process.
 
 #### Applications
 - Image enhancement: This node can be used to enhance the quality of an image, making subtle details more pronounced.
 - Noise reduction: The Rank Filter Node can help reduce 'noise' in images, i.e., unwanted or irrelevant details.
 
-**Tags:** 
+**Tags:** image, enhance
 
 **Inherits from:** BaseNode
 
@@ -152,14 +159,16 @@ This node is pivotal for tasks related to image enhancement and noise reduction 
 
 ## Sharpen
 
-The Sharpen Node is a tool that applies a sharpening filter to an image.
-The primary purpose of this node is to enhance the visibility of details in an image. It performs this by intensifying the contrast of adjacent pixels, which provides a sharper and clearer image. It brings a new dimension of clarity, which is particularly useful in detecting subtle elements in images.
+Enhances image detail by intensifying contrast between adjacent pixels.
 
-#### Applications
-- Photo Editing: Enhancing the clarity of images to bring out small details.
-- Object Detection: To improve the detection accuracy by sharpening blurry images.
+Use cases:
+1. Improve clarity of photographs for print or digital display
+2. Enhance details in medical imaging for diagnosis
+3. Sharpen blurry images for better object detection
+4. Refine texture details in product photography
+5. Increase readability of text in scanned documents
 
-**Tags:** 
+**Tags:** image, sharpen, clarity
 
 **Inherits from:** BaseNode
 
@@ -167,14 +176,16 @@ The primary purpose of this node is to enhance the visibility of details in an i
 
 ## Sharpness
 
-The Sharpness Node is used to apply a sharpness filter to images.
-The Sharpness Node adjusts the sharpness level of an image, allowing you to enhance or reduce its sharpness based on a factor you provide. A sharpness factor of 1.0 implies no change to the image's sharpness level.
+Adjusts image sharpness to enhance or reduce detail clarity.
 
-#### Applications
-- Photo editing: Enhance the sharpness of a particular photo to make it more visually appealing.
-- Image processing: It helps in refining images for purposes such as object detection, image recognition etc.
+Use cases:
+1. Enhance photo details for improved visual appeal
+2. Refine images for object detection tasks
+3. Correct slightly blurred images
+4. Prepare images for print or digital display
+5. Adjust sharpness for artistic effect in digital art
 
-**Tags:** 
+**Tags:** image, clarity, sharpness
 
 **Inherits from:** BaseNode
 
@@ -184,13 +195,14 @@ The Sharpness Node adjusts the sharpness level of an image, allowing you to enha
 ## UnsharpMask
 
 The Unsharp Mask Node is responsible for performing the unsharp mask filter on an image.
+
 An unsharp mask is a photographic sharpening technique. This node helps to enhance the sharpness of your image by adjusting the radius, the impact and the threshold of the unsharp mask filter.
 
 #### Applications
 - Photo editing: Sharpens images by emphasizing transitions, such as those defining edges of objects in the image.
 - Digital art creation: Refining and adding crispness to digital artwork.
 
-**Tags:** 
+**Tags:** image, sharpening, enhance
 
 **Inherits from:** BaseNode
 

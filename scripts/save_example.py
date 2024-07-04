@@ -14,7 +14,7 @@ from nodetool.types.workflow import Workflow
 dotenv.load_dotenv()
 
 if len(sys.argv) != 2:
-    print("usage: python scripts/save_workflow.py <workflow id>")
+    print("usage: python scripts/save_example.py <workflow id>")
 
 workflow_id = sys.argv[1]
 

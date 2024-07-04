@@ -2,14 +2,12 @@
 
 ## ConcatAudio
 
-The ConcatAudio Node concatenates two audio files together.
-This node is a tool used to combine two separate audio files into a single, continuous audio file. This can be particularly useful in audio processing workflows where multiple audio snippets need to be joined together in a linear sequence.
+Concatenates two audio files together.
 
-#### Applications
-- Combining voice recordings: If you have two separate voice recordings and you want them to play continuously as if it was one recording, you use this node.
-- Building soundtracks: Sequentially join multiple short music files to create a longer soundtrack.
+- Combine multiple audio clips into a single file
+- Create longer audio tracks from shorter segments
 
-**Tags:** 
+**Tags:** audio, edit, join
 
 **Inherits from:** BaseNode
 
@@ -18,14 +16,12 @@ This node is a tool used to combine two separate audio files into a single, cont
 
 ## NormalizeAudio
 
-This node normalizes the volume of an audio file.
-The Normalize Audio Node specifically helps in adjusting the volume of an audio file to a standard level. This process makes all audio files, irrespective of their original volume, of equal loudness for optimal listening. A key feature of this node is that it maintains the relative dynamic range within an audio file during normalization.
+Normalizes the volume of an audio file.
 
-#### Applications
-- Volume consistency: Ensures that all audio files output at the same volume level.
-- Audio processing: Can be used in audio editing and processing to make sound consistent and balanced.
+- Ensure consistent volume across multiple audio files
+- Adjust overall volume level before further processing
 
-**Tags:** 
+**Tags:** audio, fix, dynamics
 
 **Inherits from:** BaseNode
 
@@ -33,14 +29,12 @@ The Normalize Audio Node specifically helps in adjusting the volume of an audio 
 
 ## OverlayAudio
 
-The OverlayAudioNode is used to overlay two audio files together.
-The OverlayAudioNode is a node which purpose is to combine two audio files into one. This creates an interesting audio effect and can be used for mixing and producing audio. The node takes two audio files as inputs and overlays them, meaning that both audios play simultaneously in the final output.
+Overlays two audio files together.
 
-#### Applications
-- Audio Editing: Overlay two audio tracks to create a new, mixed audio clip.
-- Music Production: Overlap different tracks to produce new musical compositions.
+- Mix background music with voice recording
+- Layer sound effects over an existing audio track
 
-**Tags:** 
+**Tags:** audio, edit, transform
 
 **Inherits from:** BaseNode
 
@@ -50,14 +44,11 @@ The OverlayAudioNode is a node which purpose is to combine two audio files into 
 ## RemoveSilence
 
 Removes silence from an audio file.
-This node is designed to clean up audio files by automatically detecting and removing sections with silence. It is primarily used for enhancing the quality of the audio files and making them more concise.
 
-#### Applications
-- Audio Editing: Remove silent parts to make the audio content more engaging and fluent.
-- Speech Processing: Improve the efficiency of speech recognition systems by removing non-informative silent parts.
-- Podcast Production: Enhance listener experience by eliminating awkward silent pauses.
+- Trim silent parts from beginning/end of recordings
+- Remove long pauses between speech segments
 
-**Tags:** 
+**Tags:** audio, edit, clean
 
 **Inherits from:** BaseNode
 
@@ -65,16 +56,12 @@ This node is designed to clean up audio files by automatically detecting and rem
 
 ## SliceAudio
 
-This node halves an audio file into two audio files.
-The SliceAudioNode is designed to split an audio file from the start to the end time specified in seconds. By setting the desired start and end points, the node processes the input audio file and outputs another generated audio file which contains only the sliced audio.
+Extracts a section of an audio file.
 
-Noteworthy features of this node include its ability to handle various audio file formats and the precision with which it slices the audio files in seconds.
+- Cut out a specific clip from a longer audio file
+- Remove unwanted portions from beginning or end
 
-#### Applications
-- Audio Editing: Conveniently cut out specific sections from an audio file for use in different contexts or merely remove undesired parts.
-- Audio Sampling: Extract particular sections from the entire audio file for creating samples in music production, sound design, etc.
-
-**Tags:** 
+**Tags:** audio, edit, trim
 
 **Inherits from:** BaseNode
 
@@ -83,6 +70,13 @@ Noteworthy features of this node include its ability to handle various audio fil
 - **end**: The end time in seconds. (`float`)
 
 ## Tone
+
+Generates a constant tone signal.
+
+- Create test tones for audio equipment calibration
+- Produce reference pitches for musical applications
+
+**Tags:** audio, generate, sound
 
 **Inherits from:** BaseNode
 

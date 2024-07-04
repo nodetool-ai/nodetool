@@ -12,6 +12,16 @@ class Model(str, Enum):
 
 
 class Classify(BaseNode):
+    """
+    Classify images using pre-trained neural networks.
+    Tags: image, classification, machine learning
+
+    Use cases:
+    - Identify objects in photographs
+    - Categorize product images for e-commerce
+    - Sort and organize large image collections
+    """
+
     model: Model = Field(
         default=Model.RESNET_18, description="The classification model to use"
     )

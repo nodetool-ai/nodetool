@@ -18,14 +18,12 @@ from typing import Literal
 
 class Invert(BaseNode):
     """
-    The Invert Node is a filter node that inverts the colors of an image.
+    Invert the colors of an image.
+    image, filter, invert
 
-    This node is specifically designed to perform a color inversion operation on an image. In simple terms, it changes every color in the image to its exact opposite color on the color wheel, creating a kind of 'negative' of the original image. It's a commonly used filter in image editing and can give unique and interesting results.
-
-    #### Applications
-    - Creating 'negative' versions of images for visual effect or artistic purposes.
-    - Analyzing image data by bringing out details that might be overlooked in the original image.
-    - Preprocessing images for further operations that work better on inverted images.
+    - Create negative versions of images for visual effects
+    - Analyze image data by bringing out hidden details
+    - Preprocess images for operations that work better on inverted colors
     """
 
     image: ImageRef = Field(
@@ -40,13 +38,12 @@ class Invert(BaseNode):
 
 class Solarize(BaseNode):
     """
-    The Solarize Node is a filter node that applies a special solarize effect to an image.
+    Apply a solarize effect to partially invert image tones.
+    image, filter, solarize
 
-    This solarization effect involves reversing the tones of an image, either wholly or partially. It is an artistic technique widely used in photography, which creates a distinctive and eye-catching visual style. The Solarize Node lets you define a threshold, this threshold determines which tones in the image to reverse.
-
-    #### Applications
-    - Creating artistic photo effects: Solarization can produce surreal and abstract images from ordinary photographs.
-    - Enhancing visual data: Solarization can be used to make certain elements within an image more prominent.
+    - Create surreal artistic photo effects
+    - Enhance visual data by making certain elements more prominent
+    - Add a unique style to images for graphic design
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to solarize.")
@@ -62,14 +59,12 @@ class Solarize(BaseNode):
 
 class Posterize(BaseNode):
     """
-    The Posterize Node is used for applying a "posterization" effect to an image.
+    Reduce the number of colors in an image for a poster-like effect.
+    image, filter, posterize
 
-    In short, it simplifies an image's colors by reducing the number of bits per color channel, resulting in a "poster-like" appearance, often used in graphic art and illustration. It could bring a unique, artistic style to your images and emphasize certain elements within the image.
-
-    #### Applications
-    - Graphic Design: Create graphic art by posterizing an image and adding additional design elements.
-    - Photography: Apply artistic effects to photographs to emphasize certain aspects or to change the image's mood.
-    - Advertising: Create compelling visual content for advertisement and promotional campaigns by posterizing images.
+    - Create graphic art by simplifying image colors
+    - Apply artistic effects to photographs
+    - Generate visually compelling content for advertising
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to posterize.")
@@ -85,14 +80,12 @@ class Posterize(BaseNode):
 
 class Fit(BaseNode):
     """
-    The FitNode is a workflow component that resizes an image to fit within a specified size.
+    Resize an image to fit within specified dimensions while preserving aspect ratio.
+    image, resize, fit
 
-    The FitNode is a vital tool in image processing workflows. It takes as input an image and a desired size (width and height) and adjusts the dimensions of the image while maintaining its aspect ratio. This tool ensures that your images fit perfectly into predefined spaces, keeping the integrity and quality of the image content intact.
-
-    #### Applications
-    - Image resizing for online publishing: FitNode ensures your images meet the dimension requirements of different platforms.
-    - Preprocessing for machine learning: Uniform image sizes can aid in the efficiency and accuracy of your algorithms.
-    - Web development: Use FitNode to control and adjust image display sizes on your website.
+    - Resize images for online publishing requirements
+    - Preprocess images to uniform sizes for machine learning
+    - Control image display sizes for web development
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to fit.")
@@ -101,19 +94,18 @@ class Fit(BaseNode):
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
-        res = PIL.ImageOps.fit(image, (self.width, self.height), PIL.Image.LANCZOS)
+        res = PIL.ImageOps.fit(image, (self.width, self.height), PIL.Image.LANCZOS)  # type: ignore
         return await context.image_from_pil(res)
 
 
 class Expand(BaseNode):
     """
-    This node expands images, by adding a border around them.
+    Add a border around an image to increase its size.
+    image, border, expand
 
-    This Expand Node is used to increase the size of an image by adding a specific border size and color. This helps users to differentiate the main content of an image from its surroundings.
-
-    #### Applications
-    - Separating images from surrounding content: You can add a colored border around an image to make it stand out from its environment.
-    - Image framing: The bordered image can serve as a framed photo, making it more appealing.
+    - Make images stand out by adding a colored border
+    - Create framed photo effects
+    - Separate image content from surroundings
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to expand.")
@@ -128,18 +120,16 @@ class Expand(BaseNode):
 
 class Blur(BaseNode):
     """
-    The Blur Node is used to apply a blur effect to an image.
+    Apply a Gaussian blur effect to an image.
+    image, filter, blur
 
-    The purpose of this node is to allow users to modify an image by adding a blur effect, allowing the degree of blur to be precisely controlled. By customizing the blur radius, users can adjust the intensity of the blur effect.
-
-    #### Applications
-    - Image editing: Soften an image or reduce image noise and detail.
-    - Focus manipulation: Make certain areas of an image stand out by blurring the surrounding areas.
-    - Privacy protection: Blur sensitive information in an image.
+    - Soften images or reduce noise and detail
+    - Make focal areas stand out by blurring surroundings
+    - Protect privacy by blurring sensitive information
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to blur.")
-    radius: float = Field(default=2.0, ge=0.0, le=10.0, description="Blur radius.")
+    radius: int = Field(default=2, ge=0, le=10, description="Blur radius.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
@@ -149,17 +139,12 @@ class Blur(BaseNode):
 
 class Contour(BaseNode):
     """
-    This node is essentially an image contour filter.
+    Apply a contour filter to highlight image edges.
+    image, filter, contour
 
-    The Contour Node manipulates an input image by applying a contour filter. This node is designed to highlight the edges in an image, thus producing an outline or contour sketch of the image. It's particularly handy when one needs to identify the broad features of a complex image.
-
-    #### Applications
-    - Image Processing: It can be used to extract and highlight the necessary features from an image and avoid unnecessary details.
-    - Pattern Recognition: It can be used to identify shapes or patterns in images, aiding in computer vision tasks such as object recognition or tracking.
-    - Artistic Effects: It can be used to convert standard images to stylized versions, mimicking contour sketch arts.
-
-    #### Example
-    In a machine vision workflow, use this node to convert input images into their contour sketches. Then these sketches can be connected to other nodes, for instance, a node detecting specific shapes on those images.
+    - Extract key features from complex images
+    - Aid pattern recognition and object detection
+    - Create stylized contour sketch art effects
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to contour.")
@@ -171,14 +156,12 @@ class Contour(BaseNode):
 
 class Emboss(BaseNode):
     """
-    The Emboss Node applies an embossing effect to an image.
+    Apply an emboss filter for a 3D raised effect.
+    image, filter, emboss
 
-    The purpose of this node is to transform any given image by applying an emboss filter which achieves a three-dimensional look, as if the image objects are raised above the background. Embossing adds texture and depth to the image making it more visually stimulating.
-
-    #### Applications
-    - Photo Editing: Use this node to apply artistic effects on photos.
-    - Graphic Design: Apply emboss filter to create visually interesting graphics.
-    - Digital Art: Incorporate in digital artwork for a unique textured effect.
+    - Add texture and depth to photos
+    - Create visually interesting graphics
+    - Incorporate unique effects in digital artwork
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to emboss.")
@@ -190,14 +173,12 @@ class Emboss(BaseNode):
 
 class FindEdges(BaseNode):
     """
-    This node is a "Find Edges" filter. It identifies edges within an image.
+    Detect and highlight edges in an image.
+    image, filter, edges
 
-    The purpose of this node is to highlight areas in an image where significant changes in color or intensity occur, which are often perceived as edges or boundaries. Using this, you can have a clearer understanding of the structural patterns in your image.
-
-    #### Applications
-    - **Image Analysis:** Can be used to analyze and interpret the structures within an image.
-    - **Computer Vision:** Helpful in object detection and recognition tasks, where edge information is crucial.
-    - **Feature Detection:** Used to detect important image features such as corners, ridges, or blobs.
+    - Analyze structural patterns in images
+    - Aid object detection in computer vision
+    - Detect important features like corners and ridges
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to find edges.")
@@ -209,14 +190,12 @@ class FindEdges(BaseNode):
 
 class Smooth(BaseNode):
     """
-    Smooth Node is a computational function designed to smooth images.
+    Apply smoothing to reduce image noise and detail.
+    image, filter, smooth
 
-    The node takes an image as input, applies a smooth filter, and returns the smoothed image as the output. The smoothing process aids in reducing image noise and detail, providing a visually pleasing image. It's a vital step in many image processing tasks such as object detection, facial recognition, and feature extraction.
-
-    #### Applications
-    - Image Editing: You can use Smooth Node to smoothen your images for a better visual aesthetics.
-    - Object Detection: It can help diminish irrelevant image details, thus improving object detection process.
-    - Facial Recognition: The smooth filter can reduce the complexity of the image, making facial recognition more accurate.
+    - Enhance visual aesthetics of images
+    - Improve object detection by reducing irrelevant details
+    - Aid facial recognition by simplifying images
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to smooth.")
@@ -228,17 +207,12 @@ class Smooth(BaseNode):
 
 class Canny(BaseNode):
     """
-    The Canny Node applies the Canny filter to an image.
+    Apply Canny edge detection to an image.
+    image, filter, edges
 
-    The Canny filter, named after its developer John F. Canny, is primarily used for edge detection in an image. Edge detection is the process of identifying points in an image where sharp color changes occur, which often correspond to object boundaries. The Canny filter is recognised for its superior edge detection due to its use of a multi-stage algorithm.
-
-    #### Applications
-    - Detect the edges in photos and pictures to visually highlight areas with rapid intensity changes.
-    - Improve image understanding by outlining the boundaries and structure of the objects in the image.
-    - Enhance machine learning models for tasks like object detection, image recognition and segmentation.
-
-    #### Example
-    To build a workflow, one might connect a 'Load Image' node to the Canny Node. The image to be processed will be loaded from the 'Load Image' node and then passed on to the Canny Node. Once the Canny filter is applied, the resulting image with the highlighted edges can be displayed using a 'Show Image' node.
+    - Highlight areas of rapid intensity change
+    - Outline object boundaries and structure
+    - Enhance inputs for object detection and image segmentation
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to canny.")
@@ -255,13 +229,12 @@ class Canny(BaseNode):
 
 class Scale(BaseNode):
     """
-    The Scale Node let's you enlarge or shrink an image.
+    Enlarge or shrink an image by a scale factor.
+    image, resize, scale
 
-    This node adjusts an image to a size that is a given factor times larger or smaller than the original. Useful when preparing images for display or analysis, it ensures a suitable size while maintaining the original aspect ratio.
-
-    #### Applications
-    - Image processing: Use this node to adjust the dimensions of images in a photo gallery.
-    - Data preprocessing: In machine learning, this node can standardize images to a consistent size before feeding them to an algorithm.
+    - Adjust image dimensions for display galleries
+    - Standardize image sizes for machine learning datasets
+    - Create thumbnail versions of images
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to scale.")
@@ -277,13 +250,12 @@ class Scale(BaseNode):
 
 class Resize(BaseNode):
     """
-    The Resize Node is a tool that modifies the size of an image.
+    Change image dimensions to specified width and height.
+    image, resize
 
-    The purpose of this node is to change the width and height of an image to desired dimensions. The notable feature of this node is the use of the high-quality PIL.Image.LANCZOS filter for resizing, which helps in maintaining the quality of the image.
-
-    #### Applications
-    - Preprocessing images for machine learning models: Changing the size of images to fit the input size requirement of the model.
-    - Image optimization for the web: Reducing the size of an image to improve the load time of a webpage.
+    - Preprocess images for machine learning model inputs
+    - Optimize images for faster web page loading
+    - Create uniform image sizes for layouts
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to resize.")
@@ -292,20 +264,18 @@ class Resize(BaseNode):
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
-        res = image.resize((self.width, self.height), PIL.Image.LANCZOS)
+        res = image.resize((self.width, self.height), PIL.Image.LANCZOS)  # type: ignore
         return await context.image_from_pil(res)
 
 
 class Crop(BaseNode):
     """
-    The Crop Node is used to trim an image.
+    Crop an image to specified coordinates.
+    image, crop
 
-    This node is specifically designed to crop or cut out a section of an image based on specified coordinates. You can indicate the left, top, right, and bottom boundaries for the crop. This becomes useful when you need to focus on a specific area of an image or remove unwanted sections.
-
-    #### Applications
-    - Cropping out unwanted image borders.
-    - Focus on a particular subject within an image.
-    - Remove distractions from an image to simplify it.
+    - Remove unwanted borders from images
+    - Focus on particular subjects within an image
+    - Simplify images by removing distractions
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to crop.")
@@ -324,14 +294,12 @@ class Crop(BaseNode):
 
 class ConvertToGrayscale(BaseNode):
     """
-    This node converts an image to grayscale.
+    Convert an image to grayscale.
+    image, grayscale
 
-    The Convert to Grayscale Node is used to transform a colored image into shades of grey. The purpose of this node is to simplify the image contents, highlighting the contrasts and shapes in the image, instead of colors.
-
-    #### Applications
-    - **Image processing**: Altering the color of an image into grayscale often helps in different image processing tasks like feature detection and edge detection.
-    - **Machine learning**: Grayscale images simplify machine learning tasks by focusing on shape recognition rather than color.
-    - **Design and Art**: Grayscale conversion is often used in design and art to give a vintage or monochrome aesthetic to images.
+    - Simplify images for feature and edge detection
+    - Prepare images for shape-based machine learning
+    - Create vintage or monochrome aesthetic effects
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to convert.")
@@ -343,14 +311,13 @@ class ConvertToGrayscale(BaseNode):
 
 class GetChannel(BaseNode):
     """
-    This node is useful for extracting a specific color channel from an image.
+    Extract a specific color channel from an image.
 
-    The Get Channel Node is purposed for fetching a particular color channel ('red', 'green', or 'blue') from an input image. This node enables isolating the user-specified colour information, which is significant in different image processing scenarios such as enhancing image visibility, filtering colors, and improving image analyses.
+    #image #color
 
-    #### Applications
-    - **Image Analysis**: Extracting color channels can be useful in scenarios where particular color information is needed for image analysis.
-    - **Graphic Design**: Graphic designers can use this node to isolate and manipulate specific color components in an image.
-    - **Image Enhancements**: By isolating a certain color channel, one can enhance or decrease the visibility of certain color components in an image.
+    - Isolate color information for image analysis
+    - Manipulate specific color components in graphic design
+    - Enhance or reduce visibility of certain colors
     """
 
     class ChannelEnum(str, Enum):

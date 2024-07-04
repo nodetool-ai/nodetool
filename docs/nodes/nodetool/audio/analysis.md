@@ -3,11 +3,12 @@
 ## AmplitudeToDB
 
 Converts an amplitude spectrogram to a dB-scaled spectrogram.
-#### Applications
-- Audio Analysis: By converting to dB scale, it accentuates the variances in the data making it easier to analyze the audio signal.
-- Audio Classification: When classifying audio signals, converting to dB scale can help distinguish between different classes by amplifying subtle details.
 
-**Tags:** 
+This node is useful for:
+- Compressing the dynamic range of spectrograms for visualization
+- Preparing input for audio models that expect dB-scaled data
+
+**Tags:** audio, analysis, spectrogram
 
 **Inherits from:** BaseNode
 
@@ -16,12 +17,9 @@ Converts an amplitude spectrogram to a dB-scaled spectrogram.
 ## ChromaSTFT
 
 This node creates a chromagram from a waveform or power spectrogram to identify different pitch classes in an audio signal.
-#### Applications
-- Chord recognition in music: Helps in identifying the chords used in a piece of music.
-- Music genre classification: Assists in distinguishing the genre of a piece based on the unique pitch classes used.
-
-#### Notes
-- Parameters 'n_fft' and 'hop_length' control the resolution of the chromagram. A higher 'n_fft' or lower 'hop_length' increases frequency resolution, but decreases time resolution, and vice versa.
+Applications:
+- Chord recognition in music
+- Music genre classification based on pitch content
 
 **Tags:** 
 
@@ -34,9 +32,9 @@ This node creates a chromagram from a waveform or power spectrogram to identify 
 ## DBToAmplitude
 
 The DBToAmplitude node Converts a dB-scaled spectrogram to an amplitude spectrogram.
-#### Applications
-- Audio processing: Converting transformed audio data back to its original amplitude scale is crucial for further data processing or synthesis.
-- Noise reduction: If you've used a dB conversion for visualization or noise reduction purposes, this node can convert the data back to its original state.
+Useful for:
+- Reversing dB scaling before audio synthesis
+- Preparing data for models that expect linear amplitude scaling
 
 **Tags:** 
 
@@ -48,6 +46,12 @@ The DBToAmplitude node Converts a dB-scaled spectrogram to an amplitude spectrog
 
 This node converts a decibel (dB) spectrogram back to power scale.
 
+Useful for:
+- Reversing dB scaling for audio synthesis
+- Preparing data for models that expect power-scaled data
+
+**Tags:** audio, analysis, spectrogram
+
 **Inherits from:** BaseNode
 
 - **tensor**: The tensor containing the decibel spectrogram. (`Tensor`)
@@ -55,11 +59,12 @@ This node converts a decibel (dB) spectrogram back to power scale.
 ## GriffinLim
 
 GriffinLim Node performs phase reconstruction on a magnitude spectrogram utilizing the Griffin-Lim algorithm.
-#### Applications
-- Reconstructing audio signals from given spectrograms.
-- Restoring time-related elements in audio processing pipelines.
 
-**Tags:** 
+Applications:
+- Audio synthesis from spectrograms
+- Phase reconstruction in audio processing pipelines
+
+**Tags:** audio, synthesis, phase reconstruction
 
 **Inherits from:** BaseNode
 
@@ -88,6 +93,12 @@ MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio
 
 MelSpecNode computes the Mel-frequency spectrogram for an audio signal.
 
+Useful for:
+- Audio feature extraction for machine learning
+- Speech and music analysis tasks
+
+**Tags:** audio, analysis, spectrogram
+
 **Inherits from:** BaseNode
 
 - **audio**: The audio file to convert to a tensor. (`AudioRef`)
@@ -115,11 +126,6 @@ The PlotSpectrogram node generates a visual representation of the spectrum of fr
 ## PowertToDB
 
 Converts a power spectrogram to decibel (dB) scale.
-#### Applications
-- Audio Signal Processing: The inputted power spectrogram is processed to convert it into a decibel scale which is utilised further.
-- Audio Visualization: The decibel-scaled spectrogram is a better fit for visualizations due to its reduced skewness.
-
-**Tags:** 
 
 **Inherits from:** BaseNode
 
