@@ -63,7 +63,7 @@ def make_grid(
     return tiles, cols, rows
 
 
-def in_groups_of(items: list, group_size: int, fill_value=None) -> list[list[any]]:
+def in_groups_of(items: list, group_size: int, fill_value=None) -> list[list[Any]]:
     """
     Split a list into groups of the given size.
 
@@ -83,7 +83,7 @@ def in_groups_of(items: list, group_size: int, fill_value=None) -> list[list[any
     return groups
 
 
-def flatten(items: list[list[any]]) -> list[any]:
+def flatten(items: list[list[Any]]) -> list[Any]:
     """
     Flatten a list of lists into a single list.
     """
