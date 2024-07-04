@@ -10,6 +10,8 @@ __pycache__
 *.torchscript
 *.ckpt
 *.gguf
+*.pt
+*.pth
 *.safetensors
 build/
 data/
