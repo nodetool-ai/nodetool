@@ -82,6 +82,10 @@ class AssetCreateRequest(BaseModel):
     duration: float | None = None
 
 
+class AssetDownloadRequest(BaseModel):
+    asset_ids: list[str]
+
+
 class AssetList(BaseModel):
     next: str | None
     assets: list[Asset]
