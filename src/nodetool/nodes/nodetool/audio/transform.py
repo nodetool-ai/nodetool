@@ -66,22 +66,40 @@ class OverlayAudio(BaseNode):
 
 class RemoveSilence(BaseNode):
     """
-    Removes silence from an audio file.
+    Removes or shortens silence in an audio file with smooth transitions.
     audio, edit, clean
 
     - Trim silent parts from beginning/end of recordings
-    - Remove long pauses between speech segments
+    - Remove or shorten long pauses between speech segments
+    - Apply crossfade for smooth transitions
     """
 
     audio: AudioRef = Field(
-        default=AudioRef(), description="The audio file to remove silence from."
+        default=AudioRef(), description="The audio file to process."
+    )
+    min_length: int = Field(
+        default=200, description="Minimum length of silence to be processed (in milliseconds).", ge=0, le=10000
+    )
+    threshold: int = Field(
+        default=-40, description="Silence threshold in dBFS (negative integer). Higher values detect more silence.", ge=-60.0, le=0
+    )
+    reduction_factor: float = Field(
+        default=1.0, description="Factor to reduce silent parts (0.0 to 1.0). 0.0 keeps silence as is, 1.0 removes it completely.", ge=0.0, le=1.0
+    )
+    crossfade: int = Field(
+        default=10, description="Duration of crossfade in milliseconds to apply between segments for smooth transitions.", ge=0, le=50
+    )
+    min_silence_between_parts: int = Field(
+        default=100, description="Minimum silence duration in milliseconds to maintain between non-silent segments", ge=0, le=500
     )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         from .audio_helpers import remove_silence
 
         audio = await context.audio_to_audio_segment(self.audio)
-        res = remove_silence(audio)
+        res = remove_silence(audio, min_length=self.min_length, threshold=self.threshold, 
+                             reduction_factor=self.reduction_factor, crossfade=self.crossfade, 
+                             min_silence_between_parts=self.min_silence_between_parts)
         return await context.audio_from_segment(res)
 
 

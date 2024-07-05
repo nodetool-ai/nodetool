@@ -27,11 +27,16 @@ class OverlayAudio(GraphNode):
 
 
 
+# class RemoveSilence(GraphNode):
+#     audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to remove silence from.')
+#     @classmethod
+#     def get_node_type(cls): return "nodetool.audio.transform.RemoveSilence"
 class RemoveSilence(GraphNode):
     audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to remove silence from.')
+    min_silence_len: int = Field(default=100, description='Minimum length of silence to be removed (in milliseconds).')
+    silence_thresh: float = Field(default=-32, description='Silence threshold in dB.')
     @classmethod
     def get_node_type(cls): return "nodetool.audio.transform.RemoveSilence"
-
 
 
 class SliceAudio(GraphNode):

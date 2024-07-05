@@ -7,7 +7,6 @@ from typing import List, Tuple, cast
 from pydub.silence import detect_nonsilent
 from pydub.silence import split_on_silence
 
-
 def convert_to_float(audio_data: np.ndarray):
     """
     Converts audio data from integer format to float format.
@@ -88,21 +87,119 @@ def concatenate_audios(audios: List[AudioSegment]) -> AudioSegment:
     return concatenated_audio
 
 
-def remove_silence(audio: AudioSegment) -> AudioSegment:
+# def remove_silence(audio: AudioSegment) -> AudioSegment:
+#     """
+#     Remove silence from an audio segment.
+#     This is done by detecting nonsilent ranges and concatenating them.
+
+#     Args:
+#         audio (AudioSegment): The audio to remove silence from.
+
+#     Returns:
+#         AudioSegment: The audio with silence removed.
+#     """
+#     nonsilent_ranges = detect_nonsilent(audio, min_silence_len=100, silence_thresh=-32)
+#     return concatenate_audios(
+#         [cast(AudioSegment, audio[start:end]) for start, end in nonsilent_ranges]
+#     )
+
+# def remove_silence(audio: AudioSegment, min_silence_len: int = 100, silence_thresh: int = -32) -> AudioSegment:
+#     """
+#     Remove silence from an audio segment.
+#     This is done by detecting nonsilent ranges and concatenating them.
+
+#     Args:
+#         audio (AudioSegment): The audio to remove silence from.
+#         min_silence_len (int): Minimum length of silence to be removed (in milliseconds).
+#         silence_thresh (float): Silence threshold in dB.
+
+#     Returns:
+#         AudioSegment: The audio with silence removed.
+#     """
+#     nonsilent_ranges = detect_nonsilent(audio, min_silence_len=min_silence_len, silence_thresh=silence_thresh)
+#     return concatenate_audios(
+#         [cast(AudioSegment, audio[start:end]) for start, end in nonsilent_ranges]
+#     )
+
+# def remove_silence(audio: AudioSegment, min_silence_len: int = 100, silence_thresh: int = -32) -> AudioSegment:
+#     """
+#     Remove silence from an audio segment.
+#     This is done by detecting nonsilent ranges and concatenating them.
+
+#     Args:
+#         audio (AudioSegment): The audio to remove silence from.
+#         min_silence_len (int): Minimum length of silence to be removed (in milliseconds).
+#         silence_thresh (int): Silence threshold in dB.
+
+#     Returns:
+#         AudioSegment: The audio with silence removed.
+#     """
+#     nonsilent_ranges = detect_nonsilent(audio, min_silence_len=min_silence_len, silence_thresh=silence_thresh)
+#     return concatenate_audios(
+#         [cast(AudioSegment, audio[start:end]) for start, end in nonsilent_ranges]
+#     )
+
+
+
+def remove_silence(audio: AudioSegment, min_length: int = 100, threshold: int = -32, reduction_factor: float = 1.0, crossfade: int = 10, min_silence_between_parts: int = 100) -> AudioSegment:
     """
-    Remove silence from an audio segment.
-    This is done by detecting nonsilent ranges and concatenating them.
+    Remove or shorten silence from an audio segment with crossfade to avoid clipping.
 
     Args:
-        audio (AudioSegment): The audio to remove silence from.
+        audio (AudioSegment): The audio to process.
+        min_length (int): Minimum length of silence to be processed (in milliseconds).
+        threshold (int): Silence threshold in dBFS (negative integer).
+        reduction_factor (float): Factor to reduce silent parts (0.0 to 1.0).
+                                          0.0 keeps silence as is, 1.0 removes it completely.
+        crossfade (int): Duration of crossfade in milliseconds to apply between segments.
+        min_silence_between_parts (int): Minimum silence duration to maintain between non-silent segments.
 
     Returns:
-        AudioSegment: The audio with silence removed.
+        AudioSegment: The processed audio.
     """
-    nonsilent_ranges = detect_nonsilent(audio, min_silence_len=100, silence_thresh=-32)
-    return concatenate_audios(
-        [cast(AudioSegment, audio[start:end]) for start, end in nonsilent_ranges]
-    )
+    nonsilent_ranges = detect_nonsilent(audio, min_silence_len=min_length, silence_thresh=threshold)
+    
+    if not isinstance(nonsilent_ranges, list):
+        nonsilent_ranges = list(nonsilent_ranges)
+
+    if len(nonsilent_ranges) == 0:
+        return AudioSegment.silent(duration=0)
+
+    result = AudioSegment.empty()
+    prev_end = 0
+
+    for start, end in nonsilent_ranges:
+        # Process the silent part before this non-silent range
+        silence_duration = start - prev_end
+        if silence_duration > 0:
+            reduced_silence = max(silence_duration * (1 - reduction_factor), min_silence_between_parts)
+            silence_segment = audio[prev_end:prev_end + int(reduced_silence)]
+            silence_segment = cast(AudioSegment, silence_segment)
+            
+            if len(result) > 0:
+                result = result.append(silence_segment, crossfade=min(crossfade, len(silence_segment)))
+            else:
+                result += silence_segment
+
+        # Add the non-silent part
+        non_silent_segment = audio[start:end]
+        non_silent_segment = cast(AudioSegment, non_silent_segment)
+        if len(result) > 0:
+            result = result.append(non_silent_segment, crossfade=min(crossfade, len(non_silent_segment)))
+        else:
+            result += non_silent_segment
+
+        prev_end = end
+
+    # Process any silence at the end
+    if prev_end < len(audio):
+        silence_duration = len(audio) - prev_end
+        reduced_silence = max(silence_duration * (1 - reduction_factor), min_silence_between_parts)
+        final_silence = audio[prev_end:prev_end + int(reduced_silence)]
+        final_silence = cast(AudioSegment, final_silence)
+        result = result.append(final_silence, crossfade=min(crossfade, len(final_silence)))
+
+    return result
 
 
 def segment_audio(audio: AudioSegment) -> List[AudioSegment]:

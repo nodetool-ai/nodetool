@@ -53,6 +53,11 @@ Removes silence from an audio file.
 **Inherits from:** BaseNode
 
 - **audio**: The audio file to remove silence from. (`AudioRef`)
+- **min_length**: Minimum length of silence to be removed (in milliseconds). (`int`, default: 100)
+- **threshold**: Silence threshold in dB. (`float`, default: -32)
+- **reduction_factor**: Factor to reduce silent parts (0.0 to 1.0). (`float`, default: 1.0)
+- **crossfade**: Duration of crossfade in milliseconds to apply between segments for smooth transitions. (`int`, default: 10)
+- **min_silence_between_parts**: Minimum silence duration in milliseconds to maintain between non-silent segments. (`int`, default: 100)
 
 ## SliceAudio
 
@@ -84,4 +89,3 @@ Generates a constant tone signal.
 - **sampling_rate**: Sampling rate. (`int`)
 - **duration**: Duration of the tone in seconds. (`float`)
 - **phi**: Initial phase of the waveform in radians. (`float`)
-
