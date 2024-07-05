@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from typing import NamedTuple
+from typing import NamedTuple, Any
 
 import PIL.Image
 
