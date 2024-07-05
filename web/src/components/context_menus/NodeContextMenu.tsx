@@ -28,6 +28,7 @@ import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { devLog } from "../../utils/DevLog";
 import { useMetadata } from "../../serverState/useMetadata";
+import { isUrlAccessible } from "../../utils/isUrlAccessible";
 
 const NodeContextMenu: React.FC = () => {
   const { openMenuType, menuPosition, closeContextMenu, nodeId } =
@@ -118,6 +119,37 @@ const NodeContextMenu: React.FC = () => {
     toggleCollapse(checked);
   };
 
+  const handleOpenDocumentation = async () => {
+    if (node) {
+      const { type } = node;
+      const { namespace, title } = metadata || {};
+      if (namespace && title) {
+        const formattedNamespace = namespace.replace(/\./g, "/");
+        const formattedTitle = title.replace(/\s+/g, "").toLowerCase();
+        const documentationUrl = `https://nodetool-ai.github.io/nodetool/nodes/${formattedNamespace}.html#${formattedTitle}`;
+
+        const urlAccessible = await isUrlAccessible(documentationUrl);
+        if (urlAccessible) {
+          window.open(documentationUrl, "_blank");
+        } else {
+          addNotification({
+            type: "error",
+            alert: true,
+            timeout: 10000,
+            dismissable: true,
+            content: `Documentation page not found: ${documentationUrl}`
+          });
+        }
+      } else {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `No documentation found for node type: ${type}`
+        });
+      }
+    }
+  };
+
   if (openMenuType !== "node-context-menu" || !menuPosition) {
     return null;
   }
@@ -175,6 +207,12 @@ const NodeContextMenu: React.FC = () => {
         label="Copy NodeData"
         IconComponent={<DataArrayIcon />}
         tooltip="Copy node metadata to the clipboard"
+      />
+      <ContextMenuItem
+        onClick={handleOpenDocumentation}
+        label="Documentation"
+        IconComponent={<DataArrayIcon />}
+        tooltip="Open documentation for this node"
       />
 
       <Divider />
