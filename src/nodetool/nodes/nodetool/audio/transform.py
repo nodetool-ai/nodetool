@@ -81,7 +81,7 @@ class RemoveSilence(BaseNode):
         default=200, description="Minimum length of silence to be processed (in milliseconds).", ge=0, le=10000
     )
     threshold: int = Field(
-        default=-40, description="Silence threshold in dBFS (negative integer). Higher values detect more silence.", ge=-60.0, le=0
+        default=-40, description="Silence threshold in dB (relative to full scale). Higher values detect more silence.", ge=-60.0, le=0
     )
     reduction_factor: float = Field(
         default=1.0, description="Factor to reduce silent parts (0.0 to 1.0). 0.0 keeps silence as is, 1.0 removes it completely.", ge=0.0, le=1.0
