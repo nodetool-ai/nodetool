@@ -5,11 +5,14 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 
-class Model(str, Enum):
-    MXBAI = "mixedbread-ai/mxbai-rerank-large-v1"
-
-
 class Rerank(BaseNode):
+    """
+    This node reranks a list of answers based on a question using a transformer-based model.
+    """
+
+    class Model(str, Enum):
+        MXBAI = "mixedbread-ai/mxbai-rerank-large-v1"
+
     model: Model = Field(default=Model.MXBAI, description="The reranking model to use")
     query: str = Field(default="", description="The question to rerank")
     documents: list[str] = Field(

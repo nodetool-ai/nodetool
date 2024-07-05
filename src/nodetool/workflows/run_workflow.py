@@ -1,5 +1,5 @@
 from queue import Queue
-from nodetool.api.types.job import JobUpdate
+from nodetool.types.job import JobUpdate
 from nodetool.common.environment import Environment
 from nodetool.models.job import Job
 from nodetool.workflows.run_job_request import RunJobRequest

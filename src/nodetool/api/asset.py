@@ -5,7 +5,7 @@ from io import BytesIO
 import re
 from uuid import uuid4
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
-from nodetool.api.types.asset import (
+from nodetool.types.asset import (
     Asset,
     AssetCreateRequest,
     AssetList,

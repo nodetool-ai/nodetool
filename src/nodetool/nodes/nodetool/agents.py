@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 from typing import Any, Sequence
 from pydantic import Field
-from nodetool.api.types.chat import (
+from nodetool.types.chat import (
     MessageCreateRequest,
     TaskCreateRequest,
 )

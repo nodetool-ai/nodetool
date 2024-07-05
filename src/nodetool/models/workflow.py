@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 from typing import Any, Optional
-from nodetool.api.types.graph import Graph as APIGraph
+from nodetool.types.graph import Graph as APIGraph
 from nodetool.workflows.graph import Graph
 from nodetool.workflows.base_node import BaseNode
 

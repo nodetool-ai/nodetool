@@ -1,4 +1,4 @@
-from nodetool.api.types.graph import Node
+from nodetool.types.graph import Node
 from nodetool.nodes.comfy.conditioning import CLIPTextEncode
 from nodetool.nodes.comfy.image import SaveImage
 from nodetool.nodes.comfy.latent import EmptyLatentImage, VAEDecode

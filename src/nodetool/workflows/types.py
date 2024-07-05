@@ -3,8 +3,8 @@ from pydantic import BaseModel
 
 from typing import Any, Literal
 
-from nodetool.api.types.job import JobUpdate
-from nodetool.api.types.prediction import Prediction
+from nodetool.types.job import JobUpdate
+from nodetool.types.prediction import Prediction
 
 
 class NodeUpdate(BaseModel):

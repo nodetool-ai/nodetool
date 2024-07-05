@@ -1,7 +1,6 @@
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
 import { create, useStore } from "zustand";
-import { persist } from "zustand/middleware";
 import { NodeMetadata, OutputSlot, Property, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import {
@@ -56,7 +55,8 @@ export function graphNodeToReactFlowNode(
     id: node.id,
     parentId: node.parent_id || undefined,
     dragHandle: ".node-header",
-    selectable: ui_properties?.selectable,
+    selectable:
+      node.type == "nodetool.group.Loop" ? false : ui_properties?.selectable,
     data: {
       properties: node.data || {},
       selectable: ui_properties?.selectable,

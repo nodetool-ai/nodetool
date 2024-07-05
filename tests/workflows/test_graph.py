@@ -1,5 +1,5 @@
 import pytest
-from nodetool.api.types.graph import Edge
+from nodetool.types.graph import Edge
 from nodetool.nodes.nodetool.group import Loop
 from nodetool.nodes.nodetool.math import Multiply
 from nodetool.workflows.base_node import GroupNode
@@ -13,7 +13,7 @@ from nodetool.workflows.graph import Graph
 from nodetool.workflows.base_node import (
     BaseNode,
 )
-from nodetool.api.types.graph import Edge
+from nodetool.types.graph import Edge
 from nodetool.workflows.graph import GroupNode, BaseNode, Edge
 
 

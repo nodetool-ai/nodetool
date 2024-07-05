@@ -1,0 +1,131 @@
+{
+  "id": "6526a4d229c411ef80b30000314d6883",
+  "access": "private",
+  "created_at": "2024-06-13T22:34:55.916536",
+  "updated_at": "2024-07-04T22:26:27.089687",
+  "name": "Random Image",
+  "description": "Generate random images using Stable Diffusion XL",
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "openai.text.GPT",
+        "data": {
+          "model": "gpt-4o",
+          "system": "You are a friendly assistant.",
+          "prompt": "write a random prompt",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "temperature": 1,
+          "max_tokens": 100,
+          "top_p": 1,
+          "response_format": "text"
+        },
+        "ui_properties": {
+          "selected": true,
+          "position": {
+            "x": 39,
+            "y": 134
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "replicate.image.generate.StableDiffusionXL",
+        "data": {
+          "mask": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "seed": null,
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "width": 1024,
+          "height": 1024,
+          "refine": "no_refiner",
+          "scheduler": "K_EULER",
+          "lora_scale": 0.6,
+          "num_outputs": 1,
+          "refine_steps": null,
+          "guidance_scale": 7.5,
+          "apply_watermark": true,
+          "high_noise_frac": 0.8,
+          "negative_prompt": "",
+          "prompt_strength": 0.8,
+          "replicate_weights": null,
+          "num_inference_steps": 50,
+          "disable_safety_checker": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 215,
+            "y": 76
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 368,
+            "y": 112
+          },
+          "zIndex": 0,
+          "width": 423,
+          "height": 439,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "2",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "1",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}

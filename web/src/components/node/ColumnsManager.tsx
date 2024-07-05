@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { devWarn } from "../../utils/DevLog";
+import { ColumnDef } from "../../stores/ApiTypes";
 
 const styles = (theme: any) =>
   css({
@@ -30,11 +31,16 @@ const styles = (theme: any) =>
       padding: "0",
       margin: "0"
     },
-    ".label-left": {
-      flexGrow: 1
+    ".label-name": {
+      flexGrow: 1,
+      width: "35%"
     },
-    ".label-right": {
-      width: "35%",
+    ".label-description": {
+      flexGrow: 1,
+      width: "35%"
+    },
+    ".label-datatype": {
+      width: "30%",
       flexGrow: 0
     },
     ".column": {
@@ -46,12 +52,17 @@ const styles = (theme: any) =>
       margin: "0",
       width: "100%"
     },
-    ".item-left": {
-      flexGrow: 1
+    ".item-name": {
+      flexGrow: 1,
+      width: "35%"
     },
-    ".item-right": {
+    ".item-description": {
+      flexGrow: 1,
+      width: "35%"
+    },
+    ".item-datatype": {
       flexGrow: 0,
-      width: "35%",
+      width: "30%",
       display: "flex",
       flexDirection: "row",
       gap: "0.5em",
@@ -104,10 +115,6 @@ const styles = (theme: any) =>
     }
   });
 
-interface ColumnDef {
-  name: string;
-  data_type: "string" | "float" | "int" | "datetime";
-}
 
 interface ColumnsManagerProps {
   columns: ColumnDef[];
@@ -125,6 +132,7 @@ const Column = memo(
     inputRef,
     handleNameChange,
     handleDataTypeChange,
+    handleDescriptionChange,
     removeColumn,
     validDataTypes
   }: {
@@ -133,11 +141,12 @@ const Column = memo(
     inputRef: (el: HTMLInputElement | null) => void;
     handleNameChange: (index: number, newName: string) => void;
     handleDataTypeChange: (index: number, newType: string) => void;
+    handleDescriptionChange: (index: number, newDescription: string) => void;
     removeColumn: (index: number) => void;
     validDataTypes: string[];
   }) => (
     <div className="column" key={field.name + index}>
-      <div className="item-left">
+      <div className="item-name">
         <TextField
           inputRef={inputRef}
           className="textfield"
@@ -146,8 +155,13 @@ const Column = memo(
           onChange={(e) => handleNameChange(index, e.target.value)}
         />
       </div>
+      <div className="item-description">
+        <TextField
+          className="textfield" margin="dense" value={field.description}
+          onChange={(e) => handleDescriptionChange(index, e.target.value)} />
+      </div>
 
-      <div className="item-right">
+      <div className="item-datatype">
         <Select
           labelId={`${field}-${index}-type`}
           value={field.data_type}
@@ -172,7 +186,8 @@ const Column = memo(
             </MenuItem>
           ))}
         </Select>
-        <Button className="delete" onClick={() => removeColumn(index)}>
+
+        < Button className="delete" onClick={() => removeColumn(index)}>
           <CloseIcon />
         </Button>
       </div>
@@ -226,6 +241,15 @@ const ColumnsManager = ({
 
   const validDataTypes = ["string", "float", "int", "datetime"];
 
+  const handleDescriptionChange = (index: number, newDescription: string) => {
+    const newColumns = localColumns.map((col, i) =>
+      i === index ? { ...col, description: newDescription } : col
+    );
+
+    setLocalColumns(newColumns);
+    onChange(newColumns, allData);
+  }
+
   const handleDataTypeChange = (index: number, newType: string) => {
     if (!validDataTypes.includes(newType)) {
       return;
@@ -260,8 +284,9 @@ const ColumnsManager = ({
   return (
     <Grid container spacing={0} css={styles}>
       <div className="labels">
-        <InputLabel className="label-left">Column Name</InputLabel>
-        <InputLabel className="label-right">Data Type</InputLabel>
+        <InputLabel className="label-name">Name</InputLabel>
+        <InputLabel className="label-description">Description</InputLabel>
+        <InputLabel className="label-datatype">Data Type</InputLabel>
       </div>
       {localColumns.map((field, index) => (
         <Column
@@ -271,6 +296,7 @@ const ColumnsManager = ({
           inputRef={(el) => (inputRefs.current[index] = el)}
           handleNameChange={handleNameChange}
           handleDataTypeChange={handleDataTypeChange}
+          handleDescriptionChange={handleDescriptionChange}
           removeColumn={removeColumn}
           validDataTypes={validDataTypes}
         />

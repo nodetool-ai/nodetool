@@ -1,4 +1,4 @@
-from nodetool.api.types.graph import Edge
+from nodetool.types.graph import Edge
 from nodetool.dsl.graph import GraphNode
 from nodetool.workflows.base_node import BaseNode, get_node_class
 

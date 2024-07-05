@@ -1,7 +1,7 @@
 from enum import Enum
 from nodetool.metadata.types import NameToType
 
-from nodetool.metadata.types import TypeMetadata
+from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.metadata.types import Tensor
 from typing import Any
 

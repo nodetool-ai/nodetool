@@ -2,7 +2,7 @@ from nodetool.metadata.types import OutputSlot
 from nodetool.workflows.base_node import BaseNode, type_metadata
 from nodetool.workflows.property import Property
 from nodetool.workflows.read_graph import read_graph
-from nodetool.api.types.graph import Graph as APIGraph
+from nodetool.types.graph import Graph as APIGraph
 import json
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.run_job_request import RunJobRequest

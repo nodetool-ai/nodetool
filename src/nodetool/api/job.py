@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from nodetool.api.utils import current_user, User
 
-from nodetool.api.types.job import (
+from nodetool.types.job import (
     Job,
     JobList,
     JobUpdate,
@@ -18,7 +18,7 @@ from nodetool.common.environment import Environment
 from nodetool.models.job import Job as JobModel
 from nodetool.models.workflow import Workflow
 from nodetool.models.prediction import Prediction
-from nodetool.api.types.prediction import Prediction as APIPrediction
+from nodetool.types.prediction import Prediction as APIPrediction
 from nodetool.workflows.types import Error
 
 

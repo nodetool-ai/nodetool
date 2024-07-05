@@ -6,7 +6,7 @@ from functools import lru_cache
 
 from pydantic import BaseModel
 
-from nodetool.api.types.job import JobUpdate, JobCancelledException
+from nodetool.types.job import JobUpdate, JobCancelledException
 from nodetool.nodes.nodetool.input import GroupInput
 from nodetool.workflows.base_node import GroupNode, BaseNode
 from nodetool.workflows.types import NodeProgress, NodeUpdate

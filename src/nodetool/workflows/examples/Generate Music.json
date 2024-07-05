@@ -1,0 +1,155 @@
+{
+  "id": "35c9bf4a054211ef97480000712a996d",
+  "access": "private",
+  "created_at": "2024-04-28T11:32:20.017294",
+  "updated_at": "2024-07-04T22:28:36.440403",
+  "name": "Generate Music",
+  "description": "",
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "replicate.audio.generate.MusicGen",
+        "data": {
+          "seed": null,
+          "top_k": 250,
+          "top_p": 0,
+          "prompt": null,
+          "duration": 8,
+          "input_audio": null,
+          "temperature": 1,
+          "continuation": false,
+          "model_version": "stereo-melody-large",
+          "output_format": "wav",
+          "continuation_end": null,
+          "continuation_start": 0,
+          "multi_band_diffusion": false,
+          "normalization_strategy": "loudness",
+          "classifier_free_guidance": 3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 200,
+            "y": 0
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.output.AudioOutput",
+        "data": {
+          "label": "Output Label",
+          "name": "audio",
+          "description": "",
+          "value": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 386,
+            "y": 86
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "openai.text.GPT",
+        "data": {
+          "model": "gpt-4o",
+          "system": "You are a friendly assistant.",
+          "prompt": "Write a prompt for a music trackl",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "presence_penalty": 0,
+          "frequency_penalty": 0,
+          "temperature": 1,
+          "max_tokens": 100,
+          "top_p": 1
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 13,
+            "y": 31
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "6b765409-fda1-4051-beab-7d3d321120a2",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "input_audio",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "audio": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "The label for this output node."
+          },
+          "name": {
+            "type": "string",
+            "description": "The parameter name for the workflow."
+          },
+          "description": {
+            "type": "string",
+            "description": "The description for this output node."
+          },
+          "value": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            },
+            "description": null
+          }
+        }
+      }
+    }
+  }
+}

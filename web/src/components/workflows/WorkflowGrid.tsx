@@ -273,7 +273,8 @@ const WorkflowGrid = () => {
       shiftKeyPressed,
       controlKeyPressed,
       settings.workflowOrder,
-      selectedWorkflows
+      selectedWorkflows,
+      workflowCategory
     ]
   );
 

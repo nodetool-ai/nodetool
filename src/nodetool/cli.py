@@ -99,7 +99,7 @@ def run(workflow_file: str):
     from nodetool.workflows.run_workflow import run_workflow
     from nodetool.workflows.run_job_request import RunJobRequest
     from nodetool.workflows.read_graph import read_graph
-    from nodetool.api.types.graph import Graph
+    from nodetool.types.graph import Graph
     import json
 
     click.echo(f"Running workflow from {workflow_file}.")

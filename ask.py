@@ -28,13 +28,15 @@ Note: You need to have the `ANTHROPIC_API_KEY` environment variable set.
 dotenv.load_dotenv()
 
 
-def get_files(path: str, extensions: list[str] = [".py", ".js", ".ts", ".jsx", ".tsx"]):
+def get_files(
+    path: str, extensions: list[str] = [".py", ".js", ".ts", ".jsx", ".tsx", ".md"]
+):
     """
     Recursively retrieves all files with specified extensions in the given path.
 
     Args:
         path (str): The path to search for files.
-        extensions (list[str], optional): List of file extensions to include. Defaults to [".py"].
+        extensions (list[str], optional): List of file extensions to include.
 
     Returns:
         list[str]: A list of file paths matching the specified extensions.
@@ -50,7 +52,8 @@ def get_files(path: str, extensions: list[str] = [".py", ".js", ".ts", ".jsx", "
 
 
 def get_content(
-    paths: list[str], extensions: list[str] = [".py", ".js", ".ts", ".jsx", ".tsx"]
+    paths: list[str],
+    extensions: list[str] = [".py", ".js", ".ts", ".jsx", ".tsx", ".md"],
 ):
     """
     Retrieves the content of files with specified extensions in the given paths.

@@ -1,4 +1,4 @@
-# nodetool api
+# nodetool
 
 ## Overview
 Nodetool is a no-code development environment for Artificial Intelligence, enabling the simple and intuitive creation of powerful AI workflows and their integration into existing applications. Utilizing a node-based user interface, users can construct complex, multimodal applications without any programming knowledge. Nodetool facilitates the seamless integration of state-of-the-art AI models, allowing the generation and editing of multimedia content such as images, texts, audio, and video within a single workflow. 
@@ -17,7 +17,6 @@ Nodetool opens up a creative and playful access to current technologies, support
 
 
 ## Installation
-
 
 ```bash
 pip install nodetool
@@ -59,63 +58,6 @@ class MyNode(BaseNode):
 Configuration can be passes as environment variables, or from configuration
 files. A dot env (`.env`) file will be read if present in the working dirctory.
 
-## General Configuration
-
-| Variable           | Description                                          | Default                       |
-| ------------------ | ---------------------------------------------------- | ----------------------------- |
-| `ASSET_BUCKET`     | S3 bucket for storing asset files                    | `"images"`                    |
-| `TEMP_BUCKET`      | S3 bucket for storing temporary files                | `"temp"`                      |
-| `COMFY_FOLDER`     | Location of ComfyUI folder (optional)                | `None`                        |
-| `ENV`              | Environment mode (`"development"` or `"production"`) | `"development"`               |
-| `LOG_LEVEL`        | Logging level                                        | `"INFO"`                      |
-| `AWS_REGION`       | AWS region                                           | `"us-east-1"`                 |
-| `NODETOOL_API_URL` | URL of the Nodetool API server                       | `"http://localhost:8000/api"` |
-
-## Database Configuration
-
-| Variable  | Description                      | Default                |
-| --------- | -------------------------------- | ---------------------- |
-| `DB_PATH` | Path to the SQLite database file | `"./data/nodetool.db"` |
-
-## AWS Configuration
-
-| Variable                   | Description                                   | Default                 |
-| -------------------------- | --------------------------------------------- | ----------------------- |
-| `AWS_ACCESS_KEY_ID`        | AWS access key ID                             | `None`                  |
-| `AWS_SECRET_ACCESS_KEY`    | AWS secret access key                         | `None`                  |
-| `DYNAMO_ENDPOINT_URL`      | DynamoDB endpoint URL (for local development) | `None`                  |
-| `DYNAMO_REGION`            | DynamoDB region                               | `AWS_REGION`            |
-| `DYNAMO_ACCESS_KEY_ID`     | DynamoDB access key ID                        | `AWS_ACCESS_KEY_ID`     |
-| `DYNAMO_SECRET_ACCESS_KEY` | DynamoDB secret access key                    | `AWS_SECRET_ACCESS_KEY` |
-| `S3_ENDPOINT_URL`          | S3 endpoint URL (for local development)       | `None`                  |
-| `S3_ACCESS_KEY_ID`         | S3 access key ID                              | `AWS_ACCESS_KEY_ID`     |
-| `S3_SECRET_ACCESS_KEY`     | S3 secret access key                          | `AWS_SECRET_ACCESS_KEY` |
-| `S3_REGION`                | S3 region                                     | `AWS_REGION`            |
-
-## API Keys and Tokens
-
-| Variable              | Description                    |
-| --------------------- | ------------------------------ |
-| `OPENAI_API_KEY`      | OpenAI API key (optional)      |
-| `HF_TOKEN`            | Hugging Face token (optional)  |
-| `REPLICATE_API_TOKEN` | Replicate API token (optional) |
-| `CHROMA_TOKEN`        | Chroma token                   |
-| `NGROK_TOKEN`         | ngrok token                    |
-
-## OAuth Configuration
-
-| Variable               | Description                |
-| ---------------------- | -------------------------- |
-| `GOOGLE_CLIENT_ID`     | Google OAuth client ID     |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-
-## Other Configuration
-
-| Variable     | Description              |
-| ------------ | ------------------------ |
-| `WORKER_URL` | URL of the worker server |
-| `CHROMA_URL` | URL of the Chroma server |
-
 # Setup Files
 
 The following files are used for storing settings and secrets:
@@ -132,47 +74,79 @@ If the files don't exist, default values will be used.
 
 # API Endpoints
 
-| Endpoint                   | Method | Description                                                                                             | Query Key      | Query Value      | Body Key                 | Body Value                      |
-| -------------------------- | ------ | ------------------------------------------------------------------------------------------------------- | -------------- | ---------------- | ------------------------ | ------------------------------- |
-| `/api/assets/`             | GET    | Returns all assets for a given user or workflow.                                                        | `parent_id`    | string, nullable | -                        | -                               |
-|                            |        |                                                                                                         | `content_type` | string, nullable | -                        | -                               |
-|                            |        |                                                                                                         | `cursor`       | string, nullable | -                        | -                               |
-|                            |        |                                                                                                         | `page_size`    | number, nullable | -                        | -                               |
-| `/api/assets/`             | POST   | Create a new asset.                                                                                     | -              | -                | `workflow_id`            | string, nullable                |
-|                            |        |                                                                                                         | -              | -                | `parent_id`              | string, nullable                |
-|                            |        |                                                                                                         | -              | -                | `name`                   | string                          |
-|                            |        |                                                                                                         | -              | -                | `content_type`           | string                          |
-| `/api/assets/{id}`         | GET    | Returns the asset for the given id.                                                                     | -              | -                | -                        | -                               |
-| `/api/assets/{id}`         | PUT    | Updates the asset for the given id.                                                                     | -              | -                | `name`                   | string, nullable                |
-|                            |        |                                                                                                         | -              | -                | `parent_id`              | string                          |
-|                            |        |                                                                                                         | -              | -                | `status`                 | string, nullable                |
-|                            |        |                                                                                                         | -              | -                | `content_type`           | string, nullable                |
-| `/api/assets/{id}`         | DELETE | Deletes the asset for the given id.                                                                     | -              | -                | -                        | -                               |
-| `/api/jobs/{id}`           | GET    | Returns the status of a job.                                                                            | -              | -                | -                        | -                               |
-| `/api/jobs/`               | GET    | Returns all assets for a given user or workflow.                                                        | `workflow_id`  | string, nullable | -                        | -                               |
-|                            |        |                                                                                                         | `cursor`       | string, nullable | -                        | -                               |
-|                            |        |                                                                                                         | `page_size`    | number, nullable | -                        | -                               |
-| `/api/jobs/`               | POST   | Run                                                                                                     | -              | -                | `job_type`               | string, default: 'workflow'     |
-|                            |        |                                                                                                         | -              | -                | `params`                 | unknown                         |
-|                            |        |                                                                                                         | -              | -                | `workflow_id`            | string                          |
-|                            |        |                                                                                                         | -              | -                | `user_id`                | string                          |
-|                            |        |                                                                                                         | -              | -                | `auth_token`             | string                          |
-|                            |        |                                                                                                         | -              | -                | `env`                    | Record<string, never>, nullable |
-|                            |        |                                                                                                         | -              | -                | `graph`                  | Graph                           |
-| `/api/auth/validate-token` | POST   | Checks if the given token is valid.                                                                     | -              | -                | `token`                  | string                          |
-| `/api/auth/login`          | POST   | Logs a user in with one time passcode. Returns an auth token that can be used for future requests.      | -              | -                | `email`                  | string                          |
-|                            |        |                                                                                                         | -              | -                | `passcode`               | string                          |
-| `/api/auth/signup`         | POST   | Creates a new user for given email address. Returns an auth token that can be used for future requests. | -              | -                | `email`                  | string                          |
-| `/api/auth/oauth/login`    | POST   | Oauth Login                                                                                             | -              | -                | `redirect_uri`           | string                          |
-|                            |        |                                                                                                         | -              | -                | `provider`               | OAuthProvider                   |
-| `/api/auth/oauth/callback` | POST   | Oauth Callback                                                                                          | -              | -                | `provider`               | OAuthProvider                   |
-|                            |        |                                                                                                         | -              | -                | `state`                  | string                          |
-|                            |        |                                                                                                         | -              | -                | `authorization_response` | string                          |
-|                            |        |                                                                                                         | -              | -                | `redirect_uri`           | string                          |
-| `/api/nodes/dummy`         | GET    | Returns a dummy node.                                                                                   | -              | -                | -                        | -                               |
-| `/api/nodes/metadata`      | GET    | Returns a list of all node metadata.                                                                    | -              | -                | -                        | -                               |
 
-| `/api
+## Authentication (/api/auth)
+
+- POST `/api/auth/oauth/login`: Initiate OAuth login
+- POST `/api/auth/oauth/callback`: Handle OAuth callback
+- POST `/api/auth/verify`: Verify authentication token
+
+## Assets (/api/assets)
+
+- GET `/api/assets/`: List assets
+- GET `/api/assets/temp`: Create temporary asset
+- GET `/api/assets/{id}`: Get asset by ID
+- PUT `/api/assets/{id}`: Update asset
+- DELETE `/api/assets/{id}`: Delete asset
+- POST `/api/assets/`: Create new asset
+
+## Jobs (/api/jobs)
+
+- GET `/api/jobs/{id}`: Get job status
+- GET `/api/jobs/`: List jobs
+- PUT `/api/jobs/{id}`: Update job
+- POST `/api/jobs/`: Run a new job
+
+## Messages (/api/messages)
+
+- POST `/api/messages/`: Create new message
+- GET `/api/messages/{message_id}`: Get message by ID
+- GET `/api/messages/`: List messages for a thread
+
+## Models (/api/models)
+
+- GET `/api/models/llama_models`: List Llama models
+- GET `/api/models/function_models`: List function models
+- GET `/api/models/{folder}`: List model files in a folder
+
+## Nodes (/api/nodes)
+
+- GET `/api/nodes/dummy`: Get dummy node (for type checking)
+- GET `/api/nodes/metadata`: Get metadata for all nodes
+
+## Predictions (/api/predictions)
+
+- GET `/api/predictions/`: List predictions
+- GET `/api/predictions/{id}`: Get prediction by ID
+- POST `/api/predictions/`: Create new prediction
+
+## Storage (/api/storage)
+
+- HEAD `/api/storage/{bucket}/{key}`: Get file metadata
+- GET `/api/storage/{bucket}/{key}`: Download file
+- PUT `/api/storage/{bucket}/{key}`: Upload or update file
+- DELETE `/api/storage/{bucket}/{key}`: Delete file
+
+## Tasks (/api/tasks)
+
+- GET `/api/tasks/`: List tasks
+- GET `/api/tasks/{id}`: Get task by ID
+- POST `/api/tasks/`: Create new task
+- PUT `/api/tasks/{id}`: Update task
+- DELETE `/api/tasks/{id}`: Delete task
+
+## Workflows (/api/workflows)
+
+- POST `/api/workflows/`: Create new workflow
+- GET `/api/workflows/`: List user's workflows
+- GET `/api/workflows/public`: List public workflows
+- GET `/api/workflows/public/{id}`: Get public workflow by ID
+- GET `/api/workflows/user/{user_id}`: List workflows for a specific user
+- GET `/api/workflows/examples`: List example workflows
+- GET `/api/workflows/{id}`: Get workflow by ID
+- PUT `/api/workflows/{id}`: Update workflow
+- DELETE `/api/workflows/{id}`: Delete workflow
+
 
 ## Contribution
 
@@ -187,7 +161,7 @@ Nodetool is made available under the terms of the [GPL3 License](LICENSE.txt), p
 For inquiries, suggestions, or contributions, please reach out to the core team:
 
 - Matthias Georgi
-- David Buerer
+- David Bürer
 - Severin Schwanck
 
-**GitHub:** [https://github.com/Gen-Flow/nodetool](https://github.com/Gen-Flow/nodetool)
+**GitHub:** [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)

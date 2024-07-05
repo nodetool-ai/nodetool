@@ -1,0 +1,255 @@
+{
+  "id": "20a0be30380411ef8e42000076e19f5f",
+  "access": "private",
+  "created_at": "2024-07-02T01:46:25.020735",
+  "updated_at": "2024-07-02T01:46:25.020888",
+  "name": "Movie Posters",
+  "description": "Generate movie posters from a list of movie titles",
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.constant.DataFrame",
+        "data": {
+          "value": {
+            "type": "dataframe",
+            "columns": [
+              {
+                "name": "Title",
+                "data_type": "object"
+              },
+              {
+                "name": "Main Character",
+                "data_type": "object"
+              },
+              {
+                "name": "Character Description",
+                "data_type": "object"
+              }
+            ],
+            "data": [
+              [
+                "The Shawshank Redemption",
+                "Andy Dufresne",
+                "A banker sentenced to life in Shawshank State Penitentiary for the murders of his wife and her lover."
+              ],
+              [
+                "The Godfather",
+                "Michael Corleone",
+                "The youngest son of Vito Corleone who becomes the new Don of the Corleone crime family."
+              ],
+              [
+                "The Dark Knight",
+                "Bruce Wayne / Batman",
+                "A wealthy playboy who fights crime as the vigilante Batman in Gotham City."
+              ],
+              [
+                "Pulp Fiction",
+                "Vincent Vega",
+                "A hitman working for mob boss Marsellus Wallace."
+              ],
+              [
+                "The Lord of the Rings: The Return of the King",
+                "Frodo Baggins",
+                "A hobbit entrusted with the task of destroying the One Ring to save Middle-earth."
+              ],
+              [
+                "Forrest Gump",
+                "Forrest Gump",
+                "A kind-hearted man with a low IQ who witnesses and unwittingly influences several historical events."
+              ],
+              [
+                "Inception",
+                "Dom Cobb",
+                "A skilled thief who enters the dreams of others to steal secrets."
+              ],
+              [
+                "Fight Club",
+                "The Narrator",
+                "A disillusioned white-collar worker who forms an underground fight club."
+              ],
+              [
+                "The Matrix",
+                "Neo",
+                "A computer hacker who discovers the truth about reality and his role in saving humanity."
+              ],
+              [
+                "Interstellar",
+                "Cooper",
+                "A former NASA pilot who leads a mission to find a new habitable planet for humanity."
+              ],
+              [
+                ""
+              ]
+            ]
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 80,
+            "y": 232
+          }
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.group.Loop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 403,
+            "y": 294
+          },
+          "width": 743,
+          "height": 492
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": "2",
+        "type": "nodetool.input.GroupInput",
+        "data": {
+          "name": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 27,
+            "y": 99
+          }
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": "2",
+        "type": "nodetool.image.SaveImage",
+        "data": {
+          "folder": {
+            "type": "folder",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 576,
+            "y": 113
+          }
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": "2",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Movie Poste from the motion picture {Title}, Close up of {Main Character}: {Character Description}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 205,
+            "y": 114
+          }
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": "2",
+        "type": "replicate.image.generate.Juggernaut_XL_V9",
+        "data": {
+          "seed": null,
+          "width": 1024,
+          "height": 1024,
+          "scheduler": "DPM++SDE",
+          "num_outputs": 1,
+          "guidance_scale": 2,
+          "apply_watermark": true,
+          "negative_prompt": "CGI, Unreal, Airbrushed, Digital",
+          "num_inference_steps": 5,
+          "disable_safety_checker": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 394,
+            "y": 17
+          }
+        }
+      },
+      {
+        "id": "bedbc384-1dc9-40e4-8b13-edf61a010ea7",
+        "parent_id": "2",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{Title}.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 201,
+            "y": 288
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "1",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "items",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "bedbc384-1dc9-40e4-8b13-edf61a010ea7",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "name",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "values",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "bedbc384-1dc9-40e4-8b13-edf61a010ea7",
+        "targetHandle": "values",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}

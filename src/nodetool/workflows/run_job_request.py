@@ -1,4 +1,4 @@
-from nodetool.api.types.graph import Graph
+from nodetool.types.graph import Graph
 
 
 from pydantic import BaseModel

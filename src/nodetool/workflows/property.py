@@ -1,4 +1,4 @@
-from nodetool.metadata.types import TypeMetadata
+from nodetool.metadata.type_metadata import TypeMetadata
 
 import annotated_types
 from pydantic import BaseModel

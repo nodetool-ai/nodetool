@@ -2,7 +2,7 @@ import asyncio
 from nodetool.models.user import User
 from nodetool.common.environment import Environment
 from nodetool.common.nodetool_api_client import NodetoolAPIClient
-from nodetool.api.types.prediction import PredictionCreateRequest
+from nodetool.types.prediction import PredictionCreateRequest
 
 user, _ = User.create(email="test@example.com", verified=True)
 assert user.auth_token

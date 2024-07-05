@@ -132,7 +132,7 @@ class NodetoolAPIClient:
             and path == "api/predictions/"
         ):
             # avoid circular import
-            from nodetool.api.types.prediction import PredictionCreateRequest
+            from nodetool.types.prediction import PredictionCreateRequest
             from nodetool.api.prediction import run_prediction
 
             assert json is not None, "json is required"
