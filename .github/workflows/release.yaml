@@ -13,7 +13,8 @@ jobs:
       - uses: FedericoCarboni/setup-ffmpeg@v3
         id: setup-ffmpeg
         with:
-          ffmpeg-version: release
+          # ffmpeg-version: release
+          ffmpeg-version: "6.1.0" # Pinning a specific version to avoid fetch failures
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
