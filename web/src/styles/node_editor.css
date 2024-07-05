@@ -163,7 +163,7 @@
   max-width: 250px;
   min-height: 15px;
   border: 0;
-  padding: 0.25em 1em;
+  padding: 0.25em 0.75em;
   margin: 1px 0 0;
 }
 .node-output {
@@ -345,15 +345,14 @@
 .dropzone p.centered {
   margin: auto;
   text-align: left;
-}
-
-.dropzone p.centered {
   margin: auto;
   text-align: left;
-  padding: 3px 4px;
-  min-width: 70px;
+  padding: 2px 4px;
+  min-width: 60px;
   min-height: 14px;
-  /* font-size: var(--font-size-small); */
+  line-height: 1.1em;
+  word-spacing: -2px;
+  font-size: var(--font-size-tiny);
   color: var(--c_gray4);
 }
 
@@ -595,6 +594,14 @@ span.tooltip-small {
   background-color: transparent;
   border: 0;
   outline: none;
+}
+
+/* CONSTANT NODES */
+.react-flow__node-nodetool\.constant\.Audio .node-property .property-label,
+.react-flow__node-nodetool\.constant\.Image .node-property .property-label,
+.react-flow__node-nodetool\.constant\.Video .node-property .property-label,
+.react-flow__node-nodetool\.constant\.Bool .node-property .property-label {
+  display: none;
 }
 
 /* PLACEHOLDER */

@@ -60,7 +60,7 @@ const PropertyDropzone = ({
         backgroundColor: theme.palette.c_gray2,
         fontSize: theme.fontSizeTinyer,
         lineHeight: "1.1em",
-        width: "20px",
+        width: "15px",
         height: "15px",
         minWidth: "unset",
         margin: "0",
@@ -89,7 +89,7 @@ const PropertyDropzone = ({
         border: "0"
       },
       ".dropzone": {
-        width: showUrlInput ? "100%" : "calc(100% - 25px)",
+        width: showUrlInput ? "100%" : "calc(100% - 20px)",
         border: "0",
         maxWidth: "180px",
         textAlign: "left"
@@ -102,9 +102,6 @@ const PropertyDropzone = ({
       ".dropzone p": {
         textAlign: "left"
       },
-      ".dropzone.dropped p": {
-        textAlign: "center"
-      },
       ".prop-drop": {
         fontSize: theme.fontSizeTiny,
         lineHeight: "1.1em"
@@ -112,7 +109,7 @@ const PropertyDropzone = ({
     });
 
   const renderViewer = () => {
-    if (!uri) return null;
+    // if (!uri) return null;
     switch (contentType.split("/")[0]) {
       case "image":
         return (
@@ -134,7 +131,6 @@ const PropertyDropzone = ({
       case "audio":
         return (
           <>
-            <WaveRecorder onChange={onChangeAsset} />
             {asset || uri ? (
               <div id={id} aria-labelledby={id} className="audio-drop">
                 <AssetViewer
@@ -215,8 +211,9 @@ const PropertyDropzone = ({
           }}
           onClick={() => setShowUrlInput(!showUrlInput)}
         >
-          {showUrlInput ? "Hide URL" : "Show URL"}
+          {showUrlInput ? "Hide URL" : "URL"}
         </Button>
+
         <div
           className={`dropzone ${uri ? "dropped" : ""}`}
           style={{
@@ -225,12 +222,15 @@ const PropertyDropzone = ({
           onDragOver={onDragOver}
           onDrop={onDrop}
         >
-          {uri ? (
+          {uri || contentType.split("/")[0] === "audio" ? (
             renderViewer()
           ) : (
             <p className="prop-drop centered uppercase">Drop {contentType}</p>
           )}
         </div>
+        {contentType.split("/")[0] === "audio" && (
+          <WaveRecorder onChange={onChangeAsset} />
+        )}
       </div>
     </div>
   );

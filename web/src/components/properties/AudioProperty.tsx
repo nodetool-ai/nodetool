@@ -36,7 +36,7 @@ export default function AudioProperty(props: PropertyProps) {
       />
       <PropertyDropzone
         asset={asset}
-        uri={uri}
+        uri={uri || ""}
         onChange={props.onChange}
         contentType="audio"
         props={props}
