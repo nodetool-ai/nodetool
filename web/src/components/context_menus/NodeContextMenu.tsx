@@ -16,6 +16,7 @@ import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DataArrayIcon from "@mui/icons-material/DataArray";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useNodeStore, NodeStore } from "../../stores/NodeStore";
@@ -203,16 +204,17 @@ const NodeContextMenu: React.FC = () => {
       />
       <Divider />
       <ContextMenuItem
+        onClick={handleOpenDocumentation}
+        label="Documentation"
+        IconComponent={<OpenInNewIcon />}
+        tooltip="Open documentation for this node"
+      />
+
+      <ContextMenuItem
         onClick={handleCopyMetadataToClipboard}
         label="Copy NodeData"
         IconComponent={<DataArrayIcon />}
         tooltip="Copy node metadata to the clipboard"
-      />
-      <ContextMenuItem
-        onClick={handleOpenDocumentation}
-        label="Documentation"
-        IconComponent={<DataArrayIcon />}
-        tooltip="Open documentation for this node"
       />
 
       <Divider />
