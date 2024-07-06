@@ -10,6 +10,12 @@ from nodetool.workflows.processing_context import ProcessingContext
 class SaveAudio(BaseNode):
     """
     Save an audio file to a specified folder.
+    audio, folder, name
+
+    Use cases:
+    - Save generated audio files with timestamps
+    - Organize outputs into specific folders
+    - Create backups of generated audio
     """
 
     value: AudioRef = AudioRef()

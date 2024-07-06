@@ -58,7 +58,6 @@ def test_put(client: TestClient, headers: dict[str, str], user: User):
         f"/api/assets/{image.id}",
         json={
             "parent_id": user.id,
-            "status": "processed",
             "name": "bild.jpeg",
             "content_type": "image/jpeg",
         },
@@ -67,7 +66,6 @@ def test_put(client: TestClient, headers: dict[str, str], user: User):
     assert response.status_code == 200
     image = Asset.find(user.id, image.id)
     assert image is not None
-    assert image.status == "processed"
 
 
 def test_create(client: TestClient, headers: dict[str, str], user: User):
@@ -78,7 +76,6 @@ def test_create(client: TestClient, headers: dict[str, str], user: User):
             "json": json.dumps(
                 {
                     "parent_id": user.id,
-                    "status": "processed",
                     "name": "bild.jpeg",
                     "content_type": "image/jpeg",
                 }

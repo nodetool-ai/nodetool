@@ -5,7 +5,7 @@ from nodetool.dsl.graph import GraphNode
 
 
 class AmplitudeToDB(GraphNode):
-    tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='The amplitude tensor to be converted to dB scale.')
+    tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description='The amplitude tensor to be converted to dB scale.')
     @classmethod
     def get_node_type(cls): return "nodetool.audio.analysis.AmplitudeToDB"
 
@@ -21,7 +21,7 @@ class ChromaSTFT(GraphNode):
 
 
 class DBToAmplitude(GraphNode):
-    tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='The dB-scaled tensor to be converted to amplitude scale.')
+    tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description='The dB-scaled tensor to be converted to amplitude scale.')
     @classmethod
     def get_node_type(cls): return "nodetool.audio.analysis.DBToAmplitude"
 
@@ -35,7 +35,7 @@ class DBToPower(GraphNode):
 
 
 class GriffinLim(GraphNode):
-    magnitude_spectrogram: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='Magnitude spectrogram input for phase reconstruction.')
+    magnitude_spectrogram: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description='Magnitude spectrogram input for phase reconstruction.')
     n_iter: int | GraphNode | tuple[GraphNode, str] = Field(default=32, description='Number of iterations for the Griffin-Lim algorithm.')
     hop_length: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Number of samples between successive frames.')
     win_length: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Each frame of audio is windowed by `window()`. The window will be of length `win_length` and then padded with zeros to match `n_fft`.')
