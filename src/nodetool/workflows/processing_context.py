@@ -592,7 +592,10 @@ class ProcessingContext:
         Returns:
             bytes: The response content.
         """
-        response = await self.http_client.get(url)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+        }
+        response = await self.http_client.get(url, headers=headers)
         response.raise_for_status()
         return response.content
 
@@ -654,13 +657,16 @@ class ProcessingContext:
 
     async def image_to_base64(self, image_ref: ImageRef) -> str:
         """
-        Converts the image to a base64-encoded string.
+        Converts the image to a PNG base64-encoded string.
 
         Args:
             context (ProcessingContext): The processing context.
         """
         buffer = await self.asset_to_io(image_ref)
-        return base64.b64encode(buffer.read()).decode("utf-8")
+        image = PIL.Image.open(buffer).convert("RGB")
+        buffer = BytesIO()
+        image.save(buffer, "PNG")
+        return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     async def audio_to_audio_segment(self, audio_ref: AudioRef):
         """

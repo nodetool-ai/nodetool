@@ -29,7 +29,6 @@ async def create_speech(prediction: Prediction, params: dict) -> Any:
     client = Environment.get_openai_client()
     res = await client.audio.speech.create(
         model=prediction.model,
-        input=params["input"],
         response_format="mp3",
         **params,
     )
