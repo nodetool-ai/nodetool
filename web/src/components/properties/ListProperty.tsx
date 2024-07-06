@@ -8,6 +8,7 @@ import {
   Select,
   SelectChangeEvent
 } from "@mui/material";
+import PropertyLabel from "../node/PropertyLabel";
 
 const detectTypeFromList = (list: any[]) => {
   if (list.length === 0) {
@@ -43,41 +44,53 @@ export default function ListProperty(props: PropertyProps) {
     []
   );
 
-  return (
-    <>
-      <FormControl fullWidth style={{ marginBottom: "8px" }}>
-        <InputLabel id={id}>Data Type</InputLabel>
-        <Select
-          labelId={id}
-          value={dataType}
-          onChange={handleDataTypeChange}
-          variant="standard"
-          className="mui-select nodrag"
-          disableUnderline={true}
-          MenuProps={{
-            anchorOrigin: {
-              vertical: "bottom",
-              horizontal: "left"
-            },
-            transformOrigin: {
-              vertical: "top",
-              horizontal: "left"
-            }
-          }}
-        >
-          {dataTypes.map((dataType) => (
-            <MenuItem key={dataType} value={dataType}>
-              {dataType}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      <ListTable
-        data={value}
-        onDataChange={props.onChange}
-        editable={true}
-        data_type={dataType}
-      />
-    </>
-  );
+  if (props.nodeType === "nodetool.constant.List") {
+    return (
+      <>
+        <FormControl fullWidth style={{ marginBottom: "8px" }}>
+          <InputLabel id={id}>Data Type</InputLabel>
+          <Select
+            labelId={id}
+            value={dataType}
+            onChange={handleDataTypeChange}
+            variant="standard"
+            className="mui-select nodrag"
+            disableUnderline={true}
+            MenuProps={{
+              anchorOrigin: {
+                vertical: "bottom",
+                horizontal: "left"
+              },
+              transformOrigin: {
+                vertical: "top",
+                horizontal: "left"
+              }
+            }}
+          >
+            {dataTypes.map((dataType) => (
+              <MenuItem key={dataType} value={dataType}>
+                {dataType}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <ListTable
+          data={value}
+          onDataChange={props.onChange}
+          editable={true}
+          data_type={dataType}
+        />
+      </>
+    )
+  } else {
+    return (
+      <>
+        <PropertyLabel
+          name={props.property.name}
+          description={props.property.description}
+          id={id}
+        />
+      </>
+    );
+  }
 }
