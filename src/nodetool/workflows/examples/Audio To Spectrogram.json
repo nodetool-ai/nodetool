@@ -111,8 +111,6 @@
         "id": "6",
         "parent_id": null,
         "type": "nodetool.image.ConvertTensorToImage",
-        "data": {}
-        },
         "ui_properties": {
           "selected": false,
           "position": {
