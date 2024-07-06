@@ -145,7 +145,7 @@ class Juggernaut_XL_V9(GraphNode):
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='beautiful lady, (freckles), big smile, ruby eyes, short hair, dark makeup, hyperdetailed photography, soft light, head and shoulders portrait, cover', description='Input prompt')
-    scheduler: Scheduler | GraphNode | tuple[GraphNode, str] = Field(default=Scheduler('DPM++SDE'), description='scheduler')
+    scheduler: Scheduler | GraphNode | tuple[GraphNode, str] = Field(default=Scheduler('HeunDiscrete'), description='scheduler')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of images to output.')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Scale for classifier-free guidance')
     apply_watermark: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.')
