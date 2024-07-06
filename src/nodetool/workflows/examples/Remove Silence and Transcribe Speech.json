@@ -1,0 +1,149 @@
+{
+  "id": "330d893e3bb011ef986d000058a79822",
+  "access": "private",
+  "created_at": "2024-07-06T17:55:42.858271",
+  "updated_at": "2024-07-06T18:21:18.930260",
+  "name": "Remove Silence and Transcribe Speech",
+  "description": "",
+  "thumbnail": "/examples/remove_silence.png",
+  "thumbnail_url": "",
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.audio.transform.RemoveSilence",
+        "data": {
+          "audio": {
+            "type": "audio",
+            "uri": "https://app.nodetool.ai/examples/remove_silence.mp3",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "min_length": 200,
+          "threshold": -40,
+          "reduction_factor": 1,
+          "crossfade": 10,
+          "min_silence_between_parts": 100
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 258,
+            "y": 101
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": ""
+          },
+          "name": "example_remove_silence"
+        },
+        "ui_properties": {
+          "selected": true,
+          "position": {
+            "x": 442,
+            "y": 101
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 150,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "openai.audio.Transcribe",
+        "data": {
+          "audio": {
+            "type": "audio",
+            "uri": "http://localhost:8000/api/storage/temp/e4706f7f9a744e0d86a1f707370fa2f7.mp3",
+            "asset_id": null,
+            "temp_id": "e4706f7f9a744e0d86a1f707370fa2f7.mp3"
+          },
+          "temperature": 0
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 442,
+            "y": 310
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": "",
+          "name": "example_remove_silence_transcription"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 626,
+            "y": 282
+          },
+          "zIndex": 0,
+          "width": 202,
+          "height": 174,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "2",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "3",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "2db45de8-dcd5-428d-a277-6977fbd2fb2c",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}
