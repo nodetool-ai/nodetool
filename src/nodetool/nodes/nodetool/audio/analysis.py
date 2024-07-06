@@ -25,7 +25,8 @@ class AmplitudeToDB(BaseNode):
     """
 
     tensor: Tensor = Field(
-        description="The amplitude tensor to be converted to dB scale."
+        default=Tensor(),
+        description="The amplitude tensor to be converted to dB scale.",
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
@@ -71,7 +72,8 @@ class DBToAmplitude(BaseNode):
     """
 
     tensor: Tensor = Field(
-        description="The dB-scaled tensor to be converted to amplitude scale."
+        default=Tensor(),
+        description="The dB-scaled tensor to be converted to amplitude scale.",
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
@@ -109,7 +111,8 @@ class GriffinLim(BaseNode):
     """
 
     magnitude_spectrogram: Tensor = Field(
-        description="Magnitude spectrogram input for phase reconstruction."
+        default=Tensor(),
+        description="Magnitude spectrogram input for phase reconstruction.",
     )
     n_iter: int = Field(
         default=32, description="Number of iterations for the Griffin-Lim algorithm."

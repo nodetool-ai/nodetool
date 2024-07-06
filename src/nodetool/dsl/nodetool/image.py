@@ -4,38 +4,45 @@ from nodetool.metadata.types import *
 from nodetool.dsl.graph import GraphNode
 
 
-class Blend(GraphNode):
+class BlendImages(GraphNode):
     image1: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The first image to blend.')
     image2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The second image to blend.')
     alpha: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='The mix ratio.')
     @classmethod
-    def get_node_type(cls): return "nodetool.image.Blend"
+    def get_node_type(cls): return "nodetool.image.BlendImages"
 
 
 
-class Composite(GraphNode):
+class CompositeImages(GraphNode):
     image1: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The first image to composite.')
     image2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The second image to composite.')
     mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The mask to composite with.')
     @classmethod
-    def get_node_type(cls): return "nodetool.image.Composite"
+    def get_node_type(cls): return "nodetool.image.CompositeImages"
 
 
 
-class ImageToTensor(GraphNode):
+class ConvertImageToTensor(GraphNode):
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels.')
     @classmethod
-    def get_node_type(cls): return "nodetool.image.ImageToTensor"
+    def get_node_type(cls): return "nodetool.image.ConvertImageToTensor"
 
 
 
-class Paste(GraphNode):
+class ConvertTensorToImage(GraphNode):
+    tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description='The input tensor to convert to an image. Should have either 1, 3, or 4 channels.')
+    @classmethod
+    def get_node_type(cls): return "nodetool.image.ConvertTensorToImage"
+
+
+
+class PasteImage(GraphNode):
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to paste into.')
     paste: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to paste.')
     left: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The left coordinate.')
     top: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The top coordinate.')
     @classmethod
-    def get_node_type(cls): return "nodetool.image.Paste"
+    def get_node_type(cls): return "nodetool.image.PasteImage"
 
 
 
@@ -45,12 +52,5 @@ class SaveImage(GraphNode):
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='%Y-%m-%d_%H-%M-%S.png', description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.image.SaveImage"
-
-
-
-class TensorToImage(GraphNode):
-    tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description='The input tensor to convert to an image. Should have either 1, 3, or 4 channels.')
-    @classmethod
-    def get_node_type(cls): return "nodetool.image.TensorToImage"
 
 
