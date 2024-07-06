@@ -8,6 +8,8 @@ import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
+import { useAssetStore } from "../../hooks/AssetStore";
+import { devLog } from "../../utils/DevLog";
 
 interface AssetItemContextMenuProps {
   openDeleteDialog: () => void;
@@ -22,6 +24,12 @@ const AssetItemContextMenu = ({
 }: AssetItemContextMenuProps) => {
   const { openMenuType, menuPosition } = useContextMenuStore();
   const { selectedAssetIds } = useSessionStateStore();
+  const { download } = useAssetStore();
+
+  const handleDownloadAssets = (selectedAssetIds: string[]) => {
+    devLog("AssetItemContextMenu: Download assets", selectedAssetIds);
+    download(selectedAssetIds);
+  };
 
   if (openMenuType !== "asset-item-context-menu" || !menuPosition) return null;
   return (
@@ -59,6 +67,15 @@ const AssetItemContextMenu = ({
             openMoveToFolderDialog();
           }}
           label="Move to folder"
+          IconComponent={<DriveFileMoveIcon />}
+          tooltip="Move selected assets to a different folder"
+        />
+        <ContextMenuItem
+          onClick={(e: any) => {
+            e.stopPropagation();
+            handleDownloadAssets(selectedAssetIds);
+          }}
+          label="Download Selected Assets"
           IconComponent={<DriveFileMoveIcon />}
           tooltip="Move selected assets to a different folder"
         />

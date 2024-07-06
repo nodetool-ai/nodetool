@@ -75,6 +75,7 @@ export interface AssetStore {
   loadFolderById: (id: string) => Promise<AssetList>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<void>;
+  download: (ids: string[]) => void;
 }
 
 /**
@@ -290,6 +291,16 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
     get().invalidateQueries(["assets", id]);
     get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
+  },
+
+  /**
+   * Download assets from the server.
+   *
+   * @param ids The IDs of the assets to download.
+   */
+  download: (ids: string[]) => {
+    const url = `${BASE_URL}/api/assets/download?ids=${ids.join(",").trim()}`;
+    window.open(url, "_blank");
   },
 
   /**

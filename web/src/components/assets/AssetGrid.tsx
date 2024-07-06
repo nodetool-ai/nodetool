@@ -128,15 +128,7 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [moveToFolderDialogOpen, setMoveToFolderDialogOpen] = useState(false);
-  const openDeleteDialog = () => {
-    setDeleteDialogOpen(true);
-  };
-  const openRenameDialog = () => {
-    setRenameDialogOpen(true);
-  };
-  const openMoveToFolderDialog = () => {
-    setMoveToFolderDialogOpen(true);
-  };
+
   const [searchTerm, setSearchTerm] = useState("");
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
@@ -344,8 +336,8 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
           handleSelectAsset={handleSelectAsset}
           setCurrentFolderId={setCurrentFolderId}
           setSelectedAssetIds={setSelectedAssetIds}
-          openDeleteDialog={openDeleteDialog}
-          openRenameDialog={openRenameDialog}
+          openDeleteDialog={() => setDeleteDialogOpen(true)}
+          openRenameDialog={() => setRenameDialogOpen(true)}
           setCurrentAudioAsset={setCurrentAudioAsset}
           itemSpacing={itemSpacing}
           searchTerm={searchTerm}
@@ -370,9 +362,9 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
         />
       )}
       <AssetItemContextMenu
-        openDeleteDialog={openDeleteDialog}
-        openRenameDialog={openRenameDialog}
-        openMoveToFolderDialog={openMoveToFolderDialog}
+        openDeleteDialog={() => setDeleteDialogOpen(true)}
+        openRenameDialog={() => setRenameDialogOpen(true)}
+        openMoveToFolderDialog={() => setMoveToFolderDialogOpen(true)}
       />
       <AssetDeleteConfirmation
         mutation={deleteMutation}
