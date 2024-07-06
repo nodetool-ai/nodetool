@@ -1,4 +1,4 @@
-from typing import Optional, Literal
+from typing import List, Optional, Literal, Sequence
 from datetime import datetime
 from nodetool.common.content_types import CONTENT_TYPE_TO_EXTENSION
 from nodetool.common.environment import Environment
@@ -151,3 +151,15 @@ class Asset(DBModel):
                 limit=limit,
                 start_key=start_key,
             )
+
+    @classmethod
+    def get_children(cls, parent_id: str) -> Sequence['Asset']:
+        """
+        Fetch all child assets for a given parent_id.
+        """
+        items, _ = cls.query(
+            condition=("parent_id = :parent_id"),
+            values={":parent_id": parent_id},
+            index="nodetool_asset_parent_index",
+        )
+        return items

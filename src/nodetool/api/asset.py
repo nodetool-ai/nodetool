@@ -18,7 +18,7 @@ from nodetool.types.asset import (
 )
 from nodetool.api.utils import current_user, User
 from nodetool.common.environment import Environment
-from typing import Optional
+from typing import Dict, List, Optional, Tuple, Union
 from nodetool.models.asset import Asset as AssetModel
 from nodetool.models.workflow import Workflow
 
@@ -231,19 +231,25 @@ async def download_assets(
     storage = Environment.get_asset_storage()
 
     # Dictionary to store asset paths
-    asset_paths: dict[str, str] = {}
+    asset_paths: Dict[str, str] = {}
     # Dictionary to store all assets
-    all_assets: dict[str, AssetModel] = {}
+    all_assets: Dict[str, AssetModel] = {}
 
-    async def fetch_all_assets(asset_ids: list[str]):
-        assets = [AssetModel.get(asset_id) for asset_id in asset_ids]
-        for asset in assets:
+    def fetch_all_assets(asset_ids: List[str]):
+        for asset_id in asset_ids:
+            asset = AssetModel.get(asset_id)
             if asset:
                 all_assets[asset.id] = asset
                 if asset.parent_id and asset.parent_id not in all_assets:
-                    await fetch_all_assets([asset.parent_id])
+                    fetch_all_assets([asset.parent_id])
+                # Fetch all child assets if the asset is a folder
+                if asset.content_type == "folder":
+                    child_assets = AssetModel.get_children(asset.id)
+                    child_asset_ids = [child.id for child in child_assets]
+                    if child_asset_ids:
+                        fetch_all_assets(child_asset_ids)
 
-    await fetch_all_assets(req.asset_ids)
+    fetch_all_assets(req.asset_ids)
 
     def get_asset_path(asset: AssetModel) -> str:
         if asset.id in asset_paths:
@@ -258,7 +264,7 @@ async def download_assets(
         asset_paths[asset.id] = path
         return path
 
-    async def fetch_asset_content(asset: AssetModel) -> tuple[str, BytesIO | None]:
+    async def fetch_asset_content(asset: AssetModel) -> Tuple[str, Union[BytesIO, None]]:
         try:
             if asset.user_id != current_user.id:
                 raise HTTPException(
