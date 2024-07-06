@@ -40,7 +40,6 @@ class Asset(DBModel):
     parent_id: str = DBField(default="")
     file_id: str | None = DBField(default="")
     name: str = DBField(default="")
-    status: str = DBField(default="pending")
     content_type: str = DBField(default="")
     created_at: datetime = DBField(default_factory=datetime.now)
     duration: Optional[float] = DBField(default=None)
@@ -89,13 +88,11 @@ class Asset(DBModel):
         content_type: str,
         parent_id: str | None = None,
         workflow_id: str | None = None,
-        status: str = "pending",
         duration: float | None = None,
         **kwargs,
     ):
         return super().create(
             id=create_time_ordered_uuid(),
-            status=status,
             name=name,
             user_id=user_id,
             parent_id=parent_id or user_id,

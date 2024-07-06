@@ -11,7 +11,6 @@ class Asset(BaseModel):
     workflow_id: str | None
     parent_id: str
     name: str
-    status: str
     content_type: str
     created_at: str
     get_url: str | None
@@ -57,7 +56,6 @@ class Asset(BaseModel):
             workflow_id=asset.workflow_id,
             parent_id=asset.parent_id,
             name=asset.name,
-            status=asset.status,
             content_type=asset.content_type,
             created_at=asset.created_at.isoformat(),
             get_url=get_url,
@@ -69,7 +67,6 @@ class Asset(BaseModel):
 class AssetUpdateRequest(BaseModel):
     name: str | None
     parent_id: str | None
-    status: str | None
     content_type: str | None
     duration: float | None = None
 

@@ -89,6 +89,7 @@ const useAssets = () => {
 
   const loadFolder = useCallback(
     async ({ pageParam }: AssetLoadParams) => {
+      console.log("page", pageParam);
       return await loadCurrentFolder(pageParam);
     },
     [loadCurrentFolder]
@@ -106,8 +107,7 @@ const useAssets = () => {
       ["assets", { parent_id: currentFolderId || currentUser?.id }],
       loadFolder,
       {
-        getNextPageParam: (lastPage, pages) =>
-          lastPage.next === "" ? undefined : lastPage.next
+        getNextPageParam: (lastPage, pages) => lastPage.next
       }
     );
 
