@@ -273,7 +273,7 @@ class DataframeAgent(BaseNode):
     temperature: float = Field(
         default=1.0,
         ge=0.0,
-        le=1.0,
+        le=2.0,
         description="The temperature to use for sampling.",
     )
     top_k: int = Field(
@@ -376,6 +376,8 @@ class AgentNode(BaseNode):
     )
     temperature: float = Field(
         default=0.0,
+        ge=0.0,
+        le=2.0,
         description="The temperature to use for sampling.",
     )
     top_k: int = Field(
@@ -470,6 +472,8 @@ class ProcessTask(BaseNode):
     )
     temperature: float = Field(
         default=0.0,
+        ge=0.0,
+        le=2.0,
         description="The temperature to use for sampling.",
     )
     top_k: int = Field(
