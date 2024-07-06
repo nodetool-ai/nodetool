@@ -4,8 +4,6 @@
 
 Robust face restoration algorithm for old photos/AI-generated faces - (A40 GPU)
 
-**Inherits from:** ReplicateNode
-
 - **image**: Input image (`ImageRef`)
 - **upscale**: The final upsampling scale of the image (`int`)
 - **face_upsample**: Upsample restored faces for high-resolution AI-created images (`bool`)
@@ -16,8 +14,6 @@ Robust face restoration algorithm for old photos/AI-generated faces - (A40 GPU)
 
 Multi-Axis MLP for Image Processing
 
-**Inherits from:** ReplicateNode
-
 - **image**: Input image. (`ImageRef`)
 - **model**: Choose a model. (`nodetool.nodes.replicate.image.enhance.Maxim.Model | None`)
 
@@ -25,15 +21,11 @@ Multi-Axis MLP for Image Processing
 
 Unsupervised Night Image Enhancement
 
-**Inherits from:** ReplicateNode
-
 - **image**: Input image. (`ImageRef`)
 
 ## OldPhotosRestoration
 
 Bringing Old Photos Back to Life
-
-**Inherits from:** ReplicateNode
 
 - **HR**: whether the input image is high-resolution (`bool`)
 - **image**: input image. (`ImageRef`)
@@ -42,8 +34,6 @@ Bringing Old Photos Back to Life
 ## Supir_V0F
 
 Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This is the SUPIR-v0F model and does NOT use LLaVA-13b.
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **image**: Low quality input image. (`ImageRef`)
@@ -66,8 +56,6 @@ Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This
 ## Supir_V0Q
 
 Practicing Model Scaling for Photo-Realistic Image Restoration In the Wild. This is the SUPIR-v0Q model and does NOT use LLaVA-13b.
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **image**: Low quality input image. (`ImageRef`)

@@ -1,98 +1,125 @@
 # nodetool.nodes.nodetool.dictionary
 
-## Access
+## AddToDictionary
 
-Retrieves a specific value from a dictionary using a key.
+Updates a dictionary with new key-value pairs.
 
-**Tags:** dictionary, dict, select, get, value, access, key
+Use cases:
+- Extend a configuration with additional settings
+- Add new entries to a cache or lookup table
+- Merge user input with existing data
 
-**Inherits from:** BaseNode
-
-- **dictionary** (`dict[str, typing.Any]`)
-- **key** (`str`)
-
-## Delete
-
-Removes a key-value pair from a dictionary based on the specified key.
-
-**Tags:** dictionary, dict, remove
-
-**Inherits from:** BaseNode
+**Tags:** dictionary, add, update
 
 - **dictionary** (`dict[str, typing.Any]`)
-- **key** (`str`)
+- **new_pairs** (`dict[str, typing.Any]`)
 
-## DictFromJson
+## CombineDictionaries
 
-Converts a JSON string into a dictionary.
+Merges two dictionaries, with second dictionary values taking precedence.
 
-**Tags:** dictionary, json, parse
+Use cases:
+- Combine default and custom configurations
+- Merge partial updates with existing data
+- Create aggregate data structures
 
-**Inherits from:** BaseNode
-
-- **json_string** (`str`)
-
-## DictFromList
-
-Generates a dictionary by pairing lists of keys and values.
-
-**Tags:** dictionary, create, keys, values
-
-**Inherits from:** BaseNode
-
-- **keys** (`list[typing.Any]`)
-- **values** (`list[typing.Any]`)
-
-## DictToDataframe
-
-Converts a dictionary into a dataframe, each value in the dictionary becomes a column.
-
-**Tags:** dictionary, dataframe, pandas
-
-**Inherits from:** BaseNode
-
-- **dictionary** (`dict[str, typing.Any]`)
-
-## Merge
-
-Combines two dictionaries into one. Note: Values from the second input override duplicates.
-
-**Tags:** dictionary, merge, combine
-
-**Inherits from:** BaseNode
+**Tags:** dictionary, merge, update
 
 - **dict_a** (`dict[str, typing.Any]`)
 - **dict_b** (`dict[str, typing.Any]`)
 
-## RowsToDataframe
+## ConvertDictionariesToDataframe
 
-Converts a list of dictionaries into a dataframe, each dictionary becomes a row.
+Converts a list of dictionaries into a multi-row pandas DataFrame.
 
-**Tags:** dictionary, dataframe, pandas
+Use cases:
+- Transform list of JSON objects into tabular format
+- Prepare multiple data records for analysis
+- Convert API results to a structured dataset
 
-**Inherits from:** BaseNode
+**Tags:** dictionaries, dataframe, convert
 
 - **rows** (`list[dict[str, typing.Any]]`)
 
-## SelectKeys
+## ConvertDictionaryToDataframe
 
-Filters a dictionary to include only specified keys.
+Transforms a single dictionary into a one-row pandas DataFrame.
 
-**Tags:** dictionary, keys, filter
+Use cases:
+- Prepare dictionary data for tabular analysis
+- Convert configuration to a data record
+- Initiate a DataFrame from a single data point
 
-**Inherits from:** BaseNode
+**Tags:** dictionary, dataframe, convert
+
+- **dictionary** (`dict[str, typing.Any]`)
+
+## ConvertJSONToDictionary
+
+Parses a JSON string into a Python dictionary.
+
+Use cases:
+- Process API responses
+- Load configuration files
+- Deserialize stored data
+
+**Tags:** json, parse, dictionary
+
+- **json_string** (`str`)
+
+## CreateDictionaryFromList
+
+Creates a dictionary from parallel lists of keys and values.
+
+Use cases:
+- Convert separate data columns into key-value pairs
+- Create lookups from parallel data structures
+- Transform list data into associative arrays
+
+**Tags:** dictionary, create, zip
+
+- **keys** (`list[typing.Any]`)
+- **values** (`list[typing.Any]`)
+
+## FilterDictionaryKeys
+
+Creates a new dictionary with only specified keys from the input.
+
+Use cases:
+- Extract relevant fields from a larger data structure
+- Implement data access controls
+- Prepare specific data subsets for processing
+
+**Tags:** dictionary, filter, select
 
 - **dictionary** (`dict[str, typing.Any]`)
 - **keys** (`list[str]`)
 
-## Update
+## GetDictionaryValue
 
-Updates a dictionary with one or more new key-value pairs.
+Retrieves a value from a dictionary using a specified key.
 
-**Tags:** dictionary, dict, add, insert
+Use cases:
+- Access a specific item in a configuration dictionary
+- Retrieve a value from a parsed JSON object
+- Extract a particular field from a data structure
 
-**Inherits from:** BaseNode
+**Tags:** dictionary, get, value, key
 
 - **dictionary** (`dict[str, typing.Any]`)
-- **new_pairs** (`dict[str, typing.Any]`)
+- **key** (`str`)
+
+## RemoveFromDictionary
+
+Removes a key-value pair from a dictionary.
+
+Use cases:
+- Delete a specific configuration option
+- Remove sensitive information before processing
+- Clean up temporary entries in a data structure
+
+**Tags:** dictionary, remove, delete
+
+- **dictionary** (`dict[str, typing.Any]`)
+- **key** (`str`)
 

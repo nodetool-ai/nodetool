@@ -9,9 +9,14 @@ import asyncio
 
 class Classifier(HuggingfaceNode):
     """
-    Image classification is the task of assigning a label or class to an entire image.
-    Images are expected to have only one class for each image. Image classification models
-    take an image as input and return a prediction about which class the image belongs to.
+    Classifies images into predefined categories.
+    image, classification, labeling, categorization
+
+    Use cases:
+    - Content moderation by detecting inappropriate images
+    - Organizing photo libraries by automatically tagging images
+    - Visual quality control in manufacturing to identify defective products
+    - Medical image analysis to assist in diagnosing conditions
     """
 
     class ModelId(str, Enum):
@@ -51,15 +56,14 @@ class Classifier(HuggingfaceNode):
 
 class StableDiffusionXL(HuggingfaceNode):
     """
-    Generates images from input text. These models can be used to generate and
-    modify images based on text prompts.
-    image, text, image generation, text-to-image, image-to-image, image generation, image synthesis
+    Generates images from text prompts using advanced diffusion models.
+    image, text, generation, synthesis, text-to-image
 
-    ### Use Cases
-    * Businesses can generate data for their their use cases by inputting text and getting image outputs.
-    * Chatbots can be made more immersive if they provide contextual images based on the input provided by the user.
-    * Different patterns can be generated to obtain unique pieces of fashion. Text-to-image models make creations easier for designers to conceptualize their design before actually implementing it.
-    * Architects can utilise the models to construct an environment based out on the requirements of the floor plan. This can also include the furniture that has to be placed in that environment.
+    Use cases:
+    - Creating custom illustrations for marketing materials
+    - Generating concept art for game and film development
+    - Producing unique stock imagery for websites and publications
+    - Visualizing interior design concepts for clients
     """
 
     class Scheduler(str, Enum):
@@ -112,6 +116,15 @@ class StableDiffusionXL(HuggingfaceNode):
 
 
 class Segformer(HuggingfaceNode):
+    """
+    Performs semantic segmentation on images, identifying and labeling different regions.
+    image, segmentation, object detection, scene parsing
+
+    Use cases:
+    - Segmenting objects in images
+    - Segmenting facial features in images
+    """
+
     image: ImageRef = Field(
         default=ImageRef(),
         title="Image",

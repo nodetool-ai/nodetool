@@ -2,8 +2,6 @@
 
 ## ChromaNode
 
-**Inherits from:** BaseNode
-
 
 #### `get_or_create_collection`
 
@@ -31,15 +29,11 @@ Get or create a collection with the given name.
 
 Index all the assets in a folder.
 
-**Inherits from:** ChromaNode
-
 - **folder**: The folder to index (`FolderRef`)
 
 ## NearestNeighbors
 
 Stores input embeddings in a database and retrieves the nearest neighbors for a query embedding.
-
-**Inherits from:** BaseNode
 
 - **documents**: The list of documents to search (`list[nodetool.metadata.types.Tensor]`)
 - **query**: The query to search for (`Tensor`)
@@ -49,8 +43,6 @@ Stores input embeddings in a database and retrieves the nearest neighbors for a 
 
 Query the index for similar images.
 
-**Inherits from:** ChromaNode
-
 - **folder**: The folder to query (`FolderRef`)
 - **image**: The image to query (`ImageRef`)
 - **n_results**: The number of results to return (`int`)
@@ -58,8 +50,6 @@ Query the index for similar images.
 ## QueryText
 
 Query the index for similar text.
-
-**Inherits from:** ChromaNode
 
 - **folder**: The folder to query (`FolderRef`)
 - **text**: The text to query (`TextRef`)

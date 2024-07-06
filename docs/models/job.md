@@ -2,8 +2,6 @@
 
 ## Job
 
-**Inherits from:** DBModel
-
 - **id** (`str`)
 - **user_id** (`str`)
 - **job_type** (`str`)

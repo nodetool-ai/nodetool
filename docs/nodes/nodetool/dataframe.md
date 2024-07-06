@@ -1,189 +1,248 @@
 # nodetool.nodes.nodetool.dataframe
 
-## Append
+## AddNewDataColumn
 
-Append two dataframes along their rows.
-Outputs a DataFrame object that is the result of appending DataFrame A and DataFrame B.
+Add list of values as new column to dataframe.
 
-**Tags:** row, concat, merge
+Use cases:
+- Incorporate external data into existing dataframe
+- Add calculated results as new column
+- Augment dataframe with additional features
 
-**Inherits from:** BaseNode
-
-- **dataframe_a**: First DataFrame to be appended. (`DataframeRef`)
-- **dataframe_b**: Second DataFrame to be appended. (`DataframeRef`)
-
-## CSVToDataframe
-
-Converts CSV data into a DataFrame.
-
-**Tags:** csv, dataframe
-
-**Inherits from:** BaseNode
-
-- **csv_data**: String input of CSV formatted text. (`str`)
-
-## ColumnToList
-
-Convert a column in a dataframe to a list.
-
-**Tags:** dataframe, column
-
-**Inherits from:** BaseNode
-
-- **dataframe**: The input dataframe. (`DataframeRef`)
-- **column_name**: The name of the column to be converted to a list. (`str`)
-
-## Concat
-
-Merge two dataframes along their columns.
-Outputs a single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
-
-**Tags:** merge
-
-**Inherits from:** BaseNode
-
-- **dataframe_a**: First DataFrame to be merged. (`DataframeRef`)
-- **dataframe_b**: Second DataFrame to be merged. (`DataframeRef`)
-
-## DropDuplicates
-
-Drop duplicate rows from a DataFrame.
-
-**Tags:** duplicate, dataframe, unique
-
-**Inherits from:** BaseNode
-
-- **df**: The input DataFrame. (`DataframeRef`)
-
-## DropNA
-
-Drop NA values from a DataFrame.
-
-**Tags:** na, dataframe, missing
-
-**Inherits from:** BaseNode
-
-- **df**: The input DataFrame. (`DataframeRef`)
-
-## Filter
-
-Filter DataFrame based on a condition.
-
-**Tags:** dataframe, condition, query
-
-**Inherits from:** BaseNode
-
-- **df**: The DataFrame to filter. (`DataframeRef`)
-- **condition**: The filtering condition to be applied to the DataFrame, e.g. column_name > 5. (`str`)
-
-## FromTensor
-
-Convert a tensor to a dataframe.
-
-**Tags:** dataframe, tensor
-
-**Inherits from:** BaseNode
-
-- **tensor**: A tensor object to be converted into a dataframe. (`Tensor`)
-- **columns**: A list of strings specifying the column names for the resulting dataframe. (`list[str]`)
-
-## IrisDataFrame
-
-Load the Iris dataset.
-
-**Tags:** ml, training, dataset, test, iris
-
-**Inherits from:** BaseNode
-
-
-## Join
-
-Merges two dataframes along their columns.
-Outputs a single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
-
-**Tags:** merge, join
-
-**Inherits from:** BaseNode
-
-- **dataframe_a**: First DataFrame to be merged. (`DataframeRef`)
-- **dataframe_b**: Second DataFrame to be merged. (`DataframeRef`)
-- **join_on**: The column name on which to join the two dataframes. (`str`)
-
-## ListToColumn
-
-Convert a list of objects into a column in a dataframe.
-
-**Tags:** dataframe, column, values
-
-**Inherits from:** BaseNode
+**Tags:** dataframe, column, list
 
 - **dataframe**: Dataframe object to add a new column to. (`DataframeRef`)
 - **column_name**: The name of the new column to be added to the dataframe. (`str`)
 - **values**: A list of any type of elements which will be the new column's values. (`list[typing.Any]`)
 
-## ListToDataFrame
+## CombineDataVertically
 
-Convert a list of values to a dataframe. Each row may be a dict, list, or single value.
+Append two dataframes along rows.
 
-**Tags:** list, dataframe
+Use cases:
+- Combine data from multiple time periods
+- Merge datasets with same structure
+- Aggregate data from different sources
 
-**Inherits from:** BaseNode
+**Tags:** append, concat, rows
+
+- **dataframe_a**: First DataFrame to be appended. (`DataframeRef`)
+- **dataframe_b**: Second DataFrame to be appended. (`DataframeRef`)
+
+## ConvertListToTable
+
+Convert list of values to dataframe.
+
+Use cases:
+- Transform list data into structured dataframe
+- Prepare list data for analysis or visualization
+- Convert API responses to dataframe format
+
+**Tags:** list, dataframe, convert
 
 - **values**: List of values to be converted, each value will be a row. (`list[typing.Any]`)
 - **columns**: Comma separated list of column names (`str`)
 
-## Plot
+## ConvertTensorToTable
 
-Plots a dataframe as a line, bar, or scatter plot.
+Convert tensor to dataframe.
 
-**Tags:** plot, dataframe, line, bar, scatter
+Use cases:
+- Analyze tensor data using pandas functions
+- Visualize tensor data in tabular format
+- Export tensor results to dataframe structure
 
-**Inherits from:** BaseNode
+**Tags:** tensor, dataframe, convert
+
+- **tensor**: A tensor object to be converted into a dataframe. (`Tensor`)
+- **columns**: A list of strings specifying the column names for the resulting dataframe. (`list[str]`)
+
+## ConvertToTensorFormat
+
+Convert dataframe to tensor.
+
+Use cases:
+- Prepare data for deep learning models
+- Enable tensor operations on dataframe data
+- Convert tabular data to multidimensional format
+
+**Tags:** dataframe, tensor, convert
+
+- **dataframe**: The input dataframe. (`DataframeRef`)
+
+## CreateChart
+
+Create line, bar, or scatter plot from dataframe.
+
+Use cases:
+- Visualize trends in time series data
+- Compare values across categories
+- Explore relationships between variables
+
+**Tags:** plot, visualization, dataframe
 
 - **dataframe**: The input dataframe. (`DataframeRef`)
 - **x_column**: The name of the x column to be used in the plot. (`str`)
 - **y_column**: The name of the y column to be used in the plot. (`str`)
 - **plot_type**: The type of plot to be created. Can be 'line', 'bar', or 'scatter'. (`PlotType`)
 
-## PlotHeatmap
+## CreateHeatmapVisualization
 
-Plot a heatmap of a dataframe.
+Create heatmap visualization of dataframe.
 
-**Tags:** heatmap, plot, dataframe
+Use cases:
+- Visualize correlation between variables
+- Identify patterns in multi-dimensional data
+- Display intensity of values across categories
 
-**Inherits from:** BaseNode
+**Tags:** heatmap, plot, correlation
 
 - **dataframe**: The input dataframe. (`DataframeRef`)
 
-## PlotHistogram
+## CreateHistogramVisualization
 
-Plot a histogram of a dataframe column.
+Plot histogram of dataframe column.
 
-**Tags:** histogram, plot, dataframe
+Use cases:
+- Visualize distribution of continuous data
+- Identify outliers and data patterns
+- Compare data distributions across categories
 
-**Inherits from:** BaseNode
+**Tags:** histogram, plot, distribution
 
 - **dataframe**: The input dataframe. (`DataframeRef`)
 - **column**: The column to plot. (`str`)
 
-## RowsToStrings
+## ExtractColumnData
 
-Convert rows in a dataframe to strings.
+Convert dataframe column to list.
 
-**Tags:** dataframe, columns
+Use cases:
+- Extract data for use in other processing steps
+- Prepare column data for plotting or analysis
+- Convert categorical data to list for encoding
 
-**Inherits from:** BaseNode
+**Tags:** dataframe, column, list
+
+- **dataframe**: The input dataframe. (`DataframeRef`)
+- **column_name**: The name of the column to be converted to a list. (`str`)
+
+## FilterDataRows
+
+Filter dataframe based on condition.
+
+Use cases:
+- Extract subset of data meeting specific criteria
+- Remove outliers or invalid data points
+- Focus analysis on relevant data segments
+
+**Tags:** filter, query, condition
+
+- **df**: The DataFrame to filter. (`DataframeRef`)
+- **condition**: The filtering condition to be applied to the DataFrame, e.g. column_name > 5. (`str`)
+
+## FormatRowsAsText
+
+Convert dataframe rows to formatted strings.
+
+Use cases:
+- Generate text summaries from row data
+- Prepare data for natural language processing
+- Create custom string representations of rows
+
+**Tags:** dataframe, string, format
 
 - **dataframe**: The input dataframe. (`DataframeRef`)
 - **template**: The template for the string representation. Each column can be referenced by {column_name}. (`str`)
 
+## ImportCSVData
+
+Convert CSV string to dataframe.
+
+Use cases:
+- Import CSV data from string input
+- Convert CSV responses from APIs to dataframe
+
+**Tags:** csv, dataframe, import
+
+- **csv_data**: String input of CSV formatted text. (`str`)
+
+## JoinTables
+
+Join two dataframes on specified column.
+
+Use cases:
+- Combine data from related tables
+- Enrich dataset with additional information
+- Link data based on common identifiers
+
+**Tags:** join, merge, column
+
+- **dataframe_a**: First DataFrame to be merged. (`DataframeRef`)
+- **dataframe_b**: Second DataFrame to be merged. (`DataframeRef`)
+- **join_on**: The column name on which to join the two dataframes. (`str`)
+
+## LoadIrisDataset
+
+Load Iris dataset as dataframe.
+
+Use cases:
+- Practice machine learning techniques
+- Benchmark classification algorithms
+- Demonstrate data analysis workflows
+
+**Tags:** iris, dataset, machine learning
+
+
+## MergeDataSideBySide
+
+Merge two dataframes along columns.
+
+Use cases:
+- Combine data from multiple sources
+- Add new features to existing dataframe
+- Merge time series data from different periods
+
+**Tags:** merge, concat, columns
+
+- **dataframe_a**: First DataFrame to be merged. (`DataframeRef`)
+- **dataframe_b**: Second DataFrame to be merged. (`DataframeRef`)
+
+## RemoveDuplicateEntries
+
+Remove duplicate rows from dataframe.
+
+Use cases:
+- Clean dataset by removing redundant entries
+- Ensure data integrity in analysis
+- Prepare data for unique value operations
+
+**Tags:** duplicates, unique, clean
+
+- **df**: The input DataFrame. (`DataframeRef`)
+
+## RemoveIncompleteRows
+
+Remove rows with NA values from dataframe.
+
+Use cases:
+- Clean dataset by removing incomplete entries
+- Prepare data for analysis requiring complete cases
+- Improve data quality for modeling
+
+**Tags:** na, missing, clean
+
+- **df**: The input DataFrame. (`DataframeRef`)
+
 ## SaveDataframe
 
-Save data frame as a CSV file in a folder.
+Save dataframe in specified folder.
 
-**Tags:** csv, folder
+Use cases:
+- Export processed data for external use
+- Create backups of dataframes
 
-**Inherits from:** BaseNode
+**Tags:** csv, folder, save
 
 - **df** (`DataframeRef`)
 - **folder**: Name of the output folder. (`FolderRef`)
@@ -191,33 +250,29 @@ Save data frame as a CSV file in a folder.
 
 ## SelectColumn
 
-Select specific columns from a dataframe.
+Select specific columns from dataframe.
 
-**Tags:** dataframe, columns
+Use cases:
+- Extract relevant features for analysis
+- Reduce dataframe size by removing unnecessary columns
+- Prepare data for specific visualizations or models
 
-**Inherits from:** BaseNode
+**Tags:** dataframe, columns, filter
 
 - **dataframe**: a dataframe from which columns are to be selected (`DataframeRef`)
 - **columns**: comma separated list of column names (`str`)
 
-## Sort
+## SortDataByColumn
 
-Sort a DataFrame by a column.
+Sort dataframe by specified column.
 
-**Tags:** dataframe, sort, order
+Use cases:
+- Arrange data in ascending or descending order
+- Identify top or bottom values in dataset
+- Prepare data for rank-based analysis
 
-**Inherits from:** BaseNode
+**Tags:** sort, order, column
 
 - **df** (`DataframeRef`)
 - **column**: The column to sort the DataFrame by. (`str`)
-
-## ToTensor
-
-Convert a dataframe to a tensor.
-
-**Tags:** dataframe, tensor
-
-**Inherits from:** BaseNode
-
-- **dataframe**: The input dataframe. (`DataframeRef`)
 

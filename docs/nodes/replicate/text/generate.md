@@ -4,8 +4,6 @@
 
 Base version of Llama 3, a 70 billion parameter language model from Meta.
 
-**Inherits from:** ReplicateNode
-
 - **top_k**: The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering). (`int`)
 - **top_p**: A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751). (`float`)
 - **prompt**: Prompt (`str`)
@@ -19,8 +17,6 @@ Base version of Llama 3, a 70 billion parameter language model from Meta.
 ## Llama3_70B_Instruct
 
 A 70 billion parameter language model from Meta, fine tuned for chat completions
-
-**Inherits from:** ReplicateNode
 
 - **top_k**: The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering). (`int`)
 - **top_p**: A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751). (`float`)
@@ -36,8 +32,6 @@ A 70 billion parameter language model from Meta, fine tuned for chat completions
 
 Base version of Llama 3, an 8 billion parameter language model from Meta.
 
-**Inherits from:** ReplicateNode
-
 - **top_k**: The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering). (`int`)
 - **top_p**: A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751). (`float`)
 - **prompt**: Prompt (`str`)
@@ -52,8 +46,6 @@ Base version of Llama 3, an 8 billion parameter language model from Meta.
 
 An 8 billion parameter language model from Meta, fine tuned for chat completions
 
-**Inherits from:** ReplicateNode
-
 - **top_k**: The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering). (`int`)
 - **top_p**: A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751). (`float`)
 - **prompt**: Prompt (`str`)
@@ -67,8 +59,6 @@ An 8 billion parameter language model from Meta, fine tuned for chat completions
 ## Snowflake_Arctic_Instruct
 
 An efficient, intelligent, and truly open-source language model
-
-**Inherits from:** ReplicateNode
 
 - **top_k**: The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering). Lower to ignore less likely tokens (`int`)
 - **top_p**: A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751). Lower to ignore less likely tokens. (`float`)

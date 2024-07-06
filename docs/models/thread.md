@@ -2,8 +2,6 @@
 
 ## Thread
 
-**Inherits from:** DBModel
-
 - **id** (`str`)
 - **user_id** (`str`)
 - **created_at** (`datetime`)

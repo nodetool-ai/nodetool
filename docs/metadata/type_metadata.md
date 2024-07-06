@@ -4,8 +4,6 @@
 
 Metadata for a type.
 
-**Inherits from:** BaseModel
-
 - **type** (`str`)
 - **optional** (`bool`)
 - **values** (`typing.Optional[list[str | int]]`)

@@ -4,8 +4,6 @@
 
 Metadata for a node.
 
-**Inherits from:** BaseModel
-
 - **title** (`str`)
 - **description** (`str`)
 - **namespace** (`str`)

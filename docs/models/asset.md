@@ -2,8 +2,6 @@
 
 ## Asset
 
-**Inherits from:** DBModel
-
 - **type** (`typing.Literal['asset']`)
 - **id** (`str`)
 - **user_id** (`str`)

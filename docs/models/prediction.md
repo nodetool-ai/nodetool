@@ -2,8 +2,6 @@
 
 ## Prediction
 
-**Inherits from:** DBModel
-
 - **id** (`str`)
 - **user_id** (`str`)
 - **node_id** (`str`)

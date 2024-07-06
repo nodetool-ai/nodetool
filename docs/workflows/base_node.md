@@ -8,8 +8,6 @@ which is called when the node is evaluated.
 
 **Tags:** It has a unique ID and a type.
 
-**Inherits from:** BaseModel
-
 
 #### `assign_property`
 
@@ -79,15 +77,11 @@ Sets the values of multiple properties.
 
 ## Comment
 
-**Inherits from:** BaseNode
-
 - **comment**: The comment for this node. (`list[typing.Any]`)
 
 ## GroupNode
 
 A group node is a special type of node that contains a subgraph.
-
-**Inherits from:** BaseNode
 
 
 #### `append_edge`
@@ -118,15 +112,11 @@ A group node is a special type of node that contains a subgraph.
 
 ## InputNode
 
-**Inherits from:** BaseNode
-
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
 - **description**: The description for this input node. (`str`)
 
 ## OutputNode
-
-**Inherits from:** BaseNode
 
 - **label**: The label for this output node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -135,8 +125,6 @@ A group node is a special type of node that contains a subgraph.
 ## Preview
 
 A preview node is a special type of node that is used to preview the output of a node.
-
-**Inherits from:** BaseNode
 
 - **value**: The value to preview. (`Any`)
 

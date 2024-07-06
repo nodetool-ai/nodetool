@@ -14,7 +14,6 @@ class Embedding(GraphNode):
 
 
 from nodetool.metadata.types import GPTModel
-from nodetool.nodes.openai.text import ResponseFormat
 
 class GPT(GraphNode):
     model: GPTModel | GraphNode | tuple[GraphNode, str] = Field(default=GPTModel('gpt-3.5-turbo-0125'), description=None)
@@ -26,7 +25,6 @@ class GPT(GraphNode):
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
     max_tokens: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description=None)
     top_p: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
-    response_format: ResponseFormat | GraphNode | tuple[GraphNode, str] = Field(default=ResponseFormat('text'), description=None)
     @classmethod
     def get_node_type(cls): return "openai.text.GPT"
 

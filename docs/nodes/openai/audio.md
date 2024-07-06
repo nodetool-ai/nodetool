@@ -2,12 +2,15 @@
 
 ## TextToSpeech
 
-Converts text into spoken voice using OpenAI TTS models.
-Returns an audio file from the provided text.
+Converts text to speech using OpenAI TTS models.
 
-**Tags:** audio, tts, t2s, text-to-speech, voiceover, speak, voice, read
+Use cases:
+- Generate spoken content for videos or podcasts
+- Create voice-overs for presentations
+- Assist visually impaired users with text reading
+- Produce audio versions of written content
 
-**Inherits from:** BaseNode
+**Tags:** audio, tts, text-to-speech, voice, synthesis
 
 - **model** (`TtsModel`)
 - **voice** (`Voice`)
@@ -16,24 +19,30 @@ Returns an audio file from the provided text.
 
 ## Transcribe
 
-Converts spoken words in an audio file to written text.
-Returns a text of the detected words from the input audio file.
+Transcribes speech from audio to text.
 
-**Tags:** audio, stt, s2t, speech-to-text, transcription, audio-to-text, analysis
+Use cases:
+- Convert recorded meetings or lectures to text
+- Generate subtitles for videos
+- Create searchable archives of audio content
+- Assist hearing-impaired users with audio content
 
-**Inherits from:** BaseNode
+**Tags:** audio, transcription, speech-to-text, stt
 
 - **audio**: The audio file to transcribe. (`AudioRef`)
 - **temperature**: The temperature to use for the transcription. (`float`)
 
 ## Translate
 
-Translates spoken words in an audio file to English text.
-Outputs the english translation of an audio file as text.
+Translates speech in audio to English text.
 
-**Tags:** audio, stt, s2t, speech-to-text, translation, english
+Use cases:
+- Translate foreign language audio content to English
+- Create English transcripts of multilingual recordings
+- Assist non-English speakers in understanding audio content
+- Enable cross-language communication in audio formats
 
-**Inherits from:** BaseNode
+**Tags:** audio, translation, speech-to-text, localization
 
 - **audio**: The audio file to translate. (`AudioRef`)
 - **temperature**: The temperature to use for the translation. (`float`)

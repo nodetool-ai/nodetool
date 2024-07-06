@@ -38,10 +38,10 @@ class GriffinLim(GraphNode):
     magnitude_spectrogram: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='Magnitude spectrogram input for phase reconstruction.')
     n_iter: int | GraphNode | tuple[GraphNode, str] = Field(default=32, description='Number of iterations for the Griffin-Lim algorithm.')
     hop_length: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Number of samples between successive frames.')
-    win_length: Optional | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Each frame of audio is windowed by `window()`. The window will be of length `win_length` and then padded with zeros to match `n_fft`.')
+    win_length: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Each frame of audio is windowed by `window()`. The window will be of length `win_length` and then padded with zeros to match `n_fft`.')
     window: str | GraphNode | tuple[GraphNode, str] = Field(default='hann', description='Type of window to use for Griffin-Lim transformation.')
     center: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If True, the signal `y` is padded so that frame `D[:, t]` is centered at `y[t * hop_length]`.')
-    length: Optional | GraphNode | tuple[GraphNode, str] = Field(default=None, description='If given, the resulting signal will be zero-padded or clipped to this length.')
+    length: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='If given, the resulting signal will be zero-padded or clipped to this length.')
     @classmethod
     def get_node_type(cls): return "nodetool.audio.analysis.GriffinLim"
 
@@ -90,7 +90,7 @@ class STFT(GraphNode):
     audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to compute the STFT matrix from.')
     n_fft: int | GraphNode | tuple[GraphNode, str] = Field(default=2048, description='The number of samples per frame.')
     hop_length: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The number of samples between frames.')
-    win_length: Optional | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The window length. If None, it defaults to n_fft.')
+    win_length: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The window length. If None, it defaults to n_fft.')
     window: str | GraphNode | tuple[GraphNode, str] = Field(default='hann', description='The type of window to use.')
     center: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='If True, input signal is padded so that frame D[:, t] is centered at y[t * hop_length].')
     @classmethod

@@ -2,11 +2,16 @@
 
 ## Claude
 
-Use Claude models for generating natural language responses based on input prompts.
+Generate natural language responses using Claude AI models.
 
-**Tags:** text, llm, t2t, ttt, text-to-text, generate, claude, chat
+Use cases:
+1. Generate creative writing based on prompts
+2. Answer questions and provide explanations on various topics
+3. Assist with tasks like summarization, translation, or code generation
+4. Engage in multi-turn conversations with context retention
+5. Analyze and describe images when provided as input
 
-**Inherits from:** BaseNode
+**Tags:** text, llm, chat, generation, anthropic
 
 - **model** (`AnthropicModel`)
 - **system** (`str`)

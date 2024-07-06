@@ -2,8 +2,6 @@
 
 ## Asset
 
-**Inherits from:** BaseModel
-
 - **id** (`str`)
 - **user_id** (`str`)
 - **workflow_id** (`str | None`)
@@ -18,24 +16,22 @@
 
 ## AssetCreateRequest
 
-**Inherits from:** BaseModel
-
 - **workflow_id** (`str | None`)
 - **parent_id** (`str | None`)
 - **name** (`str`)
 - **content_type** (`str`)
 - **duration** (`float | None`)
 
-## AssetList
+## AssetDownloadRequest
 
-**Inherits from:** BaseModel
+- **asset_ids** (`list[str]`)
+
+## AssetList
 
 - **next** (`str | None`)
 - **assets** (`list[nodetool.types.asset.Asset]`)
 
 ## AssetUpdateRequest
-
-**Inherits from:** BaseModel
 
 - **name** (`str | None`)
 - **parent_id** (`str | None`)
@@ -44,8 +40,6 @@
 - **duration** (`float | None`)
 
 ## TempAsset
-
-**Inherits from:** BaseModel
 
 - **get_url** (`str`)
 - **put_url** (`str`)

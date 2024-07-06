@@ -91,8 +91,13 @@ class Divide(BinaryOperation):
 
 class Modulus(BinaryOperation):
     """
-    Calculates the remainder of division of the first input by the second.
-    math, mod, modulus, remainder, %, modulo, division
+    Calculates the element-wise remainder of division.
+    math, modulo, remainder, mod, %
+
+    Use cases:
+    - Implementing cyclic behaviors
+    - Checking for even/odd numbers
+    - Limiting values to a specific range
     """
 
     def operation(self, a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -101,9 +106,13 @@ class Modulus(BinaryOperation):
 
 class Sine(BaseNode):
     """
-    Computes the sine of an input angle in radians.
-    math, sine, radians, angle
-    Returns a float value between -1 and 1.
+    Computes the sine of input angles in radians.
+    math, trigonometry, sine, sin
+
+    Use cases:
+    - Calculating vertical components in physics
+    - Generating smooth periodic functions
+    - Audio signal processing
     """
 
     _layout = "small"
@@ -117,9 +126,13 @@ class Sine(BaseNode):
 
 class Cosine(BaseNode):
     """
-    Computes the cosine of an input angle in radians.
-    math, sine, radians, angle
-    Returns a float value between -1 and 1.
+    Computes the cosine of input angles in radians.
+    math, trigonometry, cosine, cos
+
+    Use cases:
+    - Calculating horizontal components in physics
+    - Creating circular motions
+    - Phase calculations in signal processing
     """
 
     _layout = "small"
@@ -133,9 +146,13 @@ class Cosine(BaseNode):
 
 class Power(BaseNode):
     """
-    Computes the power of the base to the exponent.
-    math, power, exponent
-    Returns a float value between -1 and 1.
+    Raises the base to the power of the exponent element-wise.
+    math, exponentiation, power, pow, **
+
+    Use cases:
+    - Calculating compound interest
+    - Implementing polynomial functions
+    - Applying non-linear transformations to data
     """
 
     _layout = "small"
@@ -153,8 +170,13 @@ class Power(BaseNode):
 
 class SqrtTensor(BaseNode):
     """
-    Calculates the square root of the input.
-    math, power, sqrt, square, root
+    Calculates the square root of the input element-wise.
+    math, square root, sqrt, √
+
+    Use cases:
+    - Normalizing data
+    - Calculating distances in Euclidean space
+    - Finding intermediate values in binary search
     """
 
     _layout = "small"

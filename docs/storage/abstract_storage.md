@@ -2,8 +2,6 @@
 
 ## AbstractStorage
 
-**Inherits from:** ABC
-
 #### `delete`
 
 **Parameters:**

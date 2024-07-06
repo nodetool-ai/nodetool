@@ -14,9 +14,15 @@ from openai.types.images_response import ImagesResponse
 
 class Dall_E(BaseNode):
     """
-    Generates images from textual descriptions using DALLE-3.
+    Generates images from textual descriptions using DALL-E 3.
     image, t2i, tti, text-to-image, create, generate, dall-e, picture, photo, art, drawing, illustration
-    Returns an image based on the provided textual prompt.
+
+    Use cases:
+    1. Create custom illustrations for articles or presentations
+    2. Generate concept art for creative projects
+    3. Produce visual aids for educational content
+    4. Design unique marketing visuals or product mockups
+    5. Explore artistic ideas and styles programmatically
     """
 
     class Size(str, Enum):

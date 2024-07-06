@@ -4,8 +4,6 @@
 
 whisper-large-v3, incredibly fast, powered by Hugging Face Transformers! 🤗
 
-**Inherits from:** ReplicateNode
-
 - **task**: Task to perform: transcribe or translate to another language. (`Task`)
 - **audio**: Audio file (`AudioRef`)
 - **hf_token**: Provide a hf.co/settings/token for Pyannote.audio to diarise the audio clips. You need to agree to the terms in 'https://huggingface.co/pyannote/speaker-diarization-3.1' and 'https://huggingface.co/pyannote/segmentation-3.0' first. (`str | None`)
@@ -17,8 +15,6 @@ whisper-large-v3, incredibly fast, powered by Hugging Face Transformers! 🤗
 ## Whisper
 
 Convert speech in audio to text
-
-**Inherits from:** ReplicateNode
 
 - **audio**: Audio file (`AudioRef`)
 - **model**: This version only supports Whisper-large-v3. (`str`)

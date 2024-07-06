@@ -2,14 +2,10 @@
 
 ## Error
 
-**Inherits from:** BaseModel
-
 - **type** (`typing.Literal['error']`)
 - **error** (`str`)
 
 ## NodeProgress
-
-**Inherits from:** BaseModel
 
 - **type** (`typing.Literal['node_progress']`)
 - **node_id** (`str`)
@@ -17,8 +13,6 @@
 - **total** (`int`)
 
 ## NodeUpdate
-
-**Inherits from:** BaseModel
 
 - **type** (`typing.Literal['node_update']`)
 - **node_id** (`str`)

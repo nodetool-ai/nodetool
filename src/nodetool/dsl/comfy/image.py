@@ -44,7 +44,7 @@ class ImagePadForOutpaint(GraphNode):
 
 
 class LoadImage(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None), description='The image to load.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to load.')
     upload: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='unused')
     @classmethod
     def get_node_type(cls): return "comfy.image.LoadImage"

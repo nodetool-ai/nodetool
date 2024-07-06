@@ -4,8 +4,6 @@
 
 🔊 Text-Prompted Generative Audio Model
 
-**Inherits from:** ReplicateNode
-
 - **prompt**: Input prompt (`str`)
 - **text_temp**: generation temperature (1.0 more diverse, 0.0 more conservative) (`float`)
 - **output_full**: return full generation as a .npz file to be used as a history prompt (`bool`)
@@ -21,8 +19,6 @@
 ## MusicGen
 
 Generate music from a prompt or melody
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Seed for random number generator. If None or -1, a random seed will be used. (`int | None`)
 - **top_k**: Reduces sampling to the k most likely tokens. (`int`)
@@ -43,8 +39,6 @@ Generate music from a prompt or melody
 ## RealisticVoiceCloning
 
 Create song covers with any RVC v2 trained AI voice from audio files.
-
-**Inherits from:** ReplicateNode
 
 - **protect**: Control how much of the original vocals' breath and voiceless consonants to leave in the AI vocals. Set 0.5 to disable. (`float`)
 - **rvc_model**: RVC model for a specific voice. If using a custom model, this should match the name of the downloaded model. If a 'custom_rvc_model_download_url' is provided, this will be automatically set to the name of the downloaded model. (`Rvc_model`)
@@ -70,8 +64,6 @@ Create song covers with any RVC v2 trained AI voice from audio files.
 
 Stable diffusion for real-time music generation
 
-**Inherits from:** ReplicateNode
-
 - **alpha**: Interpolation alpha if using two prompts. A value of 0 uses prompt_a fully, a value of 1 uses prompt_b fully (`float`)
 - **prompt_a**: The prompt for your audio (`str`)
 - **prompt_b**: The second prompt to interpolate with the first, leave blank if no interpolation (`str | None`)
@@ -88,8 +80,6 @@ Stable diffusion for real-time music generation
 
 Generates speech from text
 
-**Inherits from:** ReplicateNode
-
 - **beta**: Only used for long text inputs or in case of reference speaker,             determines the prosody of the speaker. Use lower values to sample style based             on previous or reference speech instead of text. (`float`)
 - **seed**: Seed for reproducibility (`int`)
 - **text**: Text to convert to speech (`str | None`)
@@ -102,8 +92,6 @@ Generates speech from text
 ## TortoiseTTS
 
 Generate speech from text, clone voices from mp3 files. From James Betker AKA "neonbjb".
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Random seed which can be used to reproduce results. (`int`)
 - **text**: Text to speak. (`str`)

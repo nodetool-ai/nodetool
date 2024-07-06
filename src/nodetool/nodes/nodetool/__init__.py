@@ -22,8 +22,5 @@ import nodetool.nodes.nodetool.math
 import nodetool.nodes.nodetool.output
 import nodetool.nodes.nodetool.tensor
 import nodetool.nodes.nodetool.text
-import nodetool.nodes.nodetool.text.extract
-import nodetool.nodes.nodetool.text.generate
-import nodetool.nodes.nodetool.text.rerank
 import nodetool.nodes.nodetool.vector
 import nodetool.nodes.nodetool.video

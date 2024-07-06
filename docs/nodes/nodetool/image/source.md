@@ -12,8 +12,6 @@ This node is mainly used for generating a base layer for image processing tasks.
 
 **Tags:** 
 
-**Inherits from:** BaseNode
-
 - **width** (`int`)
 - **height** (`int`)
 - **color** (`str`)
@@ -29,8 +27,6 @@ The Gaussian Noise Node is designed to simulate realistic distortions that can o
 - Creating artistic effects in images.
 
 **Tags:** 
-
-**Inherits from:** BaseNode
 
 - **mean** (`float`)
 - **stddev** (`float`)
@@ -51,8 +47,6 @@ The Render Text Node offers customizable options, including the ability to choos
 - Creating instructional images to guide the reader's view.
 
 **Tags:** 
-
-**Inherits from:** BaseNode
 
 - **text**: The text to render. (`str`)
 - **font**: The font to use. (`TextFont`)

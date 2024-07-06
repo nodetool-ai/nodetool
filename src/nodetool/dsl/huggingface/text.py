@@ -1,0 +1,32 @@
+from pydantic import BaseModel, Field
+import nodetool.metadata.types
+from nodetool.metadata.types import *
+from nodetool.dsl.graph import GraphNode
+
+from nodetool.nodes.huggingface.text import ModelId
+
+class Classifier(GraphNode):
+    model: ModelId | GraphNode | tuple[GraphNode, str] = Field(default=ModelId('cardiffnlp/twitter-roberta-base-sentiment-latest'), description='The model ID to use for the classification')
+    inputs: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The input text to classify')
+    @classmethod
+    def get_node_type(cls): return "huggingface.text.Classifier"
+
+
+from nodetool.nodes.huggingface.text import ModelId
+
+class Summarize(GraphNode):
+    model: ModelId | GraphNode | tuple[GraphNode, str] = Field(default=ModelId('Falconsai/text_summarization'), description='The model ID to use for the summarization')
+    inputs: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The input text to the model')
+    @classmethod
+    def get_node_type(cls): return "huggingface.text.Summarize"
+
+
+from nodetool.nodes.huggingface.text import ModelId
+
+class TextGeneration(GraphNode):
+    model: ModelId | GraphNode | tuple[GraphNode, str] = Field(default=ModelId('microsoft/phi-2'), description='The model ID to use for the classification')
+    inputs: str | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='The input text to the model')
+    @classmethod
+    def get_node_type(cls): return "huggingface.text.TextGeneration"
+
+

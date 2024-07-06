@@ -6,8 +6,6 @@ Performs addition on two inputs.
 
 **Tags:** math, plus, add, addition, sum, +
 
-**Inherits from:** BinaryOperation
-
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
 
@@ -21,8 +19,6 @@ Performs addition on two inputs.
 **Returns:** `ndarray`
 
 ## BinaryOperation
-
-**Inherits from:** BaseNode
 
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
@@ -38,12 +34,14 @@ Performs addition on two inputs.
 
 ## Cosine
 
-Computes the cosine of an input angle in radians.
-Returns a float value between -1 and 1.
+Computes the cosine of input angles in radians.
 
-**Tags:** math, sine, radians, angle
+Use cases:
+- Calculating horizontal components in physics
+- Creating circular motions
+- Phase calculations in signal processing
 
-**Inherits from:** BaseNode
+**Tags:** math, trigonometry, cosine, cos
 
 - **angle_rad** (`float | int | nodetool.metadata.types.Tensor`)
 
@@ -52,8 +50,6 @@ Returns a float value between -1 and 1.
 Divides the first input by the second.
 
 **Tags:** math, division, arithmetic, quotient
-
-**Inherits from:** BinaryOperation
 
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
@@ -69,11 +65,14 @@ Divides the first input by the second.
 
 ## Modulus
 
-Calculates the remainder of division of the first input by the second.
+Calculates the element-wise remainder of division.
 
-**Tags:** math, mod, modulus, remainder, %, modulo, division
+Use cases:
+- Implementing cyclic behaviors
+- Checking for even/odd numbers
+- Limiting values to a specific range
 
-**Inherits from:** BinaryOperation
+**Tags:** math, modulo, remainder, mod, %
 
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
@@ -93,8 +92,6 @@ Multiplies two inputs.
 
 **Tags:** math, product, times, *
 
-**Inherits from:** BinaryOperation
-
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)
 
@@ -109,34 +106,41 @@ Multiplies two inputs.
 
 ## Power
 
-Computes the power of the base to the exponent.
-Returns a float value between -1 and 1.
+Raises the base to the power of the exponent element-wise.
 
-**Tags:** math, power, exponent
+Use cases:
+- Calculating compound interest
+- Implementing polynomial functions
+- Applying non-linear transformations to data
 
-**Inherits from:** BaseNode
+**Tags:** math, exponentiation, power, pow, **
 
 - **base** (`float | int | nodetool.metadata.types.Tensor`)
 - **exponent** (`float | int | nodetool.metadata.types.Tensor`)
 
 ## Sine
 
-Computes the sine of an input angle in radians.
-Returns a float value between -1 and 1.
+Computes the sine of input angles in radians.
 
-**Tags:** math, sine, radians, angle
+Use cases:
+- Calculating vertical components in physics
+- Generating smooth periodic functions
+- Audio signal processing
 
-**Inherits from:** BaseNode
+**Tags:** math, trigonometry, sine, sin
 
 - **angle_rad** (`float | int | nodetool.metadata.types.Tensor`)
 
 ## SqrtTensor
 
-Calculates the square root of the input.
+Calculates the square root of the input element-wise.
 
-**Tags:** math, power, sqrt, square, root
+Use cases:
+- Normalizing data
+- Calculating distances in Euclidean space
+- Finding intermediate values in binary search
 
-**Inherits from:** BaseNode
+**Tags:** math, square root, sqrt, √
 
 - **x** (`int | float | nodetool.metadata.types.Tensor`)
 
@@ -145,8 +149,6 @@ Calculates the square root of the input.
 Subtracts the second input from the first.
 
 **Tags:** math, minus, difference, -
-
-**Inherits from:** BinaryOperation
 
 - **a** (`int | float | nodetool.metadata.types.Tensor`)
 - **b** (`int | float | nodetool.metadata.types.Tensor`)

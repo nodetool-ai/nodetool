@@ -4,8 +4,6 @@
 
 Represents a node in a graph DSL.
 
-**Inherits from:** BaseModel
-
 - **id** (`str`)
 
 #### `graph`

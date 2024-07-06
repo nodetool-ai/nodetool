@@ -13,15 +13,13 @@ from nodetool.workflows.processing_context import ProcessingContext
 
 class TextToSpeech(HuggingfaceNode):
     """
-    Text-to-Speech (TTS) is the task of generating natural sounding
-    speech given text input. TTS models can be extended to have a single model
-    that generates speech for multiple speakers and multiple languages.
+    Generates natural-sounding speech from text input.
+    tts, audio, speech, huggingface
 
-    ### Use Cases
-    * Text-to-Speech (TTS) models can be used in any speech-enabled application that requires converting text to speech imitating human voice.
-    * TTS models are used to create voice assistants on smart devices. These models are a better alternative compared to concatenative methods where the assistant is built by recording sounds and mapping them, since the outputs in TTS models contain elements in natural speech such as emphasis.
-    * TTS models are widely used in airport and public transportation announcement systems to convert the announcement of a given text into speech.
-
+    Use cases:
+    - Create voice content for apps and websites
+    - Develop voice assistants with natural-sounding speech
+    - Generate automated announcements for public spaces
     """
 
     class ModelId(str, Enum):
@@ -48,8 +46,13 @@ class TextToSpeech(HuggingfaceNode):
 
 class TextToAudio(HuggingfaceNode):
     """
-    Generate audio from a text input using a Huggingface model.
-    audio, text, huggingface
+    Generates audio (music or sound effects) from text descriptions.
+    audio, music, generation, huggingface
+
+    Use cases:
+    - Create custom background music for videos or games
+    - Generate sound effects based on textual descriptions
+    - Prototype musical ideas quickly
     """
 
     class ModelId(str, Enum):
@@ -85,8 +88,13 @@ class TextToAudio(HuggingfaceNode):
 
 class AutomaticSpeechRecognition(HuggingfaceNode):
     """
-    Automatic Speech Recognition (ASR), also known as Speech to Text (STT), is the task of transcribing a given audio to text. It has many applications, such as voice user interfaces.
-    asr, speech, audio, huggingface
+    Transcribes spoken audio to text.
+    asr, speech-to-text, audio, huggingface
+
+    Use cases:
+    - Transcribe interviews or meetings
+    - Create subtitles for videos
+    - Implement voice commands in applications
     """
 
     class ModelId(str, Enum):

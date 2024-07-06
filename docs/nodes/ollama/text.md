@@ -2,12 +2,17 @@
 
 ## Embedding
 
-Generates a vector representation of text for measuring relatedness.
-Outputs a text embedding vector that quantifies the semantic similarity of the input text to other text strings. An embedding is a vector (list) of floating point numbers. The distance between two vectors measures their relatedness. Small distances suggest high relatedness and large distances suggest low relatedness. Use cases: Search, Clustering, Recommendations, Anomaly detection, Diversity measurement, Classification
+Generate vector representations of text for semantic similarity.
 
-**Tags:** text, analyse, transform, embeddings, relatedness, search, classification, clustering, recommendations
+Use cases:
+- Power semantic search capabilities
+- Enable text clustering and categorization
+- Support recommendation systems
+- Detect semantic anomalies or outliers
+- Measure text diversity or similarity
+- Aid in text classification tasks
 
-**Inherits from:** BaseNode
+**Tags:** embeddings, semantic analysis, text similarity, search, clustering
 
 - **input** (`str | nodetool.metadata.types.TextRef`)
 - **model** (`LlamaModel`)
@@ -15,9 +20,15 @@ Outputs a text embedding vector that quantifies the semantic similarity of the i
 
 ## Ollama
 
-Run Llama models.
+Run Llama models to generate text responses.
 
-**Inherits from:** BaseNode
+Use cases:
+- Generate creative writing or stories
+- Answer questions or provide explanations
+- Assist with tasks like coding, analysis, or problem-solving
+- Engage in open-ended dialogue on various topics
+
+**Tags:** llama, text generation, language model, ai assistant
 
 - **model**: The Llama model to use. (`LlamaModel`)
 - **prompt**: Prompt to send to the model. (`str`)

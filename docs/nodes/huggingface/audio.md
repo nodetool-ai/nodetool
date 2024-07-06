@@ -2,39 +2,42 @@
 
 ## AutomaticSpeechRecognition
 
-Automatic Speech Recognition (ASR), also known as Speech to Text (STT), is the task of transcribing a given audio to text. It has many applications, such as voice user interfaces.
+Transcribes spoken audio to text.
 
-**Tags:** asr, speech, audio, huggingface
+Use cases:
+- Transcribe interviews or meetings
+- Create subtitles for videos
+- Implement voice commands in applications
 
-**Inherits from:** HuggingfaceNode
+**Tags:** asr, speech-to-text, audio, huggingface
 
 - **model**: The model ID to use for the speech recognition (`ModelId`)
 - **audio**: The input audio to transcribe (`AudioRef`)
 
 ## TextToAudio
 
-Generate audio from a text input using a Huggingface model.
+Generates audio (music or sound effects) from text descriptions.
 
-**Tags:** audio, text, huggingface
+Use cases:
+- Create custom background music for videos or games
+- Generate sound effects based on textual descriptions
+- Prototype musical ideas quickly
 
-**Inherits from:** HuggingfaceNode
+**Tags:** audio, music, generation, huggingface
 
 - **model**: The model ID to use for the audio generation (`ModelId`)
 - **inputs**: The input text to the model (`str`)
 
 ## TextToSpeech
 
-Text-to-Speech (TTS) is the task of generating natural sounding
-that generates speech for multiple speakers and multiple languages.
+Generates natural-sounding speech from text input.
 
-### Use Cases
-* Text-to-Speech (TTS) models can be used in any speech-enabled application that requires converting text to speech imitating human voice.
-* TTS models are used to create voice assistants on smart devices. These models are a better alternative compared to concatenative methods where the assistant is built by recording sounds and mapping them, since the outputs in TTS models contain elements in natural speech such as emphasis.
-* TTS models are widely used in airport and public transportation announcement systems to convert the announcement of a given text into speech.
+Use cases:
+- Create voice content for apps and websites
+- Develop voice assistants with natural-sounding speech
+- Generate automated announcements for public spaces
 
-**Tags:** speech given text input. TTS models can be extended to have a single model
-
-**Inherits from:** HuggingfaceNode
+**Tags:** tts, audio, speech, huggingface
 
 - **model**: The model ID to use for the image generation (`ModelId`)
 - **inputs**: The input text to the model (`str`)

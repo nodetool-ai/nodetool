@@ -2,13 +2,9 @@
 
 ## ImageUrl
 
-**Inherits from:** BaseModel
-
 - **url** (`str`)
 
 ## Message
-
-**Inherits from:** DBModel
 
 - **id** (`str`)
 - **thread_id** (`str`)
@@ -22,21 +18,15 @@
 
 ## MessageImageContent
 
-**Inherits from:** BaseModel
-
 - **type** (`typing.Literal['image_url']`)
 - **image_url** (`ImageUrl`)
 
 ## MessageTextContent
 
-**Inherits from:** BaseModel
-
 - **type** (`typing.Literal['text']`)
 - **text** (`str`)
 
 ## ToolCall
-
-**Inherits from:** BaseModel
 
 - **id** (`str`)
 - **name** (`str`)

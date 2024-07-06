@@ -2,8 +2,6 @@
 
 ## RunJobRequest
 
-**Inherits from:** BaseModel
-
 - **type** (`typing.Literal['run_job_request']`)
 - **job_type** (`str`)
 - **params** (`typing.Any | None`)

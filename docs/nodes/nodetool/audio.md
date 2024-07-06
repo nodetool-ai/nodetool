@@ -4,8 +4,6 @@
 
 Save an audio file to a specified folder.
 
-**Inherits from:** BaseNode
-
 - **value** (`AudioRef`)
 - **folder**: The folder to save the audio file to.  (`FolderRef`)
 - **name**: The name of the audio file. (`str`)

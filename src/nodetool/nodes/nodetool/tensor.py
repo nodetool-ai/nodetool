@@ -15,6 +15,16 @@ from nodetool.metadata.types import Tensor
 
 
 class SaveTensor(BaseNode):
+    """
+    Save a tensor to a file in the specified folder.
+    tensor, save, file, storage
+
+    Use cases:
+    - Persist tensor data for later use
+    - Export tensor results from a workflow
+    - Save intermediate tensor outputs for debugging
+    """
+
     value: Tensor = Field(
         Tensor(),
         description="The tensor to save.",
@@ -45,8 +55,13 @@ class SaveTensor(BaseNode):
 
 class Stack(BaseNode):
     """
-    Stack tensors along a specified axis.
+    Stack multiple tensors along a specified axis.
     tensor, stack, concatenate, join, merge, axis
+
+    Use cases:
+    - Combine multiple 2D tensors into a 3D tensor
+    - Stack time series data from multiple sources
+    - Merge feature vectors for machine learning models
     """
 
     tensors: list[Tensor] = []
@@ -72,7 +87,13 @@ class Stack(BaseNode):
 
 class MatMul(BaseNode):
     """
-    Represents a node that performs matrix multiplication on two tensors.
+    Perform matrix multiplication on two input tensors.
+    tensor, matrix, multiplication, linear algebra
+
+    Use cases:
+    - Implement linear transformations
+    - Calculate dot products of vectors
+    - Perform matrix operations in neural networks
     """
 
     _layout = "small"
@@ -87,7 +108,13 @@ class MatMul(BaseNode):
 
 class Transpose(BaseNode):
     """
-    A class representing a node that performs transpose operation on a tensor.
+    Transpose the dimensions of the input tensor.
+    tensor, transpose, reshape, dimensions
+
+    Use cases:
+    - Convert row vectors to column vectors
+    - Rearrange data for compatibility with other operations
+    - Implement certain linear algebra operations
     """
 
     _layout = "small"
@@ -99,7 +126,13 @@ class Transpose(BaseNode):
 
 class Max(BaseNode):
     """
-    Computes the maximum value along a specified axis of a tensor.
+    Compute the maximum value along a specified axis of a tensor.
+    tensor, maximum, reduction, statistics
+
+    Use cases:
+    - Find peak values in time series data
+    - Implement max pooling in neural networks
+    - Determine highest scores across multiple categories
     """
 
     tensor: Tensor = Tensor()
@@ -111,7 +144,13 @@ class Max(BaseNode):
 
 class Min(BaseNode):
     """
-    Calculates the minimum value along a specified axis of a tensor.
+    Calculate the minimum value along a specified axis of a tensor.
+    tensor, minimum, reduction, statistics
+
+    Use cases:
+    - Find lowest values in datasets
+    - Implement min pooling in neural networks
+    - Determine minimum thresholds across categories
     """
 
     tensor: Tensor = Tensor()
@@ -123,7 +162,13 @@ class Min(BaseNode):
 
 class Mean(BaseNode):
     """
-    Computes the mean of the input tensor.
+    Compute the mean value along a specified axis of a tensor.
+    tensor, average, reduction, statistics
+
+    Use cases:
+    - Calculate average values in datasets
+    - Implement mean pooling in neural networks
+    - Compute centroids in clustering algorithms
     """
 
     tensor: Tensor = Tensor()
@@ -135,7 +180,13 @@ class Mean(BaseNode):
 
 class Sum(BaseNode):
     """
-    Calculates the sum of the input tensor.
+    Calculate the sum of values along a specified axis of a tensor.
+    tensor, summation, reduction, statistics
+
+    Use cases:
+    - Compute total values across categories
+    - Implement sum pooling in neural networks
+    - Calculate cumulative metrics in time series data
     """
 
     tensor: Tensor = Tensor()
@@ -147,7 +198,13 @@ class Sum(BaseNode):
 
 class ArgMax(BaseNode):
     """
-    Finds the indices of the maximum values along a specified axis of a tensor.
+    Find indices of maximum values along a specified axis of a tensor.
+    tensor, argmax, index, maximum
+
+    Use cases:
+    - Determine winning classes in classification tasks
+    - Find peaks in signal processing
+    - Locate best-performing items in datasets
     """
 
     a: Tensor = Tensor()
@@ -159,7 +216,13 @@ class ArgMax(BaseNode):
 
 class ArgMin(BaseNode):
     """
-    Finds the indices of the minimum values along a specified axis of a tensor.
+    Find indices of minimum values along a specified axis of a tensor.
+    tensor, argmin, index, minimum
+
+    Use cases:
+    - Locate lowest-performing items in datasets
+    - Find troughs in signal processing
+    - Determine least likely classes in classification tasks
     """
 
     tensor: Tensor = Tensor()
@@ -171,7 +234,13 @@ class ArgMin(BaseNode):
 
 class Abs(BaseNode):
     """
-    Absolute value of a tensor.
+    Compute the absolute value of each element in a tensor.
+    tensor, absolute, magnitude
+
+    Use cases:
+    - Calculate magnitudes of complex numbers
+    - Preprocess data for certain algorithms
+    - Implement activation functions in neural networks
     """
 
     input_tensor: Tensor = Field(
@@ -185,7 +254,13 @@ class Abs(BaseNode):
 
 class TensorToScalar(BaseNode):
     """
-    Converts a tensor to a scalar.
+    Convert a single-element tensor to a scalar value.
+    tensor, scalar, conversion, type
+
+    Use cases:
+    - Extract final results from tensor computations
+    - Prepare values for non-tensor operations
+    - Simplify output for human-readable results
     """
 
     tensor: Tensor = Tensor()
@@ -196,7 +271,13 @@ class TensorToScalar(BaseNode):
 
 class ScalarToTensor(BaseNode):
     """
-    Converts a scalar to a tensor.
+    Convert a scalar value to a single-element tensor.
+    scalar, tensor, conversion, type
+
+    Use cases:
+    - Prepare scalar inputs for tensor operations
+    - Create constant tensors for computations
+    - Initialize tensor values in workflows
     """
 
     value: float | int = 0
@@ -207,7 +288,13 @@ class ScalarToTensor(BaseNode):
 
 class ListToTensor(BaseNode):
     """
-    Converts a list to a tensor.
+    Convert a list of values to a tensor.
+    list, tensor, conversion, type
+
+    Use cases:
+    - Prepare list data for tensor operations
+    - Create tensors from Python data structures
+    - Convert sequence data to tensor format
     """
 
     values: list[Any] = []
@@ -218,7 +305,13 @@ class ListToTensor(BaseNode):
 
 class PlotTensor(BaseNode):
     """
-    Plot tensor.
+    Create a plot visualization of tensor data.
+    tensor, plot, visualization, graph
+
+    Use cases:
+    - Visualize trends in tensor data
+    - Create charts for reports or dashboards
+    - Debug tensor outputs in workflows
     """
 
     class PlotType(str, Enum):
@@ -251,7 +344,13 @@ class PlotTensor(BaseNode):
 
 class PlotTSNE(BaseNode):
     """
-    Plot tensor using t-SNE.
+    Create a t-SNE plot for high-dimensional tensor data.
+    tensor, tsne, visualization, dimensionality reduction
+
+    Use cases:
+    - Visualize clusters in high-dimensional data
+    - Explore relationships in complex datasets
+    - Reduce dimensionality for data analysis
     """
 
     tensor: Tensor = Tensor()
@@ -289,7 +388,13 @@ class PlotTSNE(BaseNode):
 
 class TensorToList(BaseNode):
     """
-    Converts tensor as a list.
+    Convert a tensor to a nested list structure.
+    tensor, list, conversion, type
+
+    Use cases:
+    - Prepare tensor data for JSON serialization
+    - Convert tensor outputs to Python data structures
+    - Interface tensor data with non-tensor operations
     """
 
     tensor: Tensor = Tensor()
@@ -300,7 +405,13 @@ class TensorToList(BaseNode):
 
 class Exp(BaseNode):
     """
-    Calculate the exponential of a tensor.
+    Calculate the exponential of each element in a tensor.
+    tensor, exponential, math, activation
+
+    Use cases:
+    - Implement exponential activation functions
+    - Calculate growth rates in scientific models
+    - Transform data for certain statistical analyses
     """
 
     x: int | float | Tensor = Field(title="Input", default=1.0)
@@ -313,7 +424,13 @@ class Exp(BaseNode):
 
 class Log(BaseNode):
     """
-    Calculate the natural logarithm of a tensor.
+    Calculate the natural logarithm of each element in a tensor.
+    tensor, logarithm, math, transformation
+
+    Use cases:
+    - Implement log transformations on data
+    - Calculate entropy in information theory
+    - Normalize data with large ranges
     """
 
     x: int | float | Tensor = Field(title="Input", default=1.0)

@@ -24,9 +24,17 @@ class ResponseFormat(str, Enum):
 
 class Embedding(BaseNode):
     """
-    Generates a vector representation of text for measuring relatedness.
-    text, analyse, transform, embeddings, relatedness, search, classification, clustering, recommendations
-    Outputs a text embedding vector that quantifies the semantic similarity of the input text to other text strings. An embedding is a vector (list) of floating point numbers. The distance between two vectors measures their relatedness. Small distances suggest high relatedness and large distances suggest low relatedness. Use cases: Search, Clustering, Recommendations, Anomaly detection, Diversity measurement, Classification
+    Generate vector representations of text for semantic analysis.
+    embeddings, similarity, search, clustering, classification
+
+    Uses OpenAI's embedding models to create dense vector representations of text.
+    These vectors capture semantic meaning, enabling:
+    - Semantic search
+    - Text clustering
+    - Document classification
+    - Recommendation systems
+    - Anomaly detection
+    - Measuring text similarity and diversity
     """
 
     input: str | TextRef = Field(title="Input", default="")
@@ -59,8 +67,16 @@ class Embedding(BaseNode):
 
 class GPT(BaseNode):
     """
-    Use GPT models for generating natural language responses based on input prompts. Produces natural language text as a response to the input query, leveraging the capabilities of GPT models for various applications.
-    text, llm, t2t, ttt, text-to-text, generate, gpt, chat, chatgpt
+    Generate natural language responses using GPT models.
+    llm, text-generation, chatbot, question-answering
+
+    Leverages OpenAI's GPT models to:
+    - Generate human-like text responses
+    - Answer questions
+    - Complete prompts
+    - Engage in conversational interactions
+    - Assist with writing and editing tasks
+    - Perform text analysis and summarization
     """
 
     model: GPTModel = Field(title="Model", default=GPTModel.GPT3)

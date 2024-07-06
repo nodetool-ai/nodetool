@@ -12,8 +12,6 @@ This node enhances the contrast of the provided image on a localized level by ad
 
 **Tags:** 
 
-**Inherits from:** BaseNode
-
 - **image**: The image to adjust the contrast for. (`ImageRef`)
 - **clip_limit**: Clip limit for adaptive contrast. (`float`)
 - **grid_size**: Grid size for adaptive contrast. (`int`)
@@ -31,8 +29,6 @@ Use cases:
 
 **Tags:** image, contrast, balance
 
-**Inherits from:** BaseNode
-
 - **image**: The image to adjust the contrast for. (`ImageRef`)
 - **cutoff**: Cutoff for autocontrast. (`int`)
 
@@ -47,8 +43,6 @@ Its main purpose is to alter the brightness of an uploaded image by using a cust
 - Highlighting or dimming certain parts of an image: The Brightness Node can be used to increase the visibility of certain parts of an image by enhancing their brightness.
 
 **Tags:** image, highlight, dim
-
-**Inherits from:** BaseNode
 
 - **image**: The image to adjust the brightness for. (`ImageRef`)
 - **factor**: Factor to adjust the brightness. 1.0 means no change. (`float | int`)
@@ -66,8 +60,6 @@ Use cases:
 
 **Tags:** image, color, enhance
 
-**Inherits from:** BaseNode
-
 - **image**: The image to adjust the brightness for. (`ImageRef`)
 - **factor**: Factor to adjust the contrast. 1.0 means no change. (`float`)
 
@@ -84,8 +76,6 @@ Use cases:
 
 **Tags:** image, contrast, enhance
 
-**Inherits from:** BaseNode
-
 - **image**: The image to adjust the brightness for. (`ImageRef`)
 - **factor**: Factor to adjust the contrast. 1.0 means no change. (`float`)
 
@@ -100,8 +90,6 @@ This node is primarily designed to enhance the details of an image in an AI work
 - Highlighting certain features of an image for a deeper analysis.
 
 **Tags:** image, enhance
-
-**Inherits from:** BaseNode
 
 - **image**: The image to detail. (`ImageRef`)
 
@@ -118,8 +106,6 @@ Use cases:
 
 **Tags:** image, edge, enhance
 
-**Inherits from:** BaseNode
-
 - **image**: The image to edge enhance. (`ImageRef`)
 
 ## Equalize
@@ -135,8 +121,6 @@ Use cases:
 
 **Tags:** image, contrast, histogram
 
-**Inherits from:** BaseNode
-
 - **image**: The image to equalize. (`ImageRef`)
 
 ## RankFilter
@@ -150,8 +134,6 @@ The purpose of this node is to perform a specific type of image processing techn
 - Noise reduction: The Rank Filter Node can help reduce 'noise' in images, i.e., unwanted or irrelevant details.
 
 **Tags:** image, enhance
-
-**Inherits from:** BaseNode
 
 - **image**: The image to rank filter. (`ImageRef`)
 - **size**: Rank filter size. (`int`)
@@ -170,8 +152,6 @@ Use cases:
 
 **Tags:** image, sharpen, clarity
 
-**Inherits from:** BaseNode
-
 - **image**: The image to sharpen. (`ImageRef`)
 
 ## Sharpness
@@ -187,8 +167,6 @@ Use cases:
 
 **Tags:** image, clarity, sharpness
 
-**Inherits from:** BaseNode
-
 - **image**: The image to adjust the brightness for. (`ImageRef`)
 - **factor**: Factor to adjust the contrast. 1.0 means no change. (`float`)
 
@@ -203,8 +181,6 @@ An unsharp mask is a photographic sharpening technique. This node helps to enhan
 - Digital art creation: Refining and adding crispness to digital artwork.
 
 **Tags:** image, sharpening, enhance
-
-**Inherits from:** BaseNode
 
 - **image**: The image to unsharp mask. (`ImageRef`)
 - **radius**: Unsharp mask radius. (`int`)
