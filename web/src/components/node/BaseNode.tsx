@@ -25,7 +25,7 @@ export const TOOLTIP_ENTER_NEXT_DELAY = 350;
 /**
  * Split a camelCase string into a space separated string.
  */
-function capitalToSpace(str: string) {
+export function titleize(str: string) {
   const s = str.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
   return s.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
@@ -75,7 +75,7 @@ export default memo(
     }
 
     const nodeMetadata = metadata.metadataByType[props.type];
-    const node_title = capitalToSpace(nodeMetadata.title || "");
+    const node_title = titleize(nodeMetadata.title || "");
     const node_namespace = nodeMetadata.namespace || "";
     const firstOutput =
       nodeMetadata.outputs.length > 0

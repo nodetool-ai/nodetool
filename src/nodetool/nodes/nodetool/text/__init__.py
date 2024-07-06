@@ -44,13 +44,13 @@ class TextID(BaseNode):
 
 class Concat(BaseNode):
     """
-    Concat Node is a function that combines the output from several nodes into a single output.
+    Concatenates two text inputs into a single output.
+    text, concatenation, combine
 
-    This node is beneficial for users who need a simple way to concatenate, or combine, the outputs of two or more nodes. Particularly useful in instances where several outputs need to be streamlined into a single output.
-
-    #### Applications
-    - Concatenating the result of two different text processing nodes, such as word frequency and sentiment analysis, into a single output for further processing.
-    - Combining various elements of a sentence or paragraph to streamline the information.
+    Use cases:
+    - Joining outputs from multiple text processing nodes
+    - Combining parts of sentences or paragraphs
+    - Merging text data from different sources
     """
 
     a: str | TextRef = ""
@@ -63,7 +63,13 @@ class Concat(BaseNode):
 
 class Join(BaseNode):
     """
-    This node joins a list of strings into a single string.
+    Joins a list of strings into a single string using a specified separator.
+    text, join, combine
+
+    Use cases:
+    - Combining multiple text elements with a consistent delimiter
+    - Creating comma-separated lists from individual items
+    - Assembling formatted text from array elements
     """
 
     strings: list[str | TextRef] = []
@@ -81,7 +87,13 @@ class Join(BaseNode):
 
 class Template(BaseNode):
     """
-    This node replaces placeholders in a string with values.
+    Replaces placeholders in a string with provided values.
+    text, template, formatting
+
+    Use cases:
+    - Generating personalized messages with dynamic content
+    - Creating parameterized queries or commands
+    - Formatting text output based on variable inputs
     """
 
     string: str | TextRef = Field(title="String", default="")
@@ -95,7 +107,13 @@ class Template(BaseNode):
 
 class Replace(BaseNode):
     """
-    This node replaces a substring in a string with another substring.
+    Replaces a substring in a text with another substring.
+    text, replace, substitute
+
+    Use cases:
+    - Correcting or updating specific text patterns
+    - Sanitizing or normalizing text data
+    - Implementing simple text transformations
     """
 
     text: str | TextRef = Field(title="Text", default="")
@@ -110,9 +128,13 @@ class Replace(BaseNode):
 
 class JSONToDataframe(BaseNode):
     """
-    This node transforms a list of JSON strings into a dataframe.
+    Transforms a JSON string into a pandas DataFrame.
+    json, dataframe, conversion
 
-    The JSON To Dataframe Node allows you to easily convert JSON formatted data into a tabular structure. A JSON string, representing multiple entries, is transformed into a Pandas dataframe which can be used for further data manipulations and analysis.
+    Use cases:
+    - Converting API responses to tabular format
+    - Preparing JSON data for analysis or visualization
+    - Structuring unstructured JSON data for further processing
     """
 
     text: str | TextRef = Field(title="JSON", default_factory=TextRef)
@@ -126,9 +148,13 @@ class JSONToDataframe(BaseNode):
 
 class SaveText(BaseNode):
     """
-    This node saves a text file to the assets folder.
+    Saves input text to a file in the assets folder.
+    text, save, file
 
-    The Save Text Node is used to save a text file to the assets folder. The node accepts a string as input and saves it to a text file. The text file is then uploaded to the assets folder and can be used as input to other nodes in the workflow.
+    Use cases:
+    - Persisting processed text results
+    - Creating text files for downstream nodes or external use
+    - Archiving text data within the workflow
     """
 
     value: str | TextRef = Field(title="Text", default_factory=TextRef)
@@ -143,13 +169,13 @@ class SaveText(BaseNode):
 
 class Split(BaseNode):
     """
-    The Split Node separates a given text into a list of strings based on a specified delimiter.
+    Separates text into a list of strings based on a specified delimiter.
+    text, split, tokenize
 
-    This node is designed to break down provided text based on a specified separator or delimiter. The delimiter can be any character or combination of characters. The output is a list of strings divided based on the given delimiter.
-
-    #### Applications
-    - Breaking down user input into manageable segments.
-    - Splitting text data received from other nodes for further data manipulation.
+    Use cases:
+    - Parsing CSV or similar delimited data
+    - Breaking down sentences into words or phrases
+    - Extracting specific elements from structured text
     """
 
     text: str | TextRef = Field(title="Text", default="")

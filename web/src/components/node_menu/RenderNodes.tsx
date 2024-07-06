@@ -11,6 +11,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { iconForType } from "../../config/data_types";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useDelayedHover } from "../../hooks/useDelayedHover";
+import { titleize } from "../node/BaseNode";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -88,9 +89,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes, hoverDelay }) => {
         acc.push(
           <div
             key={`${node.namespace}-${node.title}`}
-            className={`node ${
-              hoveredNode?.node_type === node.node_type ? "hovered" : ""
-            }`}
+            className={`node ${hoveredNode?.node_type === node.node_type ? "hovered" : ""
+              }`}
             onMouseEnter={() => {
               currentHoveredNodeRef.current = node;
               handleMouseEnter();
@@ -128,7 +128,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes, hoverDelay }) => {
               <ListItemText
                 primary={
                   <Typography fontSize="small">
-                    {node.node_type.split(".").pop()}
+                    {titleize(node.node_type.split(".").pop() || "")}
                   </Typography>
                 }
               />

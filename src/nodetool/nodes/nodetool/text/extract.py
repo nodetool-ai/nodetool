@@ -11,12 +11,13 @@ from nodetool.nodes.nodetool.text import convert_result, to_string
 
 class Extract(BaseNode):
     """
-    This node extracts a substring from a string.
+    Extracts a substring from input text.
+    text, extract, substring
 
-    #### Inputs
-    - `text`: The string from which the substring will be extracted.
-    - `start`: The starting index of the substring.
-    - `end`: The ending index of the substring.
+    Use cases:
+    - Extracting specific portions of text for analysis
+    - Trimming unwanted parts from text data
+    - Focusing on relevant sections of longer documents
     """
 
     text: str | TextRef = Field(title="Text", default="")
@@ -31,7 +32,13 @@ class Extract(BaseNode):
 
 class Chunk(BaseNode):
     """
-    This node chunks a string into substrings of a specified number of words.
+    Splits text into chunks of specified word length.
+    text, chunk, split
+
+    Use cases:
+    - Preparing text for processing by models with input length limits
+    - Creating manageable text segments for parallel processing
+    - Generating summaries of text sections
     """
 
     text: str | TextRef = Field(title="Text", default="")
@@ -42,6 +49,7 @@ class Chunk(BaseNode):
     async def process(self, context: ProcessingContext) -> list[str]:
         text = await to_string(context, self.text)
         text = text.split(sep=self.separator)
+
         chunks = [
             text[i : i + self.length]
             for i in range(0, len(text), self.length - self.overlap)
@@ -51,15 +59,13 @@ class Chunk(BaseNode):
 
 class ExtractRegex(BaseNode):
     """
-    This node extracts a list of substrings from a string using a regular expression.
-    Each group in the regular expression is extracted as a separate substring.
+    Extracts substrings matching regex groups from text.
+    text, regex, extract
 
-    #### Applications
-    - Extracting substrings from a string using a regular expression.
-
-    #### Example
-    Suppose you have a string that contains a question and answer.
-    Using a regex you can extract the question and answer as separate substrings.
+    Use cases:
+    - Extracting structured data (e.g., dates, emails) from unstructured text
+    - Parsing specific patterns in log files or documents
+    - Isolating relevant information from complex text formats
     """
 
     text: str | TextRef = Field(title="Text", default="")
@@ -85,8 +91,13 @@ class ExtractRegex(BaseNode):
 
 class FindAllRegex(BaseNode):
     """
-    This node extracts a list of substrings from a string using a regular expression.
-    Each match in the regular expression is extracted as a separate substring.
+    Finds all regex matches in text as separate substrings.
+    text, regex, find
+
+    Use cases:
+    - Identifying all occurrences of a pattern in text
+    - Extracting multiple instances of structured data
+    - Analyzing frequency and distribution of specific text patterns
     """
 
     text: str | TextRef = Field(title="Text", default="")
@@ -110,10 +121,13 @@ class FindAllRegex(BaseNode):
 
 class ParseJSON(BaseNode):
     """
-    This node parses a JSON string into a Python object.
+    Parses a JSON string into a Python object.
+    json, parse, convert
 
-    #### Applications
-    - Parsing JSON strings into Python objects for further processing.
+    Use cases:
+    - Converting JSON API responses for further processing
+    - Preparing structured data for analysis or storage
+    - Extracting configuration or settings from JSON files
     """
 
     text: str | TextRef = Field(title="JSON string", default="")
@@ -125,20 +139,13 @@ class ParseJSON(BaseNode):
 
 class ExtractJSON(BaseNode):
     """
-    This node uses a JSONPath to extract a specific object from a JSON object.
+    Extracts data from JSON using JSONPath expressions.
+    json, extract, jsonpath
 
-    The Extract JSON Node operates by accepting an input of a JSON object and a JSONPath expression then
-    returns the object matching that JSONPath from the JSON object.
-
-    #### Applications
-    - Extracting specific data from a larger JSON object as part of a data processing or analysis workflow.
-    - Retrieving and analyzing specific values from complex JSON structures.
-    - Preprocessing data for subsequent nodes in an AI workflow.
-
-    #### Example
-    Suppose you have a large JSON object containing various pieces of information and you want to extract the price information.
-    You can use the Extract JSON Node by feeding in the JSON object and specifying the JSONPath expression to the price field.
-    The node will return the price information which can then be input to another node for further processing, such as a decision-making node or a data visualization node.
+    Use cases:
+    - Retrieving specific fields from complex JSON structures
+    - Filtering and transforming JSON data for analysis
+    - Extracting nested data from API responses or configurations
     """
 
     text: str | TextRef = Field(title="JSON Text", default_factory=TextRef)
