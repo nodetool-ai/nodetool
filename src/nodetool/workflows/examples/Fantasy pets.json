@@ -1,0 +1,333 @@
+{
+  "id": "62e6c5b63a4611ef90ed0000090a83ee",
+  "access": "private",
+  "created_at": "2024-07-04T22:45:45.319035",
+  "updated_at": "2024-07-06T16:57:07.990124",
+  "name": "Fantasy pets",
+  "description": "",
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "nodetool.agents.DataframeAgent",
+        "data": {
+          "model": {
+            "type": "function_model",
+            "provider": "openai",
+            "name": "gpt-4o",
+            "repo_id": "",
+            "filename": "",
+            "local_path": null
+          },
+          "prompt": "create 5 fantasy pets with funny names and incredible looks",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "tool_name": "add_row",
+          "tool_description": "Adds one row.",
+          "max_tokens": 1000,
+          "temperature": 1,
+          "top_k": 50,
+          "top_p": 1,
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "name",
+                "data_type": "string",
+                "description": "unique name for the pet"
+              },
+              {
+                "name": "desc",
+                "data_type": "string",
+                "description": "visual description of the pet"
+              }
+            ]
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 20,
+            "y": 131
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.group.Loop",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 282,
+            "y": 114
+          },
+          "zIndex": -10,
+          "width": 799,
+          "height": 538,
+          "selectable": false
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": "2",
+        "type": "nodetool.input.GroupInput",
+        "data": {
+          "items": [],
+          "name": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 23,
+            "y": 125
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": "2",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{name} {desc}, realistic, detailed, masterpiece",
+          "values": {
+            "name": "Twinkletoes",
+            "desc": "A dancing squirrel with glittery fur and tiny bells on its paws.",
+            "index": 4
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 176,
+            "y": 88
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5",
+        "parent_id": "2",
+        "type": "replicate.image.generate.Juggernaut_XL_V9",
+        "data": {
+          "seed": 798761213,
+          "width": 1024,
+          "height": 1024,
+          "scheduler": "DPM++SDE",
+          "num_outputs": 1,
+          "guidance_scale": 2,
+          "apply_watermark": true,
+          "negative_prompt": "CGI, Unreal, Airbrushed, Digital",
+          "num_inference_steps": 5,
+          "disable_safety_checker": false,
+          "prompt": "Twinkletoes A dancing squirrel with glittery fur and tiny bells on its paws., realistic, detailed, masterpiece"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 327,
+            "y": 71
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": "2",
+        "type": "nodetool.output.GroupOutput",
+        "data": {
+          "name": "",
+          "input": {
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 488,
+            "y": 202
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": "2",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": {
+            "type": "dataframe",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null,
+            "columns": [
+              {
+                "name": "name",
+                "data_type": "string",
+                "description": "unique name for the pet"
+              },
+              {
+                "name": "desc",
+                "data_type": "string",
+                "description": "visual description of the pet"
+              }
+            ],
+            "data": [
+            ]
+          },
+          "name": "dataframe_output_2024-07-06"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 19,
+            "y": 269
+          },
+          "zIndex": 0,
+          "width": 296,
+          "height": 190,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": "2",
+        "type": "nodetool.image.SaveImage",
+        "data": {
+          "image": {
+          },
+          "folder": {
+            "type": "folder",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "name": "%Y-%m-%d_%H-%M-%S.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 648,
+            "y": 39
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3d9fd795-ccdd-4dcd-a4e0-9eff06623c77",
+        "parent_id": null,
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{name}.png",
+          "values": {
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 777,
+            "y": 180
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "7c580583-2a8f-4300-b60e-ab3aeaea2cbb",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "items",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "47034168",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "47034167-2a25-4dda-ba56-6d924733239d",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "c605f454-cc69-4b98-9a62-298ca219509e",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "e1040436-05df-4a94-b2c1-2f634faed443",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "3d9fd795-ccdd-4dcd-a4e0-9eff06623c77",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "26066994-1bce-4b64-acd9-610a96815242",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "6f72b601-e05a-45c4-aa2d-a55e96b6f1dd",
+        "source": "3d9fd795-ccdd-4dcd-a4e0-9eff06623c77",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "name",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "ade16035-b09c-4e99-8b1a-b5c8379b87dc",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}

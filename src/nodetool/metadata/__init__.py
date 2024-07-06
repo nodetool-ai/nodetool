@@ -49,7 +49,7 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
         asset_type = TYPE_ENUM_TO_ASSET_TYPE[type_meta.type]
         python_class = NameToType[type_meta.type]
         if isinstance(value, dict):
-            return value["type"] == asset_type
+            return "type" in value and value["type"] == asset_type
         else:
             return isinstance(value, python_class)
     if type_meta.type == "tensor" and python_type == Tensor:
