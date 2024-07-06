@@ -24,7 +24,8 @@ const styles = (theme: any) =>
     "&": {
       position: "relative",
       height: "100%",
-      // overflow: "hidden"
+      overflow: "auto",
+      paddingBottom: "10em"
     },
     ".infinite-scroll-component__outerdiv": {
       position: "relative",
@@ -236,7 +237,7 @@ const AssetGridContent = ({
                     }}
                     onDragStart={() => onDragStart(asset.id)}
 
-                  // onDragStart={() => [...selectedAssetIds, asset.id]}
+                    // onDragStart={() => [...selectedAssetIds, asset.id]}
                   />
                 </Box>
               ))}
@@ -247,7 +248,7 @@ const AssetGridContent = ({
           )
         )}
       </Box>
-    </div >
+    </div>
   );
 };
 
