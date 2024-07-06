@@ -185,10 +185,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves to the loaded assets.
    */
   load: async (query: AssetQuery) => {
-    devLog("Loading assets with query", query);
     const { data, error } = await client.GET("/api/assets/", {
       params: {
-        query: query
+        query: query,
       }
     });
     if (error) {

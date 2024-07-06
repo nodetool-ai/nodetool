@@ -47,7 +47,7 @@ async def index(
     Returns all assets for a given user or workflow.
     """
     if page_size is None:
-        page_size = 100
+        page_size = 10000
 
     if content_type is None and parent_id is None:
         parent_id = user.id
@@ -86,7 +86,6 @@ async def get(id: str, user: User = Depends(current_user)) -> Asset:
     if id == user.id:
         return Asset(
             user_id=user.id,
-            status="active",
             id=user.id,
             name="Home",
             content_type="folder",
@@ -118,8 +117,6 @@ async def update(
 
     if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found")
-    if req.status:
-        asset.status = req.status
     if req.content_type:
         asset.content_type = req.content_type
     if req.name:

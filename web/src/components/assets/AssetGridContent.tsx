@@ -11,7 +11,6 @@ import useSessionStateStore from "../../stores/SessionStateStore";
 //utils
 // import { devLog } from "../../utils/DevLog";
 //components
-import InfiniteScroll from "react-infinite-scroll-component";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
 //asset components
@@ -25,7 +24,7 @@ const styles = (theme: any) =>
     "&": {
       position: "relative",
       height: "100%",
-      overflow: "hidden"
+      // overflow: "hidden"
     },
     ".infinite-scroll-component__outerdiv": {
       position: "relative",
@@ -147,115 +146,108 @@ const AssetGridContent = ({
 
   return (
     <div className="asset-grid-content" css={styles}>
-      <InfiniteScroll
-        next={() => fetchNextPage()}
-        hasMore={!!hasNextPage}
-        loader={<span>Loading...</span>}
-        dataLength={filteredAssets.totalCount}
+      <Box
+        className="asset-grid-flex"
+        display="flex"
+        flexWrap="wrap"
+        gap={itemSpacing}
       >
-        <Box
-          className="asset-grid-flex"
-          display="flex"
-          flexWrap="wrap"
-          gap={itemSpacing}
-        >
-          {/* ASSETS */}
+        {/* ASSETS */}
 
-          {Object.entries(filteredAssets.assetsByType).map(
-            ([type, assets], index) => (
-              <React.Fragment key={type}>
-                {/* DIVIDER */}
-                {assets.length > 0 && (
-                  <div className="content-type-header">
-                    {/* <Typography>{type} </Typography> */}
-                    <div
-                      className="divider"
-                      style={{
-                        borderBottom: `2px solid ${colorForType(type)}`
-                      }}
-                    ></div>
-                  </div>
-                )}
-                {/* PARENT FOLDER */}
-                {type == "folder" &&
-                  parentFolder &&
-                  currentFolder?.name !== "Root" && (
-                    <Box
-                      display="flex"
-                      flexWrap="wrap"
-                      style={{
-                        width: folderSize,
-                        height: folderSize * 0.75
-                      }}
-                    >
-                      <AssetItem
-                        draggable={false}
-                        asset={parentFolder}
-                        isParent={true}
-                        enableContextMenu={false}
-                        onClickParent={(folderId) => {
-                          setCurrentFolderId(folderId);
-                          setSelectedAssetIds([]);
-                        }}
-                        onMoveToFolder={() => {
-                          refetch();
-                          setSelectedAssetIds([]);
-                        }}
-                      />
-                    </Box>
-                  )}
-
-                {assets.map((asset) => (
+        {Object.entries(filteredAssets.assetsByType).map(
+          ([type, assets], index) => (
+            <React.Fragment key={type}>
+              {/* DIVIDER */}
+              {assets.length > 0 && (
+                <div className="content-type-header">
+                  {/* <Typography>{type} </Typography> */}
+                  <div
+                    className="divider"
+                    style={{
+                      borderBottom: `2px solid ${colorForType(type)}`
+                    }}
+                  ></div>
+                </div>
+              )}
+              {/* PARENT FOLDER */}
+              {type == "folder" &&
+                parentFolder &&
+                currentFolder?.name !== "Root" && (
                   <Box
                     display="flex"
                     flexWrap="wrap"
-                    key={asset.id}
                     style={{
-                      width:
-                        asset.content_type === "folder"
-                          ? folderSize
-                          : `${assetItemSize * itemSizeFactor}px`,
-                      height:
-                        asset.content_type === "folder"
-                          ? folderSize * 0.75
-                          : `${assetItemSize * itemSizeFactor + footerSize}px`
+                      width: folderSize,
+                      height: folderSize * 0.75
                     }}
                   >
                     <AssetItem
-                      asset={asset}
-                      draggable={true}
-                      isSelected={selectedAssetIds.includes(asset.id)}
-                      openDeleteDialog={openDeleteDialog}
-                      openRenameDialog={openRenameDialog}
-                      onSelect={() => handleSelectAsset(asset.id)}
-                      onSetCurrentAudioAsset={() => setCurrentAudioAsset(asset)}
+                      draggable={false}
+                      asset={parentFolder}
+                      isParent={true}
+                      enableContextMenu={false}
+                      onClickParent={(folderId) => {
+                        setCurrentFolderId(folderId);
+                        setSelectedAssetIds([]);
+                      }}
                       onMoveToFolder={() => {
                         refetch();
                         setSelectedAssetIds([]);
                       }}
-                      onDeleteAssets={() => {
-                        refetch();
-                        setSelectedAssetIds([]);
-                      }}
-                      onDoubleClickFolder={(folderId) => {
-                        setCurrentFolderId(folderId);
-                        setSelectedAssetIds([]);
-                      }}
-                      onDragStart={() => onDragStart(asset.id)}
-
-                      // onDragStart={() => [...selectedAssetIds, asset.id]}
                     />
                   </Box>
-                ))}
-                {index < Object.keys(sortedAssetsByType).length - 1 && (
-                  <Divider />
                 )}
-              </React.Fragment>
-            )
-          )}
-        </Box>
-      </InfiniteScroll>
-    </div>
+
+              {assets.map((asset) => (
+                <Box
+                  display="flex"
+                  flexWrap="wrap"
+                  key={asset.id}
+                  style={{
+                    width:
+                      asset.content_type === "folder"
+                        ? folderSize
+                        : `${assetItemSize * itemSizeFactor}px`,
+                    height:
+                      asset.content_type === "folder"
+                        ? folderSize * 0.75
+                        : `${assetItemSize * itemSizeFactor + footerSize}px`
+                  }}
+                >
+                  <AssetItem
+                    asset={asset}
+                    draggable={true}
+                    isSelected={selectedAssetIds.includes(asset.id)}
+                    openDeleteDialog={openDeleteDialog}
+                    openRenameDialog={openRenameDialog}
+                    onSelect={() => handleSelectAsset(asset.id)}
+                    onSetCurrentAudioAsset={() => setCurrentAudioAsset(asset)}
+                    onMoveToFolder={() => {
+                      refetch();
+                      setSelectedAssetIds([]);
+                    }}
+                    onDeleteAssets={() => {
+                      refetch();
+                      setSelectedAssetIds([]);
+                    }}
+                    onDoubleClickFolder={(folderId) => {
+                      setCurrentFolderId(folderId);
+                      setSelectedAssetIds([]);
+                    }}
+                    onDragStart={() => onDragStart(asset.id)}
+
+                  // onDragStart={() => [...selectedAssetIds, asset.id]}
+                  />
+                </Box>
+              ))}
+              {index < Object.keys(sortedAssetsByType).length - 1 && (
+                <Divider />
+              )}
+            </React.Fragment>
+          )
+        )}
+      </Box>
+    </div >
   );
 };
 
