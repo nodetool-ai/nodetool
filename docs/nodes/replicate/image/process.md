@@ -4,16 +4,12 @@
 
 Towards Photo-Realistic Image Colorization via Dual Decoders
 
-**Inherits from:** ReplicateNode
-
 - **image**: Grayscale input image. (`str | None`)
 - **model_size**: Choose the model size. (`Model_size`)
 
 ## Magic_Style_Transfer
 
 Restyle an image with the style of another one. I strongly suggest to upscale the results with Clarity AI
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **image**: Input image (`ImageRef`)
@@ -38,15 +34,11 @@ Restyle an image with the style of another one. I strongly suggest to upscale th
 
 A deep learning approach to remove background & adding new background image
 
-**Inherits from:** ReplicateNode
-
 - **image**: input image (`ImageRef`)
 
 ## ObjectRemover
 
 None
-
-**Inherits from:** ReplicateNode
 
 - **org_image**: Original input image (`ImageRef`)
 - **mask_image**: Mask image (`ImageRef`)
@@ -54,8 +46,6 @@ None
 ## RemoveBackground
 
 Remove images background
-
-**Inherits from:** ReplicateNode
 
 - **image**: Input image (`ImageRef`)
 

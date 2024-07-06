@@ -32,6 +32,16 @@ Deletes the asset for the given id.
 - `id` (str)
 - `user` (User) (default: `Depends(current_user)`)
 
+#### `download_assets`
+
+Create a ZIP file containing the requested assets and return it for download.
+    Maintains folder structure based on asset.parent_id relationships.
+
+**Parameters:**
+
+- `req` (AssetDownloadRequest)
+- `current_user` (User) (default: `Depends(current_user)`)
+
 #### `get`
 
 Returns the asset for the given id.

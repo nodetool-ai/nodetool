@@ -5,7 +5,6 @@ from nodetool.types.graph import Node, Edge
 from nodetool.types.job import JobUpdate
 from nodetool.models.job import Job
 from nodetool.nodes.nodetool.output import GroupOutput
-from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
@@ -17,7 +16,7 @@ from nodetool.types.graph import (
     Graph as APIGraph,
 )
 from nodetool.nodes.nodetool.constant import Float, String
-from nodetool.nodes.nodetool.image import Blend
+from nodetool.nodes.nodetool.image import BlendImages
 from nodetool.nodes.nodetool.input import (
     FloatInput,
     GroupInput,
@@ -150,7 +149,7 @@ async def test_process_node_image_blend(user: User):
     }
     blend_node = {
         "id": "4",
-        "type": Blend.get_node_type(),
+        "type": BlendImages.get_node_type(),
     }
     image_output = {
         "id": "5",

@@ -2,8 +2,6 @@
 
 ## Edge
 
-**Inherits from:** BaseModel
-
 - **id** (`str | None`)
 - **source** (`str`)
 - **sourceHandle** (`str`)
@@ -13,14 +11,10 @@
 
 ## Graph
 
-**Inherits from:** BaseModel
-
 - **nodes** (`typing.List[nodetool.types.graph.Node]`)
 - **edges** (`typing.List[nodetool.types.graph.Edge]`)
 
 ## Node
-
-**Inherits from:** BaseModel
 
 - **id** (`str`)
 - **parent_id** (`str | None`)

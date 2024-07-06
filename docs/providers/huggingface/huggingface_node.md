@@ -2,8 +2,6 @@
 
 ## HuggingfaceNode
 
-**Inherits from:** BaseNode
-
 
 #### `convert_output`
 

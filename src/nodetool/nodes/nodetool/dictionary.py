@@ -6,10 +6,15 @@ from nodetool.metadata.types import DataframeRef
 from nodetool.workflows.base_node import BaseNode
 
 
-class Access(BaseNode):
+class GetDictionaryValue(BaseNode):
     """
-    Retrieves a specific value from a dictionary using a key.
-    dictionary, dict, select, get, value, access, key
+    Retrieves a value from a dictionary using a specified key.
+    dictionary, get, value, key
+
+    Use cases:
+    - Access a specific item in a configuration dictionary
+    - Retrieve a value from a parsed JSON object
+    - Extract a particular field from a data structure
     """
 
     _layout = "small"
@@ -22,10 +27,15 @@ class Access(BaseNode):
         return self.dictionary[self.key]
 
 
-class Update(BaseNode):
+class AddToDictionary(BaseNode):
     """
-    Updates a dictionary with one or more new key-value pairs.
-    dictionary, dict, add, insert
+    Updates a dictionary with new key-value pairs.
+    dictionary, add, update
+
+    Use cases:
+    - Extend a configuration with additional settings
+    - Add new entries to a cache or lookup table
+    - Merge user input with existing data
     """
 
     _layout = "small"
@@ -39,10 +49,15 @@ class Update(BaseNode):
         return self.dictionary
 
 
-class Delete(BaseNode):
+class RemoveFromDictionary(BaseNode):
     """
-    Removes a key-value pair from a dictionary based on the specified key.
-    dictionary, dict, remove
+    Removes a key-value pair from a dictionary.
+    dictionary, remove, delete
+
+    Use cases:
+    - Delete a specific configuration option
+    - Remove sensitive information before processing
+    - Clean up temporary entries in a data structure
     """
 
     _layout = "small"
@@ -56,10 +71,15 @@ class Delete(BaseNode):
         return self.dictionary
 
 
-class DictFromJson(BaseNode):
+class ConvertJSONToDictionary(BaseNode):
     """
-    Converts a JSON string into a dictionary.
-    dictionary, json, parse
+    Parses a JSON string into a Python dictionary.
+    json, parse, dictionary
+
+    Use cases:
+    - Process API responses
+    - Load configuration files
+    - Deserialize stored data
     """
 
     _layout = "small"
@@ -73,10 +93,15 @@ class DictFromJson(BaseNode):
         return res
 
 
-class DictFromList(BaseNode):
+class CreateDictionaryFromList(BaseNode):
     """
-    Generates a dictionary by pairing lists of keys and values.
-    dictionary, create, keys, values
+    Creates a dictionary from parallel lists of keys and values.
+    dictionary, create, zip
+
+    Use cases:
+    - Convert separate data columns into key-value pairs
+    - Create lookups from parallel data structures
+    - Transform list data into associative arrays
     """
 
     _layout = "small"
@@ -88,10 +113,15 @@ class DictFromList(BaseNode):
         return dict(zip(self.keys, self.values))
 
 
-class Merge(BaseNode):
+class CombineDictionaries(BaseNode):
     """
-    Combines two dictionaries into one. Note: Values from the second input override duplicates.
-    dictionary, merge, combine
+    Merges two dictionaries, with second dictionary values taking precedence.
+    dictionary, merge, update
+
+    Use cases:
+    - Combine default and custom configurations
+    - Merge partial updates with existing data
+    - Create aggregate data structures
     """
 
     _layout = "small"
@@ -103,10 +133,15 @@ class Merge(BaseNode):
         return {**self.dict_a, **self.dict_b}
 
 
-class SelectKeys(BaseNode):
+class FilterDictionaryKeys(BaseNode):
     """
-    Filters a dictionary to include only specified keys.
-    dictionary, keys, filter
+    Creates a new dictionary with only specified keys from the input.
+    dictionary, filter, select
+
+    Use cases:
+    - Extract relevant fields from a larger data structure
+    - Implement data access controls
+    - Prepare specific data subsets for processing
     """
 
     dictionary: dict[(str, Any)] = {}
@@ -116,10 +151,15 @@ class SelectKeys(BaseNode):
         return {key: self.dictionary[key] for key in self.keys}
 
 
-class DictToDataframe(BaseNode):
+class ConvertDictionaryToDataframe(BaseNode):
     """
-    Converts a dictionary into a dataframe, each value in the dictionary becomes a column.
-    dictionary, dataframe, pandas
+    Transforms a single dictionary into a one-row pandas DataFrame.
+    dictionary, dataframe, convert
+
+    Use cases:
+    - Prepare dictionary data for tabular analysis
+    - Convert configuration to a data record
+    - Initiate a DataFrame from a single data point
     """
 
     _layout = "small"
@@ -131,10 +171,15 @@ class DictToDataframe(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class RowsToDataframe(BaseNode):
+class ConvertDictionariesToDataframe(BaseNode):
     """
-    Converts a list of dictionaries into a dataframe, each dictionary becomes a row.
-    dictionary, dataframe, pandas
+    Converts a list of dictionaries into a multi-row pandas DataFrame.
+    dictionaries, dataframe, convert
+
+    Use cases:
+    - Transform list of JSON objects into tabular format
+    - Prepare multiple data records for analysis
+    - Convert API results to a structured dataset
     """
 
     _layout = "small"

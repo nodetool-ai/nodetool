@@ -2,8 +2,6 @@
 
 ## DatabaseAdapter
 
-**Inherits from:** ABC
-
 #### `create_table`
 
 **Parameters:**

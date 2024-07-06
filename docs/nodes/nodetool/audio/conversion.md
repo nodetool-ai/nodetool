@@ -11,8 +11,6 @@ Use cases:
 
 **Tags:** audio, conversion, tensor
 
-**Inherits from:** BaseNode
-
 - **audio**: The audio file to convert to a tensor. (`AudioRef`)
 
 ## TensorToAudio
@@ -25,8 +23,6 @@ Use cases:
 - Output results of audio processing pipelinesr
 
 **Tags:** audio, conversion, tensor
-
-**Inherits from:** BaseNode
 
 - **tensor**: The tensor to convert to an audio file. (`Tensor`)
 - **sample_rate**: The sample rate of the audio file. (`int`)

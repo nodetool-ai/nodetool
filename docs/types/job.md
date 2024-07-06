@@ -2,8 +2,6 @@
 
 ## Job
 
-**Inherits from:** BaseModel
-
 - **id** (`str`)
 - **job_type** (`str`)
 - **status** (`str`)
@@ -15,25 +13,17 @@
 
 ## JobCancelledException
 
-**Inherits from:** Exception
-
 ## JobList
-
-**Inherits from:** BaseModel
 
 - **next** (`typing.Optional[str]`)
 - **jobs** (`typing.List[nodetool.types.job.Job]`)
 
 ## JobRequest
 
-**Inherits from:** BaseModel
-
 - **workflow_id** (`str`)
 - **params** (`dict`)
 
 ## JobUpdate
-
-**Inherits from:** BaseModel
 
 - **type** (`typing.Literal['job_update']`)
 - **status** (`str`)

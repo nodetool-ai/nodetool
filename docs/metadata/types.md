@@ -2,11 +2,7 @@
 
 ## AnthropicModel
 
-**Inherits from:** str, Enum
-
 ## AssetRef
-
-**Inherits from:** BaseType
 
 - **type** (`str`)
 - **uri** (`str`)
@@ -25,8 +21,6 @@
 
 ## AudioRef
 
-**Inherits from:** AssetRef
-
 - **type** (`typing.Literal['audio']`)
 - **uri** (`str`)
 - **asset_id** (`str | None`)
@@ -39,45 +33,31 @@ It is used to create a mapping of type names to their corresponding classes.
 
 **Tags:** 
 
-**Inherits from:** BaseModel
-
 - **type** (`str`)
 
 ## CLIP
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.clip']`)
 
 ## CLIPFile
-
-**Inherits from:** ModelFile
 
 - **type** (`typing.Literal['comfy.clip_file']`)
 - **name** (`str`)
 
 ## CLIPVision
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.clip_vision']`)
 
 ## CLIPVisionFile
-
-**Inherits from:** ModelFile
 
 - **type** (`typing.Literal['comfy.clip_vision_file']`)
 - **name** (`str`)
 
 ## CLIPVisionOutput
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.clip_vision_output']`)
 
 ## ChatAssistantMessageParam
-
-**Inherits from:** ChatMessageParam
 
 - **role** (`typing.Literal['assistant']`)
 - **content** (`typing.Optional[str]`)
@@ -88,20 +68,14 @@ It is used to create a mapping of type names to their corresponding classes.
 
 The result of a chat conversation.
 
-**Inherits from:** OutputType
-
 - **messages**: The messages in the conversation (`list[str]`)
 - **response**: The response from the chat system (`str`)
 
 ## ChatMessageParam
 
-**Inherits from:** BaseModel
-
 - **role** (`str`)
 
 ## ChatSystemMessageParam
-
-**Inherits from:** ChatMessageParam
 
 - **role** (`typing.Literal['system']`)
 - **content** (`str`)
@@ -109,22 +83,16 @@ The result of a chat conversation.
 
 ## ChatToolMessageParam
 
-**Inherits from:** ChatMessageParam
-
 - **role** (`typing.Literal['tool']`)
 - **content** (`Any`)
 - **tool_call_id** (`str`)
 
 ## ChatToolParam
 
-**Inherits from:** BaseModel
-
 - **type** (`typing.Literal['function']`)
 - **function** (`FunctionDefinition`)
 
 ## ChatUserMessageParam
-
-**Inherits from:** ChatMessageParam
 
 - **role** (`typing.Literal['user']`)
 - **content** (`str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent]`)
@@ -132,14 +100,10 @@ The result of a chat conversation.
 
 ## CheckpointFile
 
-**Inherits from:** ModelFile
-
 - **type** (`typing.Literal['comfy.checkpoint_file']`)
 - **name** (`str`)
 
 ## ColumnDef
-
-**Inherits from:** BaseModel
 
 - **name** (`str`)
 - **data_type** (`typing.Union[typing.Literal['int'], typing.Literal['float'], typing.Literal['datetime'], typing.Literal['string'], typing.Literal['object']]`)
@@ -147,26 +111,18 @@ The result of a chat conversation.
 
 ## Conditioning
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.conditioning']`)
 
 ## ControlNet
-
-**Inherits from:** BaseType
 
 - **type** (`typing.Literal['comfy.control_net']`)
 
 ## ControlNetFile
 
-**Inherits from:** ModelFile
-
 - **type** (`typing.Literal['comfy.control_net_file']`)
 - **name** (`str`)
 
 ## DataframeRef
-
-**Inherits from:** AssetRef
 
 - **type** (`typing.Literal['dataframe']`)
 - **uri** (`str`)
@@ -179,26 +135,18 @@ The result of a chat conversation.
 
 This class represents a dataset, which includes a dataframe of features and a dataframe of targets.
 
-**Inherits from:** OutputType
-
 - **data** (`DataframeRef`)
 - **target** (`DataframeRef`)
 
 ## Embeds
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.embeds']`)
 
 ## FileRef
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['file']`)
 
 ## FolderRef
-
-**Inherits from:** AssetRef
 
 - **type** (`typing.Literal['folder']`)
 - **uri** (`str`)
@@ -207,15 +155,11 @@ This class represents a dataset, which includes a dataframe of features and a da
 
 ## FunctionDefinition
 
-**Inherits from:** BaseModel
-
 - **name** (`str`)
 - **description** (`str`)
 - **parameters** (`Any`)
 
 ## FunctionModel
-
-**Inherits from:** BaseType
 
 - **type** (`typing.Literal['function_model']`)
 - **provider** (`Provider`)
@@ -226,30 +170,20 @@ This class represents a dataset, which includes a dataframe of features and a da
 
 ## GLIGEN
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.gligen']`)
 
 ## GLIGENFile
-
-**Inherits from:** ModelFile
 
 - **type** (`typing.Literal['comfy.gligen_file']`)
 - **name** (`str`)
 
 ## GPTModel
 
-**Inherits from:** str, Enum
-
 ## IPAdapter
-
-**Inherits from:** BaseType
 
 - **type** (`typing.Literal['comfy.ip_adapter']`)
 
 ## IPAdapterFile
-
-**Inherits from:** ModelFile
 
 - **type** (`typing.Literal['comfy.ip_adapter_file']`)
 - **name** (`str`)
@@ -258,8 +192,6 @@ This class represents a dataset, which includes a dataframe of features and a da
 
 A reference to an image asset.
 
-**Inherits from:** AssetRef
-
 - **type** (`typing.Literal['image']`)
 - **uri** (`str`)
 - **asset_id** (`str | None`)
@@ -267,38 +199,26 @@ A reference to an image asset.
 
 ## ImageTensor
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.image_tensor']`)
 
 ## InsightFace
-
-**Inherits from:** BaseType
 
 - **type** (`typing.Literal['comfy.insight_face']`)
 
 ## LORA
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.lora']`)
 
 ## LORAFile
-
-**Inherits from:** ModelFile
 
 - **type** (`typing.Literal['comfy.lora_file']`)
 - **name** (`str`)
 
 ## Latent
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.latent']`)
 
 ## LlamaModel
-
-**Inherits from:** BaseType
 
 - **type** (`typing.Literal['llama_model']`)
 - **name** (`str`)
@@ -310,8 +230,6 @@ A reference to an image asset.
 
 ## Mask
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.mask']`)
 
 ## Message
@@ -319,8 +237,6 @@ A reference to an image asset.
 Abstract representation for a chat message.
 
 **Tags:** Independent of the underlying chat system, such as OpenAI or Anthropic.
-
-**Inherits from:** BaseType
 
 - **type** (`str`)
 - **id** (`str | None`)
@@ -349,14 +265,10 @@ Convert a Model object to a Message object.
 
 ## ModelFile
 
-**Inherits from:** BaseType
-
 - **type** (`str`)
 - **name** (`str`)
 
 ## ModelRef
-
-**Inherits from:** AssetRef
 
 - **type** (`typing.Literal['model_ref']`)
 - **uri** (`str`)
@@ -365,16 +277,12 @@ Convert a Model object to a Message object.
 
 ## NodeRef
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['node']`)
 - **id** (`str`)
 
 ## OutputSlot
 
 An output slot is a slot that can be connected to an input slot.
-
-**Inherits from:** BaseModel
 
 - **type** (`TypeMetadata`)
 - **name** (`str`)
@@ -386,16 +294,10 @@ This is the base class for all strucutred output types when a node
 
 **Tags:** wants to return more than one output.
 
-**Inherits from:** BaseModel
-
 
 ## Provider
 
-**Inherits from:** str, Enum
-
 ## RankingResult
-
-**Inherits from:** BaseType
 
 - **type** (`typing.Literal['ranking_result']`)
 - **score** (`float`)
@@ -403,26 +305,18 @@ This is the base class for all strucutred output types when a node
 
 ## RecordType
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['record_type']`)
 - **columns** (`list[nodetool.metadata.types.ColumnDef]`)
 
 ## Sampler
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.sampler']`)
 
 ## Sigmas
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.sigmas']`)
 
 ## Task
-
-**Inherits from:** BaseType
 
 - **type** (`typing.Literal['task']`)
 - **id** (`str`)
@@ -441,8 +335,6 @@ This is the base class for all strucutred output types when a node
 - **cost** (`float | None`)
 
 ## Tensor
-
-**Inherits from:** BaseType
 
 - **type** (`typing.Literal['tensor']`)
 - **value** (`list[typing.Any]`)
@@ -483,16 +375,12 @@ This is the base class for all strucutred output types when a node
 
 ## TextRef
 
-**Inherits from:** AssetRef
-
 - **type** (`typing.Literal['text']`)
 - **uri** (`str`)
 - **asset_id** (`str | None`)
 - **temp_id** (`str | None`)
 
 ## TrainTestOutput
-
-**Inherits from:** OutputType
 
 - **train_X** (`DataframeRef`)
 - **train_y** (`DataframeRef`)
@@ -501,39 +389,27 @@ This is the base class for all strucutred output types when a node
 
 ## UNet
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.unet']`)
 
 ## UpscaleModel
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.upscale_model']`)
 
 ## UpscaleModelFile
-
-**Inherits from:** ModelFile
 
 - **type** (`typing.Literal['comfy.upscale_model_file']`)
 - **name** (`str`)
 
 ## VAE
 
-**Inherits from:** BaseType
-
 - **type** (`typing.Literal['comfy.vae']`)
 
 ## VAEFile
-
-**Inherits from:** ModelFile
 
 - **type** (`typing.Literal['comfy.vae_file']`)
 - **name** (`str`)
 
 ## VideoRef
-
-**Inherits from:** AssetRef
 
 - **type** (`typing.Literal['video']`)
 - **uri** (`str`)
@@ -543,8 +419,6 @@ This is the base class for all strucutred output types when a node
 - **format** (`typing.Optional[str]`)
 
 ## WorkflowRef
-
-**Inherits from:** BaseType
 
 - **type** (`typing.Literal['workflow']`)
 - **id** (`str`)
@@ -593,8 +467,6 @@ Add type names to the TypeToEnum and EnumToType mappings.
 **Returns:** `ndarray`
 
 ## unCLIPFile
-
-**Inherits from:** ModelFile
 
 - **type** (`typing.Literal['comfy.unclip_file']`)
 - **name** (`str`)

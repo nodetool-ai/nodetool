@@ -7,8 +7,6 @@ in terms of handling subgraphs and their connections.
 
 **Tags:** It supports operations to manipulate and transform the graph, particularly
 
-**Inherits from:** BaseModel
-
 - **nodes** (`list[nodetool.workflows.base_node.BaseNode]`)
 - **edges** (`list[nodetool.types.graph.Edge]`)
 

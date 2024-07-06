@@ -2,106 +2,134 @@
 
 ## Audio
 
-Represents an audio file in the workflow.
+Represents an audio file constant in the workflow.
 
-**Tags:** mp3, wav
+Use cases:
+- Provide a fixed audio input for audio processing nodes
+- Reference a specific audio file in the workflow
+- Set default audio for testing or demonstration purposes
 
-**Inherits from:** Constant
+**Tags:** audio, file, mp3, wav
 
 - **value** (`AudioRef`)
 
 ## Bool
 
-Represents a fixed boolean value in the workflow.
+Represents a boolean constant in the workflow.
 
-**Tags:** boolean
+Use cases:
+- Control flow decisions in conditional nodes
+- Toggle features or behaviors in the workflow
+- Set default boolean values for configuration
 
-**Inherits from:** Constant
+**Tags:** boolean, logic, flag
 
 - **value** (`bool`)
 
 ## Constant
 
-**Inherits from:** BaseNode
-
 
 ## DataFrame
 
-Represents a fixed DataFrame in the workflow.
+Represents a fixed DataFrame constant in the workflow.
 
-**Tags:** table, data, dataframe
+Use cases:
+- Provide static data for analysis or processing
+- Define lookup tables or reference data
+- Set sample data for testing or demonstration
 
-**Inherits from:** Constant
+**Tags:** table, data, dataframe, pandas
 
 - **value** (`DataframeRef`)
 
 ## Dict
 
-Represents a fixed dictionary in the workflow.
+Represents a dictionary constant in the workflow.
 
-**Tags:** dictionary, key, value
+Use cases:
+- Store configuration settings
+- Provide structured data inputs
+- Define parameter sets for other nodes
 
-**Inherits from:** Constant
+**Tags:** dictionary, key-value, mapping
 
 - **value** (`dict[str, typing.Any]`)
 
 ## Float
 
-Represents a fixed float number in the workflow.
+Represents a floating-point number constant in the workflow.
 
-**Tags:** number
+Use cases:
+- Set numerical parameters for calculations
+- Define thresholds or limits
+- Provide fixed numerical inputs for processing
 
-**Inherits from:** Constant
+**Tags:** number, decimal, float
 
 - **value** (`float`)
 
 ## Image
 
-Represents a fixed image in the workflow.
+Represents an image file constant in the workflow.
 
-**Tags:** picture, photo
+Use cases:
+- Provide a fixed image input for image processing nodes
+- Reference a specific image file in the workflow
+- Set default image for testing or demonstration purposes
 
-**Inherits from:** Constant
+**Tags:** picture, photo, image
 
 - **value** (`ImageRef`)
 
 ## List
 
-Represents a fixed list in the workflow.
+Represents a list constant in the workflow.
 
-**Tags:** array
+Use cases:
+- Store multiple values of the same type
+- Provide ordered data inputs
+- Define sequences for iteration in other nodes
 
-**Inherits from:** Constant
+**Tags:** array, squence, collection
 
 - **value** (`list[typing.Any]`)
 
 ## String
 
-Represents a fixed string in the workflow.
+Represents a string constant in the workflow.
 
-**Tags:** text
+Use cases:
+- Provide fixed text inputs for processing
+- Define labels, identifiers, or names
+- Set default text values for configuration
 
-**Inherits from:** Constant
+**Tags:** text, string, characters
 
 - **value** (`str`)
 
 ## Text
 
-Represents a text document in the workflow.
+Represents a text document constant in the workflow.
 
-**Tags:** document, markdown
+Use cases:
+- Provide larger text inputs for natural language processing
+- Store formatted content or documentation
+- Set default text documents for analysis
 
-**Inherits from:** Constant
+**Tags:** document, markdown, content
 
 - **value** (`TextRef`)
 
 ## Video
 
-Represents a fixed video file in the workflow.
+Represents a video file constant in the workflow.
 
-**Tags:** movie, mp4, file
+Use cases:
+- Provide a fixed video input for video processing nodes
+- Reference a specific video file in the workflow
+- Set default video for testing or demonstration purposes
 
-**Inherits from:** Constant
+**Tags:** video, movie, mp4, file
 
 - **value** (`VideoRef`)
 

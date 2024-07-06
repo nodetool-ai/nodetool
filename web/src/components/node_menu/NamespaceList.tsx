@@ -8,6 +8,7 @@ import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import {
+  titleize,
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY,
   TOOLTIP_LEAVE_DELAY
@@ -142,6 +143,16 @@ const namespaceStyles = (theme: any) =>
         fontSize: theme.fontSizeNormal,
         fontWeight: "400",
         color: theme.palette.c_white
+      },
+      ".node-tags": {
+        fontSize: theme.fontSizeSmall,
+        color: theme.palette.c_gray4
+      },
+      ".node-usecases div": {
+        fontSize: theme.fontSizeNormal,
+        fontWeight: "200",
+        color: theme.palette.c_gray6,
+        lineHeight: "1.3em"
       }
     },
     ".inputs-outputs": {
@@ -235,6 +246,19 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       });
   }, [metadata, selectedPathString, searchTerm]);
 
+  const parseDescription =
+    (description: string) => {
+      // First line is description, second line tags, followed by list of use cases
+      const lines = description.split("\n");
+      return {
+        desc: lines[0],
+        tags: lines.length > 0 ? lines[1] : [],
+        useCases: lines.length > 1 ? lines.slice(2) : []
+      };
+    };
+
+  const description = parseDescription(hoveredNode?.description || "");
+
   return (
     <div css={namespaceStyles}>
       <Box className="header">
@@ -278,10 +302,18 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             {hoveredNode && (
               <List className="node-info">
                 <Typography className="node-title">
-                  {hoveredNode.title}
+                  {titleize(hoveredNode.title)}
                 </Typography>
                 <Typography className="node-description">
-                  {hoveredNode.description}
+                  {description.desc}
+                </Typography>
+                <Typography className="node-tags">
+                  Tags: {description.tags}
+                </Typography>
+                <Typography className="node-usecases">
+                  {description.useCases.map((useCase, i) =>
+                    <div key={i}>{useCase}</div>
+                  )}
                 </Typography>
                 {hoveredNode.model_info.cover_image_url && (
                   <img

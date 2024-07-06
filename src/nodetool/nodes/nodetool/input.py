@@ -15,8 +15,13 @@ from nodetool.metadata.types import VideoRef
 
 class FloatInput(InputNode):
     """
-    Represents a float parameter for the workflow.
+    Float parameter input for workflows.
     input, parameter, float, number
+
+    Use cases:
+    - Specify a numeric value within a defined range
+    - Set thresholds or scaling factors
+    - Configure continuous parameters like opacity or volume
     """
 
     value: float = 0.0
@@ -38,8 +43,13 @@ class FloatInput(InputNode):
 
 class BooleanInput(InputNode):
     """
-    Represents a boolean parameter for the workflow.
+    Boolean parameter input for workflows.
     input, parameter, boolean, bool
+
+    Use cases:
+    - Toggle features on/off
+    - Set binary flags
+    - Control conditional logic
     """
 
     value: bool = False
@@ -57,8 +67,13 @@ class BooleanInput(InputNode):
 
 class IntegerInput(InputNode):
     """
-    Represents an integer parameter for the workflow.
+    Integer parameter input for workflows.
     input, parameter, integer, number
+
+    Use cases:
+    - Specify counts or quantities
+    - Set index values
+    - Configure discrete numeric parameters
     """
 
     value: int = 0
@@ -80,8 +95,13 @@ class IntegerInput(InputNode):
 
 class StringInput(InputNode):
     """
-    Represents a string parameter for the workflow.
+    String parameter input for workflows.
     input, parameter, string, text
+
+    Use cases:
+    - Provide text labels or names
+    - Enter search queries
+    - Specify file paths or URLs
     """
 
     value: str = ""
@@ -99,8 +119,13 @@ class StringInput(InputNode):
 
 class ChatInput(InputNode):
     """
-    Represents a chat message parameter for the workflow.
+    Chat message input for workflows.
     input, parameter, chat, message
+
+    Use cases:
+    - Accept user prompts or queries
+    - Capture conversational input
+    - Provide instructions to language models
     """
 
     value: str = ""
@@ -118,8 +143,13 @@ class ChatInput(InputNode):
 
 class TextInput(InputNode):
     """
-    Represents a text parameter for the workflow.
+    Text content input for workflows.
     input, parameter, text
+
+    Use cases:
+    - Load text documents or articles
+    - Process multi-line text content
+    - Analyze large text bodies
     """
 
     value: TextRef = Field(TextRef(), description="The text to use as input.")
@@ -155,8 +185,13 @@ class AssetSchemaMixin:
 
 class ImageInput(AssetSchemaMixin, InputNode):
     """
-    Represents an image parameter for the workflow.
+    Image asset input for workflows.
     input, parameter, image
+
+    Use cases:
+    - Load images for processing or analysis
+    - Provide visual input to models
+    - Select images for manipulation
     """
 
     value: ImageRef = Field(ImageRef(), description="The image to use as input.")
@@ -167,8 +202,13 @@ class ImageInput(AssetSchemaMixin, InputNode):
 
 class VideoInput(AssetSchemaMixin, InputNode):
     """
-    Represents a video parameter for the workflow.
+    Video asset input for workflows.
     input, parameter, video
+
+    Use cases:
+    - Load video files for processing
+    - Analyze video content
+    - Extract frames or audio from videos
     """
 
     value: VideoRef = Field(VideoRef(), description="The video to use as input.")
@@ -179,8 +219,13 @@ class VideoInput(AssetSchemaMixin, InputNode):
 
 class AudioInput(AssetSchemaMixin, InputNode):
     """
-    Represents an audio parameter for the workflow.
+    Audio asset input for workflows.
     input, parameter, audio
+
+    Use cases:
+    - Load audio files for processing
+    - Analyze sound or speech content
+    - Provide audio input to models
     """
 
     value: AudioRef = Field(AudioRef(), description="The audio to use as input.")
@@ -191,8 +236,13 @@ class AudioInput(AssetSchemaMixin, InputNode):
 
 class Folder(AssetSchemaMixin, InputNode):
     """
-    Represents a folder parameter for the workflow.
+    Folder of assets input for workflows.
     input, parameter, folder
+
+    Use cases:
+    - Batch process multiple assets
+    - Select a collection of related files
+    - Iterate over a set of inputs
     """
 
     folder: FolderRef = Field(FolderRef(), description="The folder to use as input.")
@@ -213,8 +263,13 @@ class Folder(AssetSchemaMixin, InputNode):
 
 class ImageFolder(Folder):
     """
-    Represents an image folder parameter for the workflow.
+    Folder of image assets input for workflows.
     input, parameter, folder, image
+
+    Use cases:
+    - Batch process multiple images
+    - Train models on image datasets
+    - Create image galleries or collections
     """
 
     async def process(self, context: ProcessingContext) -> list[ImageRef]:
@@ -225,8 +280,13 @@ class ImageFolder(Folder):
 
 class AudioFolder(Folder):
     """
-    Repesents an audio folder parameter for the workflow.
+    Folder of audio assets input for workflows.
     input, parameter, folder, audio
+
+    Use cases:
+    - Batch process multiple audio files
+    - Analyze audio datasets
+    - Create playlists or audio collections
     """
 
     async def process(self, context: ProcessingContext) -> list[AudioRef]:
@@ -237,8 +297,13 @@ class AudioFolder(Folder):
 
 class VideoFolder(Folder):
     """
-    Represents a video folder parameter for the workflow.
+    Folder of video assets input for workflows.
     input, parameter, folder, video
+
+    Use cases:
+    - Batch process multiple video files
+    - Analyze video datasets
+    - Create video playlists or collections
     """
 
     async def process(self, context: ProcessingContext) -> list[VideoRef]:
@@ -249,8 +314,13 @@ class VideoFolder(Folder):
 
 class TextFolder(Folder):
     """
-    Represents a text folder parameter for the workflow.
+    Folder of text assets input for workflows.
     input, parameter, folder, text
+
+    Use cases:
+    - Batch process multiple text documents
+    - Analyze text corpora
+    - Create document collections
     """
 
     async def process(self, context: ProcessingContext) -> list[TextRef]:
@@ -261,8 +331,13 @@ class TextFolder(Folder):
 
 class ComfyImageInput(AssetSchemaMixin, InputNode):
     """
-    Represents an image parameter for the workflow.
+    Image input optimized for Comfy workflows.
     input, parameter, image
+
+    Use cases:
+    - Load and preprocess images for Comfy models
+    - Handle multi-frame images and alpha channels
+    - Convert images to tensor format for ML tasks
     """
 
     value: ImageRef = Field(ImageRef(), description="The image to use as input.")
@@ -301,7 +376,12 @@ class ComfyImageInput(AssetSchemaMixin, InputNode):
 
 class GroupInput(BaseNode):
     """
-    Input node for any group node.
+    Generic group input for loops.
+    input, group, collection, loop
+
+    Use cases:
+    - provides input for a loop
+    - iterates over a group of items
     """
 
     items: list[Any] | DataframeRef = []

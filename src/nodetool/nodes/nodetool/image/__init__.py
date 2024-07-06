@@ -15,7 +15,13 @@ from pydantic import Field
 
 class SaveImage(BaseNode):
     """
-    Save an image to your assets. You can choose a folder or save into the root folder.
+    Save an image to specified folder with customizable name format.
+    save, image, folder, naming
+
+    Use cases:
+    - Save generated images with timestamps
+    - Organize outputs into specific folders
+    - Create backups of processed images
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to save.")
@@ -37,9 +43,15 @@ class SaveImage(BaseNode):
         )
 
 
-class ImageToTensor(BaseNode):
+class ConvertImageToTensor(BaseNode):
     """
-    Convert an image to a tensor.
+    Convert PIL Image to normalized tensor representation.
+    image, tensor, conversion, normalization
+
+    Use cases:
+    - Prepare images for machine learning models
+    - Convert between image formats for processing
+    - Normalize image data for consistent calculations
     """
 
     image: ImageRef = Field(
@@ -59,9 +71,16 @@ class ImageToTensor(BaseNode):
         return Tensor.from_numpy(tensor_data)
 
 
-class TensorToImage(BaseNode):
+class ConvertTensorToImage(BaseNode):
     """
-    Convert a tensor to an image.
+    Convert tensor data to PIL Image format.
+
+    Keywords: tensor, image, conversion, denormalization
+
+    Use cases:
+    - Visualize tensor data as images
+    - Save processed tensor results as images
+    - Convert model outputs back to viewable format
     """
 
     tensor: Tensor = Field(
@@ -87,9 +106,15 @@ class TensorToImage(BaseNode):
         return await context.image_from_pil(output_image)
 
 
-class Paste(BaseNode):
+class PasteImage(BaseNode):
     """
-    Paste an image into another image. The `left` and `top` parameters specify the coordinates of the top-left corner of the pasted image.
+    Paste one image onto another at specified coordinates.
+    paste, composite, positioning, overlay
+
+    Use cases:
+    - Add watermarks or logos to images
+    - Combine multiple image elements
+    - Create collages or montages
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to paste into.")
@@ -109,9 +134,15 @@ class Paste(BaseNode):
         return await context.image_from_pil(image)
 
 
-class Blend(BaseNode):
+class BlendImages(BaseNode):
     """
-    Blend two images together. The `alpha` parameter controls the mix ratio.
+    Blend two images with adjustable alpha mixing.
+    blend, mix, fade, transition
+
+    Use cases:
+    - Create smooth transitions between images
+    - Adjust opacity of overlays
+    - Combine multiple exposures or effects
     """
 
     image1: ImageRef = Field(
@@ -137,9 +168,16 @@ class Blend(BaseNode):
         return await context.image_from_pil(image)
 
 
-class Composite(BaseNode):
+class CompositeImages(BaseNode):
     """
-    Combine two images into a single output image.
+    Combine two images using a mask for advanced compositing.
+
+    Keywords: composite, mask, blend, layering
+
+    Use cases:
+    - Create complex image compositions
+    - Apply selective blending or effects
+    - Implement advanced photo editing techniques
     """
 
     image1: ImageRef = Field(

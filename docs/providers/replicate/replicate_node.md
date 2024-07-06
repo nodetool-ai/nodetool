@@ -13,8 +13,6 @@ convert_output: Converts the output to the specified type.
 
 **Tags:** 
 
-**Inherits from:** BaseNode
-
 
 #### `convert_output`
 

@@ -2,8 +2,6 @@
 
 ## User
 
-**Inherits from:** DBModel
-
 - **id** (`str`)
 - **permissions** (`dict[str, typing.Any] | None`)
 - **email** (`str`)

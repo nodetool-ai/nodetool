@@ -6,7 +6,7 @@ from nodetool.dsl.graph import GraphNode
 
 class Blur(GraphNode):
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to blur.')
-    radius: float | GraphNode | tuple[GraphNode, str] = Field(default=2.0, description='Blur radius.')
+    radius: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Blur radius.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.Blur"
 

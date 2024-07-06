@@ -2,8 +2,6 @@
 
 ## Workflow
 
-**Inherits from:** DBModel
-
 - **id** (`str`)
 - **user_id** (`str`)
 - **access** (`str`)

@@ -137,18 +137,28 @@ Convert a numpy array to an audio segment.
 
 #### `remove_silence`
 
-Remove silence from an audio segment.
-    This is done by detecting nonsilent ranges and concatenating them.
+Remove or shorten silence from an audio segment with crossfade to avoid clipping.
 
     Args:
-        audio (AudioSegment): The audio to remove silence from.
+        audio (AudioSegment): The audio to process.
+        min_length (int): Minimum length of silence to be processed (in milliseconds).
+        threshold (int): Silence threshold in dB (relative to full scale). Higher values detect more silence.
+        reduction_factor (float): Factor to reduce silent parts (0.0 to 1.0).
+                                          0.0 keeps silence as is, 1.0 removes it completely.
+        crossfade (int): Duration of crossfade in milliseconds to apply between segments.
+        min_silence_between_parts (int): Minimum silence duration to maintain between non-silent segments.
 
     Returns:
-        AudioSegment: The audio with silence removed.
+        AudioSegment: The processed audio.
 
 **Parameters:**
 
 - `audio` (AudioSegment)
+- `min_length` (int) (default: `100`)
+- `threshold` (int) (default: `-32`)
+- `reduction_factor` (float) (default: `1.0`)
+- `crossfade` (int) (default: `10`)
+- `min_silence_between_parts` (int) (default: `100`)
 
 **Returns:** `AudioSegment`
 

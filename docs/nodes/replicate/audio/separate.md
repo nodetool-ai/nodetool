@@ -4,8 +4,6 @@
 
 Demucs is an audio source separator created by Facebook Research.
 
-**Inherits from:** ReplicateNode
-
 - **jobs**: Choose the number of parallel jobs to use for separation. (`int`)
 - **stem**: If you just want to isolate one stem, you can choose it here. (`Stem`)
 - **audio**: Upload the file to be processed here. (`AudioRef`)

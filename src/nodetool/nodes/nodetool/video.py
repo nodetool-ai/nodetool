@@ -16,6 +16,11 @@ class SaveVideo(BaseNode):
     """
     Save a video to a file.
     video, save, file, output
+
+    Use cases:
+    1. Export processed video to a specific folder
+    2. Save video with a custom name
+    3. Create a copy of a video in a different location
     """
 
     value: VideoRef = Field(default=VideoRef(), description="The video to save.")
@@ -35,8 +40,13 @@ class SaveVideo(BaseNode):
 
 class ExtractVideoFrames(BaseNode):
     """
-    Extracts frames from a video file.
+    Extract frames from a video file.
     video, frames, extract, sequence
+
+    Use cases:
+    1. Generate image sequences for further processing
+    2. Extract specific frame ranges from a video
+    3. Create thumbnails or previews from video content
     """
 
     video: VideoRef = Field(
@@ -63,9 +73,13 @@ class ExtractVideoFrames(BaseNode):
 
 class VideoFps(BaseNode):
     """
-    Returns the frames per second (FPS) of a video file.
+    Get the frames per second (FPS) of a video file.
     video, analysis, frames, fps
-    Outputs the numerical FPS value of the input video.
+
+    Use cases:
+    1. Analyze video properties for quality assessment
+    2. Determine appropriate playback speed for video editing
+    3. Ensure compatibility with target display systems
     """
 
     video: VideoRef = Field(
@@ -84,9 +98,13 @@ class VideoFps(BaseNode):
 
 class FramesToVideo(BaseNode):
     """
-    Combines a sequence of frames into a single video file.
+    Combine a sequence of frames into a single video file.
     video, frames, combine, sequence
-    Returns a video file from the provided frame sequence.
+
+    Use cases:
+    1. Create time-lapse videos from image sequences
+    2. Compile processed frames back into a video
+    3. Generate animations from individual images
     """
 
     frames: list[ImageRef] = Field(

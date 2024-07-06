@@ -2,8 +2,6 @@
 
 ## ProcessNodeTool
 
-**Inherits from:** Tool
-
 ## Tool
 
 #### `tool_param`

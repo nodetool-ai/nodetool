@@ -4,8 +4,6 @@
 
 High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnific alternative. Twitter/X: @philz1337x
 
-**Inherits from:** ReplicateNode
-
 - **mask**: Mask image to mark areas that should be preserved during upscaling (`str | None`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int`)
 - **image**: input image (`ImageRef`)
@@ -32,8 +30,6 @@ High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnifi
 
 Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.
 
-**Inherits from:** ReplicateNode
-
 - **hdr**: HDR improvement over the original image (`float`)
 - **seed**: Seed (`int | None`)
 - **image**: Control image for scribble controlnet (`ImageRef`)
@@ -50,8 +46,6 @@ Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for hi
 ## MagicImageRefiner
 
 A better alternative to SDXL refiners, providing a lot of quality and detail. Can also be used for inpainting or upscaling.
-
-**Inherits from:** ReplicateNode
 
 - **hdr**: HDR improvement over the original image (`float`)
 - **mask**: When provided, refines some section of the image. Must be the same size as the image (`ImageRef`)
@@ -71,8 +65,6 @@ A better alternative to SDXL refiners, providing a lot of quality and detail. Ca
 
 Real-ESRGAN for image upscaling on an A100
 
-**Inherits from:** ReplicateNode
-
 - **image**: Input image (`ImageRef`)
 - **scale**: Factor to scale image by (`float`)
 - **face_enhance**: Run GFPGAN face enhancement along with upscaling (`bool`)
@@ -81,16 +73,12 @@ Real-ESRGAN for image upscaling on an A100
 
 3 Million Runs! AI Photorealistic Image Super-Resolution and Restoration
 
-**Inherits from:** ReplicateNode
-
 - **task**: Choose a task (`Task`)
 - **image**: Input image (`ImageRef`)
 
 ## SwinIR
 
 Image Restoration Using Swin Transformer
-
-**Inherits from:** ReplicateNode
 
 - **jpeg**: scale factor, activated for JPEG Compression Artifact Reduction. Leave it as default or arbitrary if other tasks are selected (`int`)
 - **image**: input image (`ImageRef`)
@@ -100,8 +88,6 @@ Image Restoration Using Swin Transformer
 ## UltimateSDUpscale
 
 Ultimate SD Upscale with ControlNet Tile
-
-**Inherits from:** ReplicateNode
 
 - **cfg**: CFG (`float`)
 - **seed**: Sampling seed, leave Empty for Random (`int | None`)
@@ -131,8 +117,6 @@ Ultimate SD Upscale with ControlNet Tile
 ## ruDallE_SR
 
 Real-ESRGAN super-resolution model from ruDALL-E
-
-**Inherits from:** ReplicateNode
 
 - **image**: Input image (`ImageRef`)
 - **scale**: Choose up-scaling factor (`Scale`)

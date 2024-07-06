@@ -2,8 +2,6 @@
 
 ## Workflow
 
-**Inherits from:** BaseModel
-
 - **id** (`str`)
 - **access** (`str`)
 - **created_at** (`str`)
@@ -18,14 +16,10 @@
 
 ## WorkflowList
 
-**Inherits from:** BaseModel
-
 - **next** (`str | None`)
 - **workflows** (`typing.List[nodetool.types.workflow.Workflow]`)
 
 ## WorkflowRequest
-
-**Inherits from:** BaseModel
 
 - **name** (`str`)
 - **description** (`str`)

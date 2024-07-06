@@ -29,6 +29,16 @@ from nodetool.metadata.types import Message
 
 
 class CreateRecordTool(Tool):
+    """
+    Tool for creating data records with specified columns.
+    data creation, schema validation, type coercion
+
+    Use cases:
+    - Creating structured data entries from user input
+    - Validating and coercing data to match a predefined schema
+    - Building datasets with consistent structure
+    """
+
     columns: Sequence[ColumnDef]
     description: str
 
@@ -86,6 +96,16 @@ class CreateRecordTool(Tool):
 
 
 class CreateTextTaskTool(Tool):
+    """
+    Tool for creating text generation tasks.
+    task creation, text generation, prompt engineering
+
+    Use cases:
+    - Creating detailed instructions for text generation models
+    - Defining dependencies between text generation tasks
+    - Crafting specific prompts for language models
+    """
+
     def __init__(self):
         super().__init__(
             name="create_text_task",
@@ -142,6 +162,16 @@ class CreateTextTaskTool(Tool):
 
 
 class CreateImageTaskTool(Tool):
+    """
+    Tool for creating image generation tasks.
+    task creation, image generation, prompt engineering
+
+    Use cases:
+    - Creating detailed instructions for image generation models
+    - Defining dependencies between image generation tasks
+    - Crafting specific prompts for image generation models
+    """
+
     def __init__(self):
         super().__init__(
             name="create_image_task",
@@ -206,7 +236,12 @@ class CreateImageTaskTool(Tool):
 class DataframeAgent(BaseNode):
     """
     LLM Agent to create a dataframe based on a user prompt.
-    llm, language model, agent, chat, conversation
+    llm, dataframe creation, data structuring
+
+    Use cases:
+    - Generating structured data from natural language descriptions
+    - Creating sample datasets for testing or demonstration
+    - Converting unstructured text into tabular format
     """
 
     model: FunctionModel = Field(
@@ -319,7 +354,12 @@ class DataframeAgent(BaseNode):
 class AgentNode(BaseNode):
     """
     Agent node to plan tasks to achieve a goal.
-    llm, language model, agent, chat, conversation
+    task planning, goal decomposition, workflow generation
+
+    Use cases:
+    - Breaking down complex goals into manageable tasks
+    - Creating dependency graphs for multi-step processes
+    - Generating workflows for automated task execution
     """
 
     model: FunctionModel = Field(
@@ -403,8 +443,13 @@ class AgentNode(BaseNode):
 
 class ProcessTask(BaseNode):
     """
-    Process a task with the given node.
-    llm, language model, agent, chat, conversation
+    Process a task using specified models and tools.
+    task execution, model integration, tool coordination
+
+    Use cases:
+    - Executing tasks defined by AgentNode
+    - Coordinating between different AI models and tools
+    - Generating outputs based on task instructions
     """
 
     model: FunctionModel = Field(

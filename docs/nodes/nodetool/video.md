@@ -2,11 +2,14 @@
 
 ## ExtractVideoFrames
 
-Extracts frames from a video file.
+Extract frames from a video file.
+
+Use cases:
+1. Generate image sequences for further processing
+2. Extract specific frame ranges from a video
+3. Create thumbnails or previews from video content
 
 **Tags:** video, frames, extract, sequence
-
-**Inherits from:** BaseNode
 
 - **video**: The input video to adjust the brightness for. (`VideoRef`)
 - **start**: The frame to start extracting from. (`int`)
@@ -14,12 +17,14 @@ Extracts frames from a video file.
 
 ## FramesToVideo
 
-Combines a sequence of frames into a single video file.
-Returns a video file from the provided frame sequence.
+Combine a sequence of frames into a single video file.
+
+Use cases:
+1. Create time-lapse videos from image sequences
+2. Compile processed frames back into a video
+3. Generate animations from individual images
 
 **Tags:** video, frames, combine, sequence
-
-**Inherits from:** BaseNode
 
 - **frames**: The frames to combine into a video. (`list[nodetool.metadata.types.ImageRef]`)
 - **fps**: The FPS of the output video. (`float`)
@@ -28,9 +33,12 @@ Returns a video file from the provided frame sequence.
 
 Save a video to a file.
 
-**Tags:** video, save, file, output
+Use cases:
+1. Export processed video to a specific folder
+2. Save video with a custom name
+3. Create a copy of a video in a different location
 
-**Inherits from:** BaseNode
+**Tags:** video, save, file, output
 
 - **value**: The video to save. (`VideoRef`)
 - **folder**: Name of the output folder. (`FolderRef`)
@@ -38,12 +46,14 @@ Save a video to a file.
 
 ## VideoFps
 
-Returns the frames per second (FPS) of a video file.
-Outputs the numerical FPS value of the input video.
+Get the frames per second (FPS) of a video file.
+
+Use cases:
+1. Analyze video properties for quality assessment
+2. Determine appropriate playback speed for video editing
+3. Ensure compatibility with target display systems
 
 **Tags:** video, analysis, frames, fps
-
-**Inherits from:** BaseNode
 
 - **video**: The input video to adjust the brightness for. (`VideoRef`)
 

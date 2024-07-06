@@ -176,11 +176,11 @@ def document_class(file: Any, cls: Type[Any]) -> None:
         if len(tags) > 0:
             file.write(f"**Tags:** {', '.join(tags)}\n\n")
 
-    base_classes = ", ".join(
-        [base.__name__ for base in cls.__bases__ if base != object]
-    )
-    if base_classes:
-        file.write(f"**Inherits from:** {base_classes}\n\n")
+    # base_classes = ", ".join(
+    #     [base.__name__ for base in cls.__bases__ if base != object]
+    # )
+    # if base_classes:
+    #     file.write(f"**Inherits from:** {base_classes}\n\n")
 
     if issubclass(cls, BaseModel):
         # file.write("### Fields:\n\n")

@@ -9,10 +9,15 @@ from nodetool.workflows.base_node import BaseNode
 from typing import Any, Literal
 
 
-class Length(BaseNode):
+class ListLength(BaseNode):
     """
-    Calculates and outputs the length of a given list.
+    Calculates the length of a list.
     list, count, size
+
+    Use cases:
+    - Determine the number of elements in a list
+    - Check if a list is empty
+    - Validate list size constraints
     """
 
     values: list[Any] = []
@@ -21,10 +26,15 @@ class Length(BaseNode):
         return len(self.values)
 
 
-class Range(BaseNode):
+class GenerateNumberSequence(BaseNode):
     """
     Generates a list of integers within a specified range.
-    list, range, int, index, count, sequence, numbers
+    list, range, sequence, numbers
+
+    Use cases:
+    - Create numbered lists
+    - Generate index sequences
+    - Produce arithmetic progressions
     """
 
     start: int = 0
@@ -35,10 +45,15 @@ class Range(BaseNode):
         return list(range(self.start, self.stop, self.step))
 
 
-class Slice(BaseNode):
+class ExtractSubList(BaseNode):
     """
-    Extracts a subset from a list based on start, stop, and step indices.
-    list, slice, extract, subset, reduce, filter, select, range, get
+    Extracts a subset from a list using start, stop, and step indices.
+    list, slice, subset, extract
+
+    Use cases:
+    - Get a portion of a list
+    - Implement pagination
+    - Extract every nth element
     """
 
     values: list[Any] = []
@@ -50,10 +65,15 @@ class Slice(BaseNode):
         return self.values[self.start : self.stop : self.step]
 
 
-class Select(BaseNode):
+class SelectListElements(BaseNode):
     """
     Selects specific values from a list using index positions.
-    list, select, index, get, pick, extract, subset
+    list, select, index, extract
+
+    Use cases:
+    - Pick specific elements by their positions
+    - Rearrange list elements
+    - Create a new list from selected indices
     """
 
     values: list[Any] = []
@@ -63,10 +83,15 @@ class Select(BaseNode):
         return [self.values[index] for index in self.indices]
 
 
-class Index(BaseNode):
+class GetListElement(BaseNode):
     """
-    Retrieve a single value from a list at a specific index.
-    list, get, pick, extract, value
+    Retrieves a single value from a list at a specific index.
+    list, get, extract, value
+
+    Use cases:
+    - Access a specific element by position
+    - Implement array-like indexing
+    - Extract the first or last element
     """
 
     values: list[Any] = []
@@ -76,10 +101,15 @@ class Index(BaseNode):
         return self.values[self.index]
 
 
-class Append(BaseNode):
+class AppendToList(BaseNode):
     """
     Adds a value to the end of a list.
-    list, add, insert, push, extend, concatenate
+    list, add, insert, extend
+
+    Use cases:
+    - Grow a list dynamically
+    - Add new elements to an existing list
+    - Implement a stack-like structure
     """
 
     values: list[Any] = []
@@ -90,10 +120,14 @@ class Append(BaseNode):
         return self.values
 
 
-class Extend(BaseNode):
+class ExtendList(BaseNode):
     """
     Merges one list into another, extending the original list.
-    list, merge, concatenate, append, add, insert, push
+    list, merge, concatenate, combine
+
+    Use cases:
+    - Combine multiple lists
+    - Add all elements from one list to another
     """
 
     values: list[Any] = []
@@ -104,10 +138,15 @@ class Extend(BaseNode):
         return self.values
 
 
-class Dedupe(BaseNode):
+class DedupeList(BaseNode):
     """
     Removes duplicate elements from a list, ensuring uniqueness.
-    list, unique, distinct, deduplicate, remove, filter
+    list, unique, distinct, deduplicate
+
+    Use cases:
+    - Remove redundant entries
+    - Create a set-like structure
+    - Ensure list elements are unique
     """
 
     values: list[Any] = []
@@ -116,10 +155,14 @@ class Dedupe(BaseNode):
         return list(set(self.values))
 
 
-class Filter(BaseNode):
+class FilterList(BaseNode):
     """
-    Filters a list based on a custom Python condition. Example: {value} % 2 == 0
-    list, filter, python, condition
+    Filters a list based on a custom Python condition.
+    list, filter, condition, select
+
+    Use cases:
+    - Remove elements that don't meet a condition
+    - Select elements based on complex criteria
     """
 
     values: list[Any] = Field(default_factory=list, description="The list to filter.")
@@ -141,10 +184,21 @@ class Filter(BaseNode):
         ]
 
 
-class Reduce(BaseNode):
+class ReduceList(BaseNode):
     """
-    Performs a custom reduction operation on a list using Python code. Example: {value} + {acc}
-    list, remove, filter, reduce, python
+    Performs a custom reduction operation on a list using Python code.
+    list, reduce, aggregate, accumulate
+
+    Use cases:
+    - Calculate a sum or product of list elements
+    - Find the maximum or minimum value
+    - Implement custom aggregation logic
+
+    Example reduction code:
+    ```python
+    {acc} + {value}
+    ```
+
     """
 
     values: list[Any] = Field(default_factory=list, description="The list to reduce.")
@@ -174,10 +228,18 @@ class Reduce(BaseNode):
         )
 
 
-class Map(BaseNode):
+class TransformListElements(BaseNode):
     """
-    Transforms each element in a list based on custom Python code. Example: {value} * {index}
-    list, python, change
+    Transforms each element in a list based on custom Python code.
+    list, transform, modify, apply
+
+    Use cases:
+    - Apply a function to every list element
+    - Convert data types within a list
+    - Perform calculations on each element
+
+    Example mapping code:
+    {value} * 100
     """
 
     values: list[Any] = Field(default_factory=list, description="The list to map.")
@@ -196,10 +258,13 @@ class Map(BaseNode):
         ]
 
 
-class Reverse(BaseNode):
+class ReverseList(BaseNode):
     """
     Inverts the order of elements in a list.
-    list, reverse, order, invert, flip
+    list, reverse, invert, flip
+
+    Use cases:
+    - Reverse the order of a sequence
     """
 
     values: list[Any] = []
@@ -211,7 +276,12 @@ class Reverse(BaseNode):
 class SaveList(BaseNode):
     """
     Saves a list to a text file, placing each element on a new line.
-    list, save, file, serialize, text, toString
+    list, save, file, serialize
+
+    Use cases:
+    - Export list data to a file
+    - Create a simple text-based database
+    - Generate line-separated output
     """
 
     values: list[Any] = Field(default_factory=list, description="The list to save.")

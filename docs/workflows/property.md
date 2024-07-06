@@ -4,8 +4,6 @@
 
 Property of a node.
 
-**Inherits from:** BaseModel
-
 - **name** (`str`)
 - **type** (`TypeMetadata`)
 - **default** (`typing.Optional[typing.Any]`)

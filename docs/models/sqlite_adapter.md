@@ -2,8 +2,6 @@
 
 ## SQLiteAdapter
 
-**Inherits from:** DatabaseAdapter
-
 #### `create_table`
 
 **Parameters:**

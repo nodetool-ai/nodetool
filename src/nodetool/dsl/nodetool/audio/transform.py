@@ -27,16 +27,16 @@ class OverlayAudio(GraphNode):
 
 
 
-# class RemoveSilence(GraphNode):
-#     audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to remove silence from.')
-#     @classmethod
-#     def get_node_type(cls): return "nodetool.audio.transform.RemoveSilence"
 class RemoveSilence(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to remove silence from.')
-    min_silence_len: int = Field(default=100, description='Minimum length of silence to be removed (in milliseconds).')
-    silence_thresh: float = Field(default=-32, description='Silence threshold in dB.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to process.')
+    min_length: int | GraphNode | tuple[GraphNode, str] = Field(default=200, description='Minimum length of silence to be processed (in milliseconds).')
+    threshold: int | GraphNode | tuple[GraphNode, str] = Field(default=-40, description='Silence threshold in dB (relative to full scale). Higher values detect more silence.')
+    reduction_factor: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Factor to reduce silent parts (0.0 to 1.0). 0.0 keeps silence as is, 1.0 removes it completely.')
+    crossfade: int | GraphNode | tuple[GraphNode, str] = Field(default=10, description='Duration of crossfade in milliseconds to apply between segments for smooth transitions.')
+    min_silence_between_parts: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description='Minimum silence duration in milliseconds to maintain between non-silent segments')
     @classmethod
     def get_node_type(cls): return "nodetool.audio.transform.RemoveSilence"
+
 
 
 class SliceAudio(GraphNode):

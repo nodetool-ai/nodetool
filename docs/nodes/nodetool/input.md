@@ -9,11 +9,14 @@
 
 ## AudioFolder
 
-Repesents an audio folder parameter for the workflow.
+Folder of audio assets input for workflows.
+
+Use cases:
+- Batch process multiple audio files
+- Analyze audio datasets
+- Create playlists or audio collections
 
 **Tags:** input, parameter, folder, audio
-
-**Inherits from:** Folder
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -23,11 +26,14 @@ Repesents an audio folder parameter for the workflow.
 
 ## AudioInput
 
-Represents an audio parameter for the workflow.
+Audio asset input for workflows.
+
+Use cases:
+- Load audio files for processing
+- Analyze sound or speech content
+- Provide audio input to models
 
 **Tags:** input, parameter, audio
-
-**Inherits from:** AssetSchemaMixin, InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -36,11 +42,14 @@ Represents an audio parameter for the workflow.
 
 ## BooleanInput
 
-Represents a boolean parameter for the workflow.
+Boolean parameter input for workflows.
+
+Use cases:
+- Toggle features on/off
+- Set binary flags
+- Control conditional logic
 
 **Tags:** input, parameter, boolean, bool
-
-**Inherits from:** InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -54,11 +63,14 @@ Represents a boolean parameter for the workflow.
 
 ## ChatInput
 
-Represents a chat message parameter for the workflow.
+Chat message input for workflows.
+
+Use cases:
+- Accept user prompts or queries
+- Capture conversational input
+- Provide instructions to language models
 
 **Tags:** input, parameter, chat, message
-
-**Inherits from:** InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -72,11 +84,14 @@ Represents a chat message parameter for the workflow.
 
 ## ComfyImageInput
 
-Represents an image parameter for the workflow.
+Image input optimized for Comfy workflows.
+
+Use cases:
+- Load and preprocess images for Comfy models
+- Handle multi-frame images and alpha channels
+- Convert images to tensor format for ML tasks
 
 **Tags:** input, parameter, image
-
-**Inherits from:** AssetSchemaMixin, InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -85,11 +100,14 @@ Represents an image parameter for the workflow.
 
 ## FloatInput
 
-Represents a float parameter for the workflow.
+Float parameter input for workflows.
+
+Use cases:
+- Specify a numeric value within a defined range
+- Set thresholds or scaling factors
+- Configure continuous parameters like opacity or volume
 
 **Tags:** input, parameter, float, number
-
-**Inherits from:** InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -105,11 +123,14 @@ Represents a float parameter for the workflow.
 
 ## Folder
 
-Represents a folder parameter for the workflow.
+Folder of assets input for workflows.
+
+Use cases:
+- Batch process multiple assets
+- Select a collection of related files
+- Iterate over a set of inputs
 
 **Tags:** input, parameter, folder
-
-**Inherits from:** AssetSchemaMixin, InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -119,20 +140,27 @@ Represents a folder parameter for the workflow.
 
 ## GroupInput
 
-Input node for any group node.
+Generic group input for loops.
 
-**Inherits from:** BaseNode
+Use cases:
+- provides input for a loop
+- iterates over a group of items
+
+**Tags:** input, group, collection, loop
 
 - **items** (`list[typing.Any] | nodetool.metadata.types.DataframeRef`)
 - **name** (`str`)
 
 ## ImageFolder
 
-Represents an image folder parameter for the workflow.
+Folder of image assets input for workflows.
+
+Use cases:
+- Batch process multiple images
+- Train models on image datasets
+- Create image galleries or collections
 
 **Tags:** input, parameter, folder, image
-
-**Inherits from:** Folder
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -142,11 +170,14 @@ Represents an image folder parameter for the workflow.
 
 ## ImageInput
 
-Represents an image parameter for the workflow.
+Image asset input for workflows.
+
+Use cases:
+- Load images for processing or analysis
+- Provide visual input to models
+- Select images for manipulation
 
 **Tags:** input, parameter, image
-
-**Inherits from:** AssetSchemaMixin, InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -155,11 +186,14 @@ Represents an image parameter for the workflow.
 
 ## IntegerInput
 
-Represents an integer parameter for the workflow.
+Integer parameter input for workflows.
+
+Use cases:
+- Specify counts or quantities
+- Set index values
+- Configure discrete numeric parameters
 
 **Tags:** input, parameter, integer, number
-
-**Inherits from:** InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -175,11 +209,14 @@ Represents an integer parameter for the workflow.
 
 ## StringInput
 
-Represents a string parameter for the workflow.
+String parameter input for workflows.
+
+Use cases:
+- Provide text labels or names
+- Enter search queries
+- Specify file paths or URLs
 
 **Tags:** input, parameter, string, text
-
-**Inherits from:** InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -193,11 +230,14 @@ Represents a string parameter for the workflow.
 
 ## TextFolder
 
-Represents a text folder parameter for the workflow.
+Folder of text assets input for workflows.
+
+Use cases:
+- Batch process multiple text documents
+- Analyze text corpora
+- Create document collections
 
 **Tags:** input, parameter, folder, text
-
-**Inherits from:** Folder
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -207,11 +247,14 @@ Represents a text folder parameter for the workflow.
 
 ## TextInput
 
-Represents a text parameter for the workflow.
+Text content input for workflows.
+
+Use cases:
+- Load text documents or articles
+- Process multi-line text content
+- Analyze large text bodies
 
 **Tags:** input, parameter, text
-
-**Inherits from:** InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -225,11 +268,14 @@ Represents a text parameter for the workflow.
 
 ## VideoFolder
 
-Represents a video folder parameter for the workflow.
+Folder of video assets input for workflows.
+
+Use cases:
+- Batch process multiple video files
+- Analyze video datasets
+- Create video playlists or collections
 
 **Tags:** input, parameter, folder, video
-
-**Inherits from:** Folder
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)
@@ -239,11 +285,14 @@ Represents a video folder parameter for the workflow.
 
 ## VideoInput
 
-Represents a video parameter for the workflow.
+Video asset input for workflows.
+
+Use cases:
+- Load video files for processing
+- Analyze video content
+- Extract frames or audio from videos
 
 **Tags:** input, parameter, video
-
-**Inherits from:** AssetSchemaMixin, InputNode
 
 - **label**: The label for this input node. (`str`)
 - **name**: The parameter name for the workflow. (`str`)

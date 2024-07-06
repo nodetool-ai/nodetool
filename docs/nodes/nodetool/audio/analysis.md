@@ -10,8 +10,6 @@ This node is useful for:
 
 **Tags:** audio, analysis, spectrogram
 
-**Inherits from:** BaseNode
-
 - **tensor**: The amplitude tensor to be converted to dB scale. (`Tensor`)
 
 ## ChromaSTFT
@@ -22,8 +20,6 @@ Applications:
 - Music genre classification based on pitch content
 
 **Tags:** 
-
-**Inherits from:** BaseNode
 
 - **audio**: The audio file to extract chromagram from. (`AudioRef`)
 - **n_fft**: The number of samples per frame. (`int`)
@@ -38,8 +34,6 @@ Useful for:
 
 **Tags:** 
 
-**Inherits from:** BaseNode
-
 - **tensor**: The dB-scaled tensor to be converted to amplitude scale. (`Tensor`)
 
 ## DBToPower
@@ -51,8 +45,6 @@ Useful for:
 - Preparing data for models that expect power-scaled data
 
 **Tags:** audio, analysis, spectrogram
-
-**Inherits from:** BaseNode
 
 - **tensor**: The tensor containing the decibel spectrogram. (`Tensor`)
 
@@ -66,8 +58,6 @@ Applications:
 
 **Tags:** audio, synthesis, phase reconstruction
 
-**Inherits from:** BaseNode
-
 - **magnitude_spectrogram**: Magnitude spectrogram input for phase reconstruction. (`Tensor`)
 - **n_iter**: Number of iterations for the Griffin-Lim algorithm. (`int`)
 - **hop_length**: Number of samples between successive frames. (`int`)
@@ -79,8 +69,6 @@ Applications:
 ## MFCC
 
 MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.
-
-**Inherits from:** BaseNode
 
 - **audio**: The audio file to extract MFCCs from. (`AudioRef`)
 - **n_mfcc**: The number of MFCCs to extract. (`int`)
@@ -99,8 +87,6 @@ Useful for:
 
 **Tags:** audio, analysis, spectrogram
 
-**Inherits from:** BaseNode
-
 - **audio**: The audio file to convert to a tensor. (`AudioRef`)
 - **n_fft**: The number of samples per frame. (`int`)
 - **hop_length**: The number of samples between frames. (`int`)
@@ -118,16 +104,12 @@ The PlotSpectrogram node generates a visual representation of the spectrum of fr
 
 **Tags:** 
 
-**Inherits from:** BaseNode
-
 - **tensor**: The tensor containing the mel spectrogram. (`Tensor`)
 - **fmax**: The highest frequency (in Hz). (`int`)
 
 ## PowertToDB
 
 Converts a power spectrogram to decibel (dB) scale.
-
-**Inherits from:** BaseNode
 
 - **tensor**: The tensor containing the power spectrogram. (`Tensor`)
 
@@ -142,8 +124,6 @@ This node computes the Short-Time Fourier Transform (STFT) matrix for an audio s
 - Music Information Retrieval: It helps in music transcription, rhythm and tempo analysis.
 
 **Tags:** The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.
-
-**Inherits from:** BaseNode
 
 - **audio**: The audio file to compute the STFT matrix from. (`AudioRef`)
 - **n_fft**: The number of samples per frame. (`int`)
@@ -163,8 +143,6 @@ The spectral contrast measures the difference in amplitude between the most noti
 Useful note: The `n_fft` and `hop_length` parameters affect the resolution of the analysis. A higher `n_fft` provides better frequency resolution but worse time resolution, and vice versa for a lower `hop_length`.
 
 **Tags:** 
-
-**Inherits from:** BaseNode
 
 - **audio**: The audio file to extract spectral contrast from. (`AudioRef`)
 - **n_fft**: The number of samples per frame. (`int`)

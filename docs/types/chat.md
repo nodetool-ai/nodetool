@@ -2,8 +2,6 @@
 
 ## MessageCreateRequest
 
-**Inherits from:** BaseModel
-
 - **thread_id** (`str | None`)
 - **user_id** (`str | None`)
 - **tool_call_id** (`str | None`)
@@ -15,14 +13,10 @@
 
 ## MessageList
 
-**Inherits from:** BaseModel
-
 - **next** (`str | None`)
 - **messages** (`list[nodetool.metadata.types.Message]`)
 
 ## TaskCreateRequest
-
-**Inherits from:** BaseModel
 
 - **task_type** (`str`)
 - **thread_id** (`str`)
@@ -33,14 +27,10 @@
 
 ## TaskList
 
-**Inherits from:** BaseModel
-
 - **next** (`str | None`)
 - **tasks** (`list[nodetool.metadata.types.Task]`)
 
 ## TaskUpdateRequest
-
-**Inherits from:** BaseModel
 
 - **status** (`str | None`)
 - **error** (`str | None`)

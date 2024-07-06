@@ -9,8 +9,6 @@
 
 ## DBModel
 
-**Inherits from:** BaseModel
-
 
 #### `before_save`
 

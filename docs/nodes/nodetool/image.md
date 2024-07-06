@@ -1,38 +1,73 @@
 # nodetool.nodes.nodetool.image
 
-## Blend
+## BlendImages
 
-Blend two images together. The `alpha` parameter controls the mix ratio.
+Blend two images with adjustable alpha mixing.
 
-**Inherits from:** BaseNode
+Use cases:
+- Create smooth transitions between images
+- Adjust opacity of overlays
+- Combine multiple exposures or effects
+
+**Tags:** blend, mix, fade, transition
 
 - **image1**: The first image to blend. (`ImageRef`)
 - **image2**: The second image to blend. (`ImageRef`)
 - **alpha**: The mix ratio. (`float`)
 
-## Composite
+## CompositeImages
 
-Combine two images into a single output image.
+Combine two images using a mask for advanced compositing.
+Keywords: composite, mask, blend, layering
 
-**Inherits from:** BaseNode
+Use cases:
+- Create complex image compositions
+- Apply selective blending or effects
+- Implement advanced photo editing techniques
+
+**Tags:** 
 
 - **image1**: The first image to composite. (`ImageRef`)
 - **image2**: The second image to composite. (`ImageRef`)
 - **mask**: The mask to composite with. (`ImageRef`)
 
-## ImageToTensor
+## ConvertImageToTensor
 
-Convert an image to a tensor.
+Convert PIL Image to normalized tensor representation.
 
-**Inherits from:** BaseNode
+Use cases:
+- Prepare images for machine learning models
+- Convert between image formats for processing
+- Normalize image data for consistent calculations
+
+**Tags:** image, tensor, conversion, normalization
 
 - **image**: The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels. (`ImageRef`)
 
-## Paste
+## ConvertTensorToImage
 
-Paste an image into another image. The `left` and `top` parameters specify the coordinates of the top-left corner of the pasted image.
+Convert tensor data to PIL Image format.
+Keywords: tensor, image, conversion, denormalization
 
-**Inherits from:** BaseNode
+Use cases:
+- Visualize tensor data as images
+- Save processed tensor results as images
+- Convert model outputs back to viewable format
+
+**Tags:** 
+
+- **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (`Tensor`)
+
+## PasteImage
+
+Paste one image onto another at specified coordinates.
+
+Use cases:
+- Add watermarks or logos to images
+- Combine multiple image elements
+- Create collages or montages
+
+**Tags:** paste, composite, positioning, overlay
 
 - **image**: The image to paste into. (`ImageRef`)
 - **paste**: The image to paste. (`ImageRef`)
@@ -41,21 +76,18 @@ Paste an image into another image. The `left` and `top` parameters specify the c
 
 ## SaveImage
 
-Save an image to your assets. You can choose a folder or save into the root folder.
+Save an image to specified folder with customizable name format.
 
-**Inherits from:** BaseNode
+Use cases:
+- Save generated images with timestamps
+- Organize outputs into specific folders
+- Create backups of processed images
+
+**Tags:** save, image, folder, naming
 
 - **image**: The image to save. (`ImageRef`)
 - **folder**: The folder to save the image in. (`FolderRef`)
 - **name** (`str`)
-
-## TensorToImage
-
-Convert a tensor to an image.
-
-**Inherits from:** BaseNode
-
-- **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (`Tensor`)
 
 - [nodetool.nodes.nodetool.image.classify](image/classify.md)
 - [nodetool.nodes.nodetool.image.enhance](image/enhance.md)

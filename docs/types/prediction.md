@@ -4,8 +4,6 @@
 
 A prediction made by a remote model.
 
-**Inherits from:** BaseModel
-
 - **type** (`typing.Literal['prediction']`)
 - **id** (`str`)
 - **user_id** (`str`)
@@ -27,8 +25,6 @@ A prediction made by a remote model.
 
 The request body for creating a prediction.
 
-**Inherits from:** BaseModel
-
 - **provider** (`Provider`)
 - **model** (`str`)
 - **node_id** (`str`)
@@ -39,14 +35,10 @@ The request body for creating a prediction.
 
 ## PredictionList
 
-**Inherits from:** BaseModel
-
 - **next** (`str | None`)
 - **predictions** (`typing.List[nodetool.types.prediction.Prediction]`)
 
 ## PredictionResult
-
-**Inherits from:** BaseModel
 
 - **type** (`typing.Literal['prediction_result']`)
 - **prediction** (`Prediction`)

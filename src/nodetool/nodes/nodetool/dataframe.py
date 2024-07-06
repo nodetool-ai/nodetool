@@ -19,8 +19,12 @@ from nodetool.metadata.types import Dataset
 
 class SaveDataframe(BaseNode):
     """
-    Save data frame as a CSV file in a folder.
-    csv, folder
+    Save dataframe in specified folder.
+    csv, folder, save
+
+    Use cases:
+    - Export processed data for external use
+    - Create backups of dataframes
     """
 
     df: DataframeRef = DataframeRef()
@@ -36,8 +40,13 @@ class SaveDataframe(BaseNode):
 
 class SelectColumn(BaseNode):
     """
-    Select specific columns from a dataframe.
-    dataframe, columns
+    Select specific columns from dataframe.
+    dataframe, columns, filter
+
+    Use cases:
+    - Extract relevant features for analysis
+    - Reduce dataframe size by removing unnecessary columns
+    - Prepare data for specific visualizations or models
     """
 
     dataframe: DataframeRef = Field(
@@ -52,10 +61,15 @@ class SelectColumn(BaseNode):
         return await context.dataframe_from_pandas(df[columns])  # type: ignore
 
 
-class ColumnToList(BaseNode):
+class ExtractColumnData(BaseNode):
     """
-    Convert a column in a dataframe to a list.
-    dataframe, column
+    Convert dataframe column to list.
+    dataframe, column, list
+
+    Use cases:
+    - Extract data for use in other processing steps
+    - Prepare column data for plotting or analysis
+    - Convert categorical data to list for encoding
     """
 
     dataframe: DataframeRef = Field(
@@ -70,10 +84,15 @@ class ColumnToList(BaseNode):
         return df[self.column_name].tolist()
 
 
-class RowsToStrings(BaseNode):
+class FormatRowsAsText(BaseNode):
     """
-    Convert rows in a dataframe to strings.
-    dataframe, columns
+    Convert dataframe rows to formatted strings.
+    dataframe, string, format
+
+    Use cases:
+    - Generate text summaries from row data
+    - Prepare data for natural language processing
+    - Create custom string representations of rows
     """
 
     dataframe: DataframeRef = Field(
@@ -89,10 +108,15 @@ class RowsToStrings(BaseNode):
         return [self.template.format(**row) for _, row in df.iterrows()]
 
 
-class ListToColumn(BaseNode):
+class AddNewDataColumn(BaseNode):
     """
-    Convert a list of objects into a column in a dataframe.
-    dataframe, column, values
+    Add list of values as new column to dataframe.
+    dataframe, column, list
+
+    Use cases:
+    - Incorporate external data into existing dataframe
+    - Add calculated results as new column
+    - Augment dataframe with additional features
     """
 
     dataframe: DataframeRef = Field(
@@ -114,10 +138,15 @@ class ListToColumn(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class ListToDataFrame(BaseNode):
+class ConvertListToTable(BaseNode):
     """
-    Convert a list of values to a dataframe. Each row may be a dict, list, or single value.
-    list, dataframe
+    Convert list of values to dataframe.
+    list, dataframe, convert
+
+    Use cases:
+    - Transform list data into structured dataframe
+    - Prepare list data for analysis or visualization
+    - Convert API responses to dataframe format
     """
 
     values: list[Any] = Field(
@@ -161,10 +190,14 @@ class ListToDataFrame(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class CSVToDataframe(BaseNode):
+class ImportCSVData(BaseNode):
     """
-    Converts CSV data into a DataFrame.
-    csv, dataframe
+    Convert CSV string to dataframe.
+    csv, dataframe, import
+
+    Use cases:
+    - Import CSV data from string input
+    - Convert CSV responses from APIs to dataframe
     """
 
     csv_data: str = Field(
@@ -176,11 +209,15 @@ class CSVToDataframe(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class Concat(BaseNode):
+class MergeDataSideBySide(BaseNode):
     """
-    Merge two dataframes along their columns.
-    merge
-    Outputs a single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
+    Merge two dataframes along columns.
+    merge, concat, columns
+
+    Use cases:
+    - Combine data from multiple sources
+    - Add new features to existing dataframe
+    - Merge time series data from different periods
     """
 
     dataframe_a: DataframeRef = Field(
@@ -197,11 +234,15 @@ class Concat(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class Append(BaseNode):
+class CombineDataVertically(BaseNode):
     """
-    Append two dataframes along their rows.
-    row, concat, merge
-    Outputs a DataFrame object that is the result of appending DataFrame A and DataFrame B.
+    Append two dataframes along rows.
+    append, concat, rows
+
+    Use cases:
+    - Combine data from multiple time periods
+    - Merge datasets with same structure
+    - Aggregate data from different sources
     """
 
     dataframe_a: DataframeRef = Field(
@@ -222,11 +263,15 @@ class Append(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class Join(BaseNode):
+class JoinTables(BaseNode):
     """
-    Merges two dataframes along their columns.
-    merge, join
-    Outputs a single DataFrame resulting from the merging of dataframe_a and dataframe_b along their columns.
+    Join two dataframes on specified column.
+    join, merge, column
+
+    Use cases:
+    - Combine data from related tables
+    - Enrich dataset with additional information
+    - Link data based on common identifiers
     """
 
     dataframe_a: DataframeRef = Field(
@@ -251,10 +296,15 @@ class Join(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class ToTensor(BaseNode):
+class ConvertToTensorFormat(BaseNode):
     """
-    Convert a dataframe to a tensor.
-    dataframe, tensor
+    Convert dataframe to tensor.
+    dataframe, tensor, convert
+
+    Use cases:
+    - Prepare data for deep learning models
+    - Enable tensor operations on dataframe data
+    - Convert tabular data to multidimensional format
     """
 
     dataframe: DataframeRef = Field(
@@ -266,10 +316,15 @@ class ToTensor(BaseNode):
         return Tensor.from_numpy(df.to_numpy())
 
 
-class FromTensor(BaseNode):
+class ConvertTensorToTable(BaseNode):
     """
-    Convert a tensor to a dataframe.
-    dataframe, tensor
+    Convert tensor to dataframe.
+    tensor, dataframe, convert
+
+    Use cases:
+    - Analyze tensor data using pandas functions
+    - Visualize tensor data in tabular format
+    - Export tensor results to dataframe structure
     """
 
     tensor: Tensor = Field(
@@ -291,10 +346,15 @@ class FromTensor(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class Plot(BaseNode):
+class CreateChart(BaseNode):
     """
-    Plots a dataframe as a line, bar, or scatter plot.
-    plot, dataframe, line, bar, scatter
+    Create line, bar, or scatter plot from dataframe.
+    plot, visualization, dataframe
+
+    Use cases:
+    - Visualize trends in time series data
+    - Compare values across categories
+    - Explore relationships between variables
     """
 
     class PlotType(str, Enum):
@@ -341,10 +401,15 @@ class Plot(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class PlotHistogram(BaseNode):
+class CreateHistogramVisualization(BaseNode):
     """
-    Plot a histogram of a dataframe column.
-    histogram, plot, dataframe
+    Plot histogram of dataframe column.
+    histogram, plot, distribution
+
+    Use cases:
+    - Visualize distribution of continuous data
+    - Identify outliers and data patterns
+    - Compare data distributions across categories
     """
 
     dataframe: DataframeRef = Field(
@@ -365,10 +430,15 @@ class PlotHistogram(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class PlotHeatmap(BaseNode):
+class CreateHeatmapVisualization(BaseNode):
     """
-    Plot a heatmap of a dataframe.
-    heatmap, plot, dataframe
+    Create heatmap visualization of dataframe.
+    heatmap, plot, correlation
+
+    Use cases:
+    - Visualize correlation between variables
+    - Identify patterns in multi-dimensional data
+    - Display intensity of values across categories
     """
 
     dataframe: DataframeRef = Field(
@@ -386,10 +456,15 @@ class PlotHeatmap(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class Filter(BaseNode):
+class FilterDataRows(BaseNode):
     """
-    Filter DataFrame based on a condition.
-    dataframe, condition, query
+    Filter dataframe based on condition.
+    filter, query, condition
+
+    Use cases:
+    - Extract subset of data meeting specific criteria
+    - Remove outliers or invalid data points
+    - Focus analysis on relevant data segments
     """
 
     df: DataframeRef = Field(
@@ -406,10 +481,15 @@ class Filter(BaseNode):
         return await context.dataframe_from_pandas(res)
 
 
-class Sort(BaseNode):
+class SortDataByColumn(BaseNode):
     """
-    Sort a DataFrame by a column.
-    dataframe, sort, order
+    Sort dataframe by specified column.
+    sort, order, column
+
+    Use cases:
+    - Arrange data in ascending or descending order
+    - Identify top or bottom values in dataset
+    - Prepare data for rank-based analysis
     """
 
     df: DataframeRef = Field(default=DataframeRef())
@@ -421,10 +501,15 @@ class Sort(BaseNode):
         return await context.dataframe_from_pandas(res)
 
 
-class DropDuplicates(BaseNode):
+class RemoveDuplicateEntries(BaseNode):
     """
-    Drop duplicate rows from a DataFrame.
-    duplicate, dataframe, unique
+    Remove duplicate rows from dataframe.
+    duplicates, unique, clean
+
+    Use cases:
+    - Clean dataset by removing redundant entries
+    - Ensure data integrity in analysis
+    - Prepare data for unique value operations
     """
 
     df: DataframeRef = Field(default=DataframeRef(), description="The input DataFrame.")
@@ -435,10 +520,15 @@ class DropDuplicates(BaseNode):
         return await context.dataframe_from_pandas(res)
 
 
-class DropNA(BaseNode):
+class RemoveIncompleteRows(BaseNode):
     """
-    Drop NA values from a DataFrame.
-    na, dataframe, missing
+    Remove rows with NA values from dataframe.
+    na, missing, clean
+
+    Use cases:
+    - Clean dataset by removing incomplete entries
+    - Prepare data for analysis requiring complete cases
+    - Improve data quality for modeling
     """
 
     df: DataframeRef = Field(default=DataframeRef(), description="The input DataFrame.")
@@ -449,10 +539,15 @@ class DropNA(BaseNode):
         return await context.dataframe_from_pandas(res)
 
 
-class IrisDataFrame(BaseNode):
+class LoadIrisDataset(BaseNode):
     """
-    Load the Iris dataset.
-    ml, training, dataset, test, iris
+    Load Iris dataset as dataframe.
+    iris, dataset, machine learning
+
+    Use cases:
+    - Practice machine learning techniques
+    - Benchmark classification algorithms
+    - Demonstrate data analysis workflows
     """
 
     async def process(self, context: ProcessingContext) -> Dataset:

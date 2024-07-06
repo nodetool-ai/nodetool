@@ -1,46 +1,149 @@
 # nodetool.nodes.nodetool.text
 
+## Chunk
+
+Splits text into chunks of specified word length.
+
+Use cases:
+- Preparing text for processing by models with input length limits
+- Creating manageable text segments for parallel processing
+- Generating summaries of text sections
+
+**Tags:** text, chunk, split
+
+- **text** (`str | nodetool.metadata.types.TextRef`)
+- **length** (`int`)
+- **overlap** (`int`)
+- **separator** (`str | None`)
+
 ## Concat
 
-Concat Node is a function that combines the output from several nodes into a single output.
-This node is beneficial for users who need a simple way to concatenate, or combine, the outputs of two or more nodes. Particularly useful in instances where several outputs need to be streamlined into a single output.
+Concatenates two text inputs into a single output.
 
-#### Applications
-- Concatenating the result of two different text processing nodes, such as word frequency and sentiment analysis, into a single output for further processing.
-- Combining various elements of a sentence or paragraph to streamline the information.
+Use cases:
+- Joining outputs from multiple text processing nodes
+- Combining parts of sentences or paragraphs
+- Merging text data from different sources
 
-**Tags:** 
-
-**Inherits from:** BaseNode
+**Tags:** text, concatenation, combine
 
 - **a** (`str | nodetool.metadata.types.TextRef`)
 - **b** (`str | nodetool.metadata.types.TextRef`)
 
+## Extract
+
+Extracts a substring from input text.
+
+Use cases:
+- Extracting specific portions of text for analysis
+- Trimming unwanted parts from text data
+- Focusing on relevant sections of longer documents
+
+**Tags:** text, extract, substring
+
+- **text** (`str | nodetool.metadata.types.TextRef`)
+- **start** (`int`)
+- **end** (`int`)
+
+## ExtractJSON
+
+Extracts data from JSON using JSONPath expressions.
+
+Use cases:
+- Retrieving specific fields from complex JSON structures
+- Filtering and transforming JSON data for analysis
+- Extracting nested data from API responses or configurations
+
+**Tags:** json, extract, jsonpath
+
+- **text** (`str | nodetool.metadata.types.TextRef`)
+- **json_path** (`str`)
+- **find_all** (`bool`)
+
+## ExtractRegex
+
+Extracts substrings matching regex groups from text.
+
+Use cases:
+- Extracting structured data (e.g., dates, emails) from unstructured text
+- Parsing specific patterns in log files or documents
+- Isolating relevant information from complex text formats
+
+**Tags:** text, regex, extract
+
+- **text** (`str | nodetool.metadata.types.TextRef`)
+- **regex** (`str`)
+- **dotall** (`bool`)
+- **ignorecase** (`bool`)
+- **multiline** (`bool`)
+
+## FindAllRegex
+
+Finds all regex matches in text as separate substrings.
+
+Use cases:
+- Identifying all occurrences of a pattern in text
+- Extracting multiple instances of structured data
+- Analyzing frequency and distribution of specific text patterns
+
+**Tags:** text, regex, find
+
+- **text** (`str | nodetool.metadata.types.TextRef`)
+- **regex** (`str`)
+- **dotall** (`bool`)
+- **ignorecase** (`bool`)
+- **multiline** (`bool`)
+
 ## JSONToDataframe
 
-This node transforms a list of JSON strings into a dataframe.
-The JSON To Dataframe Node allows you to easily convert JSON formatted data into a tabular structure. A JSON string, representing multiple entries, is transformed into a Pandas dataframe which can be used for further data manipulations and analysis.
+Transforms a JSON string into a pandas DataFrame.
 
-**Tags:** 
+Use cases:
+- Converting API responses to tabular format
+- Preparing JSON data for analysis or visualization
+- Structuring unstructured JSON data for further processing
 
-**Inherits from:** BaseNode
+**Tags:** json, dataframe, conversion
 
 - **text** (`str | nodetool.metadata.types.TextRef`)
 
 ## Join
 
-This node joins a list of strings into a single string.
+Joins a list of strings into a single string using a specified separator.
 
-**Inherits from:** BaseNode
+Use cases:
+- Combining multiple text elements with a consistent delimiter
+- Creating comma-separated lists from individual items
+- Assembling formatted text from array elements
+
+**Tags:** text, join, combine
 
 - **strings** (`list[str | nodetool.metadata.types.TextRef]`)
 - **separator** (`str`)
 
+## ParseJSON
+
+Parses a JSON string into a Python object.
+
+Use cases:
+- Converting JSON API responses for further processing
+- Preparing structured data for analysis or storage
+- Extracting configuration or settings from JSON files
+
+**Tags:** json, parse, convert
+
+- **text** (`str | nodetool.metadata.types.TextRef`)
+
 ## Replace
 
-This node replaces a substring in a string with another substring.
+Replaces a substring in a text with another substring.
 
-**Inherits from:** BaseNode
+Use cases:
+- Correcting or updating specific text patterns
+- Sanitizing or normalizing text data
+- Implementing simple text transformations
+
+**Tags:** text, replace, substitute
 
 - **text** (`str | nodetool.metadata.types.TextRef`)
 - **old** (`str`)
@@ -48,37 +151,42 @@ This node replaces a substring in a string with another substring.
 
 ## SaveText
 
-This node saves a text file to the assets folder.
-The Save Text Node is used to save a text file to the assets folder. The node accepts a string as input and saves it to a text file. The text file is then uploaded to the assets folder and can be used as input to other nodes in the workflow.
+Saves input text to a file in the assets folder.
 
-**Tags:** 
+Use cases:
+- Persisting processed text results
+- Creating text files for downstream nodes or external use
+- Archiving text data within the workflow
 
-**Inherits from:** BaseNode
+**Tags:** text, save, file
 
 - **value** (`str | nodetool.metadata.types.TextRef`)
 - **name** (`str`)
 
 ## Split
 
-The Split Node separates a given text into a list of strings based on a specified delimiter.
-This node is designed to break down provided text based on a specified separator or delimiter. The delimiter can be any character or combination of characters. The output is a list of strings divided based on the given delimiter.
+Separates text into a list of strings based on a specified delimiter.
 
-#### Applications
-- Breaking down user input into manageable segments.
-- Splitting text data received from other nodes for further data manipulation.
+Use cases:
+- Parsing CSV or similar delimited data
+- Breaking down sentences into words or phrases
+- Extracting specific elements from structured text
 
-**Tags:** 
-
-**Inherits from:** BaseNode
+**Tags:** text, split, tokenize
 
 - **text** (`str | nodetool.metadata.types.TextRef`)
 - **delimiter** (`str`)
 
 ## Template
 
-This node replaces placeholders in a string with values.
+Replaces placeholders in a string with provided values.
 
-**Inherits from:** BaseNode
+Use cases:
+- Generating personalized messages with dynamic content
+- Creating parameterized queries or commands
+- Formatting text output based on variable inputs
+
+**Tags:** text, template, formatting
 
 - **string** (`str | nodetool.metadata.types.TextRef`)
 - **values** (`dict[str, typing.Any]`)
@@ -86,8 +194,6 @@ This node replaces placeholders in a string with values.
 ## TextID
 
 Returns the asset id.
-
-**Inherits from:** BaseNode
 
 - **text** (`TextRef`)
 
@@ -101,9 +207,6 @@ Returns the asset id.
 
 **Returns:** `nodetool.metadata.types.TextRef | str`
 
-- [nodetool.nodes.nodetool.text.extract](text/extract.md)
-- [nodetool.nodes.nodetool.text.generate](text/generate.md)
-- [nodetool.nodes.nodetool.text.rerank](text/rerank.md)
 #### `to_string`
 
 **Parameters:**

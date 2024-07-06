@@ -4,9 +4,12 @@
 
 Agent node to plan tasks to achieve a goal.
 
-**Tags:** llm, language model, agent, chat, conversation
+Use cases:
+- Breaking down complex goals into manageable tasks
+- Creating dependency graphs for multi-step processes
+- Generating workflows for automated task execution
 
-**Inherits from:** BaseNode
+**Tags:** task planning, goal decomposition, workflow generation
 
 - **model**: The language model to use. (`FunctionModel`)
 - **goal**: The user prompt (`str`)
@@ -17,23 +20,47 @@ Agent node to plan tasks to achieve a goal.
 
 ## CreateImageTaskTool
 
-**Inherits from:** Tool
+Tool for creating image generation tasks.
+
+Use cases:
+- Creating detailed instructions for image generation models
+- Defining dependencies between image generation tasks
+- Crafting specific prompts for image generation models
+
+**Tags:** task creation, image generation, prompt engineering
 
 ## CreateRecordTool
 
-**Inherits from:** Tool
+Tool for creating data records with specified columns.
+
+Use cases:
+- Creating structured data entries from user input
+- Validating and coercing data to match a predefined schema
+- Building datasets with consistent structure
+
+**Tags:** data creation, schema validation, type coercion
 
 ## CreateTextTaskTool
 
-**Inherits from:** Tool
+Tool for creating text generation tasks.
+
+Use cases:
+- Creating detailed instructions for text generation models
+- Defining dependencies between text generation tasks
+- Crafting specific prompts for language models
+
+**Tags:** task creation, text generation, prompt engineering
 
 ## DataframeAgent
 
 LLM Agent to create a dataframe based on a user prompt.
 
-**Tags:** llm, language model, agent, chat, conversation
+Use cases:
+- Generating structured data from natural language descriptions
+- Creating sample datasets for testing or demonstration
+- Converting unstructured text into tabular format
 
-**Inherits from:** BaseNode
+**Tags:** llm, dataframe creation, data structuring
 
 - **model**: The language model to use. (`FunctionModel`)
 - **prompt**: The user prompt (`str`)
@@ -48,11 +75,14 @@ LLM Agent to create a dataframe based on a user prompt.
 
 ## ProcessTask
 
-Process a task with the given node.
+Process a task using specified models and tools.
 
-**Tags:** llm, language model, agent, chat, conversation
+Use cases:
+- Executing tasks defined by AgentNode
+- Coordinating between different AI models and tools
+- Generating outputs based on task instructions
 
-**Inherits from:** BaseNode
+**Tags:** task execution, model integration, tool coordination
 
 - **model**: The language model to use. (`FunctionModel`)
 - **task**: The task to process. (`Task`)

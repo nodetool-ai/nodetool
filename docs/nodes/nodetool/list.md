@@ -1,111 +1,144 @@
 # nodetool.nodes.nodetool.list
 
-## Append
+## AppendToList
 
 Adds a value to the end of a list.
 
-**Tags:** list, add, insert, push, extend, concatenate
+Use cases:
+- Grow a list dynamically
+- Add new elements to an existing list
+- Implement a stack-like structure
 
-**Inherits from:** BaseNode
+**Tags:** list, add, insert, extend
 
 - **values** (`list[typing.Any]`)
 - **value** (`Any`)
 
-## Dedupe
+## DedupeList
 
 Removes duplicate elements from a list, ensuring uniqueness.
 
-**Tags:** list, unique, distinct, deduplicate, remove, filter
+Use cases:
+- Remove redundant entries
+- Create a set-like structure
+- Ensure list elements are unique
 
-**Inherits from:** BaseNode
+**Tags:** list, unique, distinct, deduplicate
 
 - **values** (`list[typing.Any]`)
 
-## Extend
+## ExtendList
 
 Merges one list into another, extending the original list.
 
-**Tags:** list, merge, concatenate, append, add, insert, push
+Use cases:
+- Combine multiple lists
+- Add all elements from one list to another
 
-**Inherits from:** BaseNode
+**Tags:** list, merge, concatenate, combine
 
 - **values** (`list[typing.Any]`)
 - **other_values** (`list[typing.Any]`)
 
-## Filter
+## ExtractSubList
 
-Filters a list based on a custom Python condition. Example: {value} % 2 == 0
+Extracts a subset from a list using start, stop, and step indices.
 
-**Tags:** list, filter, python, condition
+Use cases:
+- Get a portion of a list
+- Implement pagination
+- Extract every nth element
 
-**Inherits from:** BaseNode
+**Tags:** list, slice, subset, extract
+
+- **values** (`list[typing.Any]`)
+- **start** (`int`)
+- **stop** (`int`)
+- **step** (`int`)
+
+## FilterList
+
+Filters a list based on a custom Python condition.
+
+Use cases:
+- Remove elements that don't meet a condition
+- Select elements based on complex criteria
+
+**Tags:** list, filter, condition, select
 
 - **values**: The list to filter. (`list[typing.Any]`)
 - **condition**: The Python code to use as the filtering condition. (`str`)
 
-## Index
-
-Retrieve a single value from a list at a specific index.
-
-**Tags:** list, get, pick, extract, value
-
-**Inherits from:** BaseNode
-
-- **values** (`list[typing.Any]`)
-- **index** (`int`)
-
-## Length
-
-Calculates and outputs the length of a given list.
-
-**Tags:** list, count, size
-
-**Inherits from:** BaseNode
-
-- **values** (`list[typing.Any]`)
-
-## Map
-
-Transforms each element in a list based on custom Python code. Example: {value} * {index}
-
-**Tags:** list, python, change
-
-**Inherits from:** BaseNode
-
-- **values**: The list to map. (`list[typing.Any]`)
-- **code**: Python code to use for mapping. (`str`)
-
-## Range
+## GenerateNumberSequence
 
 Generates a list of integers within a specified range.
 
-**Tags:** list, range, int, index, count, sequence, numbers
+Use cases:
+- Create numbered lists
+- Generate index sequences
+- Produce arithmetic progressions
 
-**Inherits from:** BaseNode
+**Tags:** list, range, sequence, numbers
 
 - **start** (`int`)
 - **stop** (`int`)
 - **step** (`int`)
 
-## Reduce
+## GetListElement
 
-Performs a custom reduction operation on a list using Python code. Example: {value} + {acc}
+Retrieves a single value from a list at a specific index.
 
-**Tags:** list, remove, filter, reduce, python
+Use cases:
+- Access a specific element by position
+- Implement array-like indexing
+- Extract the first or last element
 
-**Inherits from:** BaseNode
+**Tags:** list, get, extract, value
+
+- **values** (`list[typing.Any]`)
+- **index** (`int`)
+
+## ListLength
+
+Calculates the length of a list.
+
+Use cases:
+- Determine the number of elements in a list
+- Check if a list is empty
+- Validate list size constraints
+
+**Tags:** list, count, size
+
+- **values** (`list[typing.Any]`)
+
+## ReduceList
+
+Performs a custom reduction operation on a list using Python code.
+
+Use cases:
+- Calculate a sum or product of list elements
+- Find the maximum or minimum value
+- Implement custom aggregation logic
+
+Example reduction code:
+```python
+{acc} + {value}
+```
+
+**Tags:** list, reduce, aggregate, accumulate
 
 - **values**: The list to reduce. (`list[typing.Any]`)
 - **initial_value**: The initial value for the reduction. If not provided, the first value in the list is used. (`Any`)
 - **reduction_code**: The Python code to use for the reduction. (`str`)
 
-## Reverse
+## ReverseList
 
 Inverts the order of elements in a list.
 
-**Tags:** list, reverse, order, invert, flip
+Use cases:
+- Reverse the order of a sequence
 
-**Inherits from:** BaseNode
+**Tags:** list, reverse, invert, flip
 
 - **values** (`list[typing.Any]`)
 
@@ -113,34 +146,44 @@ Inverts the order of elements in a list.
 
 Saves a list to a text file, placing each element on a new line.
 
-**Tags:** list, save, file, serialize, text, toString
+Use cases:
+- Export list data to a file
+- Create a simple text-based database
+- Generate line-separated output
 
-**Inherits from:** BaseNode
+**Tags:** list, save, file, serialize
 
 - **values**: The list to save. (`list[typing.Any]`)
 - **name** (`str`)
 
-## Select
+## SelectListElements
 
 Selects specific values from a list using index positions.
 
-**Tags:** list, select, index, get, pick, extract, subset
+Use cases:
+- Pick specific elements by their positions
+- Rearrange list elements
+- Create a new list from selected indices
 
-**Inherits from:** BaseNode
+**Tags:** list, select, index, extract
 
 - **values** (`list[typing.Any]`)
 - **indices** (`list[int]`)
 
-## Slice
+## TransformListElements
 
-Extracts a subset from a list based on start, stop, and step indices.
+Transforms each element in a list based on custom Python code.
 
-**Tags:** list, slice, extract, subset, reduce, filter, select, range, get
+Use cases:
+- Apply a function to every list element
+- Convert data types within a list
+- Perform calculations on each element
 
-**Inherits from:** BaseNode
+Example mapping code:
+{value} * 100
 
-- **values** (`list[typing.Any]`)
-- **start** (`int`)
-- **stop** (`int`)
-- **step** (`int`)
+**Tags:** list, transform, modify, apply
+
+- **values**: The list to map. (`list[typing.Any]`)
+- **code**: Python code to use for mapping. (`str`)
 

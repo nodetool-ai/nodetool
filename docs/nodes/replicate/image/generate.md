@@ -4,8 +4,6 @@
 
 Product advertising image generator
 
-**Inherits from:** ReplicateNode
-
 - **pixel**: image total pixel (`Pixel`)
 - **scale**: Factor to scale image by (maximum: 4) (`int`)
 - **prompt**: Product name or prompt (`str | None`)
@@ -20,8 +18,6 @@ Product advertising image generator
 ## ConsistentCharacter
 
 Create images of a given character in different poses
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Set a seed for reproducibility. Random by default. (`int | None`)
 - **prompt**: Describe the subject. Include clothes and hairstyle for more consistency. (`str`)
@@ -38,8 +34,6 @@ Create images of a given character in different poses
 
 controlnet 1.1 lineart x realistic-vision-v2.0 (updated to v5)
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Leave blank to randomize (`int | None`)
 - **image**: Input image (`ImageRef`)
 - **steps**:  num_inference_steps (`int`)
@@ -53,8 +47,6 @@ controlnet 1.1 lineart x realistic-vision-v2.0 (updated to v5)
 ## Controlnet_X_IP_Adapter_Realistic_Vision_V5
 
 Inpainting || multi-controlnet || single-controlnet || ip-adapter || ip adapter face || ip adapter plus || No ip adapter
-
-**Inherits from:** ReplicateNode
 
 - **eta**: Controls the amount of noise that is added to the input data during the denoising diffusion process. Higher value -> more noise (`float`)
 - **seed**: Seed (`int | None`)
@@ -99,8 +91,6 @@ Inpainting || multi-controlnet || single-controlnet || ip-adapter || ip adapter 
 
 Fast and high quality lightning model, epiCRealismXL-Lightning Hades
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Set a seed for reproducibility. Random by default. (`int | None`)
 - **width** (`int`)
 - **height** (`int`)
@@ -114,8 +104,6 @@ Fast and high quality lightning model, epiCRealismXL-Lightning Hades
 ## Illusions
 
 Create illusions with img2img and masking support
-
-**Inherits from:** ReplicateNode
 
 - **seed** (`int | None`)
 - **image**: Optional img2img (`ImageRef`)
@@ -138,8 +126,6 @@ Create illusions with img2img and masking support
 
 Juggernaut XL v9
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **width**: Width of output image (`int`)
 - **height**: Height of output image (`int`)
@@ -156,8 +142,6 @@ Juggernaut XL v9
 
 multilingual text2image latent diffusion model
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **width**: Width of output image. Lower the setting if hits memory limits. (`Width`)
 - **height**: Height of output image. Lower the setting if hits memory limits. (`Height`)
@@ -171,8 +155,6 @@ multilingual text2image latent diffusion model
 ## OpenDalle_Lora
 
 Better than SDXL at both prompt adherence and image quality, by dataautogpt3
-
-**Inherits from:** ReplicateNode
 
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (`ImageRef`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
@@ -198,8 +180,6 @@ Better than SDXL at both prompt adherence and image quality, by dataautogpt3
 
 Playground v2.5 is the state-of-the-art open-source model in aesthetic quality
 
-**Inherits from:** ReplicateNode
-
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (`str | None`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **image**: Input image for img2img or inpaint mode (`ImageRef`)
@@ -218,8 +198,6 @@ Playground v2.5 is the state-of-the-art open-source model in aesthetic quality
 ## Proteus
 
 ProteusV0.4: The Style Update
-
-**Inherits from:** ReplicateNode
 
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (`ImageRef`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
@@ -240,8 +218,6 @@ ProteusV0.4: The Style Update
 
 Use a face to make images. Uses SDXL fine-tuned checkpoints.
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Set a seed for reproducibility. Random by default. (`int | None`)
 - **width**: Width of the output image (ignored if structure image given) (`int`)
 - **height**: Height of the output image (ignored if structure image given) (`int`)
@@ -257,8 +233,6 @@ Use a face to make images. Uses SDXL fine-tuned checkpoints.
 ## RealVisXL2_LCM
 
 RealvisXL-v2.0 with LCM LoRA - requires fewer steps (4 to 8 instead of the original 40 to 50)
-
-**Inherits from:** ReplicateNode
 
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (`ImageRef`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
@@ -278,8 +252,6 @@ RealvisXL-v2.0 with LCM LoRA - requires fewer steps (4 to 8 instead of the origi
 ## RealVisXL_V2
 
 Implementation of SDXL RealVisXL_V2.0
-
-**Inherits from:** ReplicateNode
 
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (`ImageRef`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
@@ -301,8 +273,6 @@ Implementation of SDXL RealVisXL_V2.0
 ## RealVisXL_V3_Multi_Controlnet_Lora
 
 RealVisXl V3 with multi-controlnet, lora loading, img2img, inpainting
-
-**Inherits from:** ReplicateNode
 
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (`ImageRef`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
@@ -343,8 +313,6 @@ RealVisXl V3 with multi-controlnet, lora loading, img2img, inpainting
 
 A model for experimenting with all the SD3 settings. Non-commercial use only unless you have a Stability AI membership.
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Set a seed for reproducibility. Random by default. (`int | None`)
 - **model**: Pick whether to use T5-XXL in fp16, fp8 or not at all (`Model`)
 - **shift**: The timestep scheduling shift. Try values 6.0 and 2.0 to experiment with effects. (`float`)
@@ -370,8 +338,6 @@ A model for experimenting with all the SD3 settings. Non-commercial use only unl
 
 Product advertising image generator using SDXL
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Empty or 0 for a random image (`int | None`)
 - **image**: Remove background from this image (`ImageRef`)
 - **prompt**: Describe the new setting for your product (`str | None`)
@@ -389,8 +355,6 @@ Product advertising image generator using SDXL
 
 SDXL ControlNet - Canny
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Random seed. Set to 0 to randomize the seed (`int`)
 - **image**: Input image for img2img or inpaint mode (`ImageRef`)
 - **prompt**: Input prompt (`str`)
@@ -401,8 +365,6 @@ SDXL ControlNet - Canny
 ## SDXL_Emoji
 
 An SDXL fine-tune based on Apple Emojis
-
-**Inherits from:** ReplicateNode
 
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (`ImageRef`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
@@ -427,8 +389,6 @@ An SDXL fine-tune based on Apple Emojis
 
 Create Pixar poster easily with SDXL Pixar.
 
-**Inherits from:** ReplicateNode
-
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (`ImageRef`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **image**: Input image for img2img or inpaint mode (`ImageRef`)
@@ -452,8 +412,6 @@ Create Pixar poster easily with SDXL Pixar.
 
 A latent text-to-image diffusion model capable of generating photo-realistic images given any text input
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **width**: Width of generated image in pixels. Needs to be a multiple of 64 (`Width`)
 - **height**: Height of generated image in pixels. Needs to be a multiple of 64 (`Height`)
@@ -467,8 +425,6 @@ A latent text-to-image diffusion model capable of generating photo-realistic ima
 ## StableDiffusion3
 
 A text-to-image model with greatly improved performance in image quality, typography, complex prompt understanding, and resource-efficiency
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **image**: Input image for img2img mode (`str | None`)
@@ -486,8 +442,6 @@ A text-to-image model with greatly improved performance in image quality, typogr
 
 SDXL Inpainting developed by the HF Diffusers team
 
-**Inherits from:** ReplicateNode
-
 - **mask**: Mask image - make sure it's the same size as the input image (`str | None`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **image**: Input image (`ImageRef`)
@@ -502,8 +456,6 @@ SDXL Inpainting developed by the HF Diffusers team
 ## StableDiffusionXL
 
 A text-to-image generative AI model that creates beautiful images
-
-**Inherits from:** ReplicateNode
 
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (`ImageRef`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
@@ -529,8 +481,6 @@ A text-to-image generative AI model that creates beautiful images
 
 SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality images in 4 steps
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **width**: Width of output image. Recommended 1024 or 1280 (`int`)
 - **height**: Height of output image. Recommended 1024 or 1280 (`int`)
@@ -545,8 +495,6 @@ SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality 
 ## StyleTransfer
 
 Transfer the style of one image to another
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Set a seed for reproducibility. Random by default. (`int | None`)
 - **model**: Model to use for the generation (`Model`)

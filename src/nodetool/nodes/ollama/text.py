@@ -6,7 +6,14 @@ from nodetool.workflows.processing_context import ProcessingContext
 
 class Ollama(BaseNode):
     """
-    Run Llama models.
+    Run Llama models to generate text responses.
+    llama, text generation, language model, ai assistant
+
+    Use cases:
+    - Generate creative writing or stories
+    - Answer questions or provide explanations
+    - Assist with tasks like coding, analysis, or problem-solving
+    - Engage in open-ended dialogue on various topics
     """
 
     model: LlamaModel = Field(
@@ -71,9 +78,16 @@ class Ollama(BaseNode):
 
 class Embedding(BaseNode):
     """
-    Generates a vector representation of text for measuring relatedness.
-    text, analyse, transform, embeddings, relatedness, search, classification, clustering, recommendations
-    Outputs a text embedding vector that quantifies the semantic similarity of the input text to other text strings. An embedding is a vector (list) of floating point numbers. The distance between two vectors measures their relatedness. Small distances suggest high relatedness and large distances suggest low relatedness. Use cases: Search, Clustering, Recommendations, Anomaly detection, Diversity measurement, Classification
+    Generate vector representations of text for semantic similarity.
+    embeddings, semantic analysis, text similarity, search, clustering
+
+    Use cases:
+    - Power semantic search capabilities
+    - Enable text clustering and categorization
+    - Support recommendation systems
+    - Detect semantic anomalies or outliers
+    - Measure text diversity or similarity
+    - Aid in text classification tasks
     """
 
     input: str | TextRef = Field(title="Input", default="")

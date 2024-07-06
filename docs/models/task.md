@@ -2,8 +2,6 @@
 
 ## Task
 
-**Inherits from:** DBModel
-
 - **id** (`str`)
 - **task_type** (`str`)
 - **user_id** (`str`)

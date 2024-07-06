@@ -4,8 +4,6 @@
 
 An abstract base class defining the interface for node caching implementations.
 
-**Inherits from:** ABC
-
 #### `clear`
 
 Clear the entire cache.

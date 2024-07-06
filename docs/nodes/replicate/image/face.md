@@ -4,8 +4,6 @@
 
 Adapt any picture of a face into another image
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Fix the random seed for reproducibility (`int | None`)
 - **image**: An image of a person to be converted (`ImageRef`)
 - **prompt** (`str`)
@@ -24,8 +22,6 @@ Adapt any picture of a face into another image
 
 Turn a face into 3D, emoji, pixel art, video game, claymation or toy
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Fix the random seed for reproducibility (`int | None`)
 - **image**: An image of a person to be converted (`ImageRef`)
 - **style**: Style to convert to (`Style`)
@@ -41,8 +37,6 @@ Turn a face into 3D, emoji, pixel art, video game, claymation or toy
 ## FaceToSticker
 
 Turn a face into a sticker
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Fix the random seed for reproducibility (`int | None`)
 - **image**: An image of a person to be converted to a sticker (`ImageRef`)
@@ -61,8 +55,6 @@ Turn a face into a sticker
 ## InstantId
 
 Make realistic images of real people instantly
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
 - **image**: Input face image (`ImageRef`)
@@ -96,8 +88,6 @@ Make realistic images of real people instantly
 
 Create photos, paintings and avatars for anyone in any style within seconds.
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Seed. Leave blank to use a random number (`int | None`)
 - **prompt**: Prompt. Example: 'a photo of a man/woman img'. The phrase 'img' is the trigger word. (`str`)
 - **num_steps**: Number of sample steps (`int`)
@@ -115,8 +105,6 @@ Create photos, paintings and avatars for anyone in any style within seconds.
 ## PhotoMakerStyle
 
 Create photos, paintings and avatars for anyone in any style within seconds.  (Stylization version)
-
-**Inherits from:** ReplicateNode
 
 - **seed**: Seed. Leave blank to use a random number (`int | None`)
 - **prompt**: Prompt. Example: 'a photo of a man/woman img'. The phrase 'img' is the trigger word. (`str`)

@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
 import asyncio
+import datetime
 from io import BytesIO
 import re
 from uuid import uuid4
+import zipfile
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from nodetool.types.asset import (
     Asset,
     AssetCreateRequest,
+    AssetDownloadRequest,
     AssetList,
     AssetUpdateRequest,
     TempAsset,
@@ -209,3 +213,95 @@ async def create(
         raise HTTPException(status_code=500, detail="Error uploading asset")
 
     return Asset.from_model(asset)
+
+
+@router.post("/download")
+async def download_assets(
+    req: AssetDownloadRequest,
+    current_user: User = Depends(current_user),
+):
+    """
+    Create a ZIP file containing the requested assets and return it for download.
+    Maintains folder structure based on asset.parent_id relationships.
+    """
+    if not req.asset_ids:
+        raise HTTPException(status_code=400, detail="No asset IDs provided")
+
+    zip_buffer = BytesIO()
+    storage = Environment.get_asset_storage()
+
+    # Dictionary to store asset paths
+    asset_paths: dict[str, str] = {}
+    # Dictionary to store all assets
+    all_assets: dict[str, AssetModel] = {}
+
+    async def fetch_all_assets(asset_ids: list[str]):
+        assets = [AssetModel.get(asset_id) for asset_id in asset_ids]
+        for asset in assets:
+            if asset:
+                all_assets[asset.id] = asset
+                if asset.parent_id and asset.parent_id not in all_assets:
+                    await fetch_all_assets([asset.parent_id])
+
+    await fetch_all_assets(req.asset_ids)
+
+    def get_asset_path(asset: AssetModel) -> str:
+        if asset.id in asset_paths:
+            return asset_paths[asset.id]
+
+        if not asset.parent_id or asset.parent_id not in all_assets:
+            path = asset.name
+        else:
+            parent_path = get_asset_path(all_assets[asset.parent_id])
+            path = f"{parent_path}/{asset.name}"
+
+        asset_paths[asset.id] = path
+        return path
+
+    async def fetch_asset_content(asset: AssetModel) -> tuple[str, BytesIO | None]:
+        try:
+            if asset.user_id != current_user.id:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"You don't have permission to download asset: {asset.id}",
+                )
+
+            asset_path = get_asset_path(asset)
+
+            if asset.content_type == "folder":
+                return f"{asset_path}/", None
+            else:
+                file_path = f"{asset_path}.{asset.file_extension}"
+                file_content = BytesIO()
+                await storage.download(asset.file_name, file_content)
+                file_content.seek(0)
+                return file_path, file_content
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Error downloading asset {asset.id}: {str(e)}"
+            )
+
+    # Fetch all asset contents in parallel
+    asset_contents = await asyncio.gather(
+        *[fetch_asset_content(asset) for asset in all_assets.values()]
+    )
+
+    # Write to zip file sequentially
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for file_path, content in asset_contents:
+            if content is None:
+                # This is a folder
+                zip_file.writestr(file_path, "")
+            else:
+                zip_file.writestr(file_path, content.getvalue())
+
+    zip_buffer.seek(0)
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"assets_{timestamp}.zip"
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )

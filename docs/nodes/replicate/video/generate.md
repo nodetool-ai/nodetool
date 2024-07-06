@@ -4,8 +4,6 @@
 
 🎨 AnimateDiff (w/ MotionLoRAs for Panning, Zooming, etc): Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning
 
-**Inherits from:** ReplicateNode
-
 - **seed**: Seed for different images and reproducibility. Use -1 to randomise seed (`int`)
 - **steps**: Number of inference steps (`int`)
 - **width**: Width in pixels (`int`)
@@ -28,8 +26,6 @@
 ## AnimateDiffIllusions
 
 Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Prompt Travel (Motion Module SD 1.5 v2)
-
-**Inherits from:** ReplicateNode
 
 - **loop**: Flag to loop the video. Use when you have an 'infinitely' repeating video/gif ControlNet video (`bool`)
 - **seed**: Seed for different images and reproducibility. Leave blank to randomise seed (`int | None`)
@@ -62,8 +58,6 @@ Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Pro
 
 Create a waveform video from audio
 
-**Inherits from:** ReplicateNode
-
 - **audio**: Audio file to create waveform from (`AudioRef`)
 - **bg_color**: Background color of waveform (`str`)
 - **fg_alpha**: Opacity of foreground waveform (`float`)
@@ -75,8 +69,6 @@ Create a waveform video from audio
 ## HotshotXL
 
 😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL
-
-**Inherits from:** ReplicateNode
 
 - **mp4**: Save as mp4, False for GIF (`bool`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)
@@ -91,16 +83,12 @@ Create a waveform video from audio
 
 extract foreground of a video
 
-**Inherits from:** ReplicateNode
-
 - **input_video**: Video to segment. (`VideoRef`)
 - **output_type** (`Output_type`)
 
 ## StableDiffusionInfiniteZoom
 
 Use Runway's Stable-diffusion inpainting model to create an infinite loop video
-
-**Inherits from:** ReplicateNode
 
 - **prompt**: Prompt (`str | None`)
 - **inpaint_iter**: Number of iterations of pasting the image in it's center and inpainting the boarders (`int`)
@@ -109,8 +97,6 @@ Use Runway's Stable-diffusion inpainting model to create an infinite loop video
 ## Tooncrafter
 
 Create videos from illustrated input images
-
-**Inherits from:** ReplicateNode
 
 - **loop**: Loop the video (`bool`)
 - **seed**: Set a seed for reproducibility. Random by default. (`int | None`)
@@ -135,8 +121,6 @@ Create videos from illustrated input images
 
 Generate a video that morphs between subjects, with an optional style
 
-**Inherits from:** ReplicateNode
-
 - **mode**: Determines if you produce a quick experimental video or an upscaled interpolated one. (small ~20s, medium ~60s, upscaled ~2min, upscaled-and-interpolated ~4min) (`Mode`)
 - **seed**: Set a seed for reproducibility. Random by default. (`int | None`)
 - **prompt**: The prompt has a small effect, but most of the video is driven by the subject images (`str`)
@@ -154,8 +138,6 @@ Generate a video that morphs between subjects, with an optional style
 ## Zeroscope_V2_XL
 
 Zeroscope V2 XL & 576w
-
-**Inherits from:** ReplicateNode
 
 - **fps**: fps for the output video (`int`)
 - **seed**: Random seed. Leave blank to randomize the seed (`int | None`)

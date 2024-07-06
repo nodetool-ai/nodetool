@@ -9,8 +9,6 @@ Concatenates two audio files together.
 
 **Tags:** audio, edit, join
 
-**Inherits from:** BaseNode
-
 - **a**: The first audio file. (`AudioRef`)
 - **b**: The second audio file. (`AudioRef`)
 
@@ -23,8 +21,6 @@ Normalizes the volume of an audio file.
 
 **Tags:** audio, fix, dynamics
 
-**Inherits from:** BaseNode
-
 - **audio**: The audio file to normalize. (`AudioRef`)
 
 ## OverlayAudio
@@ -36,28 +32,25 @@ Overlays two audio files together.
 
 **Tags:** audio, edit, transform
 
-**Inherits from:** BaseNode
-
 - **a**: The first audio file. (`AudioRef`)
 - **b**: The second audio file. (`AudioRef`)
 
 ## RemoveSilence
 
-Removes silence from an audio file.
+Removes or shortens silence in an audio file with smooth transitions.
 
 - Trim silent parts from beginning/end of recordings
-- Remove long pauses between speech segments
+- Remove or shorten long pauses between speech segments
+- Apply crossfade for smooth transitions
 
 **Tags:** audio, edit, clean
 
-**Inherits from:** BaseNode
-
-- **audio**: The audio file to remove silence from. (`AudioRef`)
-- **min_length**: Minimum length of silence to be removed (in milliseconds). (`int`, default: 100)
-- **threshold**: Silence threshold in dB. (`float`, default: -32)
-- **reduction_factor**: Factor to reduce silent parts (0.0 to 1.0). (`float`, default: 1.0)
-- **crossfade**: Duration of crossfade in milliseconds to apply between segments for smooth transitions. (`int`, default: 10)
-- **min_silence_between_parts**: Minimum silence duration in milliseconds to maintain between non-silent segments. (`int`, default: 100)
+- **audio**: The audio file to process. (`AudioRef`)
+- **min_length**: Minimum length of silence to be processed (in milliseconds). (`int`)
+- **threshold**: Silence threshold in dB (relative to full scale). Higher values detect more silence. (`int`)
+- **reduction_factor**: Factor to reduce silent parts (0.0 to 1.0). 0.0 keeps silence as is, 1.0 removes it completely. (`float`)
+- **crossfade**: Duration of crossfade in milliseconds to apply between segments for smooth transitions. (`int`)
+- **min_silence_between_parts**: Minimum silence duration in milliseconds to maintain between non-silent segments (`int`)
 
 ## SliceAudio
 
@@ -67,8 +60,6 @@ Extracts a section of an audio file.
 - Remove unwanted portions from beginning or end
 
 **Tags:** audio, edit, trim
-
-**Inherits from:** BaseNode
 
 - **audio**: The audio file. (`AudioRef`)
 - **start**: The start time in seconds. (`float`)
@@ -83,9 +74,8 @@ Generates a constant tone signal.
 
 **Tags:** audio, generate, sound
 
-**Inherits from:** BaseNode
-
 - **frequency**: Frequency of the tone in Hertz. (`float`)
 - **sampling_rate**: Sampling rate. (`int`)
 - **duration**: Duration of the tone in seconds. (`float`)
 - **phi**: Initial phase of the waveform in radians. (`float`)
+
