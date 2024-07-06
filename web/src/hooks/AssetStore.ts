@@ -296,11 +296,67 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   /**
    * Download assets from the server.
    *
-   * @param ids The IDs of the assets to download.
+   * @param ids An array of asset IDs to download.
+   * @returns A promise that resolves when the download is complete.
    */
-  download: (ids: string[]) => {
-    const url = `${BASE_URL}/api/assets/download?ids=${ids.join(",").trim()}`;
-    window.open(url, "_blank");
+
+  download: async (ids: string[]) => {
+    try {
+      console.log("Starting download process");
+      console.log("IDs to download:", ids);
+
+      const formData = new FormData();
+      formData.append("json", JSON.stringify({ asset_ids: ids }));
+
+      const headers = {
+        ...authHeader(),
+        "Content-Type": "multipart/form-data"
+      };
+
+      console.log("Headers:", headers);
+
+      const url = `${BASE_URL}/api/assets/download`;
+      console.log("Request URL:", url);
+
+      const response = await axios({
+        url: url,
+        method: "POST",
+        data: formData,
+        headers: headers,
+        responseType: "blob"
+      });
+
+      console.log("Response received");
+      console.log("Response status:", response.status);
+
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"]
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = response.headers["content-disposition"]
+        ? response.headers["content-disposition"].split("filename=")[1]
+        : "assets.zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      console.log("Download initiated");
+
+      get().invalidateQueries(["assets"]);
+      console.log("Queries invalidated");
+
+      return true;
+    } catch (error) {
+      console.error("Error in download function:", error);
+      if (axios.isAxiosError(error)) {
+        console.error("Error message:", error.message);
+        console.error("Error response:", error.response?.data);
+      }
+      throw error;
+    }
   },
 
   /**
