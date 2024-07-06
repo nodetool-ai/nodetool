@@ -305,15 +305,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       console.log("Starting download process");
       console.log("IDs to download:", ids);
 
-      const formData = new FormData();
-      formData.append("json", JSON.stringify({ asset_ids: ids }));
-
-      const headers = {
-        ...authHeader(),
-        "Content-Type": "multipart/form-data"
-      };
-
-      console.log("Headers:", headers);
 
       const url = `${BASE_URL}/api/assets/download`;
       console.log("Request URL:", url);
@@ -321,8 +312,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       const response = await axios({
         url: url,
         method: "POST",
-        data: formData,
-        headers: headers,
+        data: {
+          asset_ids: ids
+        },
         responseType: "blob"
       });
 
