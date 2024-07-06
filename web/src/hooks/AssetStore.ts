@@ -301,12 +301,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
   download: async (ids: string[]) => {
     try {
-      console.log("Starting download process");
-      console.log("IDs to download:", ids);
-
+      devLog("Starting download process");
+      devLog("IDs to download:", ids);
 
       const url = `${BASE_URL}/api/assets/download`;
-      console.log("Request URL:", url);
+      devLog("Request URL:", url);
 
       const response = await axios({
         url: url,
@@ -317,8 +316,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         responseType: "blob"
       });
 
-      console.log("Response received");
-      console.log("Response status:", response.status);
+      devLog("Response received");
+      devLog("Response status:", response.status);
 
       const blob = new Blob([response.data], {
         type: response.headers["content-type"]
@@ -334,10 +333,10 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       a.remove();
       window.URL.revokeObjectURL(downloadUrl);
 
-      console.log("Download initiated");
+      devLog("Download initiated");
 
       get().invalidateQueries(["assets"]);
-      console.log("Queries invalidated");
+      devLog("Queries invalidated");
 
       return true;
     } catch (error) {
