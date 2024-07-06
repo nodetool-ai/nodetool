@@ -84,7 +84,6 @@ const NodeEditor: React.FC<unknown> = () => {
     handleOnConnect(connection);
   };
 
-  const { closeDescription } = useNodeMenuStore();
   const { connecting } = useConnectionStore();
 
   /* REACTFLOW */
@@ -169,8 +168,7 @@ const NodeEditor: React.FC<unknown> = () => {
   addBeforeUnloadListener();
 
   // OPEN NODE MENU
-  const { openNodeMenu, closeNodeMenu, isMenuOpen, isDescriptionOpen } =
-    useNodeMenuStore();
+  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore();
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -181,20 +179,11 @@ const NodeEditor: React.FC<unknown> = () => {
         } else {
           openNodeMenu(e.clientX, e.clientY);
         }
-        if (isDescriptionOpen) {
-          closeDescription();
-        }
       } else {
         closeNodeMenu();
       }
     },
-    [
-      closeDescription,
-      closeNodeMenu,
-      isDescriptionOpen,
-      isMenuOpen,
-      openNodeMenu
-    ]
+    [closeNodeMenu, isMenuOpen, openNodeMenu]
   );
   // CLOSE NODE MENU
   const handleClick = useCallback(
@@ -204,12 +193,9 @@ const NodeEditor: React.FC<unknown> = () => {
         if (isMenuOpen) {
           closeNodeMenu();
         }
-        if (isDescriptionOpen) {
-          closeDescription();
-        }
       }
     },
-    [closeDescription, closeNodeMenu, isDescriptionOpen, isMenuOpen]
+    [closeNodeMenu, isMenuOpen]
   );
 
   /* CONTEXT MENUS */

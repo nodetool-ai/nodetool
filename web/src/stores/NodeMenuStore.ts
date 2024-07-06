@@ -31,13 +31,6 @@ type NodeMenuStore = {
   ) => void;
   closeNodeMenu: () => void;
 
-  description: string | undefined;
-  setDescription: (description: string) => void;
-
-  isDescriptionOpen: boolean;
-  openDescription: (description: string) => void;
-  closeDescription: () => void;
-
   searchResults: NodeMetadata[];
   setSearchResults: (results: NodeMetadata[]) => void;
   highlightedNamespaces: string[];
@@ -126,29 +119,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       isMenuOpen: false,
       menuPosition: { x: 100, y: 100 }
     });
-  },
-
-  // description
-  description: undefined,
-  setDescription: (description) => set({ description }),
-
-  isDescriptionOpen: false,
-  openDescription: (newDescription) => {
-    if (newDescription.trim() === "") {
-      newDescription = "No description";
-    }
-    // const currentDescription = get().description;
-    const newDescriptionTidy = newDescription
-      .replace(/^ +/gm, "")
-      .replace("NodeCategory: ", "")
-      .replace("Category: ", "");
-    set({
-      description: newDescriptionTidy,
-      isDescriptionOpen: true
-    });
-  },
-  closeDescription: () => {
-    set({ isDescriptionOpen: false });
   },
 
   searchResults: [],
