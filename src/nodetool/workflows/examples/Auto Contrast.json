@@ -1,0 +1,153 @@
+{
+  "id": "b7f47d9c263b11ef886b000029a0d6bc",
+  "access": "private",
+  "created_at": "2024-06-09T10:39:00.295690",
+  "updated_at": "2024-07-06T17:17:21.220764",
+  "name": "Auto Contrast",
+  "description": "",
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "replicate.image.generate.StableDiffusionXLLightning",
+        "data": {
+          "seed": 757823331,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "A superhero smiling",
+          "scheduler": "K_EULER",
+          "num_outputs": 1,
+          "guidance_scale": 0,
+          "negative_prompt": "worst quality, low quality",
+          "num_inference_steps": 4,
+          "disable_safety_checker": false
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 81,
+            "y": 140
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.image.enhance.AutoContrast",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "https://replicate.delivery/yhqm/A4L7FLxMKg6hEd9u6NEE7VVc135QDc474b8bNagkBEXxRcxE/out-0.png",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "cutoff": 2
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 305,
+            "y": 173
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": {
+            "type": "image",
+            "uri": "http://localhost:8000/api/storage/nodetool-temp/4008961ecdfc43d6b57c58bd6f1e7bd6",
+            "asset_id": null,
+            "temp_id": "4008961ecdfc43d6b57c58bd6f1e7bd6"
+          },
+          "name": "image_output_2024-07-06"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 442,
+            "y": 93
+          },
+          "zIndex": 0,
+          "width": 255,
+          "height": 212,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": {
+            "type": "image",
+            "uri": "https://replicate.delivery/yhqm/A4L7FLxMKg6hEd9u6NEE7VVc135QDc474b8bNagkBEXxRcxE/out-0.png",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "name": "image_output_2024-07-06"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 285,
+            "y": 309
+          },
+          "zIndex": 0,
+          "width": 243,
+          "height": 202,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "2",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "1",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "c88300ed-63ba-4c31-8e3a-27477dbf412f",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}
