@@ -79,8 +79,6 @@ class Folder(GraphNode):
 
 
 class GroupInput(GraphNode):
-    items: list[typing.Any] | nodetool.metadata.types.DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
-    name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.input.GroupInput"
 

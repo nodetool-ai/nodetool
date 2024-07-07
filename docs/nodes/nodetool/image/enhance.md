@@ -2,15 +2,13 @@
 
 ## AdaptiveContrast
 
-The Adaptive Contrast Node is used to adjust the contrasting visual aspects of an image.
-This node enhances the contrast of the provided image on a localized level by adapting the contrast based on defined grid sizes, which means each section of the image will have its contrast adjusted individually compared to each other. The balance of brightness and darkness in different various parts of the image can be shifted using the clip limit field.
+Applies localized contrast enhancement using adaptive techniques.
 
-#### Applications
-- Enhancing visual interest in an image by adjusting contrast.
-- Mitigation of contrasting errors in color-focused or texture-focused AI models.
-- For image restoration, where restoring the contrast levels can make old or degraded photos become clearer.
+Use cases:
+- Improve visibility in images with varying lighting conditions
+- Prepare images for improved feature detection in computer vision
 
-**Tags:** 
+**Tags:** image, contrast, enhance
 
 - **image**: The image to adjust the contrast for. (`ImageRef`)
 - **clip_limit**: Clip limit for adaptive contrast. (`float`)
@@ -21,42 +19,37 @@ This node enhances the contrast of the provided image on a localized level by ad
 Automatically adjusts image contrast for enhanced visual quality.
 
 Use cases:
-1. Enhance image clarity for better visual perception
-2. Pre-process images for computer vision tasks
-3. Improve photo aesthetics in editing workflows
-4. Correct poorly lit or low-contrast images
-5. Prepare images for printing or display
+- Enhance image clarity for better visual perception
+- Pre-process images for computer vision tasks
+- Improve photo aesthetics in editing workflows
 
 **Tags:** image, contrast, balance
 
 - **image**: The image to adjust the contrast for. (`ImageRef`)
-- **cutoff**: Cutoff for autocontrast. (`int`)
+- **cutoff**: Represents the percentage of pixels to ignore at both the darkest and lightest ends of the histogram. A cutoff value of 5 means ignoring the darkest 5% and the lightest 5% of pixels, enhancing overall contrast by stretching the remaining pixel values across the full brightness range. (`int`)
 
 ## Brightness
 
-The Brightness Node is designed to adjust the brightness of an image.
+Adjusts overall image brightness to lighten or darken.
 
-Its main purpose is to alter the brightness of an uploaded image by using a customizable factor. The brightness of an image can influence its clarity and visibility. By changing the brightness levels, we can make portions of an image more visible or less distracting based on our needs.
+Use cases:
+- Correct underexposed or overexposed photographs
+- Enhance visibility of dark image regions
+- Prepare images for consistent display across devices
 
-#### Applications
-- Brightness level correction: If an image is too dark or too bright, the Brightness Node can be used to correct the brightness levels to the desired range.
-- Highlighting or dimming certain parts of an image: The Brightness Node can be used to increase the visibility of certain parts of an image by enhancing their brightness.
-
-**Tags:** image, highlight, dim
+**Tags:** image, brightness, enhance
 
 - **image**: The image to adjust the brightness for. (`ImageRef`)
 - **factor**: Factor to adjust the brightness. 1.0 means no change. (`float | int`)
 
 ## Color
 
-Adjusts color intensity of an image using a factor-based filter.
+Adjusts color intensity of an image.
 
 Use cases:
-1. Enhance color vibrancy in photographs
-2. Create mood-specific color grading for visual media
-3. Correct color imbalances in digital images
-4. Highlight specific features in scientific or medical imaging
-5. Prepare images for consistent brand color representation
+- Enhance color vibrancy in photographs
+- Correct color imbalances in digital images
+- Prepare images for consistent brand color representation
 
 **Tags:** image, color, enhance
 
@@ -68,11 +61,9 @@ Use cases:
 Adjusts image contrast to modify light-dark differences.
 
 Use cases:
-1. Enhance visibility of details in low-contrast images
-2. Prepare images for visual analysis or recognition tasks
-3. Create dramatic effects in artistic photography
-4. Correct over or underexposed photographs
-5. Improve readability of text in scanned documents
+- Enhance visibility of details in low-contrast images
+- Prepare images for visual analysis or recognition tasks
+- Create dramatic effects in artistic photography
 
 **Tags:** image, contrast, enhance
 
@@ -81,28 +72,25 @@ Use cases:
 
 ## Detail
 
-The DetailNode is an image detail filter.
+Enhances fine details in images.
 
-This node is primarily designed to enhance the details of an image in an AI workflow by applying a detail filter. It is especially useful when you want to emphasize or highlight certain features of the image.
+Use cases:
+- Improve clarity of textural elements in photographs
+- Enhance visibility of small features for analysis
+- Prepare images for high-resolution display or printing
 
-#### Applications
-- Enhancing the details of an image to improve its clarity.
-- Highlighting certain features of an image for a deeper analysis.
-
-**Tags:** image, enhance
+**Tags:** image, detail, enhance
 
 - **image**: The image to detail. (`ImageRef`)
 
 ## EdgeEnhance
 
-Enhances edge visibility in images by increasing edge contrast.
+Enhances edge visibility by increasing contrast along boundaries.
 
 Use cases:
-1. Improve object boundaries for computer vision tasks
-2. Enhance details in medical or scientific imaging
-3. Create artistic effects in digital photography
-4. Prepare images for feature extraction in image analysis
-5. Highlight structural elements in architectural or engineering drawings
+- Improve object boundary detection for computer vision
+- Highlight structural elements in technical drawings
+- Prepare images for feature extraction in image analysis
 
 **Tags:** image, edge, enhance
 
@@ -113,11 +101,9 @@ Use cases:
 Enhances image contrast by equalizing intensity distribution.
 
 Use cases:
-1. Improve visibility in poorly lit images
-2. Enhance details for image analysis tasks
-3. Normalize image data for machine learning
-4. Correct uneven lighting in photographs
-5. Prepare images for feature extraction
+- Improve visibility in poorly lit images
+- Enhance details for image analysis tasks
+- Normalize image data for machine learning
 
 **Tags:** image, contrast, histogram
 
@@ -125,15 +111,14 @@ Use cases:
 
 ## RankFilter
 
-The Rank Filter Node is used to apply a rank filter to a given image.
+Applies rank-based filtering to enhance or smooth image features.
 
-The purpose of this node is to perform a specific type of image processing technique, known as a rank filter. A rank filter considers the surrounding pixels of each pixel in the image and sorts them according to brightness. The 'rank' refers to the position of the pixel that will replace the current pixel - for example, a rank of 1 would replace each pixel with the darkest surrounding pixel, while a rank of 3 would replace it with the third darkest and so on. The 'size' indicates the total number of surrounding pixels to be considered for this process.
+Use cases:
+- Reduce noise while preserving edges in images
+- Enhance specific image features based on local intensity
+- Pre-process images for improved segmentation results
 
-#### Applications
-- Image enhancement: This node can be used to enhance the quality of an image, making subtle details more pronounced.
-- Noise reduction: The Rank Filter Node can help reduce 'noise' in images, i.e., unwanted or irrelevant details.
-
-**Tags:** image, enhance
+**Tags:** image, filter, enhance
 
 - **image**: The image to rank filter. (`ImageRef`)
 - **size**: Rank filter size. (`int`)
@@ -141,14 +126,12 @@ The purpose of this node is to perform a specific type of image processing techn
 
 ## Sharpen
 
-Enhances image detail by intensifying contrast between adjacent pixels.
+Enhances image detail by intensifying local pixel contrast.
 
 Use cases:
-1. Improve clarity of photographs for print or digital display
-2. Enhance details in medical imaging for diagnosis
-3. Sharpen blurry images for better object detection
-4. Refine texture details in product photography
-5. Increase readability of text in scanned documents
+- Improve clarity of photographs for print or display
+- Refine texture details in product photography
+- Enhance readability of text in document images
 
 **Tags:** image, sharpen, clarity
 
@@ -159,11 +142,9 @@ Use cases:
 Adjusts image sharpness to enhance or reduce detail clarity.
 
 Use cases:
-1. Enhance photo details for improved visual appeal
-2. Refine images for object detection tasks
-3. Correct slightly blurred images
-4. Prepare images for print or digital display
-5. Adjust sharpness for artistic effect in digital art
+- Enhance photo details for improved visual appeal
+- Refine images for object detection tasks
+- Correct slightly blurred images
 
 **Tags:** image, clarity, sharpness
 
@@ -172,15 +153,14 @@ Use cases:
 
 ## UnsharpMask
 
-The Unsharp Mask Node is responsible for performing the unsharp mask filter on an image.
+Sharpens images using the unsharp mask technique.
 
-An unsharp mask is a photographic sharpening technique. This node helps to enhance the sharpness of your image by adjusting the radius, the impact and the threshold of the unsharp mask filter.
+Use cases:
+- Enhance edge definition in photographs
+- Improve perceived sharpness of digital artwork
+- Prepare images for high-quality printing or display
 
-#### Applications
-- Photo editing: Sharpens images by emphasizing transitions, such as those defining edges of objects in the image.
-- Digital art creation: Refining and adding crispness to digital artwork.
-
-**Tags:** image, sharpening, enhance
+**Tags:** image, sharpen, enhance
 
 - **image**: The image to unsharp mask. (`ImageRef`)
 - **radius**: Unsharp mask radius. (`int`)

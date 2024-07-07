@@ -132,7 +132,7 @@ class Illusions(GraphNode):
     prompt_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.8, description='Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image')
     sizing_strategy: Sizing_strategy | GraphNode | tuple[GraphNode, str] = Field(default=Sizing_strategy('width/height'), description='Decide how to resize images – use width/height, resize based on input image or control image')
     controlnet_start: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='When controlnet conditioning starts')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=40, description='Number of diffusion steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of diffusion steps')
     controlnet_conditioning_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.75, description='How strong the controlnet conditioning is')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.Illusions"
@@ -145,12 +145,12 @@ class Juggernaut_XL_V9(GraphNode):
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='beautiful lady, (freckles), big smile, ruby eyes, short hair, dark makeup, hyperdetailed photography, soft light, head and shoulders portrait, cover', description='Input prompt')
-    scheduler: Scheduler | GraphNode | tuple[GraphNode, str] = Field(default=Scheduler('HeunDiscrete'), description='scheduler')
+    scheduler: Scheduler | GraphNode | tuple[GraphNode, str] = Field(default=Scheduler('DPM++SDE'), description='scheduler')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of images to output.')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Scale for classifier-free guidance')
     apply_watermark: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='CGI, Unreal, Airbrushed, Digital', description='Input Negative Prompt')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=5, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     disable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.Juggernaut_XL_V9"
@@ -168,7 +168,7 @@ class Kandinsky(GraphNode):
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of images to output.')
     output_format: Output_format | GraphNode | tuple[GraphNode, str] = Field(default=Output_format('webp'), description='Output image format')
     negative_prompt: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Specify things to not see in the output')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=75, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=25, description='Number of denoising steps')
     num_inference_steps_prior: int | GraphNode | tuple[GraphNode, str] = Field(default=25, description='Number of denoising steps for priors')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.Kandinsky"
@@ -195,7 +195,7 @@ class OpenDalle_Lora(GraphNode):
     high_noise_frac: float | GraphNode | tuple[GraphNode, str] = Field(default=0.8, description='For expert_ensemble_refiner, the fraction of noise to use')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Input Negative Prompt')
     prompt_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.8, description='Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=35, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     disable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.OpenDalle_Lora"
@@ -301,7 +301,7 @@ class RealVisXL_V2(GraphNode):
     apply_watermark: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='(worst quality, low quality, illustration, 3d, 2d, painting, cartoons, sketch), open mouth', description='Negative Input prompt')
     prompt_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.8, description='Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=40, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     disable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.RealVisXL_V2"
@@ -344,7 +344,7 @@ class RealVisXL_V3_Multi_Controlnet_Lora(GraphNode):
     controlnet_2_start: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='When controlnet conditioning starts')
     controlnet_3_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for third controlnet')
     controlnet_3_start: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='When controlnet conditioning starts')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=30, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     disable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Disable safety checker for generated images. This feature is only available through the API.')
     controlnet_1_conditioning_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.75, description='How strong the controlnet conditioning is')
     controlnet_2_conditioning_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.75, description='How strong the controlnet conditioning is')
@@ -399,7 +399,7 @@ class SDXL_Ad_Inpaint(GraphNode):
     condition_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.9, description='controlnet conditioning scale for generalization')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='low quality, out of frame, illustration, 3d, sepia, painting, cartoons, sketch, watermark, text, Logo, advertisement', description='Describe what you do not want in your setting')
     num_refine_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=10, description='Number of steps to refine')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=40, description='Inference Steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Inference Steps')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.SDXL_Ad_Inpaint"
 
@@ -411,7 +411,7 @@ class SDXL_Controlnet(GraphNode):
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='aerial view, a futuristic research complex in a bright foggy jungle, hard lighting', description='Input prompt')
     condition_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='controlnet conditioning scale for generalization')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='low quality, bad quality, sketches', description='Input Negative Prompt')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.SDXL_Controlnet"
 
@@ -437,7 +437,7 @@ class SDXL_Emoji(GraphNode):
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Input Negative Prompt')
     prompt_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.8, description='Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image')
     replicate_weights: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Replicate LoRA weights to use. Leave blank to use the default weights.')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.SDXL_Emoji"
 
@@ -463,7 +463,7 @@ class SDXL_Pixar(GraphNode):
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Input Negative Prompt')
     prompt_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.8, description='Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image')
     replicate_weights: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Replicate LoRA weights to use. Leave blank to use the default weights.')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.SDXL_Pixar"
 
@@ -481,7 +481,7 @@ class StableDiffusion(GraphNode):
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of images to generate.')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description='Scale for classifier-free guidance')
     negative_prompt: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Specify things to not see in the output')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.StableDiffusion"
 
@@ -543,7 +543,7 @@ class StableDiffusionXL(GraphNode):
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Input Negative Prompt')
     prompt_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.8, description='Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image')
     replicate_weights: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Replicate LoRA weights to use. Leave blank to use the default weights.')
-    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=50, description='Number of denoising steps')
+    num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     disable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)')
     @classmethod
     def get_node_type(cls): return "replicate.image.generate.StableDiffusionXL"

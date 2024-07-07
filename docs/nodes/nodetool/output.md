@@ -146,7 +146,6 @@ Use cases:
 **Tags:** group, composite, multi-output
 
 - **input** (`Any`)
-- **name** (`str`)
 
 ## ImageListOutput
 
