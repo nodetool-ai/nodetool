@@ -113,6 +113,7 @@ class ProcessingContext:
         workflow_id: str = "",
         graph: Graph = Graph(),
         variables: dict[str, Any] | None = None,
+        results: dict[str, Any] | None = None,
         queue: Queue | asyncio.Queue | None = None,
         capabilities: list[str] | None = None,
         http_client: httpx.AsyncClient | None = None,
@@ -121,7 +122,7 @@ class ProcessingContext:
         self.auth_token = auth_token
         self.workflow_id = workflow_id
         self.graph = graph
-        self.results = {}
+        self.results = results if results else {}
         self.processed_nodes = set()
         self.message_queue = queue if queue else asyncio.Queue()
         self.capabilities = (

@@ -15,7 +15,7 @@ from nodetool.workflows.graph import Graph
 from nodetool.types.graph import (
     Graph as APIGraph,
 )
-from nodetool.nodes.nodetool.constant import Float, String
+from nodetool.nodes.nodetool.constant import Float, List, String
 from nodetool.nodes.nodetool.image import BlendImages
 from nodetool.nodes.nodetool.input import (
     FloatInput,
@@ -73,10 +73,9 @@ async def test_process_node_with_input_edges(
     ]
 
     context = ProcessingContext(user_id="", workflow_id="", auth_token="token")
-    graph = Graph.from_dict({"nodes": nodes, "edges": edges})
-    graph = graph.build_sub_graphs()
+    context.graph = Graph.from_dict({"nodes": nodes, "edges": edges})
 
-    await workflow_runner.process_graph(context, graph)
+    await workflow_runner.process_graph(context, context.graph)
 
     assert context.get_result("3", "output") == 3
 
@@ -287,7 +286,10 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
         params=params,
         graph=graph,
     )
-    context = ProcessingContext(user_id=user.id, auth_token=user.auth_token or "")
+    context = ProcessingContext(
+        user_id=user.id,
+        auth_token=user.auth_token or "",
+    )
 
     await workflow_runner.run(req, context)
 
@@ -299,6 +301,11 @@ async def test_process_graph(user: User, workflow_runner: WorkflowRunner):
 
 @pytest.mark.asyncio
 async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
+    list_node = {
+        "id": "list",
+        "type": List.get_node_type(),
+        "data": {"value": [1, 2, 3]},
+    }
     loop_node = {
         "id": "loop",
         "type": Loop.get_node_type(),
@@ -307,15 +314,11 @@ async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
         "id": "in",
         "parent_id": "loop",
         "type": GroupInput.get_node_type(),
-        "data": {
-            "name": "input",
-        },
     }
     output_node = {
         "id": "out",
         "parent_id": "loop",
         "type": GroupOutput.get_node_type(),
-        "data": {"name": "output"},
     }
     multiply_node = {
         "id": "mul",
@@ -323,8 +326,15 @@ async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
         "type": Multiply.get_node_type(),
         "data": {},
     }
-    nodes = [loop_node, input_node, multiply_node, output_node]
+    nodes = [list_node, loop_node, input_node, multiply_node, output_node]
     edges = [
+        Edge(
+            id="0",
+            source="list",
+            target="loop",
+            sourceHandle="output",
+            targetHandle="input",
+        ),
         Edge(
             id="1",
             source="in",
@@ -348,12 +358,9 @@ async def test_loop_node(user: User, workflow_runner: WorkflowRunner):
         ),
     ]
     graph = Graph.from_dict({"nodes": nodes, "edges": edges})
-    graph = graph.build_sub_graphs()
-    context = ProcessingContext(user_id="", workflow_id="", auth_token="token")
-
-    node = graph.find_node("loop")
-    assert node is not None
-    node.assign_property("input", [1, 2, 3])
+    context = ProcessingContext(
+        user_id="", workflow_id="", auth_token="token", graph=graph
+    )
 
     await workflow_runner.process_graph(context, graph)
 

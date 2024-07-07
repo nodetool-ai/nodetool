@@ -22,7 +22,7 @@ const styles = (theme: any) =>
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       width: "100%",
-      maxWidth: "160px",
+      maxWidth: "100px",
       height: "80px",
       padding: "0.5em",
       overflow: "auto",

@@ -29,13 +29,14 @@ export type PropertyFieldProps = {
   id: string;
   data: NodeData;
   nodeType: string;
-  layout: string;
+  layout?: string;
   property: Property;
   propertyIndex: string;
   isPrimary?: boolean;
   isSecondary?: boolean;
   edgeConnected: boolean;
-  skipHandles?: boolean;
+  onlyInput?: boolean;
+  onlyHandle?: boolean;
   isInspector?: boolean;
 };
 
@@ -48,7 +49,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   nodeType,
   propertyIndex,
   property,
-  skipHandles,
+  onlyInput,
+  onlyHandle,
   isInspector,
   edgeConnected
 }: PropertyFieldProps) => {
@@ -86,9 +88,12 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
       : "not-connectable";
   }, [connectDirection, connectNodeId, connectType, id, property.type]);
 
+  const showHandle = onlyHandle || !onlyInput;
+  const showInput = (onlyInput || !onlyHandle) && !isMinZoom;
+
   return (
     <div key={id} className={"node-property " + Slugify(property.type.type)}>
-      {!skipHandles && (
+      {showHandle && (
         <div className="handle-popup">
           <Tooltip
             componentsProps={{
@@ -129,7 +134,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
         </div>
       )}
 
-      {!isMinZoom ? (
+      {showInput ? (
         <>
           <PropertyInput
             propertyIndex={id + "-" + propertyIndex}

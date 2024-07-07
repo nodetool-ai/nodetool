@@ -1,8 +1,8 @@
 {
-  "id": "89b265203bd511efb4e1000032819462",
+  "id": "fa4502bc3cab11ef9798000051b22329",
   "access": "private",
-  "created_at": "2024-07-06T22:22:59.601812",
-  "updated_at": "2024-07-06T23:37:06.386559",
+  "created_at": "2024-07-07T23:58:00.767663",
+  "updated_at": "2024-07-07T23:58:00.767751",
   "name": "Tiling",
   "description": "",
   "thumbnail": "",
@@ -76,8 +76,7 @@
         "parent_id": "3",
         "type": "nodetool.input.GroupInput",
         "data": {
-          "items": [
-          ],
+          "items": [],
           "name": ""
         },
         "ui_properties": {
@@ -148,8 +147,7 @@
           "tile_width": 512,
           "tile_height": 512,
           "overlap": 0,
-          "tiles": [
-          ]
+          "tiles": []
         },
         "ui_properties": {
           "selected": false,

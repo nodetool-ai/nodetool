@@ -3,13 +3,16 @@ import { memo } from "react";
 import { css } from "@emotion/react";
 import { useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
-import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
+import { Handle, NodeProps, NodeResizeControl, Position, ResizeDragEvent } from "reactflow";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useKeyPressedListener from "../../utils/KeyPressedListener";
 import { NodeHeader } from "./NodeHeader";
 import { getMousePosition } from "../../utils/MousePosition";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { NodeInputs } from "./NodeInputs";
+import { useMetadata } from "../../serverState/useMetadata";
+import { NodeOutputs } from "./NodeOutputs";
 
 const styles = (theme: any) =>
   css({
@@ -33,6 +36,12 @@ const styles = (theme: any) =>
       left: "10px",
       top: "0px"
     },
+    ".inputs": {
+      // center child vertically
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+    },
     ".tools .react-flow__resize-control.handle.bottom.right": {
       opacity: 1,
       right: "-8px",
@@ -50,12 +59,19 @@ const styles = (theme: any) =>
   });
 
 const LoopNode = (props: NodeProps<NodeData>) => {
+  const {
+    data: metadata,
+    isLoading: metadataLoading,
+    error: metadataError
+  } = useMetadata();
+  const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const spaceKeyPressed = useKeyPressedListener(" ");
   const { openNodeMenu } = useNodeMenuStore();
   const nodeHovered = useNodeStore((state) =>
     state.hoveredNodes.includes(props.id)
   );
+  const edges = getInputEdges(props.id)
   const handleResize = (event: ResizeDragEvent) => {
     const newWidth = event.x;
     const newHeight = event.y;
@@ -72,13 +88,27 @@ const LoopNode = (props: NodeProps<NodeData>) => {
     }
     openNodeMenu(getMousePosition().x, getMousePosition().y, true, "", "");
   };
+  if (!metadata) {
+    return (
+      <div>Loading...</div>
+    );
+  }
+  const nodeMetadata = metadata?.metadataByType[props.type];
 
   return (
     <>
+      <div className="inputs">
+        <NodeInputs
+          id={props.id}
+          properties={nodeMetadata.properties}
+          nodeType={props.type}
+          data={props.data}
+          onlyHandles={true}
+          edges={edges} />
+      </div>
       <div
-        className={`loop-node ${nodeHovered ? "hovered" : ""} ${
-          spaceKeyPressed ? "space-pressed" : ""
-        } `}
+        className={`loop-node ${nodeHovered ? "hovered" : ""} ${spaceKeyPressed ? "space-pressed" : ""
+          } `}
         onDoubleClick={(e) => {
           e.stopPropagation();
           handleOpenNodeMenu();
@@ -91,6 +121,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
         }
       >
         <NodeHeader id={props.id} nodeTitle={"Loop"} />
+        <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
         <div className="tools">
           <NodeResizeControl
             style={{ background: "transparent", border: "none" }}
@@ -101,7 +132,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
             <SouthEastIcon />
           </NodeResizeControl>
         </div>
-      </div>
+      </div >
     </>
   );
 };

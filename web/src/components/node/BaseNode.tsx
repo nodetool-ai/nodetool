@@ -48,7 +48,6 @@ export default memo(
     const workflowId = nodedata?.workflow_id || "";
     const nodeKey = hashKey(workflowId, props.id);
     const status = useStatusStore((state) => state.statuses[nodeKey]);
-    const result = useResultsStore((state) => state.results[nodeKey]);
     const edges = getInputEdges(props.id);
     const isLoading =
       status === "running" || status === "starting" || status === "processing" || status === "booting";
@@ -103,28 +102,22 @@ export default memo(
             </Typography>
           )}
         </>
-        <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
+        {!isOutputNode && (
+          <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
+        )}
         <NodeInputs
           id={props.id}
           layout={nodeMetadata.layout}
           properties={nodeMetadata.properties}
           nodeType={props.type}
           data={props.data}
-          isConstantNode={isConstantNode}
+          onlyFields={isConstantNode}
+          onlyHandles={false}
           edges={edges}
           primaryField={nodeMetadata.primary_field || ""}
           secondaryField={nodeMetadata.secondary_field || ""}
         />
 
-        {isOutputNode && (
-          <div className="node-output">
-            {nodeMetadata.outputs.map((output) => (
-              <div key={output.name}>
-                <OutputRenderer value={result ? result[output.name] : null} />
-              </div>
-            ))}
-          </div>
-        )}
         {nodeMetadata.layout === "default" && (
           <>
             <ProcessTimer isLoading={isLoading} status={status} />

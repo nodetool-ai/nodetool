@@ -384,8 +384,6 @@ class GroupInput(BaseNode):
     - iterates over a group of items
     """
 
-    items: list[Any] | DataframeRef = []
-    name: str = ""
     _value: Any = None
 
     async def process(self, context: Any) -> Any:
