@@ -72,7 +72,7 @@ class AutoContrast(BaseNode):
     image: ImageRef = Field(
         default=ImageRef(), description="The image to adjust the contrast for."
     )
-    cutoff: int = Field(default=0, ge=0, le=255, description="Cutoff for autocontrast.")
+    cutoff: int = Field(default=0, ge=0, le=255, description="Represents the percentage of pixels to ignore at both the darkest and lightest ends of the histogram. A cutoff value of 5 means ignoring the darkest 5% and the lightest 5% of pixels, enhancing overall contrast by stretching the remaining pixel values across the full brightness range.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
