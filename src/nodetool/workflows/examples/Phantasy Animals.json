@@ -3,10 +3,10 @@
   "access": "private",
   "created_at": "2024-07-07T08:29:00.927724",
   "updated_at": "2024-07-07T23:51:40.815405",
-  "name": "Fantasy Animals",
+  "name": "Phantasy Animals",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/phantasy_animals.png",
   "graph": {
     "nodes": [
       {
@@ -22,7 +22,7 @@
             "filename": "",
             "local_path": null
           },
-          "prompt": "invent 3 fantasy animals with a colorful description",
+          "prompt": "invent 3 phantasy animals with a colorful description",
           "columns": {
             "type": "record_type",
             "columns": [
