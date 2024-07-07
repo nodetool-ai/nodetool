@@ -1,12 +1,12 @@
 {
-  "id": "20a0be30380411ef8e42000076e19f5f",
+  "id": "6b9252903cab11efb445000008ec6e12",
   "access": "private",
-  "created_at": "2024-07-02T01:46:25.020735",
-  "updated_at": "2024-07-02T01:46:25.020888",
+  "created_at": "2024-07-07T23:54:01.360228",
+  "updated_at": "2024-07-07T23:55:44.739999",
   "name": "Movie Posters",
   "description": "Generate movie posters from a list of movie titles",
   "thumbnail": "",
-  "thumbnail_url": "/examples/movie_posters.png",
+  "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
@@ -16,18 +16,24 @@
         "data": {
           "value": {
             "type": "dataframe",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null,
             "columns": [
               {
                 "name": "Title",
-                "data_type": "object"
+                "data_type": "object",
+                "description": ""
               },
               {
                 "name": "Main Character",
-                "data_type": "object"
+                "data_type": "object",
+                "description": ""
               },
               {
                 "name": "Character Description",
-                "data_type": "object"
+                "data_type": "object",
+                "description": ""
               }
             ],
             "data": [
@@ -81,15 +87,20 @@
                 "Cooper",
                 "A former NASA pilot who leads a mission to find a new habitable planet for humanity."
               ],
-              [""]
+              [
+                ""
+              ]
             ]
           }
         },
         "ui_properties": {
+          "selected": true,
           "position": {
-            "x": 80,
-            "y": 232
-          }
+            "x": 104,
+            "y": 299
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
@@ -102,22 +113,10 @@
             "x": 403,
             "y": 294
           },
+          "zIndex": -10,
           "width": 743,
-          "height": 492
-        }
-      },
-      {
-        "id": "3",
-        "parent_id": "2",
-        "type": "nodetool.input.GroupInput",
-        "data": {
-          "name": ""
-        },
-        "ui_properties": {
-          "position": {
-            "x": 27,
-            "y": 99
-          }
+          "height": 494,
+          "selectable": false
         }
       },
       {
@@ -130,13 +129,23 @@
             "uri": "",
             "asset_id": null,
             "temp_id": null
-          }
+          },
+          "image": {
+            "type": "image",
+            "uri": "https://replicate.delivery/pbxt/9JfeWOT7UeQTXooIjFfwrhmuLKpaTnwWUlnyS14YH7rsNwYMB/out-0.png",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "name": "Inception.png"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 576,
-            "y": 113
-          }
+            "x": 581,
+            "y": 86
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
@@ -144,13 +153,21 @@
         "parent_id": "2",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "Movie Poste from the motion picture {Title}, Close up of {Main Character}: {Character Description}"
+          "string": "Movie Poste from the motion picture {Title}, Close up of {Main Character}: {Character Description}",
+          "values": {
+            "Title": "Fight Club",
+            "Main Character": "The Narrator",
+            "Character Description": "A disillusioned white-collar worker who forms an underground fight club.",
+            "index": 7
+          }
         },
         "ui_properties": {
           "position": {
             "x": 205,
             "y": 114
-          }
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
@@ -158,7 +175,7 @@
         "parent_id": "2",
         "type": "replicate.image.generate.Juggernaut_XL_V9",
         "data": {
-          "seed": null,
+          "seed": 2221571892,
           "width": 1024,
           "height": 1024,
           "scheduler": "DPM++SDE",
@@ -167,13 +184,17 @@
           "apply_watermark": true,
           "negative_prompt": "CGI, Unreal, Airbrushed, Digital",
           "num_inference_steps": 5,
-          "disable_safety_checker": false
+          "disable_safety_checker": false,
+          "prompt": "Movie Poste from the motion picture Fight Club, Close up of The Narrator: A disillusioned white-collar worker who forms an underground fight club."
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 394,
-            "y": 17
-          }
+            "x": 395,
+            "y": 82
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
@@ -181,33 +202,81 @@
         "parent_id": "2",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "{Title}.png"
+          "string": "{Title}.png",
+          "values": {
+            "Title": "Fight Club",
+            "Main Character": "The Narrator",
+            "Character Description": "A disillusioned white-collar worker who forms an underground fight club.",
+            "index": 7
+          }
         },
         "ui_properties": {
           "position": {
             "x": 201,
             "y": 288
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": "2",
+        "type": "nodetool.input.GroupInput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 44,
+            "y": 223
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": "2",
+        "type": "nodetool.output.GroupOutput",
+        "data": {
+          "input": {
+            "type": "image",
+            "uri": "https://replicate.delivery/pbxt/9JfeWOT7UeQTXooIjFfwrhmuLKpaTnwWUlnyS14YH7rsNwYMB/out-0.png",
+            "asset_id": null,
+            "temp_id": null
           }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 576,
+            "y": 243
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "any_output_2024-07-07"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1185,
+            "y": 339
+          },
+          "zIndex": 0,
+          "width": 345,
+          "height": 460,
+          "selectable": true
         }
       }
     ],
     "edges": [
-      {
-        "id": "1",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "items",
-        "ui_properties": null
-      },
-      {
-        "id": "2",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "image",
-        "ui_properties": null
-      },
       {
         "id": "3",
         "source": "bedbc384-1dc9-40e4-8b13-edf61a010ea7",
@@ -217,12 +286,14 @@
         "ui_properties": null
       },
       {
-        "id": "4",
-        "source": "3",
+        "id": "975a171a-2ce5-41c9-97cf-61e96d268225",
+        "source": "1",
         "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "values",
-        "ui_properties": null
+        "target": "2",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "dataframe"
+        }
       },
       {
         "id": "5",
@@ -233,12 +304,52 @@
         "ui_properties": null
       },
       {
-        "id": "6",
-        "source": "3",
+        "id": "63e8f657-c74d-4bb0-8cee-ce90af86dd9f",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "b1267882-7f47-4850-8e26-abb9872f64e0",
+        "source": "9",
         "sourceHandle": "output",
         "target": "bedbc384-1dc9-40e4-8b13-edf61a010ea7",
         "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "2",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "image",
         "ui_properties": null
+      },
+      {
+        "id": "8d8f2295-e421-49ce-a4f5-17c9eaad5fde",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "976",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "any"
+        }
       }
     ]
   },

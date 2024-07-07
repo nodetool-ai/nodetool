@@ -395,7 +395,7 @@ class GroupOutput(BaseNode):
     """
 
     input: Any = None
-    name: str = ""
+    _value: Any = None
 
     async def process(self, context: Any) -> list[Any]:
-        return self.input
+        return self._value

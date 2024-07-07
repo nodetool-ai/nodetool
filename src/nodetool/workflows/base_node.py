@@ -27,28 +27,17 @@ from nodetool.metadata.utils import (
 from nodetool.workflows.run_job_request import RunJobRequest
 
 """
-This module defines the base classes and core functionality for nodes in a workflow graph.
+This module defines the core components and functionality for nodes in a workflow graph system.
+It includes base classes for nodes, special node types, and utility functions for node management.
 
-It includes:
-- BaseNode: The foundational class for all nodes, defining common properties and methods.
-- InputNode and OutputNode: Special node types for workflow inputs and outputs.
-- Comment and Preview: Utility node types for annotations and previewing data.
-- GroupNode: A container node type that can hold a subgraph of nodes.
+Key components:
+- BaseNode: The foundational class for all node types
+- InputNode and OutputNode: Special nodes for workflow inputs and outputs
+- Comment and Preview: Utility nodes for annotations and data preview
+- GroupNode: A container node for subgraphs
+- Functions for node registration, retrieval, and metadata handling
 
-The module also provides functions for node registration, retrieval, and metadata handling:
-- add_node_type: Register a new node type.
-- get_node_class: Retrieve a node class by its type string.
-- get_registered_node_classes: Get all registered visible node classes.
-- requires_capabilities: Determine required capabilities for a set of nodes.
-
-Key features:
-- Dynamic node type registration and retrieval
-- Metadata generation for nodes, including properties and outputs
-- Type checking and conversion for node properties
-- Support for nested workflows through GroupNode
-
-This module is central to the workflow system, providing the building blocks for
-constructing and managing complex computational graphs.
+This module is essential for constructing and managing complex computational graphs in the workflow system.
 """
 
 NODE_BY_TYPE: dict[str, type["BaseNode"]] = {}
@@ -58,6 +47,16 @@ log = Environment.get_logger()
 
 
 def add_node_classname(node_class: type["BaseNode"]) -> None:
+    """
+    Register a node class by its class name in the NODES_BY_CLASSNAME dictionary.
+
+    Args:
+        node_class (type["BaseNode"]): The node class to be registered.
+
+    Note:
+        If the node class has a 'comfy_class' attribute, it uses that as the class name.
+        Otherwise, it uses the actual class name.
+    """
     if hasattr(node_class, "comfy_class") and node_class.comfy_class != "":  # type: ignore
         class_name = node_class.comfy_class  # type: ignore
     else:
@@ -85,7 +84,19 @@ def add_node_type(node_class: type["BaseNode"]) -> None:
 
 def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
     """
-    Returns the metadata for a type.
+    Generate TypeMetadata for a given Python type.
+
+    Args:
+        python_type (Type | UnionType): The Python type to generate metadata for.
+
+    Returns:
+        TypeMetadata: Metadata describing the structure and properties of the input type.
+
+    Raises:
+        ValueError: If the input type is unknown or unsupported.
+
+    Note:
+        Supports basic types, lists, dicts, optional types, unions, and enums.
     """
     # if type is unkonwn, return the type as a string
     if python_type in TypeToName:
@@ -124,10 +135,21 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
 
 class BaseNode(BaseModel):
     """
-    A node is a single unit of computation in a graph.
-    It has a unique ID and a type.
-    Each node class implements its own processing function,
-    which is called when the node is evaluated.
+    The foundational class for all nodes in the workflow graph.
+
+    Attributes:
+        _id (str): Unique identifier for the node.
+        _parent_id (str | None): Identifier of the parent node, if any.
+        _ui_properties (dict[str, Any]): UI-specific properties for the node.
+        _requires_capabilities (list[str]): Capabilities required by the node.
+        _visible (bool): Whether the node is visible in the UI.
+        _primary_field (str | None): The primary field for the node, if any.
+        _secondary_field (str | None): The secondary field for the node, if any.
+        _layout (str): The layout style for the node in the UI.
+
+    Methods:
+        Includes methods for initialization, property management, metadata generation,
+        type checking, and node processing.
     """
 
     _id: str = ""
@@ -182,6 +204,14 @@ class BaseNode(BaseModel):
     def has_parent(self):
         return self._parent_id is not None
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self._id,
+            "parent_id": self._parent_id,
+            "type": self.get_node_type(),
+            "data": self.node_properties(),
+        }
+
     @classmethod
     def __init_subclass__(cls):
         """
@@ -226,7 +256,10 @@ class BaseNode(BaseModel):
     @classmethod
     def get_node_type(cls) -> str:
         """
-        Returns the node type.
+        Get the unique type identifier for the node class.
+
+        Returns:
+            str: A string in the format "namespace.ClassName" where "Node" suffix is removed if present.
         """
 
         class_name = cls.__name__
@@ -237,6 +270,13 @@ class BaseNode(BaseModel):
 
     @classmethod
     def get_namespace(cls) -> str:
+        """
+        Get the namespace of the node class.
+
+        Returns:
+            str: The module path of the class, excluding the "nodetool.nodes." prefix.
+        """
+
         return cls.__module__.replace("nodetool.nodes.", "")
 
     @classmethod
@@ -260,6 +300,13 @@ class BaseNode(BaseModel):
 
     @classmethod
     def metadata(cls: Type["BaseNode"]):
+        """
+        Generate comprehensive metadata for the node class.
+
+        Returns:
+            NodeMetadata: An object containing all metadata about the node,
+            including its properties, outputs, and other relevant information.
+        """
         # avoid circular import
         from nodetool.metadata.node_metadata import NodeMetadata
 
@@ -291,7 +338,17 @@ class BaseNode(BaseModel):
 
     def assign_property(self, name: str, value: Any):
         """
-        Sets the value of a property.
+        Assign a value to a node property, performing type checking and conversion.
+
+        Args:
+            name (str): The name of the property to assign.
+            value (Any): The value to assign to the property.
+
+        Raises:
+            ValueError: If the value is not assignable to the property type.
+
+        Note:
+            This method handles type conversion for enums, lists, and objects with 'model_validate' method.
         """
         prop = self.find_property(name)
         python_type = prop.type.get_python_type()
@@ -321,7 +378,17 @@ class BaseNode(BaseModel):
         self, properties: dict[str, Any], skip_errors: bool = False
     ):
         """
-        Sets the values of multiple properties.
+        Set multiple node properties at once.
+
+        Args:
+            properties (dict[str, Any]): A dictionary of property names and their values.
+            skip_errors (bool, optional): If True, continue setting properties even if an error occurs. Defaults to False.
+
+        Raises:
+            ValueError: If skip_errors is False and an error occurs while setting a property.
+
+        Note:
+            Errors during property assignment are printed regardless of the skip_errors flag.
         """
         for name, value in properties.items():
             try:
@@ -334,15 +401,30 @@ class BaseNode(BaseModel):
     @classmethod
     def is_assignable(cls, name: str, value: Any) -> bool:
         """
-        Returns True if the value can be assigned to the property.
+        Check if a value can be assigned to a specific property of the node.
+
+        Args:
+            name (str): The name of the property to check.
+            value (Any): The value to check for assignability.
+
+        Returns:
+            bool: True if the value can be assigned to the property, False otherwise.
         """
         return is_assignable(cls.find_property(name).type, value)
 
     @classmethod
     def find_property(cls, name: str):
         """
-        Finds a property by name.
-        Throws ValueError if no property is found.
+        Find a property of the node by its name.
+
+        Args:
+            name (str): The name of the property to find.
+
+        Returns:
+            Property: The found property object.
+
+        Raises:
+            ValueError: If no property with the given name exists.
         """
         if name not in cls.properties_dict():
             raise ValueError(f"Property {name} does not exist")
@@ -351,8 +433,16 @@ class BaseNode(BaseModel):
     @classmethod
     def find_output(cls, name: str) -> OutputSlot:
         """
-        Finds an output by name.
-        Throws ValueError if no output is found.
+        Find an output slot of the node by its name.
+
+        Args:
+            name (str): The name of the output to find.
+
+        Returns:
+            OutputSlot: The found output slot.
+
+        Raises:
+            ValueError: If no output with the given name exists.
         """
         for output in cls.outputs():
             if output.name == name:
@@ -363,8 +453,16 @@ class BaseNode(BaseModel):
     @classmethod
     def find_output_by_index(cls, index: int) -> OutputSlot:
         """
-        Finds an output by index.
-        Throws ValueError if no output is found.
+        Find an output slot of the node by its index.
+
+        Args:
+            index (int): The index of the output to find.
+
+        Returns:
+            OutputSlot: The found output slot.
+
+        Raises:
+            ValueError: If the index is out of range for the node's outputs.
         """
         if index < 0 or index >= len(cls.outputs()):
             raise ValueError(f"Output index {index} does not exist for {cls}")
@@ -372,12 +470,22 @@ class BaseNode(BaseModel):
 
     @classmethod
     def is_streaming_output(cls):
+        """
+        Check if the node has any streaming outputs.
+
+        Returns:
+            bool: True if any of the node's outputs are marked for streaming, False otherwise.
+        """
         return any(output.stream for output in cls.outputs())
 
     @classmethod
     def return_type(cls) -> Type | dict[str, Type] | None:
         """
-        The return type of the process function.
+        Get the return type of the node's process function.
+
+        Returns:
+            Type | dict[str, Type] | None: The return type annotation of the process function,
+            or None if no return type is specified.
         """
         type_hints = cls.process.__annotations__
 
@@ -389,9 +497,18 @@ class BaseNode(BaseModel):
     @classmethod
     def outputs(cls):
         """
-        Returns the output type of the node.
-        """
+        Get the output slots of the node based on its return type.
 
+        Returns:
+            list[OutputSlot]: A list of OutputSlot objects representing the node's outputs.
+
+        Raises:
+            ValueError: If the return type is invalid or cannot be processed.
+
+        Note:
+            This method handles different return type structures including dictionaries,
+            custom output types, and single return values.
+        """
         return_type = cls.return_type()
 
         if return_type is None:
@@ -500,14 +617,29 @@ class BaseNode(BaseModel):
 
     async def process(self, context: Any) -> Any:
         """
-        Implements the node's functionality.
-        Input slots are inferred from the function signature.
-        Output type is inferred from the function return type.
+        Implement the node's primary functionality.
+
+        This method should be overridden by subclasses to define the node's behavior.
+
+        Args:
+            context (Any): The context in which the node is being processed.
+
+        Returns:
+            Any: The result of the node's processing.
         """
         pass
 
 
 class InputNode(BaseNode):
+    """
+    A special node type representing an input to the workflow.
+
+    Attributes:
+        label (str): A human-readable label for the input.
+        name (str): The parameter name for this input in the workflow.
+        description (str): A detailed description of the input.
+    """
+
     label: str = Field("Input Label", description="The label for this input node.")
     name: str = Field("", description="The parameter name for the workflow.")
     description: str = Field("", description="The description for this input node.")
@@ -518,6 +650,15 @@ class InputNode(BaseNode):
 
 
 class OutputNode(BaseNode):
+    """
+    A special node type representing an output from the workflow.
+
+    Attributes:
+        label (str): A human-readable label for the output.
+        name (str): The parameter name for this output in the workflow.
+        description (str): A detailed description of the output.
+    """
+
     label: str = Field(
         default="Output Label", description="The label for this output node."
     )
@@ -532,13 +673,23 @@ class OutputNode(BaseNode):
 
 
 class Comment(BaseNode):
+    """
+    A utility node for adding comments or annotations to the workflow graph.
+
+    Attributes:
+        comment (list[Any]): The content of the comment, stored as a list of elements.
+    """
+
     comment: list[Any] = Field(default=[""], description="The comment for this node.")
     _visible: bool = False
 
 
 class Preview(BaseNode):
     """
-    A preview node is a special type of node that is used to preview the output of a node.
+    A utility node for previewing data within the workflow graph.
+
+    Attributes:
+        value (Any): The value to be previewed.
     """
 
     value: Any = Field(None, description="The value to preview.")
@@ -550,13 +701,16 @@ class Preview(BaseNode):
 
 def get_node_class_by_name(class_name: str) -> list[type[BaseNode]]:
     """
-    Get the class of a node based on its class_name.
+    Retrieve node classes based on their class name.
 
     Args:
-        class_name (str): The class_name of the node.
+        class_name (str): The name of the node class to retrieve.
 
     Returns:
-        list[type[Node]]: The classes matching the name.
+        list[type[BaseNode]]: A list of node classes matching the given name.
+
+    Note:
+        If no exact match is found, it attempts to find a match by removing hyphens from the class name.
     """
     if not class_name in NODES_BY_CLASSNAME:
         class_name = class_name.replace("-", "")
@@ -565,13 +719,13 @@ def get_node_class_by_name(class_name: str) -> list[type[BaseNode]]:
 
 def get_node_class(node_type: str) -> type[BaseNode] | None:
     """
-    Get the type of a node based on its node_type.
+    Retrieve a node class based on its unique node type identifier.
 
     Args:
-        node_type (str): The node_type of the node.
+        node_type (str): The node type identifier.
 
     Returns:
-        type[Node] | None: The type of the node or None if it does not exist.
+        type[BaseNode] | None: The node class if found, None otherwise.
     """
     if node_type in NODE_BY_TYPE:
         return NODE_BY_TYPE[node_type]
@@ -581,15 +735,24 @@ def get_node_class(node_type: str) -> type[BaseNode] | None:
 
 def get_registered_node_classes() -> list[type[BaseNode]]:
     """
-    Get all registered node classes.
+    Retrieve all registered and visible node classes.
 
     Returns:
-        list[type[Node]]: The registered node classes.
+        list[type[BaseNode]]: A list of all registered node classes that are marked as visible.
     """
     return [c for c in NODE_BY_TYPE.values() if c.is_visible()]
 
 
 def requires_capabilities(nodes: list[BaseNode]):
+    """
+    Determine the set of capabilities required by a list of nodes.
+
+    Args:
+        nodes (list[BaseNode]): A list of nodes to check for required capabilities.
+
+    Returns:
+        list[str]: A list of unique capability strings required by the input nodes.
+    """
     capabilities = set()
     for node in nodes:
         for cap in node.requires_capabilities():
@@ -598,6 +761,18 @@ def requires_capabilities(nodes: list[BaseNode]):
 
 
 def requires_capabilities_from_request(req: RunJobRequest):
+    """
+    Determine the set of capabilities required by nodes in a RunJobRequest.
+
+    Args:
+        req (RunJobRequest): The job request containing a graph of nodes.
+
+    Returns:
+        list[str]: A list of unique capability strings required by the nodes in the request.
+
+    Raises:
+        ValueError: If a node type in the request is not registered.
+    """
     assert req.graph is not None, "Graph is required"
     capabilities = set()
     for node in req.graph.nodes:
@@ -611,25 +786,9 @@ def requires_capabilities_from_request(req: RunJobRequest):
 
 class GroupNode(BaseNode):
     """
-    A group node is a special type of node that contains a subgraph.
+    A special node type that can contain a subgraph of nodes.
+
+    This node type allows for hierarchical structuring of workflows.
     """
 
-    _nodes: list[BaseNode] = []
-    _edges: list[Edge] = []
-    _properties: dict[str, Any] = {}
-
-    def append_node(self, node: BaseNode):
-        self._nodes.append(node)
-
-    def append_edge(self, edge: Edge):
-        self._edges.append(edge)
-
-    def assign_property(self, name: str, value: Any):
-        self._properties[name] = value
-
-    async def process_subgraph(
-        self,
-        context: Any,
-        runner: Any,
-    ):
-        pass
+    pass

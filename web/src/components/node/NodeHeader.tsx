@@ -92,7 +92,7 @@ export const NodeHeader = ({ id, nodeTitle, isLoading }: NodeHeaderProps) => {
   const description = metadata?.description.split("\n")[0] || "";
   const currentZoom = useStore((state) => state.transform[2]);
 
-  useEffect(() => {}, [currentZoom]);
+  useEffect(() => { }, [currentZoom]);
 
   const tooltipStyle = () =>
     css({
@@ -120,11 +120,11 @@ export const NodeHeader = ({ id, nodeTitle, isLoading }: NodeHeaderProps) => {
 
   const tooltipAttributes = description
     ? {
-        "aria-label": description,
-        "data-microtip-position": "top",
-        "data-microtip-size": "medium",
-        role: "tooltip"
-      }
+      "aria-label": description,
+      "data-microtip-position": "top",
+      "data-microtip-size": "medium",
+      role: "tooltip"
+    }
     : {};
 
   return (

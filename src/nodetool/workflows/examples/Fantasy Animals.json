@@ -1,12 +1,12 @@
 {
-  "id": "ef41a8c830aa11efa1d00000137f582d",
+  "id": "32bc68383c2a11efa82900000e03721c",
   "access": "private",
-  "created_at": "2024-06-22T17:20:18.841497",
-  "updated_at": "2024-07-04T22:23:48.469737",
+  "created_at": "2024-07-07T08:29:00.927724",
+  "updated_at": "2024-07-07T23:51:40.815405",
   "name": "Fantasy Animals",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": "/examples/fantasy_animal.png",
+  "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
@@ -22,7 +22,7 @@
             "filename": "",
             "local_path": null
           },
-          "prompt": "invent a fantasy animal with a colorful description",
+          "prompt": "invent 3 fantasy animals with a colorful description",
           "columns": {
             "type": "record_type",
             "columns": [
@@ -48,8 +48,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 139,
-            "y": 326
+            "x": 91,
+            "y": 320
           },
           "zIndex": 0,
           "selectable": true
@@ -75,10 +75,13 @@
             ],
             "data": [
               [
-                "An animal that is a mix between a dog and a sheep. It is loyal and intelligent like a dog, but has the woolly coat and gentle nature of a sheep."
+                "a majestic, winged creature with feathers that shimmer in all the colors of the rainbow. It has the body of a lion and the face of an eagle."
               ],
               [
-                "An animal that combines the best traits of a dog and a sheep. It is protective and energetic like a dog, but also has the grazing habits and woolly fleece of a sheep."
+                "a large, serpentine beast that dwells in the deepest seas. Its scales reflect the light like a prism, creating a dazzling array of colors as it moves."
+              ],
+              [
+                "a small, tree-dwelling mammal with fur that changes color based on its emotions. It has large, expressive eyes and a prehensile tail it uses to swing from branch to branch."
               ]
             ]
           }
@@ -86,12 +89,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 142,
-            "y": -19
+            "x": 408,
+            "y": 822
           },
           "zIndex": 0,
-          "width": 1000,
-          "height": 252,
+          "width": 504,
+          "height": 150,
           "selectable": true
         }
       },
@@ -102,30 +105,13 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 417,
-            "y": 245
+            "x": 410,
+            "y": 247
           },
           "zIndex": -10,
-          "width": 718,
-          "height": 539,
+          "width": 631,
+          "height": 535,
           "selectable": false
-        }
-      },
-      {
-        "id": "4",
-        "parent_id": "3",
-        "type": "nodetool.input.GroupInput",
-        "data": {
-          "items": [],
-          "name": ""
-        },
-        "ui_properties": {
-          "position": {
-            "x": 24,
-            "y": 61
-          },
-          "zIndex": 0,
-          "selectable": true
         }
       },
       {
@@ -135,14 +121,15 @@
         "data": {
           "string": "cartoon animal: {description} ",
           "values": {
-            "description": "An animal that combines the best traits of a dog and a sheep. It is protective and energetic like a dog, but also has the grazing habits and woolly fleece of a sheep.",
-            "index": 1
+            "description": "a small, tree-dwelling mammal with fur that changes color based on its emotions. It has large, expressive eyes and a prehensile tail it uses to swing from branch to branch.",
+            "index": 2
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 19,
-            "y": 197
+            "x": 153,
+            "y": 151
           },
           "zIndex": 0,
           "selectable": true
@@ -153,7 +140,7 @@
         "parent_id": "3",
         "type": "replicate.image.generate.Juggernaut_XL_V9",
         "data": {
-          "seed": 2357594489,
+          "seed": 3298064401,
           "width": 1024,
           "height": 1024,
           "scheduler": "DPM++SDE",
@@ -163,61 +150,13 @@
           "negative_prompt": "CGI, Unreal, Airbrushed, Digital",
           "num_inference_steps": 5,
           "disable_safety_checker": false,
-          "prompt": "cartoon animal: An animal that combines the best traits of a dog and a sheep. It is protective and energetic like a dog, but also has the grazing habits and woolly fleece of a sheep. "
+          "prompt": "cartoon animal: a small, tree-dwelling mammal with fur that changes color based on its emotions. It has large, expressive eyes and a prehensile tail it uses to swing from branch to branch. "
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 203,
-            "y": 42
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "9",
-        "parent_id": "3",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "union_output_2024-07-01",
-          "value": "cartoon animal: An animal that combines the best traits of a dog and a sheep. It is protective and energetic like a dog, but also has the grazing habits and woolly fleece of a sheep. "
-        },
-        "ui_properties": {
-          "position": {
-            "x": 22,
-            "y": 366
-          },
-          "zIndex": 0,
-          "width": 347,
-          "height": 150,
-          "selectable": true
-        }
-      },
-      {
-        "id": "10",
-        "parent_id": "3",
-        "type": "nodetool.image.SaveImage",
-        "data": {
-          "folder": {
-            "type": "folder",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          },
-          "image": {
-            "type": "image",
-            "uri": "https://replicate.delivery/pbxt/Wd1IKUtI4KryP9sXoQtugMmG0XU2Qew1bjfjuUWzyp4iXeHmA/out-0.png",
-            "asset_id": null,
-            "temp_id": null
-          },
-          "name": "cartoon animal: An animal that combines the best traits of a dog and a sheep. It is protective and energetic like a dog, but also has the grazing habits and woolly fleece of a sheep. "
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 450,
-            "y": 49
+            "x": 296,
+            "y": 102
           },
           "zIndex": 0,
           "selectable": true
@@ -231,7 +170,7 @@
           "name": "",
           "input": {
             "type": "image",
-            "uri": "https://replicate.delivery/pbxt/Wd1IKUtI4KryP9sXoQtugMmG0XU2Qew1bjfjuUWzyp4iXeHmA/out-0.png",
+            "uri": "https://replicate.delivery/pbxt/WKuXv4IiOnr6Ft7bSXVMCp7TnkvvMSd95y7uPC7rDhSd2ixE/out-0.png",
             "asset_id": null,
             "temp_id": null
           }
@@ -239,8 +178,62 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 460,
-            "y": 223
+            "x": 505,
+            "y": 204
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": [
+            {
+              "type": "image",
+              "uri": "https://replicate.delivery/pbxt/n0aCluHdEY74Ndw7yPADwP6DSCFfzhoiReoSqdmp2lMiZLGTA/out-0.png",
+              "asset_id": null,
+              "temp_id": null
+            },
+            {
+              "type": "image",
+              "uri": "https://replicate.delivery/pbxt/D6fE7S6vDdXLCitvDzWZOty03VcCc8SYRB26eYz6RbNxZLGTA/out-0.png",
+              "asset_id": null,
+              "temp_id": null
+            },
+            {
+              "type": "image",
+              "uri": "https://replicate.delivery/pbxt/WKuXv4IiOnr6Ft7bSXVMCp7TnkvvMSd95y7uPC7rDhSd2ixE/out-0.png",
+              "asset_id": null,
+              "temp_id": null
+            }
+          ],
+          "name": "any_output_2024-07-07"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1068,
+            "y": 281
+          },
+          "zIndex": 0,
+          "width": 350,
+          "height": 371,
+          "selectable": true
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": "3",
+        "type": "nodetool.input.GroupInput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 22,
+            "y": 191
           },
           "zIndex": 0,
           "selectable": true
@@ -259,43 +252,13 @@
         }
       },
       {
-        "id": "4772",
-        "source": "7",
+        "id": "4773",
+        "source": "3",
         "sourceHandle": "output",
-        "target": "9",
+        "target": "12",
         "targetHandle": "value",
         "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "3c33c236-8322-4189-90fd-58d506c40dc3",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "items",
-        "ui_properties": {
-          "className": "dataframe"
-        }
-      },
-      {
-        "id": "a8fd3d11-c1a4-48b7-80a6-3e4420e7c091",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "10",
-        "targetHandle": "name",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "dfe875d9-be1c-4c92-b1f6-1c0c95ac3d9e",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "10",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
+          "className": "any"
         }
       },
       {
@@ -309,8 +272,8 @@
         }
       },
       {
-        "id": "4771fc89-80ec-4f68-bd9c-25033af9cd3a",
-        "source": "4",
+        "id": "15534c13-63d7-4847-9b5c-a2b04ac7c852",
+        "source": "13",
         "sourceHandle": "output",
         "target": "7",
         "targetHandle": "values",
@@ -324,6 +287,16 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "9c6c9511-ce96-4ef3-8564-1a0f762222ff",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "input",
         "ui_properties": {
           "className": "dataframe"
         }

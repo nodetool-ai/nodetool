@@ -154,6 +154,9 @@ def combine_grid(
     for row in tiles:
         combined_row = PIL.Image.new("RGB", (image_w, tile_h))
         for tile in row:
+            if tile is None:
+                continue
+
             if tile.x == 0:
                 # The first tile in the row is not overlapping with the previous tile
                 # Just paste the tile into the row and continue
@@ -175,7 +178,7 @@ def combine_grid(
                 tile.image.crop((overlap, 0, tile_w, tile_h)), (tile.x + overlap, 0)
             )
 
-        if tile.y == 0:
+        if row[0].y == 0:
             # The first row is not overlapping with the previous row
             # Just paste the row into the combined image and continue
             combined_image.paste(combined_row, (0, 0))
@@ -186,14 +189,14 @@ def combine_grid(
         # The mask image is used to make the overlapping parts of the row transparent.
         combined_image.paste(
             combined_row.crop((0, 0, combined_row.width, overlap)),
-            (0, tile.y),
+            (0, row[0].y),
             mask=mask_h,
         )
         # The remaining part of the row is not overlapping with the previous row
         # Just paste the row into the combined image.
         combined_image.paste(
             combined_row.crop((0, overlap, combined_row.width, tile_h)),
-            (0, tile.y + overlap),
+            (0, row[0].y + overlap),
         )
 
     return combined_image
@@ -283,6 +286,7 @@ class CombineImageGrid(BaseNode):
                 "The number of tiles does not match the expected number of tiles."
             )
 
+        num_cols = math.ceil(self.original_width / self.tile_width)
         tile_objs = [Tile(img, x, y) for img, (x, y) in zip(pil_tiles, flatten(tiles))]
 
         num_cols = math.ceil(self.original_width / self.tile_width)

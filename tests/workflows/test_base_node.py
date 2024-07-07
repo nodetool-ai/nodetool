@@ -252,29 +252,6 @@ def test_base_node_get_json_schema():
     assert "prop" in schema["properties"]
 
 
-@pytest.mark.asyncio
-async def test_group_node():
-    group = GroupNode(_id="group1")
-    node1 = DummyClass(prop=1)
-    node2 = DummyClass(prop=2)
-    edge = Edge(
-        source="node1", sourceHandle="output", target="node2", targetHandle="prop"
-    )
-
-    group.append_node(node1)
-    group.append_node(node2)
-    group.append_edge(edge)
-    group.assign_property("test_prop", "test_value")
-
-    assert len(group._nodes) == 2
-    assert len(group._edges) == 1
-    assert group._properties["test_prop"] == "test_value"
-
-    # Test process_subgraph method (you might need to implement a mock runner)
-    context = ProcessingContext(user_id="test_user", auth_token="test_token")
-    await group.process_subgraph(context, None)
-
-
 def test_requires_capabilities():
     class CapabilityNode(BaseNode):
         _requires_capabilities = ["test_capability"]

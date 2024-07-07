@@ -89,7 +89,6 @@ const useAssets = () => {
 
   const loadFolder = useCallback(
     async ({ pageParam }: AssetLoadParams) => {
-      console.log("page", pageParam);
       return await loadCurrentFolder(pageParam);
     },
     [loadCurrentFolder]
