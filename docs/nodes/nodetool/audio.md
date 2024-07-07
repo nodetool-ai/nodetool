@@ -4,6 +4,13 @@
 
 Save an audio file to a specified folder.
 
+Use cases:
+- Save generated audio files with timestamps
+- Organize outputs into specific folders
+- Create backups of generated audio
+
+**Tags:** audio, folder, name
+
 - **value** (`AudioRef`)
 - **folder**: The folder to save the audio file to.  (`FolderRef`)
 - **name**: The name of the audio file. (`str`)

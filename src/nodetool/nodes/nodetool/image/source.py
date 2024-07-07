@@ -14,7 +14,7 @@ from pydantic import Field
 from typing import Literal
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-fonts_dir = os.path.join(current_dir, "..", "..", "..", "..", "fonts")
+fonts_dir = os.path.join(current_dir, "fonts")
 
 
 class Background(BaseNode):

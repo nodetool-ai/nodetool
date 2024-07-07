@@ -58,6 +58,19 @@ Use cases:
 
 - **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (`Tensor`)
 
+## GetImageMetadata
+
+Get metadata about the input image.
+
+Use cases:
+- Use width and height for layout calculations
+- Analyze image properties for processing decisions
+- Gather information for image cataloging or organization
+
+**Tags:** metadata, properties, analysis, information
+
+- **image**: The input image. (`ImageRef`)
+
 ## PasteImage
 
 Paste one image onto another at specified coordinates.
@@ -91,5 +104,6 @@ Use cases:
 
 - [nodetool.nodes.nodetool.image.classify](image/classify.md)
 - [nodetool.nodes.nodetool.image.enhance](image/enhance.md)
+- [nodetool.nodes.nodetool.image.grid](image/grid.md)
 - [nodetool.nodes.nodetool.image.source](image/source.md)
 - [nodetool.nodes.nodetool.image.transform](image/transform.md)

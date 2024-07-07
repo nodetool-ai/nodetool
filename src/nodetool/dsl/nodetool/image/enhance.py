@@ -15,7 +15,7 @@ class AdaptiveContrast(GraphNode):
 
 class AutoContrast(GraphNode):
     image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to adjust the contrast for.')
-    cutoff: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Cutoff for autocontrast.')
+    cutoff: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Represents the percentage of pixels to ignore at both the darkest and lightest ends of the histogram. A cutoff value of 5 means ignoring the darkest 5% and the lightest 5% of pixels, enhancing overall contrast by stretching the remaining pixel values across the full brightness range.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.AutoContrast"
 

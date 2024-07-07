@@ -7,7 +7,6 @@
 - **workflow_id** (`str | None`)
 - **parent_id** (`str`)
 - **name** (`str`)
-- **status** (`str`)
 - **content_type** (`str`)
 - **created_at** (`str`)
 - **get_url** (`str | None`)
@@ -35,7 +34,6 @@
 
 - **name** (`str | None`)
 - **parent_id** (`str | None`)
-- **status** (`str | None`)
 - **content_type** (`str | None`)
 - **duration** (`float | None`)
 

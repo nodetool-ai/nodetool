@@ -1,12 +1,12 @@
 {
-  "id": "1c631e3d3bd311efb6d30000455e0773",
+  "id": "4a3e79aa3cad11ef8ce0000060654584",
   "access": "private",
-  "created_at": "2024-07-06T22:05:37.217081",
-  "updated_at": "2024-07-07T02:37:33.813270",
+  "created_at": "2024-07-08T00:07:24.439395",
+  "updated_at": "2024-07-08T00:07:24.439435",
   "name": "Porcelain Sculpture",
   "description": "Generate a seriese of images showing sculptures with different emotional and mental states.\n",
   "thumbnail": "",
-  "thumbnail_url": "examples/porcelain_sculpture.png",
+  "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
@@ -39,9 +39,9 @@
           },
           "image": {
             "type": "image",
-            "uri": "http://localhost:8000/api/storage/temp/994114e7a14541b29e628b8089d57ff6",
+            "uri": "",
             "asset_id": null,
-            "temp_id": "994114e7a14541b29e628b8089d57ff6"
+            "temp_id": null
           }
         },
         "ui_properties": {

@@ -148,8 +148,6 @@ Use cases:
 
 **Tags:** input, group, collection, loop
 
-- **items** (`list[typing.Any] | nodetool.metadata.types.DataframeRef`)
-- **name** (`str`)
 
 ## ImageFolder
 

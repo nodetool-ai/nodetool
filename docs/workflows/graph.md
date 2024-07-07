@@ -2,32 +2,44 @@
 
 ## Graph
 
-This class represents a graph data structure containing nodes and edges.
-in terms of handling subgraphs and their connections.
+Represents a graph data structure for workflow management and analysis.
+This class encapsulates the functionality for creating, manipulating, and analyzing
+directed graphs, particularly in the context of workflow systems. It provides methods
+for managing nodes and edges, identifying input and output nodes, generating schemas,
+and performing topological sorting.
 
-**Tags:** It supports operations to manipulate and transform the graph, particularly
+Key features:
+- Node and edge management
+- Input and output node identification
+- JSON schema generation for inputs and outputs
+- Topological sorting of nodes
 
-- **nodes** (`list[nodetool.workflows.base_node.BaseNode]`)
-- **edges** (`list[nodetool.types.graph.Edge]`)
+The Graph class is designed to support various operations on workflow graphs,
+including dependency analysis, execution order determination, and subgraph handling.
+It is particularly useful for systems that need to represent and process complex,
+interconnected workflows or data pipelines.
 
-#### `build_sub_graphs`
+Attributes:
+nodes (list[BaseNode]): A list of nodes in the graph.
+edges (list[Edge]): A list of edges connecting the nodes.
 
-This method organizes nodes into their respective subgraphs based on the
-        group node they belong to and reconnects the edges accordingly. It also
-        ensures that only nodes that are not part of any group remain in the
-        main graph node list after the subgraphs are formed.
+Methods:
+find_node: Locates a node by its ID.
+from_dict: Creates a Graph instance from a dictionary representation.
+inputs: Returns a list of input nodes.
+outputs: Returns a list of output nodes.
+get_input_schema: Generates a JSON schema for the graph's inputs.
+get_output_schema: Generates a JSON schema for the graph's outputs.
+topological_sort: Performs a topological sort on the graph's nodes.
 
-        Process:
-        1. Identify Group Nodes: It first identifies all nodes that are
-        instances of GroupNode .
-        2. Assign Children to Groups: Each node is checked if it belongs
-        to a group (i.e., if its parent_id is in the dictionary of group nodes).
-        If so, it is added to the corresponding group node.
-        3. Reconnect Edges: reassigns the edges to connect to the group nodes
-        instead of the child nodes.
+The class leverages Pydantic for data validation and serialization, making it
+robust for use in larger systems that require strict type checking and easy
+integration with APIs or databases.
 
-**Parameters:**
+**Tags:** 
 
+- **nodes** (`typing.Sequence[nodetool.workflows.base_node.BaseNode]`)
+- **edges** (`typing.Sequence[nodetool.types.graph.Edge]`)
 
 #### `find_node`
 
@@ -71,67 +83,29 @@ Returns a list of nodes that have no outgoing edges.
 
 **Returns:** `typing.List[nodetool.workflows.base_node.OutputNode]`
 
-#### `reconnect_edges`
-
-Revises the graph's edge connections after nodes have been structured
-        into groups.
-
-        Process:
-        1. Create a new list of edges.
-        2. For each edge in the original list, check if the source or target
-        nodes are part of a group. If they are, the edge is updated to connect
-        to the group node instead. They must be either Group Input or Group
-        Output nodes.
-        3. If both the source and target nodes are part of the same group, the
-        edge is added to that group.
-        4. If source and target nodes are part of different groups, the edge is
-
-**Parameters:**
-
-- `group_nodes` (dict[str, nodetool.workflows.base_node.GroupNode])
-
-#### `any_type_in_union`
-
-Matches a union type and another type.
-
-    For example, if the union type is `Union[int, float]` and the other type is `int`, this function will return True.
-
-**Parameters:**
-
-- `union_type` (TypeMetadata)
-- `other_type` (TypeMetadata)
-
-#### `is_connectable`
-
-Returns true if the type
-
-**Parameters:**
-
-- `source` (TypeMetadata)
-- `target` (TypeMetadata)
-
-**Returns:** `bool`
-
 #### `topological_sort`
 
-Sorts the graph topologically.
+Perform a topological sort on the graph, grouping nodes by levels.
 
-    This function is based on the Kahn's algorithm.
+        This method implements a modified version of Kahn's algorithm for topological sorting.
+        It sorts the nodes of the graph into levels, where each level contains nodes
+        that can be processed in parallel.
 
-    It works like this:
-    1. Find all nodes with no incoming edges and add them to a queue.
-    2. While the queue is not empty:
-        1. Remove a node from the queue and add it to the sorted list.
-        2. Remove all outgoing edges from the node.
-        3. If any of the nodes that the edges point to have no incoming edges, add them to the queue.
+        Args:
+            parent_id (str | None, optional): The ID of the parent node to filter results. Defaults to None.
 
-    Returns a list of lists, where each list contains the nodes that are on the same level.
-    This is useful for parallelizing the execution of the graph.
+        Returns:
+            List[List[str]]: A list of lists, where each inner list contains the node IDs at the same level
+                             in the topological order. Nodes in the same list can be processed in parallel.
+
+        Notes:
+        - The method does not modify the original graph structure.
+        - Nodes are only included in the output if their parent_id matches the given parent_id.
+        - If a cycle exists, some nodes may be omitted from the result.
 
 **Parameters:**
 
-- `edges` (list[nodetool.types.graph.Edge])
-- `nodes` (list[nodetool.workflows.base_node.BaseNode])
+- `parent_id` (str | None) (default: `None`)
 
 **Returns:** `typing.List[typing.List[str]]`
 

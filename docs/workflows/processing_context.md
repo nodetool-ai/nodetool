@@ -670,7 +670,7 @@ Creates an ImageRef from a URL.
 
 #### `image_to_base64`
 
-Converts the image to a base64-encoded string.
+Converts the image to a PNG base64-encoded string.
 
         Args:
             context (ProcessingContext): The processing context.
