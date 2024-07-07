@@ -1,0 +1,398 @@
+{
+  "id": "708920903cb811efa5700000701c8b6c",
+  "access": "private",
+  "created_at": "2024-07-08T01:27:13.145870",
+  "updated_at": "2024-07-08T01:32:55.802409",
+  "name": "Image Enhance",
+  "description": "",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/image_enhance.png",
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "replicate.image.generate.StableDiffusionXLLightning",
+        "data": {
+          "seed": 3060378157,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "color photo portrait of a scientist explaining image enhancement, DSLR, low contrast",
+          "scheduler": "HeunDiscrete",
+          "num_outputs": 1,
+          "guidance_scale": 0.1,
+          "negative_prompt": "low quality",
+          "num_inference_steps": 4,
+          "disable_safety_checker": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 81,
+            "y": 147
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-07-06",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": "572b9ad8dfc84dbd9c40cfeee48a3154"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 970,
+            "y": 197
+          },
+          "zIndex": 0,
+          "width": 214,
+          "height": 211,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "name": "image_output_2024-07-06"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 733,
+            "y": 197
+          },
+          "zIndex": 0,
+          "width": 211,
+          "height": 210,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.image.enhance.Color",
+        "data": {
+          "factor": 1.4,
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": "d4e9dccf87034a1986cdddcb0a23ef43"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 533,
+            "y": 94
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Select one of the nodes above and then click on"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "NODETOOL.IMAGE.ENHANCE to open the NodeMenu"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "in this category."
+                }
+              ]
+            }
+          ],
+          "headline": "More Image.Enhance nodes"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 373,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 265,
+          "height": 85,
+          "selectable": true
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "nodetool.image.enhance.AutoContrast",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "cutoff": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 371,
+            "y": 94
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "24e1c003-8549-4109-8092-6e423b9f69d3",
+        "parent_id": null,
+        "type": "replicate.image.generate.StableDiffusionXLLightning",
+        "data": {
+          "seed": 3060378157,
+          "width": 1024,
+          "height": 1024,
+          "prompt": "super detailed flower, intricate",
+          "scheduler": "EulerDiscrete",
+          "num_outputs": 1,
+          "guidance_scale": 0,
+          "negative_prompt": "low quality",
+          "num_inference_steps": 4,
+          "disable_safety_checker": false
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 90,
+            "y": 630
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4b900c04-d29b-4466-94fa-f2cf1229115a",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": "e9edcffe39c14c62ac1558a3688ae408"
+          },
+          "name": "image_output_2024-07-06"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 769,
+            "y": 630
+          },
+          "zIndex": 0,
+          "width": 255,
+          "height": 212,
+          "selectable": true
+        }
+      },
+      {
+        "id": "97875ccb-a667-4ab7-a454-496d20452585",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "name": "image_output_2024-07-06"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 469,
+            "y": 630
+          },
+          "zIndex": 0,
+          "width": 253,
+          "height": 209,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5b962592-953e-411e-9c8f-4d188607b1ad",
+        "parent_id": null,
+        "type": "nodetool.image.enhance.Sharpen",
+        "data": {
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 312,
+            "y": 630
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "97876",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Image Enhance",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "The Nodetool.Image.Enhance namespace contains nodes for  basic image enhancement."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Also check the Replicate.Image.Process and Replicate.Image.Upscale namespaces for more advanced image enhancement nodes."
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 4,
+            "y": -138
+          },
+          "zIndex": 0,
+          "width": 301,
+          "height": 127,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "5b1aa42a-bdb8-461b-bebc-58386e28fd44",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "4b248c6c-5e3d-4cda-9f9f-d6150726c3db",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "380ae2ba-c21e-4460-b411-4853fae085d4",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "5604ffdb-a6c3-4604-b9c3-9d19602b4255",
+        "source": "24e1c003-8549-4109-8092-6e423b9f69d3",
+        "sourceHandle": "output",
+        "target": "5b962592-953e-411e-9c8f-4d188607b1ad",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "ad71fde1-42f1-4503-9957-38a6c4100e6f",
+        "source": "24e1c003-8549-4109-8092-6e423b9f69d3",
+        "sourceHandle": "output",
+        "target": "97875ccb-a667-4ab7-a454-496d20452585",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "051757cb-f91a-4722-810c-22250a67fd97",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "20f75457-d5e0-477b-b215-94152cd30d33",
+        "source": "5b962592-953e-411e-9c8f-4d188607b1ad",
+        "sourceHandle": "output",
+        "target": "4b900c04-d29b-4466-94fa-f2cf1229115a",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}
