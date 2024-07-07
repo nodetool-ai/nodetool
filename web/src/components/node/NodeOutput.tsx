@@ -22,7 +22,7 @@ export type NodeOutputProps = {
   output: OutputSlot;
 };
 
-const styles = css({
+const tooltipStyles = css({
   ".MuiTooltip-tooltip": {
     backgroundColor: "#000",
     color: "#fff"
@@ -78,10 +78,9 @@ const NodeOutput = ({ id, output }: NodeOutputProps) => {
             borderRadius: ".5em",
             fontSize: ThemeNodetool.fontSizeSmall
           }}
-        // className={Slugify(output.type.type)}
+          // className={Slugify(output.type.type)}
         >
-          {output.name} :
-          {typeToString(output.type)}
+          {output.name} :{typeToString(output.type)}
         </span>
       }
       enterDelay={TOOLTIP_ENTER_DELAY}
@@ -90,7 +89,7 @@ const NodeOutput = ({ id, output }: NodeOutputProps) => {
       placement="right"
       TransitionComponent={Zoom}
       className={classConnectable + " " + Slugify(output.type.type)}
-      css={styles}
+      css={tooltipStyles}
     >
       <Handle
         type="source"
