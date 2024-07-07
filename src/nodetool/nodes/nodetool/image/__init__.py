@@ -43,6 +43,50 @@ class SaveImage(BaseNode):
         )
 
 
+class GetImageMetadata(BaseNode):
+    """
+    Get metadata about the input image.
+    metadata, properties, analysis, information
+
+    Use cases:
+    - Use width and height for layout calculations
+    - Analyze image properties for processing decisions
+    - Gather information for image cataloging or organization
+    """
+
+    image: ImageRef = Field(default=ImageRef(), description="The input image.")
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "format": str,
+            "mode": str,
+            "width": int,
+            "height": int,
+            "channels": int,
+        }
+
+    async def process(self, context: ProcessingContext):
+        if self.image.is_empty():
+            raise ValueError("The input image is not connected.")
+
+        image = await context.image_to_pil(self.image)
+
+        # Get basic image information
+        format = image.format if image.format else "Unknown"
+        mode = image.mode
+        width, height = image.size
+        channels = len(image.getbands())
+
+        return {
+            "format": format,
+            "mode": mode,
+            "width": width,
+            "height": height,
+            "channels": channels,
+        }
+
+
 class ConvertImageToTensor(BaseNode):
     """
     Convert PIL Image to normalized tensor representation.

@@ -2,6 +2,11 @@ import math
 import numpy as np
 from typing import NamedTuple, Any
 
+from nodetool.workflows.base_node import BaseNode
+from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.metadata.types import ImageRef, Field
+
+
 import PIL.Image
 
 
@@ -192,3 +197,103 @@ def combine_grid(
         )
 
     return combined_image
+
+
+class SliceImageGrid(BaseNode):
+    """
+    Slice an image into a grid of tiles.
+
+    image, grid, slice, tiles
+
+    Use cases:
+    - Prepare large images for processing in smaller chunks
+    - Create image puzzles or mosaic effects
+    - Distribute image processing tasks across multiple workers
+    """
+
+    image: ImageRef = Field(
+        default=ImageRef(), description="The image to slice into a grid."
+    )
+    tile_width: int = Field(
+        default=512, ge=1, le=4096, description="Width of each tile."
+    )
+    tile_height: int = Field(
+        default=512, ge=1, le=4096, description="Height of each tile."
+    )
+    overlap: int = Field(default=0, ge=0, le=512, description="Overlap between tiles.")
+
+    async def process(self, context: ProcessingContext) -> list[ImageRef]:
+        image = await context.image_to_pil(self.image)
+        tiles, _, _ = make_grid(
+            image.width, image.height, self.tile_width, self.tile_height, self.overlap
+        )
+
+        sliced_images = []
+        for row in tiles:
+            for x, y in row:
+                tile = image.crop((x, y, x + self.tile_width, y + self.tile_height))
+                sliced_images.append(await context.image_from_pil(tile))
+
+        return sliced_images
+
+
+class CombineImageGrid(BaseNode):
+    """
+    Combine a grid of image tiles into a single image.
+
+    image, grid, combine, tiles
+
+    Use cases:
+    - Reassemble processed image chunks
+    - Create composite images from smaller parts
+    - Merge tiled image data from distributed processing
+    """
+
+    tiles: list[ImageRef] = Field(
+        default=[], description="List of image tiles to combine."
+    )
+    original_width: int = Field(
+        default=0, ge=0, le=16384, description="Width of the original image."
+    )
+    original_height: int = Field(
+        default=0, ge=0, le=16384, description="Height of the original image."
+    )
+    tile_width: int = Field(
+        default=512, ge=1, le=4096, description="Width of each tile."
+    )
+    tile_height: int = Field(
+        default=512, ge=1, le=4096, description="Height of each tile."
+    )
+    overlap: int = Field(default=0, ge=0, le=512, description="Overlap between tiles.")
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if not self.tiles:
+            raise ValueError("No tiles provided for combining.")
+
+        pil_tiles = [await context.image_to_pil(tile) for tile in self.tiles]
+        tiles, _, _ = make_grid(
+            self.original_width,
+            self.original_height,
+            self.tile_width,
+            self.tile_height,
+            self.overlap,
+        )
+        if len(pil_tiles) != len(flatten(tiles)):
+            raise ValueError(
+                "The number of tiles does not match the expected number of tiles."
+            )
+
+        tile_objs = [Tile(img, x, y) for img, (x, y) in zip(pil_tiles, flatten(tiles))]
+
+        num_cols = math.ceil(self.original_width / self.tile_width)
+
+        combined_image = combine_grid(
+            in_groups_of(tile_objs, num_cols),
+            self.tile_width,
+            self.tile_height,
+            self.original_width,
+            self.original_height,
+            self.overlap,
+        )
+
+        return await context.image_from_pil(combined_image)
