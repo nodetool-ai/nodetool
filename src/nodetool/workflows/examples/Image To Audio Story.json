@@ -1,12 +1,12 @@
 {
-  "id": "34a9afe03bab11efb99c00002f8ae639",
+  "id": "8b5be5903c9511ef8347000000f78a5c",
   "access": "private",
-  "created_at": "2024-07-06T17:19:58.075791",
-  "updated_at": "2024-07-06T17:30:43.471814",
+  "created_at": "2024-07-07T21:17:25.762395",
+  "updated_at": "2024-07-07T21:20:55.703611",
   "name": "Image To Audio Story",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "https://i.imgur.com/VMFPYVR.jpeg",
   "graph": {
     "nodes": [
       {
@@ -24,8 +24,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 44,
-            "y": 66
+            "x": 72,
+            "y": 86
           },
           "zIndex": 0,
           "selectable": true
@@ -53,8 +53,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 229,
-            "y": 37
+            "x": 257,
+            "y": 86
           },
           "zIndex": 0,
           "selectable": true
@@ -71,12 +71,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 464,
-            "y": 30
+            "x": 492,
+            "y": 86
           },
           "zIndex": 0,
-          "width": 1000,
-          "height": 150,
+          "width": 306,
+          "height": 155,
           "selectable": true
         }
       },
@@ -93,8 +93,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 469,
-            "y": 198
+            "x": 492,
+            "y": 254
           },
           "zIndex": 0,
           "selectable": true
@@ -116,12 +116,41 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 632,
-            "y": 203
+            "x": 648,
+            "y": 254
           },
           "zIndex": 0,
           "width": 150,
           "height": 150,
+          "selectable": true
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Image To Audio Story",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "Try with different images, prompts and voices"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2,
+            "y": -90
+          },
+          "zIndex": 0,
+          "width": 242,
+          "height": 79,
           "selectable": true
         }
       }
@@ -138,16 +167,6 @@
         }
       },
       {
-        "id": "67117e75-7172-4df7-b796-78efcd3d9d85",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
         "id": "8326ca61-99bd-4e8c-bd89-7a0beacafd30",
         "source": "2",
         "sourceHandle": "output",
@@ -155,6 +174,16 @@
         "targetHandle": "input",
         "ui_properties": {
           "className": "str"
+        }
+      },
+      {
+        "id": "67117e75-7172-4df7-b796-78efcd3d9d85",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
         }
       },
       {
