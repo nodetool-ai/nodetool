@@ -521,7 +521,7 @@ class StableDiffusion(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=500.0,
-        default=50,
+        default=20,
     )
 
 
@@ -735,7 +735,7 @@ class StableDiffusionXL(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=500.0,
-        default=50,
+        default=20,
     )
     disable_safety_checker: bool = Field(
         title="Disable Safety Checker",
@@ -1107,7 +1107,7 @@ class Juggernaut_XL_V9(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=100.0,
-        default=5,
+        default=20,
     )
     disable_safety_checker: bool = Field(
         title="Disable Safety Checker",
@@ -1319,7 +1319,7 @@ class SDXL_Pixar(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=500.0,
-        default=50,
+        default=20,
     )
 
 
@@ -1452,7 +1452,7 @@ class SDXL_Emoji(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=500.0,
-        default=50,
+        default=20,
     )
 
 
@@ -1657,7 +1657,7 @@ class RealVisXL_V2(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=500.0,
-        default=40,
+        default=20,
     )
     disable_safety_checker: bool = Field(
         title="Disable Safety Checker",
@@ -2004,7 +2004,7 @@ class RealVisXL_V3_Multi_Controlnet_Lora(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=500.0,
-        default=30,
+        default=20,
     )
     disable_safety_checker: bool = Field(
         title="Disable Safety Checker",
@@ -2165,7 +2165,7 @@ class OpenDalle_Lora(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=500.0,
-        default=35,
+        default=20,
     )
     disable_safety_checker: bool = Field(
         title="Disable Safety Checker",
@@ -2440,7 +2440,7 @@ class SDXL_Controlnet(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=500.0,
-        default=50,
+        default=20,
     )
 
 
@@ -2584,7 +2584,7 @@ class SDXL_Ad_Inpaint(ReplicateNode):
         default=10,
     )
     num_inference_steps: int = Field(
-        title="Num Inference Steps", description="Inference Steps", default=40
+        title="Num Inference Steps", description="Inference Steps", default=20
     )
 
 
@@ -2693,7 +2693,7 @@ class Kandinsky(ReplicateNode):
         description="Number of denoising steps",
         ge=1.0,
         le=500.0,
-        default=75,
+        default=25,
     )
     num_inference_steps_prior: int = Field(
         title="Num Inference Steps Prior",
@@ -3112,7 +3112,7 @@ class Illusions(ReplicateNode):
         default=0.0,
     )
     num_inference_steps: int = Field(
-        title="Num Inference Steps", description="Number of diffusion steps", default=40
+        title="Num Inference Steps", description="Number of diffusion steps", default=20
     )
     controlnet_conditioning_scale: float = Field(
         title="Controlnet Conditioning Scale",
