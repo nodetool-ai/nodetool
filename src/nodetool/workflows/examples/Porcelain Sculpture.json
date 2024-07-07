@@ -4,7 +4,7 @@
   "created_at": "2024-07-06T22:05:37.217081",
   "updated_at": "2024-07-07T02:37:33.813270",
   "name": "Porcelain Sculpture",
-  "description": "Feed a List of emotions or mental states into a Loop.\nGive GPT a base prompt to rewrite.\nUse RenderText to write the word in the image.\n",
+  "description": "Generate a seriese of images showing sculptures with different emotional and mental states.\n",
   "thumbnail": "",
   "thumbnail_url": "examples/porcelain_sculpture.png",
   "graph": {
