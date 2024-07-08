@@ -1,12 +1,12 @@
 {
-  "id": "7b284dfc3ba911ef8b13000065970bb0",
+  "id": "4b80429b3cbf11efa2f500001dae0c76",
   "access": "private",
-  "created_at": "2024-07-06T17:07:37.353402",
-  "updated_at": "2024-07-06T17:10:38.479024",
+  "created_at": "2024-07-08T02:16:17.489167",
+  "updated_at": "2024-07-08T02:29:08.606265",
   "name": "Two Stage Stable Diffusion",
-  "description": "",
+  "description": "Use SDXL Lightning output in SDXL",
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/two_stage_stable_diffusion.png",
   "graph": {
     "nodes": [
       {
@@ -14,22 +14,22 @@
         "parent_id": null,
         "type": "replicate.image.generate.StableDiffusionXLLightning",
         "data": {
-          "seed": 2287188918,
+          "seed": 2029044869,
           "width": 1024,
           "height": 1024,
-          "prompt": "sketch of a woman",
+          "prompt": "sketch of a well-fed dachshund, full-body shot",
           "scheduler": "DDIM",
           "num_outputs": 1,
           "guidance_scale": 0,
-          "negative_prompt": "worst quality, low quality",
+          "negative_prompt": "worst dog, bad dog",
           "num_inference_steps": 4,
           "disable_safety_checker": false
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 109,
-            "y": 17
+            "x": 79,
+            "y": 85
           },
           "zIndex": 0,
           "selectable": true
@@ -46,22 +46,22 @@
             "asset_id": null,
             "temp_id": null
           },
-          "seed": 2287188918,
+          "seed": 2029044869,
           "width": 1024,
           "height": 1024,
-          "prompt": "super detailed artwork of a woman, intricate masterpiece",
+          "prompt": "super detailed artwork of a dachshund, glamorous fur, absolute masterpiece, no clothes",
           "refine": "expert_ensemble_refiner",
           "scheduler": "DPMSolverMultistep",
           "lora_scale": 0.6,
           "num_outputs": 1,
           "refine_steps": null,
-          "guidance_scale": 7.5,
+          "guidance_scale": 5,
           "apply_watermark": true,
           "high_noise_frac": 0.8,
-          "negative_prompt": "",
-          "prompt_strength": 0.8,
+          "negative_prompt": "bad fur",
+          "prompt_strength": 0.7,
           "replicate_weights": null,
-          "num_inference_steps": 50,
+          "num_inference_steps": 25,
           "disable_safety_checker": false,
           "image": {
             "type": "image",
@@ -71,9 +71,10 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 358,
-            "y": 16
+            "x": 288,
+            "y": 85
           },
           "zIndex": 0,
           "selectable": true
@@ -93,13 +94,14 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 70,
-            "y": 339
+            "x": 473,
+            "y": 85
           },
           "zIndex": 0,
-          "width": 266,
-          "height": 255,
+          "width": 315,
+          "height": 311,
           "selectable": true
         }
       },
@@ -119,17 +121,25 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 515,
-            "y": 56
+            "x": 824,
+            "y": 85
           },
           "zIndex": 0,
-          "width": 430,
-          "height": 444,
+          "width": 313,
+          "height": 311,
           "selectable": true
         }
       }
     ],
     "edges": [
+      {
+        "id": "3",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
       {
         "id": "1",
         "source": "1",
@@ -143,14 +153,6 @@
         "source": "1",
         "sourceHandle": "output",
         "target": "3",
-        "targetHandle": "value",
-        "ui_properties": null
-      },
-      {
-        "id": "3",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "4",
         "targetHandle": "value",
         "ui_properties": null
       }
