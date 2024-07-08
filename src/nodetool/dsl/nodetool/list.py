@@ -4,84 +4,74 @@ from nodetool.metadata.types import *
 from nodetool.dsl.graph import GraphNode
 
 
-class AppendToList(GraphNode):
+class Append(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     value: Any | GraphNode | tuple[GraphNode, str] = Field(default=None, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.list.AppendToList"
+    def get_node_type(cls): return "nodetool.list.Append"
 
 
 
-class DedupeList(GraphNode):
+class Dedupe(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.list.DedupeList"
+    def get_node_type(cls): return "nodetool.list.Dedupe"
 
 
 
-class ExtendList(GraphNode):
+class Extend(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     other_values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.list.ExtendList"
+    def get_node_type(cls): return "nodetool.list.Extend"
 
 
 
-class ExtractSubList(GraphNode):
-    values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
-    start: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
-    stop: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
-    step: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description=None)
-    @classmethod
-    def get_node_type(cls): return "nodetool.list.ExtractSubList"
-
-
-
-class FilterList(GraphNode):
+class Filter(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='The list to filter.')
     condition: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The Python code to use as the filtering condition.')
     @classmethod
-    def get_node_type(cls): return "nodetool.list.FilterList"
+    def get_node_type(cls): return "nodetool.list.Filter"
 
 
 
-class GenerateNumberSequence(GraphNode):
+class GenerateSequence(GraphNode):
     start: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
     stop: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
     step: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.list.GenerateNumberSequence"
+    def get_node_type(cls): return "nodetool.list.GenerateSequence"
 
 
 
-class GetListElement(GraphNode):
+class GetElement(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     index: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.list.GetListElement"
+    def get_node_type(cls): return "nodetool.list.GetElement"
 
 
 
-class ListLength(GraphNode):
+class Length(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.list.ListLength"
+    def get_node_type(cls): return "nodetool.list.Length"
 
 
 
-class ReduceList(GraphNode):
+class Reduce(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='The list to reduce.')
     initial_value: Any | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The initial value for the reduction. If not provided, the first value in the list is used.')
     reduction_code: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The Python code to use for the reduction.')
     @classmethod
-    def get_node_type(cls): return "nodetool.list.ReduceList"
+    def get_node_type(cls): return "nodetool.list.Reduce"
 
 
 
-class ReverseList(GraphNode):
+class Reverse(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.list.ReverseList"
+    def get_node_type(cls): return "nodetool.list.Reverse"
 
 
 
@@ -93,18 +83,28 @@ class SaveList(GraphNode):
 
 
 
-class SelectListElements(GraphNode):
+class SelectElements(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     indices: list[int] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.list.SelectListElements"
+    def get_node_type(cls): return "nodetool.list.SelectElements"
 
 
 
-class TransformListElements(GraphNode):
+class Slice(GraphNode):
+    values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=[], description=None)
+    start: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
+    stop: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description=None)
+    step: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description=None)
+    @classmethod
+    def get_node_type(cls): return "nodetool.list.Slice"
+
+
+
+class TransformElements(GraphNode):
     values: list[Any] | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='The list to map.')
     code: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Python code to use for mapping.')
     @classmethod
-    def get_node_type(cls): return "nodetool.list.TransformListElements"
+    def get_node_type(cls): return "nodetool.list.TransformElements"
 
 

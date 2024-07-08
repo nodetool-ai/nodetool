@@ -1,5 +1,6 @@
 import asyncio
 from enum import Enum
+import io
 import json
 from queue import Queue
 import random
@@ -611,14 +612,14 @@ class ProcessingContext:
         Returns:
             IO: The downloaded file.
         """
-        from nodetool.common.encoding import decode_bytes_io
-
         url_parsed = urllib.parse.urlparse(url)
 
         if url_parsed.scheme == "data":
-            file = decode_bytes_io(url.split(",")[1])
+            fname, data = url.split(",", 1)
+            image_bytes = base64.b64decode(data)
+            file = io.BytesIO(image_bytes)
             # parse file ext from data uri
-            ext = url.split(",")[0].split(";")[0].split("/")[1]
+            ext = fname.split(";")[0].split("/")[1]
             file.name = f"{uuid.uuid4()}.{ext}"
             return file
 
