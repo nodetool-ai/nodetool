@@ -16,7 +16,7 @@ from nodetool.types.graph import (
     Graph as APIGraph,
 )
 from nodetool.nodes.nodetool.constant import Float, List, String
-from nodetool.nodes.nodetool.image import BlendImages
+from nodetool.nodes.nodetool.image import Blend
 from nodetool.nodes.nodetool.input import (
     FloatInput,
     GroupInput,
@@ -148,7 +148,7 @@ async def test_process_node_image_blend(user: User):
     }
     blend_node = {
         "id": "4",
-        "type": BlendImages.get_node_type(),
+        "type": Blend.get_node_type(),
     }
     image_output = {
         "id": "5",
