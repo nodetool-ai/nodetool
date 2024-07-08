@@ -96,8 +96,11 @@ def convert_to_llama_format(messages: Sequence[ChatMessageParam]) -> str:
     """
     Convert OpenAI-style message list to Llama chat format.
 
-    :param messages: List of dictionaries, each containing 'role' and 'content' keys
-    :return: String in Llama chat format
+    Args:
+        messages (list[ChatMessageParam]): The list of messages to convert.
+
+    Returns:
+        str: The Llama chat format.
     """
     res = ""
 

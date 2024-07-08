@@ -1,4 +1,5 @@
 import numpy as np
+from pydub import AudioSegment
 from nodetool.metadata.types import Tensor
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.nodes.nodetool.audio.audio_helpers import (
@@ -50,4 +51,24 @@ class TensorToAudio(BaseNode):
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         audio = numpy_to_audio_segment(self.tensor.to_numpy(), self.sample_rate)
+        return await context.audio_from_segment(audio)
+
+
+class CreateSilence(BaseNode):
+    """
+    Creates a silent audio file with a specified duration.
+    audio, silence, empty
+
+    Use cases:
+    - Generate placeholder audio files
+    - Create audio segments for padding or spacing
+    - Add silence to the beginning or end of audio files
+    """
+
+    duration: float = Field(
+        default=1.0, ge=0.0, description="The duration of the silence in seconds."
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        audio = AudioSegment.silent(duration=int(self.duration * 1000))
         return await context.audio_from_segment(audio)

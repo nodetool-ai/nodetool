@@ -11,6 +11,7 @@ import base64
 import PIL.Image
 import numpy as np
 import pandas as pd
+from pydub import AudioSegment
 
 from nodetool.types.asset import Asset, AssetCreateRequest, AssetList
 from nodetool.types.chat import (
@@ -669,7 +670,7 @@ class ProcessingContext:
         image.save(buffer, "PNG")
         return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-    async def audio_to_audio_segment(self, audio_ref: AudioRef):
+    async def audio_to_audio_segment(self, audio_ref: AudioRef) -> AudioSegment:
         """
         Converts the audio to an AudioSegment object.
 
@@ -681,12 +682,26 @@ class ProcessingContext:
         audio_bytes = await self.asset_to_io(audio_ref)
         return pydub.AudioSegment.from_file(audio_bytes)
 
+    async def audio_to_numpy(self, audio_ref: AudioRef) -> tuple[np.ndarray, int, int]:
+        """
+        Converts the audio to a np.float32 array.
+
+        Args:
+            context (ProcessingContext): The processing context.
+        """
+        segment = await self.audio_to_audio_segment(audio_ref)
+        samples = np.array(segment.get_array_of_samples())
+        max_value = float(2 ** (8 * segment.sample_width - 1))
+        samples = samples.astype(np.float32) / max_value
+
+        return samples, segment.frame_rate, segment.channels
+
     async def audio_from_io(
         self,
         buffer: IO,
         name: str | None = None,
         parent_id: str | None = None,
-    ) -> "AudioRef":
+    ) -> AudioRef:
         """
         Creates an AudioRef from an IO object.
 
@@ -712,7 +727,7 @@ class ProcessingContext:
         b: bytes,
         name: str | None = None,
         parent_id: str | None = None,
-    ) -> "AudioRef":
+    ) -> AudioRef:
         """
         Creates an AudioRef from a bytes object.
 
@@ -726,23 +741,55 @@ class ProcessingContext:
         """
         return await self.audio_from_io(BytesIO(b), name=name, parent_id=parent_id)
 
-    async def audio_to_numpy(self, audio_ref: AudioRef) -> tuple[np.ndarray, int]:
-        audio_segment = await self.audio_to_audio_segment(audio_ref)
-        return np.array(audio_segment.get_array_of_samples()), audio_segment.frame_rate
+    async def audio_from_numpy(
+        self,
+        data: np.ndarray,
+        sample_rate: int,
+        num_channels: int = 1,
+        name: str | None = None,
+        parent_id: str | None = None,
+    ) -> AudioRef:
+        """
+        Creates an AudioRef from a numpy array.
+
+        Args:
+            context (ProcessingContext): The processing context.
+            data (np.ndarray): The numpy array.
+            sample_rate (int): The sample rate.
+            num_channels (int, optional): The number of channels. Defaults to 1.
+            name (Optional[str], optional): The name of the asset. Defaults to None.
+            parent_id (Optional[str], optional): The parent ID of the asset. Defaults to None.
+        """
+        if data.dtype == np.int16:
+            data_bytes = data.tobytes()
+        elif data.dtype == np.float32 or data.dtype == np.float64:
+            data_bytes = (data * (2**15 - 1)).astype(np.int16).tobytes()
+        else:
+            raise ValueError(f"Unsupported dtype {data.dtype}")
+
+        audio_segment = AudioSegment(
+            data=data_bytes,
+            frame_rate=sample_rate,
+            sample_width=2,  # 16-bit
+            channels=num_channels,
+        )
+        return await self.audio_from_segment(
+            audio_segment, name=name, parent_id=parent_id
+        )
 
     async def audio_from_segment(
         self,
-        audio_segment: "pydub.AudioSegment",  # type: ignore
+        audio_segment: AudioSegment,
         name: str | None = None,
         parent_id: str | None = None,
         **kwargs,
-    ) -> "AudioRef":
+    ) -> AudioRef:
         """
         Converts an audio segment to an AudioRef object.
 
         Args:
             audio_segment (pydub.AudioSegment): The audio segment to convert.
-            name (str, optional): The name of the audio. Defaults to None.
+            name (str, optional): The name of the audio file, will create an asset. Defaults to None.
             parent_id (str, optional): The ID of the parent asset. Defaults to None.
             **kwargs: Additional keyword arguments.
 
@@ -765,7 +812,7 @@ class ProcessingContext:
                 uri=ref.uri,
             )
 
-    async def dataframe_to_pandas(self, df: DataframeRef) -> "pd.DataFrame":
+    async def dataframe_to_pandas(self, df: DataframeRef) -> pd.DataFrame:
         """
         Converts a DataframeRef object to a pandas DataFrame.
 
@@ -775,8 +822,6 @@ class ProcessingContext:
         Returns:
             pandas.DataFrame: The converted pandas DataFrame.
         """
-        import pandas as pd
-
         if df.columns:
             column_names = [col.name for col in df.columns]
             return pd.DataFrame(df.data, columns=column_names)
@@ -787,8 +832,8 @@ class ProcessingContext:
             return df
 
     async def dataframe_from_pandas(
-        self, data: "pd.DataFrame", name: str | None = None
-    ) -> "DataframeRef":
+        self, data: pd.DataFrame, name: str | None = None
+    ) -> DataframeRef:
         """
         Converts a pandas DataFrame to a DataframeRef object.
 
@@ -818,7 +863,7 @@ class ProcessingContext:
         buffer: IO,
         name: str | None = None,
         parent_id: str | None = None,
-    ) -> "ImageRef":
+    ) -> ImageRef:
         """
         Creates an ImageRef from an IO object.
 
@@ -844,7 +889,7 @@ class ProcessingContext:
         url: str,
         name: str | None = None,
         parent_id: str | None = None,
-    ) -> "ImageRef":
+    ) -> ImageRef:
         """
         Creates an ImageRef from a URL.
 
@@ -865,7 +910,7 @@ class ProcessingContext:
         b: bytes,
         name: str | None = None,
         parent_id: str | None = None,
-    ) -> "ImageRef":
+    ) -> ImageRef:
         """
         Creates an ImageRef from a bytes object.
 
