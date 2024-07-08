@@ -246,16 +246,15 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       });
   }, [metadata, selectedPathString, searchTerm]);
 
-  const parseDescription =
-    (description: string) => {
-      // First line is description, second line tags, followed by list of use cases
-      const lines = description.split("\n");
-      return {
-        desc: lines[0],
-        tags: lines.length > 0 ? lines[1] : [],
-        useCases: lines.length > 1 ? lines.slice(2) : []
-      };
+  const parseDescription = (description: string) => {
+    // First line is description, second line tags, followed by list of use cases
+    const lines = description.split("\n");
+    return {
+      desc: lines[0],
+      tags: lines.length > 0 ? lines[1] : [],
+      useCases: lines.length > 1 ? lines.slice(2) : []
     };
+  };
 
   const description = parseDescription(hoveredNode?.description || "");
 
@@ -310,11 +309,12 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
                 <Typography className="node-tags">
                   Tags: {description.tags}
                 </Typography>
-                <Typography className="node-usecases">
-                  {description.useCases.map((useCase, i) =>
+                <Typography component="div" className="node-usecases">
+                  {description.useCases.map((useCase, i) => (
                     <div key={i}>{useCase}</div>
-                  )}
+                  ))}
                 </Typography>
+
                 {hoveredNode.model_info.cover_image_url && (
                   <img
                     className={"preview-image"}
@@ -393,12 +393,12 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         ) : searchTerm.length > 0 && highlightedNamespaces.length > 0 ? (
           <div className="no-selection">
             <p>
-              Nothing found in this namespace for{" "}
+              Nothing found in this namespace for
               <strong>[{searchTerm}]</strong>
             </p>
             <ul className="no-results">
               <li>
-                click on <span className="highlighted">highlighted</span>{" "}
+                click on <span className="highlighted">highlighted</span>
                 namespaces to find results.
               </li>
               <li>
