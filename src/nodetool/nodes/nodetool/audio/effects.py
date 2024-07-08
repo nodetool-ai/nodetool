@@ -10,7 +10,7 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 
-class ReverbAudio(BaseNode):
+class Reverb(BaseNode):
     """
     Applies a reverb effect to an audio file.
     audio, effect, reverb
@@ -66,7 +66,7 @@ class ReverbAudio(BaseNode):
         return await context.audio_from_numpy(processed, sample_rate, num_channels)
 
 
-class CompressAudio(BaseNode):
+class Compress(BaseNode):
     """
     Applies dynamic range compression to an audio file.
     audio, effect, dynamics
@@ -115,7 +115,7 @@ class CompressAudio(BaseNode):
         return await context.audio_from_numpy(processed, sample_rate, num_channels)
 
 
-class TimeStretchAudio(BaseNode):
+class TimeStretch(BaseNode):
     """
     Changes the speed of an audio file without altering its pitch.
     audio, transform, time
@@ -148,7 +148,7 @@ class TimeStretchAudio(BaseNode):
         return await context.audio_from_numpy(stretched, sample_rate, num_channels)
 
 
-class PitchShiftAudio(BaseNode):
+class PitchShift(BaseNode):
     """
     Shifts the pitch of an audio file without changing its duration.
     audio, effect, pitch
@@ -181,7 +181,7 @@ class PitchShiftAudio(BaseNode):
         return await context.audio_from_numpy(shifted, sample_rate, num_channels)
 
 
-class NoiseGateAudio(BaseNode):
+class NoiseGate(BaseNode):
     """
     Applies a noise gate effect to an audio file.
     audio, effect, dynamics
@@ -415,7 +415,7 @@ class PeakFilter(BaseNode):
         return await context.audio_from_numpy(processed, sample_rate, num_channels)
 
 
-class DistortionAudio(BaseNode):
+class Distortion(BaseNode):
     """
     Applies a distortion effect to an audio file.
     audio, effect, distortion
@@ -447,7 +447,7 @@ class DistortionAudio(BaseNode):
         return await context.audio_from_numpy(processed, sample_rate, num_channels)
 
 
-class PhaserAudio(BaseNode):
+class Phaser(BaseNode):
     """
     Applies a phaser effect to an audio file.
     audio, effect, modulation
@@ -509,7 +509,7 @@ class PhaserAudio(BaseNode):
         return await context.audio_from_numpy(processed, sample_rate, num_channels)
 
 
-class DelayAudio(BaseNode):
+class Delay(BaseNode):
     """
     Applies a delay effect to an audio file.
     audio, effect, time-based
@@ -557,7 +557,7 @@ class DelayAudio(BaseNode):
         return await context.audio_from_numpy(processed, sample_rate, num_channels)
 
 
-class GainAudio(BaseNode):
+class Gain(BaseNode):
     """
     Applies a gain (volume adjustment) to an audio file.
     audio, effect, volume
@@ -589,7 +589,7 @@ class GainAudio(BaseNode):
         return await context.audio_from_numpy(processed, sample_rate, num_channels)
 
 
-class LimiterAudio(BaseNode):
+class Limiter(BaseNode):
     """
     Applies a limiter effect to an audio file.
     audio, effect, dynamics
@@ -630,7 +630,7 @@ class LimiterAudio(BaseNode):
         return await context.audio_from_numpy(processed, sample_rate, num_channels)
 
 
-class BitcrushAudio(BaseNode):
+class Bitcrush(BaseNode):
     """
     Applies a bitcrushing effect to an audio file, reducing bit depth and/or sample rate.
     audio, effect, distortion
