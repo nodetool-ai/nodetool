@@ -98,7 +98,7 @@ export default memo(
           <NodeErrors id={props.id} />
           {status === "booting" && (
             <Typography variant="body2" color="textSecondary" sx={{ padding: "10px", color: "red" }}>
-              Model is booting, this can take up to 3 minutes.
+              Model is booting (3 minutes)
             </Typography>
           )}
         </>

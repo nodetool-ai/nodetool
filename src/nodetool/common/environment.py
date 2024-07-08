@@ -419,14 +419,19 @@ class Environment(object):
         memcache_host = cls.get_memcache_host()
         memcache_port = cls.get_memcache_port()
 
-        if memcache_host and memcache_port:
-            from nodetool.storage.memcache_node_cache import MemcachedNodeCache
+        if not hasattr(cls, "node_cache"):
+            if memcache_host and memcache_port:
+                from nodetool.storage.memcache_node_cache import MemcachedNodeCache
 
-            return MemcachedNodeCache(host=memcache_host, port=int(memcache_port))
-        else:
-            from nodetool.storage.memory_node_cache import MemoryNodeCache
+                cls.node_cache = MemcachedNodeCache(
+                    host=memcache_host, port=int(memcache_port)
+                )
+            else:
+                from nodetool.storage.memory_node_cache import MemoryNodeCache
 
-            return MemoryNodeCache()
+                cls.node_cache = MemoryNodeCache()
+
+        return cls.node_cache
 
     @classmethod
     def get_db_path(cls):

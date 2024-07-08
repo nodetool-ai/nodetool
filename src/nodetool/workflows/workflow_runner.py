@@ -261,7 +261,6 @@ class WorkflowRunner:
 
         try:
             inputs = context.get_node_inputs(node.id)
-            print("node inputs", inputs)
 
             for name, value in inputs.items():
                 node.assign_property(name, value)
@@ -290,8 +289,6 @@ class WorkflowRunner:
                 result = await node.convert_output(context, result)
 
                 context.cache_result(node, result)
-
-            print("node result", result)
 
             res_for_update = self.prepare_result_for_update(result, node)
 

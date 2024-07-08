@@ -67,7 +67,10 @@ async def convert_output_value(
             if output_key in value:
                 return t(uri=value[output_key]).model_dump()
             else:
-                raise ValueError(f"Output key not found: {output_key}")
+                if len(value) == 0:
+                    raise ValueError(f"Invalid {t} value: {value}")
+                uri = list(value.values())[0]
+                return t(uri=uri).model_dump()
         elif type(value) == str:
             return t(uri=value).model_dump()
         else:
