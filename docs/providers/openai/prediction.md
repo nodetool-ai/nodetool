@@ -1,56 +1,50 @@
 # nodetool.providers.openai.prediction
 
-#### `create_chat_completion`
+### create_chat_completion
 
-**Parameters:**
+**Args:**
+- **prediction (Prediction)**
+- **params (dict[str, typing.Any])**
 
-- `prediction` (Prediction)
-- `params` (dict[str, typing.Any])
+**Returns:** Any
 
-**Returns:** `Any`
+### create_embedding
 
-#### `create_embedding`
+**Args:**
+- **prediction (Prediction)**
+- **input (str)**
 
-**Parameters:**
+**Returns:** Any
 
-- `prediction` (Prediction)
-- `input` (str)
+### create_image
 
-**Returns:** `Any`
+**Args:**
+- **prediction (Prediction)**
+- **params (dict)**
 
-#### `create_image`
+**Returns:** Any
 
-**Parameters:**
+### create_speech
 
-- `prediction` (Prediction)
-- `params` (dict)
+**Args:**
+- **prediction (Prediction)**
+- **params (dict)**
 
-**Returns:** `Any`
+**Returns:** Any
 
-#### `create_speech`
+### create_whisper
 
-**Parameters:**
+**Args:**
+- **prediction (Prediction)**
+- **params (dict)**
 
-- `prediction` (Prediction)
-- `params` (dict)
+**Returns:** Any
 
-**Returns:** `Any`
+### run_openai
 
-#### `create_whisper`
+**Args:**
+- **prediction (Prediction)**
+- **params (dict)**
 
-**Parameters:**
-
-- `prediction` (Prediction)
-- `params` (dict)
-
-**Returns:** `Any`
-
-#### `run_openai`
-
-**Parameters:**
-
-- `prediction` (Prediction)
-- `params` (dict)
-
-**Returns:** `Any`
+**Returns:** Any
 

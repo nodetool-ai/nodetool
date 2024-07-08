@@ -15,9 +15,9 @@ These vectors capture semantic meaning, enabling:
 
 **Tags:** embeddings, similarity, search, clustering, classification
 
-- **input** (`str | nodetool.metadata.types.TextRef`)
-- **model** (`EmbeddingModel`)
-- **chunk_size** (`int`)
+- **input** (str | nodetool.metadata.types.TextRef)
+- **model** (EmbeddingModel)
+- **chunk_size** (int)
 
 ## EmbeddingModel
 
@@ -35,15 +35,15 @@ Leverages OpenAI's GPT models to:
 
 **Tags:** llm, text-generation, chatbot, question-answering
 
-- **model** (`GPTModel`)
-- **system** (`str`)
-- **prompt** (`str`)
-- **image** (`ImageRef`)
-- **presence_penalty** (`float`)
-- **frequency_penalty** (`float`)
-- **temperature** (`float`)
-- **max_tokens** (`int`)
-- **top_p** (`float`)
+- **model** (GPTModel)
+- **system** (str)
+- **prompt** (str)
+- **image** (ImageRef)
+- **presence_penalty** (float)
+- **frequency_penalty** (float)
+- **temperature** (float)
+- **max_tokens** (int)
+- **top_p** (float)
 
 ## ResponseFormat
 

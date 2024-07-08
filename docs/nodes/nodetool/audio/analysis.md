@@ -10,7 +10,7 @@ This node is useful for:
 
 **Tags:** audio, analysis, spectrogram
 
-- **tensor**: The amplitude tensor to be converted to dB scale. (`Tensor`)
+- **tensor**: The amplitude tensor to be converted to dB scale. (Tensor)
 
 ## ChromaSTFT
 
@@ -21,9 +21,9 @@ Applications:
 
 **Tags:** 
 
-- **audio**: The audio file to extract chromagram from. (`AudioRef`)
-- **n_fft**: The number of samples per frame. (`int`)
-- **hop_length**: The number of samples between frames. (`int`)
+- **audio**: The audio file to extract chromagram from. (AudioRef)
+- **n_fft**: The number of samples per frame. (int)
+- **hop_length**: The number of samples between frames. (int)
 
 ## DBToAmplitude
 
@@ -34,7 +34,7 @@ Useful for:
 
 **Tags:** 
 
-- **tensor**: The dB-scaled tensor to be converted to amplitude scale. (`Tensor`)
+- **tensor**: The dB-scaled tensor to be converted to amplitude scale. (Tensor)
 
 ## DBToPower
 
@@ -46,7 +46,7 @@ Useful for:
 
 **Tags:** audio, analysis, spectrogram
 
-- **tensor**: The tensor containing the decibel spectrogram. (`Tensor`)
+- **tensor**: The tensor containing the decibel spectrogram. (Tensor)
 
 ## GriffinLim
 
@@ -58,24 +58,24 @@ Applications:
 
 **Tags:** audio, synthesis, phase reconstruction
 
-- **magnitude_spectrogram**: Magnitude spectrogram input for phase reconstruction. (`Tensor`)
-- **n_iter**: Number of iterations for the Griffin-Lim algorithm. (`int`)
-- **hop_length**: Number of samples between successive frames. (`int`)
-- **win_length**: Each frame of audio is windowed by `window()`. The window will be of length `win_length` and then padded with zeros to match `n_fft`. (`typing.Optional[int]`)
-- **window**: Type of window to use for Griffin-Lim transformation. (`str`)
-- **center**: If True, the signal `y` is padded so that frame `D[:, t]` is centered at `y[t * hop_length]`. (`bool`)
-- **length**: If given, the resulting signal will be zero-padded or clipped to this length. (`typing.Optional[int]`)
+- **magnitude_spectrogram**: Magnitude spectrogram input for phase reconstruction. (Tensor)
+- **n_iter**: Number of iterations for the Griffin-Lim algorithm. (int)
+- **hop_length**: Number of samples between successive frames. (int)
+- **win_length**: Each frame of audio is windowed by `window()`. The window will be of length `win_length` and then padded with zeros to match `n_fft`. (typing.Optional[int])
+- **window**: Type of window to use for Griffin-Lim transformation. (str)
+- **center**: If True, the signal `y` is padded so that frame `D[:, t]` is centered at `y[t * hop_length]`. (bool)
+- **length**: If given, the resulting signal will be zero-padded or clipped to this length. (typing.Optional[int])
 
 ## MFCC
 
 MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.
 
-- **audio**: The audio file to extract MFCCs from. (`AudioRef`)
-- **n_mfcc**: The number of MFCCs to extract. (`int`)
-- **n_fft**: The number of samples per frame. (`int`)
-- **hop_length**: The number of samples between frames. (`int`)
-- **fmin**: The lowest frequency (in Hz). (`int`)
-- **fmax**: The highest frequency (in Hz). (`int`)
+- **audio**: The audio file to extract MFCCs from. (AudioRef)
+- **n_mfcc**: The number of MFCCs to extract. (int)
+- **n_fft**: The number of samples per frame. (int)
+- **hop_length**: The number of samples between frames. (int)
+- **fmin**: The lowest frequency (in Hz). (int)
+- **fmax**: The highest frequency (in Hz). (int)
 
 ## MelSpectrogram
 
@@ -87,12 +87,12 @@ Useful for:
 
 **Tags:** audio, analysis, spectrogram
 
-- **audio**: The audio file to convert to a tensor. (`AudioRef`)
-- **n_fft**: The number of samples per frame. (`int`)
-- **hop_length**: The number of samples between frames. (`int`)
-- **n_mels**: The number of Mel bands to generate. (`int`)
-- **fmin**: The lowest frequency (in Hz). (`int`)
-- **fmax**: The highest frequency (in Hz). (`int`)
+- **audio**: The audio file to convert to a tensor. (AudioRef)
+- **n_fft**: The number of samples per frame. (int)
+- **hop_length**: The number of samples between frames. (int)
+- **n_mels**: The number of Mel bands to generate. (int)
+- **fmin**: The lowest frequency (in Hz). (int)
+- **fmax**: The highest frequency (in Hz). (int)
 
 ## PlotSpectrogram
 
@@ -104,14 +104,14 @@ The PlotSpectrogram node generates a visual representation of the spectrum of fr
 
 **Tags:** 
 
-- **tensor**: The tensor containing the mel spectrogram. (`Tensor`)
-- **fmax**: The highest frequency (in Hz). (`int`)
+- **tensor**: The tensor containing the mel spectrogram. (Tensor)
+- **fmax**: The highest frequency (in Hz). (int)
 
 ## PowertToDB
 
 Converts a power spectrogram to decibel (dB) scale.
 
-- **tensor**: The tensor containing the power spectrogram. (`Tensor`)
+- **tensor**: The tensor containing the power spectrogram. (Tensor)
 
 ## STFT
 
@@ -125,12 +125,12 @@ This node computes the Short-Time Fourier Transform (STFT) matrix for an audio s
 
 **Tags:** The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.
 
-- **audio**: The audio file to compute the STFT matrix from. (`AudioRef`)
-- **n_fft**: The number of samples per frame. (`int`)
-- **hop_length**: The number of samples between frames. (`int`)
-- **win_length**: The window length. If None, it defaults to n_fft. (`typing.Optional[int]`)
-- **window**: The type of window to use. (`str`)
-- **center**: If True, input signal is padded so that frame D[:, t] is centered at y[t * hop_length]. (`bool`)
+- **audio**: The audio file to compute the STFT matrix from. (AudioRef)
+- **n_fft**: The number of samples per frame. (int)
+- **hop_length**: The number of samples between frames. (int)
+- **win_length**: The window length. If None, it defaults to n_fft. (typing.Optional[int])
+- **window**: The type of window to use. (str)
+- **center**: If True, input signal is padded so that frame D[:, t] is centered at y[t * hop_length]. (bool)
 
 ## SpectralContrast
 
@@ -144,7 +144,7 @@ Useful note: The `n_fft` and `hop_length` parameters affect the resolution of th
 
 **Tags:** 
 
-- **audio**: The audio file to extract spectral contrast from. (`AudioRef`)
-- **n_fft**: The number of samples per frame. (`int`)
-- **hop_length**: The number of samples between frames. (`int`)
+- **audio**: The audio file to extract spectral contrast from. (AudioRef)
+- **n_fft**: The number of samples per frame. (int)
+- **hop_length**: The number of samples between frames. (int)
 

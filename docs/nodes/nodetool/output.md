@@ -11,10 +11,10 @@ Use cases:
 
 **Tags:** audio, sound, media
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`AudioRef`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (AudioRef)
 
 ## BooleanOutput
 
@@ -27,15 +27,14 @@ Use cases:
 
 **Tags:** boolean, true/false, flag
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`bool`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (bool)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## ChatOutput
 
@@ -48,15 +47,14 @@ Use cases:
 
 **Tags:** chat, messages, conversation
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value**: The messages to display in the chat. (`list[nodetool.metadata.types.Message]`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value**: The messages to display in the chat. (list[nodetool.metadata.types.Message])
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## ComfyImageOutput
 
@@ -69,17 +67,16 @@ Use cases:
 
 **Tags:** image, tensor, raw
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value**: A raw image tensor. (`ImageTensor`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value**: A raw image tensor. (ImageTensor)
 
-#### `assign_property`
+### assign_property
 
-**Parameters:**
-
-- `name` (str)
-- `value` (Any)
+**Args:**
+- **name (str)**
+- **value (Any)**
 
 ## DataframeOutput
 
@@ -92,10 +89,10 @@ Use cases:
 
 **Tags:** dataframe, table, structured
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`DataframeRef`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (DataframeRef)
 
 ## DictionaryOutput
 
@@ -108,10 +105,10 @@ Use cases:
 
 **Tags:** dictionary, key-value, mapping
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`dict[str, typing.Any]`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (dict[str, typing.Any])
 
 ## FloatOutput
 
@@ -124,15 +121,14 @@ Use cases:
 
 **Tags:** float, decimal, number
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`float`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (float)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## GroupOutput
 
@@ -145,7 +141,7 @@ Use cases:
 
 **Tags:** group, composite, multi-output
 
-- **input** (`Any`)
+- **input** (Any)
 
 ## ImageListOutput
 
@@ -157,15 +153,14 @@ Use cases:
 
 **Tags:** images, list, gallery
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value**: The images to display. (`list[nodetool.metadata.types.ImageRef]`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value**: The images to display. (list[nodetool.metadata.types.ImageRef])
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## ImageOutput
 
@@ -178,15 +173,14 @@ Use cases:
 
 **Tags:** image, picture, visual
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`ImageRef`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (ImageRef)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## IntegerOutput
 
@@ -199,15 +193,14 @@ Use cases:
 
 **Tags:** integer, number, count
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`int`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (int)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## ListOutput
 
@@ -219,15 +212,14 @@ Use cases:
 
 **Tags:** list, output, any
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`list[typing.Any]`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (list[typing.Any])
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## ModelOutput
 
@@ -240,10 +232,10 @@ Use cases:
 
 **Tags:** model, ml, ai
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`ModelRef`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (ModelRef)
 
 ## StringOutput
 
@@ -256,15 +248,14 @@ Use cases:
 
 **Tags:** string, text, output
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`str`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (str)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## TensorOutput
 
@@ -277,10 +268,10 @@ Use cases:
 
 **Tags:** tensor, array, numerical
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`Tensor`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (Tensor)
 
 ## TextOutput
 
@@ -293,15 +284,14 @@ Use cases:
 
 **Tags:** text, content, document
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`TextRef`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (TextRef)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## VideoOutput
 
@@ -314,8 +304,8 @@ Use cases:
 
 **Tags:** video, media, clip
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
-- **value** (`VideoRef`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
+- **value** (VideoRef)
 

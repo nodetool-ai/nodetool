@@ -2,10 +2,9 @@
 
 ## AssetSchemaMixin
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## AudioFolder
 
@@ -18,11 +17,11 @@ Use cases:
 
 **Tags:** input, parameter, folder, audio
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **folder**: The folder to use as input. (`FolderRef`)
-- **limit** (`int`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **folder**: The folder to use as input. (FolderRef)
+- **limit** (int)
 
 ## AudioInput
 
@@ -35,10 +34,10 @@ Use cases:
 
 **Tags:** input, parameter, audio
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value**: The audio to use as input. (`AudioRef`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value**: The audio to use as input. (AudioRef)
 
 ## BooleanInput
 
@@ -51,15 +50,14 @@ Use cases:
 
 **Tags:** input, parameter, boolean, bool
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value** (`bool`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value** (bool)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## ChatInput
 
@@ -72,15 +70,14 @@ Use cases:
 
 **Tags:** input, parameter, chat, message
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value** (`str`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value** (str)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## ComfyImageInput
 
@@ -93,10 +90,10 @@ Use cases:
 
 **Tags:** input, parameter, image
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value**: The image to use as input. (`ImageRef`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value**: The image to use as input. (ImageRef)
 
 ## FloatInput
 
@@ -109,17 +106,16 @@ Use cases:
 
 **Tags:** input, parameter, float, number
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value** (`float`)
-- **min** (`float`)
-- **max** (`float`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value** (float)
+- **min** (float)
+- **max** (float)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## Folder
 
@@ -132,11 +128,11 @@ Use cases:
 
 **Tags:** input, parameter, folder
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **folder**: The folder to use as input. (`FolderRef`)
-- **limit** (`int`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **folder**: The folder to use as input. (FolderRef)
+- **limit** (int)
 
 ## GroupInput
 
@@ -160,11 +156,11 @@ Use cases:
 
 **Tags:** input, parameter, folder, image
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **folder**: The folder to use as input. (`FolderRef`)
-- **limit** (`int`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **folder**: The folder to use as input. (FolderRef)
+- **limit** (int)
 
 ## ImageInput
 
@@ -177,10 +173,10 @@ Use cases:
 
 **Tags:** input, parameter, image
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value**: The image to use as input. (`ImageRef`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value**: The image to use as input. (ImageRef)
 
 ## IntegerInput
 
@@ -193,17 +189,16 @@ Use cases:
 
 **Tags:** input, parameter, integer, number
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value** (`int`)
-- **min** (`int`)
-- **max** (`int`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value** (int)
+- **min** (int)
+- **max** (int)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## StringInput
 
@@ -216,15 +211,14 @@ Use cases:
 
 **Tags:** input, parameter, string, text
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value** (`str`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value** (str)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## TextFolder
 
@@ -237,11 +231,11 @@ Use cases:
 
 **Tags:** input, parameter, folder, text
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **folder**: The folder to use as input. (`FolderRef`)
-- **limit** (`int`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **folder**: The folder to use as input. (FolderRef)
+- **limit** (int)
 
 ## TextInput
 
@@ -254,15 +248,14 @@ Use cases:
 
 **Tags:** input, parameter, text
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value**: The text to use as input. (`TextRef`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value**: The text to use as input. (TextRef)
 
-#### `get_json_schema`
+### get_json_schema
 
-**Parameters:**
-
+**Args:**
 
 ## VideoFolder
 
@@ -275,11 +268,11 @@ Use cases:
 
 **Tags:** input, parameter, folder, video
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **folder**: The folder to use as input. (`FolderRef`)
-- **limit** (`int`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **folder**: The folder to use as input. (FolderRef)
+- **limit** (int)
 
 ## VideoInput
 
@@ -292,8 +285,8 @@ Use cases:
 
 **Tags:** input, parameter, video
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
-- **value**: The video to use as input. (`VideoRef`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
+- **value**: The video to use as input. (VideoRef)
 

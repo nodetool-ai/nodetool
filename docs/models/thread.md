@@ -2,8 +2,8 @@
 
 ## Thread
 
-- **id** (`str`)
-- **user_id** (`str`)
-- **created_at** (`datetime`)
-- **updated_at** (`datetime`)
+- **id** (str)
+- **user_id** (str)
+- **created_at** (datetime)
+- **updated_at** (datetime)
 

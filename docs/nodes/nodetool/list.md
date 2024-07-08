@@ -11,8 +11,8 @@ Use cases:
 
 **Tags:** list, add, insert, extend
 
-- **values** (`list[typing.Any]`)
-- **value** (`Any`)
+- **values** (list[typing.Any])
+- **value** (Any)
 
 ## DedupeList
 
@@ -25,7 +25,7 @@ Use cases:
 
 **Tags:** list, unique, distinct, deduplicate
 
-- **values** (`list[typing.Any]`)
+- **values** (list[typing.Any])
 
 ## ExtendList
 
@@ -37,8 +37,8 @@ Use cases:
 
 **Tags:** list, merge, concatenate, combine
 
-- **values** (`list[typing.Any]`)
-- **other_values** (`list[typing.Any]`)
+- **values** (list[typing.Any])
+- **other_values** (list[typing.Any])
 
 ## ExtractSubList
 
@@ -51,10 +51,10 @@ Use cases:
 
 **Tags:** list, slice, subset, extract
 
-- **values** (`list[typing.Any]`)
-- **start** (`int`)
-- **stop** (`int`)
-- **step** (`int`)
+- **values** (list[typing.Any])
+- **start** (int)
+- **stop** (int)
+- **step** (int)
 
 ## FilterList
 
@@ -66,8 +66,8 @@ Use cases:
 
 **Tags:** list, filter, condition, select
 
-- **values**: The list to filter. (`list[typing.Any]`)
-- **condition**: The Python code to use as the filtering condition. (`str`)
+- **values**: The list to filter. (list[typing.Any])
+- **condition**: The Python code to use as the filtering condition. (str)
 
 ## GenerateNumberSequence
 
@@ -80,9 +80,9 @@ Use cases:
 
 **Tags:** list, range, sequence, numbers
 
-- **start** (`int`)
-- **stop** (`int`)
-- **step** (`int`)
+- **start** (int)
+- **stop** (int)
+- **step** (int)
 
 ## GetListElement
 
@@ -95,8 +95,8 @@ Use cases:
 
 **Tags:** list, get, extract, value
 
-- **values** (`list[typing.Any]`)
-- **index** (`int`)
+- **values** (list[typing.Any])
+- **index** (int)
 
 ## ListLength
 
@@ -109,7 +109,7 @@ Use cases:
 
 **Tags:** list, count, size
 
-- **values** (`list[typing.Any]`)
+- **values** (list[typing.Any])
 
 ## ReduceList
 
@@ -127,9 +127,9 @@ Example reduction code:
 
 **Tags:** list, reduce, aggregate, accumulate
 
-- **values**: The list to reduce. (`list[typing.Any]`)
-- **initial_value**: The initial value for the reduction. If not provided, the first value in the list is used. (`Any`)
-- **reduction_code**: The Python code to use for the reduction. (`str`)
+- **values**: The list to reduce. (list[typing.Any])
+- **initial_value**: The initial value for the reduction. If not provided, the first value in the list is used. (Any)
+- **reduction_code**: The Python code to use for the reduction. (str)
 
 ## ReverseList
 
@@ -140,7 +140,7 @@ Use cases:
 
 **Tags:** list, reverse, invert, flip
 
-- **values** (`list[typing.Any]`)
+- **values** (list[typing.Any])
 
 ## SaveList
 
@@ -153,8 +153,8 @@ Use cases:
 
 **Tags:** list, save, file, serialize
 
-- **values**: The list to save. (`list[typing.Any]`)
-- **name** (`str`)
+- **values**: The list to save. (list[typing.Any])
+- **name** (str)
 
 ## SelectListElements
 
@@ -167,8 +167,8 @@ Use cases:
 
 **Tags:** list, select, index, extract
 
-- **values** (`list[typing.Any]`)
-- **indices** (`list[int]`)
+- **values** (list[typing.Any])
+- **indices** (list[int])
 
 ## TransformListElements
 
@@ -184,6 +184,6 @@ Example mapping code:
 
 **Tags:** list, transform, modify, apply
 
-- **values**: The list to map. (`list[typing.Any]`)
-- **code**: Python code to use for mapping. (`str`)
+- **values**: The list to map. (list[typing.Any])
+- **code**: Python code to use for mapping. (str)
 

@@ -2,177 +2,152 @@
 
 ## SQLiteAdapter
 
-#### `create_table`
+### create_table
 
-**Parameters:**
+**Args:**
+- **suffix (str) (default: )**
 
-- `suffix` (str) (default: ``)
+**Returns:** None
 
-**Returns:** `None`
+### delete
 
-#### `delete`
+**Args:**
+- **primary_key (Any)**
 
-**Parameters:**
+**Returns:** None
 
-- `primary_key` (Any)
+### drop_table
 
-**Returns:** `None`
+**Args:**
 
-#### `drop_table`
+**Returns:** None
 
-**Parameters:**
+### get
 
+**Args:**
+- **key (Any)**
 
-**Returns:** `None`
+**Returns:** typing.Optional[typing.Dict[str, typing.Any]]
 
-#### `get`
-
-**Parameters:**
-
-- `key` (Any)
-
-**Returns:** `typing.Optional[typing.Dict[str, typing.Any]]`
-
-#### `get_current_schema`
+### get_current_schema
 
 Retrieves the current schema of the table from the database.
+**Args:**
 
-**Parameters:**
+**Returns:** set[str]
 
-
-**Returns:** `set[str]`
-
-#### `get_desired_schema`
+### get_desired_schema
 
 Retrieves the desired schema based on the defined fields.
+**Args:**
 
-**Parameters:**
+**Returns:** set[str]
 
-
-**Returns:** `set[str]`
-
-#### `get_primary_key`
+### get_primary_key
 
 Get the name of the hash key.
+**Args:**
 
-**Parameters:**
+**Returns:** str
 
-
-**Returns:** `str`
-
-#### `migrate_table`
+### migrate_table
 
 Inspects the current schema of the database and migrates the table to the desired schema.
+**Args:**
 
-**Parameters:**
+**Returns:** None
 
+### query
 
-**Returns:** `None`
+**Args:**
+- **condition (str)**
+- **values (typing.Dict[str, typing.Any])**
+- **limit (int) (default: 100)**
+- **reverse (bool) (default: False)**
+- **start_key (str | None) (default: None)**
+- **index (str | None) (default: None)**
 
-#### `query`
+**Returns:** tuple[list[dict[str, typing.Any]], str]
 
-**Parameters:**
+### save
 
-- `condition` (str)
-- `values` (typing.Dict[str, typing.Any])
-- `limit` (int) (default: `100`)
-- `reverse` (bool) (default: `False`)
-- `start_key` (str | None) (default: `None`)
-- `index` (str | None) (default: `None`)
+**Args:**
+- **item (typing.Dict[str, typing.Any])**
 
-**Returns:** `tuple[list[dict[str, typing.Any]], str]`
+**Returns:** None
 
-#### `save`
+### table_exists
 
-**Parameters:**
+**Args:**
 
-- `item` (typing.Dict[str, typing.Any])
+**Returns:** bool
 
-**Returns:** `None`
-
-#### `table_exists`
-
-**Parameters:**
-
-
-**Returns:** `bool`
-
-#### `convert_from_sqlite_attributes`
+### convert_from_sqlite_attributes
 
 Convert a dictionary of attributes from SQLite to a dictionary of Python types based on the provided fields.
+**Args:**
+- **attributes (typing.Dict[str, typing.Any])**
+- **fields (typing.Dict[str, pydantic.fields.FieldInfo])**
 
-**Parameters:**
+**Returns:** typing.Dict[str, typing.Any]
 
-- `attributes` (typing.Dict[str, typing.Any])
-- `fields` (typing.Dict[str, pydantic.fields.FieldInfo])
-
-**Returns:** `typing.Dict[str, typing.Any]`
-
-#### `convert_from_sqlite_format`
+### convert_from_sqlite_format
 
 Convert a value from SQLite to a Python type based on the provided Python type.
-    Deserialize JSON strings to lists and dicts.
+Deserialize JSON strings to lists and dicts.
 
-    :param value: The value to convert, or None.
-    :param py_type: The Python type of the value.
-    :return: The value converted to a Python type.
+- ****: param value: The value to convert, or None.
+- ****: param py_type: The Python type of the value.
+- ****: return: The value converted to a Python type.
+**Args:**
+- **value (Any)**
+- **py_type (typing.Type)**
 
-**Parameters:**
+**Returns:** Any
 
-- `value` (Any)
-- `py_type` (typing.Type)
-
-**Returns:** `Any`
-
-#### `convert_to_sqlite_attributes`
+### convert_to_sqlite_attributes
 
 Convert a dictionary of attributes from SQLite to a dictionary of Python types based on the provided fields.
+**Args:**
+- **attributes (typing.Dict[str, typing.Any])**
+- **fields (typing.Dict[str, pydantic.fields.FieldInfo])**
 
-**Parameters:**
+**Returns:** typing.Dict[str, typing.Any]
 
-- `attributes` (typing.Dict[str, typing.Any])
-- `fields` (typing.Dict[str, pydantic.fields.FieldInfo])
-
-**Returns:** `typing.Dict[str, typing.Any]`
-
-#### `convert_to_sqlite_format`
+### convert_to_sqlite_format
 
 Convert a Python value to a format suitable for SQLite based on the provided Python type.
-    Serialize lists and dicts to JSON strings. Encode bytes using base64.
+Serialize lists and dicts to JSON strings. Encode bytes using base64.
 
-    :param value: The value to convert, or None.
-    :param py_type: The Python type of the value.
-    :return: The value converted to a SQLite-compatible format.
+- ****: param value: The value to convert, or None.
+- ****: param py_type: The Python type of the value.
+- ****: return: The value converted to a SQLite-compatible format.
+**Args:**
+- **value (Any)**
+- **py_type (typing.Type)**
 
-**Parameters:**
+**Returns:** typing.Union[int, float, str, bytes, NoneType]
 
-- `value` (Any)
-- `py_type` (typing.Type)
+### get_sqlite_type
 
-**Returns:** `typing.Union[int, float, str, bytes, NoneType]`
+**Args:**
+- **field_type (Any)**
 
-#### `get_sqlite_type`
+**Returns:** str
 
-**Parameters:**
-
-- `field_type` (Any)
-
-**Returns:** `str`
-
-#### `translate_condition_to_sql`
+### translate_condition_to_sql
 
 Translates a condition string with custom syntax into an SQLite-compatible SQL condition string using regex.
 
-    Args:
-    - condition (str): The condition string to translate, e.g.,
-                       "user_id = :user_id AND begins_with(content_type, :content_type)".
 
-    Returns:
-    - str: The translated SQL condition string compatible with SQLite.
+**Args:**
 
-**Parameters:**
 
-- `condition` (str)
+- condition (str): The condition string to translate, e.g.,
+- **"user_id =**: user_id AND begins_with(content_type, :content_type)".
 
-**Returns:** `str`
 
+**Returns:**
+
+
+- str: The translated SQL condition string compatible with SQLite.

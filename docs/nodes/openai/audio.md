@@ -12,10 +12,10 @@ Use cases:
 
 **Tags:** audio, tts, text-to-speech, voice, synthesis
 
-- **model** (`TtsModel`)
-- **voice** (`Voice`)
-- **input** (`str`)
-- **speed** (`float`)
+- **model** (TtsModel)
+- **voice** (Voice)
+- **input** (str)
+- **speed** (float)
 
 ## Transcribe
 
@@ -29,8 +29,8 @@ Use cases:
 
 **Tags:** audio, transcription, speech-to-text, stt
 
-- **audio**: The audio file to transcribe. (`AudioRef`)
-- **temperature**: The temperature to use for the transcription. (`float`)
+- **audio**: The audio file to transcribe. (AudioRef)
+- **temperature**: The temperature to use for the transcription. (float)
 
 ## Translate
 
@@ -44,6 +44,6 @@ Use cases:
 
 **Tags:** audio, translation, speech-to-text, localization
 
-- **audio**: The audio file to translate. (`AudioRef`)
-- **temperature**: The temperature to use for the translation. (`float`)
+- **audio**: The audio file to translate. (AudioRef)
+- **temperature**: The temperature to use for the translation. (float)
 

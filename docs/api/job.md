@@ -1,47 +1,40 @@
 # nodetool.api.job
 
-#### `get`
+### get
 
 Returns the status of a job.
+**Args:**
+- **id (str)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
+**Returns:** Job
 
-- `id` (str)
-- `user` (User) (default: `Depends(current_user)`)
-
-**Returns:** `Job`
-
-#### `index`
+### index
 
 Returns all assets for a given user or workflow.
+**Args:**
+- **workflow_id (str | None) (default: None)**
+- **cursor (str | None) (default: None)**
+- **page_size (int | None) (default: None)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
+**Returns:** JobList
 
-- `workflow_id` (str | None) (default: `None`)
-- `cursor` (str | None) (default: `None`)
-- `page_size` (int | None) (default: `None`)
-- `user` (User) (default: `Depends(current_user)`)
+### run
 
-**Returns:** `JobList`
+**Args:**
+- **request (Request)**
+- **job_request (RunJobRequest)**
+- **execute (bool) (default: True)**
+- **user (User) (default: Depends(current_user))**
 
-#### `run`
-
-**Parameters:**
-
-- `request` (Request)
-- `job_request` (RunJobRequest)
-- `execute` (bool) (default: `True`)
-- `user` (User) (default: `Depends(current_user)`)
-
-#### `update`
+### update
 
 Update a job.
+**Args:**
+- **id (str)**
+- **req (JobUpdate)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
-
-- `id` (str)
-- `req` (JobUpdate)
-- `user` (User) (default: `Depends(current_user)`)
-
-**Returns:** `Job`
+**Returns:** Job
 

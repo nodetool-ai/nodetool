@@ -24,19 +24,15 @@ respectively.
 
 **Tags:** 
 
-#### `get_data_path`
+### get_data_path
 
 Get the default database path.
+**Args:**
+- **filename (str)**
 
-**Parameters:**
-
-- `filename` (str)
-
-#### `get_system_file_path`
+### get_system_file_path
 
 Returns the path to the settings file for the current OS.
-
-**Parameters:**
-
-- `filename` (str)
+**Args:**
+- **filename (str)**
 

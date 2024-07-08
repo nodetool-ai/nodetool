@@ -2,65 +2,61 @@
 
 ## AuthRequest
 
-- **token** (`str`)
+- **token** (str)
 
 ## OAuthAuthorizeRequest
 
-- **provider** (`OAuthProvider`)
-- **state** (`str`)
-- **authorization_response** (`str`)
-- **redirect_uri** (`str`)
+- **provider** (OAuthProvider)
+- **state** (str)
+- **authorization_response** (str)
+- **redirect_uri** (str)
 
 ## OAuthLoginRequest
 
-- **redirect_uri** (`str`)
-- **provider** (`OAuthProvider`)
+- **redirect_uri** (str)
+- **provider** (OAuthProvider)
 
 ## OAuthLoginResponse
 
-- **url** (`str`)
-- **state** (`str`)
+- **url** (str)
+- **state** (str)
 
 ## OAuthProvider
 
 ## TokenRequest
 
-- **token** (`str`)
+- **token** (str)
 
 ## TokenResponse
 
-- **valid** (`bool`)
+- **valid** (bool)
 
-#### `get_user_email`
+### get_user_email
 
-**Parameters:**
+**Args:**
+- **client (OAuth2Session)**
+- **provider (OAuthProvider)**
 
-- `client` (OAuth2Session)
-- `provider` (OAuthProvider)
+**Returns:** str
 
-**Returns:** `str`
+### oauth_callback
 
-#### `oauth_callback`
+**Args:**
+- **auth (OAuthAuthorizeRequest)**
 
-**Parameters:**
+**Returns:** User
 
-- `auth` (OAuthAuthorizeRequest)
+### oauth_login
 
-**Returns:** `User`
+**Args:**
+- **login (OAuthLoginRequest)**
 
-#### `oauth_login`
+**Returns:** OAuthLoginResponse
 
-**Parameters:**
+### verify
 
-- `login` (OAuthLoginRequest)
+**Args:**
+- **auth (AuthRequest)**
 
-**Returns:** `OAuthLoginResponse`
-
-#### `verify`
-
-**Parameters:**
-
-- `auth` (AuthRequest)
-
-**Returns:** `TokenResponse`
+**Returns:** TokenResponse
 

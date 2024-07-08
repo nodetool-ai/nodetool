@@ -1,41 +1,35 @@
 # nodetool.api.prediction
 
-#### `create`
+### create
 
-**Parameters:**
+**Args:**
+- **req (PredictionCreateRequest)**
+- **user (User) (default: Depends(current_user))**
 
-- `req` (PredictionCreateRequest)
-- `user` (User) (default: `Depends(current_user)`)
+### get
 
-#### `get`
+**Args:**
+- **id (str)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
+**Returns:** Prediction
 
-- `id` (str)
-- `user` (User) (default: `Depends(current_user)`)
-
-**Returns:** `Prediction`
-
-#### `index`
+### index
 
 Returns all assets for a given user or workflow.
+**Args:**
+- **cursor (typing.Optional[str]) (default: None)**
+- **page_size (typing.Optional[int]) (default: None)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
+**Returns:** PredictionList
 
-- `cursor` (typing.Optional[str]) (default: `None`)
-- `page_size` (typing.Optional[int]) (default: `None`)
-- `user` (User) (default: `Depends(current_user)`)
-
-**Returns:** `PredictionList`
-
-#### `run_prediction`
+### run_prediction
 
 Run the prediction for a given model.
+**Args:**
+- **req (PredictionCreateRequest)**
+- **user_id (str)**
 
-**Parameters:**
-
-- `req` (PredictionCreateRequest)
-- `user_id` (str)
-
-**Returns:** `typing.AsyncGenerator[nodetool.types.prediction.Prediction | nodetool.types.prediction.PredictionResult, NoneType]`
+**Returns:** typing.AsyncGenerator[nodetool.types.prediction.Prediction | nodetool.types.prediction.PredictionResult, NoneType]
 

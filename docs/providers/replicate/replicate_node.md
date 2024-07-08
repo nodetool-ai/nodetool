@@ -14,141 +14,122 @@ convert_output: Converts the output to the specified type.
 **Tags:** 
 
 
-#### `convert_output`
+### convert_output
 
 Convert the output to the specified type.
 
-        Args:
-            context: The processing context.
-            output: The output to be converted.
 
-        Returns:
-            The converted output.
+**Args:**
 
-**Parameters:**
-
-- `context` (ProcessingContext)
-- `output` (Any)
-
-**Returns:** `Any`
-
-#### `get_output_index`
-
-**Parameters:**
+- **context**: The processing context.
+- **output**: The output to be converted.
 
 
-**Returns:** `int`
+**Returns:**
 
-#### `output_key`
+The converted output.
+### get_output_index
 
-**Parameters:**
+**Args:**
 
+**Returns:** int
 
-**Returns:** `str`
+### output_key
 
-#### `run_replicate`
+**Args:**
+
+**Returns:** str
+
+### run_replicate
 
 Run prediction on Replicate.
 
-        Args:
-            context: The processing context.
-            params: Optional dictionary of parameters.
 
-        Returns:
-            Result of the prediction.
+**Args:**
 
-**Parameters:**
+- **context**: The processing context.
+- **params**: Optional dictionary of parameters.
 
-- `context` (ProcessingContext)
-- `params` (dict[str, typing.Any] | None) (default: `None`)
 
-#### `add_replicate_model`
+**Returns:**
 
-**Parameters:**
+Result of the prediction.
+### add_replicate_model
 
-- `model_id` (str)
-- `model_info` (dict[str, typing.Any])
+**Args:**
+- **model_id (str)**
+- **model_info (dict[str, typing.Any])**
 
-#### `capitalize`
+### capitalize
 
 Capitalizes the first letter of a string.
 
-    Args:
-        name (str): The string to be capitalized.
 
-    Returns:
-        str: The capitalized string.
+**Args:**
 
-**Parameters:**
+- **name (str)**: The string to be capitalized.
 
-- `name` (str)
 
-**Returns:** `str`
+**Returns:**
 
-#### `convert_enum_value`
+- **str**: The capitalized string.
+### convert_enum_value
 
 Converts an enum value to its corresponding value.
 
-    Args:
-        value (Any): The value to be converted.
 
-    Returns:
-        Any: The converted value.
+**Args:**
 
-**Parameters:**
+- **value (Any)**: The value to be converted.
 
-- `value` (Any)
 
-#### `convert_output_value`
+**Returns:**
+
+- **Any**: The converted value.
+### convert_output_value
 
 Converts the output value to the specified type.
-    Performs automatic conversions using heuristics.
+Performs automatic conversions using heuristics.
 
-    Args:
-        value (Any): The value to be converted.
-        t (Type[Any]): The target type to convert the value to.
-        output_index: The index for list outputs to use.
 
-    Returns:
-        Any: The converted value.
+**Args:**
 
-    Raises:
-        TypeError: If the value is not of the expected type.
+- **value (Any)**: The value to be converted.
+- **t (Type[Any])**: The target type to convert the value to.
+- **output_index**: The index for list outputs to use.
 
-**Parameters:**
 
-- `value` (Any)
-- `t` (typing.Type[typing.Any])
-- `output_index` (int) (default: `0`)
-- `output_key` (str) (default: `output`)
+**Returns:**
 
-#### `parse_model_info`
+- **Any**: The converted value.
+
+
+**Raises:**
+
+- **TypeError**: If the value is not of the expected type.
+### parse_model_info
 
 Parses the replicate model information from the given URL.
 
-    Args:
-        url (str): The URL to fetch the HTML content from.
 
-    Returns:
-        dict: A dictionary containing the parsed model information.
+**Args:**
 
-**Parameters:**
+- **url (str)**: The URL to fetch the HTML content from.
 
-- `url` (str)
 
-#### `sanitize_enum`
+**Returns:**
+
+- **dict**: A dictionary containing the parsed model information.
+### sanitize_enum
 
 Sanitizes an enum string by replacing hyphens, dots, and spaces with underscores.
 
-    Args:
-        enum (str): The enum string to be sanitized.
 
-    Returns:
-        str: The sanitized enum string.
+**Args:**
 
-**Parameters:**
+- **enum (str)**: The enum string to be sanitized.
 
-- `name` (str)
 
-**Returns:** `str`
+**Returns:**
 
+- **str**: The sanitized enum string.

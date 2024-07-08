@@ -12,8 +12,8 @@ Use cases:
 
 **Tags:** image, classification, labeling, categorization
 
-- **model**: The model ID to use for the classification (`ModelId`)
-- **image**: The input image to classify (`ImageRef`)
+- **model**: The model ID to use for the classification (ModelId)
+- **image**: The input image to classify (ImageRef)
 
 ## Segformer
 
@@ -25,7 +25,7 @@ Use cases:
 
 **Tags:** image, segmentation, object detection, scene parsing
 
-- **image**: The input image to segment (`ImageRef`)
+- **image**: The input image to segment (ImageRef)
 
 ## StableDiffusionXL
 
@@ -39,13 +39,13 @@ Use cases:
 
 **Tags:** image, text, generation, synthesis, text-to-image
 
-- **model**: The model ID to use for the image generation (`ModelId`)
-- **inputs**: The input text to the model (`str`)
-- **negative_prompt**: The negative prompt to use. (`str`)
-- **seed** (`int`)
-- **guidance_scale** (`float`)
-- **num_inference_steps** (`int`)
-- **width** (`int`)
-- **height** (`int`)
-- **scheduler** (`Scheduler`)
+- **model**: The model ID to use for the image generation (ModelId)
+- **inputs**: The input text to the model (str)
+- **negative_prompt**: The negative prompt to use. (str)
+- **seed** (int)
+- **guidance_scale** (float)
+- **num_inference_steps** (int)
+- **width** (int)
+- **height** (int)
+- **scheduler** (Scheduler)
 

@@ -1,8 +1,7 @@
 # nodetool.workflows.run_workflow
 
-#### `run_workflow`
+### run_workflow
 
-**Parameters:**
-
-- `req` (RunJobRequest)
+**Args:**
+- **req (RunJobRequest)**
 

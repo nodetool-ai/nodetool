@@ -10,9 +10,9 @@ Use cases:
 
 **Tags:** image, contrast, enhance
 
-- **image**: The image to adjust the contrast for. (`ImageRef`)
-- **clip_limit**: Clip limit for adaptive contrast. (`float`)
-- **grid_size**: Grid size for adaptive contrast. (`int`)
+- **image**: The image to adjust the contrast for. (ImageRef)
+- **clip_limit**: Clip limit for adaptive contrast. (float)
+- **grid_size**: Grid size for adaptive contrast. (int)
 
 ## AutoContrast
 
@@ -25,8 +25,8 @@ Use cases:
 
 **Tags:** image, contrast, balance
 
-- **image**: The image to adjust the contrast for. (`ImageRef`)
-- **cutoff**: Represents the percentage of pixels to ignore at both the darkest and lightest ends of the histogram. A cutoff value of 5 means ignoring the darkest 5% and the lightest 5% of pixels, enhancing overall contrast by stretching the remaining pixel values across the full brightness range. (`int`)
+- **image**: The image to adjust the contrast for. (ImageRef)
+- **cutoff**: Represents the percentage of pixels to ignore at both the darkest and lightest ends of the histogram. A cutoff value of 5 means ignoring the darkest 5% and the lightest 5% of pixels, enhancing overall contrast by stretching the remaining pixel values across the full brightness range. (int)
 
 ## Brightness
 
@@ -39,8 +39,8 @@ Use cases:
 
 **Tags:** image, brightness, enhance
 
-- **image**: The image to adjust the brightness for. (`ImageRef`)
-- **factor**: Factor to adjust the brightness. 1.0 means no change. (`float | int`)
+- **image**: The image to adjust the brightness for. (ImageRef)
+- **factor**: Factor to adjust the brightness. 1.0 means no change. (float | int)
 
 ## Color
 
@@ -53,8 +53,8 @@ Use cases:
 
 **Tags:** image, color, enhance
 
-- **image**: The image to adjust the brightness for. (`ImageRef`)
-- **factor**: Factor to adjust the contrast. 1.0 means no change. (`float`)
+- **image**: The image to adjust the brightness for. (ImageRef)
+- **factor**: Factor to adjust the contrast. 1.0 means no change. (float)
 
 ## Contrast
 
@@ -67,8 +67,8 @@ Use cases:
 
 **Tags:** image, contrast, enhance
 
-- **image**: The image to adjust the brightness for. (`ImageRef`)
-- **factor**: Factor to adjust the contrast. 1.0 means no change. (`float`)
+- **image**: The image to adjust the brightness for. (ImageRef)
+- **factor**: Factor to adjust the contrast. 1.0 means no change. (float)
 
 ## Detail
 
@@ -81,7 +81,7 @@ Use cases:
 
 **Tags:** image, detail, enhance
 
-- **image**: The image to detail. (`ImageRef`)
+- **image**: The image to detail. (ImageRef)
 
 ## EdgeEnhance
 
@@ -94,7 +94,7 @@ Use cases:
 
 **Tags:** image, edge, enhance
 
-- **image**: The image to edge enhance. (`ImageRef`)
+- **image**: The image to edge enhance. (ImageRef)
 
 ## Equalize
 
@@ -107,7 +107,7 @@ Use cases:
 
 **Tags:** image, contrast, histogram
 
-- **image**: The image to equalize. (`ImageRef`)
+- **image**: The image to equalize. (ImageRef)
 
 ## RankFilter
 
@@ -120,9 +120,9 @@ Use cases:
 
 **Tags:** image, filter, enhance
 
-- **image**: The image to rank filter. (`ImageRef`)
-- **size**: Rank filter size. (`int`)
-- **rank**: Rank filter rank. (`int`)
+- **image**: The image to rank filter. (ImageRef)
+- **size**: Rank filter size. (int)
+- **rank**: Rank filter rank. (int)
 
 ## Sharpen
 
@@ -135,7 +135,7 @@ Use cases:
 
 **Tags:** image, sharpen, clarity
 
-- **image**: The image to sharpen. (`ImageRef`)
+- **image**: The image to sharpen. (ImageRef)
 
 ## Sharpness
 
@@ -148,8 +148,8 @@ Use cases:
 
 **Tags:** image, clarity, sharpness
 
-- **image**: The image to adjust the brightness for. (`ImageRef`)
-- **factor**: Factor to adjust the contrast. 1.0 means no change. (`float`)
+- **image**: The image to adjust the brightness for. (ImageRef)
+- **factor**: Factor to adjust the contrast. 1.0 means no change. (float)
 
 ## UnsharpMask
 
@@ -162,36 +162,33 @@ Use cases:
 
 **Tags:** image, sharpen, enhance
 
-- **image**: The image to unsharp mask. (`ImageRef`)
-- **radius**: Unsharp mask radius. (`int`)
-- **percent**: Unsharp mask percent. (`int`)
-- **threshold**: Unsharp mask threshold. (`int`)
+- **image**: The image to unsharp mask. (ImageRef)
+- **radius**: Unsharp mask radius. (int)
+- **percent**: Unsharp mask percent. (int)
+- **threshold**: Unsharp mask threshold. (int)
 
-#### `adaptive_contrast`
+### adaptive_contrast
 
-**Parameters:**
+**Args:**
+- **image (Image)**
+- **clip_limit (float)**
+- **grid_size (int)**
 
-- `image` (Image)
-- `clip_limit` (float)
-- `grid_size` (int)
+**Returns:** Image
 
-**Returns:** `Image`
+### canny_edge_detection
 
-#### `canny_edge_detection`
+**Args:**
+- **image (Image)**
+- **low_threshold (int)**
+- **high_threshold (int)**
 
-**Parameters:**
+**Returns:** Image
 
-- `image` (Image)
-- `low_threshold` (int)
-- `high_threshold` (int)
+### sharpen_image
 
-**Returns:** `Image`
+**Args:**
+- **image (Image)**
 
-#### `sharpen_image`
-
-**Parameters:**
-
-- `image` (Image)
-
-**Returns:** `Image`
+**Returns:** Image
 

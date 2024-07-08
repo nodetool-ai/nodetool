@@ -121,7 +121,6 @@ class WorkflowRunner:
             }
         )
         context.graph = graph
-        print("graph", [n.to_dict() for n in graph.nodes])
 
         input_nodes = {node.name: node for node in graph.inputs()}
         output_nodes = graph.outputs()
@@ -170,7 +169,6 @@ class WorkflowRunner:
             - Checks for cancellation before processing each level.
         """
         sorted_nodes = graph.topological_sort(parent_id)
-        print("sorted_nodes", sorted_nodes)
 
         for level in sorted_nodes:
             nodes = [graph.find_node(i) for i in level if i]
@@ -198,8 +196,6 @@ class WorkflowRunner:
             return
 
         self.current_node = node._id
-
-        print(f"Processing node: {node.get_title()}")
 
         # Skip nodes that have already been processed in a sub graph.
         if node._id in context.processed_nodes:
@@ -234,7 +230,6 @@ class WorkflowRunner:
         group_inputs = context.get_node_inputs(group_node._id)
 
         result = await self.process_subgraph(context, group_node, group_inputs)
-        print("group node result", result)
 
         context.processed_nodes.add(group_node._id)
         context.set_result(group_node._id, result)
@@ -355,8 +350,6 @@ class WorkflowRunner:
         child_nodes = [
             node for node in context.graph.nodes if node.parent_id == group_node._id
         ]
-        print("child_nodes", child_nodes)
-        print("inputs", inputs)
         input_nodes = [n for n in child_nodes if isinstance(n, GroupInput)]
         output_nodes = [n for n in child_nodes if isinstance(n, GroupOutput)]
 

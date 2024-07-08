@@ -2,36 +2,31 @@
 
 ## Workflow
 
-- **id** (`str`)
-- **user_id** (`str`)
-- **access** (`str`)
-- **created_at** (`datetime`)
-- **updated_at** (`datetime`)
-- **name** (`str`)
-- **description** (`str | None`)
-- **thumbnail** (`str | None`)
-- **graph** (`dict`)
+- **id** (str)
+- **user_id** (str)
+- **access** (str)
+- **created_at** (datetime)
+- **updated_at** (datetime)
+- **name** (str)
+- **description** (str | None)
+- **thumbnail** (str | None)
+- **graph** (dict)
 
-#### `before_save`
+### before_save
 
-**Parameters:**
+**Args:**
 
-
-#### `get_api_graph`
-
-Returns the graph object for the workflow.
-
-**Parameters:**
-
-
-**Returns:** `Graph`
-
-#### `get_graph`
+### get_api_graph
 
 Returns the graph object for the workflow.
+**Args:**
 
-**Parameters:**
+**Returns:** Graph
 
+### get_graph
 
-**Returns:** `Graph`
+Returns the graph object for the workflow.
+**Args:**
+
+**Returns:** Graph
 

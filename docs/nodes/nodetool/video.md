@@ -11,9 +11,9 @@ Use cases:
 
 **Tags:** video, frames, extract, sequence
 
-- **video**: The input video to adjust the brightness for. (`VideoRef`)
-- **start**: The frame to start extracting from. (`int`)
-- **end**: The frame to stop extracting from. (`int`)
+- **video**: The input video to adjust the brightness for. (VideoRef)
+- **start**: The frame to start extracting from. (int)
+- **end**: The frame to stop extracting from. (int)
 
 ## FramesToVideo
 
@@ -26,8 +26,8 @@ Use cases:
 
 **Tags:** video, frames, combine, sequence
 
-- **frames**: The frames to combine into a video. (`list[nodetool.metadata.types.ImageRef]`)
-- **fps**: The FPS of the output video. (`float`)
+- **frames**: The frames to combine into a video. (list[nodetool.metadata.types.ImageRef])
+- **fps**: The FPS of the output video. (float)
 
 ## SaveVideo
 
@@ -40,9 +40,9 @@ Use cases:
 
 **Tags:** video, save, file, output
 
-- **value**: The video to save. (`VideoRef`)
-- **folder**: Name of the output folder. (`FolderRef`)
-- **name**: Name of the output video. (`str`)
+- **value**: The video to save. (VideoRef)
+- **folder**: Name of the output folder. (FolderRef)
+- **name**: Name of the output video. (str)
 
 ## VideoFps
 
@@ -55,5 +55,5 @@ Use cases:
 
 **Tags:** video, analysis, frames, fps
 
-- **video**: The input video to adjust the brightness for. (`VideoRef`)
+- **video**: The input video to adjust the brightness for. (VideoRef)
 

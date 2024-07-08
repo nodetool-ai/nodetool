@@ -11,8 +11,8 @@ Use cases:
 
 **Tags:** Tags: image, classification, machine learning
 
-- **model**: The classification model to use (`Model`)
-- **image**: The image to classify (`ImageRef`)
+- **model**: The classification model to use (Model)
+- **image**: The image to classify (ImageRef)
 
 ## Model
 

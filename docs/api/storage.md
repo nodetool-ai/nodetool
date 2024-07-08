@@ -1,50 +1,41 @@
 # nodetool.api.storage
 
-#### `delete`
+### delete
 
 Deletes the asset for the given key.
+**Args:**
+- **bucket (str)**
+- **key (str)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
-
-- `bucket` (str)
-- `key` (str)
-- `user` (User) (default: `Depends(current_user)`)
-
-#### `get`
+### get
 
 Returns the file as a stream for the given key.
+**Args:**
+- **bucket (str)**
+- **key (str)**
+- **request (Request)**
 
-**Parameters:**
-
-- `bucket` (str)
-- `key` (str)
-- `request` (Request)
-
-#### `head`
+### head
 
 Returns the metadata for the file with the given key.
+**Args:**
+- **bucket (str)**
+- **key (str)**
 
-**Parameters:**
+### storage_for_bucket
 
-- `bucket` (str)
-- `key` (str)
+**Args:**
+- **bucket (str)**
 
-#### `storage_for_bucket`
+**Returns:** AbstractStorage
 
-**Parameters:**
-
-- `bucket` (str)
-
-**Returns:** `AbstractStorage`
-
-#### `update`
+### update
 
 Updates or creates the file for the given key.
-
-**Parameters:**
-
-- `bucket` (str)
-- `key` (str)
-- `request` (Request)
-- `user` (User) (default: `Depends(current_user)`)
+**Args:**
+- **bucket (str)**
+- **key (str)**
+- **request (Request)**
+- **user (User) (default: Depends(current_user))**
 

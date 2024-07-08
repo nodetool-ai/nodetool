@@ -10,8 +10,8 @@ Use cases:
 
 **Tags:** audio, edit, join
 
-- **a**: The first audio file. (`AudioRef`)
-- **b**: The second audio file. (`AudioRef`)
+- **a**: The first audio file. (AudioRef)
+- **b**: The second audio file. (AudioRef)
 
 ## NormalizeAudio
 
@@ -23,7 +23,7 @@ Use cases:
 
 **Tags:** audio, fix, dynamics
 
-- **audio**: The audio file to normalize. (`AudioRef`)
+- **audio**: The audio file to normalize. (AudioRef)
 
 ## OverlayAudio
 
@@ -35,8 +35,8 @@ Use cases:
 
 **Tags:** audio, edit, transform
 
-- **a**: The first audio file. (`AudioRef`)
-- **b**: The second audio file. (`AudioRef`)
+- **a**: The first audio file. (AudioRef)
+- **b**: The second audio file. (AudioRef)
 
 ## RemoveSilence
 
@@ -49,12 +49,12 @@ Use cases:
 
 **Tags:** audio, edit, clean
 
-- **audio**: The audio file to process. (`AudioRef`)
-- **min_length**: Minimum length of silence to be processed (in milliseconds). (`int`)
-- **threshold**: Silence threshold in dB (relative to full scale). Higher values detect more silence. (`int`)
-- **reduction_factor**: Factor to reduce silent parts (0.0 to 1.0). 0.0 keeps silence as is, 1.0 removes it completely. (`float`)
-- **crossfade**: Duration of crossfade in milliseconds to apply between segments for smooth transitions. (`int`)
-- **min_silence_between_parts**: Minimum silence duration in milliseconds to maintain between non-silent segments (`int`)
+- **audio**: The audio file to process. (AudioRef)
+- **min_length**: Minimum length of silence to be processed (in milliseconds). (int)
+- **threshold**: Silence threshold in dB (relative to full scale). Higher values detect more silence. (int)
+- **reduction_factor**: Factor to reduce silent parts (0.0 to 1.0). 0.0 keeps silence as is, 1.0 removes it completely. (float)
+- **crossfade**: Duration of crossfade in milliseconds to apply between segments for smooth transitions. (int)
+- **min_silence_between_parts**: Minimum silence duration in milliseconds to maintain between non-silent segments (int)
 
 ## SliceAudio
 
@@ -66,9 +66,9 @@ Use cases:
 
 **Tags:** audio, edit, trim
 
-- **audio**: The audio file. (`AudioRef`)
-- **start**: The start time in seconds. (`float`)
-- **end**: The end time in seconds. (`float`)
+- **audio**: The audio file. (AudioRef)
+- **start**: The start time in seconds. (float)
+- **end**: The end time in seconds. (float)
 
 ## Tone
 
@@ -80,8 +80,8 @@ Use cases:
 
 **Tags:** audio, generate, sound
 
-- **frequency**: Frequency of the tone in Hertz. (`float`)
-- **sampling_rate**: Sampling rate. (`int`)
-- **duration**: Duration of the tone in seconds. (`float`)
-- **phi**: Initial phase of the waveform in radians. (`float`)
+- **frequency**: Frequency of the tone in Hertz. (float)
+- **sampling_rate**: Sampling rate. (int)
+- **duration**: Duration of the tone in seconds. (float)
+- **phi**: Initial phase of the waveform in radians. (float)
 

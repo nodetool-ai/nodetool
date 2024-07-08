@@ -11,10 +11,10 @@ Use cases:
 
 **Tags:** text, chunk, split
 
-- **text** (`str | nodetool.metadata.types.TextRef`)
-- **length** (`int`)
-- **overlap** (`int`)
-- **separator** (`str | None`)
+- **text** (str | nodetool.metadata.types.TextRef)
+- **length** (int)
+- **overlap** (int)
+- **separator** (str | None)
 
 ## Concat
 
@@ -27,8 +27,8 @@ Use cases:
 
 **Tags:** text, concatenation, combine
 
-- **a** (`str | nodetool.metadata.types.TextRef`)
-- **b** (`str | nodetool.metadata.types.TextRef`)
+- **a** (str | nodetool.metadata.types.TextRef)
+- **b** (str | nodetool.metadata.types.TextRef)
 
 ## Extract
 
@@ -41,9 +41,9 @@ Use cases:
 
 **Tags:** text, extract, substring
 
-- **text** (`str | nodetool.metadata.types.TextRef`)
-- **start** (`int`)
-- **end** (`int`)
+- **text** (str | nodetool.metadata.types.TextRef)
+- **start** (int)
+- **end** (int)
 
 ## ExtractJSON
 
@@ -56,9 +56,9 @@ Use cases:
 
 **Tags:** json, extract, jsonpath
 
-- **text** (`str | nodetool.metadata.types.TextRef`)
-- **json_path** (`str`)
-- **find_all** (`bool`)
+- **text** (str | nodetool.metadata.types.TextRef)
+- **json_path** (str)
+- **find_all** (bool)
 
 ## ExtractRegex
 
@@ -71,11 +71,11 @@ Use cases:
 
 **Tags:** text, regex, extract
 
-- **text** (`str | nodetool.metadata.types.TextRef`)
-- **regex** (`str`)
-- **dotall** (`bool`)
-- **ignorecase** (`bool`)
-- **multiline** (`bool`)
+- **text** (str | nodetool.metadata.types.TextRef)
+- **regex** (str)
+- **dotall** (bool)
+- **ignorecase** (bool)
+- **multiline** (bool)
 
 ## FindAllRegex
 
@@ -88,11 +88,11 @@ Use cases:
 
 **Tags:** text, regex, find
 
-- **text** (`str | nodetool.metadata.types.TextRef`)
-- **regex** (`str`)
-- **dotall** (`bool`)
-- **ignorecase** (`bool`)
-- **multiline** (`bool`)
+- **text** (str | nodetool.metadata.types.TextRef)
+- **regex** (str)
+- **dotall** (bool)
+- **ignorecase** (bool)
+- **multiline** (bool)
 
 ## JSONToDataframe
 
@@ -105,7 +105,7 @@ Use cases:
 
 **Tags:** json, dataframe, conversion
 
-- **text** (`str | nodetool.metadata.types.TextRef`)
+- **text** (str | nodetool.metadata.types.TextRef)
 
 ## Join
 
@@ -118,8 +118,8 @@ Use cases:
 
 **Tags:** text, join, combine
 
-- **strings** (`list[str | nodetool.metadata.types.TextRef]`)
-- **separator** (`str`)
+- **strings** (list[str | nodetool.metadata.types.TextRef])
+- **separator** (str)
 
 ## ParseJSON
 
@@ -132,7 +132,7 @@ Use cases:
 
 **Tags:** json, parse, convert
 
-- **text** (`str | nodetool.metadata.types.TextRef`)
+- **text** (str | nodetool.metadata.types.TextRef)
 
 ## Replace
 
@@ -145,9 +145,9 @@ Use cases:
 
 **Tags:** text, replace, substitute
 
-- **text** (`str | nodetool.metadata.types.TextRef`)
-- **old** (`str`)
-- **new** (`str`)
+- **text** (str | nodetool.metadata.types.TextRef)
+- **old** (str)
+- **new** (str)
 
 ## SaveText
 
@@ -160,8 +160,8 @@ Use cases:
 
 **Tags:** text, save, file
 
-- **value** (`str | nodetool.metadata.types.TextRef`)
-- **name** (`str`)
+- **value** (str | nodetool.metadata.types.TextRef)
+- **name** (str)
 
 ## Split
 
@@ -174,8 +174,8 @@ Use cases:
 
 **Tags:** text, split, tokenize
 
-- **text** (`str | nodetool.metadata.types.TextRef`)
-- **delimiter** (`str`)
+- **text** (str | nodetool.metadata.types.TextRef)
+- **delimiter** (str)
 
 ## Template
 
@@ -188,31 +188,29 @@ Use cases:
 
 **Tags:** text, template, formatting
 
-- **string** (`str | nodetool.metadata.types.TextRef`)
-- **values** (`dict[str, typing.Any]`)
+- **string** (str | nodetool.metadata.types.TextRef)
+- **values** (dict[str, typing.Any])
 
 ## TextID
 
 Returns the asset id.
 
-- **text** (`TextRef`)
+- **text** (TextRef)
 
-#### `convert_result`
+### convert_result
 
-**Parameters:**
+**Args:**
+- **context (ProcessingContext)**
+- **input (list[nodetool.metadata.types.TextRef | str])**
+- **result (str)**
 
-- `context` (ProcessingContext)
-- `input` (list[nodetool.metadata.types.TextRef | str])
-- `result` (str)
+**Returns:** nodetool.metadata.types.TextRef | str
 
-**Returns:** `nodetool.metadata.types.TextRef | str`
+### to_string
 
-#### `to_string`
+**Args:**
+- **context (ProcessingContext)**
+- **text (nodetool.metadata.types.TextRef | str)**
 
-**Parameters:**
-
-- `context` (ProcessingContext)
-- `text` (nodetool.metadata.types.TextRef | str)
-
-**Returns:** `str`
+**Returns:** str
 

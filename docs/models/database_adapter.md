@@ -2,68 +2,61 @@
 
 ## DatabaseAdapter
 
-#### `create_table`
+### create_table
 
-**Parameters:**
+**Args:**
+- **table_name (str)**
+- **key_schema (typing.Dict[str, str])**
+- **attribute_definitions (typing.Dict[str, str])**
+- **global_secondary_indexes (typing.Optional[typing.Dict[str, typing.Dict[str, str]]]) (default: None)**
+- **read_capacity_units (int) (default: 1)**
+- **write_capacity_units (int) (default: 1)**
 
-- `table_name` (str)
-- `key_schema` (typing.Dict[str, str])
-- `attribute_definitions` (typing.Dict[str, str])
-- `global_secondary_indexes` (typing.Optional[typing.Dict[str, typing.Dict[str, str]]]) (default: `None`)
-- `read_capacity_units` (int) (default: `1`)
-- `write_capacity_units` (int) (default: `1`)
+**Returns:** None
 
-**Returns:** `None`
+### delete
 
-#### `delete`
+**Args:**
+- **primary_key (Any)**
 
-**Parameters:**
+**Returns:** None
 
-- `primary_key` (Any)
+### drop_table
 
-**Returns:** `None`
+**Args:**
+- **table_name (str)**
 
-#### `drop_table`
+**Returns:** None
 
-**Parameters:**
+### get
 
-- `table_name` (str)
+**Args:**
+- **key (Any)**
 
-**Returns:** `None`
+**Returns:** typing.Optional[typing.Dict[str, typing.Any]]
 
-#### `get`
+### get_primary_key
 
-**Parameters:**
+**Args:**
 
-- `key` (Any)
+**Returns:** str
 
-**Returns:** `typing.Optional[typing.Dict[str, typing.Any]]`
+### query
 
-#### `get_primary_key`
+**Args:**
+- **condition (str)**
+- **values (typing.Dict[str, typing.Any])**
+- **limit (int) (default: 100)**
+- **reverse (bool) (default: False)**
+- **start_key (str | None) (default: None)**
+- **index (str | None) (default: None)**
 
-**Parameters:**
+**Returns:** tuple[list[dict[str, typing.Any]], str]
 
+### save
 
-**Returns:** `str`
+**Args:**
+- **item (typing.Dict[str, typing.Any])**
 
-#### `query`
-
-**Parameters:**
-
-- `condition` (str)
-- `values` (typing.Dict[str, typing.Any])
-- `limit` (int) (default: `100`)
-- `reverse` (bool) (default: `False`)
-- `start_key` (str | None) (default: `None`)
-- `index` (str | None) (default: `None`)
-
-**Returns:** `tuple[list[dict[str, typing.Any]], str]`
-
-#### `save`
-
-**Parameters:**
-
-- `item` (typing.Dict[str, typing.Any])
-
-**Returns:** `None`
+**Returns:** None
 

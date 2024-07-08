@@ -1,59 +1,47 @@
 # nodetool.models.base_model
 
-#### `DBField`
+### DBField
 
-**Parameters:**
-
-- `hash_key` (bool) (default: `False`)
-- `kwargs` (Any)
+**Args:**
+- **hash_key (bool) (default: False)**
+- **kwargs (Any)**
 
 ## DBModel
 
 
-#### `before_save`
+### before_save
 
-**Parameters:**
+**Args:**
 
+### delete
 
-#### `delete`
+**Args:**
 
-**Parameters:**
-
-
-#### `partition_value`
+### partition_value
 
 Get the value of the hash key.
+**Args:**
 
-**Parameters:**
+**Returns:** str
 
-
-**Returns:** `str`
-
-#### `reload`
+### reload
 
 Reload the model instance from the DB.
+**Args:**
 
-**Parameters:**
-
-
-#### `save`
+### save
 
 Save a model instance to DynamoDB and return the instance.
+**Args:**
 
-**Parameters:**
-
-
-#### `update`
+### update
 
 Update the model instance and save it to DynamoDB.
+**Args:**
+- **kwargs**
 
-**Parameters:**
-
-- `kwargs`
-
-#### `create_time_ordered_uuid`
+### create_time_ordered_uuid
 
 Create an uuid that is ordered by time.
-
-**Returns:** `str`
+**Returns:** str
 

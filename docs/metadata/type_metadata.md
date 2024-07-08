@@ -4,48 +4,40 @@
 
 Metadata for a type.
 
-- **type** (`str`)
-- **optional** (`bool`)
-- **values** (`typing.Optional[list[str | int]]`)
-- **type_args** (`list[nodetool.metadata.type_metadata.TypeMetadata]`)
-- **type_name** (`typing.Optional[str]`)
+- **type** (str)
+- **optional** (bool)
+- **values** (typing.Optional[list[str | int]])
+- **type_args** (list[nodetool.metadata.type_metadata.TypeMetadata])
+- **type_name** (typing.Optional[str])
 
-#### `get_json_schema`
+### get_json_schema
 
 Returns a JSON schema for the type.
+**Args:**
 
-**Parameters:**
+**Returns:** dict[str, typing.Any]
 
+### get_python_type
 
-**Returns:** `dict[str, typing.Any]`
+**Args:**
 
-#### `get_python_type`
+### is_asset_type
 
-**Parameters:**
+**Args:**
 
+### is_comfy_type
 
-#### `is_asset_type`
+**Args:**
 
-**Parameters:**
+### is_enum_type
 
+**Args:**
 
-#### `is_comfy_type`
+### is_list_type
 
-**Parameters:**
+**Args:**
 
+### is_union_type
 
-#### `is_enum_type`
-
-**Parameters:**
-
-
-#### `is_list_type`
-
-**Parameters:**
-
-
-#### `is_union_type`
-
-**Parameters:**
-
+**Args:**
 

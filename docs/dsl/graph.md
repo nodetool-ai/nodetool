@@ -4,35 +4,31 @@
 
 Represents a node in a graph DSL.
 
-- **id** (`str`)
+- **id** (str)
 
-#### `graph`
+### graph
 
 Create a graph representation based on the given nodes.
 
-    Args:
-      *nodes: Variable number of nodes to be included in the graph.
 
-    Returns:
-      Graph: A graph object containing the nodes and edges.
+**Args:**
 
-**Parameters:**
+- ***nodes**: Variable number of nodes to be included in the graph.
 
-- `nodes`
 
-#### `run`
+**Returns:**
+
+- **Graph**: A graph object containing the nodes and edges.
+### run
 
 Run the workflow with the given graph.
 
-    Args:
-      graph (Graph): The graph object representing the workflow.
 
-    Returns:
-      Any: The result of the workflow execution.
+**Args:**
 
-**Parameters:**
+- **graph (Graph)**: The graph object representing the workflow.
 
-- `graph` (Graph)
-- `user_id` (str) (default: `1`)
-- `auth_token` (str) (default: `token`)
 
+**Returns:**
+
+- **Any**: The result of the workflow execution.

@@ -1,11 +1,10 @@
 # nodetool.providers.ollama.prediction
 
-#### `run_ollama`
+### run_ollama
 
-**Parameters:**
+**Args:**
+- **prediction (Prediction)**
+- **params (dict)**
 
-- `prediction` (Prediction)
-- `params` (dict)
-
-**Returns:** `Any`
+**Returns:** Any
 

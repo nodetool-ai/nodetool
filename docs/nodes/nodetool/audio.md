@@ -11,11 +11,12 @@ Use cases:
 
 **Tags:** audio, folder, name
 
-- **value** (`AudioRef`)
-- **folder**: The folder to save the audio file to.  (`FolderRef`)
-- **name**: The name of the audio file. (`str`)
+- **value** (AudioRef)
+- **folder**: The folder to save the audio file to.  (FolderRef)
+- **name**: The name of the audio file. (str)
 
 - [nodetool.nodes.nodetool.audio.analysis](audio/analysis.md)
 - [nodetool.nodes.nodetool.audio.audio_helpers](audio/audio_helpers.md)
 - [nodetool.nodes.nodetool.audio.conversion](audio/conversion.md)
+- [nodetool.nodes.nodetool.audio.fx](audio/fx.md)
 - [nodetool.nodes.nodetool.audio.transform](audio/transform.md)

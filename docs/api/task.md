@@ -1,58 +1,48 @@
 # nodetool.api.task
 
-#### `create`
+### create
 
 Creates a new task.
+**Args:**
+- **req (TaskCreateRequest)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
+**Returns:** Task
 
-- `req` (TaskCreateRequest)
-- `user` (User) (default: `Depends(current_user)`)
-
-**Returns:** `Task`
-
-#### `delete`
+### delete
 
 Deletes the task with the given id.
+**Args:**
+- **id (str)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
-
-- `id` (str)
-- `user` (User) (default: `Depends(current_user)`)
-
-#### `get`
+### get
 
 Returns the task with the given id.
+**Args:**
+- **id (str)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
+**Returns:** Task
 
-- `id` (str)
-- `user` (User) (default: `Depends(current_user)`)
-
-**Returns:** `Task`
-
-#### `index`
+### index
 
 Returns all tasks for the current user, optionally filtered by status.
+**Args:**
+- **thread_id (str)**
+- **user (User) (default: Depends(current_user))**
+- **cursor (typing.Optional[str]) (default: None)**
+- **page_size (typing.Optional[int]) (default: None)**
 
-**Parameters:**
+**Returns:** TaskList
 
-- `thread_id` (str)
-- `user` (User) (default: `Depends(current_user)`)
-- `cursor` (typing.Optional[str]) (default: `None`)
-- `page_size` (typing.Optional[int]) (default: `None`)
-
-**Returns:** `TaskList`
-
-#### `update`
+### update
 
 Updates the task with the given id.
+**Args:**
+- **id (str)**
+- **req (TaskUpdateRequest)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
-
-- `id` (str)
-- `req` (TaskUpdateRequest)
-- `user` (User) (default: `Depends(current_user)`)
-
-**Returns:** `Task`
+**Returns:** Task
 

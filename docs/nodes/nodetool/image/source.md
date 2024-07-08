@@ -12,9 +12,9 @@ This node is mainly used for generating a base layer for image processing tasks.
 
 **Tags:** 
 
-- **width** (`int`)
-- **height** (`int`)
-- **color** (`str`)
+- **width** (int)
+- **height** (int)
+- **color** (str)
 
 ## GaussianNoise
 
@@ -28,10 +28,10 @@ The Gaussian Noise Node is designed to simulate realistic distortions that can o
 
 **Tags:** 
 
-- **mean** (`float`)
-- **stddev** (`float`)
-- **width** (`int`)
-- **height** (`int`)
+- **mean** (float)
+- **stddev** (float)
+- **width** (int)
+- **height** (int)
 
 ## RenderText
 
@@ -48,12 +48,12 @@ The Render Text Node offers customizable options, including the ability to choos
 
 **Tags:** 
 
-- **text**: The text to render. (`str`)
-- **font**: The font to use. (`TextFont`)
-- **x**: The x coordinate. (`float`)
-- **y**: The y coordinate. (`float`)
-- **size**: The font size. (`int`)
-- **color**: The font color. (`str`)
-- **align** (`TextAlignment`)
-- **image**: The image to render on. (`ImageRef`)
+- **text**: The text to render. (str)
+- **font**: The font to use. (TextFont)
+- **x**: The x coordinate. (float)
+- **y**: The y coordinate. (float)
+- **size**: The font size. (int)
+- **color**: The font color. (str)
+- **align** (TextAlignment)
+- **image**: The image to render on. (ImageRef)
 

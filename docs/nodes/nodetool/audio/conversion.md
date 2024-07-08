@@ -11,7 +11,20 @@ Use cases:
 
 **Tags:** audio, conversion, tensor
 
-- **audio**: The audio file to convert to a tensor. (`AudioRef`)
+- **audio**: The audio file to convert to a tensor. (AudioRef)
+
+## CreateSilence
+
+Creates a silent audio file with a specified duration.
+
+Use cases:
+- Generate placeholder audio files
+- Create audio segments for padding or spacing
+- Add silence to the beginning or end of audio files
+
+**Tags:** audio, silence, empty
+
+- **duration**: The duration of the silence in seconds. (float)
 
 ## TensorToAudio
 
@@ -24,6 +37,6 @@ Use cases:
 
 **Tags:** audio, conversion, tensor
 
-- **tensor**: The tensor to convert to an audio file. (`Tensor`)
-- **sample_rate**: The sample rate of the audio file. (`int`)
+- **tensor**: The tensor to convert to an audio file. (Tensor)
+- **sample_rate**: The sample rate of the audio file. (int)
 

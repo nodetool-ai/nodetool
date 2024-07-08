@@ -11,7 +11,7 @@ Use cases:
 
 **Tags:** tensor, absolute, magnitude
 
-- **input_tensor**: The input tensor to compute the absolute values from. (`Tensor`)
+- **input_tensor**: The input tensor to compute the absolute values from. (Tensor)
 
 ## ArgMax
 
@@ -24,8 +24,8 @@ Use cases:
 
 **Tags:** tensor, argmax, index, maximum
 
-- **a** (`Tensor`)
-- **axis** (`int | None`)
+- **a** (Tensor)
+- **axis** (int | None)
 
 ## ArgMin
 
@@ -38,8 +38,8 @@ Use cases:
 
 **Tags:** tensor, argmin, index, minimum
 
-- **tensor** (`Tensor`)
-- **axis** (`int | None`)
+- **tensor** (Tensor)
+- **axis** (int | None)
 
 ## Exp
 
@@ -52,7 +52,7 @@ Use cases:
 
 **Tags:** tensor, exponential, math, activation
 
-- **x** (`int | float | nodetool.metadata.types.Tensor`)
+- **x** (int | float | nodetool.metadata.types.Tensor)
 
 ## ListToTensor
 
@@ -65,7 +65,7 @@ Use cases:
 
 **Tags:** list, tensor, conversion, type
 
-- **values** (`list[typing.Any]`)
+- **values** (list[typing.Any])
 
 ## Log
 
@@ -78,7 +78,7 @@ Use cases:
 
 **Tags:** tensor, logarithm, math, transformation
 
-- **x** (`int | float | nodetool.metadata.types.Tensor`)
+- **x** (int | float | nodetool.metadata.types.Tensor)
 
 ## MatMul
 
@@ -91,8 +91,8 @@ Use cases:
 
 **Tags:** tensor, matrix, multiplication, linear algebra
 
-- **a** (`Tensor`)
-- **b** (`Tensor`)
+- **a** (Tensor)
+- **b** (Tensor)
 
 ## Max
 
@@ -105,8 +105,8 @@ Use cases:
 
 **Tags:** tensor, maximum, reduction, statistics
 
-- **tensor** (`Tensor`)
-- **axis** (`int | None`)
+- **tensor** (Tensor)
+- **axis** (int | None)
 
 ## Mean
 
@@ -119,8 +119,8 @@ Use cases:
 
 **Tags:** tensor, average, reduction, statistics
 
-- **tensor** (`Tensor`)
-- **axis** (`int | None`)
+- **tensor** (Tensor)
+- **axis** (int | None)
 
 ## Min
 
@@ -133,8 +133,8 @@ Use cases:
 
 **Tags:** tensor, minimum, reduction, statistics
 
-- **tensor** (`Tensor`)
-- **axis** (`int | None`)
+- **tensor** (Tensor)
+- **axis** (int | None)
 
 ## PlotTSNE
 
@@ -147,9 +147,9 @@ Use cases:
 
 **Tags:** tensor, tsne, visualization, dimensionality reduction
 
-- **tensor** (`Tensor`)
-- **color_indices** (`list[int]`)
-- **perplexity** (`int`)
+- **tensor** (Tensor)
+- **color_indices** (list[int])
+- **perplexity** (int)
 
 ## PlotTensor
 
@@ -162,8 +162,8 @@ Use cases:
 
 **Tags:** tensor, plot, visualization, graph
 
-- **tensor** (`Tensor`)
-- **plot_type** (`PlotType`)
+- **tensor** (Tensor)
+- **plot_type** (PlotType)
 
 ## SaveTensor
 
@@ -176,9 +176,9 @@ Use cases:
 
 **Tags:** tensor, save, file, storage
 
-- **value**: The tensor to save. (`Tensor`)
-- **folder**: The folder to save the tensor in. (`FolderRef`)
-- **name**: The name of the asset to save. (`str`)
+- **value**: The tensor to save. (Tensor)
+- **folder**: The folder to save the tensor in. (FolderRef)
+- **name**: The name of the asset to save. (str)
 
 ## ScalarToTensor
 
@@ -191,7 +191,7 @@ Use cases:
 
 **Tags:** scalar, tensor, conversion, type
 
-- **value** (`float | int`)
+- **value** (float | int)
 
 ## Stack
 
@@ -204,8 +204,8 @@ Use cases:
 
 **Tags:** tensor, stack, concatenate, join, merge, axis
 
-- **tensors** (`list[nodetool.metadata.types.Tensor]`)
-- **axis**: The axis to stack along. (`int`)
+- **tensors** (list[nodetool.metadata.types.Tensor])
+- **axis**: The axis to stack along. (int)
 
 ## Sum
 
@@ -218,8 +218,8 @@ Use cases:
 
 **Tags:** tensor, summation, reduction, statistics
 
-- **tensor** (`Tensor`)
-- **axis** (`int | None`)
+- **tensor** (Tensor)
+- **axis** (int | None)
 
 ## TensorToList
 
@@ -232,7 +232,7 @@ Use cases:
 
 **Tags:** tensor, list, conversion, type
 
-- **tensor** (`Tensor`)
+- **tensor** (Tensor)
 
 ## TensorToScalar
 
@@ -245,7 +245,7 @@ Use cases:
 
 **Tags:** tensor, scalar, conversion, type
 
-- **tensor** (`Tensor`)
+- **tensor** (Tensor)
 
 ## Transpose
 
@@ -258,5 +258,5 @@ Use cases:
 
 **Tags:** tensor, transpose, reshape, dimensions
 
-- **tensor** (`Tensor`)
+- **tensor** (Tensor)
 

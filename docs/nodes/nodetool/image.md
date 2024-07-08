@@ -11,9 +11,9 @@ Use cases:
 
 **Tags:** blend, mix, fade, transition
 
-- **image1**: The first image to blend. (`ImageRef`)
-- **image2**: The second image to blend. (`ImageRef`)
-- **alpha**: The mix ratio. (`float`)
+- **image1**: The first image to blend. (ImageRef)
+- **image2**: The second image to blend. (ImageRef)
+- **alpha**: The mix ratio. (float)
 
 ## CompositeImages
 
@@ -27,9 +27,9 @@ Use cases:
 
 **Tags:** 
 
-- **image1**: The first image to composite. (`ImageRef`)
-- **image2**: The second image to composite. (`ImageRef`)
-- **mask**: The mask to composite with. (`ImageRef`)
+- **image1**: The first image to composite. (ImageRef)
+- **image2**: The second image to composite. (ImageRef)
+- **mask**: The mask to composite with. (ImageRef)
 
 ## ConvertImageToTensor
 
@@ -42,7 +42,7 @@ Use cases:
 
 **Tags:** image, tensor, conversion, normalization
 
-- **image**: The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels. (`ImageRef`)
+- **image**: The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels. (ImageRef)
 
 ## ConvertTensorToImage
 
@@ -56,7 +56,7 @@ Use cases:
 
 **Tags:** 
 
-- **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (`Tensor`)
+- **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (Tensor)
 
 ## GetImageMetadata
 
@@ -69,7 +69,7 @@ Use cases:
 
 **Tags:** metadata, properties, analysis, information
 
-- **image**: The input image. (`ImageRef`)
+- **image**: The input image. (ImageRef)
 
 ## PasteImage
 
@@ -82,10 +82,10 @@ Use cases:
 
 **Tags:** paste, composite, positioning, overlay
 
-- **image**: The image to paste into. (`ImageRef`)
-- **paste**: The image to paste. (`ImageRef`)
-- **left**: The left coordinate. (`int`)
-- **top**: The top coordinate. (`int`)
+- **image**: The image to paste into. (ImageRef)
+- **paste**: The image to paste. (ImageRef)
+- **left**: The left coordinate. (int)
+- **top**: The top coordinate. (int)
 
 ## SaveImage
 
@@ -98,9 +98,9 @@ Use cases:
 
 **Tags:** save, image, folder, naming
 
-- **image**: The image to save. (`ImageRef`)
-- **folder**: The folder to save the image in. (`FolderRef`)
-- **name** (`str`)
+- **image**: The image to save. (ImageRef)
+- **folder**: The folder to save the image in. (FolderRef)
+- **name** (str)
 
 - [nodetool.nodes.nodetool.image.classify](image/classify.md)
 - [nodetool.nodes.nodetool.image.enhance](image/enhance.md)

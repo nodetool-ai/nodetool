@@ -1,27 +1,24 @@
 # nodetool.api.model
 
-#### `function_model`
+### function_model
 
-**Parameters:**
+**Args:**
+- **user (User) (default: Depends(current_user))**
 
-- `user` (User) (default: `Depends(current_user)`)
+**Returns:** list[nodetool.metadata.types.FunctionModel]
 
-**Returns:** `list[nodetool.metadata.types.FunctionModel]`
+### index
 
-#### `index`
+**Args:**
+- **folder (str)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
+**Returns:** list[str]
 
-- `folder` (str)
-- `user` (User) (default: `Depends(current_user)`)
+### llama_model
 
-**Returns:** `list[str]`
+**Args:**
+- **user (User) (default: Depends(current_user))**
 
-#### `llama_model`
-
-**Parameters:**
-
-- `user` (User) (default: `Depends(current_user)`)
-
-**Returns:** `list[nodetool.metadata.types.LlamaModel]`
+**Returns:** list[nodetool.metadata.types.LlamaModel]
 

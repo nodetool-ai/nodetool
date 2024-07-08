@@ -1,26 +1,23 @@
 # nodetool.providers.openai.cost_calculation
 
-#### `calculate_cost`
+### calculate_cost
 
-**Parameters:**
+**Args:**
+- **model (str)**
+- **input_tokens (int)**
+- **output_tokens (int | None) (default: None)**
 
-- `model` (str)
-- `input_tokens` (int)
-- `output_tokens` (int | None) (default: `None`)
+**Returns:** float
 
-**Returns:** `float`
+### calculate_cost_for_completion_usage
 
-#### `calculate_cost_for_completion_usage`
+**Args:**
+- **model (str)**
+- **usage (CompletionUsage)**
 
-**Parameters:**
+### calculate_cost_for_embedding_usage
 
-- `model` (str)
-- `usage` (CompletionUsage)
-
-#### `calculate_cost_for_embedding_usage`
-
-**Parameters:**
-
-- `model` (str)
-- `usage` (Usage)
+**Args:**
+- **model (str)**
+- **usage (Usage)**
 

@@ -1,9 +1,8 @@
 # nodetool.providers.anthropic.prediction
 
-#### `run_anthropic`
+### run_anthropic
 
-**Parameters:**
-
-- `prediction` (Prediction)
-- `params` (dict)
+**Args:**
+- **prediction (Prediction)**
+- **params (dict)**
 

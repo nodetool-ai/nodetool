@@ -4,41 +4,31 @@
 
 An abstract base class defining the interface for node caching implementations.
 
-#### `clear`
+### clear
 
 Clear the entire cache.
+**Args:**
 
-**Parameters:**
-
-
-#### `get`
+### get
 
 Retrieve a value from the cache.
 
-        Args:
-            key (str): The key to retrieve.
 
-        Returns:
-            Any: The value associated with the key, or None if not found.
+**Args:**
 
-**Parameters:**
+- **key (str)**: The key to retrieve.
 
-- `key` (str)
 
-**Returns:** `Any`
+**Returns:**
 
-#### `set`
+- **Any**: The value associated with the key, or None if not found.
+### set
 
 Set a value in the cache with an optional TTL.
 
-        Args:
-            key (str): The key to set.
-            value (Any): The value to store.
-            ttl (int, optional): Time-to-live in seconds. If None, the entry won't expire.
 
-**Parameters:**
+**Args:**
 
-- `key` (str)
-- `value` (Any)
-- `ttl` (int) (default: `3600`)
-
+- **key (str)**: The key to set.
+- **value (Any)**: The value to store.
+- **ttl (int, optional)**: Time-to-live in seconds. If None, the entry won't expire.

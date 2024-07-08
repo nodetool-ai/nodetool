@@ -2,71 +2,63 @@
 
 ## NodetoolAPIClient
 
-#### `check_status`
+### check_status
 
-**Parameters:**
+**Args:**
+- **response (Response)**
 
-- `response` (Response)
+### delete
 
-#### `delete`
+**Args:**
+- **path (str)**
 
-**Parameters:**
+**Returns:** Response
 
-- `path` (str)
+### get
 
-**Returns:** `Response`
+**Args:**
+- **path (str)**
+- **kwargs**
 
-#### `get`
+**Returns:** Response
 
-**Parameters:**
+### get_base_url
 
-- `path` (str)
-- `kwargs`
+**Args:**
 
-**Returns:** `Response`
+### head
 
-#### `get_base_url`
+**Args:**
+- **path (str)**
+- **kwargs**
 
-**Parameters:**
+**Returns:** Response
 
+### post
 
-#### `head`
+**Args:**
+- **path (str)**
+- **kwargs**
 
-**Parameters:**
+**Returns:** Response
 
-- `path` (str)
-- `kwargs`
+### put
 
-**Returns:** `Response`
+**Args:**
+- **path (str)**
+- **kwargs**
 
-#### `post`
+**Returns:** Response
 
-**Parameters:**
+### stream
 
-- `path` (str)
-- `kwargs`
+**Args:**
+- **method (str)**
+- **path (str)**
+- **json (dict[str, typing.Any] | None) (default: None)**
+- **kwargs**
 
-**Returns:** `Response`
-
-#### `put`
-
-**Parameters:**
-
-- `path` (str)
-- `kwargs`
-
-**Returns:** `Response`
-
-#### `stream`
-
-**Parameters:**
-
-- `method` (str)
-- `path` (str)
-- `json` (dict[str, typing.Any] | None) (default: `None`)
-- `kwargs`
-
-**Returns:** `typing.AsyncGenerator[str, NoneType]`
+**Returns:** typing.AsyncGenerator[str, NoneType]
 
 ## Response
 
@@ -79,14 +71,12 @@ media_type (str): The media type of the response.
 
 **Tags:** 
 
-#### `from_httpx`
+### from_httpx
 
-**Parameters:**
+**Args:**
+- **response (Response)**
 
-- `response` (Response)
+### json
 
-#### `json`
-
-**Parameters:**
-
+**Args:**
 

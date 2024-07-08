@@ -4,27 +4,25 @@
 
 ## AssetRef
 
-- **type** (`str`)
-- **uri** (`str`)
-- **asset_id** (`str | None`)
-- **temp_id** (`str | None`)
+- **type** (str)
+- **uri** (str)
+- **asset_id** (str | None)
+- **temp_id** (str | None)
 
-#### `is_empty`
+### is_empty
 
-**Parameters:**
+**Args:**
 
+### to_dict
 
-#### `to_dict`
-
-**Parameters:**
-
+**Args:**
 
 ## AudioRef
 
-- **type** (`typing.Literal['audio']`)
-- **uri** (`str`)
-- **asset_id** (`str | None`)
-- **temp_id** (`str | None`)
+- **type** (typing.Literal['audio'])
+- **uri** (str)
+- **asset_id** (str | None)
+- **temp_id** (str | None)
 
 ## BaseType
 
@@ -33,204 +31,204 @@ It is used to create a mapping of type names to their corresponding classes.
 
 **Tags:** 
 
-- **type** (`str`)
+- **type** (str)
 
 ## CLIP
 
-- **type** (`typing.Literal['comfy.clip']`)
+- **type** (typing.Literal['comfy.clip'])
 
 ## CLIPFile
 
-- **type** (`typing.Literal['comfy.clip_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.clip_file'])
+- **name** (str)
 
 ## CLIPVision
 
-- **type** (`typing.Literal['comfy.clip_vision']`)
+- **type** (typing.Literal['comfy.clip_vision'])
 
 ## CLIPVisionFile
 
-- **type** (`typing.Literal['comfy.clip_vision_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.clip_vision_file'])
+- **name** (str)
 
 ## CLIPVisionOutput
 
-- **type** (`typing.Literal['comfy.clip_vision_output']`)
+- **type** (typing.Literal['comfy.clip_vision_output'])
 
 ## ChatAssistantMessageParam
 
-- **role** (`typing.Literal['assistant']`)
-- **content** (`typing.Optional[str]`)
-- **name** (`typing.Optional[str]`)
-- **tool_calls** (`typing.Optional[list]`)
+- **role** (typing.Literal['assistant'])
+- **content** (typing.Optional[str])
+- **name** (typing.Optional[str])
+- **tool_calls** (typing.Optional[list])
 
 ## ChatConversation
 
 The result of a chat conversation.
 
-- **messages**: The messages in the conversation (`list[str]`)
-- **response**: The response from the chat system (`str`)
+- **messages**: The messages in the conversation (list[str])
+- **response**: The response from the chat system (str)
 
 ## ChatMessageParam
 
-- **role** (`str`)
+- **role** (str)
 
 ## ChatSystemMessageParam
 
-- **role** (`typing.Literal['system']`)
-- **content** (`str`)
-- **name** (`typing.Optional[str]`)
+- **role** (typing.Literal['system'])
+- **content** (str)
+- **name** (typing.Optional[str])
 
 ## ChatToolMessageParam
 
-- **role** (`typing.Literal['tool']`)
-- **content** (`Any`)
-- **tool_call_id** (`str`)
+- **role** (typing.Literal['tool'])
+- **content** (Any)
+- **tool_call_id** (str)
 
 ## ChatToolParam
 
-- **type** (`typing.Literal['function']`)
-- **function** (`FunctionDefinition`)
+- **type** (typing.Literal['function'])
+- **function** (FunctionDefinition)
 
 ## ChatUserMessageParam
 
-- **role** (`typing.Literal['user']`)
-- **content** (`str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent]`)
-- **name** (`typing.Optional[str]`)
+- **role** (typing.Literal['user'])
+- **content** (str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent])
+- **name** (typing.Optional[str])
 
 ## CheckpointFile
 
-- **type** (`typing.Literal['comfy.checkpoint_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.checkpoint_file'])
+- **name** (str)
 
 ## ColumnDef
 
-- **name** (`str`)
-- **data_type** (`typing.Union[typing.Literal['int'], typing.Literal['float'], typing.Literal['datetime'], typing.Literal['string'], typing.Literal['object']]`)
-- **description** (`str`)
+- **name** (str)
+- **data_type** (typing.Union[typing.Literal['int'], typing.Literal['float'], typing.Literal['datetime'], typing.Literal['string'], typing.Literal['object']])
+- **description** (str)
 
 ## Conditioning
 
-- **type** (`typing.Literal['comfy.conditioning']`)
+- **type** (typing.Literal['comfy.conditioning'])
 
 ## ControlNet
 
-- **type** (`typing.Literal['comfy.control_net']`)
+- **type** (typing.Literal['comfy.control_net'])
 
 ## ControlNetFile
 
-- **type** (`typing.Literal['comfy.control_net_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.control_net_file'])
+- **name** (str)
 
 ## DataframeRef
 
-- **type** (`typing.Literal['dataframe']`)
-- **uri** (`str`)
-- **asset_id** (`str | None`)
-- **temp_id** (`str | None`)
-- **columns** (`list[nodetool.metadata.types.ColumnDef] | None`)
-- **data** (`list[list[typing.Any]] | None`)
+- **type** (typing.Literal['dataframe'])
+- **uri** (str)
+- **asset_id** (str | None)
+- **temp_id** (str | None)
+- **columns** (list[nodetool.metadata.types.ColumnDef] | None)
+- **data** (list[list[typing.Any]] | None)
 
 ## Dataset
 
 This class represents a dataset, which includes a dataframe of features and a dataframe of targets.
 
-- **data** (`DataframeRef`)
-- **target** (`DataframeRef`)
+- **data** (DataframeRef)
+- **target** (DataframeRef)
 
 ## Embeds
 
-- **type** (`typing.Literal['comfy.embeds']`)
+- **type** (typing.Literal['comfy.embeds'])
 
 ## FileRef
 
-- **type** (`typing.Literal['file']`)
+- **type** (typing.Literal['file'])
 
 ## FolderRef
 
-- **type** (`typing.Literal['folder']`)
-- **uri** (`str`)
-- **asset_id** (`str | None`)
-- **temp_id** (`str | None`)
+- **type** (typing.Literal['folder'])
+- **uri** (str)
+- **asset_id** (str | None)
+- **temp_id** (str | None)
 
 ## FunctionDefinition
 
-- **name** (`str`)
-- **description** (`str`)
-- **parameters** (`Any`)
+- **name** (str)
+- **description** (str)
+- **parameters** (Any)
 
 ## FunctionModel
 
-- **type** (`typing.Literal['function_model']`)
-- **provider** (`Provider`)
-- **name** (`str`)
-- **repo_id** (`str`)
-- **filename** (`str`)
-- **local_path** (`pathlib.Path | None`)
+- **type** (typing.Literal['function_model'])
+- **provider** (Provider)
+- **name** (str)
+- **repo_id** (str)
+- **filename** (str)
+- **local_path** (pathlib.Path | None)
 
 ## GLIGEN
 
-- **type** (`typing.Literal['comfy.gligen']`)
+- **type** (typing.Literal['comfy.gligen'])
 
 ## GLIGENFile
 
-- **type** (`typing.Literal['comfy.gligen_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.gligen_file'])
+- **name** (str)
 
 ## GPTModel
 
 ## IPAdapter
 
-- **type** (`typing.Literal['comfy.ip_adapter']`)
+- **type** (typing.Literal['comfy.ip_adapter'])
 
 ## IPAdapterFile
 
-- **type** (`typing.Literal['comfy.ip_adapter_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.ip_adapter_file'])
+- **name** (str)
 
 ## ImageRef
 
 A reference to an image asset.
 
-- **type** (`typing.Literal['image']`)
-- **uri** (`str`)
-- **asset_id** (`str | None`)
-- **temp_id** (`str | None`)
+- **type** (typing.Literal['image'])
+- **uri** (str)
+- **asset_id** (str | None)
+- **temp_id** (str | None)
 
 ## ImageTensor
 
-- **type** (`typing.Literal['comfy.image_tensor']`)
+- **type** (typing.Literal['comfy.image_tensor'])
 
 ## InsightFace
 
-- **type** (`typing.Literal['comfy.insight_face']`)
+- **type** (typing.Literal['comfy.insight_face'])
 
 ## LORA
 
-- **type** (`typing.Literal['comfy.lora']`)
+- **type** (typing.Literal['comfy.lora'])
 
 ## LORAFile
 
-- **type** (`typing.Literal['comfy.lora_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.lora_file'])
+- **name** (str)
 
 ## Latent
 
-- **type** (`typing.Literal['comfy.latent']`)
+- **type** (typing.Literal['comfy.latent'])
 
 ## LlamaModel
 
-- **type** (`typing.Literal['llama_model']`)
-- **name** (`str`)
-- **model** (`str`)
-- **modified_at** (`str`)
-- **size** (`int`)
-- **digest** (`str`)
-- **details** (`dict`)
+- **type** (typing.Literal['llama_model'])
+- **name** (str)
+- **model** (str)
+- **modified_at** (str)
+- **size** (int)
+- **digest** (str)
+- **details** (dict)
 
 ## Mask
 
-- **type** (`typing.Literal['comfy.mask']`)
+- **type** (typing.Literal['comfy.mask'])
 
 ## Message
 
@@ -238,55 +236,54 @@ Abstract representation for a chat message.
 
 **Tags:** Independent of the underlying chat system, such as OpenAI or Anthropic.
 
-- **type** (`str`)
-- **id** (`str | None`)
-- **thread_id** (`str | None`)
-- **user_id** (`str | None`)
-- **tool_call_id** (`str | None`)
-- **role** (`str`)
-- **name** (`str`)
-- **content** (`str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent] | None`)
-- **tool_calls** (`list[nodetool.models.message.ToolCall] | None`)
-- **created_at** (`str | None`)
+- **type** (str)
+- **id** (str | None)
+- **thread_id** (str | None)
+- **user_id** (str | None)
+- **tool_call_id** (str | None)
+- **role** (str)
+- **name** (str)
+- **content** (str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent] | None)
+- **tool_calls** (list[nodetool.models.message.ToolCall] | None)
+- **created_at** (str | None)
 
-#### `from_model`
+### from_model
 
 Convert a Model object to a Message object.
 
-        Args:
-            message (Message): The Message object to convert.
 
-        Returns:
-            Message: The abstract Message object.
+**Args:**
 
-**Parameters:**
+- **message (Message)**: The Message object to convert.
 
-- `message` (Message)
 
+**Returns:**
+
+- **Message**: The abstract Message object.
 ## ModelFile
 
-- **type** (`str`)
-- **name** (`str`)
+- **type** (str)
+- **name** (str)
 
 ## ModelRef
 
-- **type** (`typing.Literal['model_ref']`)
-- **uri** (`str`)
-- **asset_id** (`str | None`)
-- **temp_id** (`str | None`)
+- **type** (typing.Literal['model_ref'])
+- **uri** (str)
+- **asset_id** (str | None)
+- **temp_id** (str | None)
 
 ## NodeRef
 
-- **type** (`typing.Literal['node']`)
-- **id** (`str`)
+- **type** (typing.Literal['node'])
+- **id** (str)
 
 ## OutputSlot
 
 An output slot is a slot that can be connected to an input slot.
 
-- **type** (`TypeMetadata`)
-- **name** (`str`)
-- **stream** (`bool`)
+- **type** (TypeMetadata)
+- **name** (str)
+- **stream** (bool)
 
 ## OutputType
 
@@ -299,175 +296,162 @@ This is the base class for all strucutred output types when a node
 
 ## RankingResult
 
-- **type** (`typing.Literal['ranking_result']`)
-- **score** (`float`)
-- **text** (`str`)
+- **type** (typing.Literal['ranking_result'])
+- **score** (float)
+- **text** (str)
 
 ## RecordType
 
-- **type** (`typing.Literal['record_type']`)
-- **columns** (`list[nodetool.metadata.types.ColumnDef]`)
+- **type** (typing.Literal['record_type'])
+- **columns** (list[nodetool.metadata.types.ColumnDef])
 
 ## Sampler
 
-- **type** (`typing.Literal['comfy.sampler']`)
+- **type** (typing.Literal['comfy.sampler'])
 
 ## Sigmas
 
-- **type** (`typing.Literal['comfy.sigmas']`)
+- **type** (typing.Literal['comfy.sigmas'])
 
 ## Task
 
-- **type** (`typing.Literal['task']`)
-- **id** (`str`)
-- **task_type** (`str`)
-- **user_id** (`str`)
-- **thread_id** (`str`)
-- **status** (`str`)
-- **name** (`str`)
-- **instructions** (`str`)
-- **dependencies** (`list[str]`)
-- **required_capabilities** (`list[str]`)
-- **started_at** (`str`)
-- **finished_at** (`str | None`)
-- **error** (`str | None`)
-- **result** (`str | None`)
-- **cost** (`float | None`)
+- **type** (typing.Literal['task'])
+- **id** (str)
+- **task_type** (str)
+- **user_id** (str)
+- **thread_id** (str)
+- **status** (str)
+- **name** (str)
+- **instructions** (str)
+- **dependencies** (list[str])
+- **required_capabilities** (list[str])
+- **started_at** (str)
+- **finished_at** (str | None)
+- **error** (str | None)
+- **result** (str | None)
+- **cost** (float | None)
 
 ## Tensor
 
-- **type** (`typing.Literal['tensor']`)
-- **value** (`list[typing.Any]`)
-- **dtype** (`typing.Optional[str]`)
+- **type** (typing.Literal['tensor'])
+- **value** (list[typing.Any])
+- **dtype** (typing.Optional[str])
 
-#### `from_list`
+### from_list
 
-**Parameters:**
+**Args:**
+- **tensor (list)**
+- **kwargs**
 
-- `tensor` (list)
-- `kwargs`
+### from_numpy
 
-#### `from_numpy`
+**Args:**
+- **tensor (ndarray)**
+- **kwargs**
 
-**Parameters:**
+### is_empty
 
-- `tensor` (ndarray)
-- `kwargs`
+**Args:**
 
-#### `is_empty`
+### to_list
 
-**Parameters:**
+**Args:**
 
+**Returns:** list
 
-#### `to_list`
+### to_numpy
 
-**Parameters:**
+**Args:**
 
-
-**Returns:** `list`
-
-#### `to_numpy`
-
-**Parameters:**
-
-
-**Returns:** `ndarray`
+**Returns:** ndarray
 
 ## TextRef
 
-- **type** (`typing.Literal['text']`)
-- **uri** (`str`)
-- **asset_id** (`str | None`)
-- **temp_id** (`str | None`)
+- **type** (typing.Literal['text'])
+- **uri** (str)
+- **asset_id** (str | None)
+- **temp_id** (str | None)
 
 ## TrainTestOutput
 
-- **train_X** (`DataframeRef`)
-- **train_y** (`DataframeRef`)
-- **test_X** (`DataframeRef`)
-- **test_y** (`DataframeRef`)
+- **train_X** (DataframeRef)
+- **train_y** (DataframeRef)
+- **test_X** (DataframeRef)
+- **test_y** (DataframeRef)
 
 ## UNet
 
-- **type** (`typing.Literal['comfy.unet']`)
+- **type** (typing.Literal['comfy.unet'])
 
 ## UpscaleModel
 
-- **type** (`typing.Literal['comfy.upscale_model']`)
+- **type** (typing.Literal['comfy.upscale_model'])
 
 ## UpscaleModelFile
 
-- **type** (`typing.Literal['comfy.upscale_model_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.upscale_model_file'])
+- **name** (str)
 
 ## VAE
 
-- **type** (`typing.Literal['comfy.vae']`)
+- **type** (typing.Literal['comfy.vae'])
 
 ## VAEFile
 
-- **type** (`typing.Literal['comfy.vae_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.vae_file'])
+- **name** (str)
 
 ## VideoRef
 
-- **type** (`typing.Literal['video']`)
-- **uri** (`str`)
-- **asset_id** (`str | None`)
-- **temp_id** (`str | None`)
-- **duration** (`typing.Optional[float]`)
-- **format** (`typing.Optional[str]`)
+- **type** (typing.Literal['video'])
+- **uri** (str)
+- **asset_id** (str | None)
+- **temp_id** (str | None)
+- **duration** (typing.Optional[float])
+- **format** (typing.Optional[str])
 
 ## WorkflowRef
 
-- **type** (`typing.Literal['workflow']`)
-- **id** (`str`)
+- **type** (typing.Literal['workflow'])
+- **id** (str)
 
-#### `add_type_name`
+### add_type_name
 
 Adds a type name to the TypeToEnum and EnumToType mappings.
+**Args:**
+- **type (typing.Type)**
+- **name (str)**
 
-**Parameters:**
-
-- `type` (typing.Type)
-- `name` (str)
-
-#### `add_type_names`
+### add_type_names
 
 Add type names to the TypeToEnum and EnumToType mappings.
+**Args:**
+- **types**
 
-**Parameters:**
+### asset_to_ref
 
-- `types`
+**Args:**
+- **asset (Asset)**
 
-#### `asset_to_ref`
+### dtype_name
 
-**Parameters:**
+**Args:**
+- **dtype (str)**
 
-- `asset` (Asset)
+### is_output_type
 
-#### `dtype_name`
+**Args:**
+- **type**
 
-**Parameters:**
+### to_numpy
 
-- `dtype` (str)
+**Args:**
+- **num (float | int | nodetool.metadata.types.Tensor)**
 
-#### `is_output_type`
-
-**Parameters:**
-
-- `type`
-
-#### `to_numpy`
-
-**Parameters:**
-
-- `num` (float | int | nodetool.metadata.types.Tensor)
-
-**Returns:** `ndarray`
+**Returns:** ndarray
 
 ## unCLIPFile
 
-- **type** (`typing.Literal['comfy.unclip_file']`)
-- **name** (`str`)
+- **type** (typing.Literal['comfy.unclip_file'])
+- **name** (str)
 

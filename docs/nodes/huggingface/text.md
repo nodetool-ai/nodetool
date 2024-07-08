@@ -12,8 +12,8 @@ Use cases:
 
 **Tags:** classifier, text, sentiment, huggingface
 
-- **model**: The model ID to use for the classification (`ModelId`)
-- **inputs**: The input text to classify (`str`)
+- **model**: The model ID to use for the classification (ModelId)
+- **inputs**: The input text to classify (str)
 
 ## Summarize
 
@@ -27,8 +27,8 @@ Use cases:
 
 **Tags:** summarization, text, huggingface
 
-- **model**: The model ID to use for the summarization (`ModelId`)
-- **inputs**: The input text to the model (`str`)
+- **model**: The model ID to use for the summarization (ModelId)
+- **inputs**: The input text to the model (str)
 
 ## TextGeneration
 
@@ -42,6 +42,6 @@ Use cases:
 
 **Tags:** text generation, language model, huggingface
 
-- **model**: The model ID to use for the classification (`ModelId`)
-- **inputs**: The input text to the model (`str`)
+- **model**: The model ID to use for the classification (ModelId)
+- **inputs**: The input text to the model (str)
 

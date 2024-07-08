@@ -1,14 +1,13 @@
 # nodetool.workflows.examples
 
-#### `get_examples`
+### get_examples
 
-**Returns:** `list[nodetool.types.workflow.Workflow]`
+**Returns:** list[nodetool.types.workflow.Workflow]
 
-#### `load_example`
+### load_example
 
-**Parameters:**
+**Args:**
+- **name (str)**
 
-- `name` (str)
-
-**Returns:** `Workflow`
+**Returns:** Workflow
 

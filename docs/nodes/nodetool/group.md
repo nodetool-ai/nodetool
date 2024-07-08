@@ -9,5 +9,5 @@ Use cases:
 
 **Tags:** loop, itereate, repeat, for, each, batch
 
-- **input**: The input data to loop over. (`Any`)
+- **input**: The input data to loop over. (Any)
 

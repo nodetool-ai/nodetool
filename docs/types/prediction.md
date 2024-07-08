@@ -4,58 +4,56 @@
 
 A prediction made by a remote model.
 
-- **type** (`typing.Literal['prediction']`)
-- **id** (`str`)
-- **user_id** (`str`)
-- **node_id** (`str`)
-- **workflow_id** (`str | None`)
-- **provider** (`str | None`)
-- **model** (`str | None`)
-- **version** (`str | None`)
-- **node_type** (`str | None`)
-- **status** (`str`)
-- **logs** (`str | None`)
-- **error** (`str | None`)
-- **duration** (`float | None`)
-- **created_at** (`str | None`)
-- **started_at** (`str | None`)
-- **completed_at** (`str | None`)
+- **type** (typing.Literal['prediction'])
+- **id** (str)
+- **user_id** (str)
+- **node_id** (str)
+- **workflow_id** (str | None)
+- **provider** (str | None)
+- **model** (str | None)
+- **version** (str | None)
+- **node_type** (str | None)
+- **status** (str)
+- **logs** (str | None)
+- **error** (str | None)
+- **duration** (float | None)
+- **created_at** (str | None)
+- **started_at** (str | None)
+- **completed_at** (str | None)
 
 ## PredictionCreateRequest
 
 The request body for creating a prediction.
 
-- **provider** (`Provider`)
-- **model** (`str`)
-- **node_id** (`str`)
-- **params** (`dict[str, typing.Any]`)
-- **data** (`str | None`)
-- **version** (`str | None`)
-- **workflow_id** (`str | None`)
+- **provider** (Provider)
+- **model** (str)
+- **node_id** (str)
+- **params** (dict[str, typing.Any])
+- **data** (str | None)
+- **version** (str | None)
+- **workflow_id** (str | None)
 
 ## PredictionList
 
-- **next** (`str | None`)
-- **predictions** (`typing.List[nodetool.types.prediction.Prediction]`)
+- **next** (str | None)
+- **predictions** (typing.List[nodetool.types.prediction.Prediction])
 
 ## PredictionResult
 
-- **type** (`typing.Literal['prediction_result']`)
-- **prediction** (`Prediction`)
-- **encoding** (`typing.Union[typing.Literal['json'], typing.Literal['base64']]`)
-- **content** (`Any`)
+- **type** (typing.Literal['prediction_result'])
+- **prediction** (Prediction)
+- **encoding** (typing.Union[typing.Literal['json'], typing.Literal['base64']])
+- **content** (Any)
 
-#### `decode_content`
+### decode_content
 
-**Parameters:**
+**Args:**
 
+**Returns:** Any
 
-**Returns:** `Any`
+### from_result
 
-#### `from_result`
-
-**Parameters:**
-
-- `prediction` (Prediction)
-- `content` (Any)
+**Args:**
+- **prediction (Prediction)**
+- **content (Any)**
 

@@ -3,31 +3,28 @@
 ## HuggingfaceNode
 
 
-#### `convert_output`
+### convert_output
 
-**Parameters:**
+**Args:**
+- **context (ProcessingContext)**
+- **output (Any)**
 
-- `context` (ProcessingContext)
-- `output` (Any)
+**Returns:** Any
 
-**Returns:** `Any`
+### extra_params
 
-#### `extra_params`
+**Args:**
+- **context (ProcessingContext)**
 
-**Parameters:**
+**Returns:** dict
 
-- `context` (ProcessingContext)
+### run_huggingface
 
-**Returns:** `dict`
+**Args:**
+- **model_id (str)**
+- **context (ProcessingContext)**
+- **params (dict[str, typing.Any] | None) (default: None)**
+- **data (bytes | None) (default: None)**
 
-#### `run_huggingface`
-
-**Parameters:**
-
-- `model_id` (str)
-- `context` (ProcessingContext)
-- `params` (dict[str, typing.Any] | None) (default: `None`)
-- `data` (bytes | None) (default: `None`)
-
-**Returns:** `Any`
+**Returns:** Any
 

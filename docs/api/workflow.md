@@ -1,88 +1,78 @@
 # nodetool.api.workflow
 
-#### `create`
+### create
 
-**Parameters:**
+**Args:**
+- **workflow_request (WorkflowRequest)**
+- **user (User) (default: Depends(current_user))**
 
-- `workflow_request` (WorkflowRequest)
-- `user` (User) (default: `Depends(current_user)`)
+**Returns:** Workflow
 
-**Returns:** `Workflow`
+### delete_workflow
 
-#### `delete_workflow`
+**Args:**
+- **id (str)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
+**Returns:** None
 
-- `id` (str)
-- `user` (User) (default: `Depends(current_user)`)
+### examples
 
-**Returns:** `None`
+**Returns:** WorkflowList
 
-#### `examples`
+### get_public_workflow
 
-**Returns:** `WorkflowList`
+**Args:**
+- **id (str)**
 
-#### `get_public_workflow`
+**Returns:** Workflow
 
-**Parameters:**
+### get_workflow
 
-- `id` (str)
+**Args:**
+- **id (str)**
+- **user (User) (default: Depends(current_user))**
 
-**Returns:** `Workflow`
+**Returns:** Workflow
 
-#### `get_workflow`
+### index
 
-**Parameters:**
+**Args:**
+- **user (User) (default: Depends(current_user))**
+- **cursor (typing.Optional[str]) (default: None)**
+- **limit (int) (default: 100)**
 
-- `id` (str)
-- `user` (User) (default: `Depends(current_user)`)
+**Returns:** WorkflowList
 
-**Returns:** `Workflow`
-
-#### `index`
-
-**Parameters:**
-
-- `user` (User) (default: `Depends(current_user)`)
-- `cursor` (typing.Optional[str]) (default: `None`)
-- `limit` (int) (default: `100`)
-
-**Returns:** `WorkflowList`
-
-#### `load_workflows_ignoring_exceptions`
+### load_workflows_ignoring_exceptions
 
 Load workflows ignoring exceptions from missing nodes or old versions.
+**Args:**
+- **workflows (list[nodetool.models.workflow.Workflow])**
 
-**Parameters:**
+### public
 
-- `workflows` (list[nodetool.models.workflow.Workflow])
+**Args:**
+- **limit (int) (default: 100)**
+- **cursor (typing.Optional[str]) (default: None)**
 
-#### `public`
+**Returns:** WorkflowList
 
-**Parameters:**
+### update_workflow
 
-- `limit` (int) (default: `100`)
-- `cursor` (typing.Optional[str]) (default: `None`)
+**Args:**
+- **id (str)**
+- **workflow_request (WorkflowRequest)**
+- **user (User) (default: Depends(current_user))**
 
-**Returns:** `WorkflowList`
+**Returns:** Workflow
 
-#### `update_workflow`
+### user_workflows
 
-**Parameters:**
+**Args:**
+- **user_id (str)**
+- **limit (int) (default: 100)**
+- **cursor (typing.Optional[str]) (default: None)**
 
-- `id` (str)
-- `workflow_request` (WorkflowRequest)
-- `user` (User) (default: `Depends(current_user)`)
-
-**Returns:** `Workflow`
-
-#### `user_workflows`
-
-**Parameters:**
-
-- `user_id` (str)
-- `limit` (int) (default: `100`)
-- `cursor` (typing.Optional[str]) (default: `None`)
-
-**Returns:** `WorkflowList`
+**Returns:** WorkflowList
 

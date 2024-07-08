@@ -1,27 +1,23 @@
 # nodetool.api.utils
 
-#### `abort`
+### abort
 
 Abort the current request with the given status code and detail.
+**Args:**
+- **status_code (int)**
+- **detail (typing.Optional[str]) (default: None)**
 
-**Parameters:**
+**Returns:** None
 
-- `status_code` (int)
-- `detail` (typing.Optional[str]) (default: `None`)
+### current_user
 
-**Returns:** `None`
+**Args:**
+- **authorization (typing.Optional[str]) (default: annotation=Union[str, NoneType] required=False default=None alias='authorization' json_schema_extra={})**
+- **auth_cookie (typing.Optional[str]) (default: annotation=Union[str, NoneType] required=False default=None alias='auth_cookie' json_schema_extra={})**
 
-#### `current_user`
+**Returns:** User
 
-**Parameters:**
-
-- `authorization` (typing.Optional[str]) (default: `annotation=Union[str, NoneType] required=False default=None alias='authorization' json_schema_extra={}`)
-- `auth_cookie` (typing.Optional[str]) (default: `annotation=Union[str, NoneType] required=False default=None alias='auth_cookie' json_schema_extra={}`)
-
-**Returns:** `User`
-
-#### `get_local_user`
+### get_local_user
 
 In local mode, we only need to create a single user.
-    This single user has the ID 1.
-
+This single user has the ID 1.

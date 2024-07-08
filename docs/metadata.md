@@ -1,13 +1,12 @@
 # nodetool.metadata
 
-#### `is_assignable`
+### is_assignable
 
-**Parameters:**
+**Args:**
+- **type_meta (TypeMetadata)**
+- **value (Any)**
 
-- `type_meta` (TypeMetadata)
-- `value` (Any)
-
-**Returns:** `bool`
+**Returns:** bool
 
 - [nodetool.metadata.node_metadata](metadata/node_metadata.md)
 - [nodetool.metadata.type_metadata](metadata/type_metadata.md)

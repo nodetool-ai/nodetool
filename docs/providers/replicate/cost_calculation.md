@@ -1,19 +1,17 @@
 # nodetool.providers.replicate.cost_calculation
 
-#### `calculate_cost`
+### calculate_cost
 
-**Parameters:**
+**Args:**
+- **hardware (str)**
+- **duration (float)**
 
-- `hardware` (str)
-- `duration` (float)
+### calculate_llm_cost
 
-#### `calculate_llm_cost`
+**Args:**
+- **model (str)**
+- **input_tokens (int)**
+- **output_tokens (int)**
 
-**Parameters:**
-
-- `model` (str)
-- `input_tokens` (int)
-- `output_tokens` (int)
-
-**Returns:** `float`
+**Returns:** float
 

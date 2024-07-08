@@ -161,6 +161,43 @@ def type_to_str(tp: Type[Any]) -> str:
     return str(tp)
 
 
+def docstring_to_markdown(docstring):
+    # Remove leading/trailing whitespace and quotes
+    cleaned = docstring.strip().strip('"""')
+
+    # Split into lines
+    lines = cleaned.split("\n")
+
+    # Process the lines
+    markdown = []
+    in_list = False
+    for line in lines:
+        line = line.strip()
+
+        # Check for section headers
+        if line.endswith(":"):
+            markdown.append(f"\n**{line}**\n")
+            in_list = False
+        elif line.startswith("- "):
+            if not in_list:
+                markdown.append("")
+                in_list = True
+            markdown.append(line)
+        elif ":" in line and not line.startswith(" "):
+            # Handle key-value pairs (like Args and Returns)
+            key, value = line.split(":", 1)
+            markdown.append(f"- **{key.strip()}**: {value.strip()}")
+        else:
+            if in_list and line:
+                markdown.append(f"  {line}")
+            else:
+                markdown.append(line)
+                in_list = False
+
+    # Join the processed lines
+    return "\n".join(markdown).strip()
+
+
 def document_class(file: Any, cls: Type[Any]) -> None:
     """
     Document a class, including its docstring, base classes, and fields (if it's a Pydantic model).
@@ -189,7 +226,7 @@ def document_class(file: Any, cls: Type[Any]) -> None:
             if field.description:
                 file.write(f": {field.description}")
             if field.annotation:
-                file.write(f" (`{type_to_str(field.annotation)}`)\n")
+                file.write(f" ({type_to_str(field.annotation)})\n")
         file.write("\n")
 
     document_methods(file, cls)
@@ -243,26 +280,31 @@ def document_function(file: Any, func: Any, is_method: bool = False) -> None:
     signature = inspect.signature(func)
     params = signature.parameters
 
-    file.write(f"#### `{func.__name__}`\n\n")
+    file.write(f"### {func.__name__}\n\n")
 
     if func.__doc__:
-        file.write(f"{func.__doc__.strip()}\n\n")
+        file.write(docstring_to_markdown(func.__doc__) + "\n")
+        contains_args = "Args:" in func.__doc__
+        contains_returns = "Returns:" in func.__doc__
+    else:
+        contains_args = False
+        contains_returns = False
 
-    if params:
-        file.write("**Parameters:**\n\n")
+    if not contains_args and params and len(params) > 0:
+        file.write("**Args:**\n")
         for name, param in params.items():
             if name == "self":
                 continue
-            file.write(f"- `{name}`")
+            file.write(f"- **{name}")
             if param.annotation != inspect.Parameter.empty:
                 file.write(f" ({type_to_str(param.annotation)})")
             if param.default != inspect.Parameter.empty:
-                file.write(f" (default: `{param.default}`)")
-            file.write("\n")
+                file.write(f" (default: {param.default})")
+            file.write("**\n")
         file.write("\n")
 
-    if signature.return_annotation != inspect.Signature.empty:
-        file.write(f"**Returns:** `{type_to_str(signature.return_annotation)}`\n\n")
+    if not contains_returns and signature.return_annotation != inspect.Signature.empty:
+        file.write(f"**Returns:** {type_to_str(signature.return_annotation)}\n\n")
 
 
 if __name__ == "__main__":

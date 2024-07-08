@@ -11,12 +11,12 @@ Use cases:
 
 **Tags:** task planning, goal decomposition, workflow generation
 
-- **model**: The language model to use. (`FunctionModel`)
-- **goal**: The user prompt (`str`)
-- **max_tokens**: The maximum number of tokens to generate. (`int`)
-- **temperature**: The temperature to use for sampling. (`float`)
-- **top_k**: The number of tokens to sample from. (`int`)
-- **top_p**: The cumulative probability for sampling. (`float`)
+- **model**: The language model to use. (FunctionModel)
+- **goal**: The user prompt (str)
+- **max_tokens**: The maximum number of tokens to generate. (int)
+- **temperature**: The temperature to use for sampling. (float)
+- **top_k**: The number of tokens to sample from. (int)
+- **top_p**: The cumulative probability for sampling. (float)
 
 ## CreateImageTaskTool
 
@@ -62,16 +62,16 @@ Use cases:
 
 **Tags:** llm, dataframe creation, data structuring
 
-- **model**: The language model to use. (`FunctionModel`)
-- **prompt**: The user prompt (`str`)
-- **image**: The image to use in the prompt. (`ImageRef`)
-- **tool_name**: The name of the tool to use. (`str`)
-- **tool_description**: The description of the tool to use. (`str`)
-- **max_tokens**: The maximum number of tokens to generate. (`int`)
-- **temperature**: The temperature to use for sampling. (`float`)
-- **top_k**: The number of tokens to sample from. (`int`)
-- **top_p**: The cumulative probability for sampling. (`float`)
-- **columns**: The columns to use in the dataframe. (`RecordType`)
+- **model**: The language model to use. (FunctionModel)
+- **prompt**: The user prompt (str)
+- **image**: The image to use in the prompt. (ImageRef)
+- **tool_name**: The name of the tool to use. (str)
+- **tool_description**: The description of the tool to use. (str)
+- **max_tokens**: The maximum number of tokens to generate. (int)
+- **temperature**: The temperature to use for sampling. (float)
+- **top_k**: The number of tokens to sample from. (int)
+- **top_p**: The cumulative probability for sampling. (float)
+- **columns**: The columns to use in the dataframe. (RecordType)
 
 ## ProcessTask
 
@@ -84,11 +84,11 @@ Use cases:
 
 **Tags:** task execution, model integration, tool coordination
 
-- **model**: The language model to use. (`FunctionModel`)
-- **task**: The task to process. (`Task`)
-- **image_nodes**: The image generation nodes to use. (`list[nodetool.metadata.types.NodeRef]`)
-- **max_tokens**: The maximum number of tokens to generate. (`int`)
-- **temperature**: The temperature to use for sampling. (`float`)
-- **top_k**: The number of tokens to sample from. (`int`)
-- **top_p**: The cumulative probability for sampling. (`float`)
+- **model**: The language model to use. (FunctionModel)
+- **task**: The task to process. (Task)
+- **image_nodes**: The image generation nodes to use. (list[nodetool.metadata.types.NodeRef])
+- **max_tokens**: The maximum number of tokens to generate. (int)
+- **temperature**: The temperature to use for sampling. (float)
+- **top_k**: The number of tokens to sample from. (int)
+- **top_p**: The cumulative probability for sampling. (float)
 

@@ -11,7 +11,7 @@ Use cases:
 
 **Tags:** audio, file, mp3, wav
 
-- **value** (`AudioRef`)
+- **value** (AudioRef)
 
 ## Bool
 
@@ -24,7 +24,7 @@ Use cases:
 
 **Tags:** boolean, logic, flag
 
-- **value** (`bool`)
+- **value** (bool)
 
 ## Constant
 
@@ -40,7 +40,7 @@ Use cases:
 
 **Tags:** table, data, dataframe, pandas
 
-- **value** (`DataframeRef`)
+- **value** (DataframeRef)
 
 ## Dict
 
@@ -53,7 +53,7 @@ Use cases:
 
 **Tags:** dictionary, key-value, mapping
 
-- **value** (`dict[str, typing.Any]`)
+- **value** (dict[str, typing.Any])
 
 ## Float
 
@@ -66,7 +66,7 @@ Use cases:
 
 **Tags:** number, decimal, float
 
-- **value** (`float`)
+- **value** (float)
 
 ## Image
 
@@ -79,7 +79,7 @@ Use cases:
 
 **Tags:** picture, photo, image
 
-- **value** (`ImageRef`)
+- **value** (ImageRef)
 
 ## List
 
@@ -92,7 +92,7 @@ Use cases:
 
 **Tags:** array, squence, collection
 
-- **value** (`list[typing.Any]`)
+- **value** (list[typing.Any])
 
 ## String
 
@@ -105,7 +105,7 @@ Use cases:
 
 **Tags:** text, string, characters
 
-- **value** (`str`)
+- **value** (str)
 
 ## Text
 
@@ -118,7 +118,7 @@ Use cases:
 
 **Tags:** document, markdown, content
 
-- **value** (`TextRef`)
+- **value** (TextRef)
 
 ## Video
 
@@ -131,5 +131,5 @@ Use cases:
 
 **Tags:** video, movie, mp4, file
 
-- **value** (`VideoRef`)
+- **value** (VideoRef)
 

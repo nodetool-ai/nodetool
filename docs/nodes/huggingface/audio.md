@@ -11,8 +11,8 @@ Use cases:
 
 **Tags:** asr, speech-to-text, audio, huggingface
 
-- **model**: The model ID to use for the speech recognition (`ModelId`)
-- **audio**: The input audio to transcribe (`AudioRef`)
+- **model**: The model ID to use for the speech recognition (ModelId)
+- **audio**: The input audio to transcribe (AudioRef)
 
 ## TextToAudio
 
@@ -25,8 +25,8 @@ Use cases:
 
 **Tags:** audio, music, generation, huggingface
 
-- **model**: The model ID to use for the audio generation (`ModelId`)
-- **inputs**: The input text to the model (`str`)
+- **model**: The model ID to use for the audio generation (ModelId)
+- **inputs**: The input text to the model (str)
 
 ## TextToSpeech
 
@@ -39,6 +39,6 @@ Use cases:
 
 **Tags:** tts, audio, speech, huggingface
 
-- **model**: The model ID to use for the image generation (`ModelId`)
-- **inputs**: The input text to the model (`str`)
+- **model**: The model ID to use for the image generation (ModelId)
+- **inputs**: The input text to the model (str)
 

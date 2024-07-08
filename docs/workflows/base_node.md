@@ -20,98 +20,88 @@ type checking, and node processing.
 **Tags:** 
 
 
-#### `assign_property`
+### assign_property
 
 Assign a value to a node property, performing type checking and conversion.
 
-        Args:
-            name (str): The name of the property to assign.
-            value (Any): The value to assign to the property.
 
-        Raises:
-            ValueError: If the value is not assignable to the property type.
+**Args:**
 
-        Note:
-            This method handles type conversion for enums, lists, and objects with 'model_validate' method.
+- **name (str)**: The name of the property to assign.
+- **value (Any)**: The value to assign to the property.
 
-**Parameters:**
 
-- `name` (str)
-- `value` (Any)
+**Raises:**
 
-#### `convert_output`
+- **ValueError**: If the value is not assignable to the property type.
 
-**Parameters:**
 
-- `context` (Any)
-- `output` (Any)
+**Note:**
 
-**Returns:** `Any`
+This method handles type conversion for enums, lists, and objects with 'model_validate' method.
+### convert_output
 
-#### `from_dict`
+**Args:**
+- **context (Any)**
+- **output (Any)**
+
+**Returns:** Any
+
+### from_dict
 
 Create a Node object from a dictionary representation.
 
-        Args:
-            node (dict[str, Any]): The dictionary representing the Node.
 
-        Returns:
-            Node: The created Node object.
+**Args:**
 
-**Parameters:**
-
-- `node` (dict[str, typing.Any])
-- `skip_errors` (bool) (default: `False`)
-
-**Returns:** `BaseNode`
-
-#### `has_parent`
-
-**Parameters:**
+- **node (dict[str, Any])**: The dictionary representing the Node.
 
 
-#### `node_properties`
+**Returns:**
 
-**Parameters:**
+- **Node**: The created Node object.
+### has_parent
 
+**Args:**
 
-#### `pre_process`
+### node_properties
+
+**Args:**
+
+### pre_process
 
 Pre-process the node before processing.
-        This will be called before cache key is computed.
-        Default implementation generates a seed for any field named seed.
+This will be called before cache key is computed.
+Default implementation generates a seed for any field named seed.
+**Args:**
+- **context (Any)**
 
-**Parameters:**
+**Returns:** Any
 
-- `context` (Any)
-
-**Returns:** `Any`
-
-#### `set_node_properties`
+### set_node_properties
 
 Set multiple node properties at once.
 
-        Args:
-            properties (dict[str, Any]): A dictionary of property names and their values.
-            skip_errors (bool, optional): If True, continue setting properties even if an error occurs. Defaults to False.
 
-        Raises:
-            ValueError: If skip_errors is False and an error occurs while setting a property.
+**Args:**
 
-        Note:
-            Errors during property assignment are printed regardless of the skip_errors flag.
-
-**Parameters:**
-
-- `properties` (dict[str, typing.Any])
-- `skip_errors` (bool) (default: `False`)
-
-#### `to_dict`
-
-**Parameters:**
+- **properties (dict[str, Any])**: A dictionary of property names and their values.
+- **skip_errors (bool, optional)**: If True, continue setting properties even if an error occurs. Defaults to False.
 
 
-**Returns:** `dict[str, typing.Any]`
+**Raises:**
+
+- **ValueError**: If skip_errors is False and an error occurs while setting a property.
+
+
+**Note:**
+
+Errors during property assignment are printed regardless of the skip_errors flag.
+### to_dict
+
+**Args:**
+
+**Returns:** dict[str, typing.Any]
 
 ## Comment
 
@@ -121,7 +111,7 @@ comment (list[Any]): The content of the comment, stored as a list of elements.
 
 **Tags:** 
 
-- **comment**: The comment for this node. (`list[typing.Any]`)
+- **comment**: The comment for this node. (list[typing.Any])
 
 ## GroupNode
 
@@ -141,9 +131,9 @@ description (str): A detailed description of the input.
 
 **Tags:** 
 
-- **label**: The label for this input node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this input node. (`str`)
+- **label**: The label for this input node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this input node. (str)
 
 ## OutputNode
 
@@ -155,9 +145,9 @@ description (str): A detailed description of the output.
 
 **Tags:** 
 
-- **label**: The label for this output node. (`str`)
-- **name**: The parameter name for the workflow. (`str`)
-- **description**: The description for this output node. (`str`)
+- **label**: The label for this output node. (str)
+- **name**: The parameter name for the workflow. (str)
+- **description**: The description for this output node. (str)
 
 ## Preview
 
@@ -167,133 +157,125 @@ value (Any): The value to be previewed.
 
 **Tags:** 
 
-- **value**: The value to preview. (`Any`)
+- **value**: The value to preview. (Any)
 
-#### `add_node_classname`
+### add_node_classname
 
 Register a node class by its class name in the NODES_BY_CLASSNAME dictionary.
 
-    Args:
-        node_class (type["BaseNode"]): The node class to be registered.
 
-    Note:
-        If the node class has a 'comfy_class' attribute, it uses that as the class name.
-        Otherwise, it uses the actual class name.
+**Args:**
 
-**Parameters:**
+- **node_class (type["BaseNode"])**: The node class to be registered.
 
-- `node_class` (type['BaseNode'])
 
-**Returns:** `None`
+**Note:**
 
-#### `add_node_type`
+If the node class has a 'comfy_class' attribute, it uses that as the class name.
+Otherwise, it uses the actual class name.
+**Returns:** None
+
+### add_node_type
 
 Add a node type to the registry.
 
-    Args:
-        node_type (str): The node_type of the node.
-        node_class (type[Node]): The class of the node.
 
-**Parameters:**
+**Args:**
 
-- `node_class` (type['BaseNode'])
+- **node_type (str)**: The node_type of the node.
+- **node_class (type[Node])**: The class of the node.
+**Returns:** None
 
-**Returns:** `None`
-
-#### `get_node_class`
+### get_node_class
 
 Retrieve a node class based on its unique node type identifier.
 
-    Args:
-        node_type (str): The node type identifier.
 
-    Returns:
-        type[BaseNode] | None: The node class if found, None otherwise.
+**Args:**
 
-**Parameters:**
+- **node_type (str)**: The node type identifier.
 
-- `node_type` (str)
 
-**Returns:** `type[nodetool.workflows.base_node.BaseNode] | None`
+**Returns:**
 
-#### `get_node_class_by_name`
+- **type[BaseNode] | None**: The node class if found, None otherwise.
+### get_node_class_by_name
 
 Retrieve node classes based on their class name.
 
-    Args:
-        class_name (str): The name of the node class to retrieve.
 
-    Returns:
-        list[type[BaseNode]]: A list of node classes matching the given name.
+**Args:**
 
-    Note:
-        If no exact match is found, it attempts to find a match by removing hyphens from the class name.
+- **class_name (str)**: The name of the node class to retrieve.
 
-**Parameters:**
 
-- `class_name` (str)
+**Returns:**
 
-**Returns:** `list[type[nodetool.workflows.base_node.BaseNode]]`
+- **list[type[BaseNode]]**: A list of node classes matching the given name.
 
-#### `get_registered_node_classes`
+
+**Note:**
+
+If no exact match is found, it attempts to find a match by removing hyphens from the class name.
+### get_registered_node_classes
 
 Retrieve all registered and visible node classes.
 
-    Returns:
-        list[type[BaseNode]]: A list of all registered node classes that are marked as visible.
 
-**Returns:** `list[type[nodetool.workflows.base_node.BaseNode]]`
+**Returns:**
 
-#### `requires_capabilities`
+- **list[type[BaseNode]]**: A list of all registered node classes that are marked as visible.
+### requires_capabilities
 
 Determine the set of capabilities required by a list of nodes.
 
-    Args:
-        nodes (list[BaseNode]): A list of nodes to check for required capabilities.
 
-    Returns:
-        list[str]: A list of unique capability strings required by the input nodes.
+**Args:**
 
-**Parameters:**
+- **nodes (list[BaseNode])**: A list of nodes to check for required capabilities.
 
-- `nodes` (list[nodetool.workflows.base_node.BaseNode])
 
-#### `requires_capabilities_from_request`
+**Returns:**
+
+- **list[str]**: A list of unique capability strings required by the input nodes.
+### requires_capabilities_from_request
 
 Determine the set of capabilities required by nodes in a RunJobRequest.
 
-    Args:
-        req (RunJobRequest): The job request containing a graph of nodes.
 
-    Returns:
-        list[str]: A list of unique capability strings required by the nodes in the request.
+**Args:**
 
-    Raises:
-        ValueError: If a node type in the request is not registered.
+- **req (RunJobRequest)**: The job request containing a graph of nodes.
 
-**Parameters:**
 
-- `req` (RunJobRequest)
+**Returns:**
 
-#### `type_metadata`
+- **list[str]**: A list of unique capability strings required by the nodes in the request.
+
+
+**Raises:**
+
+- **ValueError**: If a node type in the request is not registered.
+### type_metadata
 
 Generate TypeMetadata for a given Python type.
 
-    Args:
-        python_type (Type | UnionType): The Python type to generate metadata for.
 
-    Returns:
-        TypeMetadata: Metadata describing the structure and properties of the input type.
+**Args:**
 
-    Raises:
-        ValueError: If the input type is unknown or unsupported.
+- **python_type (Type | UnionType)**: The Python type to generate metadata for.
 
-    Note:
-        Supports basic types, lists, dicts, optional types, unions, and enums.
 
-**Parameters:**
+**Returns:**
 
-- `python_type` (typing.Union[typing.Type, types.UnionType])
+- **TypeMetadata**: Metadata describing the structure and properties of the input type.
 
-**Returns:** `TypeMetadata`
 
+**Raises:**
+
+- **ValueError**: If the input type is unknown or unsupported.
+
+
+**Note:**
+
+Supports basic types, lists, dicts, optional types, unions, and enums.

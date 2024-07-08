@@ -38,74 +38,64 @@ integration with APIs or databases.
 
 **Tags:** 
 
-- **nodes** (`typing.Sequence[nodetool.workflows.base_node.BaseNode]`)
-- **edges** (`typing.Sequence[nodetool.types.graph.Edge]`)
+- **nodes** (typing.Sequence[nodetool.workflows.base_node.BaseNode])
+- **edges** (typing.Sequence[nodetool.types.graph.Edge])
 
-#### `find_node`
+### find_node
 
 Find a node by its id.
+**Args:**
+- **node_id (str)**
 
-**Parameters:**
+**Returns:** nodetool.workflows.base_node.BaseNode | None
 
-- `node_id` (str)
-
-**Returns:** `nodetool.workflows.base_node.BaseNode | None`
-
-#### `get_input_schema`
+### get_input_schema
 
 Returns a JSON schema for input nodes of the graph.
+**Args:**
 
-**Parameters:**
-
-
-#### `get_output_schema`
+### get_output_schema
 
 Returns a JSON schema for the output nodes of the graph.
+**Args:**
 
-**Parameters:**
-
-
-#### `inputs`
+### inputs
 
 Returns a list of nodes that inherit from InputNode.
+**Args:**
 
-**Parameters:**
+**Returns:** typing.List[nodetool.workflows.base_node.InputNode]
 
-
-**Returns:** `typing.List[nodetool.workflows.base_node.InputNode]`
-
-#### `outputs`
+### outputs
 
 Returns a list of nodes that have no outgoing edges.
+**Args:**
 
-**Parameters:**
+**Returns:** typing.List[nodetool.workflows.base_node.OutputNode]
 
-
-**Returns:** `typing.List[nodetool.workflows.base_node.OutputNode]`
-
-#### `topological_sort`
+### topological_sort
 
 Perform a topological sort on the graph, grouping nodes by levels.
 
-        This method implements a modified version of Kahn's algorithm for topological sorting.
-        It sorts the nodes of the graph into levels, where each level contains nodes
-        that can be processed in parallel.
+This method implements a modified version of Kahn's algorithm for topological sorting.
+It sorts the nodes of the graph into levels, where each level contains nodes
+that can be processed in parallel.
 
-        Args:
-            parent_id (str | None, optional): The ID of the parent node to filter results. Defaults to None.
 
-        Returns:
-            List[List[str]]: A list of lists, where each inner list contains the node IDs at the same level
-                             in the topological order. Nodes in the same list can be processed in parallel.
+**Args:**
 
-        Notes:
-        - The method does not modify the original graph structure.
-        - Nodes are only included in the output if their parent_id matches the given parent_id.
-        - If a cycle exists, some nodes may be omitted from the result.
+- **parent_id (str | None, optional)**: The ID of the parent node to filter results. Defaults to None.
 
-**Parameters:**
 
-- `parent_id` (str | None) (default: `None`)
+**Returns:**
 
-**Returns:** `typing.List[typing.List[str]]`
+- **List[List[str]]**: A list of lists, where each inner list contains the node IDs at the same level
+in the topological order. Nodes in the same list can be processed in parallel.
 
+
+**Notes:**
+
+
+- The method does not modify the original graph structure.
+- Nodes are only included in the output if their parent_id matches the given parent_id.
+- If a cycle exists, some nodes may be omitted from the result.

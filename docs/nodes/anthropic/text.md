@@ -13,12 +13,12 @@ Use cases:
 
 **Tags:** text, llm, chat, generation, anthropic
 
-- **model** (`AnthropicModel`)
-- **system** (`str`)
-- **prompt** (`str`)
-- **image** (`ImageRef`)
-- **max_tokens** (`int`)
-- **temperature** (`float`)
-- **top_k** (`int`)
-- **top_p** (`float`)
+- **model** (AnthropicModel)
+- **system** (str)
+- **prompt** (str)
+- **image** (ImageRef)
+- **max_tokens** (int)
+- **temperature** (float)
+- **top_k** (int)
+- **top_p** (float)
 

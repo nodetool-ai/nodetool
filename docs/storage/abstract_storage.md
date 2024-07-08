@@ -2,74 +2,65 @@
 
 ## AbstractStorage
 
-#### `delete`
+### delete
 
-**Parameters:**
+**Args:**
+- **file_name (str)**
 
-- `file_name` (str)
+### download
 
-#### `download`
+**Args:**
+- **key (str)**
+- **stream (IO)**
 
-**Parameters:**
+### download_stream
 
-- `key` (str)
-- `stream` (IO)
+**Args:**
+- **key (str)**
 
-#### `download_stream`
+**Returns:** typing.AsyncIterator[bytes]
 
-**Parameters:**
+### file_exists
 
-- `key` (str)
+**Args:**
+- **key (str)**
 
-**Returns:** `typing.AsyncIterator[bytes]`
+**Returns:** bool
 
-#### `file_exists`
+### generate_presigned_url
 
-**Parameters:**
+**Args:**
+- **client_method (str)**
+- **object_name (str)**
+- **expiration (default: 604800)**
 
-- `key` (str)
+**Returns:** str
 
-**Returns:** `bool`
+### get_base_url
 
-#### `generate_presigned_url`
+**Args:**
 
-**Parameters:**
+**Returns:** str
 
-- `client_method` (str)
-- `object_name` (str)
-- `expiration` (default: `604800`)
+### get_mtime
 
-**Returns:** `str`
+**Args:**
+- **key (str)**
 
-#### `get_base_url`
+**Returns:** datetime
 
-**Parameters:**
+### get_url
 
+**Args:**
+- **key (str)**
 
-**Returns:** `str`
+**Returns:** str
 
-#### `get_mtime`
+### upload
 
-**Parameters:**
+**Args:**
+- **key (str)**
+- **content (IO)**
 
-- `key` (str)
-
-**Returns:** `datetime`
-
-#### `get_url`
-
-**Parameters:**
-
-- `key` (str)
-
-**Returns:** `str`
-
-#### `upload`
-
-**Parameters:**
-
-- `key` (str)
-- `content` (IO)
-
-**Returns:** `str`
+**Returns:** str
 

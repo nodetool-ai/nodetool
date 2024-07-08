@@ -1,32 +1,29 @@
 # nodetool.api.message
 
-#### `create`
+### create
 
-**Parameters:**
+**Args:**
+- **req (MessageCreateRequest)**
+- **user (User) (default: Depends(current_user))**
 
-- `req` (MessageCreateRequest)
-- `user` (User) (default: `Depends(current_user)`)
+**Returns:** Message
 
-**Returns:** `Message`
+### get
 
-#### `get`
+**Args:**
+- **message_id (str)**
+- **user (User) (default: Depends(current_user))**
 
-**Parameters:**
+**Returns:** Message
 
-- `message_id` (str)
-- `user` (User) (default: `Depends(current_user)`)
+### index
 
-**Returns:** `Message`
+**Args:**
+- **thread_id (str)**
+- **reverse (bool) (default: False)**
+- **user (User) (default: Depends(current_user))**
+- **cursor (typing.Optional[str]) (default: None)**
+- **limit (int) (default: 100)**
 
-#### `index`
-
-**Parameters:**
-
-- `thread_id` (str)
-- `reverse` (bool) (default: `False`)
-- `user` (User) (default: `Depends(current_user)`)
-- `cursor` (typing.Optional[str]) (default: `None`)
-- `limit` (int) (default: `100`)
-
-**Returns:** `MessageList`
+**Returns:** MessageList
 

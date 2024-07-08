@@ -4,11 +4,11 @@
 
 Optical character recognition to turn images of latex equations into latex format.
 
-- **image_path**: Input image (`str | None`)
+- **image_path**: Input image (str | None)
 
 ## TextExtractOCR
 
 A simple OCR Model that can easily extract text from an image.
 
-- **image**: Image to process (`ImageRef`)
+- **image**: Image to process (ImageRef)
 
