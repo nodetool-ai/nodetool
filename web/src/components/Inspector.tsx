@@ -204,7 +204,7 @@ const Inspector: React.FC = () => {
             data={lastSelectedNode.data}
             property={property}
             propertyIndex={index.toString()}
-            // skipHandles={true} // prop removed
+            onlyInput={true}
             isInspector={true}
             nodeType="inspector"
             layout=""
