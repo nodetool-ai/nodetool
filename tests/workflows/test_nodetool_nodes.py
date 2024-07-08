@@ -35,7 +35,7 @@ from nodetool.models.asset import (
 from nodetool.models.user import User
 from nodetool.nodes.nodetool.constant import Image
 from nodetool.nodes.nodetool.dataframe import SaveDataframe
-from nodetool.nodes.nodetool.image import BlendImages, CompositeImages, SaveImage
+from nodetool.nodes.nodetool.image import Blend, Composite, SaveImage
 from nodetool.nodes.nodetool.image.source import Background
 from nodetool.nodes.nodetool.image.transform import (
     Blur,
@@ -231,7 +231,7 @@ async def test_unsharp_mask_node(image: ImageRef, context: ProcessingContext):
 
 @pytest.mark.asyncio
 async def test_blend(image: ImageRef, context: ProcessingContext):
-    res = await BlendImages(
+    res = await Blend(
         image1=image,
         image2=image,
         alpha=0.5,
@@ -255,18 +255,14 @@ async def test_composite(
     pil_image: PIL.Image.Image, image: ImageRef, context: ProcessingContext
 ):
     mask_image = await context.image_from_pil(PIL.Image.new("L", pil_image.size, 255))
-    res = await CompositeImages(image1=image, image2=image, mask=mask_image).process(
-        context
-    )
+    res = await Composite(image1=image, image2=image, mask=mask_image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
 @pytest.mark.asyncio
 async def test_composite_different_size(image: ImageRef, context: ProcessingContext):
     mask_image = await context.image_from_pil(PIL.Image.new("L", (100, 100), 255))
-    res = await CompositeImages(image1=image, image2=image, mask=mask_image).process(
-        context
-    )
+    res = await Composite(image1=image, image2=image, mask=mask_image).process(context)
     assert isinstance(res, ImageRef), "Should be an ImageRef"
 
 
