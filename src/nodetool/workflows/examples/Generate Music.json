@@ -6,7 +6,7 @@
   "name": "Generate Music",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/generate_music.png",
   "graph": {
     "nodes": [
       {
