@@ -1003,11 +1003,13 @@ class AddAudio(BaseNode):
                 # Replace video audio with new audio
                 audio = audio_input
 
-            # Combine video with new/mixed audio
-            output = ffmpeg.output(video_input.video, audio, format="mp4")
-
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
-                output.output(output_temp.name).overwrite_output().run(quiet=True)
+                try:
+                    ffmpeg.output(
+                        video_input.video, audio, output_temp.name, format="mp4"
+                    ).overwrite_output().run(quiet=True)
+                except ffmpeg.Error as e:
+                    raise ValueError(f"Error processing video: {e.stderr[-256:]}")
 
                 # Read the video with added audio and create a VideoRef
                 with open(output_temp.name, "rb") as f:
