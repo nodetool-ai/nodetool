@@ -1,12 +1,12 @@
 {
-  "id": "88d0d5223c9f11efa2d100005d639270",
+  "id": "da2359e53cbb11ef83a600002266c162",
   "access": "private",
-  "created_at": "2024-07-07T22:28:56.463011",
-  "updated_at": "2024-07-07T23:57:22.952781",
+  "created_at": "2024-07-08T01:51:38.807549",
+  "updated_at": "2024-07-08T01:59:03.247039",
   "name": "Random Images",
-  "description": "",
+  "description": "Use DataframeAgent and Loop node to create random images.",
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/random_images.png",
   "graph": {
     "nodes": [
       {
@@ -22,7 +22,7 @@
             "filename": "",
             "local_path": null
           },
-          "prompt": "create 3 image prompts",
+          "prompt": "create 4 image prompts",
           "image": {
             "type": "image",
             "uri": "",
@@ -79,9 +79,10 @@
         "type": "nodetool.input.GroupInput",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 13,
-            "y": 256
+            "x": 11,
+            "y": 178
           },
           "zIndex": 0,
           "selectable": true
@@ -94,15 +95,16 @@
         "data": {
           "input": {
             "type": "image",
-            "uri": "https://replicate.delivery/pbxt/tVJy7riehaWqF6jaN0AN7AsWodfUqLcViKokyI2Togu0VLGTA/out-0.png",
+            "uri": "",
             "asset_id": null,
             "temp_id": null
           }
         },
         "ui_properties": {
+          "selected": true,
           "position": {
-            "x": 487,
-            "y": 322
+            "x": 497,
+            "y": 306
           },
           "zIndex": 0,
           "selectable": true
@@ -119,7 +121,7 @@
             "asset_id": null,
             "temp_id": null
           },
-          "seed": 479290748,
+          "seed": 3148531181,
           "image": {
             "type": "image",
             "uri": "",
@@ -129,19 +131,19 @@
           "width": 1024,
           "height": 1024,
           "refine": "no_refiner",
-          "scheduler": "K_EULER",
+          "scheduler": "HeunDiscrete",
           "lora_scale": 0.6,
           "num_outputs": 1,
           "refine_steps": null,
-          "guidance_scale": 7.5,
-          "apply_watermark": true,
+          "guidance_scale": 4,
+          "apply_watermark": false,
           "high_noise_frac": 0.8,
           "negative_prompt": "",
           "prompt_strength": 0.8,
           "replicate_weights": null,
-          "num_inference_steps": 50,
+          "num_inference_steps": 15,
           "disable_safety_checker": false,
-          "prompt": "A dense forest in autumn, with colorful leaves scattered on the ground., 4k, masterpiece"
+          "prompt": ""
         },
         "ui_properties": {
           "position": {
@@ -159,14 +161,15 @@
         "data": {
           "string": "{prompt}, 4k, masterpiece",
           "values": {
-            "prompt": "A dense forest in autumn, with colorful leaves scattered on the ground.",
-            "index": 2
+            "prompt": "",
+            "index": 3
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 158,
-            "y": 193
+            "x": 156,
+            "y": 178
           },
           "zIndex": 0,
           "selectable": true
@@ -180,19 +183,25 @@
           "value": [
             {
               "type": "image",
-              "uri": "https://replicate.delivery/pbxt/QjlhOQ3rasKXAxHECP94ImILatnuf6eHgQt3NRYhjy6YVLGTA/out-0.png",
+              "uri": "",
               "asset_id": null,
               "temp_id": null
             },
             {
               "type": "image",
-              "uri": "https://replicate.delivery/pbxt/jiFbU2opSMLvNJVO8BsKSXkMCfoaoHEfsi5efX21bw6dWtYMB/out-0.png",
+              "uri": "",
               "asset_id": null,
               "temp_id": null
             },
             {
               "type": "image",
-              "uri": "https://replicate.delivery/pbxt/tVJy7riehaWqF6jaN0AN7AsWodfUqLcViKokyI2Togu0VLGTA/out-0.png",
+              "uri": "",
+              "asset_id": null,
+              "temp_id": null
+            },
+            {
+              "type": "image",
+              "uri": "",
               "asset_id": null,
               "temp_id": null
             }
@@ -200,13 +209,72 @@
           "name": "any_output_2024-07-07"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1113,
-            "y": 241
+            "x": 1131,
+            "y": 129
           },
           "zIndex": 0,
-          "width": 259,
-          "height": 515,
+          "width": 497,
+          "height": 601,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": {
+            "type": "dataframe",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null,
+            "columns": [
+              {
+                "name": "prompt",
+                "data_type": "string",
+                "description": "visual properties"
+              }
+            ],
+            "data": []
+          },
+          "name": "dataframe_output_2024-07-08"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 445,
+            "y": 795
+          },
+          "zIndex": 0,
+          "width": 635,
+          "height": 270,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "parent_id": "2",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null
+          },
+          "name": "image_output_2024-07-08"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 464,
+            "y": 441
+          },
+          "zIndex": 0,
+          "width": 151,
+          "height": 154,
           "selectable": true
         }
       }
@@ -220,16 +288,6 @@
         "targetHandle": "prompt",
         "ui_properties": {
           "className": "union"
-        }
-      },
-      {
-        "id": "539a0612-65c5-4403-9fd6-8946dc513b46",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "any"
         }
       },
       {
@@ -253,11 +311,41 @@
         }
       },
       {
+        "id": "539a0612-65c5-4403-9fd6-8946dc513b46",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
         "id": "92f47b09-419f-4b11-b956-20f9caa3ce37",
         "source": "1",
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "input",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "542",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "541",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "value",
         "ui_properties": {
           "className": "dataframe"
         }
