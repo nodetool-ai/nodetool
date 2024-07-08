@@ -1,15 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 import { css } from "@emotion/react";
 import { useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
-import {
-  Handle,
-  NodeProps,
-  NodeResizeControl,
-  Position,
-  ResizeDragEvent
-} from "reactflow";
+import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useKeyPressedListener from "../../utils/KeyPressedListener";
@@ -101,6 +95,42 @@ const LoopNode = (props: NodeProps<NodeData>) => {
     isLoading: metadataLoading,
     error: metadataError
   } = useMetadata();
+
+  //
+  const nodeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    /*
+     * HACK: This is a workaround to allow panning the canvas inside the node.
+     * Observe parent elements' classes and remove the "nopan" class:
+     */
+    const removeNoPanClass = () => {
+      if (nodeRef.current) {
+        const parent = nodeRef.current.closest(".react-flow__node");
+        if (parent && parent.classList.contains("nopan")) {
+          parent.classList.remove("nopan");
+        }
+      }
+    };
+    removeNoPanClass();
+    const observer = new MutationObserver(() => {
+      removeNoPanClass();
+    });
+    if (nodeRef.current) {
+      const parent = nodeRef.current.closest(".react-flow__node");
+      if (parent) {
+        observer.observe(parent, {
+          attributes: true,
+          attributeFilter: ["class"]
+        });
+      }
+    }
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  //
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const spaceKeyPressed = useKeyPressedListener(" ");
@@ -132,6 +162,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
 
   return (
     <div
+      ref={nodeRef}
       className={`loop-node ${nodeHovered ? "hovered" : ""} ${
         spaceKeyPressed ? "space-pressed" : ""
       } `}
