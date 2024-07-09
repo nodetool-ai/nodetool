@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { iconForType, datatypeByName } from "../../config/data_types";
-import { Button, Tooltip } from "@mui/material";
+import { Box, Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 
@@ -20,15 +20,18 @@ export const footerStyles = (theme: any) =>
     background: theme.palette.c_node_header_bg,
     borderRadius: "0 0 0.3em 0.3em",
     overflow: "hidden",
+    ".pretty-namespace": {
+      marginTop: "-0.4em"
+    },
     ".namespace-button": {
       display: "block",
       margin: 0,
       padding: "0.2em 0.5em 0.2em 0.5em",
       borderRadius: 0,
       backgroundColor: "transparent",
-      color: theme.palette.c_gray4,
+      color: theme.palette.c_gray5,
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTinyer,
+      fontSize: theme.fontSizeSmall,
       textTransform: "uppercase",
       textAlign: "left",
       flexGrow: 1,
@@ -62,6 +65,27 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
     });
   };
 
+  const prettyNamespace = (namespace: string) => {
+    const parts = namespace.split(".");
+    return (
+      <div className="pretty-namespace">
+        {parts.map((part, index) => (
+          <Typography
+            key={index}
+            component="span"
+            style={{
+              fontWeight: index === parts.length - 1 ? "500" : "300",
+              color: index === parts.length - 1 ? "white" : "inherit"
+            }}
+          >
+            {part}
+            {index < parts.length - 1 && "."}
+          </Typography>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div css={footerStyles}>
       <Tooltip
@@ -73,7 +97,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
           size="small"
           onClick={handleOpenNodeMenu}
         >
-          {nodeNamespace}
+          {prettyNamespace(nodeNamespace)}
         </Button>
       </Tooltip>
       <div className="icon">

@@ -97,6 +97,7 @@
 /* NODE BODY */
 .react-flow .node-body {
   padding: 0;
+  border-radius: 4px;
 }
 
 .react-flow .has-result {
