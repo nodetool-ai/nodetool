@@ -238,7 +238,7 @@
       {
         "id": "26",
         "parent_id": null,
-        "type": "nodetool.list.ExtractSubList",
+        "type": "nodetool.list.Slice",
         "data": {
           "values": [
             "Serenity",

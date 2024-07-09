@@ -60,10 +60,8 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
     if type_meta.type == "enum":
         if isinstance(value, Enum):
             return value.value in type_meta.values
-        elif isinstance(value, str):
+        else:
             assert type_meta.values is not None
             return value in type_meta.values
-        else:
-            return False
 
     return python_type == NameToType[type_meta.type]
