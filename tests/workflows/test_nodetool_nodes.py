@@ -295,7 +295,9 @@ async def test_save_text_node(context: ProcessingContext, user: User, http_clien
 
 @pytest.mark.asyncio
 async def test_save_image_node(context: ProcessingContext, user: User, http_client):
-    folder = Asset.create(user.id, "test", "folder", user.id)
+    folder = Asset.create(
+        user_id=user.id, name="test", content_type="folder", parent_id=user.id
+    )
     image_ref = await context.image_from_pil(PIL.Image.open(test_file))
 
     node = SaveImage(
@@ -325,7 +327,9 @@ async def test_save_tensor_node(context: ProcessingContext, user: User):
 
 @pytest.mark.asyncio
 async def test_save_audio_node(context: ProcessingContext, user: User, http_client):
-    folder = Asset.create(user.id, "test", "folder", user.id)
+    folder = Asset.create(
+        user_id=user.id, name="test", content_type="folder", parent_id=user.id
+    )
     audio_ref = await context.audio_from_io(open(test_audio, "rb"))
 
     node = SaveAudio(
@@ -345,7 +349,9 @@ async def test_save_audio_node(context: ProcessingContext, user: User, http_clie
 
 @pytest.mark.asyncio
 async def test_save_dataframe_node(context: ProcessingContext, user: User):
-    folder = Asset.create(user.id, "test", "folder", user.id)
+    folder = Asset.create(
+        user_id=user.id, name="test", content_type="folder", parent_id=user.id
+    )
     df = await context.dataframe_from_pandas(pd.DataFrame({"a": [1, 2, 3]}))
     node = SaveDataframe(
         name="TestDataFrame",

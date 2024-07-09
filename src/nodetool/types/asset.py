@@ -71,7 +71,7 @@ class AssetUpdateRequest(BaseModel):
     name: str | None
     parent_id: str | None
     content_type: str | None
-    data: str | None
+    data: str | None = None
     metadata: dict | None = None
     duration: float | None = None
 
