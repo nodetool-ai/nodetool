@@ -56,6 +56,9 @@
   transition: background-color 0.05s;
   box-shadow: 0.1em 0.1em 0.5em 0px rgba(30, 30, 30, 0.4);
 }
+.react-flow__node.has-parent {
+  background-color: var(--c_node_bg_group);
+}
 
 .react-flow.zoomed-out .react-flow__node {
   min-width: 150px;
@@ -65,6 +68,7 @@
   cursor: grabbing !important;
 }
 
+/* LOOP */
 .react-flow__node-nodetool\.group\.Loop {
   z-index: -1 !important;
   background-color: transparent;
@@ -507,6 +511,15 @@ span.tooltip-small {
 .node-body.collapsed .edit-value .MuiInput-root {
   visibility: visible;
   display: block;
+}
+
+/* LOOP COLLAPSED */
+.react-flow__node-nodetool\.group\.Loop .loop-node.collapsed {
+  min-height: 7em;
+  height: 7em;
+}
+.react-flow__node-nodetool\.group\.Loop .loop-node.collapsed .tools {
+  display: none;
 }
 
 /* INPUT & OUTPUT NODES */

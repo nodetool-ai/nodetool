@@ -1,19 +1,25 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useEffect, useRef } from "react";
 import { css } from "@emotion/react";
-import { useNodeStore } from "../../stores/NodeStore";
-import { NodeData } from "../../stores/NodeData";
+import ThemeNodetool from "../themes/ThemeNodetool";
+
+import { memo, useEffect, useRef } from "react";
 import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
-import { NodeHeader } from "./NodeHeader";
-import { getMousePosition } from "../../utils/MousePosition";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { NodeInputs } from "./NodeInputs";
-import { useMetadata } from "../../serverState/useMetadata";
-import { NodeOutputs } from "./NodeOutputs";
 import { Tooltip } from "@mui/material";
+// components
+import { NodeHeader } from "./NodeHeader";
+import { NodeInputs } from "./NodeInputs";
+import { NodeOutputs } from "./NodeOutputs";
+// utils
+import { getMousePosition } from "../../utils/MousePosition";
+import useKeyPressedListener from "../../utils/KeyPressedListener";
+// hooks
+import { useMetadata } from "../../serverState/useMetadata";
+// store
+import { NodeStore, useNodeStore } from "../../stores/NodeStore";
+import { NodeData } from "../../stores/NodeData";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+// constants
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY,
@@ -96,13 +102,39 @@ const LoopNode = (props: NodeProps<NodeData>) => {
     error: metadataError
   } = useMetadata();
 
-  //
   const nodeRef = useRef<HTMLDivElement>(null);
+  const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
+  const controlKeyPressed = useKeyPressedListener("Control");
+
+  const getInputEdges = useNodeStore((state) => state.getInputEdges);
+  const updateNodeData = useNodeStore((state) => state.updateNodeData);
+  const spaceKeyPressed = useKeyPressedListener(" ");
+  const { openNodeMenu } = useNodeMenuStore();
+  const nodeHovered = useNodeStore((state) =>
+    state.hoveredNodes.includes(props.id)
+  );
+  const edges = getInputEdges(props.id);
+  const handleResize = (event: ResizeDragEvent) => {
+    const newWidth = event.x;
+    const newHeight = event.y;
+    updateNodeData(props.id, {
+      ...props.data,
+      size: { width: newWidth, height: newHeight }
+    });
+  };
+
+  const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    openNodeMenu(getMousePosition().x, getMousePosition().y, false, "", "");
+  };
 
   useEffect(() => {
     /*
-     * HACK: This is a workaround to allow panning the canvas inside the node.
-     * Observe parent elements' classes and remove the "nopan" class:
+     * HACK: allow panning the canvas when clicking inside the node
+     * Observe parent elements' classes and remove the "nopan" class
      */
     const removeNoPanClass = () => {
       if (nodeRef.current) {
@@ -130,31 +162,15 @@ const LoopNode = (props: NodeProps<NodeData>) => {
     };
   }, []);
 
-  //
-  const getInputEdges = useNodeStore((state) => state.getInputEdges);
-  const updateNodeData = useNodeStore((state) => state.updateNodeData);
-  const spaceKeyPressed = useKeyPressedListener(" ");
-  const { openNodeMenu } = useNodeMenuStore();
-  const nodeHovered = useNodeStore((state) =>
-    state.hoveredNodes.includes(props.id)
-  );
-  const edges = getInputEdges(props.id);
-  const handleResize = (event: ResizeDragEvent) => {
-    const newWidth = event.x;
-    const newHeight = event.y;
-    updateNodeData(props.id, {
-      ...props.data,
-      size: { width: newWidth, height: newHeight }
-    });
-  };
-
-  const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
+  useEffect(() => {
+    // Selectable when ctrl key is pressed
+    if (controlKeyPressed) {
+      updateNode(props.id, { selectable: true });
+    } else {
+      updateNode(props.id, { selectable: false });
     }
-    openNodeMenu(getMousePosition().x, getMousePosition().y, true, "", "");
-  };
+  }, [controlKeyPressed, updateNode, props.id]);
+
   if (!metadata) {
     return <div>Loading...</div>;
   }
@@ -165,7 +181,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
       ref={nodeRef}
       className={`loop-node ${nodeHovered ? "hovered" : ""} ${
         spaceKeyPressed ? "space-pressed" : ""
-      } `}
+      } ${props.data.collapsed ? "collapsed" : ""}`}
       onDoubleClick={(e) => {
         e.stopPropagation();
         handleOpenNodeMenu();
@@ -187,7 +203,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
           edges={edges}
         />
         <Tooltip
-          title="Loop nodes take any input as List or Dataframe"
+          title="Loop nodes expect a List or Dataframe of any type. Use the GroupInput node inside the loop to use those items one by one."
           placement="top"
           enterDelay={TOOLTIP_ENTER_DELAY}
           leaveDelay={TOOLTIP_LEAVE_DELAY}
@@ -199,7 +215,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
       <NodeHeader id={props.id} nodeTitle={"Loop"} />
       <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
       <Tooltip
-        title="Place a GroupOutput node into the loop to get the output here"
+        title="Returns the data of the GroupOutput outside the loop."
         placement="top"
         enterDelay={TOOLTIP_ENTER_DELAY}
         leaveDelay={TOOLTIP_LEAVE_DELAY}

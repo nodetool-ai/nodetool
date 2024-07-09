@@ -57,6 +57,10 @@ declare module "@mui/material/styles" {
     c_warning?: string;
     c_error?: string;
     c_delete?: string;
+    c_node_bg?: string;
+    c_node_bg_group?: string;
+    c_node_header_bg?: string;
+    c_node_header_bg_group?: string;
   }
 }
 
@@ -91,7 +95,9 @@ const ThemeNodes: Theme = createTheme({
     c_error: "#ff5555",
     c_delete: "#ff2222",
     c_node_bg: "#2b2e31",
+    c_node_bg_group: "#3c4044",
     c_node_header_bg: "#202020",
+    c_node_header_bg_group: "#333333",
 
     mode: "dark",
     primary: {

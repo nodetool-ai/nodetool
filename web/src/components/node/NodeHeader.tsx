@@ -1,16 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { ArrowDropDown } from "@mui/icons-material";
-import { css, keyframes } from "@emotion/react";
+import { css, keyframes, ThemeContext } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useStore } from "reactflow";
 import { useEffect } from "react";
+import ThemeNodes from "../themes/ThemeNodes";
 
 export interface NodeHeaderProps {
   id: string;
   nodeTitle: string;
   isLoading?: boolean;
+  hasParent?: boolean;
 }
 
 export const loadingEffect = keyframes`
@@ -22,14 +24,16 @@ export const loadingEffect = keyframes`
   }
 `;
 
-export const headerStyle = (theme: any) =>
+export const headerStyle = (theme: any, hasParent: boolean) =>
   css({
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
     minHeight: "2em",
-    background: theme.palette.c_node_header_bg,
+    background: hasParent
+      ? theme.palette.c_node_header_bg_group
+      : theme.palette.c_node_header_bg,
     color: theme.palette.c_white,
     margin: 0,
     borderRadius: "0.3em 0.3em 0 0",
@@ -83,7 +87,12 @@ export const headerStyle = (theme: any) =>
     }
   });
 
-export const NodeHeader = ({ id, nodeTitle, isLoading }: NodeHeaderProps) => {
+export const NodeHeader = ({
+  id,
+  nodeTitle,
+  isLoading,
+  hasParent
+}: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const { data } = useMetadata();
   const findNode = useNodeStore((state) => state.findNode);
@@ -92,7 +101,7 @@ export const NodeHeader = ({ id, nodeTitle, isLoading }: NodeHeaderProps) => {
   const description = metadata?.description.split("\n")[0] || "";
   const currentZoom = useStore((state) => state.transform[2]);
 
-  useEffect(() => { }, [currentZoom]);
+  useEffect(() => {}, [currentZoom]);
 
   const tooltipStyle = () =>
     css({
@@ -120,17 +129,22 @@ export const NodeHeader = ({ id, nodeTitle, isLoading }: NodeHeaderProps) => {
 
   const tooltipAttributes = description
     ? {
-      "aria-label": description,
-      "data-microtip-position": "top",
-      "data-microtip-size": "medium",
-      role: "tooltip"
-    }
+        "aria-label": description,
+        "data-microtip-position": "top",
+        "data-microtip-size": "medium",
+        role: "tooltip"
+      }
     : {};
 
   return (
     <div
       className={`node-header ${isLoading ? "loading" : ""}`}
-      css={headerStyle}
+      css={headerStyle(ThemeNodes, hasParent || false)}
+      // style={{
+      //   backgroundColor: hasParent
+      //     ? ThemeNodes.palette.c_node_header_bg_group
+      //     : ThemeNodes.palette.c_node_header_bg
+      // }}
     >
       <span className="node-title">{nodeTitle}</span>
       <div className="menu-button" css={tooltipStyle}>

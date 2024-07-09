@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import ThemeNodes from "../themes/ThemeNodes";
 import { memo } from "react";
 import { NodeProps } from "reactflow";
 import { isEqual } from "lodash";
@@ -44,24 +45,29 @@ export default memo(
       error: metadataError
     } = useMetadata();
     const nodedata = useNodeStore((state) => state.findNode(props.id)?.data);
+    const node = useNodeStore((state) => state.findNode(props.id));
+    const hasParent = node?.parentId !== undefined;
     const getInputEdges = useNodeStore((state) => state.getInputEdges);
     const workflowId = nodedata?.workflow_id || "";
     const nodeKey = hashKey(workflowId, props.id);
     const status = useStatusStore((state) => state.statuses[nodeKey]);
     const edges = getInputEdges(props.id);
     const isLoading =
-      status === "running" || status === "starting" || status === "processing" || status === "booting";
+      status === "running" ||
+      status === "starting" ||
+      status === "processing" ||
+      status === "booting";
     const isConstantNode = props.type.startsWith("nodetool.constant");
     const isInputNode = props.type.startsWith("nodetool.input");
     const isOutputNode =
       props.type.startsWith("nodetool.output") ||
       props.type === "comfy.image.SaveImage";
     const className = `node-body ${props.data.collapsed ? "collapsed" : ""}
+      ${hasParent ? "has-parent" : ""}
       ${isInputNode ? " input-node" : ""} ${isOutputNode ? " output-node" : ""}
       ${props.data.dirty ? "dirty" : ""}`
       .replace(/\s+/g, " ")
       .trim();
-
     if (!metadata) {
       return (
         <Container className={className}>
@@ -80,24 +86,36 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-          name: "output",
-          type: {
-            type: "string"
-          }
-        };
+            name: "output",
+            type: {
+              type: "string"
+            }
+          };
 
     return (
-      <Container className={className}>
+      <Container
+        className={className}
+        style={{
+          backgroundColor: hasParent
+            ? ThemeNodes.palette.c_node_bg_group
+            : ThemeNodes.palette.c_node_bg
+        }}
+      >
         <>
           <NodeHeader
             id={props.id}
             nodeTitle={node_title}
             isLoading={isLoading}
+            hasParent={hasParent}
           />
           <div className="node-content-hidden" />
           <NodeErrors id={props.id} />
           {status === "booting" && (
-            <Typography variant="body2" color="textSecondary" sx={{ padding: "10px", color: "red" }}>
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              sx={{ padding: "10px", color: "red" }}
+            >
               Model is booting, this can take up to 3 minutes.
             </Typography>
           )}
