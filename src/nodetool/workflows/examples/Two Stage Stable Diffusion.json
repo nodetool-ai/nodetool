@@ -59,9 +59,9 @@
           "apply_watermark": true,
           "high_noise_frac": 0.8,
           "negative_prompt": "bad fur",
-          "prompt_strength": 0.7,
+          "prompt_strength": 0.5,
           "replicate_weights": null,
-          "num_inference_steps": 25,
+          "num_inference_steps": 33,
           "disable_safety_checker": false,
           "image": {
             "type": "image",
