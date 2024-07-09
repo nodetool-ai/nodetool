@@ -145,7 +145,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
     // get mouse position for creating comment node
     const mousePos = getMousePosition();
     // const projectedStartPos = reactFlow.screenToFlowPosition({
-    const projectedStartPos = reactFlow.project({
+    const projectedStartPos = reactFlow.screenToFlowPosition({
       x: mousePos.x,
       y: mousePos.y
     });
@@ -159,7 +159,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
     if (CKeyPressed) {
       const mousePos = getMousePosition();
       // const projectedEndPos = reactFlow.screenToFlowPosition({
-      const projectedEndPos = reactFlow.project({
+      const projectedEndPos = reactFlow.screenToFlowPosition({
         x: mousePos.x,
         y: mousePos.y
       });

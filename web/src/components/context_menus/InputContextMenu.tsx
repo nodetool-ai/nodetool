@@ -73,7 +73,7 @@ const InputContextMenu: React.FC = () => {
       if (!constantNodeMetadata) return;
       const newNode = createNode(
         constantNodeMetadata,
-        reactFlowInstance.project({
+        reactFlowInstance.screenToFlowPosition({
           x: event.clientX - 250,
           y: event.clientY - 200
         })
@@ -117,7 +117,7 @@ const InputContextMenu: React.FC = () => {
       if (!inputNodeMetadata) return;
       const newNode = createNode(
         inputNodeMetadata,
-        reactFlowInstance.project({
+        reactFlowInstance.screenToFlowPosition({
           x: event.clientX - 250,
           y: event.clientY - 200
         })

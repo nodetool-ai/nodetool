@@ -312,7 +312,7 @@ export const useDropHandler = (): DropHandler => {
     event.preventDefault();
     const target = event.target as HTMLElement;
     const targetIsPane = target.classList.contains("react-flow__pane");
-    const position = reactFlow.project({
+    const position = reactFlow.screenToFlowPosition({
       x: event.clientX,
       y: event.clientY
     });
