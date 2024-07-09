@@ -38,7 +38,7 @@ export function usePropertyContextMenu() {
     (event: React.MouseEvent, prop: Properties) => {
       const clickedElement = event.target as HTMLElement;
 
-      if (true || clickedElement.classList.contains("node-property")) {
+      if (clickedElement.classList.contains("node-property")) {
         event.preventDefault();
         setPropertyContextMenu({
           id: "",
