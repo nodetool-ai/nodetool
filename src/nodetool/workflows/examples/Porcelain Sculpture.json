@@ -1,8 +1,8 @@
 {
-  "id": "4a3e79aa3cad11ef8ce0000060654584",
+  "id": "749cc9283e0f11efa1ed000013bcef01",
   "access": "private",
-  "created_at": "2024-07-08T00:07:24.439395",
-  "updated_at": "2024-07-08T00:07:24.439435",
+  "created_at": "2024-07-09T18:22:37.364057",
+  "updated_at": "2024-07-09T18:23:12.164176",
   "name": "Porcelain Sculpture",
   "description": "Generate a seriese of images showing sculptures with different emotional and mental states.\n",
   "thumbnail": "",
@@ -19,8 +19,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 436,
-            "y": 135
+            "x": 368,
+            "y": 200
           },
           "zIndex": 0,
           "selectable": true
@@ -35,12 +35,6 @@
             "type": "folder",
             "uri": "",
             "asset_id": "3cdf43983bd311efa4c7000005d5a8c8",
-            "temp_id": null
-          },
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
             "temp_id": null
           }
         },
@@ -111,7 +105,7 @@
             "asset_id": null,
             "temp_id": null
           },
-          "seed": 3470274869,
+          "seed": 1953587965,
           "image": {
             "type": "image",
             "uri": "",
@@ -147,47 +141,13 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 807,
-            "y": 149
+            "x": 524,
+            "y": 151
           },
-          "zIndex": 0,
-          "width": 1836,
-          "height": 751,
+          "zIndex": -10,
+          "width": 1393,
+          "height": 634,
           "selectable": false
-        }
-      },
-      {
-        "id": "12",
-        "parent_id": "11",
-        "type": "nodetool.input.GroupInput",
-        "data": {
-          "name": ""
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 36,
-            "y": 253
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "13",
-        "parent_id": "11",
-        "type": "nodetool.output.GroupOutput",
-        "data": {
-          "name": ""
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1281,
-            "y": 73
-          },
-          "zIndex": 0,
-          "selectable": true
         }
       },
       {
@@ -222,9 +182,7 @@
         "id": "25b3748c-47fa-4a02-8bab-3f503d81b8de",
         "parent_id": "11",
         "type": "nodetool.text.Concat",
-        "data": {
-          "b": ""
-        },
+        "data": {},
         "ui_properties": {
           "selected": false,
           "position": {
@@ -240,37 +198,15 @@
         "parent_id": null,
         "type": "nodetool.list.Slice",
         "data": {
-          "values": [
-            "Serenity",
-            "Despair",
-            "Joy",
-            "Contemplation",
-            "Anguish",
-            "Fear",
-            "Love",
-            "Grief",
-            "Euphoria",
-            "Determination",
-            "Rage",
-            "Ecstasy",
-            "Panic",
-            "Agony",
-            "Pain",
-            "Manic Joy",
-            "Fury",
-            "Terror",
-            "Torment",
-            "Madness"
-          ],
           "start": 0,
-          "stop": 10,
+          "stop": 3,
           "step": 1
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 456,
-            "y": 570
+            "x": 378,
+            "y": 360
           },
           "zIndex": 0,
           "selectable": true
@@ -324,13 +260,7 @@
           "y": 0.02,
           "size": 25,
           "color": "#000000",
-          "align": "center",
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          }
+          "align": "center"
         },
         "ui_properties": {
           "selected": false,
@@ -339,25 +269,6 @@
             "y": 69
           },
           "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "9406",
-        "parent_id": "11",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-07-07"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1279,
-            "y": 489
-          },
-          "zIndex": 0,
-          "width": 251,
-          "height": 231,
           "selectable": true
         }
       },
@@ -400,7 +311,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "comment_color": "#f0f0f0"
         },
         "ui_properties": {
           "selected": false,
@@ -506,6 +418,74 @@
           "height": 163,
           "selectable": true
         }
+      },
+      {
+        "id": "9410",
+        "parent_id": "11",
+        "type": "nodetool.input.GroupInput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 288
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9411",
+        "parent_id": "11",
+        "type": "nodetool.output.GroupOutput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1212,
+            "y": 137
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9412",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "any_output_2024-07-09"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1963,
+            "y": 153
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 150,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9413",
+        "parent_id": "11",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-07-09"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1194,
+            "y": 295
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 150,
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -520,51 +500,11 @@
         }
       },
       {
-        "id": "12b5df05-45ac-437a-8c6c-4fe511699903",
-        "source": "9405",
-        "sourceHandle": "output",
-        "target": "13",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
         "id": "00db307c-e91f-47b2-9539-553ca5297703",
         "source": "5",
         "sourceHandle": "output",
         "target": "10",
         "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "2e911743-8794-4e34-851c-d01fd228b715",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "b",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "723011cb-535a-46b4-b0c5-8be427ccc74a",
-        "source": "9405",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "2f438fd4-5728-47ac-81fb-98bf695f84d1",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "25b3748c-47fa-4a02-8bab-3f503d81b8de",
-        "targetHandle": "b",
         "ui_properties": {
           "className": "str"
         }
@@ -600,26 +540,6 @@
         }
       },
       {
-        "id": "855e7d3d-71a7-4fb4-b21e-e2bfe9a887f6",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "9405",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "d1ad421f-77c6-4ccc-8b40-136eab5a8f03",
-        "source": "25b3748c-47fa-4a02-8bab-3f503d81b8de",
-        "sourceHandle": "output",
-        "target": "9408",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
         "id": "49f3d670-3b1a-4cc2-ae22-ee737cc4f61b",
         "source": "10",
         "sourceHandle": "output",
@@ -627,16 +547,6 @@
         "targetHandle": "image",
         "ui_properties": {
           "className": "image"
-        }
-      },
-      {
-        "id": "b3972ec3-1f6d-4880-948c-40a713757a8d",
-        "source": "26",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "items",
-        "ui_properties": {
-          "className": "list"
         }
       },
       {
@@ -650,18 +560,88 @@
         }
       },
       {
-        "id": "f48197b3-f346-461b-897e-262375020330",
-        "source": "4",
+        "id": "670326b0-39cf-42c8-8015-fc9d70850651",
+        "source": "14",
         "sourceHandle": "output",
-        "target": "9406",
+        "target": "26",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "f119881d-52b0-4be5-9c19-f746978b0c21",
+        "source": "9410",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "b",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "c17bc32c-2cb9-4fab-a092-e398526ac134",
+        "source": "9405",
+        "sourceHandle": "output",
+        "target": "9411",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "d1ad421f-77c6-4ccc-8b40-136eab5a8f03",
+        "source": "25b3748c-47fa-4a02-8bab-3f503d81b8de",
+        "sourceHandle": "output",
+        "target": "9408",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "723011cb-535a-46b4-b0c5-8be427ccc74a",
+        "source": "9405",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "723014",
+        "source": "9405",
+        "sourceHandle": "output",
+        "target": "9413",
         "targetHandle": "value",
         "ui_properties": {
           "className": "image"
         }
       },
       {
-        "id": "0ee3253c-5e53-4241-a46d-7f5d7793198b",
-        "source": "12",
+        "id": "297c1a7b-0129-4332-9ec1-842d751ba0ec",
+        "source": "26",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "2f438fd4-5728-47ac-81fb-98bf695f84d1",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "25b3748c-47fa-4a02-8bab-3f503d81b8de",
+        "targetHandle": "b",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "f6079758-4858-4e56-a52e-c06606fc8862",
+        "source": "9410",
         "sourceHandle": "output",
         "target": "4",
         "targetHandle": "name",
@@ -670,13 +650,23 @@
         }
       },
       {
-        "id": "670326b0-39cf-42c8-8015-fc9d70850651",
-        "source": "14",
+        "id": "723013",
+        "source": "11",
         "sourceHandle": "output",
-        "target": "26",
-        "targetHandle": "values",
+        "target": "9412",
+        "targetHandle": "value",
         "ui_properties": {
-          "className": "list"
+          "className": "any"
+        }
+      },
+      {
+        "id": "194c2c6d-e48e-421a-bedc-22487ccc8d96",
+        "source": "9410",
+        "sourceHandle": "output",
+        "target": "9405",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "any"
         }
       }
     ]

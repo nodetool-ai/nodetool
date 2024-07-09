@@ -1,8 +1,8 @@
 {
-  "id": "32bc68383c2a11efa82900000e03721c",
+  "id": "3c35e71c3e1011efadd200004ce5bbc1",
   "access": "private",
-  "created_at": "2024-07-07T08:29:00.927724",
-  "updated_at": "2024-07-07T23:51:40.815405",
+  "created_at": "2024-07-09T18:28:12.234103",
+  "updated_at": "2024-07-09T18:29:43.566666",
   "name": "Phantasy Animals",
   "description": "",
   "thumbnail": "",
@@ -60,34 +60,9 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "name": "dataframe_output_2024-06-22",
-          "value": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null,
-            "columns": [
-              {
-                "name": "description",
-                "data_type": "string",
-                "description": ""
-              }
-            ],
-            "data": [
-              [
-                "a majestic, winged creature with feathers that shimmer in all the colors of the rainbow. It has the body of a lion and the face of an eagle."
-              ],
-              [
-                "a large, serpentine beast that dwells in the deepest seas. Its scales reflect the light like a prism, creating a dazzling array of colors as it moves."
-              ],
-              [
-                "a small, tree-dwelling mammal with fur that changes color based on its emotions. It has large, expressive eyes and a prehensile tail it uses to swing from branch to branch."
-              ]
-            ]
-          }
+          "name": "dataframe_output_2024-06-22"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 408,
             "y": 822
@@ -109,8 +84,8 @@
             "y": 247
           },
           "zIndex": -10,
-          "width": 631,
-          "height": 535,
+          "width": 611,
+          "height": 532,
           "selectable": false
         }
       },
@@ -119,14 +94,9 @@
         "parent_id": "3",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "cartoon animal: {description} ",
-          "values": {
-            "description": "a small, tree-dwelling mammal with fur that changes color based on its emotions. It has large, expressive eyes and a prehensile tail it uses to swing from branch to branch.",
-            "index": 2
-          }
+          "string": "cartoon animal: {description} "
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 153,
             "y": 151
@@ -140,7 +110,7 @@
         "parent_id": "3",
         "type": "replicate.image.generate.Juggernaut_XL_V9",
         "data": {
-          "seed": 3298064401,
+          "seed": 1021897844,
           "width": 1024,
           "height": 1024,
           "scheduler": "DPM++SDE",
@@ -149,37 +119,12 @@
           "apply_watermark": true,
           "negative_prompt": "CGI, Unreal, Airbrushed, Digital",
           "num_inference_steps": 5,
-          "disable_safety_checker": false,
-          "prompt": "cartoon animal: a small, tree-dwelling mammal with fur that changes color based on its emotions. It has large, expressive eyes and a prehensile tail it uses to swing from branch to branch. "
+          "disable_safety_checker": false
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 296,
             "y": 102
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "11",
-        "parent_id": "3",
-        "type": "nodetool.output.GroupOutput",
-        "data": {
-          "name": "",
-          "input": {
-            "type": "image",
-            "uri": "https://replicate.delivery/pbxt/WKuXv4IiOnr6Ft7bSXVMCp7TnkvvMSd95y7uPC7rDhSd2ixE/out-0.png",
-            "asset_id": null,
-            "temp_id": null
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 505,
-            "y": 204
           },
           "zIndex": 0,
           "selectable": true
@@ -190,30 +135,9 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": [
-            {
-              "type": "image",
-              "uri": "https://replicate.delivery/pbxt/n0aCluHdEY74Ndw7yPADwP6DSCFfzhoiReoSqdmp2lMiZLGTA/out-0.png",
-              "asset_id": null,
-              "temp_id": null
-            },
-            {
-              "type": "image",
-              "uri": "https://replicate.delivery/pbxt/D6fE7S6vDdXLCitvDzWZOty03VcCc8SYRB26eYz6RbNxZLGTA/out-0.png",
-              "asset_id": null,
-              "temp_id": null
-            },
-            {
-              "type": "image",
-              "uri": "https://replicate.delivery/pbxt/WKuXv4IiOnr6Ft7bSXVMCp7TnkvvMSd95y7uPC7rDhSd2ixE/out-0.png",
-              "asset_id": null,
-              "temp_id": null
-            }
-          ],
           "name": "any_output_2024-07-07"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1068,
             "y": 281
@@ -230,10 +154,24 @@
         "type": "nodetool.input.GroupInput",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 22,
             "y": 191
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "14",
+        "parent_id": "3",
+        "type": "nodetool.output.GroupOutput",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 468,
+            "y": 228
           },
           "zIndex": 0,
           "selectable": true
@@ -242,16 +180,6 @@
     ],
     "edges": [
       {
-        "id": "272f8fc9-9880-4999-b4eb-0cc84c47dbb6",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
         "id": "4773",
         "source": "3",
         "sourceHandle": "output",
@@ -259,16 +187,6 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "any"
-        }
-      },
-      {
-        "id": "73aa1234-64ab-4d28-ac67-533792e5542b",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "8",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "union"
         }
       },
       {
@@ -299,6 +217,26 @@
         "targetHandle": "input",
         "ui_properties": {
           "className": "dataframe"
+        }
+      },
+      {
+        "id": "73aa1234-64ab-4d28-ac67-533792e5542b",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "14400a37-a344-4237-afbe-785fb5c8c3f7",
+        "source": "8",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "image"
         }
       }
     ]

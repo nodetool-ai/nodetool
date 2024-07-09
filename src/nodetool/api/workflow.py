@@ -3,6 +3,7 @@
 from datetime import datetime
 import time
 from fastapi import APIRouter, Depends, HTTPException, Body
+from nodetool.types.graph import remove_connected_slots
 from nodetool.types.workflow import WorkflowList, Workflow, WorkflowRequest
 from nodetool.api.utils import current_user, User
 from nodetool.common.environment import Environment
@@ -27,7 +28,7 @@ async def create(
                 description=workflow_request.description,
                 thumbnail=workflow_request.thumbnail,
                 access=workflow_request.access,
-                graph=workflow_request.graph.model_dump(),
+                graph=remove_connected_slots(workflow_request.graph).model_dump(),
                 user_id=user.id,
             )
         )
@@ -138,7 +139,7 @@ async def update_workflow(
     workflow.description = workflow_request.description
     workflow.thumbnail = workflow_request.thumbnail
     workflow.access = workflow_request.access
-    workflow.graph = workflow_request.graph.model_dump()
+    workflow.graph = remove_connected_slots(workflow_request.graph).model_dump()
     workflow.updated_at = datetime.now()
     workflow.save()
     return Workflow.from_model(workflow)
