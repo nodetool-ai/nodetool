@@ -111,18 +111,22 @@ async def update(
     """
     Updates the asset for the given id.
     """
-    print(f"Updating asset with ID: {id} for user: {user.id}")
-
     asset = AssetModel.find(user.id, id)
 
     if asset is None:
         raise HTTPException(status_code=404, detail="Asset not found")
     if req.content_type:
         asset.content_type = req.content_type
+    if req.metadata:
+        asset.metadata = req.metadata
     if req.name:
         asset.name = req.name.strip()
     if req.parent_id:
         asset.parent_id = req.parent_id
+    if req.data:
+        storage = Environment.get_asset_storage()
+        await storage.upload(asset.file_name, BytesIO(req.data.encode("utf-8")))
+
     asset.save()
     return Asset.from_model(asset)
 
@@ -169,9 +173,7 @@ async def create(
 
     if req.workflow_id:
         workflow = Workflow.get(req.workflow_id)
-        if workflow is None:
-            raise HTTPException(status_code=404, detail="Workflow not found")
-        if workflow.user_id != user.id:
+        if workflow and workflow.user_id != user.id:
             raise HTTPException(status_code=404, detail="Workflow not found")
 
     try:
@@ -194,6 +196,7 @@ async def create(
             parent_id=req.parent_id,
             name=req.name,
             content_type=req.content_type,
+            metadata=req.metadata,
             duration=duration,
         )
         if file_io:
@@ -261,7 +264,9 @@ async def download_assets(
         asset_paths[asset.id] = path
         return path
 
-    async def fetch_asset_content(asset: AssetModel) -> Tuple[str, Union[BytesIO, None]]:
+    async def fetch_asset_content(
+        asset: AssetModel,
+    ) -> Tuple[str, Union[BytesIO, None]]:
         try:
             if asset.user_id != current_user.id:
                 raise HTTPException(

@@ -41,6 +41,7 @@ class Asset(DBModel):
     file_id: str | None = DBField(default="")
     name: str = DBField(default="")
     content_type: str = DBField(default="")
+    metadata: dict | None = DBField(default=None)
     created_at: datetime = DBField(default_factory=datetime.now)
     duration: Optional[float] = DBField(default=None)
 
@@ -86,6 +87,7 @@ class Asset(DBModel):
         user_id: str,
         name: str,
         content_type: str,
+        metadata: dict | None = None,
         parent_id: str | None = None,
         workflow_id: str | None = None,
         duration: float | None = None,
@@ -100,6 +102,8 @@ class Asset(DBModel):
             content_type=content_type,
             duration=duration,
             created_at=datetime.now(),
+            metadata=metadata,
+            **kwargs,
         )
 
     @classmethod
@@ -150,7 +154,7 @@ class Asset(DBModel):
             )
 
     @classmethod
-    def get_children(cls, parent_id: str) -> Sequence['Asset']:
+    def get_children(cls, parent_id: str) -> Sequence["Asset"]:
         """
         Fetch all child assets for a given parent_id.
         """

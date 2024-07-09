@@ -41,6 +41,14 @@ export interface paths {
      */
     delete: operations["delete_api_assets__id__delete"];
   };
+  "/api/assets/download": {
+    /**
+     * Download Assets
+     * @description Create a ZIP file containing the requested assets and return it for download.
+     * Maintains folder structure based on asset.parent_id relationships.
+     */
+    post: operations["download_assets_api_assets_download_post"];
+  };
   "/api/jobs/{id}": {
     /**
      * Get
@@ -144,7 +152,7 @@ export interface paths {
   "/api/storage/{bucket}/{key}": {
     /**
      * Get
-     * @description Returns the file as a stream for the given key.
+     * @description Returns the file as a stream for the given key, supporting range queries.
      */
     get: operations["get_api_storage__bucket___key__get"];
     /**
@@ -226,10 +234,10 @@ export interface components {
       parent_id: string;
       /** Name */
       name: string;
-      /** Status */
-      status: string;
       /** Content Type */
       content_type: string;
+      /** Metadata */
+      metadata?: Record<string, never> | null;
       /** Created At */
       created_at: string;
       /** Get Url */
@@ -238,6 +246,11 @@ export interface components {
       thumb_url: string | null;
       /** Duration */
       duration?: number | null;
+    };
+    /** AssetDownloadRequest */
+    AssetDownloadRequest: {
+      /** Asset Ids */
+      asset_ids: string[];
     };
     /** AssetList */
     AssetList: {
@@ -269,10 +282,12 @@ export interface components {
       name: string | null;
       /** Parent Id */
       parent_id: string | null;
-      /** Status */
-      status: string | null;
       /** Content Type */
       content_type: string | null;
+      /** Data */
+      data: string | null;
+      /** Metadata */
+      metadata?: Record<string, never> | null;
       /** Duration */
       duration?: number | null;
     };
@@ -1485,6 +1500,40 @@ export interface operations {
     };
   };
   /**
+   * Download Assets
+   * @description Create a ZIP file containing the requested assets and return it for download.
+   * Maintains folder structure based on asset.parent_id relationships.
+   */
+  download_assets_api_assets_download_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AssetDownloadRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
    * Get
    * @description Returns the status of a job.
    */
@@ -2122,7 +2171,7 @@ export interface operations {
   };
   /**
    * Get
-   * @description Returns the file as a stream for the given key.
+   * @description Returns the file as a stream for the given key, supporting range queries.
    */
   get_api_storage__bucket___key__get: {
     parameters: {

@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel
 
 from nodetool.common.content_types import CONTENT_TYPE_TO_EXTENSION
@@ -12,6 +13,7 @@ class Asset(BaseModel):
     parent_id: str
     name: str
     content_type: str
+    metadata: dict[str, Any] | None = None
     created_at: str
     get_url: str | None
     thumb_url: str | None
@@ -57,6 +59,7 @@ class Asset(BaseModel):
             parent_id=asset.parent_id,
             name=asset.name,
             content_type=asset.content_type,
+            metadata=asset.metadata,
             created_at=asset.created_at.isoformat(),
             get_url=get_url,
             thumb_url=thumb_url,
@@ -68,6 +71,8 @@ class AssetUpdateRequest(BaseModel):
     name: str | None
     parent_id: str | None
     content_type: str | None
+    data: str | None
+    metadata: dict | None = None
     duration: float | None = None
 
 
@@ -76,6 +81,7 @@ class AssetCreateRequest(BaseModel):
     parent_id: str | None = None
     name: str
     content_type: str
+    metadata: dict | None = None
     duration: float | None = None
 
 
