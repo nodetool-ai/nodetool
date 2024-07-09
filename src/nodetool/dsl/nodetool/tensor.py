@@ -27,6 +27,14 @@ class ArgMin(GraphNode):
 
 
 
+class ConvertToAudio(GraphNode):
+    tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description='The tensor to convert to an audio file.')
+    sample_rate: int | GraphNode | tuple[GraphNode, str] = Field(default=44100, description='The sample rate of the audio file.')
+    @classmethod
+    def get_node_type(cls): return "nodetool.tensor.ConvertToAudio"
+
+
+
 class Exp(GraphNode):
     x: int | float | nodetool.metadata.types.Tensor | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
     @classmethod

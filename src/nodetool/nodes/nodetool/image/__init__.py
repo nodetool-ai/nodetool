@@ -43,7 +43,7 @@ class SaveImage(BaseNode):
         )
 
 
-class GetImageMetadata(BaseNode):
+class GetMetadata(BaseNode):
     """
     Get metadata about the input image.
     metadata, properties, analysis, information
@@ -87,7 +87,7 @@ class GetImageMetadata(BaseNode):
         }
 
 
-class ConvertImageToTensor(BaseNode):
+class ConvertToTensor(BaseNode):
     """
     Convert PIL Image to normalized tensor representation.
     image, tensor, conversion, normalization
@@ -115,7 +115,7 @@ class ConvertImageToTensor(BaseNode):
         return Tensor.from_numpy(tensor_data)
 
 
-class ConvertTensorToImage(BaseNode):
+class ConvertToImage(BaseNode):
     """
     Convert tensor data to PIL Image format.
 
@@ -150,7 +150,7 @@ class ConvertTensorToImage(BaseNode):
         return await context.image_from_pil(output_image)
 
 
-class PasteImage(BaseNode):
+class Paste(BaseNode):
     """
     Paste one image onto another at specified coordinates.
     paste, composite, positioning, overlay
@@ -178,7 +178,7 @@ class PasteImage(BaseNode):
         return await context.image_from_pil(image)
 
 
-class BlendImages(BaseNode):
+class Blend(BaseNode):
     """
     Blend two images with adjustable alpha mixing.
     blend, mix, fade, transition
@@ -212,7 +212,7 @@ class BlendImages(BaseNode):
         return await context.image_from_pil(image)
 
 
-class CompositeImages(BaseNode):
+class Composite(BaseNode):
     """
     Combine two images using a mask for advanced compositing.
 

@@ -1,10 +1,12 @@
+import enum
+import os
 import PIL.ImageFilter
 import PIL.ImageOps
 import PIL.Image
 import PIL.ImageEnhance
 import numpy as np
 from pydantic import Field
-from nodetool.metadata.types import FolderRef
+from nodetool.metadata.types import AudioRef, FolderRef, TextRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
@@ -38,7 +40,7 @@ class SaveVideo(BaseNode):
         )
 
 
-class ExtractVideoFrames(BaseNode):
+class ExtractFrames(BaseNode):
     """
     Extract frames from a video file.
     video, frames, extract, sequence
@@ -71,7 +73,7 @@ class ExtractVideoFrames(BaseNode):
         return images
 
 
-class VideoFps(BaseNode):
+class Fps(BaseNode):
     """
     Get the frames per second (FPS) of a video file.
     video, analysis, frames, fps
@@ -96,7 +98,7 @@ class VideoFps(BaseNode):
             return iio.immeta(temp.name, plugin="pyav")["fps"]
 
 
-class FramesToVideo(BaseNode):
+class CreateVideo(BaseNode):
     """
     Combine a sequence of frames into a single video file.
     video, frames, combine, sequence
@@ -123,3 +125,951 @@ class FramesToVideo(BaseNode):
                 out.write_frame(np.array(img))
             out.close()
             return await context.video_from_io(open(temp.name, "rb"))
+
+
+class Concat(BaseNode):
+    """
+    Concatenate multiple video files into a single video.
+    video, concat, merge, combine
+
+    Use cases:
+    1. Merge multiple video clips into a single continuous video
+    2. Create compilations from various video sources
+    3. Combine processed video segments back into a full video
+    """
+
+    video_a: VideoRef = Field(
+        default=VideoRef(), description="The first video to concatenate."
+    )
+    video_b: VideoRef = Field(
+        default=VideoRef(), description="The second video to concatenate."
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video_a.is_empty() or self.video_b.is_empty():
+            raise ValueError("Both videos must be connected.")
+
+        video_a = await context.asset_to_io(self.video_a)
+        video_b = await context.asset_to_io(self.video_b)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp_a:
+            temp_a.write(video_a.read())
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as temp_b:
+                temp_b.write(video_b.read())
+                # Create a temporary file for the output
+                with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                    ffmpeg.concat(
+                        ffmpeg.input(temp_a.name), ffmpeg.input(temp_b.name)
+                    ).output(output_temp.name).overwrite_output().run(quiet=True)
+
+                    # Read the concatenated video and create a VideoRef
+                    with open(output_temp.name, "rb") as f:
+                        return await context.video_from_io(f)
+
+
+class Trim(BaseNode):
+    """
+    Trim a video to a specific start and end time.
+    video, trim, cut, segment
+
+    Use cases:
+    1. Extract specific segments from a longer video
+    2. Remove unwanted parts from the beginning or end of a video
+    3. Create shorter clips from a full-length video
+    """
+
+    video: VideoRef = Field(default=VideoRef(), description="The input video to trim.")
+    start_time: float = Field(
+        default=0.0, description="The start time in seconds for the trimmed video."
+    )
+    end_time: float = Field(
+        default=-1.0,
+        description="The end time in seconds for the trimmed video. Use -1 for the end of the video.",
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply trimming
+            if self.end_time > 0:
+                trimmed = input_stream.trim(start=self.start_time, end=self.end_time)
+            else:
+                trimmed = input_stream.trim(start=self.start_time)
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(trimmed, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the trimmed video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class VideoResizeNode(BaseNode):
+    """
+    Resize a video to a specific width and height.
+    video, resize, scale, dimensions
+
+    Use cases:
+    1. Adjust video resolution for different display requirements
+    2. Reduce file size by downscaling video
+    3. Prepare videos for specific platforms with size constraints
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to resize."
+    )
+    width: int = Field(
+        default=-1, description="The target width. Use -1 to maintain aspect ratio."
+    )
+    height: int = Field(
+        default=-1, description="The target height. Use -1 to maintain aspect ratio."
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply resizing
+            resized = input_stream.filter("scale", self.width, self.height)
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(resized, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the resized video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class Rotate(BaseNode):
+    """
+    Rotate a video by a specified angle.
+    video, rotate, orientation, transform
+
+    Use cases:
+    1. Correct orientation of videos taken with a rotated camera
+    2. Create artistic effects by rotating video content
+    3. Adjust video for different display orientations
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to rotate."
+    )
+    angle: float = Field(
+        default=0.0, description="The angle of rotation in degrees.", ge=-360, le=360
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # translate angle to radians
+            angle = np.radians(self.angle)
+            rotated = input_stream.filter("rotate", angle=angle)
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(rotated, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the rotated video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class SetSpeed(BaseNode):
+    """
+    Adjust the playback speed of a video.
+    video, speed, tempo, time
+
+    Use cases:
+    1. Create slow-motion effects by decreasing video speed
+    2. Generate time-lapse videos by increasing playback speed
+    3. Synchronize video duration with audio or other timing requirements
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to adjust speed."
+    )
+    speed_factor: float = Field(
+        default=1.0,
+        description="The speed adjustment factor. Values > 1 speed up, < 1 slow down.",
+        gt=0,
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply speed adjustment
+            adjusted = input_stream.filter("setpts", f"{1/self.speed_factor}*PTS")
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(adjusted, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the speed-adjusted video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class Overlay(BaseNode):
+    """
+    Overlay one video on top of another.
+    video, overlay, composite, picture-in-picture
+
+    Use cases:
+    1. Add watermarks or logos to videos
+    2. Create picture-in-picture effects
+    3. Combine multiple video streams into a single output
+    """
+
+    main_video: VideoRef = Field(
+        default=VideoRef(), description="The main (background) video."
+    )
+    overlay_video: VideoRef = Field(
+        default=VideoRef(), description="The video to overlay on top."
+    )
+    x: int = Field(default=0, description="X-coordinate for overlay placement.")
+    y: int = Field(default=0, description="Y-coordinate for overlay placement.")
+    scale: float = Field(
+        default=1.0, description="Scale factor for the overlay video.", gt=0
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.main_video.is_empty() or self.overlay_video.is_empty():
+            raise ValueError("Both main and overlay videos must be connected.")
+
+        main_video_file = await context.asset_to_io(self.main_video)
+        overlay_video_file = await context.asset_to_io(self.overlay_video)
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".mp4"
+        ) as main_temp, tempfile.NamedTemporaryFile(suffix=".mp4") as overlay_temp:
+            main_temp.write(main_video_file.read())
+            overlay_temp.write(overlay_video_file.read())
+
+            main_input = ffmpeg.input(main_temp.name)
+            overlay_input = ffmpeg.input(overlay_temp.name)
+
+            # Scale the overlay video
+            scaled_overlay = overlay_input.filter(
+                "scale", f"iw*{self.scale}", f"ih*{self.scale}"
+            )
+
+            # Apply the overlay
+            output = ffmpeg.overlay(main_input, scaled_overlay, x=self.x, y=self.y)
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                output.output(output_temp.name).overwrite_output().run(quiet=True)
+
+                # Read the overlaid video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class ColorBalance(BaseNode):
+    """
+    Adjust the color balance of a video.
+    video, color, balance, adjustment
+
+    Use cases:
+    1. Correct color casts in video footage
+    2. Enhance specific color tones for artistic effect
+    3. Normalize color balance across multiple video clips
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to adjust color balance."
+    )
+    red_adjust: float = Field(
+        default=1.0, description="Red channel adjustment factor.", ge=0, le=2
+    )
+    green_adjust: float = Field(
+        default=1.0, description="Green channel adjustment factor.", ge=0, le=2
+    )
+    blue_adjust: float = Field(
+        default=1.0, description="Blue channel adjustment factor.", ge=0, le=2
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply color balance adjustment
+            adjusted = input_stream.filter(
+                "colorbalance",
+                rs=self.red_adjust - 1,
+                gs=self.green_adjust - 1,
+                bs=self.blue_adjust - 1,
+            )
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(adjusted, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the color-adjusted video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class Denoise(BaseNode):
+    """
+    Apply noise reduction to a video.
+    video, denoise, clean, enhance
+
+    Use cases:
+    1. Improve video quality by reducing unwanted noise
+    2. Enhance low-light footage
+    3. Prepare video for further processing or compression
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to denoise."
+    )
+    strength: float = Field(
+        default=5.0,
+        description="Strength of the denoising effect. Higher values mean more denoising.",
+        ge=0,
+        le=20,
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply denoising filter
+            denoised = input_stream.filter("nlmeans", s=self.strength)
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(denoised, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the denoised video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class Stabilize(BaseNode):
+    """
+    Apply video stabilization to reduce camera shake and jitter.
+    video, stabilize, smooth, shake-reduction
+
+    Use cases:
+    1. Improve quality of handheld or action camera footage
+    2. Smooth out panning and tracking shots
+    3. Enhance viewer experience by reducing motion sickness
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to stabilize."
+    )
+    smoothing: float = Field(
+        default=10.0,
+        description="Smoothing strength. Higher values result in smoother but potentially more cropped video.",
+        ge=1,
+        le=100,
+    )
+    crop_black: bool = Field(
+        default=True,
+        description="Whether to crop black borders that may appear after stabilization.",
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply video stabilization
+            stabilized = input_stream.filter("deshake", smooth=self.smoothing)
+
+            # Optionally crop black borders
+            if self.crop_black:
+                stabilized = stabilized.filter("cropdetect").filter("crop")
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(stabilized, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the stabilized video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class Sharpness(BaseNode):
+    """
+    Adjust the sharpness of a video.
+    video, sharpen, enhance, detail
+
+    Use cases:
+    1. Enhance detail in slightly out-of-focus footage
+    2. Correct softness introduced by video compression
+    3. Create stylistic effects by over-sharpening
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to sharpen."
+    )
+    luma_amount: float = Field(
+        default=1.0,
+        description="Amount of sharpening to apply to luma (brightness) channel.",
+        ge=0,
+        le=3,
+    )
+    chroma_amount: float = Field(
+        default=0.5,
+        description="Amount of sharpening to apply to chroma (color) channels.",
+        ge=0,
+        le=3,
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply unsharp mask filter for sharpening
+            sharpened = input_stream.filter(
+                "unsharp",
+                luma_msize_x=5,  # 5x5 matrix for luma
+                luma_msize_y=5,
+                luma_amount=self.luma_amount,
+                chroma_msize_x=5,  # 5x5 matrix for chroma
+                chroma_msize_y=5,
+                chroma_amount=self.chroma_amount,
+            )
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(sharpened, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the sharpened video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class Blur(BaseNode):
+    """
+    Apply a blur effect to a video.
+    video, blur, smooth, soften
+
+    Use cases:
+    1. Create a dreamy or soft focus effect
+    2. Obscure or censor specific areas of the video
+    3. Reduce noise or grain in low-quality footage
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to apply blur effect."
+    )
+    strength: float = Field(
+        default=5.0,
+        description="The strength of the blur effect. Higher values create a stronger blur.",
+        ge=0,
+        le=20,
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply boxblur filter
+            blurred = input_stream.filter("boxblur", luma_radius=self.strength)
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(blurred, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the blurred video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class Saturation(BaseNode):
+    """
+    Adjust the color saturation of a video.
+    video, saturation, color, enhance
+
+    Use cases:
+    1. Enhance color vibrancy in dull or flat-looking footage
+    2. Create stylistic effects by over-saturating or desaturating video
+    3. Correct oversaturated footage from certain cameras
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to adjust saturation."
+    )
+    saturation: float = Field(
+        default=1.0,
+        description="Saturation level. 1.0 is original, <1 decreases saturation, >1 increases saturation.",
+        ge=0,
+        le=3,
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply saturation adjustment
+            saturated = input_stream.filter("eq", saturation=self.saturation)
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(saturated, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the saturation-adjusted video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class AddSubtitles(BaseNode):
+    """
+    Add subtitles to a video.
+    video, subtitles, text, caption
+
+    Use cases:
+    1. Add translations or closed captions to videos
+    2. Include explanatory text or commentary in educational videos
+    3. Create lyric videos for music content
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to add subtitles to."
+    )
+    subtitles: TextRef = Field(default="", description="SRT Subtitles.")
+    font_size: int = Field(
+        default=24, description="Font size for the subtitles.", ge=8, le=72
+    )
+    font_color: str = Field(default="white", description="Color of the subtitle text.")
+    outline_color: str = Field(
+        default="black", description="Color of the text outline."
+    )
+    outline_width: int = Field(
+        default=2, description="Width of the text outline.", ge=0, le=4
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+        srt_file = await context.asset_to_io(self.subtitles)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            with tempfile.NamedTemporaryFile(suffix=".srt") as temp_srt:
+                temp.write(video_file.read())
+                temp_srt.write(srt_file.read())
+
+                input_stream = ffmpeg.input(temp.name)
+
+                # Add subtitles
+                subtitled = input_stream.filter(
+                    "subtitles",
+                    temp_srt.name,
+                    force_style=f"FontSize={self.font_size},PrimaryColour=&H{self.font_color},OutlineColour=&H{self.outline_color},Outline={self.outline_width}",
+                )
+
+                with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                    ffmpeg.output(subtitled, output_temp.name).overwrite_output().run(
+                        quiet=True
+                    )
+
+                    # Read the video with subtitles and create a VideoRef
+                    with open(output_temp.name, "rb") as f:
+                        return await context.video_from_io(f)
+
+
+class Reverse(BaseNode):
+    """
+    Reverse the playback of a video.
+    video, reverse, backwards, effect
+
+    Use cases:
+    1. Create artistic effects by playing video in reverse
+    2. Analyze motion or events in reverse order
+    3. Generate unique transitions or intros for video projects
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to reverse."
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            reversed_video = input_stream.filter("reverse")
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(reversed_video, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the reversed video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class Transition(BaseNode):
+    """
+    Create a transition effect between two videos.
+    video, transition, effect, merge
+
+    Use cases:
+    1. Create smooth transitions between video clips in a montage
+    2. Add professional-looking effects to video projects
+    3. Blend scenes together for creative storytelling
+    """
+
+    class TransitionType(str, enum.Enum):
+        fade = "fade"
+        wipeleft = "wipeleft"
+        wiperight = "wiperight"
+        wipeup = "wipeup"
+        wipedown = "wipedown"
+        slideleft = "slideleft"
+        slideright = "slideright"
+        slideup = "slideup"
+        slidedown = "slidedown"
+        circlecrop = "circlecrop"
+        rectcrop = "rectcrop"
+        distance = "distance"
+        fadeblack = "fadeblack"
+        fadewhite = "fadewhite"
+        radial = "radial"
+        smoothleft = "smoothleft"
+        smoothright = "smoothright"
+        smoothup = "smoothup"
+        smoothdown = "smoothdown"
+        circleopen = "circleopen"
+        circleclose = "circleclose"
+        vertopen = "vertopen"
+        vertclose = "vertclose"
+        horzopen = "horzopen"
+        horzclose = "horzclose"
+        dissolve = "dissolve"
+        pixelize = "pixelize"
+        diagtl = "diagtl"
+        diagtr = "diagtr"
+        diagbl = "diagbl"
+        diagbr = "diagbr"
+        hlslice = "hlslice"
+        hrslice = "hrslice"
+        vuslice = "vuslice"
+        vdslice = "vdslice"
+        hblur = "hblur"
+        fadegrays = "fadegrays"
+        wipetl = "wipetl"
+        wipetr = "wipetr"
+        wipebl = "wipebl"
+        wipebr = "wipebr"
+        squeezeh = "squeezeh"
+        squeezev = "squeezev"
+        zoomin = "zoomin"
+        fadefast = "fadefast"
+        fadeslow = "fadeslow"
+        hlwind = "hlwind"
+        hrwind = "hrwind"
+        vuwind = "vuwind"
+        vdwind = "vdwind"
+        coverleft = "coverleft"
+        coverright = "coverright"
+        coverup = "coverup"
+        coverdown = "coverdown"
+        revealleft = "revealleft"
+        revealright = "revealright"
+        revealup = "revealup"
+        revealdown = "revealdown"
+
+    video_a: VideoRef = Field(
+        default=VideoRef(), description="The first video in the transition."
+    )
+    video_b: VideoRef = Field(
+        default=VideoRef(), description="The second video in the transition."
+    )
+    transition_type: TransitionType = Field(
+        default=TransitionType.fade, description="Type of transition effect"
+    )
+    duration: float = Field(
+        default=1.0,
+        description="Duration of the transition effect in seconds.",
+        ge=0.1,
+        le=5.0,
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video_a.is_empty() or self.video_b.is_empty():
+            raise ValueError("Both input videos must be connected.")
+
+        video_a_file = await context.asset_to_io(self.video_a)
+        video_b_file = await context.asset_to_io(self.video_b)
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".mp4"
+        ) as temp_a, tempfile.NamedTemporaryFile(suffix=".mp4") as temp_b:
+            temp_a.write(video_a_file.read())
+            temp_b.write(video_b_file.read())
+
+            input_a = ffmpeg.input(temp_a.name)
+            input_b = ffmpeg.input(temp_b.name)
+
+            transition = ffmpeg.filter(
+                [input_a, input_b],
+                "xfade",
+                transition=self.transition_type.value,
+                duration=self.duration,
+            )
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(transition, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the transitioned video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class AddAudio(BaseNode):
+    """
+    Add an audio track to a video, replacing or mixing with existing audio.
+    video, audio, soundtrack, merge
+
+    Use cases:
+    1. Add background music or narration to a silent video
+    2. Replace original audio with a new soundtrack
+    3. Mix new audio with existing video sound
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to add audio to."
+    )
+    audio: AudioRef = Field(
+        default=AudioRef(), description="The audio file to add to the video."
+    )
+    volume: float = Field(
+        default=1.0,
+        description="Volume adjustment for the added audio. 1.0 is original volume.",
+        ge=0,
+        le=2,
+    )
+    mix: bool = Field(
+        default=False,
+        description="If True, mix new audio with existing. If False, replace existing audio.",
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty() or self.audio.is_empty():
+            raise ValueError("Both video and audio inputs must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+        audio_file = await context.asset_to_io(self.audio)
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".mp4"
+        ) as temp_video, tempfile.NamedTemporaryFile(suffix=".mp3") as temp_audio:
+            temp_video.write(video_file.read())
+            temp_audio.write(audio_file.read())
+
+            video_input = ffmpeg.input(temp_video.name)
+            audio_input = ffmpeg.input(temp_audio.name)
+
+            audio_input = audio_input.filter("volume", volume=self.volume)
+
+            if self.mix:
+                # Mix new audio with existing video audio
+                audio = ffmpeg.filter(
+                    [video_input.audio, audio_input], "amix", inputs=2
+                )
+            else:
+                # Replace video audio with new audio
+                audio = audio_input
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                try:
+                    ffmpeg.output(
+                        video_input.video, audio, output_temp.name, format="mp4"
+                    ).overwrite_output().run(quiet=True)
+                except ffmpeg.Error as e:
+                    raise ValueError(f"Error processing video: {e.stderr[-256:]}")
+
+                # Read the video with added audio and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)
+
+
+class ChromaKey(BaseNode):
+    """
+    Apply chroma key (green screen) effect to a video.
+    video, chroma key, green screen, compositing
+
+    Use cases:
+    1. Remove green or blue background from video footage
+    2. Create special effects by compositing video onto new backgrounds
+    3. Produce professional-looking videos for presentations or marketing
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to apply chroma key effect."
+    )
+    key_color: str = Field(
+        default="0x00FF00",
+        description="The color to key out (e.g., '0x00FF00' for green).",
+    )
+    similarity: float = Field(
+        default=0.3,
+        description="Similarity threshold for the key color.",
+        ge=0.0,
+        le=1.0,
+    )
+    blend: float = Field(
+        default=0.1, description="Blending of the keyed area edges.", ge=0.0, le=1.0
+    )
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
+            temp.write(video_file.read())
+
+            input_stream = ffmpeg.input(temp.name)
+
+            # Apply chroma key filter
+            keyed = input_stream.filter(
+                "chromakey",
+                color=self.key_color,
+                similarity=self.similarity,
+                blend=self.blend,
+            )
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
+                ffmpeg.output(keyed, output_temp.name).overwrite_output().run(
+                    quiet=True
+                )
+
+                # Read the chroma keyed video and create a VideoRef
+                with open(output_temp.name, "rb") as f:
+                    return await context.video_from_io(f)

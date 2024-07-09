@@ -9,7 +9,7 @@ from nodetool.workflows.base_node import BaseNode
 from typing import Any, Literal
 
 
-class ListLength(BaseNode):
+class Length(BaseNode):
     """
     Calculates the length of a list.
     list, count, size
@@ -26,7 +26,7 @@ class ListLength(BaseNode):
         return len(self.values)
 
 
-class GenerateNumberSequence(BaseNode):
+class GenerateSequence(BaseNode):
     """
     Generates a list of integers within a specified range.
     list, range, sequence, numbers
@@ -45,7 +45,7 @@ class GenerateNumberSequence(BaseNode):
         return list(range(self.start, self.stop, self.step))
 
 
-class ExtractSubList(BaseNode):
+class Slice(BaseNode):
     """
     Extracts a subset from a list using start, stop, and step indices.
     list, slice, subset, extract
@@ -65,7 +65,7 @@ class ExtractSubList(BaseNode):
         return self.values[self.start : self.stop : self.step]
 
 
-class SelectListElements(BaseNode):
+class SelectElements(BaseNode):
     """
     Selects specific values from a list using index positions.
     list, select, index, extract
@@ -83,7 +83,7 @@ class SelectListElements(BaseNode):
         return [self.values[index] for index in self.indices]
 
 
-class GetListElement(BaseNode):
+class GetElement(BaseNode):
     """
     Retrieves a single value from a list at a specific index.
     list, get, extract, value
@@ -101,7 +101,7 @@ class GetListElement(BaseNode):
         return self.values[self.index]
 
 
-class AppendToList(BaseNode):
+class Append(BaseNode):
     """
     Adds a value to the end of a list.
     list, add, insert, extend
@@ -120,7 +120,7 @@ class AppendToList(BaseNode):
         return self.values
 
 
-class ExtendList(BaseNode):
+class Extend(BaseNode):
     """
     Merges one list into another, extending the original list.
     list, merge, concatenate, combine
@@ -138,7 +138,7 @@ class ExtendList(BaseNode):
         return self.values
 
 
-class DedupeList(BaseNode):
+class Dedupe(BaseNode):
     """
     Removes duplicate elements from a list, ensuring uniqueness.
     list, unique, distinct, deduplicate
@@ -155,7 +155,7 @@ class DedupeList(BaseNode):
         return list(set(self.values))
 
 
-class FilterList(BaseNode):
+class Filter(BaseNode):
     """
     Filters a list based on a custom Python condition.
     list, filter, condition, select
@@ -184,7 +184,7 @@ class FilterList(BaseNode):
         ]
 
 
-class ReduceList(BaseNode):
+class Reduce(BaseNode):
     """
     Performs a custom reduction operation on a list using Python code.
     list, reduce, aggregate, accumulate
@@ -228,7 +228,7 @@ class ReduceList(BaseNode):
         )
 
 
-class TransformListElements(BaseNode):
+class TransformElements(BaseNode):
     """
     Transforms each element in a list based on custom Python code.
     list, transform, modify, apply
@@ -258,7 +258,7 @@ class TransformListElements(BaseNode):
         ]
 
 
-class ReverseList(BaseNode):
+class Reverse(BaseNode):
     """
     Inverts the order of elements in a list.
     list, reverse, invert, flip

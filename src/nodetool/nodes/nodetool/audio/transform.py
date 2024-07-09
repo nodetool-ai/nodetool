@@ -5,7 +5,7 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 
-class ConcatAudio(BaseNode):
+class Concat(BaseNode):
     """
     Concatenates two audio files together.
     audio, edit, join
@@ -25,7 +25,7 @@ class ConcatAudio(BaseNode):
         return await context.audio_from_segment(res)
 
 
-class NormalizeAudio(BaseNode):
+class Normalize(BaseNode):
     """
     Normalizes the volume of an audio file.
     audio, fix, dynamics
@@ -181,3 +181,162 @@ class Tone(BaseNode):
             phi=self.phi,
         )
         return Tensor.from_numpy(tone_signal)
+
+
+class MonoToStereo(BaseNode):
+    """
+    Converts a mono audio signal to stereo.
+    audio, convert, channels
+
+    Use cases:
+    - Expand mono recordings for stereo playback systems
+    - Prepare audio for further stereo processing
+    """
+
+    audio: AudioRef = Field(
+        default=AudioRef(), description="The mono audio file to convert."
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        audio = await context.audio_to_audio_segment(self.audio)
+
+        if audio.channels == 1:
+            stereo_audio = audio.set_channels(2)
+        else:
+            # If already stereo or multi-channel, return as is
+            stereo_audio = audio
+
+        return await context.audio_from_segment(stereo_audio)
+
+
+class StereoToMono(BaseNode):
+    """
+    Converts a stereo audio signal to mono.
+    audio, convert, channels
+
+    Use cases:
+    - Reduce file size for mono-only applications
+    - Simplify audio for certain processing tasks
+    """
+
+    audio: AudioRef = Field(
+        default=AudioRef(), description="The stereo audio file to convert."
+    )
+    method: str = Field(
+        default="average",
+        description="Method to use for conversion: 'average', 'left', or 'right'.",
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        audio = await context.audio_to_audio_segment(self.audio)
+
+        if audio.channels > 1:
+            if self.method == "average":
+                mono_audio = audio.set_channels(1)
+            elif self.method == "left":
+                mono_audio = audio.split_to_mono()[0]
+            elif self.method == "right":
+                mono_audio = audio.split_to_mono()[1]
+            else:
+                raise ValueError(
+                    "Invalid method. Choose 'average', 'left', or 'right'."
+                )
+        else:
+            # If already mono, return as is
+            mono_audio = audio
+
+        return await context.audio_from_segment(mono_audio)
+
+
+class Reverse(BaseNode):
+    """
+    Reverses an audio file.
+    audio, edit, transform
+
+    Use cases:
+    - Create reverse audio effects
+    - Generate backwards speech or music
+    """
+
+    audio: AudioRef = Field(
+        default=AudioRef(), description="The audio file to reverse."
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        audio = await context.audio_to_audio_segment(self.audio)
+        reversed_audio = audio.reverse()
+        return await context.audio_from_segment(reversed_audio)
+
+
+class FadeIn(BaseNode):
+    """
+    Applies a fade-in effect to the beginning of an audio file.
+    audio, edit, transition
+
+    Use cases:
+    - Create smooth introductions to audio tracks
+    - Gradually increase volume at the start of a clip
+    """
+
+    audio: AudioRef = Field(
+        default=AudioRef(), description="The audio file to apply fade-in to."
+    )
+    duration: float = Field(
+        default=1.0, description="Duration of the fade-in effect in seconds.", ge=0.0
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        audio = await context.audio_to_audio_segment(self.audio)
+        faded_audio = audio.fade_in(duration=int(self.duration * 1000))
+        return await context.audio_from_segment(faded_audio)
+
+
+class FadeOut(BaseNode):
+    """
+    Applies a fade-out effect to the end of an audio file.
+    audio, edit, transition
+
+    Use cases:
+    - Create smooth endings to audio tracks
+    - Gradually decrease volume at the end of a clip
+    """
+
+    audio: AudioRef = Field(
+        default=AudioRef(), description="The audio file to apply fade-out to."
+    )
+    duration: float = Field(
+        default=1.0, description="Duration of the fade-out effect in seconds.", ge=0.0
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        audio = await context.audio_to_audio_segment(self.audio)
+        faded_audio = audio.fade_out(duration=int(self.duration * 1000))
+        return await context.audio_from_segment(faded_audio)
+
+
+class Repeat(BaseNode):
+    """
+    Loops an audio file a specified number of times.
+    audio, edit, repeat
+
+    Use cases:
+    - Create repeating background sounds or music
+    - Extend short audio clips to fill longer durations
+    - Generate rhythmic patterns from short samples
+    """
+
+    audio: AudioRef = Field(default=AudioRef(), description="The audio file to loop.")
+    loops: int = Field(
+        default=2,
+        ge=1,
+        le=100,
+        description="Number of times to loop the audio. Minimum 1 (plays once), maximum 100.",
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        audio = await context.audio_to_audio_segment(self.audio)
+
+        # Create the looped audio
+        looped_audio = audio * self.loops
+
+        return await context.audio_from_segment(looped_audio)

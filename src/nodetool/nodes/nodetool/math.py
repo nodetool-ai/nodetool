@@ -168,7 +168,7 @@ class Power(BaseNode):
         return await convert_output(context, np.power(a, b))
 
 
-class SqrtTensor(BaseNode):
+class Sqrt(BaseNode):
     """
     Calculates the square root of the input element-wise.
     math, square root, sqrt, √

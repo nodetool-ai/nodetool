@@ -6,9 +6,10 @@ import seaborn as sns
 import numpy as np
 from pydantic import Field
 from typing import Any, Literal
+from nodetool.nodes.nodetool.audio.audio_helpers import numpy_to_audio_segment
 from nodetool.nodes.nodetool.math import convert_output
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import FolderRef, ImageRef
+from nodetool.metadata.types import AudioRef, FolderRef, ImageRef
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import to_numpy
 from nodetool.metadata.types import Tensor
@@ -51,6 +52,29 @@ class SaveTensor(BaseNode):
             uri=asset.get_url,
             asset_id=asset.id,
         )
+
+
+class ConvertToAudio(BaseNode):
+    """
+    Converts a tensor object back to an audio file.
+    audio, conversion, tensor
+
+    Use cases:
+    - Save processed audio data as a playable file
+    - Convert generated or modified audio tensors to audio format
+    - Output results of audio processing pipelinesr
+    """
+
+    tensor: Tensor = Field(
+        default=Tensor(), description="The tensor to convert to an audio file."
+    )
+    sample_rate: int = Field(
+        default=44100, ge=0, le=44100, description="The sample rate of the audio file."
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        audio = numpy_to_audio_segment(self.tensor.to_numpy(), self.sample_rate)
+        return await context.audio_from_segment(audio)
 
 
 class Stack(BaseNode):

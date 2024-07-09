@@ -1,0 +1,245 @@
+{
+  "id": "f71b84243d6111efb3d000002a4f60b7",
+  "access": "private",
+  "created_at": "2024-07-08T21:40:43.867391",
+  "updated_at": "2024-07-08T22:50:01.984368",
+  "name": "Infinite Zoom",
+  "description": "Stable Diffusion Zooming with additional video effects",
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "1",
+        "parent_id": null,
+        "type": "replicate.video.generate.StableDiffusionInfiniteZoom",
+        "data": {
+          "prompt": "llama with hipster mustache",
+          "inpaint_iter": 10,
+          "output_format": "mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 180,
+            "y": 304.5
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.video.Saturation",
+        "data": {
+          "video": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null,
+            "duration": null,
+            "format": null
+          },
+          "saturation": 2
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 396,
+            "y": 399
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "40",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 747,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 373,
+          "height": 188,
+          "selectable": true
+        }
+      },
+      {
+        "id": "88",
+        "parent_id": null,
+        "type": "nodetool.video.Blur",
+        "data": {
+          "video": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": "",
+            "duration": null,
+            "format": null
+          },
+          "strength": 5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 537,
+            "y": 425
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "89",
+        "parent_id": null,
+        "type": "nodetool.video.Concat",
+        "data": {
+          "video_a": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null,
+            "duration": null,
+            "format": null
+          },
+          "video_b": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null,
+            "duration": null,
+            "format": null
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 539,
+            "y": 305
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "0f7acdbe-1dba-49be-a834-c2308b0fbcf1",
+        "parent_id": null,
+        "type": "nodetool.video.Concat",
+        "data": {
+          "video_a": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null,
+            "duration": null,
+            "format": null
+          },
+          "video_b": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "temp_id": null,
+            "duration": null,
+            "format": null
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 652,
+            "y": 356
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "4df2099a-aa7c-4eb8-a8c2-4c1aad0a6d3b",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "a0d304ed-3bad-4aa5-9991-97bc4905e6da",
+        "source": "88",
+        "sourceHandle": "output",
+        "target": "0f7acdbe-1dba-49be-a834-c2308b0fbcf1",
+        "targetHandle": "video_b",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "7e17f854-5663-4387-8447-225cb58fc292",
+        "source": "0f7acdbe-1dba-49be-a834-c2308b0fbcf1",
+        "sourceHandle": "output",
+        "target": "40",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "9c755c34-9d43-42a5-91c6-4ad96172afb2",
+        "source": "89",
+        "sourceHandle": "output",
+        "target": "0f7acdbe-1dba-49be-a834-c2308b0fbcf1",
+        "targetHandle": "video_a",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "4d9cf723-c918-4f0e-a841-1ee5846aa25a",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "89",
+        "targetHandle": "video_a",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "e3aa89f4-b71d-494f-9c2e-3650c21dab6d",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "89",
+        "targetHandle": "video_b",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "c74e9e66-7954-4f0a-a79f-311814a2dc49",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "88",
+        "targetHandle": "video",
+        "ui_properties": {
+          "className": "video"
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
+}

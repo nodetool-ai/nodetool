@@ -54,7 +54,7 @@ class ChromaSTFT(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        (samples, sample_rate) = await context.audio_to_numpy(self.audio)
+        samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         chromagram = librosa.feature.chroma_stft(
             y=samples, sr=sample_rate, n_fft=self.n_fft, hop_length=self.hop_length
@@ -176,7 +176,7 @@ class MelSpectrogram(BaseNode):
     fmax: int = Field(default=8000, ge=0, description="The highest frequency (in Hz).")
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        (samples, sample_rate) = await context.audio_to_numpy(self.audio)
+        samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         melspectrogram = librosa.feature.melspectrogram(
             y=samples,
@@ -209,7 +209,7 @@ class MFCC(BaseNode):
     fmax: int = Field(default=8000, ge=0, description="The highest frequency (in Hz).")
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        (samples, sample_rate) = await context.audio_to_numpy(self.audio)
+        samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         mfccs = librosa.feature.mfcc(
             y=samples,
@@ -289,7 +289,7 @@ class SpectralContrast(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        (samples, sample_rate) = await context.audio_to_numpy(self.audio)
+        samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         spectral_contrast = librosa.feature.spectral_contrast(
             y=samples, sr=sample_rate, n_fft=self.n_fft, hop_length=self.hop_length
@@ -329,7 +329,7 @@ class STFT(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> Tensor:
-        (samples, sample_rate) = await context.audio_to_numpy(self.audio)
+        samples, sample_rate, num_channels = await context.audio_to_numpy(self.audio)
         samples = convert_to_float(samples)
         stft_matrix = librosa.stft(
             y=samples,

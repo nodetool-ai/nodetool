@@ -66,10 +66,10 @@ class Sine(GraphNode):
 
 
 
-class SqrtTensor(GraphNode):
+class Sqrt(GraphNode):
     x: int | float | nodetool.metadata.types.Tensor | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
     @classmethod
-    def get_node_type(cls): return "nodetool.math.SqrtTensor"
+    def get_node_type(cls): return "nodetool.math.Sqrt"
 
 
 
