@@ -32,6 +32,7 @@ export const useCreateNode = () => {
       };
       const groupInputNode = createNode(groupInputMetadata, groupInputPosition);
       groupInputNode.parentId = loopNode.id;
+      groupInputNode.expandParent = true;
       addNode(groupInputNode);
       // Create group output node
       const groupOutputMetadata = getMetadata(
@@ -51,6 +52,7 @@ export const useCreateNode = () => {
         groupOutputPosition
       );
       groupOutputNode.parentId = loopNode.id;
+      groupOutputNode.expandParent = true;
       addNode(groupOutputNode);
     },
     [addNode, createNode, getMetadata, reactFlowInstance]
