@@ -10,6 +10,7 @@ import ColumnsManager from "../node/ColumnsManager";
 import { Button, ButtonGroup } from "@mui/material";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
+import Papa, { ParseResult } from "papaparse";
 
 const styles = (theme: any) =>
   css({

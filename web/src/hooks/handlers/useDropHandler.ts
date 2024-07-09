@@ -64,9 +64,9 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
 export function nodeTypeFor(content_type: string): TypeName | null {
   switch (content_type) {
     case "application/json":
-      return "str";
+      return "text";
     case "text/plain":
-      return "str";
+      return "text";
     case "text/csv":
       return "dataframe";
     case "image/png":
@@ -208,21 +208,17 @@ export const useDropHandler = (): DropHandler => {
         responseType: "arraybuffer"
       });
       const data = new TextDecoder().decode(new Uint8Array(response.data));
-      if (assetType === "dataframe") {
-        createDataFrameNode(data, position, nodeMetadata);
-      } else {
-        const newNode = createNode(nodeMetadata, position);
-        newNode.data.properties = {
-          type: assetType,
-          value: data,
-          asset_id: asset.id,
-          uri: asset.get_url
-        };
-        addNode(newNode);
-      }
+      const newNode = createNode(nodeMetadata, position);
+      newNode.data.properties = {
+        type: assetType,
+        value: data,
+        asset_id: asset.id,
+        uri: asset.get_url
+      };
+      addNode(newNode);
       devLog("Downloaded asset content", asset, nodeMetadata);
     },
-    [addNode, createDataFrameNode, createNode]
+    [addNode, createNode]
   );
 
   // Embed text files as nodes
@@ -233,20 +229,8 @@ export const useDropHandler = (): DropHandler => {
         return [];
       }
       return files.reduce((acc: File[], file: File) => {
-        if (file.type === "text/plain") {
-          const nodeType = "nodetool.constant.String";
-          const nodeMetadata = metadata.metadataByType[nodeType];
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            if (event.target) {
-              const data = event.target.result as string;
-              const newNode = createNode(nodeMetadata, position);
-              newNode.data.properties.value = data;
-              addNode(newNode);
-            }
-          };
-          reader.readAsText(file);
-        } else if (file.type === "text/csv") {
+
+        if (file.type === "text/csv") {
           const nodeType = "nodetool.constant.DataFrame";
           const nodeMetadata = metadata.metadataByType[nodeType];
           const reader = new FileReader();
@@ -263,7 +247,7 @@ export const useDropHandler = (): DropHandler => {
         return acc;
       }, [] as File[]);
     },
-    [addNode, createDataFrameNode, createNode, metadata]
+    [createDataFrameNode, metadata]
   );
 
   const addNodeFromAsset = useCallback(

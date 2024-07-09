@@ -23,13 +23,15 @@ export default function VideoProperty(props: PropertyProps) {
         description={props.property.description}
         id={id}
       />
-      <PropertyDropzone
-        asset={asset}
-        uri={uri}
-        onChange={props.onChange}
-        contentType="video"
-        props={props}
-      />
+      {props.nodeType === "nodetool.constant.Video" && (
+        <PropertyDropzone
+          asset={asset}
+          uri={uri}
+          onChange={props.onChange}
+          contentType="video"
+          props={props}
+        />
+      )}
     </div>
   );
 }
