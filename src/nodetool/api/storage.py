@@ -3,6 +3,7 @@
 from datetime import timezone
 from io import BytesIO
 import os
+import re
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi import HTTPException
 from email.utils import parsedate_to_datetime
@@ -44,10 +45,18 @@ async def head(bucket: str, key: str):
     )
 
 
+from fastapi import HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
+from email.utils import parsedate_to_datetime
+from datetime import timezone
+import os
+from typing import Optional
+
+
 @router.get("/{bucket}/{key}")
 async def get(bucket: str, key: str, request: Request):
     """
-    Returns the file as a stream for the given key.
+    Returns the file as a stream for the given key, supporting range queries.
     """
     storage = storage_for_bucket(bucket)
     if not storage.file_exists(key):
@@ -59,7 +68,6 @@ async def get(bucket: str, key: str, request: Request):
 
     if "If-Modified-Since" in request.headers:
         if_modified_since = parsedate_to_datetime(request.headers["If-Modified-Since"])
-        # if_modified_since = if_modified_since.replace(tzinfo=timezone.utc)
         last_modified = last_modified.replace(tzinfo=timezone.utc)
         if if_modified_since >= last_modified:
             raise HTTPException(status_code=304)
@@ -68,10 +76,45 @@ async def get(bucket: str, key: str, request: Request):
     media_type = EXTENSION_TO_CONTENT_TYPE.get(ext, "application/octet-stream")
     headers = {
         "Last-Modified": last_modified.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+        "Accept-Ranges": "bytes",
+        "Content-Type": media_type,
     }
 
+    range_header = request.headers.get("Range")
+    start: Optional[int] = 0
+    end: Optional[int] = None
+
+    if range_header:
+        try:
+            range_match = re.match(r"bytes=(\d+)-(\d*)", range_header)
+            if range_match:
+                start = int(range_match.group(1))
+                end_str = range_match.group(2)
+                end = int(end_str)
+            else:
+                raise ValueError("Invalid range format")
+
+            stream = BytesIO()
+            await storage.download(key, stream)
+            data = stream.getvalue()
+
+            headers["Content-Range"] = f"bytes {start}-{end}/{len(data)}"
+            headers["Content-Length"] = str(end - start + 1)
+
+            return Response(
+                content=data[start : end + 1],
+                status_code=206,
+                headers=headers,
+            )
+        except ValueError:
+            # If range is invalid, ignore it and return full content
+            pass
+
+    # TODO: Add Content-Length header
+
     return StreamingResponse(
-        content=storage.download_stream(key), media_type=media_type, headers=headers
+        content=storage.download_stream(key),
+        headers=headers,
     )
 
 

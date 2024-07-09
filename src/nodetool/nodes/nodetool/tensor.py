@@ -1,5 +1,6 @@
 from enum import Enum
 from io import BytesIO
+import PIL.Image
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
 import seaborn as sns
@@ -52,6 +53,41 @@ class SaveTensor(BaseNode):
             uri=asset.get_url,
             asset_id=asset.id,
         )
+
+
+class ConvertToImage(BaseNode):
+    """
+    Convert tensor data to PIL Image format.
+
+    Keywords: tensor, image, conversion, denormalization
+
+    Use cases:
+    - Visualize tensor data as images
+    - Save processed tensor results as images
+    - Convert model outputs back to viewable format
+    """
+
+    tensor: Tensor = Field(
+        default=Tensor(),
+        description="The input tensor to convert to an image. Should have either 1, 3, or 4 channels.",
+    )
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self.tensor.is_empty():
+            raise ValueError("The input tensor is not connected.")
+
+        tensor_data = self.tensor.to_numpy()
+        if tensor_data.ndim not in [2, 3]:
+            raise ValueError("The tensor should have 2 or 3 dimensions (HxW or HxWxC).")
+        if (tensor_data.ndim == 3) and (tensor_data.shape[2] not in [1, 3, 4]):
+            raise ValueError("The tensor channels should be either 1, 3, or 4.")
+        if (tensor_data.ndim == 3) and (tensor_data.shape[2] == 1):
+            tensor_data = tensor_data.reshape(
+                tensor_data.shape[0], tensor_data.shape[1]
+            )
+        tensor_data = (tensor_data * 255).astype(np.uint8)
+        output_image = PIL.Image.fromarray(tensor_data)
+        return await context.image_from_pil(output_image)
 
 
 class ConvertToAudio(BaseNode):

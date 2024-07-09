@@ -49,6 +49,8 @@ export type AssetUpdate = {
   name?: string;
   parent_id?: string;
   content_type?: string;
+  metadata?: Record<string, never>;
+  data?: string;
   duration?: number;
 };
 
@@ -361,10 +363,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const { error, data } = await client.PUT("/api/assets/{id}", {
       params: { path: { id: req.id } },
       body: {
-        status: req.status || prev.status,
-        name: req.name || prev.name,
-        parent_id: req.parent_id || prev.parent_id,
-        content_type: req.content_type || prev.content_type
+        name: req.name || null,
+        parent_id: req.parent_id || null,
+        content_type: req.content_type || null,
+        metadata: req.metadata || null,
+        data: req.data || null
       }
     });
     if (error) {

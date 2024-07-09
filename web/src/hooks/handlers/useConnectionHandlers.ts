@@ -64,6 +64,8 @@ export const constantForType = (type: TypeName) => {
   switch (type) {
     case "str":
       return "nodetool.constant.String";
+    case "text":
+      return "nodetool.constant.Text";
     case "dataframe":
       return "nodetool.dataframe.Dataframe";
     case "int":

@@ -336,7 +336,6 @@ class WorkflowRunner:
 
         Raises:
             ValueError: If the GroupNode has no input nodes or if the input data is invalid.
-            NotImplementedError: If multiple output nodes are present in the subgraph.
 
         Note:
             - Handles special input types like DataframeRef.
@@ -349,6 +348,8 @@ class WorkflowRunner:
         ]
         input_nodes = [n for n in child_nodes if isinstance(n, GroupInput)]
         output_nodes = [n for n in child_nodes if isinstance(n, GroupOutput)]
+
+        print("output_nodes", output_nodes)
 
         if len(input_nodes) == 0:
             raise ValueError("Loop node must have at least one input node.")
@@ -395,10 +396,13 @@ class WorkflowRunner:
         for n in child_nodes:
             context.processed_nodes.add(n._id)
 
-        if len(results) == 1:
-            return {"output": results[output_nodes[0]._id]}
+        if len(results) > 1:
+            print("warning: multiple output nodes not supported")
+
+        if len(results) == 0:
+            return {}
         else:
-            raise NotImplementedError("Multiple output nodes not supported")
+            return {"output": results[output_nodes[0]._id]}
 
     @staticmethod
     def prepare_result_for_update(

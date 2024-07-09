@@ -25,27 +25,15 @@ export default function ImageProperty(props: PropertyProps) {
         description={props.property.description}
         id={id}
       />
-      <PropertyDropzone
-        asset={asset}
-        uri={uri}
-        onChange={props.onChange}
-        contentType="image"
-        props={props}
-      />
-      {/* <PropertyDropzone asset={asset} uri={uri} onChange={props.onChange}>
-        <AssetViewer
-          contentType={"image/*"}
-          url={uri}
-          open={openViewer}
-          onClose={() => setOpenViewer(false)}
+      {props.nodeType === "nodetool.constant.Image" && (
+        <PropertyDropzone
+          asset={asset}
+          uri={uri}
+          onChange={props.onChange}
+          contentType="image"
+          props={props}
         />
-        <img
-          src={asset?.get_url || uri || ""}
-          alt=""
-          style={{ width: "100%" }}
-          onDoubleClick={() => setOpenViewer(true)}
-        />
-      </PropertyDropzone> */}
+      )}
     </div>
   );
 }

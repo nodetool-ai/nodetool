@@ -110,7 +110,7 @@
       {
         "id": "6",
         "parent_id": null,
-        "type": "nodetool.image.ConvertTensorToImage",
+        "type": "nodetool.tensor.ConvertToImage",
         "ui_properties": {
           "selected": false,
           "position": {

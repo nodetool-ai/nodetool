@@ -687,7 +687,7 @@ class Environment(object):
             Provider,
         )
 
-        return [
+        models = [
             FunctionModel(
                 provider=Provider.OpenAI,
                 name=GPTModel.GPT4.value,
@@ -695,7 +695,13 @@ class Environment(object):
             FunctionModel(
                 provider=Provider.Anthropic, name=AnthropicModel.claude_3_opus
             ),
-        ] + cls.get_llama_function_models()
+        ]
+
+        if not cls.is_production():
+            # TODO: hardcode list of models for production
+            models += cls.get_llama_function_models()
+
+        return models
 
     @classmethod
     def get_llama_models(cls):

@@ -5,6 +5,7 @@ import pytest
 from nodetool.common.environment import Environment
 from nodetool.models.asset import Asset
 from nodetool.models.user import User
+from nodetool.types.asset import AssetCreateRequest, AssetUpdateRequest
 from tests.conftest import make_image
 
 
@@ -56,11 +57,9 @@ def test_put(client: TestClient, headers: dict[str, str], user: User):
     image = make_image(user)
     response = client.put(
         f"/api/assets/{image.id}",
-        json={
-            "parent_id": user.id,
-            "name": "bild.jpeg",
-            "content_type": "image/jpeg",
-        },
+        json=AssetUpdateRequest(
+            parent_id=user.id, name="bild.jpeg", content_type="image/jpeg"
+        ).model_dump(),
         headers=headers,
     )
     assert response.status_code == 200
@@ -73,13 +72,9 @@ def test_create(client: TestClient, headers: dict[str, str], user: User):
         "/api/assets",
         files={"file": ("test.jpg", open(test_jpg, "rb"), "image/jpeg")},
         data={
-            "json": json.dumps(
-                {
-                    "parent_id": user.id,
-                    "name": "bild.jpeg",
-                    "content_type": "image/jpeg",
-                }
-            )
+            "json": AssetCreateRequest(
+                parent_id=user.id, name="bild.jpeg", content_type="image/jpeg"
+            ).model_dump_json()
         },
         headers=headers,
     )

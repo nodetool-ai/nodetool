@@ -394,7 +394,7 @@ class BaseNode(BaseModel):
             try:
                 self.assign_property(name, value)
             except ValueError as e:
-                print(f"Error setting property {name}: {e}")
+                print(f"{self.__class__} Error setting property {name}: {e}")
                 if not skip_errors:
                     raise e
 
@@ -680,7 +680,11 @@ class Comment(BaseNode):
         comment (list[Any]): The content of the comment, stored as a list of elements.
     """
 
+    headline: str = Field("", description="The headline for this comment.")
     comment: list[Any] = Field(default=[""], description="The comment for this node.")
+    comment_color: str = Field(
+        default="#f0f0f0", description="The color for the comment."
+    )
     _visible: bool = False
 
 
@@ -693,6 +697,7 @@ class Preview(BaseNode):
     """
 
     value: Any = Field(None, description="The value to preview.")
+    name: str = Field("", description="The name of the preview node.")
     _visible: bool = False
 
     async def process(self, context: Any) -> Any:

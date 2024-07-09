@@ -4,6 +4,7 @@ import enum
 import json
 from types import UnionType
 from typing import Any, Dict, Type, Union, get_origin
+from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
 from nodetool.common.environment import Environment
@@ -96,6 +97,8 @@ def convert_to_dynamodb_format(
         return {"BOOL": value is True}
     elif py_type == datetime:
         return {"S": value.isoformat()}
+    elif issubclass(py_type, BaseModel):
+        return {"S": json.dumps(value)}
     elif issubclass(py_type, enum.Enum):
         return convert_to_dynamo(value.value)
     else:
@@ -160,6 +163,9 @@ def convert_from_dynamodb_format(item: Dict[str, Any], py_type: Type) -> Any:
             return json.loads(json_str) if json_str else {}
         except json.JSONDecodeError:
             return json_str
+    elif issubclass(py_type, BaseModel):
+        json_str = item.get("S", "{}")
+        return py_type(**json.loads(json_str)) if json_str else None
     else:
         raise TypeError(f"Unsupported type for conversion from DynamoDB: {py_type}")
 
