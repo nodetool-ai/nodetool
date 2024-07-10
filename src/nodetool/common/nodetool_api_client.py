@@ -117,41 +117,6 @@ class NodetoolAPIClient:
         self.check_status(response)
         return Response.from_httpx(response)
 
-    async def stream(
-        self,
-        method: str,
-        path: str,
-        json: dict[str, Any] | None = None,
-        **kwargs,
-    ) -> AsyncGenerator[str, None]:
-        # Special case for running predictions
-        # This is a hack to work around the fact that
-        # ASGITransport does not support streaming responses
-        if (
-            self.base_url == NODETOOL_INTERNAL_API
-            and method == "POST"
-            and path == "api/predictions/"
-        ):
-            # avoid circular import
-            from nodetool.types.prediction import PredictionCreateRequest
-            from nodetool.api.prediction import run_prediction
-
-            assert json is not None, "json is required"
-            req = PredictionCreateRequest(**json)
-            async for msg in run_prediction(req, self.user_id):
-                yield msg.model_dump_json() + "\n"
-        else:
-            async with self.client.stream(
-                method,
-                self._get_url(path),
-                headers=self._get_headers(),
-                json=json,
-                **kwargs,
-            ) as response:
-                self.check_status(response)
-                async for line in response.aiter_lines():
-                    yield line
-
     async def post(self, path: str, **kwargs) -> Response:
         response = await self.client.post(
             self._get_url(path), headers=self._get_headers(), **kwargs

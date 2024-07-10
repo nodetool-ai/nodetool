@@ -1,15 +1,24 @@
 from typing import Any
 from nodetool.common.environment import Environment
-from nodetool.models.prediction import Prediction
+from nodetool.types.prediction import Prediction, PredictionResult
 
 
-async def run_ollama(prediction: Prediction, params: dict) -> Any:
+async def run_ollama(prediction: Prediction) -> Any:
     model = prediction.model
+    assert model is not None, "Model is not set"
+
     client = Environment.get_ollama_client()
+    params = prediction.params
 
     if "raw" in params:
-        return await client.generate(model=model, **params)
+        res = await client.generate(model=model, **params)
     elif "prompt" in params:
-        return await client.embeddings(model=model, **params)
+        res = await client.embeddings(model=model, **params)
     else:
-        return await client.chat(model=model, **params)
+        res = await client.chat(model=model, **params)
+
+    yield PredictionResult(
+        prediction=prediction,
+        content=res,
+        encoding="json",
+    )

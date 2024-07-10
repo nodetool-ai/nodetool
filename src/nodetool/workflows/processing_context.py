@@ -357,10 +357,7 @@ class ProcessingContext:
             Any: The result of the prediction.
 
         """
-
-        data_encoded = (
-            base64.b64encode(data).decode("utf-8") if isinstance(data, bytes) else None
-        )
+        from nodetool.providers.run_prediction import run_prediction
 
         req = PredictionCreateRequest(
             provider=provider,
@@ -368,21 +365,23 @@ class ProcessingContext:
             node_id=node_id,
             workflow_id=self.workflow_id if self.workflow_id else "",
             params=params or {},
-            data=data_encoded,
         )
 
-        async for line in self.api_client.stream(
-            "POST",
+        res = await self.api_client.post(
             "api/predictions/",
             json=req.model_dump(),
-        ):
+        )
+
+        prediction = Prediction(**res.json())
+
+        async for msg in run_prediction(prediction):
             if self.is_cancelled:
                 raise JobCancelledException()
-            msg = json.loads(line)
-            if msg.get("type") == "prediction_result":
-                return PredictionResult(**msg).decode_content()
-            elif msg.get("type") == "prediction":
-                self.post_message(Prediction(**msg))
+            if isinstance(msg, PredictionResult):
+                # TODO: save prediction result
+                return msg
+            elif isinstance(msg, Prediction):
+                self.post_message(msg)
 
         raise ValueError("Prediction did not return a result")
 

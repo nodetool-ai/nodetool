@@ -1,7 +1,7 @@
 from typing import AsyncGenerator
 
 import httpx
-from nodetool.types.prediction import Prediction as APIPrediction, PredictionResult
+from nodetool.types.prediction import Prediction, PredictionResult
 from nodetool.providers.replicate.cost_calculation import (
     calculate_cost,
     calculate_llm_cost,
@@ -11,7 +11,6 @@ from nodetool.providers.replicate.replicate_node import (
     REPLICATE_MODELS,
     log,
 )
-from nodetool.models.prediction import Prediction
 import asyncio
 import re
 from datetime import datetime
@@ -60,11 +59,13 @@ async def get_model_status(owner: str, name: str) -> str:
 async def run_replicate(
     prediction: Prediction,
     params: dict,
-) -> AsyncGenerator[APIPrediction | PredictionResult, None]:
+) -> AsyncGenerator[Prediction | PredictionResult, None]:
     """
     Run the model on Replicate API
     """
     model = prediction.model
+    assert model, "Model not found"
+
     model_info = REPLICATE_MODELS.get(model) or {}
     hardware = model_info.get("hardware", "")
 
@@ -103,9 +104,8 @@ async def run_replicate(
         prediction.logs = replicate_pred.logs
         prediction.error = replicate_pred.error
         prediction.duration = (datetime.now() - started_at).total_seconds()
-        prediction.save()
 
-        yield APIPrediction.from_model(prediction)
+        yield prediction
 
         if replicate_pred.status in ("failed", "canceled"):
             raise ValueError(replicate_pred.error or "Prediction failed")
@@ -123,16 +123,16 @@ async def run_replicate(
         prediction.cost = calculate_llm_cost(
             model, input_token_count, output_token_count
         )
-        prediction.save()
+        yield prediction
 
     elif "predict_time" in replicate_pred.metrics:
         predict_time = replicate_pred.metrics["predict_time"]
         prediction.cost = calculate_cost(hardware, predict_time)
-        prediction.save()
+        yield prediction
     else:
         raise ValueError("Cost calculation failed")
 
     yield PredictionResult.from_result(
-        APIPrediction.from_model(prediction),
+        prediction,
         replicate_pred.output,
     )

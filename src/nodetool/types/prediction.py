@@ -21,6 +21,9 @@ class Prediction(BaseModel):
     version: str | None = None
     node_type: str | None = None
     status: str
+    params: dict[str, Any] = {}
+    data: Any | None = None
+    cost: float | None = None
     logs: str | None = None
     error: str | None = None
     duration: float | None = None
@@ -67,7 +70,6 @@ class PredictionCreateRequest(BaseModel):
     model: str
     node_id: str
     params: dict[str, Any] = {}
-    data: str | None = None
     version: str | None = None
     workflow_id: str | None = None
 

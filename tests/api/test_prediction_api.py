@@ -2,6 +2,7 @@ import json
 from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
+from nodetool.metadata.types import Provider
 from nodetool.types.prediction import PredictionCreateRequest, PredictionResult
 from nodetool.models.prediction import Prediction as PredictionModel
 from nodetool.models.user import User
@@ -50,23 +51,19 @@ def test_get_nonexistent_prediction(client: TestClient, user: User):
     assert response.status_code == 404
 
 
-@patch("nodetool.api.prediction.run_huggingface")
-def test_create_prediction(run_huggingface, client: TestClient, user: User):
-    run_huggingface.return_value = {"result": "test_result"}
+def test_create_prediction(client: TestClient, user: User):
     req = PredictionCreateRequest(
         node_id="test_node_id",
         model="test_model",
         workflow_id="test_workflow_id",
-        provider="huggingface",
+        provider=Provider.HuggingFace,
     )
 
-    with client.stream(
-        "POST",
+    res = client.post(
         "/api/predictions/",
         json=req.model_dump(),
         headers={"Authorization": f"Bearer {user.auth_token}"},
-    ) as response:
-        assert response.status_code == 200
-        for line in response.iter_lines():
-            prediction_result = PredictionResult(**json.loads(line))
-            assert prediction_result.decode_content() == {"result": "test_result"}
+    )
+
+    assert res.status_code == 200
+    assert res.json()["id"] is not None

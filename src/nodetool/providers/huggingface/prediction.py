@@ -1,9 +1,11 @@
+import base64
 from nodetool.common.environment import Environment
-from nodetool.models.prediction import Prediction
 import httpx
 import asyncio
 from datetime import datetime
 from typing import Any
+
+from nodetool.types.prediction import Prediction, PredictionResult
 
 """
 This module provides functionality to run predictions using Hugging Face's inference API.
@@ -34,12 +36,12 @@ MAX_RETRY_COUNT = 10
 
 async def run_huggingface(
     prediction: Prediction,
-    params: dict,
-    data: bytes | None = None,
-) -> Any:
+):
+    data = (
+        base64.b64decode(prediction.data) if isinstance(prediction.data, str) else None
+    )
     model = prediction.model
     log.info(f"Running model {model} on Huggingface.")
-    started_at = datetime.now()
 
     url = f"{API_URL}/{model}"
     headers = {
@@ -53,15 +55,16 @@ async def run_huggingface(
                 if data:
                     response = await client.post(url, headers=headers, content=data)
                 else:
-                    response = await client.post(url, headers=headers, json=params)
+                    response = await client.post(
+                        url, headers=headers, json=prediction.params
+                    )
 
                 if response.status_code == 503:
                     result = response.json()
                     log.info(
-                        f"Model {model} is booting. Waiting for {result['estimated_time']} seconds."
+                        f"Model {model} is booting. Waiting {result['estimated_time']} seconds."
                     )
                     prediction.status = "booting"
-                    prediction.save()
 
                     await asyncio.sleep(result["estimated_time"] / 2)
                     retry_count += 1
@@ -80,17 +83,9 @@ async def run_huggingface(
                         result = response.content
                     break
 
-            prediction.duration = (datetime.now() - started_at).total_seconds()
-            prediction.status = "completed"
-            prediction.completed_at = datetime.now()
-            prediction.save()
-
-            return result
+        prediction.status = "completed"
+        yield PredictionResult(prediction=prediction, content=result, encoding="json")
 
     except Exception as e:
         log.exception(e)
-        prediction.status = "failed"
-        prediction.error = str(e)
-        prediction.completed_at = datetime.now()
-        prediction.save()
         raise e
