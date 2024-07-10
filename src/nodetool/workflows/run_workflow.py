@@ -126,18 +126,19 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
         queue=Queue(),
     )
 
-    job = await context.create_job(req)
-    runner = WorkflowRunner(job_id=job.id)
-
-    def job_update(job: Job):
-        return JobUpdate(job_id=job.id, status=job.status)
-
-    yield job_update(job)
-
-    # Create a task for running the workflow
-    run_task = asyncio.create_task(runner.run(req, context))
-
     try:
+        run_task = None
+        job = await context.create_job(req)
+        runner = WorkflowRunner(job_id=job.id)
+
+        def job_update(job: Job):
+            return JobUpdate(job_id=job.id, status=job.status)
+
+        yield job_update(job)
+
+        # Create a task for running the workflow
+        run_task = asyncio.create_task(runner.run(req, context))
+
         while not run_task.done():
             job = await context.get_job(job.id)
             if job.status == "cancelled":
@@ -159,18 +160,15 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
 
     except Exception as e:
         log.exception(e)
-        run_task.cancel()
-        try:
-            await run_task
-        except asyncio.CancelledError:
-            pass
-
-    # Check for exceptions in the run_task
-    try:
-        await run_task
-    except Exception as e:
-        log.exception(f"Error in workflow execution: {e}")
+        if run_task:
+            run_task.cancel()
         yield Error(error=str(e))
+
+    if run_task:
+        exception = run_task.exception()
+        if exception:
+            log.exception(exception)
+            yield Error(error=str(exception))
 
 
 if __name__ == "__main__":
