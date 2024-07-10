@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
-import { memo, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import { Tooltip } from "@mui/material";
@@ -118,7 +118,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
   const nodeRef = useRef<HTMLDivElement>(null);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const controlKeyPressed = useKeyPressedListener("Control");
-
+  const setNodes = useNodeStore((state) => state.setNodes);
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const spaceKeyPressed = useKeyPressedListener(" ");
@@ -179,8 +179,9 @@ const LoopNode = (props: NodeProps<NodeData>) => {
     e.preventDefault();
     e.stopPropagation();
     const clickedElement = e.target as HTMLElement;
-    console.log("---------------", clickedElement);
-    if (!clickedElement.classList.contains("node-header")) {
+    if (clickedElement.classList.contains("node-header")) {
+      updateNodeData(id, { collapsed: !props.data.collapsed });
+    } else {
       handleOpenNodeMenu();
     }
   };
