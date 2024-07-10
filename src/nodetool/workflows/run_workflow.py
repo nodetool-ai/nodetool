@@ -1,29 +1,23 @@
-import json
-from queue import Queue
-from nodetool.types.graph import Graph
+import sys
 from nodetool.common.environment import Environment
-from nodetool.models.job import Job
+from nodetool.types.job import JobUpdate, Job
 from nodetool.workflows.examples import load_example
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.workflows.read_graph import read_graph
 from nodetool.workflows.run_job_request import RunJobRequest
 import asyncio
-from asyncio import AbstractEventLoop
-import threading
-from typing import Callable, Coroutine, Any, TypeVar, Optional
+from typing import Any, TypeVar
 
+from nodetool.workflows.threaded_event_loop import ThreadedEventLoop
 from nodetool.workflows.types import Error
 from nodetool.workflows.workflow_runner import WorkflowRunner
 
 import asyncio
+from asyncio.queues import Queue
 from typing import AsyncGenerator, Any
-from queue import Queue
 
 
 log = Environment.get_logger()
 
-
-T = TypeVar("T")
 
 """
 This module contains the `run_workflow` function, which is responsible for executing a workflow based on a given RunJobRequest.
@@ -42,136 +36,85 @@ Note: This module assumes that the necessary components and configurations are p
 """
 
 
-class ThreadedEventLoop:
-    """
-    ## Overview
+async def run_workflow_in_thread(req: RunJobRequest) -> AsyncGenerator[Any, None]:
+    import nodetool.nodes.anthropic
+    import nodetool.nodes.huggingface
+    import nodetool.nodes.nodetool
+    import nodetool.nodes.openai
+    import nodetool.nodes.replicate
 
-    The `ThreadedEventLoop` class provides a convenient way to run an asyncio event loop in a separate thread.
-    This is particularly useful for integrating asynchronous operations with synchronous code or for isolating certain async operations.
+    api_client = Environment.get_nodetool_api_client(req.user_id, req.auth_token)
+    res = await api_client.post(
+        "api/jobs/", json=req.model_dump(), params={"execute": "false"}
+    )
+    job = Job(**res.json())
 
-    ## Usage Examples
+    def job_update(job: Job):
+        return JobUpdate(job_id=job.id, status=job.status).model_dump_json() + "\n"
 
-    ### Basic Usage
+    yield job_update(job)
 
-    ```python
-    tel = ThreadedEventLoop()
-    tel.start()
+    async def run(req: RunJobRequest, runner: WorkflowRunner, queue: Queue):
+        try:
+            context = ProcessingContext(
+                user_id=req.user_id,
+                auth_token=req.auth_token,
+                workflow_id=req.workflow_id,
+                queue=queue,
+            )
 
-    # Run a coroutine
-    async def my_coroutine():
-        await asyncio.sleep(1)
-        return "Hello, World!"
+            if req.workflow_id:
+                workflow = await context.get_workflow(req.workflow_id)
+                req.graph = workflow.graph
+            else:
+                assert req.graph is not None, "Graph is required"
 
-    future = tel.run_coroutine(my_coroutine())
-    result = future.result()  # Blocks until the coroutine completes
-    print(result)  # Output: Hello, World!
-
-    tel.stop()
-    ```
-
-    ### Using as a Context Manager
-
-    ```python
-    async def my_coroutine():
-        await asyncio.sleep(1)
-        return "Hello, World!"
-
-    with ThreadedEventLoop() as tel:
-        future = tel.run_coroutine(my_coroutine())
-        result = future.result()
-        print(result)  # Output: Hello, World!
-    ```
-
-    ### Running a Synchronous Function
-
-    ```python
-    import time
-
-    def slow_function(duration):
-        time.sleep(duration)
-        return f"Slept for {duration} seconds"
+            await runner.run(req, context)
+        except Exception as e:
+            log.exception(e)
+            context.post_message(Error(error=str(e)))
 
     with ThreadedEventLoop() as tel:
-        future = tel.run_in_executor(slow_function, 2)
-        result = future.result()
-        print(result)  # Output: Slept for 2 seconds
-    ```
+        queue = Queue()
+        runner = WorkflowRunner(job_id=job.id)
+        # Schedule the run coroutine in the threaded event loop
+        run_future = tel.run_coroutine(run(req, runner, queue))
 
-    ## Thread Safety and Best Practices
+        try:
+            while runner.is_running():
+                res = await api_client.get(f"api/jobs/{job.id}")
+                job = Job(**res.json())
+                if job.status == "cancelled":
+                    runner.cancel()
+                    break
 
-    1. The `run_coroutine` and `run_in_executor` methods are thread-safe and can be called from any thread.
-    2. Avoid directly accessing or modifying the internal event loop (`self._loop`) from outside the class.
-    3. Always ensure that `stop()` is called when you're done with the `ThreadedEventLoop`, either explicitly or by using it as a context manager.
-    4. Remember that coroutines scheduled with `run_coroutine` run in the separate thread. Be cautious about shared state and race conditions.
-    5. The `ThreadedEventLoop` is designed for long-running operations. For short-lived async operations, consider using `asyncio.run()` instead.
+                if queue.qsize() > 0:
+                    msg = await queue.get()
+                    if isinstance(msg, Error):
+                        raise Exception(msg.error)
+                    yield msg
+                else:
+                    await asyncio.sleep(0.1)
 
-    ## Note on Error Handling
+            # Ensure all remaining messages are processed
+            while queue.qsize() > 0:
+                msg = await queue.get()
+                yield msg
 
-    Errors that occur within coroutines or functions scheduled on the `ThreadedEventLoop` are captured in the returned `Future` objects. Always check for exceptions when getting results from these futures:
+        except Exception as e:
+            log.exception(e)
+            # Ensure the run coroutine is cancelled if an exception occurs
+            run_future.cancel()
 
-    ```python
-    future = tel.run_coroutine(some_coroutine())
-    try:
-        result = future.result()
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    ```
-
-    By following these guidelines and using the provided methods, you can safely integrate asynchronous operations into synchronous code or isolate certain async operations in a separate thread.
-    """
-
-    def __init__(self):
-        self._loop: AbstractEventLoop = asyncio.new_event_loop()
-        self._thread: Optional[threading.Thread] = None
-        self._running: bool = False
-
-    def start(self) -> None:
-        """Start the event loop in a separate thread."""
-        if self._running:
-            return
-        self._running = True
-        self._thread = threading.Thread(target=self._run_event_loop, daemon=True)
-        self._thread.start()
-
-    def stop(self) -> None:
-        """Stop the event loop and wait for the thread to finish."""
-        if not self._running:
-            return
-        self._running = False
-        self._loop.call_soon_threadsafe(self._loop.stop)
-        if self._thread:
-            self._thread.join()
-        self._thread = None
-
-    def _run_event_loop(self) -> None:
-        """Set the event loop for this thread and run it."""
-        asyncio.set_event_loop(self._loop)
-        self._loop.run_forever()
-        self._loop.close()
-
-    def run_coroutine(self, coro: Coroutine[Any, Any, T]) -> asyncio.Future[T]:
-        """Schedule a coroutine to run in this event loop."""
-        return asyncio.run_coroutine_threadsafe(coro, self._loop)  # type: ignore
-
-    def run_in_executor(self, func: Callable[..., T], *args: Any) -> asyncio.Future[T]:
-        """Run a synchronous function in the default executor of this event loop."""
-        return self._loop.run_in_executor(None, func, *args)
-
-    @property
-    def is_running(self) -> bool:
-        """Check if the event loop is running."""
-        return self._running
-
-    def __enter__(self) -> "ThreadedEventLoop":
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        self.stop()
+        # Wait for the run coroutine to complete
+        try:
+            print(run_future.result())
+        except asyncio.CancelledError:
+            pass
 
 
 async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
-    import nodetool.nodes.comfy
+    import nodetool.nodes.anthropic
     import nodetool.nodes.huggingface
     import nodetool.nodes.nodetool
     import nodetool.nodes.openai
@@ -181,7 +124,7 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
         user_id=req.user_id,
         auth_token=req.auth_token,
         workflow_id=req.workflow_id,
-        # queue=Queue(),
+        queue=Queue(),
     )
 
     if req.workflow_id:
@@ -193,53 +136,48 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
     job = await context.create_job(req)
     runner = WorkflowRunner(job_id=job.id)
 
-    async def run():
-        try:
-            await runner.run(req, context)
-        except Exception as e:
-            log.exception(e)
-            context.post_message(Error(error=str(e)))
+    def job_update(job: Job):
+        return JobUpdate(job_id=job.id, status=job.status).model_dump_json() + "\n"
 
-    with ThreadedEventLoop() as tel:
-        # Schedule the run coroutine in the threaded event loop
-        run_future = tel.run_coroutine(run())
+    yield job_update(job)
 
-        try:
-            while runner.is_running():
-                # You can run database operations in the threaded event loop if they're blocking
-                # job_status_future = tel.run_in_executor(check_job_status, job.id)
-                # job_status = await job_status_future
+    # Create a task for running the workflow
+    run_task = asyncio.create_task(runner.run(req, context))
 
-                job = await context.get_job(job.id)
-                if job.status == "cancelled":
-                    runner.cancel()
-                    context.is_cancelled = True
+    try:
+        while not run_task.done():
+            job = await context.get_job(job.id)
+            if job.status == "cancelled":
+                runner.cancel()
+                break
 
-                if context.has_messages():
-                    msg = await context.pop_message_async()
-                    if isinstance(msg, Error):
-                        raise Exception(msg.error)
-                    yield msg
-                else:
-                    await asyncio.sleep(0.1)
-
-            # Ensure all remaining messages are processed
-            while context.has_messages():
+            if context.has_messages():
                 msg = await context.pop_message_async()
+                if isinstance(msg, Error):
+                    raise Exception(msg.error)
                 yield msg
+            else:
+                await asyncio.sleep(0.1)
 
-        except Exception as e:
-            log.exception(e)
-            # Ensure the run coroutine is cancelled if an exception occurs
-            run_future.cancel()
-            runner.cancel()
-            context.is_cancelled = True
+        # Process any remaining messages
+        while context.has_messages():
+            msg = await context.pop_message_async()
+            yield msg
 
-        # Wait for the run coroutine to complete
+    except Exception as e:
+        log.exception(e)
+        run_task.cancel()
         try:
-            print(run_future.result())
+            await run_task
         except asyncio.CancelledError:
             pass
+
+    # Check for exceptions in the run_task
+    try:
+        await run_task
+    except Exception as e:
+        log.exception(f"Error in workflow execution: {e}")
+        yield Error(error=str(e)).model_dump_json() + "\n"
 
 
 if __name__ == "__main__":
@@ -253,6 +191,10 @@ if __name__ == "__main__":
 
     async def run():
         async for msg in run_workflow(req):
-            print(msg, end="")
+            print(msg)
+
+            # flush stdout to ensure messages are printed immediately
+            sys.stdout.flush()
+            sys.stderr.flush()
 
     asyncio.run(run())
