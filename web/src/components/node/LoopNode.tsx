@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { NodeProps, NodeResizeControl, ResizeDragEvent } from "reactflow";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import { Tooltip } from "@mui/material";
@@ -30,8 +30,8 @@ const styles = (theme: any) =>
   css({
     "&": {
       boxShadow: "none",
-      minWidth: "500px",
-      minHeight: "350px"
+      minWidth: "400px",
+      minHeight: "250px"
     },
     "&.hovered.space-pressed": {
       border: "2px dashed black !important"
@@ -39,8 +39,8 @@ const styles = (theme: any) =>
     height: "100%",
     display: "flex",
     borderRadius: "5px",
-    border: `1px solid ${theme.palette.c_gray1}`,
-    backgroundColor: "#33333311",
+    border: `1px solid ${theme.palette.c_gray2}`,
+    backgroundColor: theme.palette.c_bg_loop,
     h6: {
       display: "block",
       position: "absolute",
@@ -118,7 +118,6 @@ const LoopNode = (props: NodeProps<NodeData>) => {
   const nodeRef = useRef<HTMLDivElement>(null);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const controlKeyPressed = useKeyPressedListener("Control");
-  const setNodes = useNodeStore((state) => state.setNodes);
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const spaceKeyPressed = useKeyPressedListener(" ");
@@ -251,8 +250,8 @@ const LoopNode = (props: NodeProps<NodeData>) => {
       <div className="tools">
         <NodeResizeControl
           style={{ background: "transparent", border: "none" }}
-          minWidth={500}
-          minHeight={350}
+          minWidth={400}
+          minHeight={250}
           onResize={handleResize}
         >
           <SouthEastIcon />
