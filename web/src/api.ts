@@ -285,7 +285,7 @@ export interface components {
       /** Content Type */
       content_type: string | null;
       /** Data */
-      data: string | null;
+      data?: string | null;
       /** Metadata */
       metadata?: Record<string, never> | null;
       /** Duration */
@@ -949,6 +949,8 @@ export interface components {
        * @default
        */
       auth_token?: string;
+      /** Api Url */
+      api_url?: string | null;
       /** Env */
       env?: Record<string, never> | null;
       graph?: components["schemas"]["Graph"] | null;

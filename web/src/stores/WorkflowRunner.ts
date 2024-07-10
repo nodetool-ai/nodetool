@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { NodeData } from "./NodeData";
-import { WORKER_URL } from "./ApiClient";
+import { BASE_URL, WORKER_URL } from "./ApiClient";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "reactflow";
 import { useAssetStore } from "../hooks/AssetStore";
@@ -301,6 +301,8 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
 
     const req: RunJobRequest = {
       type: "run_job_request",
+      api_url: BASE_URL,
+      user_id: user.id,
       workflow_id: workflow.id,
       auth_token: user.auth_token || "",
       job_type: "workflow",
