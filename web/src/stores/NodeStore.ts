@@ -507,6 +507,7 @@ export const useNodeStore = create<NodeStore>()(
           throw Error("node already exists");
         }
         node.data.dirty = true;
+        node.expandParent = true;
         node.data.workflow_id = get().workflow.id;
 
         set({ nodes: [...get().nodes, node] });

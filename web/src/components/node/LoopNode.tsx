@@ -92,6 +92,19 @@ const styles = (theme: any) =>
     "& .react-flow__handle-right": {
       top: "4.5em"
       // bottom: "3em"
+    },
+    ".info": {
+      position: "absolute",
+      top: ".5em",
+      right: "0",
+      left: "0",
+      width: "100%",
+      textAlign: "center",
+      padding: ".5em",
+      backgroundColor: "transparent",
+      color: theme.palette.c_black,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeNormal
     }
   });
 
@@ -213,6 +226,9 @@ const LoopNode = (props: NodeProps<NodeData>) => {
         </Tooltip>
       </div>
       <NodeHeader id={props.id} nodeTitle={"Loop"} />
+      {nodeHovered && (
+        <div className="info">Hold SPACE key to move nodes out of the loop</div>
+      )}
       <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
       <Tooltip
         title="Returns the data of the GroupOutput outside the loop."
