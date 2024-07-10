@@ -9,14 +9,24 @@ export const useRemoteAuth =
 export const isDevelopment = import.meta.env.MODE === "development";
 export const isProduction = import.meta.env.MODE === "production";
 
-export const BASE_URL =
-  import.meta.env.MODE === "development"
-    ? "http://" + window.location.hostname + ":8000"
-    : import.meta.env.MODE === "staging"
-    ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com"
-    : "https://api.nodetool.ai";
+// export const BASE_URL =
+//   import.meta.env.MODE === "development"
+//     ? "http://" + window.location.hostname + ":8000"
+//     : import.meta.env.MODE === "staging"
+//     ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com"
+//     : "https://api.nodetool.ai";
 
-export const WORKER_URL = BASE_URL + "/api/jobs/";
+// export const WORKER_URL = 
+//   import.meta.env.MODE === "development"
+//     ? "http://" + window.location.hostname + ":8000/api/jobs/"
+//     : "https://georgi--worker-app-worker-app.modal.run/predict"
+    
+
+export const BASE_URL = "https://bqcu2fdqq5.eu-central-1.awsapprunner.com";
+
+export const WORKER_URL = "https://georgi--worker-app-worker-app.modal.run/predict";
+    
+
 
 const authMiddleware: Middleware = {
   async onRequest(req: Request) {

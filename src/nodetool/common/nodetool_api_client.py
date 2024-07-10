@@ -77,6 +77,7 @@ class NodetoolAPIClient:
         self.base_url = base_url
         self.client = client
         assert self.auth_token != "", "auth_token is required"
+        print(f"Created NodetoolAPIClient for user {self.user_id} at {self.base_url}")
 
     def get_base_url(self):
         return self.base_url
