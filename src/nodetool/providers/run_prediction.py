@@ -24,7 +24,7 @@ async def run_prediction(
 
     if prediction.provider in provider_functions:
         f = provider_functions[prediction.provider]
-        async for msg in await f(prediction):
+        async for msg in f(prediction):
             yield msg
     else:
         raise ValueError("Provider not supported")

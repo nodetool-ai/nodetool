@@ -54,6 +54,7 @@ async def create_chat_completion(
     assert prediction.model is not None, "Model is not set"
     client = Environment.get_openai_client()
 
+    print(prediction.params)
     res: ChatCompletion = await client.chat.completions.create(
         model=prediction.model,
         **prediction.params,
@@ -124,19 +125,19 @@ async def run_openai(prediction: Prediction) -> Any:
     assert model is not None, "Model is not set"
 
     if model.startswith("text-embedding-"):
-        return await create_embedding(prediction)
+        yield await create_embedding(prediction)
 
     elif model.startswith("gpt-"):
-        return await create_chat_completion(prediction)
+        yield await create_chat_completion(prediction)
 
     elif model.startswith("tts-"):
-        return await create_speech(prediction)
+        yield await create_speech(prediction)
 
     elif model.startswith("whisper-"):
-        return await create_whisper(prediction)
+        yield await create_whisper(prediction)
 
     elif model.startswith("dall-e-"):
-        return await create_image(prediction)
+        yield await create_image(prediction)
 
     else:
         raise ValueError(f"Unsupported model: {model}")

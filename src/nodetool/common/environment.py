@@ -867,7 +867,7 @@ class Environment(object):
         Get the storage adapter for temporary files.
         """
         if not hasattr(cls, "temp_storage"):
-            if cls.is_production() and cls.get_s3_endpoint_url() is not None or use_s3:
+            if cls.is_production() or use_s3:
                 cls.get_logger().info(f"Using S3 for temp storage")
                 return cls.get_s3_storage(cls.get_temp_bucket(), cls.get_temp_domain())
             else:

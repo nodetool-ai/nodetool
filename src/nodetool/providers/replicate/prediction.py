@@ -58,12 +58,12 @@ async def get_model_status(owner: str, name: str) -> str:
 
 async def run_replicate(
     prediction: Prediction,
-    params: dict,
 ) -> AsyncGenerator[Prediction | PredictionResult, None]:
     """
     Run the model on Replicate API
     """
     model = prediction.model
+    params = prediction.params
     assert model, "Model not found"
 
     model_info = REPLICATE_MODELS.get(model) or {}
