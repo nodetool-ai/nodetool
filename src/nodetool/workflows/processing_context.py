@@ -519,11 +519,8 @@ class ProcessingContext:
         key = uuid.uuid4().hex
         if ext != "":
             key += "." + ext
-        url = self.temp_storage_url(key)
-        # parse uri
-        path = urllib.parse.urlparse(url).path
-        stream = AsyncByteStream(content.read())
-        await self.api_client.put(path, content=stream)
+        storage = Environment.get_temp_storage()
+        url = await storage.upload(key, content)
         return AssetRef(uri=url, temp_id=key)
 
     async def create_message(self, req: MessageCreateRequest):
