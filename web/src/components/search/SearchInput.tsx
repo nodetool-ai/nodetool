@@ -129,7 +129,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
     }
   };
 
-  useHotkeys("Escape", clearSearchOnEscape);
+  useHotkeys("Escape", clearSearchOnEscape, {
+    enableOnFormTags: ["input"]
+  });
 
   // focus on mount
   useLayoutEffect(() => {
