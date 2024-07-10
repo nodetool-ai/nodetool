@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { NodeProps } from "reactflow";
 import { isEqual } from "lodash";
 import { Container, Typography } from "@mui/material";
@@ -44,9 +44,9 @@ export default memo(
       isLoading: metadataLoading,
       error: metadataError
     } = useMetadata();
+    const findNode = useNodeStore((state) => state.findNode);
     const nodedata = useNodeStore((state) => state.findNode(props.id)?.data);
     const node = useNodeStore((state) => state.findNode(props.id));
-    const hasParent = node?.parentId !== undefined;
     const getInputEdges = useNodeStore((state) => state.getInputEdges);
     const workflowId = nodedata?.workflow_id || "";
     const nodeKey = hashKey(workflowId, props.id);
@@ -58,6 +58,17 @@ export default memo(
       status === "processing" ||
       status === "booting";
     const isConstantNode = props.type.startsWith("nodetool.constant");
+
+    const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
+    const hasParent = node?.parentId !== undefined;
+    const parentNode = hasParent ? findNode(node?.parentId || "") : null;
+    useEffect(() => {
+      // Set parentIsCollapsed state based on parent node
+      if (hasParent) {
+        setParentIsCollapsed(parentNode?.data.collapsed || false);
+      }
+    }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
+
     const isInputNode = props.type.startsWith("nodetool.input");
     const isOutputNode =
       props.type.startsWith("nodetool.output") ||
@@ -96,6 +107,7 @@ export default memo(
       <Container
         className={className}
         style={{
+          display: parentIsCollapsed ? "none" : "block",
           backgroundColor: hasParent
             ? ThemeNodes.palette.c_node_bg_group
             : ThemeNodes.palette.c_node_bg

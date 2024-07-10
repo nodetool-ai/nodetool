@@ -30,8 +30,8 @@ const styles = (theme: any) =>
   css({
     "&": {
       boxShadow: "none",
-      minWidth: "500px",
-      minHeight: "350px"
+      minWidth: "400px",
+      minHeight: "250px"
     },
     "&.hovered.space-pressed": {
       border: "2px dashed black !important"
@@ -39,8 +39,8 @@ const styles = (theme: any) =>
     height: "100%",
     display: "flex",
     borderRadius: "5px",
-    border: `1px solid ${theme.palette.c_gray1}`,
-    backgroundColor: "#33333311",
+    border: `1px solid ${theme.palette.c_gray2}`,
+    backgroundColor: theme.palette.c_bg_loop,
     h6: {
       display: "block",
       position: "absolute",
@@ -92,6 +92,19 @@ const styles = (theme: any) =>
     "& .react-flow__handle-right": {
       top: "4.5em"
       // bottom: "3em"
+    },
+    ".info": {
+      position: "absolute",
+      top: ".5em",
+      right: "0",
+      left: "0",
+      width: "100%",
+      textAlign: "center",
+      padding: ".5em",
+      backgroundColor: "transparent",
+      color: theme.palette.c_black,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeNormal
     }
   });
 
@@ -105,7 +118,6 @@ const LoopNode = (props: NodeProps<NodeData>) => {
   const nodeRef = useRef<HTMLDivElement>(null);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const controlKeyPressed = useKeyPressedListener("Control");
-
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const spaceKeyPressed = useKeyPressedListener(" ");
@@ -162,6 +174,16 @@ const LoopNode = (props: NodeProps<NodeData>) => {
     };
   }, []);
 
+  const handleDoubleClick = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const clickedElement = e.target as HTMLElement;
+    if (clickedElement.classList.contains("node-header")) {
+      updateNodeData(id, { collapsed: !props.data.collapsed });
+    } else {
+      handleOpenNodeMenu();
+    }
+  };
   useEffect(() => {
     // Selectable when ctrl key is pressed
     if (controlKeyPressed) {
@@ -183,8 +205,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
         spaceKeyPressed ? "space-pressed" : ""
       } ${props.data.collapsed ? "collapsed" : ""}`}
       onDoubleClick={(e) => {
-        e.stopPropagation();
-        handleOpenNodeMenu();
+        handleDoubleClick(e, props.id);
       }}
       css={styles}
       style={
@@ -213,6 +234,9 @@ const LoopNode = (props: NodeProps<NodeData>) => {
         </Tooltip>
       </div>
       <NodeHeader id={props.id} nodeTitle={"Loop"} />
+      {nodeHovered && (
+        <div className="info">Hold SPACE key to move nodes out of the loop</div>
+      )}
       <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
       <Tooltip
         title="Returns the data of the GroupOutput outside the loop."
@@ -226,8 +250,8 @@ const LoopNode = (props: NodeProps<NodeData>) => {
       <div className="tools">
         <NodeResizeControl
           style={{ background: "transparent", border: "none" }}
-          minWidth={500}
-          minHeight={350}
+          minWidth={400}
+          minHeight={250}
           onResize={handleResize}
         >
           <SouthEastIcon />

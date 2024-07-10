@@ -135,9 +135,10 @@ export default function useConnectionHandlers() {
   const onConnectEnd = useCallback(
     // open contextMenu for input/output
     (event: any) => {
+      const targetIsGroup = event.target.classList.contains("loop-node");
       const targetIsPane = event.target.classList.contains("react-flow__pane");
 
-      if (!connectionCreated.current && targetIsPane) {
+      if (!connectionCreated.current && (targetIsPane || targetIsGroup)) {
         if (connectDirection === "source") {
           openContextMenu(
             "output-context-menu",
