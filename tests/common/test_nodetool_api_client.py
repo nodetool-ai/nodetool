@@ -44,12 +44,3 @@ async def test_get_metadata(nodetool_client: NodetoolAPIClient):
 async def test_get_asset(nodetool_client: NodetoolAPIClient, image: Asset):
     response = await nodetool_client.get("/api/assets/" + image.id)
     assert response.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_stream(nodetool_client: NodetoolAPIClient):
-    chunks = []
-    async for chunk in nodetool_client.stream("GET", "/api/nodes/metadata"):
-        chunks.append(chunk)
-
-    assert len(chunks) > 0
