@@ -63,12 +63,6 @@ async def run_workflow_in_thread(req: RunJobRequest) -> AsyncGenerator[Any, None
                 queue=queue,
             )
 
-            if req.workflow_id:
-                workflow = await context.get_workflow(req.workflow_id)
-                req.graph = workflow.graph
-            else:
-                assert req.graph is not None, "Graph is required"
-
             await runner.run(req, context)
         except Exception as e:
             log.exception(e)
@@ -131,12 +125,6 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
         api_client=api_client,
         queue=Queue(),
     )
-
-    if req.workflow_id:
-        workflow = await context.get_workflow(req.workflow_id)
-        req.graph = workflow.graph
-    else:
-        assert req.graph is not None, "Graph is required"
 
     job = await context.create_job(req)
     runner = WorkflowRunner(job_id=job.id)
