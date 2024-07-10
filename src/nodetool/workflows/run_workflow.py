@@ -135,9 +135,16 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
             return JobUpdate(job_id=job.id, status=job.status)
 
         yield job_update(job)
+        
+        async def run():
+            try:
+                await runner.run(req, context)
+            except Exception as e:
+                log.exception(e)
+                context.post_message(Error(error=str(e)))
 
         # Create a task for running the workflow
-        run_task = asyncio.create_task(runner.run(req, context))
+        run_task = asyncio.create_task(run())
 
         while not run_task.done():
             job = await context.get_job(job.id)
@@ -168,6 +175,7 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
         exception = run_task.exception()
         if exception:
             log.exception(exception)
+            run_task.
             yield Error(error=str(exception))
 
 
