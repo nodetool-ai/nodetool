@@ -175,6 +175,15 @@ const LoopNode = (props: NodeProps<NodeData>) => {
     };
   }, []);
 
+  const handleDoubleClick = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const clickedElement = e.target as HTMLElement;
+    console.log("---------------", clickedElement);
+    if (!clickedElement.classList.contains("node-header")) {
+      handleOpenNodeMenu();
+    }
+  };
   useEffect(() => {
     // Selectable when ctrl key is pressed
     if (controlKeyPressed) {
@@ -196,8 +205,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
         spaceKeyPressed ? "space-pressed" : ""
       } ${props.data.collapsed ? "collapsed" : ""}`}
       onDoubleClick={(e) => {
-        e.stopPropagation();
-        handleOpenNodeMenu();
+        handleDoubleClick(e, props.id);
       }}
       css={styles}
       style={
