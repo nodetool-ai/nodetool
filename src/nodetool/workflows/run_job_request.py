@@ -14,5 +14,6 @@ class RunJobRequest(BaseModel):
     workflow_id: str = ""
     user_id: str = ""
     auth_token: str = ""
+    api_url: str | None = None
     env: dict[str, Any] | None = None
     graph: Graph | None = None

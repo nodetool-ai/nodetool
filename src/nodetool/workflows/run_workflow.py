@@ -120,10 +120,15 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
 
+    api_client = Environment.get_nodetool_api_client(
+        user_id=req.user_id, auth_token=req.auth_token, api_url=req.api_url
+    )
+
     context = ProcessingContext(
         user_id=req.user_id,
         auth_token=req.auth_token,
         workflow_id=req.workflow_id,
+        api_client=api_client,
         queue=Queue(),
     )
 
@@ -177,7 +182,7 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
         await run_task
     except Exception as e:
         log.exception(f"Error in workflow execution: {e}")
-        yield Error(error=str(e)).model_dump_json() + "\n"
+        yield Error(error=str(e))
 
 
 if __name__ == "__main__":

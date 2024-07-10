@@ -570,7 +570,7 @@ class Environment(object):
 
     @classmethod
     def get_nodetool_api_client(
-        cls, user_id: str, auth_token: str
+        cls, user_id: str, auth_token: str, api_url: str | None = None
     ) -> NodetoolAPIClient:
         """
         The nodetool api client is a wrapper around the nodetool api.
@@ -578,12 +578,15 @@ class Environment(object):
         from nodetool.api.server import create_app
         from httpx import AsyncClient, ASGITransport
 
+        if api_url is None:
+            api_url = cls.get_nodetool_api_url()
+
         if not hasattr(cls, "nodetool_api_client"):
-            if cls.get_nodetool_api_url():
+            if cls.is_production():
                 cls.nodetool_api_client = NodetoolAPIClient(
                     user_id=user_id,
                     auth_token=auth_token,
-                    base_url=cls.get_nodetool_api_url(),
+                    base_url=api_url,
                     client=AsyncClient(),
                 )
             else:

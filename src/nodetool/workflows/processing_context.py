@@ -119,6 +119,7 @@ class ProcessingContext:
         queue: Queue | asyncio.Queue | None = None,
         capabilities: list[str] | None = None,
         http_client: httpx.AsyncClient | None = None,
+        api_client: NodetoolAPIClient | None = None,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -133,8 +134,10 @@ class ProcessingContext:
         self.variables = (
             variables if variables else {"seed": random.randint(0, 2**32 - 1)}
         )
-        self.api_client = Environment.get_nodetool_api_client(
-            self.user_id, self.auth_token
+        self.api_client = (
+            Environment.get_nodetool_api_client(self.user_id, self.auth_token)
+            if api_client is None
+            else api_client
         )
         self.http_client = (
             httpx.AsyncClient(follow_redirects=True, timeout=600)
