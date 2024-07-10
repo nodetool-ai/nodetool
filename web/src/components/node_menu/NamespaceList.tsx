@@ -398,7 +398,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             </p>
             <ul className="no-results">
               <li>
-                click on <span className="highlighted">highlighted</span>
+                click on <span className="highlighted">highlighted </span>
                 namespaces to find results.
               </li>
               <li>
