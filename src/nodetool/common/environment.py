@@ -415,6 +415,10 @@ class Environment(object):
         return os.environ.get("MEMCACHE_PORT")
 
     @classmethod
+    def set_node_cache(cls, node_cache: AbstractNodeCache):
+        cls.node_cache = node_cache
+
+    @classmethod
     def get_node_cache(cls) -> AbstractNodeCache:
         memcache_host = cls.get_memcache_host()
         memcache_port = cls.get_memcache_port()
@@ -587,7 +591,7 @@ class Environment(object):
                     user_id=user_id,
                     auth_token=auth_token,
                     base_url=api_url,
-                    client=AsyncClient(),
+                    client=AsyncClient(timeout=30),
                 )
             else:
                 app = create_app()
