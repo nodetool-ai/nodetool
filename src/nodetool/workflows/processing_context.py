@@ -433,7 +433,7 @@ class ProcessingContext:
             Job: The created job.
         """
         res = await self.api_client.post(
-            "api/jobs/", json=req.model_dump(), execute=False
+            "api/jobs/", json=req.model_dump(), params={"execute": "false"}
         )
         return Job(**res.json())
 
