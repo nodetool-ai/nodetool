@@ -135,7 +135,7 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
             return JobUpdate(job_id=job.id, status=job.status)
 
         yield job_update(job)
-        
+
         async def run():
             try:
                 await runner.run(req, context)
@@ -175,7 +175,6 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
         exception = run_task.exception()
         if exception:
             log.exception(exception)
-            run_task.
             yield Error(error=str(exception))
 
 
