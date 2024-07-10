@@ -50,7 +50,7 @@ async def run_workflow_in_thread(req: RunJobRequest) -> AsyncGenerator[Any, None
     job = Job(**res.json())
 
     def job_update(job: Job):
-        return JobUpdate(job_id=job.id, status=job.status).model_dump_json() + "\n"
+        return JobUpdate(job_id=job.id, status=job.status)
 
     yield job_update(job)
 
@@ -130,7 +130,7 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
     runner = WorkflowRunner(job_id=job.id)
 
     def job_update(job: Job):
-        return JobUpdate(job_id=job.id, status=job.status).model_dump_json() + "\n"
+        return JobUpdate(job_id=job.id, status=job.status)
 
     yield job_update(job)
 
