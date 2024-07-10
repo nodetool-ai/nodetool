@@ -1,4 +1,5 @@
 from nodetool.metadata.types import OutputSlot
+from nodetool.types.job import JobUpdate
 from nodetool.workflows.base_node import BaseNode, type_metadata
 from nodetool.workflows.property import Property
 from nodetool.workflows.read_graph import read_graph
@@ -12,7 +13,7 @@ from nodetool.workflows.base_node import InputNode, OutputNode
 from nodetool.workflows.graph import Graph
 from typing import Any, Type
 
-from nodetool.workflows.types import NodeProgress, NodeUpdate
+from nodetool.workflows.types import Error, NodeProgress, NodeUpdate
 
 """
 This module defines the WorkflowNode class, which represents a node in a workflow that can execute a sub-workflow.
@@ -116,31 +117,12 @@ class WorkflowNode(BaseNode):
             params=self.inputs or {},
         )
         output = {}
-        async for msg_json in run_workflow(req):
-            msg = json.loads(msg_json)
-            if msg["type"] == "node_progress":
-                context.post_message(
-                    NodeProgress(
-                        node_id=self._id,
-                        progress=msg["progress"],
-                        total=msg["total"],
-                    )
-                )
-            if msg["type"] == "node_update":
-                logs += f"{msg['node_name']} -> {msg['status']}\n"
-                context.post_message(
-                    NodeUpdate(
-                        node_id=self._id,
-                        node_name=self.get_title(),
-                        status="running",
-                        logs=logs,
-                    )
-                )
-            if msg["type"] == "error":
-                raise Exception(msg["error"])
-            if msg["type"] == "job_update":
-                if msg["status"] == "completed":
-                    assert "result" in msg, "No result in job update"
-                    output = msg["result"]
+        async for msg in run_workflow(req):
+            context.post_message(msg)
+            if isinstance(msg, Error):
+                raise Exception(msg.error)
+            if isinstance(msg, JobUpdate):
+                if msg.status == "completed":
+                    output = msg.result
 
         return output

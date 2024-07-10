@@ -8,7 +8,6 @@ from nodetool.workflows.processing_context import ProcessingContext
 from typing import Any
 
 from nodetool.workflows.run_job_request import RunJobRequest
-from nodetool.workflows.run_workflow import run_workflow
 
 
 WORKFLOW_PREFIX = "workflow__"
@@ -123,6 +122,8 @@ async def process_workflow_function(
         name (str): The workflow_id
         params (dict): The parameters passed to the workflow.
     """
+    from nodetool.workflows.run_workflow import run_workflow
+
     workflow = Workflow.get(workflow_id)
     if workflow is None:
         raise ValueError(f"Workflow {workflow_id} does not exist")

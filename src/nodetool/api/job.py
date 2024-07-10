@@ -81,7 +81,6 @@ async def update(id: str, req: JobUpdate, user: User = Depends(current_user)) ->
 
 @router.post("/")
 async def run(
-    request: Request,
     job_request: RunJobRequest,
     execute: bool = True,
     user: User = Depends(current_user),

@@ -85,8 +85,6 @@ async def run_replicate(
 
     model_status = await get_model_status(match.group("owner"), match.group("name"))
 
-    print("model status: ", model_status)
-
     if model_status == "offline":
         current_status = "booting"
     else:
@@ -106,8 +104,6 @@ async def run_replicate(
         prediction.error = replicate_pred.error
         prediction.duration = (datetime.now() - started_at).total_seconds()
         prediction.save()
-
-        log.info(f"Prediction status: {prediction.status}")
 
         yield APIPrediction.from_model(prediction)
 

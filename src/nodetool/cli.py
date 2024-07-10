@@ -106,11 +106,11 @@ async def run(workflow_file: str):
 
     with open(workflow_file, "r") as f:
         workflow = json.load(f)
-        edges, nodes = read_graph(workflow)
+        edges, nodes = read_graph(workflow["graph"])
 
         req = RunJobRequest(
             user_id="1",
-            auth_token="",
+            auth_token="token",
             graph=Graph(
                 edges=edges,
                 nodes=nodes,

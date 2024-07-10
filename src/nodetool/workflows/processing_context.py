@@ -437,6 +437,33 @@ class ProcessingContext:
         )
         return Job(**res.json())
 
+    async def get_job(self, job_id: str) -> Job:
+        """
+        Gets the status of a job.
+
+        Args:
+            job_id (str): The ID of the job.
+
+        Returns:
+            Job: The job status.
+        """
+        res = await self.api_client.get(f"api/jobs/{job_id}")
+        return Job(**res.json())
+
+    async def update_job(self, job_id: str, req: JobUpdate) -> Job:
+        """
+        Updates the status of a job.
+
+        Args:
+            job_id (str): The ID of the job.
+            req (JobUpdate): The job update request.
+
+        Returns:
+            Job: The updated job.
+        """
+        res = await self.api_client.put(f"api/jobs/{job_id}", json=req.model_dump())
+        return Job(**res.json())
+
     async def create_asset(
         self,
         name: str,
@@ -617,6 +644,7 @@ class ProcessingContext:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
         }
         response = await self.http_client.get(url, headers=headers)
+        log.info(f"GET {url} {response.status_code}")
         response.raise_for_status()
         return response.content
 
