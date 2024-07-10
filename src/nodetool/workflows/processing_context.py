@@ -341,8 +341,7 @@ class ProcessingContext:
         provider: Provider,
         model: str,
         params: dict[str, Any] | None = None,
-        data: bytes | None = None,
-    ) -> Any:
+    ) -> PredictionResult:
         """
         Run a prediction on a third-party provider.
 
@@ -359,12 +358,15 @@ class ProcessingContext:
         """
         from nodetool.providers.run_prediction import run_prediction
 
+        if params is None:
+            params = {}
+
         req = PredictionCreateRequest(
             provider=provider,
             model=model,
             node_id=node_id,
             workflow_id=self.workflow_id if self.workflow_id else "",
-            params=params or {},
+            params=params,
         )
 
         res = await self.api_client.post(
@@ -373,13 +375,14 @@ class ProcessingContext:
         )
 
         prediction = Prediction(**res.json())
+        prediction.params = params
 
         async for msg in run_prediction(prediction):
             if self.is_cancelled:
                 raise JobCancelledException()
             if isinstance(msg, PredictionResult):
                 # TODO: save prediction result
-                return msg
+                return msg.content
             elif isinstance(msg, Prediction):
                 self.post_message(msg)
 
