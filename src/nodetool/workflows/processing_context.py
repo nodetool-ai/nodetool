@@ -22,7 +22,7 @@ from nodetool.types.chat import (
     TaskList,
     TaskUpdateRequest,
 )
-from nodetool.types.job import JobCancelledException, JobUpdate
+from nodetool.types.job import Job, JobCancelledException, JobUpdate
 from nodetool.types.prediction import (
     Prediction,
     PredictionCreateRequest,
@@ -418,6 +418,24 @@ class ProcessingContext:
             asset.uri = await self.get_asset_url(asset.asset_id)
         elif asset.temp_id:
             asset.uri = self.temp_storage_url(asset.temp_id)
+
+    async def create_job(
+        self,
+        req: RunJobRequest,
+    ) -> Job:
+        """
+        Creates a job to run a workflow but does not execute it.
+
+        Args:
+            req (RunJobRequest): The job request.
+
+        Returns:
+            Job: The created job.
+        """
+        res = await self.api_client.post(
+            "api/jobs/", json=req.model_dump(), execute=False
+        )
+        return Job(**res.json())
 
     async def create_asset(
         self,

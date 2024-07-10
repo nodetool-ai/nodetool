@@ -51,7 +51,7 @@ def graph(*nodes):
     return Graph(nodes=nodes, edges=g.edges)
 
 
-def run(graph: Graph, user_id: str = "1", auth_token: str = "token"):
+async def run(graph: Graph, user_id: str = "1", auth_token: str = "token"):
     """
     Run the workflow with the given graph.
 
@@ -64,7 +64,7 @@ def run(graph: Graph, user_id: str = "1", auth_token: str = "token"):
     req = RunJobRequest(user_id=user_id, auth_token=auth_token, graph=graph)
 
     res = None
-    for str_msg in run_workflow(req):
+    async for str_msg in run_workflow(req):
         msg = json.loads(str_msg)
         if msg["type"] == "workflow_update":
             res = msg["result"]

@@ -86,7 +86,7 @@ def serve(
 
 @click.command()
 @click.argument("workflow_file", type=click.Path(exists=True))
-def run(workflow_file: str):
+async def run(workflow_file: str):
     """Run a workflow from a file."""
 
     # TODO: only import modules referenced in worflow
@@ -116,7 +116,7 @@ def run(workflow_file: str):
                 nodes=nodes,
             ),
         )
-        for msg in run_workflow(req):
+        async for msg in run_workflow(req):
             print(msg, end="")
 
 

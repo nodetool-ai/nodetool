@@ -27,7 +27,7 @@ Note: This module assumes that the necessary components and configurations are p
 log = Environment.get_logger()
 
 
-def run_workflow(req: RunJobRequest):
+async def run_workflow(req: RunJobRequest):
     from nodetool.workflows.types import Error
     from nodetool.workflows.processing_context import (
         ProcessingContext,
@@ -42,14 +42,7 @@ def run_workflow(req: RunJobRequest):
         workflow_id=req.workflow_id,
         queue=Queue(),
     )
-    job = Job.create(
-        job_type=req.job_type,
-        workflow_id=req.workflow_id,
-        user_id=req.user_id,
-        graph=req.graph.model_dump(),
-        status="running",
-    )
-    assert job
+    job = await context.create_job(req)
 
     loop = asyncio.get_event_loop()
     loop.set_debug(True)

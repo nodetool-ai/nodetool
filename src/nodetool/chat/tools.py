@@ -136,7 +136,7 @@ async def process_workflow_function(
 
     output = {}
 
-    for msg_json in run_workflow(req):
+    async for msg_json in run_workflow(req):
         msg = json.loads(msg_json)
         if msg["type"] == "node_progress":
             print(f"{msg['node_id']} -> {msg['progress']}\n")

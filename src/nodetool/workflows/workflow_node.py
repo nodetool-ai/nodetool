@@ -78,7 +78,7 @@ class WorkflowNode(BaseNode):
     @classmethod
     def properties(cls):
         graph = cls.load_graph()
-        return properties_from_input_nodes(graph.nodes)
+        return properties_from_input_nodes(list(graph.nodes))
 
     @classmethod
     def load_workflow(cls):
@@ -116,7 +116,7 @@ class WorkflowNode(BaseNode):
             params=self.inputs or {},
         )
         output = {}
-        for msg_json in run_workflow(req):
+        async for msg_json in run_workflow(req):
             msg = json.loads(msg_json)
             if msg["type"] == "node_progress":
                 context.post_message(

@@ -109,11 +109,11 @@ async def run(
     )
     assert job
 
-    def job_update_message(job: JobModel):
-        return JobUpdate.from_model(job).model_dump_json() + "\n"
-
     if execute is False:
         return job
+
+    def job_update_message(job: JobModel):
+        return JobUpdate.from_model(job).model_dump_json() + "\n"
 
     assert user.auth_token
 
