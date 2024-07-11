@@ -147,16 +147,15 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
         run_task = asyncio.create_task(run())
 
         while not run_task.done():
-            job = await context.get_job(job.id)
-            if job.status == "cancelled":
-                runner.cancel()
-                break
-
             if context.has_messages():
                 msg = await context.pop_message_async()
                 if isinstance(msg, Error):
                     raise Exception(msg.error)
                 yield msg
+                job = await context.get_job(job.id)
+                if job.status == "cancelled":
+                    runner.cancel()
+                    break
             else:
                 await asyncio.sleep(0.1)
 
