@@ -82,7 +82,6 @@ async def update(id: str, req: JobUpdate, user: User = Depends(current_user)) ->
 @router.post("/")
 async def run(
     job_request: RunJobRequest,
-    execute: bool = True,
     user: User = Depends(current_user),
 ):
     from nodetool.workflows.workflow_runner import WorkflowRunner
@@ -107,78 +106,3 @@ async def run(
         status="running",
     )
     assert job
-
-    if execute is False:
-        return job
-
-    def job_update_message(job: JobModel):
-        return JobUpdate.from_model(job).model_dump_json() + "\n"
-
-    assert user.auth_token
-
-    context = ProcessingContext(
-        user_id=user.id,
-        auth_token=user.auth_token,
-        workflow_id=job_request.workflow_id,
-    )
-
-    runner = WorkflowRunner(job.id)
-
-    async def run():
-        try:
-            await runner.run(job_request, context)
-        except Exception as e:
-            log.exception(e)
-            context.post_message(Error(error=str(e)))
-
-    async def generate(job_id: str):
-        job = JobModel.get(job_id)
-        assert job, "Job not found"
-
-        yield job_update_message(job)
-
-        thread = threading.Thread(target=lambda: asyncio.run(run()))
-        thread.start()
-
-        try:
-            while runner.is_running():
-                # read job status from database
-                job = JobModel.get(job_id)
-                assert job, "Job not found"
-
-                if job.status == "cancelled":
-                    runner.cancel()
-                    context.is_cancelled = True
-
-                if context.has_messages():
-                    msg = await context.pop_message_async()
-                    if isinstance(msg, Prediction):
-                        msg = APIPrediction.from_model(msg)
-                        job.reload()
-                    if isinstance(msg, JobUpdate):
-                        job.finished_at = datetime.now()
-                        job.status = msg.status
-                        job.cost = context.cost
-                        job.save()
-                    if isinstance(msg, Error):
-                        raise Exception(msg.error)
-                    yield msg.model_dump_json() + "\n"
-                else:
-                    await asyncio.sleep(0.1)
-
-            while context.has_messages():
-                msg = await context.pop_message_async()
-                yield msg.model_dump_json() + "\n"
-
-        except Exception as e:
-            log.exception(e)
-            job = JobModel.get(job_id)
-            assert job
-            job.finished_at = datetime.now()
-            job.status = "failed"
-            job.error = str(e)[:256]
-            job.cost = context.cost
-            job.save()
-            yield job_update_message(job)
-
-    return StreamingResponse(generate(job.id), media_type="application/x-ndjson")

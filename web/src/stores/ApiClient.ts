@@ -22,7 +22,7 @@ export const BASE_URL =
 
 export const WORKER_URL = 
   isDevelopment
-    ? "http://" + window.location.hostname + ":8000/api/jobs/"
+    ? "http://" + window.location.hostname + ":8000/predict"
     : "https://georgi--worker-app-worker-app.modal.run/predict"
     
 

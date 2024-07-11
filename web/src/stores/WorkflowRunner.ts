@@ -39,6 +39,7 @@ export type NodeState = {
 };
 
 export type WorkflowRunner = {
+  socket: WebSocket | null;
   job_id: string | null;
   state: "idle" | "running" | "error" | "cancelled";
   statusMessage: string | null;
@@ -53,39 +54,12 @@ export type WorkflowRunner = {
   ) => void;
   cancel: () => Promise<void>;
   run: (params?: any, noCache?: boolean) => Promise<void>;
+  connect: () => Promise<void>;
+  disconnect: () => void;
 };
 
-async function* lineIterator(reader: ReadableStreamDefaultReader) {
-  const utf8Decoder = new TextDecoder("utf-8");
-  let { value: chunk, done: readerDone } = await reader.read();
-  chunk = chunk ? utf8Decoder.decode(chunk, { stream: true }) : "";
-
-  const re = /\r\n|\n|\r/gm;
-  let startIndex = 0;
-
-  for (;;) {
-    const result = re.exec(chunk);
-    if (!result) {
-      if (readerDone) {
-        break;
-      }
-      const remainder = chunk.substr(startIndex);
-      ({ value: chunk, done: readerDone } = await reader.read());
-      chunk =
-        remainder + (chunk ? utf8Decoder.decode(chunk, { stream: true }) : "");
-      startIndex = re.lastIndex = 0;
-      continue;
-    }
-    yield chunk.substring(startIndex, result.index);
-    startIndex = re.lastIndex;
-  }
-  if (startIndex < chunk.length) {
-    // last line didn't end in a newline char
-    yield chunk.substr(startIndex);
-  }
-}
-
 const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
+  socket: null,
   job_id: null,
   state: "idle",
   statusMessage: null,
@@ -93,6 +67,57 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     set({ statusMessage: message });
   },
   notifications: [],
+    
+  connect: async () => {
+    const user = useAuth.getState().getUser();
+    if (!user) {
+      throw new Error("User is not logged in");
+    }
+
+    const socket = new WebSocket(WORKER_URL);
+    
+    socket.onopen = () => {
+      devLog("WebSocket connected");
+      set({ socket });
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      // TODO: this needs to be part of the payload
+      const workflow = useNodeStore.getState().workflow;
+      get().readMessage(workflow, data);
+    };
+
+    socket.onerror = (error) => {
+      devError("WebSocket error:",error);
+      set({ state: "error" });
+    };
+
+    socket.onclose = () => {
+      devLog("WebSocket disconnected");
+      set({ socket: null, state: "idle" });
+    };
+    
+    set({ socket });
+
+    return new Promise<void>((resolve) => {
+      const interval = setInterval(() => {
+        if (socket.readyState === WebSocket.OPEN) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 100);
+    });
+  },
+
+  disconnect: () => {
+    const { socket } = get();
+    if (socket) {
+      socket.close();
+      set({ socket: null });
+    }
+  },
+
   readMessage: (
     workflow: WorkflowAttributes,
     data: JobUpdate | Prediction | NodeProgress | NodeUpdate
@@ -236,59 +261,32 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
    *
    * @returns The results of the workflow.
    */
-  run: async (params?: any, noCache?: boolean) => {
+  run: async (params?: any) => {
     const edges = useNodeStore.getState().edges;
     const nodes = useNodeStore.getState().nodes;
     const workflow = useNodeStore.getState().workflow;
     const getUser = useAuth.getState().getUser;
-    const readMessage = get().readMessage;
-    const getInputEdges = useNodeStore.getState().getInputEdges;
-    const getResult = useResultsStore.getState().getResult;
     const clearStatuses = useStatusStore.getState().clearStatuses;
     const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
+    
+    if (!get().socket) {
+      await get().connect();
+    }
+    
+    const socket = get().socket;
+    
+    if (socket === null) {
+      throw new Error("Socket is null");
+    }
 
-    // make a deep copy of nodes
-    const nodesCopy = JSON.parse(JSON.stringify(nodes)) as Node<NodeData>[];
+    // // make a deep copy of nodes
+    // const nodesCopy = JSON.parse(JSON.stringify(nodes)) as Node<NodeData>[];
     const user = getUser();
-
-    // ****** caching is still buggy ******
-    noCache = true;
 
     if (user === null) {
       throw new Error("User is not logged in");
     }
-
-    // filter nodes to dirty nodes
-    const dirtyNodes = noCache
-      ? nodesCopy
-      : nodesCopy.filter(
-          (node) => node.data.dirty || node.type?.startsWith("comfy.")
-        );
-
-    // update properties from results of connected nodes
-    dirtyNodes.forEach((node) => {
-      // assign edge values to node properties
-      getInputEdges(node.id).forEach((edge) => {
-        if (!edge.sourceHandle || !edge.targetHandle) {
-          return;
-        }
-        const res = getResult(workflow.id, edge.source);
-        if (res) {
-          node.data.properties[edge.targetHandle] = res[edge.sourceHandle];
-        }
-      });
-    });
-
-    // remove edges that do not connect dirty nodes
-    const dirtyEdges = noCache
-      ? edges
-      : edges.filter((edge) => {
-          return (
-            dirtyNodes.some((node) => node.id === edge.source) &&
-            dirtyNodes.some((node) => node.id === edge.target)
-          );
-        });
 
     clearStatuses(workflow.id);
     clearLogs(workflow.id);
@@ -308,43 +306,20 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       job_type: "workflow",
       params: params || {},
       graph: {
-        nodes: dirtyNodes.map(reactFlowNodeToGraphNode),
-        edges: dirtyEdges.map(reactFlowEdgeToGraphEdge)
+        nodes: nodes.map(reactFlowNodeToGraphNode),
+        edges: edges.map(reactFlowEdgeToGraphEdge)
       }
     };
+    
+    socket.send(JSON.stringify({
+      command: "run_job",
+      data: req
+    }));
 
-    const response = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + user.auth_token
-      },
-      body: JSON.stringify(req)
+    set({
+      state: "running",
+      notifications: []
     });
-
-    if (!response.ok) {
-      const message = `An error has occured: ${response.status}`;
-      throw new Error(message);
-    }
-
-    if (response.body === null) {
-      throw new Error("response body is null");
-    }
-
-    async function pump(reader: ReadableStreamDefaultReader): Promise<void> {
-      for await (const line of lineIterator(reader)) {
-        try {
-          readMessage(workflow, JSON.parse(line));
-        } catch (error) {
-          console.log(line);
-          console.error("error parsing json", error);
-        }
-      }
-      set({ job_id: null, state: "idle" });
-      clearStatuses(workflow.id);
-    }
-
-    await pump(response.body.getReader());
   },
 
   /**
@@ -374,26 +349,16 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
    * Cancel the current workflow run.
    */
   cancel: async () => {
-    const job_id = get().job_id;
-    const user = useAuth.getState().getUser();
-
-    if (!job_id || !user) {
+    const { socket, job_id } = get();
+    if (!socket || !job_id) {
       return;
     }
-    const response = await fetch(WORKER_URL + job_id, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + user.auth_token
-      },
-      body: JSON.stringify({
-        status: "cancelled"
-      })
-    });
-    if (!response.ok) {
-      throw new Error("Failed to cancel job");
-    }
-  }
+
+    socket.send(JSON.stringify({
+      command: "cancel_job",
+      data: { job_id }
+    }));
+  },
 }));
 
 export default useWorkflowRunnner;

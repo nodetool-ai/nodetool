@@ -1,4 +1,6 @@
+from datetime import datetime
 import sys
+import uuid
 from nodetool.common.environment import Environment
 from nodetool.types.job import JobUpdate, Job
 from nodetool.workflows.examples import load_example
@@ -128,7 +130,19 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
 
     try:
         run_task = None
-        job = await context.create_job(req)
+        # job = await context.create_job(req)
+
+        job = Job(
+            job_type="workflow",
+            id=uuid.uuid4().hex,
+            workflow_id=req.workflow_id,
+            status="running",
+            started_at=datetime.now().isoformat(),
+            finished_at=None,
+            error=None,
+            cost=None,
+        )
+
         runner = WorkflowRunner(job_id=job.id)
 
         def job_update(job: Job):
@@ -152,10 +166,6 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
                 if isinstance(msg, Error):
                     raise Exception(msg.error)
                 yield msg
-                job = await context.get_job(job.id)
-                if job.status == "cancelled":
-                    runner.cancel()
-                    break
             else:
                 await asyncio.sleep(0.1)
 

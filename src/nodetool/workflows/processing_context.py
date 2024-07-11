@@ -520,7 +520,7 @@ class ProcessingContext:
         if ext != "":
             key += "." + ext
         storage = Environment.get_temp_storage()
-        url = await storage.upload(key, content)
+        url = await storage.upload(key, content)  # type: ignore
         return AssetRef(uri=url, temp_id=key)
 
     async def create_message(self, req: MessageCreateRequest):
