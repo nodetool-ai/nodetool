@@ -15,6 +15,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
 import TaskTable from "./DataTable/TaskTable";
+import ImageView from "./ImageView";
 
 export type OutputRendererProps = {
   value: any;
@@ -126,42 +127,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
 
   switch (type) {
     case "image":
-      return value?.uri ? (
-        <div
-          className="image-output"
-          style={{
-            position: "relative",
-            display: "flex",
-            justifyContent: "flex-start",
-            alignItems: "flex-start",
-            width: "100%",
-            height: "100%",
-            minHeight: "50px"
-          }}
-        >
-          <AssetViewer
-            contentType="image/*"
-            url={value.uri}
-            open={openViewer}
-            onClose={() => setOpenViewer(false)}
-          />
-          <div
-            style={{
-              position: "absolute",
-              backgroundImage: `url(${value.uri})`,
-              backgroundSize: "contain",
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "center",
-              width: "100%",
-              height: "100%",
-              minHeight: "20px"
-            }}
-            onDoubleClick={() => setOpenViewer(true)}
-          />
-        </div>
-      ) : (
-        <Typography> No Image found </Typography>
-      );
+      return <ImageView uri={value?.uri} />;
     case "audio":
       return (
         <div className="audio" style={{ padding: "1em" }}>
