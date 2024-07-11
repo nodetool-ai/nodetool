@@ -38,77 +38,79 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     setSelectedPath([]);
   }, [setSearchTerm, setSelectedPath]);
 
-  // filter
-  useEffect(() => {
-    if (localSearchTerm.length > 1) {
-      const fuseOptions = {
-        keys: ["title", "tags"],
-        includeMatches: true,
-        // location: 0,
-        ignoreLocation: true,
-        threshold: 0.2,
-        distance: 100,
-        shouldSort: true,
-        includeScore: true,
-        minMatchCharLength: 2,
-        useExtendedSearch: true,
-        tokenize: true,
-        matchAllTokens: true
-      };
-      const entries = metadata.map((node) => {
-        const lines = node.description.split("\n");
-        const tags = lines.length > 1 ? lines[1].split(",") : [];
-        return {
-          title: node.title,
-          node_type: node.node_type,
-          tags: tags,
-          metadata: node
+  const performSearch = useCallback(
+    (searchTerm: string) => {
+      if (searchTerm.length > 1) {
+        const fuseOptions = {
+          keys: [
+            { name: "title", weight: 0.5 },
+            { name: "node_type", weight: 0.3 },
+            { name: "tags", weight: 0.2 }
+          ],
+          includeMatches: true,
+          ignoreLocation: true,
+          threshold: 0.2,
+          distance: 100,
+          shouldSort: true,
+          includeScore: true,
+          minMatchCharLength: 2,
+          useExtendedSearch: true,
+          tokenize: true,
+          matchAllTokens: false
         };
-      });
+        const entries = metadata.map((node) => {
+          const lines = node.description.split("\n");
+          const tags = lines.length > 1 ? lines[1].split(",") : [];
+          return {
+            title: node.title,
+            node_type: node.node_type,
+            tags: tags,
+            metadata: node
+          };
+        });
 
-      const fuse = new Fuse(entries, fuseOptions);
+        const fuse = new Fuse(entries, fuseOptions);
 
-      const searchTermWords = Array.from(
-        new Set(localSearchTerm.trim().split(" "))
-      );
+        const searchTermWords = Array.from(
+          new Set(searchTerm.trim().split(" "))
+        );
 
-      const filteredData = searchTermWords.reduce(
-        (acc: NodeMetadata[], word: string) => {
-          const searchResults = fuse
-            .search(word)
-            .map((result) => result.item.metadata)
-            .sort((a, b) => a.node_type.localeCompare(b.node_type));
+        const filteredData = searchTermWords.reduce(
+          (acc: NodeMetadata[], word: string) => {
+            const searchResults = fuse
+              .search(word)
+              .map((result) => result.item.metadata)
+              .sort((a, b) => a.node_type.localeCompare(b.node_type));
 
-          if (acc.length === 0) {
-            return searchResults;
-          } else {
-            // combine and remove duplicates
-            return [...acc, ...searchResults].filter(
-              (v, i, a) => a.findIndex((t) => t.title === v.title) === i
-            );
-          }
-        },
-        [] as NodeMetadata[]
-      );
+            if (acc.length === 0) {
+              return searchResults;
+            } else {
+              return [...acc, ...searchResults].filter(
+                (v, i, a) => a.findIndex((t) => t.title === v.title) === i
+              );
+            }
+          },
+          [] as NodeMetadata[]
+        );
 
-      setTimeout(() => {
-        handleSearchResult(filteredData);
-      }, 1);
-    } else {
+        return filteredData;
+      }
+      return searchTerm.length === 0 ? metadata : [];
+    },
+    [metadata]
+  );
+
+  useEffect(() => {
+    const filteredData = performSearch(localSearchTerm);
+    setTimeout(() => {
+      handleSearchResult(filteredData);
+    }, 1);
+
+    if (localSearchTerm.length <= 1) {
       resetSearch();
-      setTimeout(() => {
-        handleSearchResult(localSearchTerm.length === 0 ? metadata : []);
-      }, 1);
     }
-  }, [
-    localSearchTerm,
-    setSearchTerm,
-    handleSearchResult,
-    metadata,
-    resetSearch
-  ]);
+  }, [localSearchTerm, handleSearchResult, performSearch, resetSearch]);
 
-  // search change
   const handleSearchChange = (newSearchTerm: string) => {
     setLocalSearchTerm(newSearchTerm);
     setTimeout(() => {
