@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React, { useState, useEffect, useCallback, useRef, memo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import useKeyPressedListener from "../../utils/KeyPressedListener";
 import PropertyLabel from "../node/PropertyLabel";
 import { TextField } from "@mui/material";
-import { css } from "@emotion/react";
 
 interface InputProps {
   name: string;

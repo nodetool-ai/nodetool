@@ -92,7 +92,7 @@ const OutputContextMenu: React.FC = () => {
       }
       const newNode = createNode(
         metadata,
-        reactFlowInstance.project({
+        reactFlowInstance.screenToFlowPosition({
           x: position.x + 150,
           y: position.y
         })
