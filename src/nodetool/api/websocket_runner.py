@@ -3,6 +3,7 @@ from enum import Enum
 import json
 import time
 import uuid
+from typing import Any
 from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
 
@@ -32,6 +33,8 @@ class WebSocketRunner:
     active_job: asyncio.Task | None = None
     job_id: str | None = None
     runner: WorkflowRunner | None = None
+    pre_run_hook: Any = None
+    post_run_hook: Any = None
 
     async def connect(self, websocket: WebSocket):
         """Establish the WebSocket connection."""
@@ -68,8 +71,14 @@ class WebSocketRunner:
         )
 
         print("Running job: ", self.job_id)
+        if self.pre_run_hook:
+            self.pre_run_hook()
+
         async for msg in run_workflow(req, self.runner, self.context):
             await self.websocket.send_text(msg.model_dump_json())
+
+        if self.post_run_hook:
+            self.post_run_hook()
 
         total_time = time.time() - start_time
         log.info(f"Finished job {self.job_id} - Total time: {total_time:.2f} seconds")

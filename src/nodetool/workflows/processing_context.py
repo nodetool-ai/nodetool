@@ -230,9 +230,12 @@ class ProcessingContext:
         return Environment.get_node_cache().get(key)
 
     def cache_result(self, node: BaseNode, result: Any, ttl: int = 3600):
+        from nodetool.common.comfy_node import ComfyNode
+
         """Cache the result for a node."""
-        key = self.generate_node_cache_key(node)
-        Environment.get_node_cache().set(key, result, ttl)
+        if not issubclass(node, ComfyNode):
+            key = self.generate_node_cache_key(node)
+            Environment.get_node_cache().set(key, result, ttl)
 
     async def find_asset(self, asset_id: str):
         """
