@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from nodetool.api import prediction
 from nodetool.common.environment import Environment
 
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run as uvicorn
 
@@ -66,6 +66,13 @@ def create_app(
     @app.get("/health")
     async def health_check() -> str:
         return "OK"
+
+    @app.websocket("/predict")
+    async def websocket_endpoint(websocket: WebSocket):
+        from nodetool.api.websocket_runner import WebSocketRunner
+
+        runner = WebSocketRunner()
+        await runner.run(websocket)
 
     if static_folder:
         app.mount("/", StaticFiles(directory=static_folder, html=True), name="static")

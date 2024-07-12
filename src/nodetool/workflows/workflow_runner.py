@@ -247,7 +247,8 @@ class WorkflowRunner:
 
         Post-conditions:
             - Node inputs are collected and assigned.
-            - Node is pre-processed, processed, and its output is converted.
+            - Node is processed.
+            - Node output is converted.
             - Node result is cached if applicable.
             - Node status updates are posted to the context.
             - Node is marked as processed in the context.

@@ -42,8 +42,11 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { initSentry } from "./utils/sentry";
 import { RouteObject } from "@sentry/react/types/types";
 import useAuth from "./stores/useAuth";
+import { pingWorker } from "./stores/ApiClient";
 
 initSentry();
+
+pingWorker();
 
 const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);

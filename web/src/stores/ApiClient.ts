@@ -2,24 +2,40 @@ import createClient, { type Middleware } from "openapi-fetch";
 import { paths } from "../api.js"; // (generated from openapi-typescript)
 import { useAuth } from "./useAuth.js";
 
+const mode: string = import.meta.env.MODE;
+
 export const useRemoteAuth =
-  import.meta.env.MODE === "production" ||
-  import.meta.env.MODE === "staging" ||
+  mode === "production" ||
+  mode === "staging" ||
   import.meta.env.VITE_REMOTE_AUTH === "true";
-export const isDevelopment = import.meta.env.MODE === "development";
-export const isProduction = import.meta.env.MODE === "production";
+
+export const isDevelopment = mode === "development";
+export const isStaging = mode === "staging";
+export const isProduction = mode === "production";
 
 export const BASE_URL =
-  import.meta.env.MODE === "development"
+  isDevelopment
     ? "http://" + window.location.hostname + ":8000"
-    : import.meta.env.MODE === "staging"
+    : isStaging
     ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com"
     : "https://api.nodetool.ai";
 
 export const WORKER_URL = 
-  import.meta.env.MODE === "development"
-    ? "http://" + window.location.hostname + ":8000/api/jobs/"
+  isDevelopment
+    ? "http://" + window.location.hostname + ":8000/predict"
     : "https://georgi--worker-app-worker-app.modal.run/predict"
+    
+
+export const pingWorker = () => {
+  if (isDevelopment) {
+    return;
+  }
+  const ts = new Date().getTime();
+  const url = WORKER_URL.replace("predict", "?" + ts);
+  fetch(url, {
+    method: "GET",
+  });
+}
 
 
 const authMiddleware: Middleware = {

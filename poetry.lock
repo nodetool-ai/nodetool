@@ -201,13 +201,13 @@ files = [
 
 [[package]]
 name = "anthropic"
-version = "0.30.1"
+version = "0.31.0"
 description = "The official Python library for the anthropic API"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "anthropic-0.30.1-py3-none-any.whl", hash = "sha256:a58a8c3865a3df21e3b10e5fbd1a54b84cb01386f3e9fea9c65334b3cb306c6f"},
-    {file = "anthropic-0.30.1.tar.gz", hash = "sha256:e082aa2601834a8a374f8bb45bca68493d892b2a03a1c44cfcc38465550c9b8b"},
+    {file = "anthropic-0.31.0-py3-none-any.whl", hash = "sha256:77f7a428e1723b79a571c2427ae885d9257c68f700726dff7ce684c3972d6598"},
+    {file = "anthropic-0.31.0.tar.gz", hash = "sha256:14f8f65231859a65ec9aacbbea070e412c8bd41a5d3f36793dac4292c3c78d3a"},
 ]
 
 [package.dependencies]
@@ -492,17 +492,17 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "boto3"
-version = "1.34.141"
+version = "1.34.143"
 description = "The AWS SDK for Python"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "boto3-1.34.141-py3-none-any.whl", hash = "sha256:f906c797a02d37a3b88fe4c97e4d72b387e19ab6f3096d2f573578f020fd9bf4"},
-    {file = "boto3-1.34.141.tar.gz", hash = "sha256:947c7a94ac3a2131142914a53afc3b1c5a572d6a79515bf2f0473188817cfcd6"},
+    {file = "boto3-1.34.143-py3-none-any.whl", hash = "sha256:0d16832f23e6bd3ae94e35ea8e625529850bfad9baccd426de96ad8f445d8e03"},
+    {file = "boto3-1.34.143.tar.gz", hash = "sha256:b590ce80c65149194def43ebf0ea1cf0533945502507837389a8d22e3ecbcf05"},
 ]
 
 [package.dependencies]
-botocore = ">=1.34.141,<1.35.0"
+botocore = ">=1.34.143,<1.35.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.10.0,<0.11.0"
 
@@ -511,13 +511,13 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.34.141"
+version = "1.34.143"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore-1.34.141-py3-none-any.whl", hash = "sha256:0e661a452c0489b6d62a9c91fed3320d5690a524489a7e50afc8efadb994dba8"},
-    {file = "botocore-1.34.141.tar.gz", hash = "sha256:d2815c09037039a287461eddc07af895d798bc897e6ba4b08f5a12eaa9886ff1"},
+    {file = "botocore-1.34.143-py3-none-any.whl", hash = "sha256:094aea179e8aaa1bc957ad49cc27d93b189dd3a1f3075d8b0ca7c445a2a88430"},
+    {file = "botocore-1.34.143.tar.gz", hash = "sha256:059f032ec05733a836e04e869c5a15534420102f93116f3bc9a5b759b0651caf"},
 ]
 
 [package.dependencies]
@@ -2213,42 +2213,42 @@ x = ["accelerate", "onnxruntime-gpu (>=1.16)"]
 
 [[package]]
 name = "kornia-rs"
-version = "0.1.4"
+version = "0.1.5"
 description = "Low level implementations for computer vision in Rust"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "kornia_rs-0.1.4-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:d8c8afa6ef62a313097b45ad9fb3ba46131a404773fb87c48a6f1998ad77f729"},
-    {file = "kornia_rs-0.1.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e59752474f8e06d65cb7a155a1451037adf6e7c9067549a6e5c21d7b8739130c"},
-    {file = "kornia_rs-0.1.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:70fd23143763efa843eec99331106490c050c6525d23cf920610cf4faa2e36ca"},
-    {file = "kornia_rs-0.1.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:02444333e7c0e9a5d587261c147d202785cba0063217dbdcd003eb1b21d42162"},
-    {file = "kornia_rs-0.1.4-cp310-none-win_amd64.whl", hash = "sha256:51954b02de368a3d437bfa4ca30944f930de95b9325f8576404744ff59fb0646"},
-    {file = "kornia_rs-0.1.4-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:e3c6f7bfe600e47e63d9294907519641e86c2afb2b89995e6bf417c6f02aa9f0"},
-    {file = "kornia_rs-0.1.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:39117f96849bd0bdd15f4cb311a0812845aab712d36dff5d474bafc9e5fe33cc"},
-    {file = "kornia_rs-0.1.4-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f190294ad34277c2133150785c344ed8e8e7b1b822107c016ce1d9bb3afd8ee9"},
-    {file = "kornia_rs-0.1.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b00b519ea9cfe7c604a47f81bcc2fadda99cff7a047a7de148a39362493d1b41"},
-    {file = "kornia_rs-0.1.4-cp311-none-win_amd64.whl", hash = "sha256:5a47429d5a5fb6e8713011c3ae0e1f2f84027def81f54173b81faaae74587cd8"},
-    {file = "kornia_rs-0.1.4-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:824a0f4b68f6ba25c5d1cf195dd6a3f4f9892c295d12e05c30d10abc6ee04f7e"},
-    {file = "kornia_rs-0.1.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:58f94d97df275a0cbedec52b5be2a808f0b76765d924aa854181a327726d5f30"},
-    {file = "kornia_rs-0.1.4-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c3c9f80a34839f16c3a6942108834b9c7013c17b1d3ddea520a7f6a98f691c3b"},
-    {file = "kornia_rs-0.1.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3279a499374090478a2519450ea7201f7fc23b5c2927ca20bca42e44da6ca23a"},
-    {file = "kornia_rs-0.1.4-cp312-none-win_amd64.whl", hash = "sha256:89fdb85785aa4f447410ad7fb54380f72d882472a6d380051c33c796f8dece9b"},
-    {file = "kornia_rs-0.1.4-cp37-cp37m-macosx_10_12_x86_64.whl", hash = "sha256:4931a063cfa71c6059976672ba7d81c4585286c28338f881b7146fc360d96622"},
-    {file = "kornia_rs-0.1.4-cp37-cp37m-macosx_11_0_arm64.whl", hash = "sha256:59fd89e89835f4b375138d2bb23c685a8ff1477919bdc3597275ce42e20aff06"},
-    {file = "kornia_rs-0.1.4-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6017722c279919abe04586aaa3e4b115e2cae6f1698081f54e0a336443b2f6ba"},
-    {file = "kornia_rs-0.1.4-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:76c522acbcf02665ad6a64c799fcb19be90ced9881b7559487778455b4d80597"},
-    {file = "kornia_rs-0.1.4-cp37-none-win_amd64.whl", hash = "sha256:035d21efd3e8fb6227d0f2655ab95ce484bbe7cc3c5a9dc1ef16b25a091d19dc"},
-    {file = "kornia_rs-0.1.4-cp38-cp38-macosx_10_12_x86_64.whl", hash = "sha256:1f45615ab2f5272c9f7d3e0f62ca3716c753baf7c1d3e3725f28bc452d9ac420"},
-    {file = "kornia_rs-0.1.4-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:a7a04760e0d59a7e953d8008f94fe1d061a033b0635b9eccf187847f04be0847"},
-    {file = "kornia_rs-0.1.4-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3fc8a0d9adc6c34f839d6f64f1746c7c2646a1f53eaeeff253df23e1d10443fd"},
-    {file = "kornia_rs-0.1.4-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0f70fbd4c3bab901fccc9ec2ecd3e98e12703a9abc843e86edcb79961ef41440"},
-    {file = "kornia_rs-0.1.4-cp38-none-win_amd64.whl", hash = "sha256:0ced35f6c0c85120fb0ea6a1b74ea6bff6b383facca24aa90e4e61cde73a58a9"},
-    {file = "kornia_rs-0.1.4-cp39-cp39-macosx_10_12_x86_64.whl", hash = "sha256:e07cedb7f65e9b37b974f293030b56d39a6d8985513e81f33fa57c26c38dac63"},
-    {file = "kornia_rs-0.1.4-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:db481fbd6a480335bf01e3be9b80fa81ad63f9261a7de21dc27247b3210db02a"},
-    {file = "kornia_rs-0.1.4-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b7b18fe635901ce050b46611dce505bbec97ec497236a70fdc6959a66ffc4efb"},
-    {file = "kornia_rs-0.1.4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:246785b038d8e77eeb742d6ea14faf4558ec22bed9b124b1c10f1929fac9a379"},
-    {file = "kornia_rs-0.1.4-cp39-none-win_amd64.whl", hash = "sha256:dcccc6a4779944eadf736d800ac499e54391338aee028a8d3d3ff2cb391cc37e"},
-    {file = "kornia_rs-0.1.4.tar.gz", hash = "sha256:13729edd2380d54e10a11fb07a1489ba57424a7d7ec4d750f65da9684d5c3cf4"},
+    {file = "kornia_rs-0.1.5-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:002a96b2a226a0ac20527c37690e72a9d01e4d70b8c340498515b9461959d005"},
+    {file = "kornia_rs-0.1.5-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:92e26787918a7fb4732c4406ab1b0cad84720e9ffff2845c0a3cf9ad950e231d"},
+    {file = "kornia_rs-0.1.5-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f33d2ce5022e41cbc91038875ffb6c1c4a3eaabd3702ef2fc7451fae0ed5a620"},
+    {file = "kornia_rs-0.1.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6c98aa837a43ada7ce61eefc19200008be8bc1a853c745e8448c1a54a77c7c45"},
+    {file = "kornia_rs-0.1.5-cp310-none-win_amd64.whl", hash = "sha256:90b966a74ebb37f820d11f9a89353b08acc3ef5dcab53616714b1cd483a2591d"},
+    {file = "kornia_rs-0.1.5-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:4f8958ffb82dfd469fc403e9046c614230ea4fef7c9e551f0fa19865b81bedeb"},
+    {file = "kornia_rs-0.1.5-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:0c054e5b7550d4bb4d3e416182eab4fde32b3e58d39a832d08165bf2e4ba7e2a"},
+    {file = "kornia_rs-0.1.5-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:12a1a73cb0d5a5d98f1174824ab69fb475e8191ead64ff8e2beb46b7ec5e201b"},
+    {file = "kornia_rs-0.1.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e1ab07db6ec5bcb5f0cd671bd7b5db1f3169dfc8a8b59b721a075a7edaa67e84"},
+    {file = "kornia_rs-0.1.5-cp311-none-win_amd64.whl", hash = "sha256:9491d260bbdd43fad55e9bf15ade851be8b0fed4a341b9db40b1a8a43fab483b"},
+    {file = "kornia_rs-0.1.5-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:eec9792555247ca1906ff470e5a3368c1d401cceef1d4257a167165d3bf1f384"},
+    {file = "kornia_rs-0.1.5-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:d0620ac05f0e6abc573bcaa6ab616e4448ba7131ecc06863591650326050603e"},
+    {file = "kornia_rs-0.1.5-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c3206d6e19b2fcf68b9e52a9a05354fd8eeb1ca6572ce69d568d120876f66556"},
+    {file = "kornia_rs-0.1.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:be35764b4bf77eb973ad41e8ae5a7da8f99087eb2cc9119cc1cbd87c333fce88"},
+    {file = "kornia_rs-0.1.5-cp312-none-win_amd64.whl", hash = "sha256:38b3acda17a9be3be3e888ecf32cab8362fa922d03bca6afd27ad0a8dac36fd2"},
+    {file = "kornia_rs-0.1.5-cp37-cp37m-macosx_10_12_x86_64.whl", hash = "sha256:4dfd2327d6a6bd0ae57eb843fae3946f6220aac1285a89da1374e1b45384807e"},
+    {file = "kornia_rs-0.1.5-cp37-cp37m-macosx_11_0_arm64.whl", hash = "sha256:d75cfef465ac354a7464b1a711e8cbcb7341203a73634cf3197625907d9e4117"},
+    {file = "kornia_rs-0.1.5-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6c58dd9cb330e5e472467e7238ab5aebee2df47553503fbbb434adaf1c67c83e"},
+    {file = "kornia_rs-0.1.5-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b4ecb87f9213250e4bd948f19afb217e87612bb3b602769740b2c10c62d63d27"},
+    {file = "kornia_rs-0.1.5-cp37-none-win_amd64.whl", hash = "sha256:75f6952906f03cc4433f4d72680388742b6732a7773cd07a3473449dc5a4f1a5"},
+    {file = "kornia_rs-0.1.5-cp38-cp38-macosx_10_12_x86_64.whl", hash = "sha256:0b8978f14b0740a17b5e42c6e5c0d519da219108dac90ee4cd45e55a9b353d04"},
+    {file = "kornia_rs-0.1.5-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:3fd1005c09b90421b3ef8333cef52030d0d200dde4b025697741e2ed2f5579e2"},
+    {file = "kornia_rs-0.1.5-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c8528dcc1c82fa661214a496f9a1482883dcb6529e07b72bd4fa81ae8c59699e"},
+    {file = "kornia_rs-0.1.5-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f6032293ebb367c8f66014f552bb2ee12e23fd22574674ead6033be8c55eaef"},
+    {file = "kornia_rs-0.1.5-cp38-none-win_amd64.whl", hash = "sha256:b010b91700a8e65e8319cbce88929a96053dd777cbb55500218260a73a5abd4b"},
+    {file = "kornia_rs-0.1.5-cp39-cp39-macosx_10_12_x86_64.whl", hash = "sha256:e37aab98e972c0c2497174de4422e4229f1ecae61c3a3b8ff79255277998bc66"},
+    {file = "kornia_rs-0.1.5-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:4ac1744c1650f0aff0c12489cdcbe5b8eef7d3ef5ae9236cc2cceaccc128a2b7"},
+    {file = "kornia_rs-0.1.5-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bb862712aa7c19114a22e812cf580765c65be33f9dadcde4f332a0f56be6d82b"},
+    {file = "kornia_rs-0.1.5-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:324f359a06e05cad3feaceeacd70286b1c70fc69a39b3171bc81459f28e45cd1"},
+    {file = "kornia_rs-0.1.5-cp39-none-win_amd64.whl", hash = "sha256:27ad0d7be0ee09995f10cfc0c297ad53a5bd187c368161fbe832aa1e8ce896aa"},
+    {file = "kornia_rs-0.1.5.tar.gz", hash = "sha256:00520988740e9de1682f2f682caecb9b740d2489f3fbbb1ca0b6fc56af70d298"},
 ]
 
 [package.extras]
@@ -2771,12 +2771,12 @@ dev = ["absl-py", "pyink", "pylint (>=2.6.0)", "pytest", "pytest-xdist"]
 
 [[package]]
 name = "modal"
-version = "0.63.46"
+version = "0.63.49"
 description = "Python client library for Modal"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "modal-0.63.46-py3-none-any.whl", hash = "sha256:bb7c5a8cde5d876e900b032017429e9bcaaa7f26bc4201fdc30a26f096783546"},
+    {file = "modal-0.63.49-py3-none-any.whl", hash = "sha256:33bc95c74609ceedf7e5b3417c83f0823f86322b53085accb94fb596d4c1877a"},
 ]
 
 [package.dependencies]
@@ -3421,13 +3421,13 @@ training = ["fsspec", "pandas", "timm (>=1.0.7)", "torch (>=2.0)", "transformers
 
 [[package]]
 name = "openai"
-version = "1.35.10"
+version = "1.35.13"
 description = "The official Python library for the openai API"
 optional = false
 python-versions = ">=3.7.1"
 files = [
-    {file = "openai-1.35.10-py3-none-any.whl", hash = "sha256:962cb5c23224b5cbd16078308dabab97a08b0a5ad736a4fdb3dc2ffc44ac974f"},
-    {file = "openai-1.35.10.tar.gz", hash = "sha256:85966949f4f960f3e4b239a659f9fd64d3a97ecc43c44dc0a044b5c7f11cccc6"},
+    {file = "openai-1.35.13-py3-none-any.whl", hash = "sha256:36ec3e93e0d1f243f69be85c89b9221a471c3e450dfd9df16c9829e3cdf63e60"},
+    {file = "openai-1.35.13.tar.gz", hash = "sha256:c684f3945608baf7d2dcc0ef3ee6f3e27e4c66f21076df0b47be45d57e6ae6e4"},
 ]
 
 [package.dependencies]
@@ -3769,71 +3769,71 @@ files = [
 
 [[package]]
 name = "pedalboard"
-version = "0.9.9"
+version = "0.9.10"
 description = "A Python library for adding effects to audio."
 optional = false
 python-versions = "*"
 files = [
-    {file = "pedalboard-0.9.9-cp310-cp310-macosx_10_13_universal2.whl", hash = "sha256:77aeff13bf1b48850e41317f9f6fc2430920f3a538ae9f909fcec90cf4f32021"},
-    {file = "pedalboard-0.9.9-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:366223109dc3e66c8d4628db310b738efbc727f563069834383ba93543ddd41a"},
-    {file = "pedalboard-0.9.9-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:1acd0a2d49685ed5d8edcb324a6541c44b52e337fffa11763b4a84f861796eb6"},
-    {file = "pedalboard-0.9.9-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:148d5418d1bd47e782bfdd4255d71fbc40bba1f36f69e9cf6191926b20fd407b"},
-    {file = "pedalboard-0.9.9-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:695795d972451fe8d15f5b917ddbebf6149a503c1a2c8164e82d6072fcf2b48e"},
-    {file = "pedalboard-0.9.9-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:e99c52ee437cee09f93bd90aebd0882942b76124bc3fb116477302ad03ed136a"},
-    {file = "pedalboard-0.9.9-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:5dff39a80a3cc13373ce4bae88d138966490fc24003fed34ba9c6b90c21b4fb1"},
-    {file = "pedalboard-0.9.9-cp310-cp310-win_amd64.whl", hash = "sha256:db47f9a1c7b2ec587ed46ae53711b24f3384b6a53e6e439282de1f530cb9b167"},
-    {file = "pedalboard-0.9.9-cp311-cp311-macosx_10_13_universal2.whl", hash = "sha256:bbc3d75e1395940ebd002c176503dcaf3c36539a89d2e1cf1b4bb37d6fc09e8b"},
-    {file = "pedalboard-0.9.9-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:29a15b596c00944bfa0cd4ad6bd8f505330304f560f2ccd9daf749b0c6e7ffa2"},
-    {file = "pedalboard-0.9.9-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:996f7dc45c06fe45793a556ff3d3d2c015afa2189c845976d5535ffc7fc86b51"},
-    {file = "pedalboard-0.9.9-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:dbd0c4bad5b2bb10e14a6ebb829f1ded2ea371a464e49f01f585bf28358fbd53"},
-    {file = "pedalboard-0.9.9-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ee16014a958c152bfe435f56e618c19044a3efaf9ce6d1547e07da43c714e12c"},
-    {file = "pedalboard-0.9.9-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:7558a18597c3665ff987d9eb6d7c32eb7ea92fb636fa7e1090648f66a1bcdc14"},
-    {file = "pedalboard-0.9.9-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:8e0db50ceead40decbd1a193fbf5d1802605468c5306635428cb676c707ef27a"},
-    {file = "pedalboard-0.9.9-cp311-cp311-win_amd64.whl", hash = "sha256:8ecad59b0476ee51ca936f5e9d49a731de0a85d50285057e776af9473d2a3d3f"},
-    {file = "pedalboard-0.9.9-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:f47701eb65838d0b2985cc70af8ba7d6b89f80dfac944572fa2c0889b37cec35"},
-    {file = "pedalboard-0.9.9-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:b2d713202a922bf83797835a9490fb7374e75a2e91b378ca1875c58d8d9eeaac"},
-    {file = "pedalboard-0.9.9-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:f6efa5b0a2be4508c338a7ddc1435b6ec30023406902641ffec37f294d7dd94e"},
-    {file = "pedalboard-0.9.9-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9df4181f641cd882b8e4514f01381114098e0fce09a88753ffbc5d3a46a26d7c"},
-    {file = "pedalboard-0.9.9-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e45e69aae9b5e3c74c1a5dfdd5ce8122b5533af20a6c982d6c873cfcd0b95331"},
-    {file = "pedalboard-0.9.9-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:18053384d0e5e4c9e3c4ee4d89fb842c94a019d13177a73c2164b54511e0544f"},
-    {file = "pedalboard-0.9.9-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:74e1e82ff1d4c6abc15655f4dff09db09a1af853b748b777325f9ea4a531d0ca"},
-    {file = "pedalboard-0.9.9-cp312-cp312-win_amd64.whl", hash = "sha256:f704ef7d2561d2b156bf5f22949e37d3938425c3ef4a89ef10104a58879635f2"},
-    {file = "pedalboard-0.9.9-cp36-cp36m-macosx_10_13_x86_64.whl", hash = "sha256:0a1f5e581d6d02fbd816db09b364bc9f6ec6381a3308944144986a5acc3691a3"},
-    {file = "pedalboard-0.9.9-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fa29074d5c8a7fe7e67c1e49bf1c9852cf8f7520ba75743371c739399d8cf737"},
-    {file = "pedalboard-0.9.9-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:975bba5f05c205bf7e151ec7ae8946e234c422a5265449175c505d0428bbe860"},
-    {file = "pedalboard-0.9.9-cp36-cp36m-win_amd64.whl", hash = "sha256:7cc9a4f780f3215236dfe06dff4264617ecc71a4b53087cd9c3dd2c5d1469698"},
-    {file = "pedalboard-0.9.9-cp37-cp37m-macosx_10_13_x86_64.whl", hash = "sha256:391b509dcbb29e874f215ba8f0b8034c4b547103bf6464fa3189dc0ea33be695"},
-    {file = "pedalboard-0.9.9-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cfc106de93fcd1b9ef01b0e0d7aa4cbb933d5f93bd58890a97370e1777ec1bfb"},
-    {file = "pedalboard-0.9.9-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f5b024aeb81c1538d8c9096e58990bac1175f10aaa411c124383a45c5331e788"},
-    {file = "pedalboard-0.9.9-cp37-cp37m-win_amd64.whl", hash = "sha256:d9ff75eebc69b15dde56691691e58b83c22bb7973dae7a855cca00b5ed2c107b"},
-    {file = "pedalboard-0.9.9-cp38-cp38-macosx_10_13_universal2.whl", hash = "sha256:0bb64fc92bdf265ae162c29ed275560d6b4bb7cafd9916f27ca68cd9f865993a"},
-    {file = "pedalboard-0.9.9-cp38-cp38-macosx_10_13_x86_64.whl", hash = "sha256:79d77f26e0529510fe301c61f944842934d610a04e39bb161166b799c51013c0"},
-    {file = "pedalboard-0.9.9-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:d31a1b49d87f1c206efe3dec5c4cccde52433fc5ac28d2d4b08d18d48ed5e79b"},
-    {file = "pedalboard-0.9.9-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a9ab1d4a3e5218d3191d7de691b9d03f0480289a22f5462aadc6d599a9adb01b"},
-    {file = "pedalboard-0.9.9-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e5a00b17622da33c3176fe231454f16ac0301b3fb91802f5cc34769cc3b75d8b"},
-    {file = "pedalboard-0.9.9-cp38-cp38-musllinux_1_1_aarch64.whl", hash = "sha256:995f66a6b2fd164edb9992aeacf8d068df35602f9b75994f709d8ebe7a4b2e13"},
-    {file = "pedalboard-0.9.9-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:1593429a3e9df64fb14617cf94cad097f56d9a7dd5b3607a80f2a3babbdf5266"},
-    {file = "pedalboard-0.9.9-cp38-cp38-win_amd64.whl", hash = "sha256:b9b706d355de7a53c09588c296cd099c4d55c1f5ce42385a330927b0e61d3353"},
-    {file = "pedalboard-0.9.9-cp39-cp39-macosx_10_13_universal2.whl", hash = "sha256:9add28ab77e85be4447b3d98694b34a9e02715dfafff201fb4453b75b2625aba"},
-    {file = "pedalboard-0.9.9-cp39-cp39-macosx_10_13_x86_64.whl", hash = "sha256:11844ce781c48f9282ced497c2a7d5415488f40c5a98aa6b8da15818629425c6"},
-    {file = "pedalboard-0.9.9-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:b0c045871e5aa80ddd54bbe21aee838588a5e8b60a02f670d774a7167ab93e1d"},
-    {file = "pedalboard-0.9.9-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4523c322710852d6aeb2ba96e36c6e0e59d4cc815f4224f9764b0c1905373cab"},
-    {file = "pedalboard-0.9.9-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:19e1c6cd35d8954c455dc0d7901fad670afce5c385a14504adb8610ee2c60863"},
-    {file = "pedalboard-0.9.9-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:ffafd61121c3bab34600bbaa8bb48d9282c7cd4657bfc9d013deb409d24c2dd0"},
-    {file = "pedalboard-0.9.9-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:fbea7a6f99ea03ccfb4d7fe7ca909bd8c9c4fee0ffddf56d4f561c946ee61e07"},
-    {file = "pedalboard-0.9.9-cp39-cp39-win_amd64.whl", hash = "sha256:69de63c184e6e27f06dc71f54fae79e8f6fb33cd2bc4dc9399a21b5330fd8a26"},
-    {file = "pedalboard-0.9.9-pp37-pypy37_pp73-macosx_10_13_x86_64.whl", hash = "sha256:8c39ab3d5c296346fc1977ee3aa277fc56ece285116783ca108c43fb5eb64037"},
-    {file = "pedalboard-0.9.9-pp37-pypy37_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:dc3bc3be36c9ee25160f455f1e8e4a59a0efe2107b45e29e39f39771a17f00ea"},
-    {file = "pedalboard-0.9.9-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c040bfe51afb51e5ad6757fdd6fdfe7511879bb042316d5f9fd96bea300af176"},
-    {file = "pedalboard-0.9.9-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:303906bbb075561006eeb5cbe9bbbcf634ecf8832227b757c86d820543bf97fc"},
-    {file = "pedalboard-0.9.9-pp38-pypy38_pp73-macosx_10_13_x86_64.whl", hash = "sha256:145d1a7173cdc2527d076b16345c4921c82ea93f72023d96318e2e3e5c163b6a"},
-    {file = "pedalboard-0.9.9-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:81102f372be68653f2df8790582d73a00f5d7e230550c9b54b2bb7cf3182eb34"},
-    {file = "pedalboard-0.9.9-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f9998fc60851eb0dd1467855969bd56a03da88721c8d0b103e9f860872011dd2"},
-    {file = "pedalboard-0.9.9-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:4b143ee79a50ea645fbd71c745a0fb907027f019f69e855e4fc8d4c1041cb862"},
-    {file = "pedalboard-0.9.9-pp39-pypy39_pp73-macosx_10_15_x86_64.whl", hash = "sha256:0da3134602d713a21642432c260df89d284559573e6a301772a2f60c69ff6230"},
-    {file = "pedalboard-0.9.9-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d163f7d18bc77e8c4a4cb2bc11fb2cd769d36c73932e88bb9c0a2b28f14cfd98"},
-    {file = "pedalboard-0.9.9-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9c607cf92ab66f7f1252daa915a1939b01752c838c9bd688f40029822f994c0f"},
-    {file = "pedalboard-0.9.9-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:4c890f14e1c4c443307fff2accee5710b67dfe0fbd696008db8e8bd0e7cc4e69"},
+    {file = "pedalboard-0.9.10-cp310-cp310-macosx_10_13_universal2.whl", hash = "sha256:c84a774c3dc136308a00e9ea4224f7f02138e0ec1d6002d232df02351426137d"},
+    {file = "pedalboard-0.9.10-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:8b9dfd6bedbd7574b2943e2b9f78763754e3c1be87880ee4112a97b64d66d555"},
+    {file = "pedalboard-0.9.10-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:52411d196007b0a2fbbad9baff03fba5b43a80b6d7ed7ab431d17e476df666b8"},
+    {file = "pedalboard-0.9.10-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f2e919d3ca4107a7d04ad8c2e6bd279743d48953f53209c96bf192b42dd57332"},
+    {file = "pedalboard-0.9.10-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7934d0c111a77bffa9e74f90aef0e1eb348dd7d34ea2b742cd81ecbdcde16983"},
+    {file = "pedalboard-0.9.10-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:7239dd5fbd3bb72df8854398016c0d6ea5f004fef50584025f23d762abc430dd"},
+    {file = "pedalboard-0.9.10-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:c4f7cd0270b81b0579578e8230ed48509db94464f2916796e09a968dddcecde5"},
+    {file = "pedalboard-0.9.10-cp310-cp310-win_amd64.whl", hash = "sha256:744c1993d390efc51c7f377ed9bb990f27a9b9b86a65621f6529daa8f623a31f"},
+    {file = "pedalboard-0.9.10-cp311-cp311-macosx_10_13_universal2.whl", hash = "sha256:a7bf90e0833e07298c4b0211907498671e7274929b33bd2bfb8fbbd114eba04f"},
+    {file = "pedalboard-0.9.10-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:9fb118790486e121f981909819b3e7c8ad6a3cb41a8470a3bbb4f027c712dce9"},
+    {file = "pedalboard-0.9.10-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:a6a65f76b133a5bee3c102b7139b15cd5873185fd1b390d76649579ddd4ec405"},
+    {file = "pedalboard-0.9.10-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9780c097d459c589156a1e69c7dc337285eb185e832755f58f0955fa9af37486"},
+    {file = "pedalboard-0.9.10-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7cd16dee8352a4e1d3d6fd8b2c843d60bc936ec5de27cded448bac9be4282998"},
+    {file = "pedalboard-0.9.10-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:f8aabcc61aec8f2810a96c2b49fa718dbf34c5d5399230ec72148f17abe27e63"},
+    {file = "pedalboard-0.9.10-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:e4353424892a6c4e137f257c6e820db58db1bc1d52944ea6277bb4f4e5b89e77"},
+    {file = "pedalboard-0.9.10-cp311-cp311-win_amd64.whl", hash = "sha256:5c42e6f93d67fbacbaa47041185ce92478aa3571bc9300c06fe00c0d96c9d03b"},
+    {file = "pedalboard-0.9.10-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:319b92d973512bfaeae3a7410a2e0d0e380ac09b57b62511f3f1be206f9863af"},
+    {file = "pedalboard-0.9.10-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:ae307e3257b06aee74305d281ef2b55c4b58a1c0784fba4e37e52bcfb050af74"},
+    {file = "pedalboard-0.9.10-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1668e63efb888a02be3d6d75c5daea950464dfef91b2c7126c1c89bb06ca4b14"},
+    {file = "pedalboard-0.9.10-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b0a92eff89bad22f9cc86499609311fcf791e062775fffbd0cb06b2913f6e55b"},
+    {file = "pedalboard-0.9.10-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0824cad6cc368f2f1f9a555852495edc0b1589bcd8b07e255a6c3161798577de"},
+    {file = "pedalboard-0.9.10-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:659c3981c0f040f44037d6a6be42f9d76ca9a552b54d85ae06b8b4c2ea4fd576"},
+    {file = "pedalboard-0.9.10-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:b0cc6bce2a772d8455d734bf892de31278a7a60cb9ea3fd5b2561240041c1795"},
+    {file = "pedalboard-0.9.10-cp312-cp312-win_amd64.whl", hash = "sha256:635d3f524c9fda968d5eb11645799850e730df0044b1dde163d9dcbb5b91be32"},
+    {file = "pedalboard-0.9.10-cp36-cp36m-macosx_10_13_x86_64.whl", hash = "sha256:1b6dddd5c1ad6c9c14535572613ca03b63055002d1224ce5044e17a53a74b7ef"},
+    {file = "pedalboard-0.9.10-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e7e72bd734407d441dbd2d5496aaae4a6c31992b04b063a0d13c600c7294b43a"},
+    {file = "pedalboard-0.9.10-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:91521b763ac18300574e2be3a3147ae6682536dcb45c4724665ac3da402665c3"},
+    {file = "pedalboard-0.9.10-cp36-cp36m-win_amd64.whl", hash = "sha256:1a80d419ba49d1943da916d32405f069470301b1d7a25a2f8d5e67acd2ffeb89"},
+    {file = "pedalboard-0.9.10-cp37-cp37m-macosx_10_13_x86_64.whl", hash = "sha256:f6fcaf5b697526894b5d27b867d5451fac5e3930fce7949846a58c2eb49f5d87"},
+    {file = "pedalboard-0.9.10-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fe3fd8185161a778043a94214480e9829981306ab0875193d5d0ff8d8da86f37"},
+    {file = "pedalboard-0.9.10-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f3049a53dcfd7e02d209b2f36434a53559d9b8c8af8ae29c63293725d1a22776"},
+    {file = "pedalboard-0.9.10-cp37-cp37m-win_amd64.whl", hash = "sha256:60598d87a7cfd6bea14a1d3fe7d1a5179192d16ca4a4fc1d89600a019fce6a6d"},
+    {file = "pedalboard-0.9.10-cp38-cp38-macosx_10_13_universal2.whl", hash = "sha256:d3e063db009b125a6e9db47857a546e33bb34fda27a340bae6e68a93d2dd8d82"},
+    {file = "pedalboard-0.9.10-cp38-cp38-macosx_10_13_x86_64.whl", hash = "sha256:3dd138e9fd34764299d8cedd5a81a82eafd1572d119212f2ee2ea997c535d41c"},
+    {file = "pedalboard-0.9.10-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:c58f267ba9f9df347f9beaf80b7fd0944f22162854984d18be1f1b733e106a1f"},
+    {file = "pedalboard-0.9.10-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8548703b02c506e2537d4793b137dc32eeeb5798241556be8939b49fe8a2a813"},
+    {file = "pedalboard-0.9.10-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1822b47ff885cea6264c65e92d125a96c8c715de79db6ddf2fa30e487437e63d"},
+    {file = "pedalboard-0.9.10-cp38-cp38-musllinux_1_1_aarch64.whl", hash = "sha256:d1120abe705ac12c5de1407dde4bb06e505f625aa02ac7aebfc595c541fc195c"},
+    {file = "pedalboard-0.9.10-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:90aa65903769282398e666dc7595c0609c3f84758ec4616aba36013378861f8b"},
+    {file = "pedalboard-0.9.10-cp38-cp38-win_amd64.whl", hash = "sha256:e85d49c39d59ceb65e3cd041238b872305e4adbdaf5b3bfa9487fadd4d41c1eb"},
+    {file = "pedalboard-0.9.10-cp39-cp39-macosx_10_13_universal2.whl", hash = "sha256:26ea2e6e6be083ba3e60539bdc8a381bbce64cf797176ccfcfe6030a8670c24a"},
+    {file = "pedalboard-0.9.10-cp39-cp39-macosx_10_13_x86_64.whl", hash = "sha256:dcedd1754143d1502197f2e7d207f3b97129b8986962b4fa0702cdcf3aa5007f"},
+    {file = "pedalboard-0.9.10-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:1bb265698cfbe299e3770b5a1909a6603799593efb928fa37f39634ddd7a78f8"},
+    {file = "pedalboard-0.9.10-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ee2995d4ed76da6c9c11abb10a0c5cdd94b8b450586e1cb9aea756a94c768596"},
+    {file = "pedalboard-0.9.10-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:17672a52e4d7ecedc1dbbbd07245959c10118b0100a1b3e38d012c7b0f074bb2"},
+    {file = "pedalboard-0.9.10-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:ccd7d527aea11dfb0aa4c89df9ced3ed1779d2f007769afe4977fefbc1934b91"},
+    {file = "pedalboard-0.9.10-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:9a5c07b24ddbaec238dcb1374a816788210f495f355c6299dd9216e422fbf6cb"},
+    {file = "pedalboard-0.9.10-cp39-cp39-win_amd64.whl", hash = "sha256:3160e0bef4ff55bedf2e842f84c6b79cba00b1459ec4361f3bc195f9959553fd"},
+    {file = "pedalboard-0.9.10-pp37-pypy37_pp73-macosx_10_13_x86_64.whl", hash = "sha256:95bfdb6b55865ca40898772ca5c44aee5a74f08afd5c2d29e3bedafa8c6b8ad5"},
+    {file = "pedalboard-0.9.10-pp37-pypy37_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c88cded0ef03d09d0b7cfc37c56dedea8bdf259dfd0a96f778f0ec04df4bf7c4"},
+    {file = "pedalboard-0.9.10-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:66ceb87e25152a4044dbc741bd82252957f974811f83efac7bddb34e368d0667"},
+    {file = "pedalboard-0.9.10-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:4fa2a67a14e8b808e935428c70a68a61f9cd32ccd47b74f82be16ad3a5be420e"},
+    {file = "pedalboard-0.9.10-pp38-pypy38_pp73-macosx_10_13_x86_64.whl", hash = "sha256:8f788f5579caf41ea222a1a8307d49d77d44e9a0eadf8461473d1af8a353305f"},
+    {file = "pedalboard-0.9.10-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a3313d4c85c80487130c14617f7f76445ed77b2fe84749f3c20bb72d63e2b951"},
+    {file = "pedalboard-0.9.10-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4816a94ce9c452d5c1f6ba85ae44779d20afedd56305c7a02aa6e6c89864d470"},
+    {file = "pedalboard-0.9.10-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:fa0bd0ed49e6e78d2088e9e9053da0facdaa3d2d7f1fb1ff9824689a2d3b476d"},
+    {file = "pedalboard-0.9.10-pp39-pypy39_pp73-macosx_10_15_x86_64.whl", hash = "sha256:349f7e5d87a5f45ca4ce31611a393123ab70b2e778d4642a3b37df045cd720af"},
+    {file = "pedalboard-0.9.10-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ce0ee89a7b266e3abac361c66f5cc884d07453ad0a43a1134384d6342de222be"},
+    {file = "pedalboard-0.9.10-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fe57867ae56327ae8841fe97374c84030db33cf5e23d745139c1fb5af2f85bd0"},
+    {file = "pedalboard-0.9.10-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:a718fb820727e6724d7e9de84ca06b00afd6761e9dfb346d940fce5e99b1075a"},
 ]
 
 [package.dependencies]
@@ -5195,13 +5195,13 @@ train = ["accelerate (>=0.20.3)", "datasets"]
 
 [[package]]
 name = "setuptools"
-version = "70.2.0"
+version = "70.3.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "setuptools-70.2.0-py3-none-any.whl", hash = "sha256:b8b8060bb426838fbe942479c90296ce976249451118ef566a5a0b7d8b78fb05"},
-    {file = "setuptools-70.2.0.tar.gz", hash = "sha256:bd63e505105011b25c3c11f753f7e3b8465ea739efddaccef8f0efac2137bac1"},
+    {file = "setuptools-70.3.0-py3-none-any.whl", hash = "sha256:fe384da74336c398e0d956d1cae0669bc02eed936cdb1d49b57de1990dc11ffc"},
+    {file = "setuptools-70.3.0.tar.gz", hash = "sha256:f171bab1dfbc86b132997f26a119f6056a57950d058587841a0082e8830f9dc5"},
 ]
 
 [package.extras]
@@ -5942,13 +5942,13 @@ vision = ["Pillow (>=10.0.1,<=15.0)"]
 
 [[package]]
 name = "trimesh"
-version = "4.4.1"
+version = "4.4.2"
 description = "Import, export, process, analyze and view triangular meshes."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "trimesh-4.4.1-py3-none-any.whl", hash = "sha256:dc00e293f4efed692b57e95ff9dafd5b62f2126439fb377d2a6b048d7d086933"},
-    {file = "trimesh-4.4.1.tar.gz", hash = "sha256:767fe3c866ba74e6d9a9d216c34ecc1cfe2fbf3f129a6c11d59871705a591aba"},
+    {file = "trimesh-4.4.2-py3-none-any.whl", hash = "sha256:0ee92c0d158c519e2696533c151d86d7f60532b9ed9346c4d78df7e66db58cd2"},
+    {file = "trimesh-4.4.2.tar.gz", hash = "sha256:c8de6895da005c7df29e9d199e85ca38c80c79a0edb709afcbc53feb12c47cfc"},
 ]
 
 [package.dependencies]
@@ -5957,8 +5957,8 @@ numpy = ">=1.20"
 [package.extras]
 all = ["trimesh[deprecated,easy,recommend,test]"]
 deprecated = ["gmsh (==4.12.2)"]
-easy = ["chardet", "colorlog", "embreex", "httpx", "jsonschema", "lxml", "mapbox-earcut", "networkx", "pillow", "pycollada", "rtree", "scipy", "setuptools", "shapely", "svg.path", "vhacdx", "xatlas", "xxhash"]
-recommend = ["cascadio", "glooey", "manifold3d (>=2.3.0)", "meshio", "openctm", "psutil", "pyglet (<2)", "python-fcl", "scikit-image", "sympy"]
+easy = ["chardet", "colorlog", "embreex", "httpx", "jsonschema", "lxml", "manifold3d (>=2.3.0)", "networkx", "pillow", "pycollada", "rtree", "scipy", "setuptools", "shapely", "svg.path", "vhacdx", "xatlas", "xxhash"]
+recommend = ["cascadio", "glooey", "mapbox-earcut", "meshio", "openctm", "psutil", "pyglet (<2)", "python-fcl", "scikit-image", "sympy"]
 test = ["coveralls", "ezdxf", "matplotlib", "pyinstrument", "pyright", "pytest", "pytest-beartype", "pytest-cov", "ruff"]
 
 [[package]]
