@@ -2,8 +2,14 @@
 import { css } from "@emotion/react";
 
 import { memo, useRef, useEffect } from "react";
-import { Typography } from "@mui/material";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Typography
+} from "@mui/material";
 import useLogsStore, { hashKey } from "../../stores/LogStore";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 type NodeLogsProps = {
   id: string;
@@ -49,12 +55,18 @@ export const NodeLogs = memo(function NodeLogs({
     <>
       {logs?.length > 0 && (
         <div className="node-logs" css={styles}>
-          <Typography variant="h6" component="h6">
-            Logs
-          </Typography>
-          <div className="logs" ref={logsRef}>
-            <pre>{logs}</pre>
-          </div>
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="h6" component="h6">
+                Logs
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <div className="logs" ref={logsRef}>
+                <pre>{logs}</pre>
+              </div>
+            </AccordionDetails>
+          </Accordion>
         </div>
       )}
     </>
