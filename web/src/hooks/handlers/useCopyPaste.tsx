@@ -96,7 +96,7 @@ export const useCopyPaste = () => {
       }
 
       // const firstNodePosition = reactFlow.screenToFlowPosition({
-      const firstNodePosition = reactFlow.project({
+      const firstNodePosition = reactFlow.screenToFlowPosition({
         x: mousePosition.x,
         y: mousePosition.y
       });

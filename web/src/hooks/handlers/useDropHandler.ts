@@ -91,6 +91,8 @@ export function nodeTypeFor(content_type: string): TypeName | null {
       return "audio";
     case "audio/webm":
       return "audio";
+    case "audio/mp3":
+      return "audio";
     default:
       return null;
   }
@@ -229,7 +231,6 @@ export const useDropHandler = (): DropHandler => {
         return [];
       }
       return files.reduce((acc: File[], file: File) => {
-
         if (file.type === "text/csv") {
           const nodeType = "nodetool.constant.DataFrame";
           const nodeMetadata = metadata.metadataByType[nodeType];
