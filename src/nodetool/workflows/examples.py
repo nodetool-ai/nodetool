@@ -13,6 +13,9 @@ examples = None
 def load_example(name: str) -> Workflow:
     with open(os.path.join(examples_folder, name), "r") as f:
         props = json.loads(f.read())
+        if not "nodes" in props["graph"]:
+            edges, nodes = read_graph(props["graph"])
+            props["graph"] = Graph(edges=edges, nodes=nodes)
         return Workflow(**props)
 
 

@@ -24,6 +24,16 @@ class TypeMetadata(BaseModel):
     def is_comfy_type(self):
         return self.type.startswith("comfy.")
 
+    def is_model_file_type(self):
+        return self.type in [
+            "comfy.clip_vision_file",
+            "comfy.checkpoint_file",
+            "comfy.control_net_file",
+            "comfy.gligen_file",
+            "comfy.upscale_model_file",
+            "comfy.unclip_file",
+        ]
+
     def is_enum_type(self):
         return self.type == "enum"
 
