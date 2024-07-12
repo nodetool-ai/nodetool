@@ -78,6 +78,8 @@ class ComfyNode(BaseNode):
                     return value.value
                 elif isinstance(value, ModelFile):
                     return value.name
+                elif isinstance(value, dict) and "name" in value:
+                    return value["name"]
                 else:
                     return value
 
