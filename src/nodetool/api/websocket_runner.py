@@ -2,12 +2,15 @@ import asyncio
 from enum import Enum
 import json
 import time
+import uuid
 from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
 
 from nodetool.common.environment import Environment
+from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.run_job_request import RunJobRequest
+from nodetool.workflows.workflow_runner import WorkflowRunner
 
 log = Environment.get_logger()
 
@@ -25,8 +28,10 @@ class WebSocketCommand(BaseModel):
 
 class WebSocketRunner:
     websocket: WebSocket | None = None
+    context: ProcessingContext | None = None
     active_job: asyncio.Task | None = None
     job_id: str | None = None
+    runner: WorkflowRunner | None = None
 
     async def connect(self, websocket: WebSocket):
         """Establish the WebSocket connection."""
@@ -49,13 +54,25 @@ class WebSocketRunner:
             raise ValueError("WebSocket is not connected")
 
         start_time = time.time()
-        self.job_id = req.workflow_id
+        self.job_id = uuid.uuid4().hex
+        self.runner = WorkflowRunner(job_id=self.job_id)
+        api_client = Environment.get_nodetool_api_client(
+            user_id=req.user_id, auth_token=req.auth_token, api_url=req.api_url
+        )
 
-        async for msg in run_workflow(req):
+        self.context = ProcessingContext(
+            user_id=req.user_id,
+            auth_token=req.auth_token,
+            workflow_id=req.workflow_id,
+            api_client=api_client,
+        )
+
+        print("Running job: ", self.job_id)
+        async for msg in run_workflow(req, self.runner, self.context):
             await self.websocket.send_text(msg.model_dump_json())
 
         total_time = time.time() - start_time
-        log.info(f"Total time: {total_time:.2f} seconds")
+        log.info(f"Finished job {self.job_id} - Total time: {total_time:.2f} seconds")
 
         # TODO: Implement bookkeeping for credits used
         self.active_job = None
@@ -63,8 +80,13 @@ class WebSocketRunner:
 
     async def cancel_job(self):
         """Cancel the active job if one exists."""
+        print("Cancelling job")
         if self.active_job:
-            self.active_job.cancel()
+            if self.runner:
+                self.runner.cancel()
+            if self.context:
+                self.context.is_cancelled = True
+            # self.active_job.cancel()
             self.active_job = None
             self.job_id = None
             return {"message": "Job cancelled"}

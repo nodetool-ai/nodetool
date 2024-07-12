@@ -109,46 +109,55 @@ async def run_workflow_in_thread(req: RunJobRequest) -> AsyncGenerator[Any, None
             pass
 
 
-async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
+async def run_workflow(
+    req: RunJobRequest,
+    runner: WorkflowRunner | None = None,
+    context: ProcessingContext | None = None,
+) -> AsyncGenerator[Any, None]:
+    """
+    Runs a workflow asynchronously.
+
+    Args:
+        req (RunJobRequest): The request object containing the necessary information for running the workflow.
+        runner (WorkflowRunner | None): The workflow runner object. If not provided, a new instance will be created.
+        context (ProcessingContext | None): The processing context object. If not provided, a new instance will be created.
+
+    Yields:
+        Any: A generator that yields job updates and messages from the workflow.
+
+    Raises:
+        Exception: If an error occurs during the execution of the workflow.
+
+    Returns:
+        AsyncGenerator[Any, None]: An asynchronous generator that yields job updates and messages from the workflow.
+    """
+
     import nodetool.nodes.anthropic
     import nodetool.nodes.huggingface
     import nodetool.nodes.nodetool
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
 
-    api_client = Environment.get_nodetool_api_client(
-        user_id=req.user_id, auth_token=req.auth_token, api_url=req.api_url
-    )
+    if context is None:
+        api_client = Environment.get_nodetool_api_client(
+            user_id=req.user_id, auth_token=req.auth_token, api_url=req.api_url
+        )
 
-    context = ProcessingContext(
-        user_id=req.user_id,
-        auth_token=req.auth_token,
-        workflow_id=req.workflow_id,
-        api_client=api_client,
-        queue=Queue(),
-    )
+        context = ProcessingContext(
+            user_id=req.user_id,
+            auth_token=req.auth_token,
+            workflow_id=req.workflow_id,
+            api_client=api_client,
+            queue=Queue(),
+        )
 
     try:
         run_task = None
-        # job = await context.create_job(req)
 
-        job = Job(
-            job_type="workflow",
-            id=uuid.uuid4().hex,
-            workflow_id=req.workflow_id,
-            status="running",
-            started_at=datetime.now().isoformat(),
-            finished_at=None,
-            error=None,
-            cost=None,
-        )
+        if runner is None:
+            runner = WorkflowRunner(job_id=uuid.uuid4().hex)
 
-        runner = WorkflowRunner(job_id=job.id)
-
-        def job_update(job: Job):
-            return JobUpdate(job_id=job.id, status=job.status)
-
-        yield job_update(job)
+        yield JobUpdate(job_id=runner.job_id, status="running")
 
         async def run():
             try:
@@ -167,7 +176,7 @@ async def run_workflow(req: RunJobRequest) -> AsyncGenerator[Any, None]:
                     raise Exception(msg.error)
                 yield msg
             else:
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.01)
 
         # Process any remaining messages
         while context.has_messages():
