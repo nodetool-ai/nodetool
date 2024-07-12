@@ -230,10 +230,11 @@ class ProcessingContext:
         return Environment.get_node_cache().get(key)
 
     def cache_result(self, node: BaseNode, result: Any, ttl: int = 3600):
+        """Cache the result for a node."""
+
         from nodetool.common.comfy_node import ComfyNode
 
-        """Cache the result for a node."""
-        if not issubclass(node, ComfyNode):
+        if not isinstance(node, ComfyNode):
             key = self.generate_node_cache_key(node)
             Environment.get_node_cache().set(key, result, ttl)
 
