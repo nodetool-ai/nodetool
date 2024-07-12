@@ -45,7 +45,7 @@ class ComfyNode(BaseNode):
                 f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
             )
 
-        if prop.type.type.is_model_file():
+        if prop.type.is_model_file_type():
             if isinstance(value, str):
                 value = ModelFile(name=value)
             if isinstance(value, dict):
