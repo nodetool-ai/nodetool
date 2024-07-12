@@ -25,7 +25,6 @@ export const useCreateNode = () => {
       };
 
       if (metadata.node_type === LOOP_NODE_TYPE) {
-        console.log(metadata);
         createLoopNode(metadata, position);
       } else {
         const newNode = createNode(

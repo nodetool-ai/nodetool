@@ -1,21 +1,18 @@
 import { useCallback } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
-// import { useReactFlow } from "reactflow";
 import useMetadataStore from "../../stores/MetadataStore";
 
 const GROUP_INPUT_NODE_TYPE = "nodetool.input.GroupInput";
 const GROUP_OUTPUT_NODE_TYPE = "nodetool.output.GroupOutput";
 
 export const useCreateLoopNode = () => {
-  // const reactFlowInstance = useReactFlow();
   const addNode = useNodeStore((state) => state.addNode);
   const createNode = useNodeStore((state) => state.createNode);
   const getMetadata = useMetadataStore.getState().getMetadata;
 
   const createLoopNode = useCallback(
     (metadata: NodeMetadata, position: { x: number; y: number }) => {
-      // const flowPosition = reactFlowInstance.screenToFlowPosition(position);
       const loopNode = createNode(metadata, position);
       addNode(loopNode);
 
@@ -34,11 +31,7 @@ export const useCreateLoopNode = () => {
         childNode.expandParent = true;
         addNode(childNode);
       };
-
-      // Create group input node
       createChildNode(GROUP_INPUT_NODE_TYPE, 0, 60);
-
-      // Create group output node
       createChildNode(
         GROUP_OUTPUT_NODE_TYPE,
         (loopNode.data.properties.width || 445) - 50,
