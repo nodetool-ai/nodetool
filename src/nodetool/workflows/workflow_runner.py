@@ -276,16 +276,20 @@ class WorkflowRunner:
             if cached_result is not None:
                 result = cached_result
             else:
-                if not node.get_node_type().startswith("comfy."):
-                    context.post_message(
-                        NodeUpdate(
-                            node_id=node.id,
-                            node_name=node.get_title(),
-                            properties=node.node_properties(),
-                            status="running",
-                            started_at=started_at.isoformat(),
-                        )
+                properties_for_update = {
+                    prop.name: getattr(node, prop.name)
+                    for prop in node.properties()
+                    if not prop.type.is_comfy_type()
+                }
+                context.post_message(
+                    NodeUpdate(
+                        node_id=node.id,
+                        node_name=node.get_title(),
+                        properties=properties_for_update,
+                        status="running",
+                        started_at=started_at.isoformat(),
                     )
+                )
 
                 result = await node.process(context)
                 result = await node.convert_output(context, result)
@@ -293,12 +297,17 @@ class WorkflowRunner:
                 context.cache_result(node, result)
 
             res_for_update = self.prepare_result_for_update(result, node)
+            properties_for_update = {
+                prop.name: getattr(node, prop.name)
+                for prop in node.properties()
+                if not prop.type.is_comfy_type()
+            }
 
             context.post_message(
                 NodeUpdate(
                     node_id=node._id,
                     node_name=node.get_title(),
-                    properties=node.node_properties(),
+                    properties=properties_for_update,
                     status="completed",
                     result=res_for_update,
                     started_at=started_at.isoformat(),
