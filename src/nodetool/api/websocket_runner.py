@@ -45,7 +45,6 @@ class WebSocketRunner:
     websocket: WebSocket | None = None
     context: ProcessingContext | None = None
     active_job: asyncio.Task | None = None
-    queue: asyncio.Queue | Queue | None = None
     use_thread: bool = False
     job_id: str | None = None
     runner: WorkflowRunner | None = None
@@ -57,7 +56,6 @@ class WebSocketRunner:
         pre_run_hook: Any = None,
         post_run_hook: Any = None,
         use_thread: bool = False,
-        queue: asyncio.Queue | Queue | None = None,
     ):
         """
         Initializes a new instance of the WebSocketRunner class.
@@ -70,7 +68,6 @@ class WebSocketRunner:
         self.pre_run_hook = pre_run_hook
         self.post_run_hook = post_run_hook
         self.use_thread = use_thread
-        self.queue = queue
 
     async def connect(self, websocket: WebSocket):
         """
@@ -122,7 +119,6 @@ class WebSocketRunner:
             auth_token=req.auth_token,
             workflow_id=req.workflow_id,
             api_client=api_client,
-            queue=self.queue,
         )
 
         print("Running job: ", self.job_id)

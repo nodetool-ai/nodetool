@@ -276,7 +276,7 @@ class WorkflowRunner:
             if cached_result is not None:
                 result = cached_result
             else:
-                if not node.get_node_type().starts_with("comfy."):
+                if not node.get_node_type().startswith("comfy."):
                     context.post_message(
                         NodeUpdate(
                             node_id=node.id,
