@@ -83,7 +83,6 @@ async def test_create(
 
     response = client.post(
         "/api/jobs/",
-        params={"execute": "false"},
         json=req.model_dump(),
         headers=headers,
     )
@@ -94,62 +93,6 @@ async def test_create(
     assert job["workflow_id"] == workflow.id
     assert job["user_id"] == user.id
     assert job["graph"] == {"nodes": [], "edges": []}
-
-
-@pytest.mark.asyncio
-async def test_run(
-    client: TestClient,
-    workflow: Workflow,
-    user: User,
-    headers: dict[str, str],
-):
-    int_a = {"id": "1", "type": IntegerInput.get_node_type(), "data": {"value": 10}}
-    int_b = {
-        "id": "2",
-        "type": IntegerInput.get_node_type(),
-        "data": {"value": 5},
-    }
-    add = {
-        "id": "3",
-        "type": Add.get_node_type(),
-    }
-    int_output = {
-        "id": "4",
-        "type": IntegerOutput.get_node_type(),
-    }
-
-    nodes = [int_a, int_b, add, int_output]
-
-    edges = [
-        Edge(id="1", source="1", target="3", sourceHandle="output", targetHandle="a"),
-        Edge(id="2", source="2", target="3", sourceHandle="output", targetHandle="b"),
-        Edge(
-            id="3", source="3", target="4", sourceHandle="output", targetHandle="value"
-        ),
-    ]
-
-    req = RunJobRequest(
-        workflow_id=workflow.id,
-        auth_token=str(user.auth_token),
-        graph=Graph(nodes=nodes, edges=edges),
-        params={},
-    )
-
-    response = client.post("/api/jobs/", json=req.model_dump(), headers=headers)
-    assert response.status_code == 200
-
-    # read response body line by line and convert to a list of dicts
-    messages = [json.loads(line) for line in response.iter_lines()]
-
-    assert len(messages) > 0
-
-    for i in ["1", "2", "3", "4"]:
-        assert any(
-            m.get("node_id") == i and m.get("status") == "running" for m in messages
-        )
-        assert any(
-            m.get("node_id") == i and m.get("status") == "completed" for m in messages
-        )
 
 
 @pytest.mark.asyncio
@@ -168,19 +111,6 @@ async def test_run_without_graph_param(
 
     response = client.post("/api/jobs/", json=req.model_dump(), headers=headers)
     assert response.status_code == 200
-
-    # read response body line by line and convert to a list of dicts
-    messages = [json.loads(line) for line in response.iter_lines()]
-
-    assert len(messages) > 0
-
-    for i in ["1", "2"]:
-        assert any(
-            m.get("node_id") == i and m.get("status") == "running" for m in messages
-        )
-        assert any(
-            m.get("node_id") == i and m.get("status") == "completed" for m in messages
-        )
 
 
 @pytest.mark.asyncio

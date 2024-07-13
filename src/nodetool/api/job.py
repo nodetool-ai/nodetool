@@ -105,4 +105,5 @@ async def run(
         graph=job_request.graph.model_dump(),
         status="running",
     )
-    assert job
+
+    return job
