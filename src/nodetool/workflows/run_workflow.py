@@ -1,5 +1,6 @@
 import asyncio
-from asyncio.queues import Queue
+from asyncio.queues import Queue as AsyncQueue
+from queue import Queue
 from typing import AsyncGenerator, Any
 from uuid import uuid4
 from nodetool.common.environment import Environment
@@ -47,7 +48,7 @@ async def run_workflow(
             auth_token=req.auth_token,
             workflow_id=req.workflow_id,
             api_client=api_client,
-            queue=Queue(),
+            queue=Queue() if use_thread else AsyncQueue(),
         )
 
     if runner is None:
