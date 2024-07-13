@@ -52,6 +52,7 @@ export default memo(
     const nodeKey = hashKey(workflowId, props.id);
     const status = useStatusStore((state) => state.statuses[nodeKey]);
     const edges = getInputEdges(props.id);
+    const result = useResultsStore((state) => state.results[nodeKey]);
     const isLoading =
       status === "running" ||
       status === "starting" ||
@@ -89,6 +90,7 @@ export default memo(
         </Container>
       );
     }
+    console.log("props.type", props.type);
 
     const nodeMetadata = metadata.metadataByType[props.type];
     const node_title = titleize(nodeMetadata.title || "");
@@ -97,11 +99,11 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-            name: "output",
-            type: {
-              type: "string"
-            }
-          };
+          name: "output",
+          type: {
+            type: "string"
+          }
+        };
 
     return (
       <Container
@@ -147,7 +149,15 @@ export default memo(
           primaryField={nodeMetadata.primary_field || ""}
           secondaryField={nodeMetadata.secondary_field || ""}
         />
-
+        {isOutputNode && (
+          <div className="node-output">
+            {nodeMetadata.outputs.map((output) => (
+              <div key={output.name}>
+                <OutputRenderer value={result ? result[output.name] : null} />
+              </div>
+            ))}
+          </div>
+        )}
         {nodeMetadata.layout === "default" && (
           <>
             <ProcessTimer isLoading={isLoading} status={status} />

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { NodeData } from "./NodeData";
-import { BASE_URL, WORKER_URL } from "./ApiClient";
+import { BASE_URL, COMFY_WORKER_URL, WORKER_URL } from "./ApiClient";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "reactflow";
 import { useAssetStore } from "../hooks/AssetStore";
@@ -41,6 +41,7 @@ export type NodeState = {
 export type WorkflowRunner = {
   socket: WebSocket | null;
   job_id: string | null;
+  current_url: string;
   state: "idle" | "running" | "error" | "cancelled";
   statusMessage: string | null;
   setStatusMessage: (message: string | null) => void;
@@ -54,12 +55,13 @@ export type WorkflowRunner = {
   ) => void;
   cancel: () => Promise<void>;
   run: (params?: any, noCache?: boolean) => Promise<void>;
-  connect: () => Promise<void>;
+  connect: (url: string) => Promise<void>;
   disconnect: () => void;
 };
 
 const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   socket: null,
+  current_url: "",
   job_id: null,
   state: "idle",
   statusMessage: null,
@@ -68,13 +70,19 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   },
   notifications: [],
     
-  connect: async () => {
+  connect: async (url: string) => {
     const user = useAuth.getState().getUser();
     if (!user) {
       throw new Error("User is not logged in");
     }
+    
+    if (get().socket) {
+      get().disconnect();
+    }
+    
+    set({ current_url: url });
 
-    const socket = new WebSocket(WORKER_URL);
+    const socket = new WebSocket(url);
     
     socket.onopen = () => {
       devLog("WebSocket connected");
@@ -114,7 +122,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const { socket } = get();
     if (socket) {
       socket.close();
-      set({ socket: null });
+      set({ socket: null, current_url: "" });
     }
   },
 
@@ -269,9 +277,11 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const clearStatuses = useStatusStore.getState().clearStatuses;
     const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
+    const containsComfyNode = nodes.some((node) => node.type?.match(/^comfy/i));
+    const connectUrl = containsComfyNode ? COMFY_WORKER_URL : WORKER_URL;
     
-    if (!get().socket) {
-      await get().connect();
+    if (!get().socket || get().current_url !== connectUrl) {
+      await get().connect(connectUrl);
     }
     
     const socket = get().socket;
@@ -280,8 +290,6 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       throw new Error("Socket is null");
     }
 
-    // // make a deep copy of nodes
-    // const nodesCopy = JSON.parse(JSON.stringify(nodes)) as Node<NodeData>[];
     const user = getUser();
 
     if (user === null) {

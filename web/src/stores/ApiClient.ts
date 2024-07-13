@@ -2,7 +2,7 @@ import createClient, { type Middleware } from "openapi-fetch";
 import { paths } from "../api.js"; // (generated from openapi-typescript)
 import { useAuth } from "./useAuth.js";
 
-const mode: string = import.meta.env.MODE;
+const mode: string =  import.meta.env.MODE;
 
 export const useRemoteAuth =
   mode === "production" ||
@@ -20,11 +20,15 @@ export const BASE_URL =
     ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com"
     : "https://api.nodetool.ai";
 
-export const WORKER_URL = 
+export const WORKER_URL =
   isDevelopment
     ? "http://" + window.location.hostname + ":8000/predict"
-    : "https://georgi--worker-app-worker-app.modal.run/predict"
+    : "https://georgi--worker-app-worker-app.modal.run/predict";
     
+export const COMFY_WORKER_URL =
+  isDevelopment
+    ? "http://" + window.location.hostname + ":8000/predict"
+    : "https://georgi--worker-app-gpuworker-app.modal.run/predict";
 
 export const pingWorker = () => {
   if (isDevelopment) {
