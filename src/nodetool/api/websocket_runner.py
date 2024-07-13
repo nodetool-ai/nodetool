@@ -126,7 +126,10 @@ class WebSocketRunner:
             self.pre_run_hook()
 
         async for msg in run_workflow(req, self.runner, self.context):
-            await self.websocket.send_text(msg.model_dump_json())
+            try:
+                await self.websocket.send_text(msg.model_dump_json())
+            except Exception as e:
+                log.exception(e)
 
         if self.post_run_hook:
             self.post_run_hook()
