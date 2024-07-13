@@ -276,15 +276,16 @@ class WorkflowRunner:
             if cached_result is not None:
                 result = cached_result
             else:
-                context.post_message(
-                    NodeUpdate(
-                        node_id=node.id,
-                        node_name=node.get_title(),
-                        properties=node.node_properties(),
-                        status="running",
-                        started_at=started_at.isoformat(),
+                if not node.get_node_type().starts_with("comfy."):
+                    context.post_message(
+                        NodeUpdate(
+                            node_id=node.id,
+                            node_name=node.get_title(),
+                            properties=node.node_properties(),
+                            status="running",
+                            started_at=started_at.isoformat(),
+                        )
                     )
-                )
 
                 result = await node.process(context)
                 result = await node.convert_output(context, result)
@@ -471,14 +472,15 @@ class WorkflowRunner:
 
             comfy.utils.set_progress_bar_global_hook(hook)
 
-            # comfy.model_management.unload_all_models()
-            log.info(f"VRAM: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}")
+            log.info(
+                f"Using TOrch with VRAM: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+            )
             with torch.inference_mode():
                 comfy.model_management.cleanup_models()
                 yield
-                # gc.collect()
-                # comfy.model_management.soft_empty_cache()
-                log.info(f"VRAM: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}")
+                log.info(
+                    f"Finished Torch with VRAM: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+                )
 
         else:
             yield
