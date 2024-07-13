@@ -28,21 +28,61 @@ class WebSocketCommand(BaseModel):
 
 
 class WebSocketRunner:
+    """
+    Runs a workflow using a WebSocket connection.
+
+    Attributes:
+        websocket (WebSocket | None): The WebSocket connection.
+        context (ProcessingContext | None): The processing context for job execution.
+        active_job (asyncio.Task | None): The currently active job.
+        use_thread (bool): Flag indicating whether to use a separate thread for job execution.
+        job_id (str | None): The ID of the current job.
+        runner (WorkflowRunner | None): The workflow runner for job execution.
+        pre_run_hook (Any): A hook function to be executed before running a job.
+        post_run_hook (Any): A hook function to be executed after running a job.
+    """
+
     websocket: WebSocket | None = None
     context: ProcessingContext | None = None
     active_job: asyncio.Task | None = None
+    use_thread: bool = False
     job_id: str | None = None
     runner: WorkflowRunner | None = None
-    pre_run_hook: Any = None
-    post_run_hook: Any = None
+    pre_run_hook: Any
+    post_run_hook: Any
+
+    def __init__(
+        self,
+        pre_run_hook: Any = None,
+        post_run_hook: Any = None,
+        use_thread: bool = False,
+    ):
+        """
+        Initializes a new instance of the WebSocketRunner class.
+
+        Args:
+            pre_run_hook (Any, optional): A hook function to be executed before running a job.
+            post_run_hook (Any, optional): A hook function to be executed after running a job.
+            use_thread (bool, optional): Flag indicating whether to use a separate thread for job execution.
+        """
+        self.pre_run_hook = pre_run_hook
+        self.post_run_hook = post_run_hook
+        self.use_thread = use_thread
 
     async def connect(self, websocket: WebSocket):
-        """Establish the WebSocket connection."""
+        """
+        Establishes the WebSocket connection.
+
+        Args:
+            websocket (WebSocket): The WebSocket connection.
+        """
         await websocket.accept()
         self.websocket = websocket
 
     async def disconnect(self):
-        """Close the WebSocket connection and cancel any active job."""
+        """
+        Closes the WebSocket connection and cancels any active job.
+        """
         if self.active_job:
             self.active_job.cancel()
         if self.websocket:
@@ -52,7 +92,15 @@ class WebSocketRunner:
         self.job_id = None
 
     async def run_job(self, req: RunJobRequest):
-        """Run a job based on the provided RunJobRequest."""
+        """
+        Runs a job based on the provided RunJobRequest.
+
+        Args:
+            req (RunJobRequest): The RunJobRequest containing job details.
+
+        Raises:
+            ValueError: If WebSocket is not connected.
+        """
         if not self.websocket:
             raise ValueError("WebSocket is not connected")
 
@@ -88,7 +136,12 @@ class WebSocketRunner:
         self.job_id = None
 
     async def cancel_job(self):
-        """Cancel the active job if one exists."""
+        """
+        Cancels the active job if one exists.
+
+        Returns:
+            dict: A dictionary with a message indicating the job was cancelled, or an error if no active job exists.
+        """
         print("Cancelling job")
         if self.active_job:
             if self.runner:
@@ -102,14 +155,27 @@ class WebSocketRunner:
         return {"error": "No active job to cancel"}
 
     def get_status(self):
-        """Get the current status of job execution."""
+        """
+        Gets the current status of job execution.
+
+        Returns:
+            dict: A dictionary with the status ("running" or "idle") and the job ID.
+        """
         return {
             "status": "running" if self.active_job else "idle",
             "job_id": self.job_id,
         }
 
     async def handle_command(self, command: WebSocketCommand):
-        """Handle incoming WebSocket commands."""
+        """
+        Handles incoming WebSocket commands.
+
+        Args:
+            command (WebSocketCommand): The WebSocket command to handle.
+
+        Returns:
+            dict: A dictionary with the response to the command.
+        """
         if command.command == CommandType.RUN_JOB:
             if self.active_job:
                 return {"error": "A job is already running"}
@@ -125,7 +191,12 @@ class WebSocketRunner:
             return {"error": "Unknown command"}
 
     async def run(self, websocket: WebSocket):
-        """Main method to run the WorkflowRunner."""
+        """
+        Main method to run the WorkflowRunner.
+
+        Args:
+            websocket (WebSocket): The WebSocket connection.
+        """
         await self.connect(websocket)
         try:
             while True:
