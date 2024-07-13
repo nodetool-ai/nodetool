@@ -104,38 +104,43 @@ class WebSocketRunner:
         Raises:
             ValueError: If WebSocket is not connected.
         """
-        if not self.websocket:
-            raise ValueError("WebSocket is not connected")
+        try:
+            if not self.websocket:
+                raise ValueError("WebSocket is not connected")
 
-        start_time = time.time()
-        self.job_id = uuid.uuid4().hex
-        self.runner = WorkflowRunner(job_id=self.job_id)
-        api_client = Environment.get_nodetool_api_client(
-            user_id=req.user_id, auth_token=req.auth_token, api_url=req.api_url
-        )
+            start_time = time.time()
+            self.job_id = uuid.uuid4().hex
+            self.runner = WorkflowRunner(job_id=self.job_id)
+            api_client = Environment.get_nodetool_api_client(
+                user_id=req.user_id, auth_token=req.auth_token, api_url=req.api_url
+            )
 
-        self.context = ProcessingContext(
-            user_id=req.user_id,
-            auth_token=req.auth_token,
-            workflow_id=req.workflow_id,
-            api_client=api_client,
-        )
+            self.context = ProcessingContext(
+                user_id=req.user_id,
+                auth_token=req.auth_token,
+                workflow_id=req.workflow_id,
+                api_client=api_client,
+            )
 
-        print("Running job: ", self.job_id)
-        if self.pre_run_hook:
-            self.pre_run_hook()
+            print("Running job: ", self.job_id)
+            if self.pre_run_hook:
+                self.pre_run_hook()
 
-        async for msg in run_workflow(req, self.runner, self.context):
-            try:
-                await self.websocket.send_text(msg.model_dump_json())
-            except Exception as e:
-                log.exception(e)
+            async for msg in run_workflow(req, self.runner, self.context):
+                try:
+                    await self.websocket.send_text(msg.model_dump_json())
+                except Exception as e:
+                    log.exception(e)
 
-        if self.post_run_hook:
-            self.post_run_hook()
+            if self.post_run_hook:
+                self.post_run_hook()
 
-        total_time = time.time() - start_time
-        log.info(f"Finished job {self.job_id} - Total time: {total_time:.2f} seconds")
+            total_time = time.time() - start_time
+            log.info(
+                f"Finished job {self.job_id} - Total time: {total_time:.2f} seconds"
+            )
+        except Exception as e:
+            log.exception(e)
 
         # TODO: Implement bookkeeping for credits used
         self.active_job = None
