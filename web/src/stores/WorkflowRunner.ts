@@ -42,7 +42,7 @@ export type WorkflowRunner = {
   socket: WebSocket | null;
   job_id: string | null;
   current_url: string;
-  state: "idle" | "running" | "error" | "cancelled";
+  state: "idle" | "connecting" | "connected" | "running" | "error" | "cancelled";
   statusMessage: string | null;
   setStatusMessage: (message: string | null) => void;
   notifications: Notification[];
@@ -80,7 +80,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       get().disconnect();
     }
     
-    set({ current_url: url });
+    set({ current_url: url, state: "connecting" });
 
     const socket = new WebSocket(url);
     
@@ -111,6 +111,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     return new Promise<void>((resolve) => {
       const interval = setInterval(() => {
         if (socket.readyState === WebSocket.OPEN) {
+          set({ state: "connected" });
           clearInterval(interval);
           resolve();
         }
@@ -122,7 +123,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const { socket } = get();
     if (socket) {
       socket.close();
-      set({ socket: null, current_url: "" });
+      set({ socket: null, current_url: "", state: "idle" });
     }
   },
 
@@ -154,6 +155,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
               alert: true,
               content: "Job completed"
             });
+            get().disconnect();
             break;
           case "running":
             set({ state: "running" });
@@ -165,6 +167,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
               alert: true,
               content: "Job cancelled"
             });
+            get().disconnect();
             break;
           case "failed":
             set({ state: "idle" });
@@ -174,6 +177,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
               content: "Job failed " + job.error || "",
               timeout: 30000
             });
+            get().disconnect();
             break;
         }
       }

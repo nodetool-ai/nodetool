@@ -90,7 +90,6 @@ export default memo(
         </Container>
       );
     }
-    console.log("props.type", props.type);
 
     const nodeMetadata = metadata.metadataByType[props.type];
     const node_title = titleize(nodeMetadata.title || "");

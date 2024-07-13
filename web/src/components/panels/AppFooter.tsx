@@ -4,13 +4,14 @@ import { css } from "@emotion/react";
 // store
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
 // mui
-import { AppBar, Button, Tooltip, Toolbar, Box } from "@mui/material";
+import { AppBar, Button, Tooltip, Toolbar, Box, CircularProgress, LinearProgress } from "@mui/material";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 //hooks
 import { useHotkeys } from "react-hotkeys-hook";
 //constants
 import { TOOLTIP_DELAY } from "../../config/constants";
+
 
 const footerStyles = (theme: any) =>
   css({
@@ -119,12 +120,18 @@ function AppFooter() {
             >
               <Button
                 size="large"
-                className={`run-workflow ${
-                  isWorkflowRunning ? "disabled" : ""
-                }`}
+                className={`run-workflow ${isWorkflowRunning ? "disabled" : ""
+                  }`}
                 onClick={() => !isWorkflowRunning && runWorkflow()}
               >
-                <PlayArrow />
+                {state === "connecting" || state === "connected" ? (
+                  "Connecting"
+                ) :
+                  state === "running" ? (
+                    <CircularProgress />
+                  ) : (
+                    <PlayArrow />
+                  )}
               </Button>
             </Tooltip>
             <Tooltip
@@ -148,9 +155,8 @@ function AppFooter() {
             >
               <Button
                 size="large"
-                className={`stop-workflow ${
-                  !isWorkflowRunning ? "disabled" : ""
-                }`}
+                className={`stop-workflow ${!isWorkflowRunning ? "disabled" : ""
+                  }`}
                 onClick={() => cancelWorkflow()}
               >
                 <StopIcon />
