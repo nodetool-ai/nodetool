@@ -1,4 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState } from "react";
 import { NodeProps } from "reactflow";
@@ -37,6 +39,16 @@ export function titleize(str: string) {
  * @param props
  */
 
+const styles = (theme: any) =>
+  css({
+    ".node-status": {
+      maxWidth: "180px",
+      padding: "10px",
+      color: "red",
+      fontFamily: theme.fontFamily1
+    }
+  });
+
 export default memo(
   function BaseNode(props: NodeProps<NodeData>) {
     const {
@@ -52,7 +64,6 @@ export default memo(
     const nodeKey = hashKey(workflowId, props.id);
     const status = useStatusStore((state) => state.statuses[nodeKey]);
     const edges = getInputEdges(props.id);
-    const result = useResultsStore((state) => state.results[nodeKey]);
     const isLoading =
       status === "running" ||
       status === "starting" ||
@@ -98,15 +109,16 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-          name: "output",
-          type: {
-            type: "string"
-          }
-        };
+            name: "output",
+            type: {
+              type: "string"
+            }
+          };
 
     return (
       <Container
         className={className}
+        css={styles}
         style={{
           display: parentIsCollapsed ? "none" : "block",
           backgroundColor: hasParent
@@ -123,11 +135,11 @@ export default memo(
           />
           <div className="node-content-hidden" />
           <NodeErrors id={props.id} />
-          {status === "booting" && (
+          {status == "booting" && (
             <Typography
+              className="node-status"
               variant="body2"
               color="textSecondary"
-              sx={{ padding: "10px", color: "red" }}
             >
               Model is booting, this can take up to 3 minutes.
             </Typography>
@@ -148,15 +160,7 @@ export default memo(
           primaryField={nodeMetadata.primary_field || ""}
           secondaryField={nodeMetadata.secondary_field || ""}
         />
-        {isOutputNode && (
-          <div className="node-output">
-            {nodeMetadata.outputs.map((output) => (
-              <div key={output.name}>
-                <OutputRenderer value={result ? result[output.name] : null} />
-              </div>
-            ))}
-          </div>
-        )}
+
         {nodeMetadata.layout === "default" && (
           <>
             <ProcessTimer isLoading={isLoading} status={status} />

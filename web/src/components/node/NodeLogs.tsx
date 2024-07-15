@@ -18,17 +18,44 @@ type NodeLogsProps = {
 
 const styles = (theme: any) =>
   css({
-    padding: "0 1em",
+    padding: "0",
+    borderRadius: 0,
     margin: 0,
+    boxShadow: "none",
+    position: "absolute",
+    width: "100%",
+    top: "calc(100% - 3em)",
+    zIndex: 100,
     h6: {
       margin: 0,
       padding: 0
+    },
+    "MuiPaper-root": {
+      boxShadow: "none",
+      borderRadius: 0
+    },
+    ".Mui-expanded": {
+      minHeight: "unset"
+    },
+    ".MuiButtonBase-root": {
+      backgroundColor: theme.palette.c_gray2,
+      height: "1.5em",
+      minHeight: "unset",
+      border: 0,
+      margin: 0,
+      padding: ".5em 0 .25em .5em"
+    },
+    ".MuiButtonBase-root svg": {
+      fontSize: "1.5em"
+    },
+    ".MuiAccordionSummary-content": {
+      padding: 0,
+      margin: 0
     },
     ".logs": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       width: "100%",
-      maxWidth: "100px",
       height: "80px",
       padding: "0.5em",
       overflow: "auto",
