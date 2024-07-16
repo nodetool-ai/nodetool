@@ -212,7 +212,7 @@ class PostgresAdapter(DatabaseAdapter):
     def connection(self):
         if not hasattr(self, "_connection"):
             self._connection = psycopg2.connect(
-                dbname=self.db_params["dbname"],
+                database=self.db_params["database"],
                 user=self.db_params["user"],
                 password=self.db_params["password"],
                 host=self.db_params["host"],

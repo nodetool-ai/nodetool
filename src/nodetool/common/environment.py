@@ -415,7 +415,7 @@ class Environment(object):
         The postgres params are the parameters that we use to connect to the database.
         """
         return {
-            "dbname": cls.get("POSTGRES_DB"),
+            "database": cls.get("POSTGRES_DB"),
             "user": cls.get("POSTGRES_USER"),
             "password": cls.get("POSTGRES_PASSWORD"),
             "host": cls.get("POSTGRES_HOST"),
@@ -484,7 +484,7 @@ class Environment(object):
         """
         # If we are in production, we don't need an access key id.
         # We use the IAM role instead.
-        return os.environ.get("S3_ACCESS_KEY_ID", cls.get_aws_access_key_id())
+        return os.environ.get("S3_ACCESS_KEY_ID", None)
 
     @classmethod
     def get_s3_secret_access_key(cls):
@@ -493,7 +493,7 @@ class Environment(object):
         """
         # If we are in production, we don't need a secret access key.
         # We use the IAM role instead.
-        return os.environ.get("S3_SECRET_ACCESS_KEY", cls.get_aws_secret_access_key())
+        return os.environ.get("S3_SECRET_ACCESS_KEY", None)
 
     @classmethod
     def get_s3_region(cls):
@@ -806,15 +806,16 @@ class Environment(object):
         """
         Get the S3 service.
         """
-        from nodetool.common.aws_client import AWSClient
+        from nodetool.storage.s3_storage import S3Storage
 
-        return AWSClient(
+        return S3Storage(
+            bucket_name=bucket,
+            domain=domain,
             endpoint_url=cls.get_s3_endpoint_url(),
             access_key_id=cls.get_s3_access_key_id(),
             secret_access_key=cls.get_s3_secret_access_key(),
             region_name=cls.get_s3_region(),
-            log=cls.get_logger(),
-        ).get_s3_storage(bucket=bucket, domain=domain)
+        )
 
     @classmethod
     def get_asset_storage(cls, use_s3: bool = False):
@@ -822,7 +823,7 @@ class Environment(object):
         Get the storage adapter for assets.
         """
         if not hasattr(cls, "asset_storage"):
-            if cls.is_production() or cls.get_s3_endpoint_url() is not None or use_s3:
+            if cls.is_production() or cls.get_s3_access_key_id() is not None or use_s3:
                 return cls.get_s3_storage(
                     cls.get_asset_bucket(), cls.get_asset_domain()
                 )
