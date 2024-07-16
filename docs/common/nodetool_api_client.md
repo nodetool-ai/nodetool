@@ -50,16 +50,6 @@
 
 **Returns:** Response
 
-### stream
-
-**Args:**
-- **method (str)**
-- **path (str)**
-- **json (dict[str, typing.Any] | None) (default: None)**
-- **kwargs**
-
-**Returns:** typing.AsyncGenerator[str, NoneType]
-
 ## Response
 
 Represents an HTTP response.

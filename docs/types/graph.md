@@ -22,3 +22,16 @@
 - **data** (Any)
 - **ui_properties** (Any)
 
+### remove_connected_slots
+
+Clears specific slots in the data field of nodes based on connected target handles.
+
+
+**Args:**
+
+- **graph (Graph)**: The graph object containing nodes and edges.
+
+
+**Returns:**
+
+- **Graph**: The updated graph object with cleared slots.

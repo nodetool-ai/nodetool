@@ -89,12 +89,17 @@ Creates an AudioRef from an IO object.
 - **AudioRef**: The AudioRef object.
 ### audio_from_numpy
 
-**Args:**
-- **data (ndarray)**
-- **sample_rate (int)**
-- **name (str | None) (default: None)**
-- **parent_id (str | None) (default: None)**
+Creates an AudioRef from a numpy array.
 
+
+**Args:**
+
+- **context (ProcessingContext)**: The processing context.
+- **data (np.ndarray)**: The numpy array.
+- **sample_rate (int)**: The sample rate.
+- **num_channels (int, optional)**: The number of channels. Defaults to 1.
+- **name (Optional[str], optional)**: The name of the asset. Defaults to None.
+- **parent_id (Optional[str], optional)**: The parent ID of the asset. Defaults to None.
 **Returns:** AudioRef
 
 ### audio_from_segment
@@ -105,7 +110,7 @@ Converts an audio segment to an AudioRef object.
 **Args:**
 
 - **audio_segment (pydub.AudioSegment)**: The audio segment to convert.
-- **name (str, optional)**: The name of the audio. Defaults to None.
+- **name (str, optional)**: The name of the audio file, will create an asset. Defaults to None.
 - **parent_id (str, optional)**: The ID of the parent asset. Defaults to None.
 - ****kwargs**: Additional keyword arguments.
 
@@ -125,10 +130,13 @@ Converts the audio to an AudioSegment object.
 
 ### audio_to_numpy
 
-**Args:**
-- **audio_ref (AudioRef)**
+Converts the audio to a np.float32 array.
 
-**Returns:** tuple[numpy.ndarray, int]
+
+**Args:**
+
+- **context (ProcessingContext)**: The processing context.
+**Returns:** tuple[numpy.ndarray, int, int]
 
 ### cache_result
 
@@ -169,6 +177,19 @@ Creates an asset with the given name, content type, content, and optional parent
 **Returns:**
 
 - **Asset**: The created asset.
+### create_job
+
+Creates a job to run a workflow but does not execute it.
+
+
+**Args:**
+
+- **req (RunJobRequest)**: The job request.
+
+
+**Returns:**
+
+- **Job**: The created job.
 ### create_message
 
 Creates a message for a thread.
@@ -367,6 +388,19 @@ Get the cached result for a node.
 
 **Args:**
 
+### get_job
+
+Gets the status of a job.
+
+
+**Args:**
+
+- **job_id (str)**: The ID of the job.
+
+
+**Returns:**
+
+- **Job**: The job status.
 ### get_messages
 
 Gets messages for a thread.
@@ -725,6 +759,20 @@ Converts a TextRef to a string.
 **Returns:**
 
 - **str**: The string.
+### update_job
+
+Updates the status of a job.
+
+
+**Args:**
+
+- **job_id (str)**: The ID of the job.
+- **req (JobUpdate)**: The job update request.
+
+
+**Returns:**
+
+- **Job**: The updated job.
 ### update_task
 
 Updates a task.

@@ -1,26 +1,21 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple, Type
 
+from nodetool.models.condition_builder import ConditionBuilder
+from pydantic.fields import FieldInfo
+
 
 class DatabaseAdapter(ABC):
+    fields: Dict[str, FieldInfo]
+    table_name: str
+    table_schema: Dict[str, Any]
+
     @abstractmethod
-    def create_table(
-        self,
-        table_name: str,
-        key_schema: Dict[str, str],
-        attribute_definitions: Dict[str, str],
-        global_secondary_indexes: Dict[str, Dict[str, str]] | None = None,
-        read_capacity_units: int = 1,
-        write_capacity_units: int = 1,
-    ) -> None:
+    def create_table(self) -> None:
         pass
 
     @abstractmethod
-    def drop_table(self, table_name: str) -> None:
-        pass
-
-    @abstractmethod
-    def get_primary_key(self) -> str:
+    def drop_table(self) -> None:
         pass
 
     @abstractmethod
@@ -38,11 +33,14 @@ class DatabaseAdapter(ABC):
     @abstractmethod
     def query(
         self,
-        condition: str,
-        values: Dict[str, Any],
+        condition: ConditionBuilder,
         limit: int = 100,
         reverse: bool = False,
-        start_key: str | None = None,
-        index: str | None = None,
     ) -> tuple[list[dict[str, Any]], str]:
         pass
+
+    def get_primary_key(self) -> str:
+        """
+        Get the name of the primary key.
+        """
+        return self.table_schema.get("primary_key", "id")

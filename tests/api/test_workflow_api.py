@@ -6,6 +6,7 @@ from nodetool.types.workflow import (
 )
 from nodetool.models.user import User
 from nodetool.models.workflow import Workflow
+import nodetool.nodes.nodetool
 
 
 def test_create_workflow(

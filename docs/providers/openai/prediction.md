@@ -4,7 +4,6 @@
 
 **Args:**
 - **prediction (Prediction)**
-- **params (dict[str, typing.Any])**
 
 **Returns:** Any
 
@@ -12,15 +11,11 @@
 
 **Args:**
 - **prediction (Prediction)**
-- **input (str)**
-
-**Returns:** Any
 
 ### create_image
 
 **Args:**
 - **prediction (Prediction)**
-- **params (dict)**
 
 **Returns:** Any
 
@@ -28,15 +23,11 @@
 
 **Args:**
 - **prediction (Prediction)**
-- **params (dict)**
-
-**Returns:** Any
 
 ### create_whisper
 
 **Args:**
 - **prediction (Prediction)**
-- **params (dict)**
 
 **Returns:** Any
 
@@ -44,7 +35,6 @@
 
 **Args:**
 - **prediction (Prediction)**
-- **params (dict)**
 
 **Returns:** Any
 

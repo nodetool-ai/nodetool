@@ -10,6 +10,7 @@
 - **file_id** (str | None)
 - **name** (str)
 - **content_type** (str)
+- **metadata** (dict | None)
 - **created_at** (datetime)
 - **duration** (typing.Optional[float])
 

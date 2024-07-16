@@ -11,6 +11,7 @@ import uuid
 import random
 
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+from nodetool.models.condition_builder import Field
 
 log = logging.getLogger(__name__)
 
@@ -18,15 +19,7 @@ log = logging.getLogger(__name__)
 class User(DBModel):
     @classmethod
     def get_table_schema(cls):
-        return {
-            "table_name": "nodetool_users",
-            "key_schema": {"id": "HASH"},
-            "attribute_definitions": {"id": "S", "email": "S", "auth_token": "S"},
-            "global_secondary_indexes": {
-                "nodetool_user_email_index": {"email": "HASH"},
-                "nodetool_user_auth_token_index": {"auth_token": "HASH"},
-            },
-        }
+        return {"table_name": "nodetool_users"}
 
     id: str = DBField(hash_key=True)
     permissions: dict[str, Any] | None = DBField(default=None)
@@ -39,7 +32,6 @@ class User(DBModel):
     created_at: datetime = DBField(default_factory=datetime.now)
     updated_at: datetime = DBField(default_factory=datetime.now)
     deleted_at: datetime | None = DBField(default=None)
-    help_thread_id: str | None = DBField(default=None)
 
     @classmethod
     def exists(cls, email: str) -> bool:
@@ -50,9 +42,7 @@ class User(DBModel):
             True if the user exists, False otherwise.
         """
         users, _ = cls.query(
-            condition="email = :email",
-            values={":email": email.lower()},
-            index="nodetool_user_email_index",
+            Field("email").equals(email.lower()),
         )
         return len(users) > 0
 
@@ -65,9 +55,7 @@ class User(DBModel):
             user object
         """
         users, _ = cls.query(
-            condition="email = :email",
-            values={":email": email.lower()},
-            index="nodetool_user_email_index",
+            Field("email").equals(email.lower()),
         )
         if len(users) == 0:
             return None
@@ -117,9 +105,7 @@ class User(DBModel):
             user object
         """
         users, _ = cls.query(
-            condition="auth_token = :auth_token",
-            values={":auth_token": auth_token},
-            index="nodetool_user_auth_token_index",
+            condition=Field("auth_token").equals(auth_token),
         )
         if len(users) == 0:
             return None

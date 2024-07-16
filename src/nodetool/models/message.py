@@ -3,6 +3,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+from nodetool.models.condition_builder import Field
 
 
 class ToolCall(BaseModel):
@@ -34,16 +35,9 @@ class Message(DBModel):
     def get_table_schema(cls):
         return {
             "table_name": "nodetool_messages",
-            "key_schema": {"id": "HASH"},
-            "attribute_definitions": {"id": "S", "thread_id": "S"},
-            "global_secondary_indexes": {
-                "nodetool_message_thread_index": {
-                    "thread_id": "HASH",
-                },
-            },
         }
 
-    id: str = DBField(hash_key=True)
+    id: str = DBField()
     thread_id: str = DBField(default="")
     user_id: str = DBField(default="")
     tool_call_id: str | None = DBField(default=None)
@@ -71,10 +65,9 @@ class Message(DBModel):
         reverse: bool = False,
     ):
         return cls.query(
-            condition="thread_id = :thread_id",
-            values={":thread_id": thread_id},
-            index="nodetool_message_thread_index",
+            condition=Field("thread_id")
+            .equals(thread_id)
+            .and_(Field("id").greater_than(start_key or "")),
             limit=limit,
-            start_key=start_key,
             reverse=reverse,
         )

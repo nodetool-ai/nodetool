@@ -4,6 +4,7 @@ from nodetool.common.content_types import CONTENT_TYPE_TO_EXTENSION
 from nodetool.common.environment import Environment
 
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+from nodetool.models.condition_builder import ConditionBuilder, Field
 
 log = Environment.get_logger()
 
@@ -12,29 +13,10 @@ log = Environment.get_logger()
 class Asset(DBModel):
     @classmethod
     def get_table_schema(cls):
-        return {
-            "table_name": "nodetool_assets",
-            "key_schema": {"id": "HASH"},
-            "attribute_definitions": {
-                "id": "S",
-                "user_id": "S",
-                "parent_id": "S",
-                "content_type": "S",
-            },
-            "global_secondary_indexes": {
-                "nodetool_asset_user_content_type_index": {
-                    "user_id": "HASH",
-                    "content_type": "RANGE",
-                },
-                "nodetool_asset_parent_index": {
-                    "user_id": "HASH",
-                    "parent_id": "RANGE",
-                },
-            },
-        }
+        return {"table_name": "nodetool_assets"}
 
     type: Literal["asset"] = "asset"
-    id: str = DBField(hash_key=True)
+    id: str = DBField()
     user_id: str = DBField(default="")
     workflow_id: str | None = DBField(default=None)
     parent_id: str = DBField(default="")
@@ -109,7 +91,7 @@ class Asset(DBModel):
     @classmethod
     def find(cls, user_id: str, asset_id: str):
         """
-        Find an asset in DynamoDB by user_id and asset_id.
+        Find an asset by user_id and asset_id.
         """
         item = cls.get(asset_id)
         if item and item.user_id == user_id:
@@ -129,38 +111,29 @@ class Asset(DBModel):
         Paginate assets for a user using boto3.
         Applies filters for parent_id if provided.
         Returns a tuple of a list of Assets and the last evaluated key for pagination.
+        Last key is "" if there are no more items to be returned.
         """
         if parent_id:
-            return cls.query(
-                condition=("user_id = :user_id AND parent_id = :parent_id"),
-                values={
-                    ":user_id": user_id,
-                    ":parent_id": parent_id,
-                },
-                index="nodetool_asset_parent_index",
-                limit=limit,
-                start_key=start_key,
+            condition = (
+                Field("user_id")
+                .equals(user_id)
+                .and_(Field("parent_id").equals(parent_id))
+                .and_(Field("id").greater_than(start_key or ""))
             )
+            return cls.query(condition, limit)
         else:
-            return cls.query(
-                condition="user_id = :user_id AND begins_with(content_type, :content_type)",
-                values={
-                    ":user_id": user_id,
-                    ":content_type": content_type or "",
-                },
-                index="nodetool_asset_user_content_type_index",
-                limit=limit,
-                start_key=start_key,
+            condition = (
+                Field("user_id")
+                .equals(user_id)
+                .and_(Field("content_type").like((content_type or "") + "%"))
+                .and_(Field("id").greater_than(start_key or ""))
             )
+            return cls.query(condition, limit)
 
     @classmethod
     def get_children(cls, parent_id: str) -> Sequence["Asset"]:
         """
         Fetch all child assets for a given parent_id.
         """
-        items, _ = cls.query(
-            condition=("parent_id = :parent_id"),
-            values={":parent_id": parent_id},
-            index="nodetool_asset_parent_index",
-        )
+        items, _ = cls.query(Field("parent_id").equals(parent_id))
         return items

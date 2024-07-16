@@ -126,7 +126,7 @@ Use cases:
 
 - **angle_rad** (float | int | nodetool.metadata.types.Tensor)
 
-## SqrtTensor
+## Sqrt
 
 Calculates the square root of the input element-wise.
 

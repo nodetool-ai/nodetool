@@ -4,20 +4,14 @@ import uuid
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
 from typing import Any
 
+from nodetool.models.condition_builder import Field
+
 
 class Prediction(DBModel):
     @classmethod
     def get_table_schema(cls):
         return {
             "table_name": "nodetool_predictions",
-            "key_schema": {"id": "HASH"},
-            "attribute_definitions": {"id": "S", "user_id": "S", "workflow_id": "S"},
-            "global_secondary_indexes": {
-                "nodetool_prediction_user_index": {
-                    "user_id": "HASH",
-                    "workflow_id": "RANGE",
-                },
-            },
         }
 
     id: str = DBField(hash_key=True)
@@ -81,17 +75,16 @@ class Prediction(DBModel):
     ):
         if workflow_id is None:
             return cls.query(
-                condition="user_id = :user_id",
-                values={":user_id": user_id},
-                index="nodetool_prediction_user_index",
+                condition=Field("user_id")
+                .equals(user_id)
+                .and_(Field("id").greater_than(start_key or "")),
                 limit=limit,
-                start_key=start_key,
             )
         else:
             return cls.query(
-                condition="user_id = :user_id AND workflow_id = :workflow_id",
-                values={":user_id": user_id, ":workflow_id": workflow_id},
-                index="nodetool_prediction_user_index",
+                condition=Field("user_id")
+                .equals(user_id)
+                .and_(Field("workflow_id").equals(workflow_id))
+                .and_(Field("id").greater_than(start_key or "")),
                 limit=limit,
-                start_key=start_key,
             )
