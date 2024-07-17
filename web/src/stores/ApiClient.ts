@@ -2,8 +2,7 @@ import createClient, { type Middleware } from "openapi-fetch";
 import { paths } from "../api.js"; // (generated from openapi-typescript)
 import { useAuth } from "./useAuth.js";
 
-// const mode: string =  import.meta.env.MODE;
-const mode: string =  "production";
+const mode: string =  import.meta.env.MODE;
 
 export const useRemoteAuth =
   mode === "production" ||
