@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { NodeData } from "./NodeData";
-import { BASE_URL, COMFY_WORKER_URL, WORKER_URL } from "./ApiClient";
+import { BASE_URL, WORKER_URL } from "./ApiClient";
 import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "reactflow";
 import { useAssetStore } from "../hooks/AssetStore";
@@ -281,8 +281,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const clearStatuses = useStatusStore.getState().clearStatuses;
     const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
-    const containsComfyNode = nodes.some((node) => node.type?.match(/^comfy/i));
-    const connectUrl = containsComfyNode ? COMFY_WORKER_URL : WORKER_URL;
+    const connectUrl = WORKER_URL;
     
     if (!get().socket || get().current_url !== connectUrl) {
       await get().connect(connectUrl);
