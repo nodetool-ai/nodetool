@@ -56,6 +56,9 @@ RUN poetry config virtualenvs.create false
 RUN --mount=type=cache,target=/root/.cache poetry install --no-root
 
 COPY src /app
+COPY key.pem /app/
+COPY cert.pem /app/
 
-CMD ["uvicorn", "nodetool.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "nodetool.api.app:app", "--host", "0.0.0.0", "--port", "443", "--ssl-keyfile", "/app/key.pem" ,"--ssl-certfile", "/app/cert.pem"]
+# CMD ["uvicorn", "nodetool.api.app:app", "--host", "0.0.0.0", "--port", "80"]
 EXPOSE 8000

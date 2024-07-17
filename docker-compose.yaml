@@ -5,7 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile.api
     ports:
-      - "8000:8000"
+      - "80:80"
+      - "443:443"
     environment:
       ENV: ${ENV:-development}
       ASSET_BUCKET: ${ASSET_BUCKET}
