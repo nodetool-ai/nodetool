@@ -2,144 +2,257 @@
 
 ## WorkflowRunner
 
-Executes a graph of nodes in topological order with parallel processing and result caching.
-The WorkflowRunner is responsible for orchestrating the execution of a workflow,
-which is represented as a graph of interconnected nodes. It provides the following
-key functionalities:
-
-1. Graph Execution:
-- Processes nodes in topological order to ensure dependencies are met.
-- Executes nodes asynchronously in parallel at each graph level for improved performance.
-
-2. Execution Management:
-- Manages the overall execution context, including input/output handling and result collection.
-- Supports job cancellation, allowing for graceful termination of running workflows.
-
-3. Node Handling:
-- Processes regular nodes and special node types like GroupNodes (e.g., loop nodes).
-- Utilizes a caching mechanism to store and retrieve node results, improving efficiency
-for repeated operations.
-
-4. Resource Management:
-- Handles capabilities required by the workflow, such as GPU support for ComfyUI nodes.
-- Manages execution on appropriate workers based on workflow requirements (e.g., GPU-intensive tasks).
-
-5. Progress Tracking and Reporting:
-- Provides updates on node execution status and overall workflow progress.
-- Reports errors and exceptions occurring during node execution.
-
-The WorkflowRunner uses a NodeCache to store results across multiple workflow runs,
-optimizing performance for repeated node executions with identical inputs and configurations.
+Executes a directed acyclic graph (DAG) of computational nodes with parallel processing and result caching.
+Key Features:
+1. Topological Execution: Processes nodes in an order that respects their dependencies.
+2. Parallel Processing: Executes independent nodes concurrently within each topological level.
+3. Result Caching: Stores and retrieves node outputs to optimize repeated executions.
+4. Special Node Handling: Supports both regular nodes and GroupNodes (e.g., loop nodes).
+5. Resource Management: Allocates appropriate computational resources (e.g., GPU) based on node requirements.
+6. Progress Tracking: Provides real-time updates on individual node and overall workflow status.
+7. Error Handling: Captures and reports exceptions during node execution.
+8. Cancellation Support: Allows for immediate termination of the workflow execution.
 
 Attributes:
-job_id (str): Unique identifier for the current job.
-status (str): Current status of the workflow execution (e.g., "running", "completed", "cancelled").
-is_cancelled (bool): Flag indicating whether the job has been cancelled.
-current_node (Optional[str]): Identifier of the node currently being processed.
-cache (NodeCache): Instance of NodeCache used for storing and retrieving node results.
+job_id (str): Unique identifier for the current workflow execution.
+status (str): Current state of the workflow. Possible values: "running", "completed", "cancelled", "error".
+is_cancelled (bool): Flag indicating whether the job has been manually cancelled.
+current_node (Optional[str]): Identifier of the node currently being processed, or None if no node is active.
 
 Note:
-GPU-intensive workflows are automatically directed to appropriate workers with GPU capabilities.
+- This class does not handle the definition of the workflow graph. The graph must be provided externally.
+- GPU-intensive workflows are automatically directed to workers with GPU capabilities when available.
+- The class relies on an external ProcessingContext for managing execution state and inter-node communication.
 
 **Tags:** 
 
-#### `cancel`
+### cancel
 
-**Parameters:**
-
-
-**Returns:** `None`
-
-#### `is_running`
-
-**Parameters:**
+Marks the workflow for cancellation.
 
 
-**Returns:** `bool`
+**Post-conditions:**
 
-#### `prepare_result_for_update`
 
-Prepare the result for the NodeUpdate message.
+- Sets status to "cancelled".
+- Sets is_cancelled to True.
 
-**Parameters:**
 
-- `result` (typing.Dict[str, typing.Any])
-- `node` (BaseNode)
+**Note:**
 
-**Returns:** `typing.Dict[str, typing.Any]`
+This method does not immediately stop execution. The cancellation is checked
+and acted upon at specific points during the workflow execution.
+**Args:**
 
-#### `process_graph`
+**Returns:** None
 
-Process the graph in a topological order, executing each node in parallel.
+### is_running
 
-        Args:
-            context (ProcessingContext): The processing context containing the graph, edges, and nodes.
-            graph (Graph): The graph to be processed.
+Checks if the workflow is currently in the running state.
 
-        Returns:
-            None
 
-**Parameters:**
+**Returns:**
 
-- `context` (ProcessingContext)
-- `graph` (Graph)
+- **bool**: True if the workflow status is "running", False otherwise.
+**Args:**
 
-#### `process_node`
+### prepare_result_for_update
 
-Process a node in the workflow.
-        Skip nodes that have already been processed.
-        Checks for special types of nodes, such as loop nodes.
+Prepares the node result for inclusion in a NodeUpdate message.
 
-        Args:
-            context (ProcessingContext): The processing context.
-            node (Node): The node to be processed.
 
-        Returns:
-            None
+**Args:**
 
-**Parameters:**
+- **result (Dict[str, Any])**: The raw result from node processing.
+- **node (BaseNode)**: The node that produced the result.
 
-- `context` (ProcessingContext)
-- `node` (BaseNode)
 
-#### `process_regular_node`
+**Returns:**
 
-Processes a single node in the graph.
+- **Dict[str, Any]**: A modified version of the result suitable for status updates.
 
-        This will get all the results from the input nodes and assign
-        them to the properties of the node. Then the node is processed
-        and the result is stored in the context's results dictionary.
 
-        Once the node is processed, it is added to the completed_tasks set.
+**Note:**
 
-**Parameters:**
 
-- `context` (ProcessingContext)
-- `node` (BaseNode)
+- Removes ComfyUI-specific types from the result.
+- Converts Pydantic models in the result to dictionaries.
+### process_graph
 
-#### `run`
+Processes the graph by executing nodes in topological order with parallel execution at each level.
 
-**Parameters:**
 
-- `req` (RunJobRequest)
-- `context` (ProcessingContext)
+**Args:**
 
-**Returns:** `None`
+- **context (ProcessingContext)**: Manages the execution state and inter-node communication.
+- **graph (Graph)**: The directed acyclic graph of nodes to be processed.
+- **parent_id (str | None)**: Identifier of the parent node, if this is a subgraph. Defaults to None.
 
-#### `run_group_node`
 
-Find all nodes from the subgraph of the loop node and pass it to
-        the loop node for processing.
+**Note:**
 
-**Parameters:**
 
-- `group_node` (GroupNode)
-- `context` (ProcessingContext)
+- Uses topological sorting to determine the execution order.
+- Executes nodes at each level in parallel using asyncio.gather.
+- Checks for cancellation before processing each level.
+### process_node
 
-#### `torch_capabilities`
+Processes a single node in the workflow graph.
 
-**Parameters:**
 
-- `capabilities` (list[str])
-- `context` (ProcessingContext)
+**Args:**
 
+- **context (ProcessingContext)**: Manages the execution state and inter-node communication.
+- **node (BaseNode)**: The node to be processed.
+
+
+**Raises:**
+
+- **JobCancelledException**: If the job is cancelled during node processing.
+
+
+**Note:**
+
+
+- Skips nodes that have already been processed in a subgraph.
+- Handles special processing for GroupNodes.
+- Posts node status updates (running, completed, error) to the context.
+### process_regular_node
+
+Processes a regular (non-GroupNode) node in the workflow.
+
+
+**Args:**
+
+- **context (ProcessingContext)**: Manages the execution state and inter-node communication.
+- **node (BaseNode)**: The node to be processed.
+
+
+**Raises:**
+
+- **Exception**: Any exception raised during node processing is caught and reported.
+
+
+**Post-conditions:**
+
+
+- Node inputs are collected and assigned.
+- Node is processed.
+- Node output is converted.
+- Node result is cached if applicable.
+- Node status updates are posted to the context.
+- Node is marked as processed in the context.
+
+
+**Note:**
+
+
+- Handles result caching and retrieval.
+- Manages timing information for node execution.
+- Prepares and posts detailed node updates including properties and results.
+### process_subgraph
+
+Processes a subgraph contained within a GroupNode.
+
+
+**Args:**
+
+- **context (ProcessingContext)**: Manages the execution state and inter-node communication.
+- **group_node (GroupNode)**: The GroupNode containing the subgraph.
+- **inputs (dict[str, Any])**: Input data for the subgraph.
+
+
+**Returns:**
+
+- **Any**: The result of the subgraph execution.
+
+
+**Raises:**
+
+- **ValueError**: If the GroupNode has no input nodes or if the input data is invalid.
+
+
+**Note:**
+
+
+- Handles special input types like DataframeRef.
+- Executes the subgraph for each item in the input data.
+- Collects and returns results from output nodes.
+- Marks all nodes in the subgraph as processed.
+### run
+
+Executes the entire workflow based on the provided request and context.
+
+
+**Args:**
+
+- **req (RunJobRequest)**: Contains the workflow graph and input parameters.
+- **context (ProcessingContext)**: Manages the execution state and inter-node communication.
+
+
+**Raises:**
+
+- **ValueError**: If the graph is missing or if there's a mismatch between input parameters and graph input nodes.
+- **JobCancelledException**: If the job is cancelled during execution.
+
+
+**Post-conditions:**
+
+
+- Updates workflow status to "completed", "cancelled", or "error".
+- Posts final JobUpdate message with results or cancellation status.
+
+
+**Note:**
+
+
+- Handles input validation, graph processing, and output collection.
+- Manages GPU resources if required by the workflow.
+**Returns:** None
+
+### run_group_node
+
+Executes a GroupNode, which represents a subgraph within the main workflow.
+
+
+**Args:**
+
+- **group_node (GroupNode)**: The GroupNode to be executed.
+- **context (ProcessingContext)**: Manages the execution state and inter-node communication.
+
+
+**Post-conditions:**
+
+
+- Processes the subgraph contained within the GroupNode.
+- Stores the result of the GroupNode execution in the context.
+- Marks the GroupNode as processed in the context.
+
+
+**Note:**
+
+
+- Retrieves inputs for the GroupNode from the context.
+- Calls process_subgraph to handle the execution of the subgraph.
+### torch_capabilities
+
+Context manager for handling GPU-related capabilities, specifically for ComfyUI nodes.
+
+
+**Args:**
+
+- **capabilities (list[str])**: List of required capabilities for the workflow.
+- **context (ProcessingContext)**: Manages the execution state and inter-node communication.
+
+
+**Raises:**
+
+- **ValueError**: If ComfyUI nodes are required but not supported in the current environment.
+
+
+**Note:**
+
+
+- Sets up progress tracking hooks for ComfyUI operations.
+- Manages CUDA memory and PyTorch inference mode.
+- Cleans up models and CUDA cache after execution.

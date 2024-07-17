@@ -1,6 +1,6 @@
 # nodetool.nodes.nodetool.audio.transform
 
-## ConcatAudio
+## Concat
 
 Concatenates two audio files together.
 
@@ -13,7 +13,45 @@ Use cases:
 - **a**: The first audio file. (AudioRef)
 - **b**: The second audio file. (AudioRef)
 
-## NormalizeAudio
+## FadeIn
+
+Applies a fade-in effect to the beginning of an audio file.
+
+Use cases:
+- Create smooth introductions to audio tracks
+- Gradually increase volume at the start of a clip
+
+**Tags:** audio, edit, transition
+
+- **audio**: The audio file to apply fade-in to. (AudioRef)
+- **duration**: Duration of the fade-in effect in seconds. (float)
+
+## FadeOut
+
+Applies a fade-out effect to the end of an audio file.
+
+Use cases:
+- Create smooth endings to audio tracks
+- Gradually decrease volume at the end of a clip
+
+**Tags:** audio, edit, transition
+
+- **audio**: The audio file to apply fade-out to. (AudioRef)
+- **duration**: Duration of the fade-out effect in seconds. (float)
+
+## MonoToStereo
+
+Converts a mono audio signal to stereo.
+
+Use cases:
+- Expand mono recordings for stereo playback systems
+- Prepare audio for further stereo processing
+
+**Tags:** audio, convert, channels
+
+- **audio**: The mono audio file to convert. (AudioRef)
+
+## Normalize
 
 Normalizes the volume of an audio file.
 
@@ -56,6 +94,32 @@ Use cases:
 - **crossfade**: Duration of crossfade in milliseconds to apply between segments for smooth transitions. (int)
 - **min_silence_between_parts**: Minimum silence duration in milliseconds to maintain between non-silent segments (int)
 
+## Repeat
+
+Loops an audio file a specified number of times.
+
+Use cases:
+- Create repeating background sounds or music
+- Extend short audio clips to fill longer durations
+- Generate rhythmic patterns from short samples
+
+**Tags:** audio, edit, repeat
+
+- **audio**: The audio file to loop. (AudioRef)
+- **loops**: Number of times to loop the audio. Minimum 1 (plays once), maximum 100. (int)
+
+## Reverse
+
+Reverses an audio file.
+
+Use cases:
+- Create reverse audio effects
+- Generate backwards speech or music
+
+**Tags:** audio, edit, transform
+
+- **audio**: The audio file to reverse. (AudioRef)
+
 ## SliceAudio
 
 Extracts a section of an audio file.
@@ -69,6 +133,19 @@ Use cases:
 - **audio**: The audio file. (AudioRef)
 - **start**: The start time in seconds. (float)
 - **end**: The end time in seconds. (float)
+
+## StereoToMono
+
+Converts a stereo audio signal to mono.
+
+Use cases:
+- Reduce file size for mono-only applications
+- Simplify audio for certain processing tasks
+
+**Tags:** audio, convert, channels
+
+- **audio**: The stereo audio file to convert. (AudioRef)
+- **method**: Method to use for conversion: 'average', 'left', or 'right'. (str)
 
 ## Tone
 

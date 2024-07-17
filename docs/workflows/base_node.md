@@ -111,7 +111,9 @@ comment (list[Any]): The content of the comment, stored as a list of elements.
 
 **Tags:** 
 
+- **headline**: The headline for this comment. (str)
 - **comment**: The comment for this node. (list[typing.Any])
+- **comment_color**: The color for the comment. (str)
 
 ## GroupNode
 
@@ -158,6 +160,7 @@ value (Any): The value to be previewed.
 **Tags:** 
 
 - **value**: The value to preview. (Any)
+- **name**: The name of the preview node. (str)
 
 ### add_node_classname
 

@@ -6,6 +6,7 @@ from nodetool.common.nodetool_api_client import (
     NodetoolAPIClient,
     NODETOOL_INTERNAL_API,
 )
+from nodetool.models.database_adapter import DatabaseAdapter
 from nodetool.storage.abstract_node_cache import AbstractNodeCache
 
 
@@ -96,6 +97,8 @@ SECRETS_SETUP = [
     },
 ]
 
+NOT_GIVEN = object()
+
 
 class Environment(object):
     """
@@ -114,11 +117,6 @@ class Environment(object):
     In local mode (non-production environment), the class uses default values or prompts the user for
     input during the setup process. It also supports local file storage and SQLite database for
     development purposes.
-
-    Cloud Setup:
-    In production mode, the class expects environment variables to be set for various services like
-    AWS, OpenAI, and others. It uses AWS services like S3 and DynamoDB for storage and database,
-    respectively.
     """
 
     model_files: dict[str, list[str]] = {}
@@ -279,7 +277,7 @@ class Environment(object):
         create_all_tables()
 
     @classmethod
-    def get(cls, key: str):
+    def get(cls, key: str, default: Any = NOT_GIVEN):
         """
         Get the value of an environment variable, or a default value.
 
@@ -295,6 +293,8 @@ class Environment(object):
             return cls.get_secrets()[key]
         elif key in DEFAULT_ENV:
             return DEFAULT_ENV[key]
+        elif default is not NOT_GIVEN:
+            return default
         else:
             raise Exception(MISSING_MESSAGE.format(key))
 
@@ -366,41 +366,6 @@ class Environment(object):
         return cls.get("LOG_LEVEL")
 
     @classmethod
-    def get_dynamo_endpoint(cls):
-        """
-        In development, we use a local instance.
-        In production, we use the real AWS.
-        """
-        return os.environ.get("DYNAMO_ENDPOINT_URL", None)
-
-    @classmethod
-    def get_dynamo_region(cls):
-        """
-        The region name is the region of the DynamoDB server.
-        """
-        return os.environ.get("DYNAMO_REGION", cls.get_aws_region())
-
-    @classmethod
-    def get_dynamo_access_key_id(cls):
-        """
-        The access key id is the id of the AWS user.
-        """
-        # If we are in production, we don't need an access key id.
-        # We use the IAM role instead.
-        return os.environ.get("DYNAMO_ACCESS_KEY_ID", cls.get_aws_access_key_id())
-
-    @classmethod
-    def get_dynamo_secret_access_key(cls):
-        """
-        The secret access key is the secret of the AWS user.
-        """
-        # If we are in production, we don't need a secret access key.
-        # We use the IAM role instead.
-        return os.environ.get(
-            "DYNAMO_SECRET_ACCESS_KEY", cls.get_aws_secret_access_key()
-        )
-
-    @classmethod
     def get_memcache_host(cls):
         """
         The memcache host is the host of the memcache server.
@@ -445,20 +410,35 @@ class Environment(object):
         return cls.get("DB_PATH")
 
     @classmethod
-    def get_database_adapter(cls, fields: dict[str, Any], table_schema: dict[str, Any]):
+    def get_postgres_params(cls):
+        """
+        The postgres params are the parameters that we use to connect to the database.
+        """
+        return {
+            "database": cls.get("POSTGRES_DB"),
+            "user": cls.get("POSTGRES_USER"),
+            "password": cls.get("POSTGRES_PASSWORD"),
+            "host": cls.get("POSTGRES_HOST"),
+            "port": cls.get("POSTGRES_PORT"),
+        }
+
+    @classmethod
+    def get_database_adapter(
+        cls, fields: dict[str, Any], table_schema: dict[str, Any]
+    ) -> DatabaseAdapter:
         """
         The database adapter is the adapter that we use to connect to the database.
         """
 
-        if cls.get_dynamo_endpoint() is not None:
-            from nodetool.models.dynamo_adapter import DynamoAdapter
+        if cls.get("POSTGRES_DB", None) is not None:
+            from nodetool.models.postgres_adapter import PostgresAdapter
 
-            return DynamoAdapter(
-                client=cls.get_dynamo_client(),
+            return PostgresAdapter(
+                db_params=cls.get_postgres_params(),
                 fields=fields,
                 table_schema=table_schema,
             )
-        else:
+        elif cls.get_db_path() is not None:
             from nodetool.models.sqlite_adapter import SQLiteAdapter
 
             if cls.get_db_path() != ":memory:":
@@ -469,6 +449,8 @@ class Environment(object):
                 fields=fields,
                 table_schema=table_schema,
             )
+        else:
+            raise Exception("No database adapter configured")
 
     @classmethod
     def get_aws_access_key_id(cls):
@@ -502,7 +484,7 @@ class Environment(object):
         """
         # If we are in production, we don't need an access key id.
         # We use the IAM role instead.
-        return os.environ.get("S3_ACCESS_KEY_ID", cls.get_aws_access_key_id())
+        return os.environ.get("S3_ACCESS_KEY_ID", None)
 
     @classmethod
     def get_s3_secret_access_key(cls):
@@ -511,7 +493,7 @@ class Environment(object):
         """
         # If we are in production, we don't need a secret access key.
         # We use the IAM role instead.
-        return os.environ.get("S3_SECRET_ACCESS_KEY", cls.get_aws_secret_access_key())
+        return os.environ.get("S3_SECRET_ACCESS_KEY", None)
 
     @classmethod
     def get_s3_region(cls):
@@ -587,6 +569,7 @@ class Environment(object):
 
         if not hasattr(cls, "nodetool_api_client"):
             if cls.is_production():
+                assert api_url is not None, "Nodetool API URL is required"
                 cls.nodetool_api_client = NodetoolAPIClient(
                     user_id=user_id,
                     auth_token=auth_token,
@@ -823,15 +806,16 @@ class Environment(object):
         """
         Get the S3 service.
         """
-        from nodetool.common.aws_client import AWSClient
+        from nodetool.storage.s3_storage import S3Storage
 
-        return AWSClient(
+        return S3Storage(
+            bucket_name=bucket,
+            domain=domain,
             endpoint_url=cls.get_s3_endpoint_url(),
             access_key_id=cls.get_s3_access_key_id(),
             secret_access_key=cls.get_s3_secret_access_key(),
             region_name=cls.get_s3_region(),
-            log=cls.get_logger(),
-        ).get_s3_storage(bucket=bucket, domain=domain)
+        )
 
     @classmethod
     def get_asset_storage(cls, use_s3: bool = False):
@@ -839,7 +823,7 @@ class Environment(object):
         Get the storage adapter for assets.
         """
         if not hasattr(cls, "asset_storage"):
-            if cls.is_production() or cls.get_s3_endpoint_url() is not None or use_s3:
+            if cls.is_production() or cls.get_s3_access_key_id() is not None or use_s3:
                 return cls.get_s3_storage(
                     cls.get_asset_bucket(), cls.get_asset_domain()
                 )
@@ -930,40 +914,6 @@ class Environment(object):
             session_token=session_token,
             log=cls.get_logger(),
         )
-
-    @classmethod
-    def get_dynamo_resource(cls):
-        """
-        The dynamo client is a wrapper around the AWS SDK.
-        """
-        import boto3
-
-        if not hasattr(cls, "dynamo_resource"):
-            cls.dynamo_resource = boto3.resource(
-                "dynamodb",
-                endpoint_url=cls.get_dynamo_endpoint(),
-                aws_access_key_id=cls.get_dynamo_access_key_id(),
-                aws_secret_access_key=cls.get_dynamo_secret_access_key(),
-                region_name=cls.get_dynamo_region(),
-            )
-        return cls.dynamo_resource
-
-    @classmethod
-    def get_dynamo_client(cls):
-        """
-        The dynamo client is a wrapper around the AWS SDK.
-        """
-        import boto3
-
-        if not hasattr(cls, "dynamo_client"):
-            cls.dynamo_client = boto3.client(
-                "dynamodb",
-                endpoint_url=cls.get_dynamo_endpoint(),
-                aws_access_key_id=cls.get_dynamo_access_key_id(),
-                aws_secret_access_key=cls.get_dynamo_secret_access_key(),
-                region_name=cls.get_dynamo_region(),
-            )
-        return cls.dynamo_client
 
     @classmethod
     def get_google_oauth2_session(cls, state: str | None = None):

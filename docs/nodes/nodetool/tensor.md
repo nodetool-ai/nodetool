@@ -41,6 +41,34 @@ Use cases:
 - **tensor** (Tensor)
 - **axis** (int | None)
 
+## ConvertToAudio
+
+Converts a tensor object back to an audio file.
+
+Use cases:
+- Save processed audio data as a playable file
+- Convert generated or modified audio tensors to audio format
+- Output results of audio processing pipelinesr
+
+**Tags:** audio, conversion, tensor
+
+- **tensor**: The tensor to convert to an audio file. (Tensor)
+- **sample_rate**: The sample rate of the audio file. (int)
+
+## ConvertToImage
+
+Convert tensor data to PIL Image format.
+Keywords: tensor, image, conversion, denormalization
+
+Use cases:
+- Visualize tensor data as images
+- Save processed tensor results as images
+- Convert model outputs back to viewable format
+
+**Tags:** 
+
+- **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (Tensor)
+
 ## Exp
 
 Calculate the exponential of each element in a tensor.

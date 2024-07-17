@@ -1,6 +1,6 @@
 # nodetool.nodes.nodetool.image
 
-## BlendImages
+## Blend
 
 Blend two images with adjustable alpha mixing.
 
@@ -15,7 +15,7 @@ Use cases:
 - **image2**: The second image to blend. (ImageRef)
 - **alpha**: The mix ratio. (float)
 
-## CompositeImages
+## Composite
 
 Combine two images using a mask for advanced compositing.
 Keywords: composite, mask, blend, layering
@@ -31,7 +31,7 @@ Use cases:
 - **image2**: The second image to composite. (ImageRef)
 - **mask**: The mask to composite with. (ImageRef)
 
-## ConvertImageToTensor
+## ConvertToTensor
 
 Convert PIL Image to normalized tensor representation.
 
@@ -44,21 +44,7 @@ Use cases:
 
 - **image**: The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels. (ImageRef)
 
-## ConvertTensorToImage
-
-Convert tensor data to PIL Image format.
-Keywords: tensor, image, conversion, denormalization
-
-Use cases:
-- Visualize tensor data as images
-- Save processed tensor results as images
-- Convert model outputs back to viewable format
-
-**Tags:** 
-
-- **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (Tensor)
-
-## GetImageMetadata
+## GetMetadata
 
 Get metadata about the input image.
 
@@ -71,7 +57,7 @@ Use cases:
 
 - **image**: The input image. (ImageRef)
 
-## PasteImage
+## Paste
 
 Paste one image onto another at specified coordinates.
 

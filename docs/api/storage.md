@@ -10,7 +10,7 @@ Deletes the asset for the given key.
 
 ### get
 
-Returns the file as a stream for the given key.
+Returns the file as a stream for the given key, supporting range queries.
 **Args:**
 - **bucket (str)**
 - **key (str)**

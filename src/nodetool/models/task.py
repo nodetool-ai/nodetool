@@ -1,19 +1,13 @@
 from typing import Optional
 from datetime import datetime
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+from nodetool.models.condition_builder import Field
 
 
 class Task(DBModel):
     @classmethod
     def get_table_schema(cls):
-        return {
-            "table_name": "nodetool_tasks",
-            "key_schema": {"id": "HASH"},
-            "attribute_definitions": {"id": "S", "thread_id": "S"},
-            "global_secondary_indexes": {
-                "nodetool_task_thread_index": {"thread_id": "HASH"},
-            },
-        }
+        return {"table_name": "nodetool_tasks"}
 
     id: str = DBField(hash_key=True)
     task_type: str = DBField(default="")
@@ -56,9 +50,8 @@ class Task(DBModel):
         start_key: Optional[str] = None,
     ):
         return cls.query(
-            condition="thread_id = :thread_id",
-            values={":thread_id": thread_id},
-            index="nodetool_task_thread_index",
+            condition=Field("thread_id")
+            .equals(thread_id)
+            .and_(Field("id").greater_than(start_key or "")),
             limit=limit,
-            start_key=start_key,
         )

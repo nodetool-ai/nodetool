@@ -1,4 +1,3 @@
-# Create the DynamoDB table
 from nodetool.common.environment import Environment
 
 from nodetool.models.asset import Asset

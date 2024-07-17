@@ -23,9 +23,7 @@ Returns all assets for a given user or workflow.
 ### run
 
 **Args:**
-- **request (Request)**
 - **job_request (RunJobRequest)**
-- **execute (bool) (default: True)**
 - **user (User) (default: Depends(current_user))**
 
 ### update

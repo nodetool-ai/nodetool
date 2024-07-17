@@ -5,12 +5,6 @@
 ### create_table
 
 **Args:**
-- **table_name (str)**
-- **key_schema (typing.Dict[str, str])**
-- **attribute_definitions (typing.Dict[str, str])**
-- **global_secondary_indexes (typing.Optional[typing.Dict[str, typing.Dict[str, str]]]) (default: None)**
-- **read_capacity_units (int) (default: 1)**
-- **write_capacity_units (int) (default: 1)**
 
 **Returns:** None
 
@@ -24,7 +18,6 @@
 ### drop_table
 
 **Args:**
-- **table_name (str)**
 
 **Returns:** None
 

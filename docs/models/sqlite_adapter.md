@@ -5,7 +5,7 @@
 ### create_table
 
 **Args:**
-- **suffix (str) (default: )**
+- **suffix (default: )**
 
 **Returns:** None
 

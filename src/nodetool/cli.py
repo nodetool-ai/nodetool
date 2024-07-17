@@ -59,10 +59,6 @@ def serve(
     remote_auth: bool = False,
 ):
     """Serve the Nodetool API server."""
-    import llama_cpp
-
-    llama_cpp.llama_backend_init()
-
     if not Environment.has_settings() and not skip_setup:
         print("No settings found. Running setup.")
         Environment.setup()
