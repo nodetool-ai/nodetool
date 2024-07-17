@@ -1,6 +1,6 @@
 # nodetool.nodes.nodetool.audio.conversion
 
-## AudioToTensor
+## ConvertToTensor
 
 Converts an audio file to a tensor for further processing.
 
@@ -26,17 +26,18 @@ Use cases:
 
 - **duration**: The duration of the silence in seconds. (float)
 
-## TensorToAudio
+## Trim
 
-Converts a tensor object back to an audio file.
+Trim an audio file to a specified duration.
 
 Use cases:
-- Save processed audio data as a playable file
-- Convert generated or modified audio tensors to audio format
-- Output results of audio processing pipelinesr
+- Remove silence from the beginning or end of audio files
+- Extract specific segments from audio files
+- Prepare audio data for machine learning models
 
-**Tags:** audio, conversion, tensor
+**Tags:** audio, trim, cut
 
-- **tensor**: The tensor to convert to an audio file. (Tensor)
-- **sample_rate**: The sample rate of the audio file. (int)
+- **audio**: The audio file to trim. (AudioRef)
+- **start**: The start time of the trimmed audio in seconds. (float)
+- **end**: The end time of the trimmed audio in seconds. (float)
 

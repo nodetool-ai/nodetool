@@ -37,6 +37,10 @@ Returns a JSON schema for the type.
 
 **Args:**
 
+### is_model_file_type
+
+**Args:**
+
 ### is_union_type
 
 **Args:**

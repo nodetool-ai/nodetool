@@ -22,7 +22,7 @@ def get_local_user():
     """
     global local_user
     if local_user is None:
-        local_user = User.get(1)
+        local_user = User.get("1")
         if local_user is None:
             local_user, _ = User.create(user_id="1", auth_token="local")
     return local_user

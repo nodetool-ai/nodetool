@@ -24,12 +24,3 @@ Returns all assets for a given user or workflow.
 
 **Returns:** PredictionList
 
-### run_prediction
-
-Run the prediction for a given model.
-**Args:**
-- **req (PredictionCreateRequest)**
-- **user_id (str)**
-
-**Returns:** typing.AsyncGenerator[nodetool.types.prediction.Prediction | nodetool.types.prediction.PredictionResult, NoneType]
-

@@ -13,5 +13,4 @@
 - **created_at** (datetime)
 - **updated_at** (datetime)
 - **deleted_at** (datetime.datetime | None)
-- **help_thread_id** (str | None)
 

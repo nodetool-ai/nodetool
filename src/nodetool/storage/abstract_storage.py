@@ -14,12 +14,6 @@ class AbstractStorage(ABC):
         pass
 
     @abstractmethod
-    def generate_presigned_url(
-        self, client_method: str, object_name: str, expiration=3600 * 24 * 7
-    ) -> str:
-        pass
-
-    @abstractmethod
     async def file_exists(self, key: str) -> bool:
         pass
 

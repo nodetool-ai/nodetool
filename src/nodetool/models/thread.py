@@ -1,18 +1,12 @@
 from datetime import datetime
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+from nodetool.models.condition_builder import Field
 
 
 class Thread(DBModel):
     @classmethod
     def get_table_schema(cls):
-        return {
-            "table_name": "nodetool_threads",
-            "key_schema": {"id": "HASH"},
-            "attribute_definitions": {"id": "S", "user_id": "S"},
-            "global_secondary_indexes": {
-                "nodetool_thread_user_index": {"user_id": "HASH"},
-            },
-        }
+        return {"table_name": "nodetool_threads"}
 
     id: str = DBField(hash_key=True)
     user_id: str = DBField(default="")
@@ -43,10 +37,9 @@ class Thread(DBModel):
         reverse: bool = False,
     ):
         return cls.query(
-            condition="user_id = :user_id",
-            values={":user_id": user_id},
-            index="nodetool_thread_user_index",
+            condition=Field("user_id")
+            .equals(user_id)
+            .and_(Field("id").greater_than(start_key or "")),
             limit=limit,
-            start_key=start_key,
             reverse=reverse,
         )

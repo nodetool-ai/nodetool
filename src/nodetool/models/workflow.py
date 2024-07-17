@@ -1,6 +1,7 @@
 from datetime import datetime
 import uuid
 from typing import Any, Optional
+from nodetool.models.condition_builder import Field
 from nodetool.types.graph import Graph as APIGraph
 from nodetool.workflows.graph import Graph
 from nodetool.workflows.base_node import BaseNode
@@ -9,25 +10,10 @@ from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uui
 
 
 class Workflow(DBModel):
-
     @classmethod
     def get_table_schema(cls):
         return {
             "table_name": "nodetool_workflows",
-            "key_schema": {"id": "HASH"},
-            "attribute_definitions": {
-                "id": "S",
-                "user_id": "S",
-                "access": "S",
-                "updated_at": "S",
-            },
-            "global_secondary_indexes": {
-                "nodetool_workflow_user_index": {"user_id": "HASH"},
-                "nodetool_workflow_access_index": {
-                    "access": "HASH",
-                    "updated_at": "RANGE",
-                },
-            },
         }
 
     id: str = DBField(hash_key=True)
@@ -92,19 +78,17 @@ class Workflow(DBModel):
     ):
         if user_id is None:
             return cls.query(
-                condition="access = :public",
-                values={":public": "public"},
-                index="nodetool_workflow_access_index",
+                condition=Field("access")
+                .equals("public")
+                .and_(Field("id").greater_than(start_key or "")),
                 limit=limit,
-                start_key=start_key,
             )
         else:
             return cls.query(
-                condition="user_id = :user_id",
-                values={":user_id": user_id},
-                index="nodetool_workflow_user_index",
+                condition=Field("user_id")
+                .equals(user_id)
+                .and_(Field("id").greater_than(start_key or "")),
                 limit=limit,
-                start_key=start_key,
             )
 
     def get_api_graph(self) -> APIGraph:

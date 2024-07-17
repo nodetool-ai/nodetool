@@ -20,15 +20,7 @@ export const BASE_URL =
     ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com"
     : "https://api.nodetool.ai";
 
-export const WORKER_URL =
-  isDevelopment
-    ? "http://" + window.location.hostname + ":8000/predict"
-    : "https://georgi--worker-app-worker-app.modal.run/predict";
-    
-export const COMFY_WORKER_URL =
-  isDevelopment
-    ? "http://" + window.location.hostname + ":8000/predict"
-    : "https://georgi--worker-app-gpuworker-app.modal.run/predict";
+export const WORKER_URL = BASE_URL + "/predict";
 
 export const pingWorker = () => {
   if (isDevelopment) {

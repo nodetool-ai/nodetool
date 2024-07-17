@@ -14,6 +14,9 @@ A prediction made by a remote model.
 - **version** (str | None)
 - **node_type** (str | None)
 - **status** (str)
+- **params** (dict[str, typing.Any])
+- **data** (typing.Any | None)
+- **cost** (float | None)
 - **logs** (str | None)
 - **error** (str | None)
 - **duration** (float | None)
@@ -29,7 +32,6 @@ The request body for creating a prediction.
 - **model** (str)
 - **node_id** (str)
 - **params** (dict[str, typing.Any])
-- **data** (str | None)
 - **version** (str | None)
 - **workflow_id** (str | None)
 

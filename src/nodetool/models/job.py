@@ -1,22 +1,15 @@
 from typing import Optional
 from datetime import datetime
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
+from nodetool.models.condition_builder import Field
 
 
 class Job(DBModel):
     @classmethod
     def get_table_schema(cls):
-        return {
-            "table_name": "nodetool_jobs",
-            "key_schema": {"id": "HASH"},
-            "attribute_definitions": {"id": "S", "user_id": "S", "workflow_id": "S"},
-            "global_secondary_indexes": {
-                "nodetool_job_user_index": {"user_id": "HASH"},
-                "nodetool_job_workflow_index": {"workflow_id": "HASH"},
-            },
-        }
+        return {"table_name": "nodetool_jobs"}
 
-    id: str = DBField(hash_key=True)
+    id: str = DBField()
     user_id: str = DBField(default="")
     job_type: str = DBField(default="")
     status: str = DBField(default="starting")
@@ -51,19 +44,17 @@ class Job(DBModel):
     ):
         if workflow_id:
             return cls.query(
-                condition="workflow_id = :workflow_id",
-                values={":workflow_id": workflow_id},
-                index="nodetool_job_workflow_index",
+                Field("workflow_id")
+                .equals(workflow_id)
+                .and_(Field("id").greater_than(start_key or "")),
                 limit=limit,
-                start_key=start_key,
             )
         elif user_id:
             return cls.query(
-                condition="user_id = :user_id",
-                values={":user_id": user_id},
-                index="nodetool_job_user_index",
+                Field("user_id")
+                .equals(user_id)
+                .and_(Field("id").greater_than(start_key or "")),
                 limit=limit,
-                start_key=start_key,
             )
         else:
             raise ValueError("Must provide either user_id or workflow_id")

@@ -1,6 +1,6 @@
 # nodetool.nodes.nodetool.list
 
-## AppendToList
+## Append
 
 Adds a value to the end of a list.
 
@@ -14,7 +14,7 @@ Use cases:
 - **values** (list[typing.Any])
 - **value** (Any)
 
-## DedupeList
+## Dedupe
 
 Removes duplicate elements from a list, ensuring uniqueness.
 
@@ -27,7 +27,7 @@ Use cases:
 
 - **values** (list[typing.Any])
 
-## ExtendList
+## Extend
 
 Merges one list into another, extending the original list.
 
@@ -40,23 +40,7 @@ Use cases:
 - **values** (list[typing.Any])
 - **other_values** (list[typing.Any])
 
-## ExtractSubList
-
-Extracts a subset from a list using start, stop, and step indices.
-
-Use cases:
-- Get a portion of a list
-- Implement pagination
-- Extract every nth element
-
-**Tags:** list, slice, subset, extract
-
-- **values** (list[typing.Any])
-- **start** (int)
-- **stop** (int)
-- **step** (int)
-
-## FilterList
+## Filter
 
 Filters a list based on a custom Python condition.
 
@@ -69,7 +53,7 @@ Use cases:
 - **values**: The list to filter. (list[typing.Any])
 - **condition**: The Python code to use as the filtering condition. (str)
 
-## GenerateNumberSequence
+## GenerateSequence
 
 Generates a list of integers within a specified range.
 
@@ -84,7 +68,7 @@ Use cases:
 - **stop** (int)
 - **step** (int)
 
-## GetListElement
+## GetElement
 
 Retrieves a single value from a list at a specific index.
 
@@ -98,7 +82,7 @@ Use cases:
 - **values** (list[typing.Any])
 - **index** (int)
 
-## ListLength
+## Length
 
 Calculates the length of a list.
 
@@ -111,7 +95,7 @@ Use cases:
 
 - **values** (list[typing.Any])
 
-## ReduceList
+## Reduce
 
 Performs a custom reduction operation on a list using Python code.
 
@@ -131,7 +115,7 @@ Example reduction code:
 - **initial_value**: The initial value for the reduction. If not provided, the first value in the list is used. (Any)
 - **reduction_code**: The Python code to use for the reduction. (str)
 
-## ReverseList
+## Reverse
 
 Inverts the order of elements in a list.
 
@@ -156,7 +140,7 @@ Use cases:
 - **values**: The list to save. (list[typing.Any])
 - **name** (str)
 
-## SelectListElements
+## SelectElements
 
 Selects specific values from a list using index positions.
 
@@ -170,7 +154,23 @@ Use cases:
 - **values** (list[typing.Any])
 - **indices** (list[int])
 
-## TransformListElements
+## Slice
+
+Extracts a subset from a list using start, stop, and step indices.
+
+Use cases:
+- Get a portion of a list
+- Implement pagination
+- Extract every nth element
+
+**Tags:** list, slice, subset, extract
+
+- **values** (list[typing.Any])
+- **start** (int)
+- **stop** (int)
+- **step** (int)
+
+## TransformElements
 
 Transforms each element in a list based on custom Python code.
 

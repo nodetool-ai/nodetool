@@ -5,6 +5,9 @@ from nodetool.common.environment import Environment
 from uuid import uuid1
 from random import randint
 
+from nodetool.models.condition_builder import ConditionBuilder
+from nodetool.models.database_adapter import DatabaseAdapter
+
 
 log = Environment.get_logger()
 
@@ -36,7 +39,7 @@ class DBModel(BaseModel):
         return cls.get_table_schema()["table_name"]
 
     @classmethod
-    def adapter(cls):
+    def adapter(cls) -> DatabaseAdapter:
         if not hasattr(cls, "__adapter"):
             cls.__adapter = Environment.get_database_adapter(
                 fields=cls.db_fields(),
@@ -61,10 +64,7 @@ class DBModel(BaseModel):
     @classmethod
     def query(
         cls,
-        condition: str,
-        values: dict[str, Any],
-        index: str | None = None,
-        start_key: str | None = None,
+        condition: ConditionBuilder,
         limit: int = 100,
         reverse: bool = False,
     ):
@@ -74,10 +74,7 @@ class DBModel(BaseModel):
         It allows for filtering and sorting the results.
 
         Args:
-            condition: The condition for the query based on the primary key.
-            values: The values for the condition.
-            index: The name of the index to use for the query.
-            start_key: The exclusive start key for pagination.
+            condition: The condition for the query.
             limit: The maximum number of items to retrieve.
             reverse: Whether to reverse the order of the results.
 
@@ -86,9 +83,6 @@ class DBModel(BaseModel):
         """
         items, key = cls.adapter().query(
             condition=condition,
-            values=values,
-            index=index,
-            start_key=start_key,
             limit=limit,
             reverse=reverse,
         )
@@ -97,7 +91,7 @@ class DBModel(BaseModel):
     @classmethod
     def create(cls, **kwargs):
         """
-        Create a model instance from keyword arguments and save it to DynamoDB.
+        Create a model instance from keyword arguments and save it.
         """
         return cls(**kwargs).save()
 
@@ -106,7 +100,7 @@ class DBModel(BaseModel):
 
     def save(self):
         """
-        Save a model instance to DynamoDB and return the instance.
+        Save a model instance and return the instance.
         """
         self.before_save()
         self.adapter().save(self.model_dump())
@@ -115,7 +109,7 @@ class DBModel(BaseModel):
     @classmethod
     def db_fields(cls) -> dict[str, Any]:
         """
-        Return a dictionary of fields that should be persisted to DynamoDB.
+        Return a dictionary of fields that should be persisted.
         """
         return {
             field_name: field
@@ -155,7 +149,7 @@ class DBModel(BaseModel):
 
     def update(self, **kwargs):
         """
-        Update the model instance and save it to DynamoDB.
+        Update the model instance and save it.
         """
         for key, value in kwargs.items():
             setattr(self, key, value)

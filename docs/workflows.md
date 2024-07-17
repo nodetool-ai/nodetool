@@ -8,4 +8,6 @@
 - [nodetool.workflows.read_graph](workflows/read_graph.md)
 - [nodetool.workflows.run_job_request](workflows/run_job_request.md)
 - [nodetool.workflows.run_workflow](workflows/run_workflow.md)
+- [nodetool.workflows.threaded_event_loop](workflows/threaded_event_loop.md)
 - [nodetool.workflows.types](workflows/types.md)
+- [nodetool.workflows.workflow_runner](workflows/workflow_runner.md)

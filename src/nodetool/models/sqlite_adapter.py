@@ -6,6 +6,12 @@ from typing import Any, Dict, List, get_args
 from pydantic.fields import FieldInfo
 
 from nodetool.common.environment import Environment
+from nodetool.models.condition_builder import (
+    Condition,
+    ConditionBuilder,
+    ConditionGroup,
+    Operator,
+)
 
 from .database_adapter import DatabaseAdapter
 from typing import Any, Type, Union, get_origin, get_args
@@ -24,6 +30,9 @@ def convert_to_sqlite_format(
     :param py_type: The Python type of the value.
     :return: The value converted to a SQLite-compatible format.
     """
+    if py_type is None:
+        return str(value)
+
     if value is None:
         return None
 
@@ -47,7 +56,7 @@ def convert_to_sqlite_format(
         return json.dumps(value)
     elif py_type is datetime:
         return value.isoformat()
-    elif issubclass(py_type, bool):
+    elif py_type is bool or (isinstance(py_type, type) and issubclass(py_type, bool)):
         return int(value)
     elif issubclass(py_type, enum.Enum):
         return value.value
@@ -87,7 +96,7 @@ def convert_from_sqlite_format(value: Any, py_type: Type) -> Any:
         return value
     elif py_type is datetime:
         return datetime.fromisoformat(value)
-    elif issubclass(py_type, bool):
+    elif py_type is bool or (isinstance(py_type, type) and issubclass(py_type, bool)):
         return bool(value)
     elif issubclass(py_type, enum.Enum):
         return py_type(value)
@@ -147,6 +156,8 @@ def get_sqlite_type(field_type: Any) -> str:
         return "TEXT"
     elif field_type is bytes:  # bytes are stored as BLOB
         return "BLOB"
+    elif field_type.__class__ is enum.EnumType:
+        return "TEXT"
     elif field_type is None:  # NoneType translates to NULL
         return "NULL"
     else:
@@ -218,17 +229,6 @@ class SQLiteAdapter(DatabaseAdapter):
         )
         return cursor.fetchone() is not None
 
-    def get_primary_key(self) -> str:
-        """
-        Get the name of the hash key.
-        """
-        for field_name, field in self.fields.items():
-            if field.json_schema_extra and field.json_schema_extra.get(
-                "hash_key", False
-            ):
-                return field_name
-        raise Exception(f"Hash key not found for {self.table_name}")
-
     def get_current_schema(self) -> set[str]:
         """
         Retrieves the current schema of the table from the database.
@@ -244,8 +244,8 @@ class SQLiteAdapter(DatabaseAdapter):
         desired_schema = set(self.fields.keys())
         return desired_schema
 
-    def create_table(self, suffix: str = "") -> None:
-        table_name = f"{self.table_name}{suffix}"
+    def create_table(self, suffix="") -> None:
+        table_name = self.table_name + suffix
         fields = self.fields
         primary_key = self.get_primary_key()
         sql = f"CREATE TABLE IF NOT EXISTS {table_name} ("
@@ -332,36 +332,56 @@ class SQLiteAdapter(DatabaseAdapter):
         self.connection.execute(query, (primary_key,))
         self.connection.commit()
 
+    def _build_condition(
+        self, condition: Union[Condition, ConditionGroup]
+    ) -> tuple[str, list[Any]]:
+        if isinstance(condition, Condition):
+            if condition.operator == Operator.IN:
+                placeholders = ", ".join(["?" for _ in condition.value])
+                sql = f"{condition.field} IN ({placeholders})"
+                params = condition.value
+            else:
+                sql = f"{condition.field} {condition.operator.value} ?"
+                params = [condition.value]
+            return sql, params
+        else:  # ConditionGroup
+            sub_conditions = []
+            params = []
+            for sub_condition in condition.conditions:
+                sub_sql, sub_params = self._build_condition(sub_condition)
+                sub_conditions.append(sub_sql)
+                params.extend(sub_params)
+            if len(sub_conditions) == 1:
+                return sub_conditions[0], params
+            else:
+                op = " " + condition.operator.value + " "
+                return (
+                    op.join(["(" + sub + ")" for sub in sub_conditions]),
+                    params,
+                )
+
     def query(
         self,
-        condition: str,
-        values: Dict[str, Any],
+        condition: ConditionBuilder,
         limit: int = 100,
         reverse: bool = False,
-        start_key: str | None = None,
-        index: str | None = None,  # index is not used in SQLite
     ) -> tuple[list[dict[str, Any]], str]:
         pk = self.get_primary_key()
         order_by = f"{pk} DESC" if reverse else f"{pk} ASC"
-        values_without_prefix = {
-            key.removeprefix(":"): value for key, value in values.items()
-        }
-        condition = translate_condition_to_sql(condition)
-        if start_key:
-            condition += f" AND {pk} > :start_key"
-            values_without_prefix["start_key"] = start_key
+
+        where_clause, params = self._build_condition(condition.build())
+
         cols = ", ".join(self.fields.keys())
-        query = f"SELECT {cols} FROM {self.table_name} WHERE {condition} ORDER BY {order_by} LIMIT {limit}"
-        cursor = self.connection.execute(query, values_without_prefix)
+        query = f"SELECT {cols} FROM {self.table_name} WHERE {where_clause} ORDER BY {order_by} LIMIT {limit}"
+
+        cursor = self.connection.execute(query, params)
         res = [
-            convert_from_sqlite_attributes(dict(row), self.fields)  # type: ignore
+            convert_from_sqlite_attributes(dict(row), self.fields)
             for row in cursor.fetchall()
         ]
+
         if len(res) == 0 or len(res) < limit:
             return res, ""
 
         last_evaluated_key = str(res[-1].get(pk))
         return res, last_evaluated_key
-
-    def __del__(self):
-        self.connection.close()
