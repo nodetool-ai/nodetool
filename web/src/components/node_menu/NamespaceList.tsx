@@ -63,7 +63,7 @@ const namespaceStyles = (theme: any) =>
     },
     ".node-list": {
       maxHeight: "60vh",
-      minWidth: "250px",
+      minWidth: "300px",
       paddingRight: ".5em",
       paddingBottom: "1em",
       flex: "0 1 auto",

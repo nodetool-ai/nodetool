@@ -380,14 +380,14 @@
 .react-flow .react-flow__nodesselection-rect,
 .react-flow__nodesselection-rect:focus-visible,
 .react-flow .react-flow__nodesselection-rect:focus {
-  background: rgba(80, 100, 140, 0.2) !important;
+  background: #cdcdcd24 !important;
   border: 0;
 }
 
 .react-flow .react-flow__nodesselection-rect {
-  outline: 1px solid var(--c_gray6) !important;
-  outline-offset: 10px;
-  border-radius: 1px;
+  outline: 2px solid #d9d9d9f0 !important;
+  outline-offset: 0px;
+  border-radius: 2px;
 }
 
 /* drag */
