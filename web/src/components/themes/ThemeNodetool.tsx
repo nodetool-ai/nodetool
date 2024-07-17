@@ -106,7 +106,7 @@ const ThemeNodetool: Theme = createTheme({
     c_hl1: "#76e5b8",
     c_hl1_1: "#325954",
     c_hl2: "#128B6E",
-    c_selection: "#8EACA7",
+    c_selection: "#8EACA777",
     /* Statuses */
     c_attention: "#E35BFF",
     c_delete: "#FF2222",

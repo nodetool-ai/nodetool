@@ -54,7 +54,7 @@ const styles = (theme: any) =>
       position: "absolute",
       maxWidth: "80px",
       height: "1em",
-      top: "0px",
+      top: "2px",
       right: "0px",
       fontFamily: theme.font_family1,
       fontSize: theme.fontSizeSmaller,
@@ -67,22 +67,27 @@ const styles = (theme: any) =>
     ".edit-value": {
       position: "absolute",
       width: "auto",
-      height: "15px",
-      top: "-11px",
-      right: "2px",
-      zIndex: "10"
+      minWidth: "40px",
+      height: "10px",
+      top: "-.2em",
+      right: 0,
+      zIndex: "10",
+      overflow: "hidden",
+      resize: "none",
+      WebkitAppearance: "none",
+      appearance: "none"
     },
     ".edit-value input": {
       position: "absolute",
       width: "auto",
-      height: "15px",
-      minHeight: "15px",
-      top: "0px",
-      right: "-7px",
+      height: "10px",
+      // minHeight: "10px",
+      top: "1px",
+      right: "-1em",
       fontFamily: theme.font_family1,
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeTiny,
       margin: "0",
-      padding: "0 11px 0 2px",
+      padding: "0 1em 0 .2em",
       textAlign: "right",
       color: theme.palette.c_white,
       backgroundColor: "#3d3f41",
@@ -258,7 +263,7 @@ const NumberInput = memo((props: InputProps) => {
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (isDragging) {
+      if (isDragging && !isEditable) {
         const moveX = e.clientX - dragStartX;
         const range = (props.max || 4096) - (props.min || 0);
         if (Math.abs(moveX) > 5) {
@@ -325,7 +330,8 @@ const NumberInput = memo((props: InputProps) => {
       isFloat,
       setDecimalPlaces,
       decimalPlaces,
-      props
+      props,
+      isEditable
     ]
   );
 

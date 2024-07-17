@@ -385,7 +385,7 @@
 }
 
 .react-flow .react-flow__nodesselection-rect {
-  outline: 2px solid #d9d9d9f0 !important;
+  outline: 1px solid #d9d9d9f0 !important;
   outline-offset: 0px;
   border-radius: 2px;
 }
