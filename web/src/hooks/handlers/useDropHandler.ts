@@ -75,6 +75,8 @@ export function nodeTypeFor(content_type: string): TypeName | null {
       return "image";
     case "image/gif":
       return "image";
+    case "image/webp":
+      return "image";
     case "video/mp4":
       return "video";
     case "video/mpeg":

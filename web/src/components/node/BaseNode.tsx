@@ -136,11 +136,7 @@ export default memo(
           <div className="node-content-hidden" />
           <NodeErrors id={props.id} />
           {status == "booting" && (
-            <Typography
-              className="node-status"
-              variant="body2"
-              color="textSecondary"
-            >
+            <Typography className="node-status">
               Model is booting, this can take up to 3 minutes.
             </Typography>
           )}
