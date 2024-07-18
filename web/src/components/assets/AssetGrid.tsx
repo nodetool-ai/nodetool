@@ -119,8 +119,14 @@ interface AssetGridProps {
 
 const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   const { sortedAssets, currentAssets, error } = useAssets();
-  const { selectedAssetIds, setSelectedAssetIds, selectedAssets } =
-    useSessionStateStore();
+  const selectedAssetIds = useSessionStateStore(
+    (state) => state.selectedAssetIds
+  );
+  const setSelectedAssetIds = useSessionStateStore(
+    (state) => state.setSelectedAssetIds
+  );
+  const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
+
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
   const { mutation: moveMutation } = useAssetUpdate();

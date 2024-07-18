@@ -101,7 +101,10 @@ export default function useConnectionHandlers() {
     connectHandleId
   } = useConnectionStore();
 
-  const { findNode, setConnectionAttempted } = useNodeStore();
+  const findNode = useNodeStore((state) => state.findNode);
+  const setConnectionAttempted = useNodeStore(
+    (state) => state.setConnectionAttempted
+  );
   const { data: metadata } = useMetadata();
   const { openContextMenu } = useContextMenuStore();
 

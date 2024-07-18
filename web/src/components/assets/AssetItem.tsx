@@ -326,9 +326,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   const isVideo = asset.content_type.match("video") !== null;
   const isFolder = asset.content_type.match("folder") !== null;
   const [isDragHovered, setIsDragHovered] = useState(false);
-  const { openContextMenu } = useContextMenuStore();
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
 
-  const { selectedAssetIds, setSelectedAssetIds } = useSessionStateStore();
+  const selectedAssetIds = useSessionStateStore(
+    (state) => state.selectedAssetIds
+  );
+  const setSelectedAssetIds = useSessionStateStore(
+    (state) => state.setSelectedAssetIds
+  );
   const [openAsset, setOpenAsset] = useState<Asset | undefined>(undefined);
   const [assetItemSize] = useSettingsStore((state) => [
     state.settings.assetItemSize

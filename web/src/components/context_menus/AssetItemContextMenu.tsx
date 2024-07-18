@@ -22,9 +22,12 @@ const AssetItemContextMenu = ({
   openRenameDialog,
   openMoveToFolderDialog
 }: AssetItemContextMenuProps) => {
-  const { openMenuType, menuPosition } = useContextMenuStore();
-  const { selectedAssetIds } = useSessionStateStore();
-  const { download } = useAssetStore();
+  const openMenuType = useContextMenuStore((state) => state.openMenuType);
+  const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const selectedAssetIds = useSessionStateStore(
+    (state) => state.selectedAssetIds
+  );
+  const download = useAssetStore((state) => state.download);
 
   const handleDownloadAssets = (selectedAssetIds: string[]) => {
     devLog("AssetItemContextMenu: Download assets", selectedAssetIds);

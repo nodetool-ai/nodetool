@@ -1,5 +1,4 @@
 import { create } from "zustand";
-// import { OutputSlot } from "./ApiTypes";
 type MenuPosition = { x: number; y: number };
 interface ContextMenuState {
   openMenuType: string | null;

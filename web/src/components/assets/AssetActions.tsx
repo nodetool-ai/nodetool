@@ -113,7 +113,8 @@ const AssetActions = ({
   handleDeselectAssets,
   maxItemSize = 10
 }: AssetActionsProps) => {
-  const { currentFolder, setCurrentFolderId } = useAssetStore();
+  const currentFolder = useAssetStore((state) => state.currentFolder);
+  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
   const { refetch, isLoading } = useAssets();
   const [createFolderAnchor, setCreateFolderAnchor] =
     useState<HTMLButtonElement | null>(null);

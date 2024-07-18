@@ -27,16 +27,15 @@ const InputContextMenu: React.FC = () => {
   const generateEdgeId = useNodeStore((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
 
-  const {
-    openMenuType,
-    menuPosition,
-    closeContextMenu,
-    type,
-    nodeId,
-    handleId
-  } = useContextMenuStore();
-  const { openNodeMenu } = useNodeMenuStore();
-
+  const openMenuType = useContextMenuStore((state) => state.openMenuType);
+  const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const closeContextMenu = useContextMenuStore(
+    (state) => state.closeContextMenu
+  );
+  const type = useContextMenuStore((state) => state.type);
+  const nodeId = useContextMenuStore((state) => state.nodeId);
+  const handleId = useContextMenuStore((state) => state.handleId);
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const datatypeLabel = labelForType(type || "").replaceAll(" ", "");
   const inputNodePath = `nodetool.input.${datatypeLabel}Input`;
   const inputNodeMetadata = getMetadata(inputNodePath);

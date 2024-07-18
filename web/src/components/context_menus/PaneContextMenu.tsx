@@ -25,8 +25,12 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   const { handlePaste } = useCopyPaste();
   const reactFlowInstance = useReactFlow();
   const { isClipboardValid } = useClipboard();
-  const { openMenuType, menuPosition, closeContextMenu } =
-    useContextMenuStore();
+  const openMenuType = useContextMenuStore((state) => state.openMenuType);
+  const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const closeContextMenu = useContextMenuStore(
+    (state) => state.closeContextMenu
+  );
+
   const createNode = useNodeStore.getState().createNode;
   const addNode = useNodeStore.getState().addNode;
 

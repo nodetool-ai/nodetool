@@ -32,8 +32,12 @@ import { useMetadata } from "../../serverState/useMetadata";
 import { isUrlAccessible } from "../../utils/isUrlAccessible";
 
 const NodeContextMenu: React.FC = () => {
-  const { openMenuType, menuPosition, closeContextMenu, nodeId } =
-    useContextMenuStore();
+  const openMenuType = useContextMenuStore((state) => state.openMenuType);
+  const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const closeContextMenu = useContextMenuStore(
+    (state) => state.closeContextMenu
+  );
+  const nodeId = useContextMenuStore((state) => state.nodeId);
 
   const { getNode } = useReactFlow();
   const deleteNode = useNodeStore((state: NodeStore) => state.deleteNode);
