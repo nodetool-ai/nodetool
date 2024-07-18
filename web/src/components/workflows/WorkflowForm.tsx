@@ -90,9 +90,11 @@ const WorkflowForm = () => {
       saveWorkflow: state.saveWorkflow
     })
   );
-  const { addNotification } = useNotificationStore();
-  const [localWorkflow, setLocalWorkflow] = useState(workflow);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const settings = useSettingsStore((state) => state.settings);
+  const [localWorkflow, setLocalWorkflow] = useState(workflow);
   const [updatedAt, setUpdatedAt] = useState(workflow.updated_at);
 
   const handleSaveWorkflow = async () => {

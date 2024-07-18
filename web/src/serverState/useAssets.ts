@@ -13,8 +13,13 @@ const useAssets = () => {
   const { user: currentUser } = useAuth();
   const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
 
-  const { currentFolderId, loadCurrentFolder, loadFolderById } =
-    useAssetStore();
+  const { currentFolderId, loadCurrentFolder, loadFolderById } = useAssetStore(
+    (state) => ({
+      currentFolderId: state.currentFolderId,
+      loadCurrentFolder: state.loadCurrentFolder,
+      loadFolderById: state.loadFolderById
+    })
+  );
 
   interface SortedAssetsByType {
     assetsByType: Record<string, Asset[]>;

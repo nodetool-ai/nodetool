@@ -75,8 +75,7 @@ const styles = (theme: any) =>
   });
 
 export const NotificationsList: React.FC = () => {
-  const { notifications } = useNotificationStore();
-
+  const notifications = useNotificationStore((state) => state.notifications);
   const recentNotifications = [...notifications]
     .sort(
       (a, b) =>

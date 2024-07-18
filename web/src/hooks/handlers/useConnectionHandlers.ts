@@ -99,14 +99,22 @@ export default function useConnectionHandlers() {
     connectDirection,
     connectNodeId,
     connectHandleId
-  } = useConnectionStore();
+  } = useConnectionStore((state) => ({
+    connecting: state.connecting,
+    startConnecting: state.startConnecting,
+    endConnecting: state.endConnecting,
+    connectType: state.connectType,
+    connectDirection: state.connectDirection,
+    connectNodeId: state.connectNodeId,
+    connectHandleId: state.connectHandleId
+  }));
 
   const findNode = useNodeStore((state) => state.findNode);
   const setConnectionAttempted = useNodeStore(
     (state) => state.setConnectionAttempted
   );
   const { data: metadata } = useMetadata();
-  const { openContextMenu } = useContextMenuStore();
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
 
   /* CONNECT START */
   const onConnectStart = useCallback(

@@ -86,8 +86,13 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   currentPath = [],
   handleNamespaceClick
 }) => {
-  const { highlightedNamespaces, selectedPath, activeNode } =
-    useNodeMenuStore();
+  const { highlightedNamespaces, selectedPath, activeNode } = useNodeMenuStore(
+    (state) => ({
+      highlightedNamespaces: state.highlightedNamespaces,
+      selectedPath: state.selectedPath,
+      activeNode: state.activeNode
+    })
+  );
 
   return (
     <div className="namespaces" css={namespaceStyles}>

@@ -62,8 +62,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   const connectNodeId = useConnectionStore((state) => state.connectNodeId);
   const currentZoom = useStore((state) => state.transform[2]);
   const isMinZoom = currentZoom === MIN_ZOOM;
-
-  const { openContextMenu } = useContextMenuStore();
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const inputContextMenu = (event: any, id: string, type: string) => {
     setTimeout(() => {
       openContextMenu(

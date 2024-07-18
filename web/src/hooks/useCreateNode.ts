@@ -6,7 +6,7 @@ import { useReactFlow } from "reactflow";
 import { useCreateLoopNode } from "./createnodes/useCreateLoopNode";
 
 export const useCreateNode = () => {
-  const { menuPosition } = useNodeMenuStore();
+  const menuPosition = useNodeMenuStore((state) => state.menuPosition);
   const reactFlowInstance = useReactFlow();
   const addNode = useNodeStore((state) => state.addNode);
   const createNode = useNodeStore((state) => state.createNode);

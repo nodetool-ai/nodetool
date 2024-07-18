@@ -121,7 +121,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const spaceKeyPressed = useKeyPressedListener(" ");
-  const { openNodeMenu } = useNodeMenuStore();
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const nodeHovered = useNodeStore((state) =>
     state.hoveredNodes.includes(props.id)
   );

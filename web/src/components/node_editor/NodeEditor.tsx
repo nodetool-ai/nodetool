@@ -84,7 +84,7 @@ const NodeEditor: React.FC<unknown> = () => {
     handleOnConnect(connection);
   };
 
-  const { connecting } = useConnectionStore();
+  const connecting = useConnectionStore((state) => state.connecting);
 
   /* REACTFLOW */
   const reactFlowWrapper = useRef<HTMLDivElement | null>(null);
@@ -168,7 +168,13 @@ const NodeEditor: React.FC<unknown> = () => {
   addBeforeUnloadListener();
 
   // OPEN NODE MENU
-  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore();
+  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
+    (state) => ({
+      openNodeMenu: state.openNodeMenu,
+      closeNodeMenu: state.closeNodeMenu,
+      isMenuOpen: state.isMenuOpen
+    })
+  );
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {

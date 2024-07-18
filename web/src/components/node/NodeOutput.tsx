@@ -35,7 +35,7 @@ const NodeOutput = ({ id, output }: NodeOutputProps) => {
     (state) => state.connectDirection
   );
   const connectNodeId = useConnectionStore((state) => state.connectNodeId);
-  const { openContextMenu } = useContextMenuStore();
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const outputContextMenu = (event: any, id: string, output: OutputSlot) => {
     setTimeout(() => {
       openContextMenu(

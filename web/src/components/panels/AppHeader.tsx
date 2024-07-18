@@ -166,8 +166,8 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
 function AppHeader() {
   const navigate = useNavigate();
   const path = useLocation().pathname;
-  const reactFlowInstance = useReactFlow();
-  const { openNodeMenu } = useNodeMenuStore();
+  // const reactFlowInstance = useReactFlow();
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
   const workflowIsDirty = useNodeStore((state) => state.workflowIsDirty);

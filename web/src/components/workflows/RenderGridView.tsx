@@ -124,7 +124,7 @@ export const RenderGridView: React.FC<RenderGridViewProps> = ({
   selectedWorkflows,
   workflowCategory
 }) => {
-  const { settings } = useSettingsStore();
+  const settings = useSettingsStore((state) => state.settings);
   const addBreaks = (text: string) => {
     return text.replace(/([-_.])/g, "$1<wbr>");
   };

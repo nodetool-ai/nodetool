@@ -39,7 +39,13 @@ const nodeStyles = (theme: any) =>
   });
 
 const RenderNodes: React.FC<RenderNodesProps> = ({ nodes, hoverDelay }) => {
-  const { hoveredNode, setHoveredNode, setDragToCreate } = useNodeMenuStore();
+  const { hoveredNode, setHoveredNode, setDragToCreate } = useNodeMenuStore(
+    (state) => ({
+      hoveredNode: state.hoveredNode,
+      setHoveredNode: state.setHoveredNode,
+      setDragToCreate: state.setDragToCreate
+    })
+  );
 
   const handleCreateNode = useCreateNode();
 
@@ -89,8 +95,9 @@ const RenderNodes: React.FC<RenderNodesProps> = ({ nodes, hoverDelay }) => {
         acc.push(
           <div
             key={`${node.namespace}-${node.title}`}
-            className={`node ${hoveredNode?.node_type === node.node_type ? "hovered" : ""
-              }`}
+            className={`node ${
+              hoveredNode?.node_type === node.node_type ? "hovered" : ""
+            }`}
             onMouseEnter={() => {
               currentHoveredNodeRef.current = node;
               handleMouseEnter();

@@ -117,7 +117,13 @@ type WorkflowCategory = "user" | "examples";
 
 const WorkflowGrid = () => {
   const [filterValue, setFilterValue] = useState("");
-  const { settings, setWorkflowLayout, setWorkflowOrder } = useSettingsStore();
+  const { settings, setWorkflowLayout, setWorkflowOrder } = useSettingsStore(
+    (state) => ({
+      settings: state.settings,
+      setWorkflowLayout: state.setWorkflowLayout,
+      setWorkflowOrder: state.setWorkflowOrder
+    })
+  );
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const shiftKeyPressed = useKeyPressedListener("Shift");
@@ -172,9 +178,8 @@ const WorkflowGrid = () => {
     }
   );
 
-  const deleteWorkflow = useWorkflowStore().delete;
+  const deleteWorkflow = useWorkflowStore((state) => state.delete);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
-
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
 
   // OPEN WORKFLOW

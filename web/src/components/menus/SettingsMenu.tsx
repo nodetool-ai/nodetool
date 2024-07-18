@@ -162,7 +162,20 @@ function SettingsMenu() {
     setButtonAppearance,
     setAlertBeforeTabClose,
     setSelectNodesOnDrag
-  } = useSettingsStore();
+  } = useSettingsStore((state) => ({
+    settings: state.settings,
+    setGridSnap: state.setGridSnap,
+    setConnectionSnap: state.setConnectionSnap,
+    setPanControls: state.setPanControls,
+    setSelectionMode: state.setSelectionMode,
+    setWorkflowLayout: state.setWorkflowLayout,
+    setWorkflowOrder: state.setWorkflowOrder,
+    setAssetItemSize: state.setAssetItemSize,
+    setTimeFormat: state.setTimeFormat,
+    setButtonAppearance: state.setButtonAppearance,
+    setAlertBeforeTabClose: state.setAlertBeforeTabClose,
+    setSelectNodesOnDrag: state.setSelectNodesOnDrag
+  }));
 
   const id = open ? "docs" : undefined;
 
