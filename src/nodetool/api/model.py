@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/models", tags=["models"])
 
 @router.get("/llama_models")
 async def llama_model(user: User = Depends(current_user)) -> list[LlamaModel]:
-    return Environment.get_llama_models()
+    return await Environment.get_llama_models()
 
 
 @router.get("/function_models")

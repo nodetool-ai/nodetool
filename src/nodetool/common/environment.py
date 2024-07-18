@@ -694,11 +694,13 @@ class Environment(object):
         return models
 
     @classmethod
-    def get_llama_models(cls):
+    async def get_llama_models(cls):
         from nodetool.metadata.types import LlamaModel
-        import ollama
 
-        return [LlamaModel(**model) for model in ollama.list()["models"]]
+        ollama = Environment.get_ollama_client()
+        models = await ollama.list()
+
+        return [LlamaModel(**model) for model in models["models"]]
 
     @classmethod
     def get_model_files(cls, folder: str):
