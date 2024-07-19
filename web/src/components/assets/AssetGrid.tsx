@@ -1,16 +1,20 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Divider, Box, Typography } from "@mui/material";
-import { useNodeStore } from "../../stores/NodeStore";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
+import { Box, Divider, Typography } from "@mui/material";
 import { useAssetStore } from "../../hooks/AssetStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { prettyDate } from "../../utils/formatDateAndTime";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
+import ThemeNodetool from "../themes/ThemeNodetool";
 import { Asset } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
 import Dropzone from "./Dropzone";
@@ -19,10 +23,12 @@ import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
-import AssetGridContent from "./AssetGridContent";
 import SearchInput from "../search/SearchInput";
 import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import AssetGridContent from "./AssetGridContent";
+import { useNodeStore } from "../../stores/NodeStore";
+import { prettyDate } from "../../utils/formatDateAndTime";
 
 const styles = (theme: any) =>
   css({
@@ -96,17 +102,15 @@ const styles = (theme: any) =>
     }
   });
 
-/**
- * AssetGrid displays a grid of assets.
- * New assets can be dropped from the OS file system.
- */
-
 interface AssetGridProps {
   maxItemSize?: number;
   itemSpacing?: number;
 }
 
-const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
+const AssetGrid: React.FC<AssetGridProps> = ({
+  maxItemSize = 100,
+  itemSpacing = 2
+}) => {
   const { sortedAssets, currentAssets, error } = useAssets();
   const selectedAssetIds = useSessionStateStore(
     (state) => state.selectedAssetIds
@@ -150,6 +154,18 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
     state.isKeyPressed(" ")
   );
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const { uploadAsset } = useAssetUpload();
+
+  // const filteredAssets = useMemo(() => {
+  //   const filtered = sortedAssets.filter((asset) =>
+  //     asset.name.toLowerCase().includes(searchTerm.toLowerCase())
+  //   );
+  //   console.log("filteredAssets:", filtered);
+  //   return filtered;
+  // }, [sortedAssets, searchTerm]);
+
   const handleClickOutside = useCallback(
     (e: MouseEvent) => {
       const clickedElement = e.target as HTMLElement;
@@ -167,19 +183,10 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
             clickedElement.classList.contains("MuiTabs-flexContainer"))
         ) {
           setSelectedAssetIds([]);
-          if (selectedAssetIds.length > 0) {
-            setSelectedAssetIds([]);
-          }
         }
       }
     },
-    [
-      shiftKeyPressed,
-      controlKeyPressed,
-      metaKeyPressed,
-      selectedAssetIds,
-      setSelectedAssetIds
-    ]
+    [shiftKeyPressed, controlKeyPressed, metaKeyPressed, setSelectedAssetIds]
   );
 
   useEffect(() => {
@@ -259,10 +266,6 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
     setLastSelectedAssetId(null);
   }, [setSelectedAssetIds]);
 
-  const containerRef = useRef(null);
-
-  const { uploadAsset } = useAssetUpload();
-
   const uploadFiles = useCallback(
     (files: File[]) => {
       const workflow = useNodeStore.getState().workflow;
@@ -304,8 +307,6 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
           handleDeselectAssets={handleDeselectAssets}
           maxItemSize={maxItemSize}
         />
-
-        {/* Current Folder + Selected Info */}
         <Typography className="current-folder">
           <span className="folder-slash">/</span>
           {currentFolder && `${currentFolder.name}`}
@@ -339,20 +340,20 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
         </div>
       </div>
       <Dropzone onDrop={uploadFiles}>
-        <div className="br">
-          <br />
+        {/* <div style={{ height: "calc(100% - 40px)" }}> */}
+        <div style={{ height: "100%" }}>
+          <AssetGridContent
+            selectedAssetIds={selectedAssetIds}
+            handleSelectAsset={handleSelectAsset}
+            setCurrentFolderId={setCurrentFolderId}
+            setSelectedAssetIds={setSelectedAssetIds}
+            openDeleteDialog={() => setDeleteDialogOpen(true)}
+            openRenameDialog={() => setRenameDialogOpen(true)}
+            setCurrentAudioAsset={setCurrentAudioAsset}
+            itemSpacing={itemSpacing}
+            searchTerm={searchTerm}
+          />
         </div>
-        <AssetGridContent
-          selectedAssetIds={selectedAssetIds}
-          handleSelectAsset={handleSelectAsset}
-          setCurrentFolderId={setCurrentFolderId}
-          setSelectedAssetIds={setSelectedAssetIds}
-          openDeleteDialog={() => setDeleteDialogOpen(true)}
-          openRenameDialog={() => setRenameDialogOpen(true)}
-          setCurrentAudioAsset={setCurrentAudioAsset}
-          itemSpacing={itemSpacing}
-          searchTerm={searchTerm}
-        />
       </Dropzone>
       <Divider />
       {currentAudioAsset && (
@@ -399,4 +400,4 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   );
 };
 
-export default AssetGrid;
+export default React.memo(AssetGrid);

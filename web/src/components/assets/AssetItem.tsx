@@ -1,26 +1,21 @@
 /** @jsxImportSource @emotion/react */
-import React, { useEffect } from "react";
-import { useState, useCallback, DragEvent } from "react";
-import { ButtonGroup } from "@mui/material";
-import { Typography } from "@mui/material";
-// icons
+import { css } from "@emotion/react";
+
+import React, { useState, useCallback, useMemo } from "react";
+import { ButtonGroup, Typography } from "@mui/material";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
-// store
 import useSessionStateStore from "../../stores/SessionStateStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../hooks/AssetStore";
-// components
 import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
 import DeleteButton from "../buttons/DeleteButton";
-// utils
 import { devError } from "../../utils/DevLog";
-import { css } from "@emotion/react";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -292,14 +287,13 @@ export type AssetItemProps = {
   onSelect?: () => void;
   onDoubleClickFolder?: (id: string) => void;
   onClickParent?: (id: string) => void;
-  // onDragStart?: () => string[];
   onDragStart?: (assetId: string) => string[];
   onMoveToFolder?: () => void;
   onDeleteAssets?: () => void;
   onSetCurrentAudioAsset?: (asset: Asset) => void;
 };
 
-const AssetItem: React.FC<AssetItemProps> = (props) => {
+const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
   const {
     asset,
     draggable = true,
@@ -315,29 +309,55 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     onSelect,
     onDoubleClickFolder,
     onClickParent,
-    onMoveToFolder
+    onMoveToFolder,
+    onSetCurrentAudioAsset
   } = props;
 
-  const assetType = asset.content_type.split("/")[0];
-  const assetFileEnding = asset.content_type.split("/")[1];
-  const isImage = asset.content_type.match("image") !== null;
-  const isText = asset.content_type.match("text") !== null;
-  const isAudio = asset.content_type.match("audio") !== null;
-  const isVideo = asset.content_type.match("video") !== null;
-  const isFolder = asset.content_type.match("folder") !== null;
   const [isDragHovered, setIsDragHovered] = useState(false);
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const [openAsset, setOpenAsset] = useState<Asset | undefined>(undefined);
 
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const selectedAssetIds = useSessionStateStore(
     (state) => state.selectedAssetIds
   );
   const setSelectedAssetIds = useSessionStateStore(
     (state) => state.setSelectedAssetIds
   );
-  const [openAsset, setOpenAsset] = useState<Asset | undefined>(undefined);
-  const [assetItemSize] = useSettingsStore((state) => [
-    state.settings.assetItemSize
-  ]);
+  const assetItemSize = useSettingsStore(
+    (state) => state.settings.assetItemSize
+  );
+
+  const { mutation: updateAssetMutation } = useAssetUpdate();
+
+  const assetType = useMemo(
+    () => asset.content_type.split("/")[0],
+    [asset.content_type]
+  );
+  const assetFileEnding = useMemo(
+    () => asset.content_type.split("/")[1],
+    [asset.content_type]
+  );
+  const isImage = useMemo(
+    () => asset.content_type.match("image") !== null,
+    [asset.content_type]
+  );
+  const isText = useMemo(
+    () => asset.content_type.match("text") !== null,
+    [asset.content_type]
+  );
+  const isAudio = useMemo(
+    () => asset.content_type.match("audio") !== null,
+    [asset.content_type]
+  );
+  const isVideo = useMemo(
+    () => asset.content_type.match("video") !== null,
+    [asset.content_type]
+  );
+  const isFolder = useMemo(
+    () => asset.content_type.match("folder") !== null,
+    [asset.content_type]
+  );
+
   const handleDelete = useCallback(() => {
     if (selectedAssetIds?.length === 0) {
       setSelectedAssetIds([asset.id]);
@@ -351,8 +371,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     setSelectedAssetIds,
     asset.id
   ]);
-
-  const { mutation: updateAssetMutation } = useAssetUpdate();
 
   const moveAssets = useCallback(
     async (assets: string[], parentId: string) => {
@@ -370,7 +388,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
       try {
         const selectedAssetIds = JSON.parse(assetData);
-        // Move assets to folder
         if (asset.content_type === "folder") {
           await moveAssets(selectedAssetIds, asset.id);
           onMoveToFolder && onMoveToFolder();
@@ -382,46 +399,41 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     [asset.content_type, asset.id, moveAssets, onMoveToFolder]
   );
 
-  const onDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-  };
+  }, []);
 
   const handleDrag = useCallback(
-    (e: DragEvent) => {
+    (e: React.DragEvent) => {
       let assetIds;
 
-      // Check if the current asset's ID is in the selectedAssetIds array
       if (selectedAssetIds && selectedAssetIds.includes(asset.id)) {
-        // If yes, use the existing selectedAssetIds
         assetIds = selectedAssetIds;
       } else {
-        // If not, reset the selection to only include the current asset's ID
         assetIds = [asset.id];
         setSelectedAssetIds(assetIds);
       }
 
-      // Set data for the drag operation
       e.dataTransfer.setData("selectedAssetIds", JSON.stringify(assetIds));
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
-      // Create and configure the drag image
       const dragImage = document.createElement("div");
       dragImage.textContent = assetIds.length.toString();
-
-      // drag image
-      dragImage.style.position = "absolute";
-      dragImage.style.top = "-99999px";
-      dragImage.style.backgroundColor = "#222";
-      dragImage.style.color = "#999";
-      dragImage.style.border = "3px solid #333";
-      dragImage.style.borderRadius = "4px";
-      dragImage.style.height = "40px";
-      dragImage.style.width = "40px";
-      dragImage.style.display = "flex";
-      dragImage.style.alignItems = "center";
-      dragImage.style.justifyContent = "center";
-      dragImage.style.fontSize = "20px";
-      dragImage.style.fontWeight = "bold";
+      dragImage.style.cssText = `
+        position: absolute;
+        top: -99999px;
+        background-color: #222;
+        color: #999;
+        border: 3px solid #333;
+        border-radius: 4px;
+        height: 40px;
+        width: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: bold;
+      `;
 
       document.body.appendChild(dragImage);
       e.dataTransfer.setDragImage(dragImage, 25, 30);
@@ -448,15 +460,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     []
   );
 
-  // context menu
   const handleAssetItemContextMenu = useCallback(
     (event: React.MouseEvent, rightClickedAssetId: string) => {
       event.preventDefault();
       event.stopPropagation();
       if (enableContextMenu) {
-        // if right clicked asset was not part of an existing selection:
-        // change existing selection to only the right clicked asset.
-        // as seen in the file explorer in windows and osx
         if (!selectedAssetIds.includes(rightClickedAssetId)) {
           setSelectedAssetIds([rightClickedAssetId]);
         }
@@ -469,9 +477,26 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         );
       }
     },
-
     [selectedAssetIds, setSelectedAssetIds, openContextMenu, enableContextMenu]
   );
+
+  const handleDoubleClick = useCallback(() => {
+    if (asset.get_url) {
+      setOpenAsset(asset);
+    }
+    if (asset.content_type === "folder") {
+      if (onDoubleClickFolder) {
+        onDoubleClickFolder(asset.id);
+      }
+    }
+  }, [asset, onDoubleClickFolder]);
+
+  const handleClick = useCallback(() => {
+    if (isParent) {
+      onClickParent && onClickParent(asset.id);
+    }
+    onSelect && onSelect();
+  }, [isParent, onClickParent, onSelect, asset.id]);
 
   return (
     <div
@@ -489,23 +514,8 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       key={asset.id}
       draggable={draggable}
       onDragStart={handleDrag}
-      // onMouseDown={onSelect}
-      onDoubleClick={() => {
-        if (asset.get_url) {
-          setOpenAsset(asset);
-        }
-        if (asset.content_type === "folder") {
-          if (onDoubleClickFolder) {
-            onDoubleClickFolder(asset.id);
-          }
-        }
-      }}
-      onClick={() => {
-        if (isParent) {
-          onClickParent && onClickParent(asset.id);
-        }
-        onSelect && onSelect();
-      }}
+      onDoubleClick={handleDoubleClick}
+      onClick={handleClick}
       onDrop={onDrop}
       onDragOver={onDragOver}
     >
@@ -559,7 +569,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <>
             <AudioFileIcon
               style={{ color: `var(--c_${assetType})` }}
-              onClick={() => props.onSetCurrentAudioAsset?.(asset)}
+              onClick={() => onSetCurrentAudioAsset?.(asset)}
               className="placeholder"
             />
             {showDuration && asset.duration && assetItemSize > 1 && (
@@ -628,6 +638,8 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       )}
     </div>
   );
-};
+});
+
+AssetItem.displayName = "AssetItem";
 
 export default AssetItem;
