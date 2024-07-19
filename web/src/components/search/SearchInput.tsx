@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useHotkeys } from "react-hotkeys-hook";
 import { debounce } from "lodash";
 
@@ -95,7 +95,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
 }) => {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const controlKeyPressed = useKeyPressedListener("Control");
+  const { isKeyPressed } = useKeyPressedStore();
+  const controlKeyPressed = isKeyPressed("Control");
 
   const setSearchFocused = () => {
     inputRef.current?.focus();

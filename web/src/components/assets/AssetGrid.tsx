@@ -11,12 +11,12 @@ import { Box, Typography } from "@mui/material";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useAssetStore } from "../../hooks/AssetStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 //server state
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 //utils
 import { prettyDate } from "../../utils/formatDateAndTime";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
 
 //components
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -139,7 +139,6 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-  const workflow = useNodeStore((state) => state.workflow);
   const [lastSelectedAssetId, setLastSelectedAssetId] = useState<string | null>(
     null
   );
@@ -147,11 +146,12 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   const [currentAudioAsset, setCurrentAudioAsset] = useState<Asset | null>(
     null
   );
-  const F2KeyPressed = useKeyPressedListener("F2");
-  const controlKeyPressed = useKeyPressedListener("Control");
-  const metaKeyPressed = useKeyPressedListener("Meta");
-  const shiftKeyPressed = useKeyPressedListener("Shift");
-  const spaceKeyPressed = useKeyPressedListener(" ");
+  const { isKeyPressed } = useKeyPressedStore();
+  const F2KeyPressed = isKeyPressed("F2");
+  const controlKeyPressed = isKeyPressed("Control");
+  const metaKeyPressed = isKeyPressed("Meta");
+  const shiftKeyPressed = isKeyPressed("Shift");
+  const spaceKeyPressed = isKeyPressed(" ");
 
   // deselect
   useEffect(() => {
@@ -260,6 +260,7 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
 
   const uploadFiles = useCallback(
     (files: File[]) => {
+      const workflow = useNodeStore.getState().workflow;
       files.forEach((file: File) => {
         uploadAsset({
           file: file,
@@ -268,7 +269,7 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
         });
       });
     },
-    [currentFolderId, uploadAsset, workflow.id]
+    [currentFolderId, uploadAsset]
   );
 
   //search

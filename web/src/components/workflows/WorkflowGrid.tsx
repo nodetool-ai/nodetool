@@ -25,7 +25,7 @@ import { useQuery, useQueryClient } from "react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 
 const tile_width = "200px";
 const tile_height = "200px";
@@ -126,8 +126,9 @@ const WorkflowGrid = () => {
   );
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const shiftKeyPressed = useKeyPressedListener("Shift");
-  const controlKeyPressed = useKeyPressedListener("Control");
+  const { isKeyPressed } = useKeyPressedStore();
+  const shiftKeyPressed = isKeyPressed("Shift");
+  const controlKeyPressed = isKeyPressed("Control");
   const loadMyWorkflows = useWorkflowStore((state) => state.load);
   const loadExampleWorkflows = useWorkflowStore((state) => state.loadExamples);
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);

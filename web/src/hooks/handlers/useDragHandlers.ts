@@ -4,7 +4,7 @@ import { HistoryManager } from "../../HistoryManager";
 import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Node } from "reactflow";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { NodeData } from "../../stores/NodeData";
 import useSessionStateStore from "../../stores/SessionStateStore";
 
@@ -12,8 +12,9 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
   const createNode = useNodeStore((state) => state.createNode);
   const addNode = useNodeStore((state) => state.addNode);
   const updateNode = useNodeStore((state) => state.updateNode);
-  const CKeyPressed = useKeyPressedListener("c");
-  const spaceKeyPressed = useKeyPressedListener(" ");
+  const { isKeyPressed } = useKeyPressedStore();
+  const CKeyPressed = isKeyPressed("c");
+  const spaceKeyPressed = isKeyPressed(" ");
   const reactFlow = useReactFlow();
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [lastParentNode, setLastParentNode] = useState<Node | undefined>();

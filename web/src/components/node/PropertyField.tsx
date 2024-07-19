@@ -19,7 +19,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "./BaseNode";
 
-import useKeyPressedListener from "../../utils/KeyPressedListener";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { colorForType, textColorForType } from "../../config/data_types";
 import { MIN_ZOOM } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -54,7 +54,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   isInspector,
   edgeConnected
 }: PropertyFieldProps) => {
-  const controlKeyPressed = useKeyPressedListener("Control");
+  const { isKeyPressed } = useKeyPressedStore();
+  const controlKeyPressed = isKeyPressed("Control");
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
     (state) => state.connectDirection

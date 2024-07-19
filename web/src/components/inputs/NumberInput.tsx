@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { useState, useEffect, useCallback, useRef, memo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { TextField } from "@mui/material";
 
@@ -132,8 +132,9 @@ const styles = (theme: any) =>
 
 const NumberInput = memo((props: InputProps) => {
   const id = `slider-${props.name}`;
-  const controlKeyPressed = useKeyPressedListener("Control");
-  const shiftKeyPressed = useKeyPressedListener("Shift");
+  const { isKeyPressed } = useKeyPressedStore();
+  const controlKeyPressed = isKeyPressed("Control");
+  const shiftKeyPressed = isKeyPressed("Shift");
   const [isDefault, setIsDefault] = useState(false);
   const [isEditable, setIsEditable] = useState(false);
   const [localValue, setLocalValue] = useState<string>(
