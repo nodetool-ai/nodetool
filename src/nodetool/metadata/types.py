@@ -70,6 +70,24 @@ class BaseType(BaseModel):
         if hasattr(cls, "type"):
             add_type_name(cls, cls.type)
 
+    @classmethod
+    def from_dict(cls, data):
+        """
+        Create an instance of the class from a dictionary.
+
+        Args:
+            data (dict): The dictionary to create the instance from.
+
+        Returns:
+            BaseType: The instance of the class.
+        """
+        type_name = data.get("type")
+        if type_name is None:
+            raise ValueError("Type name is missing")
+        if type_name not in NameToType:
+            raise ValueError(f"Unknown type name: {type_name}")
+        return NameToType[type_name](**data)
+
 
 asset_types = set()
 
