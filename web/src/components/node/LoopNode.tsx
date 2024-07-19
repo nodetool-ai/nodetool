@@ -12,13 +12,14 @@ import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
 // utils
 import { getMousePosition } from "../../utils/MousePosition";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
+
 // hooks
 import { useMetadata } from "../../serverState/useMetadata";
 // store
 import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 // constants
 import {
   TOOLTIP_ENTER_DELAY,
@@ -117,11 +118,12 @@ const LoopNode = (props: NodeProps<NodeData>) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
-  const controlKeyPressed = useKeyPressedListener("Control");
+  const { isKeyPressed } = useKeyPressedStore();
+  const controlKeyPressed = isKeyPressed("Control");
+  const spaceKeyPressed = isKeyPressed(" ");
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
-  const spaceKeyPressed = useKeyPressedListener(" ");
-  const { openNodeMenu } = useNodeMenuStore();
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const nodeHovered = useNodeStore((state) =>
     state.hoveredNodes.includes(props.id)
   );

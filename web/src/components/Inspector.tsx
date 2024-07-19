@@ -134,9 +134,12 @@ const Inspector: React.FC = () => {
   const [lastSelectedNode, setLastSelectedNode] = useState<Node | null>(null);
   const selectedNodes = useSessionStateStore((state) => state.selectedNodes);
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
-  const { openNodeMenu } = useNodeMenuStore();
-  const { setHighlightedNamespaces, setSelectedPath, setHoveredNode } =
-    useNodeMenuStore();
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const setHighlightedNamespaces = useNodeMenuStore(
+    (state) => state.setHighlightedNamespaces
+  );
+  const setSelectedPath = useNodeMenuStore((state) => state.setSelectedPath);
+  const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
 
   useEffect(() => {
     if (selectedNodes.length) {

@@ -79,7 +79,8 @@ const AssetGridContent = ({
   const setFilteredAssets = useSessionStateStore(
     (state) => state.setFilteredAssets
   );
-  const { currentFolder, parentFolder } = useAssetStore();
+  const currentFolder = useAssetStore((state) => state.currentFolder);
+  const parentFolder = useAssetStore((state) => state.parentFolder);
   const itemSizeFactor = 42;
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize

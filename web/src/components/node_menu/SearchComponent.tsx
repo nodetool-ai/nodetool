@@ -31,7 +31,10 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   placeholder = "Search..."
 }) => {
   const [localSearchTerm, setLocalSearchTerm] = useState("");
-  const { setSearchTerm, setSelectedPath } = useNodeMenuStore();
+  const { setSearchTerm, setSelectedPath } = useNodeMenuStore((state) => ({
+    setSearchTerm: state.setSearchTerm,
+    setSelectedPath: state.setSelectedPath
+  }));
 
   const resetSearch = useCallback(() => {
     setSearchTerm("");

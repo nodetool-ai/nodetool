@@ -208,7 +208,15 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     searchResults,
     hoveredNode,
     setHoveredNode
-  } = useNodeMenuStore();
+  } = useNodeMenuStore((state) => ({
+    searchTerm: state.searchTerm,
+    highlightedNamespaces: state.highlightedNamespaces,
+    selectedPath: state.selectedPath,
+    setSelectedPath: state.setSelectedPath,
+    searchResults: state.searchResults,
+    hoveredNode: state.hoveredNode,
+    setHoveredNode: state.setHoveredNode
+  }));
 
   const handleNamespaceClick = useCallback(
     (namespacePath: string[]) => {

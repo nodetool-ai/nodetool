@@ -21,9 +21,14 @@ import { TypeMetadata } from "../../stores/ApiTypes";
 import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 
 const OutputContextMenu: React.FC = () => {
-  const { openMenuType, menuPosition, closeContextMenu, type, nodeId } =
-    useContextMenuStore();
-  const { openNodeMenu } = useNodeMenuStore();
+  const openMenuType = useContextMenuStore((state) => state.openMenuType);
+  const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const closeContextMenu = useContextMenuStore(
+    (state) => state.closeContextMenu
+  );
+  const type = useContextMenuStore((state) => state.type);
+  const nodeId = useContextMenuStore((state) => state.nodeId);
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const createNode = useNodeStore((state) => state.createNode);
   const addNode = useNodeStore((state) => state.addNode);
   const addEdge = useNodeStore((state) => state.addEdge);
@@ -32,7 +37,8 @@ const OutputContextMenu: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
-  const { connectHandleId, connectType } = useConnectionStore();
+  const connectHandleId = useConnectionStore((state) => state.connectHandleId);
+  const connectType = useConnectionStore((state) => state.connectType);
   const [sourceHandle, setSourceHandle] = useState<string | null>(null);
   const [sourceType, setSourceType] = useState<TypeMetadata | null>(null);
 

@@ -29,7 +29,11 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const findNode = useNodeStore((state) => state.findNode);
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
-  const { openMenuType, menuPosition } = useContextMenuStore();
+  const { openMenuType, menuPosition } = useContextMenuStore((state) => ({
+    openMenuType: state.openMenuType,
+    menuPosition: state.menuPosition
+  }));
+
   const selectedNodeIds = useSessionStateStore(
     (state) => state.selectedNodeIds
   );

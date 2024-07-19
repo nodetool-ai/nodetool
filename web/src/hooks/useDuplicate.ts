@@ -6,7 +6,7 @@ import { DUPLICATE_SPACING_X } from "../config/constants";
 
 export const useDuplicateNodes = () => {
   const reactFlowInstance = useReactFlow();
-  const { addNode } = useNodeStore();
+  const addNode = useNodeStore((state) => state.addNode);
 
   return useCallback(
     (nodeIds: string[]) => {

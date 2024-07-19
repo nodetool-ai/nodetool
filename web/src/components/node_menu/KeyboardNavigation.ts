@@ -12,7 +12,7 @@ const KeyboardNavigation: React.FC<KeyboardNavigationProps> = ({
   setActiveNode
 }) => {
   const handleCreateNode = useCreateNode();
-  const { searchResults } = useNodeMenuStore();
+  const searchResults = useNodeMenuStore((state) => state.searchResults);
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       const index = activeNode

@@ -52,9 +52,17 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   metadata
 }) => {
   const datatype = datatypeByName(type);
-  const { openNodeMenu } = useNodeMenuStore();
-  const { setHighlightedNamespaces, setSelectedPath, setHoveredNode } =
-    useNodeMenuStore();
+  const {
+    openNodeMenu,
+    setHighlightedNamespaces,
+    setSelectedPath,
+    setHoveredNode
+  } = useNodeMenuStore((state) => ({
+    openNodeMenu: state.openNodeMenu,
+    setHighlightedNamespaces: state.setHighlightedNamespaces,
+    setSelectedPath: state.setSelectedPath,
+    setHoveredNode: state.setHoveredNode
+  }));
 
   const handleOpenNodeMenu = () => {
     openNodeMenu(500, 200, false, metadata.namespace);

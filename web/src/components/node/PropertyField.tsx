@@ -19,7 +19,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "./BaseNode";
 
-import useKeyPressedListener from "../../utils/KeyPressedListener";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { colorForType, textColorForType } from "../../config/data_types";
 import { MIN_ZOOM } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -54,7 +54,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   isInspector,
   edgeConnected
 }: PropertyFieldProps) => {
-  const controlKeyPressed = useKeyPressedListener("Control");
+  const { isKeyPressed } = useKeyPressedStore();
+  const controlKeyPressed = isKeyPressed("Control");
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
     (state) => state.connectDirection
@@ -62,8 +63,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   const connectNodeId = useConnectionStore((state) => state.connectNodeId);
   const currentZoom = useStore((state) => state.transform[2]);
   const isMinZoom = currentZoom === MIN_ZOOM;
-
-  const { openContextMenu } = useContextMenuStore();
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const inputContextMenu = (event: any, id: string, type: string) => {
     setTimeout(() => {
       openContextMenu(

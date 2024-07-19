@@ -58,15 +58,28 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     dropType,
     connectDirection,
     activeNode,
-    setActiveNode
-  } = useNodeMenuStore();
-  const {
+    setActiveNode,
     searchResults,
     setSearchResults,
     setHighlightedNamespaces,
     selectedPath,
     setSelectedPath
-  } = useNodeMenuStore();
+  } = useNodeMenuStore((state) => ({
+    isMenuOpen: state.isMenuOpen,
+    closeNodeMenu: state.closeNodeMenu,
+    menuWidth: state.menuWidth,
+    menuHeight: state.menuHeight,
+    menuPosition: state.menuPosition,
+    dropType: state.dropType,
+    connectDirection: state.connectDirection,
+    activeNode: state.activeNode,
+    setActiveNode: state.setActiveNode,
+    searchResults: state.searchResults,
+    setSearchResults: state.setSearchResults,
+    setHighlightedNamespaces: state.setHighlightedNamespaces,
+    selectedPath: state.selectedPath,
+    setSelectedPath: state.setSelectedPath
+  }));
 
   // SET SELECTED TYPE FILTER
   // dropping a handle from left or right side of a node

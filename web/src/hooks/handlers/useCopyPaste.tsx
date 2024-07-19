@@ -17,7 +17,13 @@ const findNewNodeId = (
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
-  const { nodes, edges, setEdges, setNodes } = useNodeStore();
+  const { nodes, edges, setEdges, setNodes } = useNodeStore((state) => ({
+    nodes: state.nodes,
+    edges: state.edges,
+    setEdges: state.setEdges,
+    setNodes: state.setNodes
+  }));
+
   const { readClipboard, writeClipboard } = useClipboard();
   const selectedNodes = useSessionStateStore.getState().selectedNodes;
 

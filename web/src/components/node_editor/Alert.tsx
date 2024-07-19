@@ -45,8 +45,13 @@ const Alert: React.FC = () => {
     removeNotification,
     lastDisplayedTimestamp,
     updateLastDisplayedTimestamp
-    // clearNotifications,
-  } = useNotificationStore();
+  } = useNotificationStore((state) => ({
+    notifications: state.notifications,
+    removeNotification: state.removeNotification,
+    lastDisplayedTimestamp: state.lastDisplayedTimestamp,
+    updateLastDisplayedTimestamp: state.updateLastDisplayedTimestamp
+  }));
+
   const [visibleNotifications, setVisibleNotifications] = useState<
     Notification[]
   >([]);

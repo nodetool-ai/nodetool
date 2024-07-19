@@ -1,30 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
 import { useCallback, useEffect, useRef, useState } from "react";
-
-//mui
-import { Divider } from "@mui/material";
-import { Box, Typography } from "@mui/material";
-
-//store
+import { Divider, Box, Typography } from "@mui/material";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useAssetStore } from "../../hooks/AssetStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
-//server state
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-//utils
 import { prettyDate } from "../../utils/formatDateAndTime";
-import useKeyPressedListener from "../../utils/KeyPressedListener";
-
-//components
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
-//asset components
 import Dropzone from "./Dropzone";
 import AssetActions from "./AssetActions";
 import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
@@ -34,6 +22,7 @@ import AssetUploadOverlay from "./AssetUploadOverlay";
 import AssetGridContent from "./AssetGridContent";
 import SearchInput from "../search/SearchInput";
 import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 
 const styles = (theme: any) =>
   css({
@@ -119,8 +108,14 @@ interface AssetGridProps {
 
 const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   const { sortedAssets, currentAssets, error } = useAssets();
-  const { selectedAssetIds, setSelectedAssetIds, selectedAssets } =
-    useSessionStateStore();
+  const selectedAssetIds = useSessionStateStore(
+    (state) => state.selectedAssetIds
+  );
+  const setSelectedAssetIds = useSessionStateStore(
+    (state) => state.setSelectedAssetIds
+  );
+  const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
+
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
   const { mutation: moveMutation } = useAssetUpdate();
@@ -133,7 +128,6 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-  const workflow = useNodeStore((state) => state.workflow);
   const [lastSelectedAssetId, setLastSelectedAssetId] = useState<string | null>(
     null
   );
@@ -141,15 +135,23 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
   const [currentAudioAsset, setCurrentAudioAsset] = useState<Asset | null>(
     null
   );
-  const F2KeyPressed = useKeyPressedListener("F2");
-  const controlKeyPressed = useKeyPressedListener("Control");
-  const metaKeyPressed = useKeyPressedListener("Meta");
-  const shiftKeyPressed = useKeyPressedListener("Shift");
-  const spaceKeyPressed = useKeyPressedListener(" ");
 
-  // deselect
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+  const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
+  const controlKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("control")
+  );
+  const metaKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("meta")
+  );
+  const shiftKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("shift")
+  );
+  const spaceKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed(" ")
+  );
+
+  const handleClickOutside = useCallback(
+    (e: MouseEvent) => {
       const clickedElement = e.target as HTMLElement;
       if (!shiftKeyPressed && !controlKeyPressed && !metaKeyPressed) {
         if (
@@ -165,23 +167,34 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
             clickedElement.classList.contains("MuiTabs-flexContainer"))
         ) {
           setSelectedAssetIds([]);
+          if (selectedAssetIds.length > 0) {
+            setSelectedAssetIds([]);
+          }
         }
       }
-    };
+    },
+    [
+      shiftKeyPressed,
+      controlKeyPressed,
+      metaKeyPressed,
+      selectedAssetIds,
+      setSelectedAssetIds
+    ]
+  );
+
+  useEffect(() => {
     window.addEventListener("click", handleClickOutside);
     return () => {
       window.removeEventListener("click", handleClickOutside);
     };
-  }, [shiftKeyPressed, controlKeyPressed, metaKeyPressed, setSelectedAssetIds]);
+  }, [handleClickOutside]);
 
-  // rename with F2 key
   useEffect(() => {
     if (F2KeyPressed && selectedAssetIds.length > 0) {
       setRenameDialogOpen(true);
     }
   }, [F2KeyPressed, selectedAssetIds]);
 
-  // select
   const handleSelectAsset = useCallback(
     (assetId: string) => {
       const selectedAssetIndex = sortedAssets.findIndex(
@@ -212,7 +225,6 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
 
       setLastSelectedAssetId(assetId);
 
-      // audio file
       if (isAudio) {
         setCurrentAudioAsset(selectedAsset ? selectedAsset : null);
       } else {
@@ -230,7 +242,6 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
     ]
   );
 
-  // reset currentAudioAsset when selectedAssetIds is empty
   useEffect(() => {
     if (selectedAssetIds.length === 0) {
       setCurrentAudioAsset(null);
@@ -254,6 +265,7 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
 
   const uploadFiles = useCallback(
     (files: File[]) => {
+      const workflow = useNodeStore.getState().workflow;
       files.forEach((file: File) => {
         uploadAsset({
           file: file,
@@ -262,10 +274,9 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
         });
       });
     },
-    [currentFolderId, uploadAsset, workflow.id]
+    [currentFolderId, uploadAsset]
   );
 
-  //search
   const handleSearchChange = (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
   };

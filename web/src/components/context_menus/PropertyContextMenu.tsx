@@ -16,8 +16,13 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 
 const PropertyContextMenu: React.FC = () => {
   // const { openMenuType, menuPosition, closeContextMenu, nodeId } =
-  const { openMenuType, menuPosition, closeContextMenu } =
-    useContextMenuStore();
+  const { openMenuType, menuPosition, closeContextMenu } = useContextMenuStore(
+    (state) => ({
+      openMenuType: state.openMenuType,
+      menuPosition: state.menuPosition,
+      closeContextMenu: state.closeContextMenu
+    })
+  );
 
   //reset
   const handleReset = (event?: React.MouseEvent<HTMLElement>) => {

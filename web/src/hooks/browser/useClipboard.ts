@@ -8,7 +8,12 @@ export const useClipboard = () => {
     setClipboardData,
     isClipboardValid,
     setIsClipboardValid
-  } = useSessionStateStore();
+  } = useSessionStateStore((state) => ({
+    clipboardData: state.clipboardData,
+    setClipboardData: state.setClipboardData,
+    isClipboardValid: state.isClipboardValid,
+    setIsClipboardValid: state.setIsClipboardValid
+  }));
   const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
 
   useEffect(() => {

@@ -63,6 +63,7 @@ import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 // constants
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
+import { initKeyListeners } from "../../stores/KeyPressedStore";
 
 declare global {
   interface Window {
@@ -84,7 +85,7 @@ const NodeEditor: React.FC<unknown> = () => {
     handleOnConnect(connection);
   };
 
-  const { connecting } = useConnectionStore();
+  const connecting = useConnectionStore((state) => state.connecting);
 
   /* REACTFLOW */
   const reactFlowWrapper = useRef<HTMLDivElement | null>(null);
@@ -168,7 +169,13 @@ const NodeEditor: React.FC<unknown> = () => {
   addBeforeUnloadListener();
 
   // OPEN NODE MENU
-  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore();
+  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
+    (state) => ({
+      openNodeMenu: state.openNodeMenu,
+      closeNodeMenu: state.closeNodeMenu,
+      isMenuOpen: state.isMenuOpen
+    })
+  );
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -386,6 +393,13 @@ const NodeEditor: React.FC<unknown> = () => {
       });
     }
   }, [fitScreen, shouldFitToScreen]);
+
+  // KEY LISTENERS
+  useEffect(() => {
+    // Initialize key listeners on component mount
+    const cleanup = initKeyListeners();
+    return cleanup; // Cleanup key listeners on component unmount
+  }, []);
 
   // INIT
   const handleOnInit = useCallback(() => {
