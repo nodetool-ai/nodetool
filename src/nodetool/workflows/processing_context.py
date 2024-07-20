@@ -654,6 +654,22 @@ class ProcessingContext:
         response.raise_for_status()
         return response.content
 
+    async def http_post(self, url: str, data: dict[str, Any]) -> Any:
+        """
+        Sends an HTTP POST request to the specified URL.
+
+        Args:
+            url (str): The URL to send the request to.
+            data (dict[str, Any]): The data to send in the request.
+
+        Returns:
+            bytes: The response content.
+        """
+        response = await self.http_client.post(url, json=data)
+        log.info(f"POST {url} {response.status_code}")
+        response.raise_for_status()
+        return response.json()
+
     async def download_file(self, url: str) -> IO:
         """
         Download a file from URL.
