@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 //mui
 import { Typography, Dialog, Tooltip, Button } from "@mui/material";
 //icons
@@ -26,6 +26,7 @@ import useAssets from "../../serverState/useAssets";
 import { useHotkeys } from "react-hotkeys-hook";
 //css
 import "../../styles/node_editor.css";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 const containerStyles = css({
   width: "100%",
@@ -208,16 +209,55 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const { asset, url, open, contentType, onClose: handleClose } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentAsset, setCurrentAsset] = useState<Asset | undefined>(asset);
+  const [currentUrl, setCurrentUrl] = useState<string | undefined>(url);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const getAsset = useAssetStore((state) => state.get);
   const sortedAssets = useAssets().sortedAssets;
   const [currentFolderName, setCurrentFolderName] = useState<string | null>();
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const prevNextAmount = 5;
 
+  const handleDownload = useCallback(async () => {
+    if (currentAsset && currentAsset.get_url) {
+      try {
+        const response = await fetch(currentAsset.get_url);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = blobUrl;
+
+        const fileName = currentAsset.name || "asset_download";
+        const fileExtension = currentAsset.content_type.split("/")[1];
+        const fullFileName = fileName.endsWith(fileExtension)
+          ? fileName
+          : `${fileName}.${fileExtension}`;
+
+        link.download = fullFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        console.warn("Error downloading file:", error);
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: "File download failed"
+        });
+      }
+    } else if (url) {
+      window.open(url, "_blank");
+    }
+  }, [currentAsset, url, addNotification]);
+
   const handleChangeAsset = useCallback(
     (newAsset: Asset) => {
       setTimeout(() => {
         setCurrentAsset(newAsset);
+        setCurrentUrl(newAsset.get_url || "");
       }, 10);
       if (sortedAssets) {
         const index = sortedAssets.findIndex((item) => item.id === newAsset.id);
@@ -432,9 +472,19 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               className="button download"
               edge="end"
               color="inherit"
-              onMouseDown={() => window.open(asset?.get_url || url, "_blank")}
+              onMouseDown={handleDownload}
               aria-label="download"
             >
+              <div
+                style={{
+                  textAlign: "right",
+                  right: "4em",
+                  position: "absolute"
+                }}
+                className="small"
+              >
+                {currentUrl}
+              </div>
               <FileDownloadIcon />
             </IconButton>
           </Tooltip>
