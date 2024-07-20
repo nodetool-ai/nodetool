@@ -1,26 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useCallback, useRef, memo } from "react";
+import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { TextField } from "@mui/material";
 
-interface InputProps {
-  name: string;
-  description?: string | null;
-  min?: number;
-  max?: number;
-  value: number;
-  onChange: (event: any, value: number) => void;
-  id: string;
-  size?: "small" | "medium";
-  color?: "primary" | "secondary";
-  className?: string;
-  inputType?: "int" | "float";
-  hideLabel?: boolean;
-}
+// Constants
+const DRAG_THRESHOLD = 5;
+const PIXELS_PER_STEP = 10;
+const SHIFT_PIXELS_PER_STEP = 20;
 
 const styles = (theme: any) =>
   css({
@@ -130,133 +120,83 @@ const styles = (theme: any) =>
     }
   });
 
-const NumberInput = memo((props: InputProps) => {
-  const id = `slider-${props.name}`;
-  const { isKeyPressed } = useKeyPressedStore();
-  const controlKeyPressed = isKeyPressed("Control");
-  const shiftKeyPressed = isKeyPressed("Shift");
-  const [isDefault, setIsDefault] = useState(false);
-  const [isEditable, setIsEditable] = useState(false);
-  const [localValue, setLocalValue] = useState<string>(props.value.toString());
-  const [originalValue, setOriginalValue] = useState<number>(props.value);
+interface InputProps {
+  name: string;
+  description?: string | null;
+  min?: number;
+  max?: number;
+  value: number;
+  onChange: (event: any, value: number) => void;
+  id: string;
+  size?: "small" | "medium";
+  color?: "primary" | "secondary";
+  className?: string;
+  inputType?: "int" | "float";
+  hideLabel?: boolean;
+}
 
-  const [dragStartX, setDragStartX] = useState(0);
-  const [decimalPlaces, setDecimalPlaces] = useState(1);
-  const decimalPlacesRef = useRef(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ x: 0, y: 0 });
-  const hasExceededDragThreshold = useRef(false);
-  const [dragInitialValue, setDragInitialValue] = useState<number>(props.value);
-  const currentDragValueRef = useRef(props.value);
-  const isFloat = props.inputType === "float";
+interface NumberInputState {
+  isDefault: boolean;
+  isEditable: boolean;
+  localValue: string;
+  originalValue: number;
+  dragStartX: number;
+  decimalPlaces: number;
+  isDragging: boolean;
+  hasExceededDragThreshold: boolean;
+  dragInitialValue: number;
+  currentDragValue: number;
+}
 
-  const makeEditable = useCallback(() => {
-    setIsEditable(true);
-    setLocalValue(props.value.toString());
-  }, [props.value]);
+// Custom Hooks
+const useValueCalculation = () => {
+  const calculateStep = useCallback(
+    (min: number, max: number, inputType: "int" | "float"): number => {
+      const range = max - min;
+      let baseStep: number;
 
-  useHotkeys("Escape", () => {
-    setLocalValue(props.value.toString());
-    setIsEditable(false);
-  });
-
-  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target.value;
-    const normalizedInput = input.replace(/,/g, ".");
-    const regex = isFloat ? /[^0-9.-]/g : /[^0-9-]/g;
-    const cleanedInput = normalizedInput.replace(regex, "");
-    setLocalValue(cleanedInput);
-  };
-
-  const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
-    event.target.select();
-  };
-
-  const handleBlur = (shouldSave: boolean) => {
-    let finalValue: number;
-
-    if (shouldSave) {
-      if (isFloat) {
-        finalValue = parseFloat(localValue);
+      if (inputType === "float") {
+        if (range <= 1) baseStep = 0.01;
+        else if (range <= 20) baseStep = 0.1;
+        else if (range > 20 && range <= 100) baseStep = 0.5;
+        else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 2);
       } else {
-        finalValue = Math.round(Number(localValue));
+        if (range <= 1000) baseStep = 1;
+        else if (range > 1000 && range <= 5000) baseStep = 16;
+        else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);
       }
 
-      if (isNaN(finalValue)) {
-        finalValue = props.min ?? 0;
-      }
-      if (props.min !== undefined && finalValue < props.min) {
-        finalValue = props.min;
-      }
-      if (props.max !== undefined && finalValue > props.max) {
-        finalValue = props.max;
-      }
-      if (finalValue === props.value) {
-        setIsDefault(true);
-      } else {
-        setIsDefault(false);
-      }
-
-      props.onChange(null, finalValue);
-    } else {
-      setLocalValue(props.value.toString());
-    }
-
-    setIsEditable(false);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.button === 0) {
-      dragStartRef.current = { x: e.clientX, y: e.clientY };
-      hasExceededDragThreshold.current = false;
-      setDragInitialValue(props.value);
-      setDragStartX(e.clientX);
-      setIsDragging(true);
-    } else {
-      setIsEditable(false);
-    }
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    if (!hasExceededDragThreshold.current) {
-      e.preventDefault();
-      setOriginalValue(Number(localValue));
-      makeEditable();
-    }
-  };
-
-  function calculateStep(
-    min: number,
-    max: number,
-    inputType: "int" | "float"
-  ): number {
-    const range = max - min;
-    let baseStep: number;
-
-    if (inputType === "float") {
-      if (range <= 1) baseStep = 0.01;
-      else if (range <= 20) baseStep = 0.1;
-      else if (range > 20 && range <= 100) baseStep = 0.5;
-      else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 2);
-    } else {
-      if (range <= 1000) baseStep = 1;
-      else if (range > 1000 && range <= 5000) baseStep = 16;
-      else baseStep = Math.pow(6, Math.floor(Math.log10(range)) - 1);
-    }
-
-    return baseStep;
-  }
+      return baseStep;
+    },
+    []
+  );
 
   const calculateDecimalPlaces = useCallback((baseStep: number) => {
     return Math.max(0, Math.ceil(Math.log10(1 / baseStep)));
   }, []);
 
+  return { calculateStep, calculateDecimalPlaces };
+};
+
+const useDragHandling = (
+  props: InputProps,
+  state: NumberInputState,
+  setState: React.Dispatch<React.SetStateAction<NumberInputState>>
+) => {
+  const { isKeyPressed } = useKeyPressedStore();
+  const controlKeyPressed = isKeyPressed("Control");
+  const shiftKeyPressed = isKeyPressed("Shift");
+  const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
+
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (isDragging && !isEditable) {
-        const moveX = e.clientX - dragStartX;
-        if (Math.abs(moveX) > 5) {
-          hasExceededDragThreshold.current = true;
+      if (state.isDragging && !state.isEditable) {
+        const moveX = e.clientX - state.dragStartX;
+        if (Math.abs(moveX) > DRAG_THRESHOLD) {
+          setState((prevState) => ({
+            ...prevState,
+            hasExceededDragThreshold: true
+          }));
         }
 
         let baseStep = calculateStep(
@@ -271,21 +211,30 @@ const NumberInput = memo((props: InputProps) => {
         } else if (controlKeyPressed) {
           baseStep *= 2;
         } else if (shiftKeyPressed) {
-          baseStep = isFloat ? (props.max && props.max <= 1 ? 0.01 : 0.1) : 1;
+          baseStep =
+            props.inputType === "float"
+              ? props.max && props.max <= 1
+                ? 0.01
+                : 0.1
+              : 1;
         }
 
-        const pixelsPerStep = shiftKeyPressed ? 20 : 10;
+        const pixelsPerStep = shiftKeyPressed
+          ? SHIFT_PIXELS_PER_STEP
+          : PIXELS_PER_STEP;
         const stepIncrement = moveX / pixelsPerStep;
-        let newValue = dragInitialValue + stepIncrement * baseStep;
+        let newValue = state.dragInitialValue + stepIncrement * baseStep;
 
         // Round to nearest step
         newValue = Math.round(newValue / baseStep) * baseStep;
 
         if (props.inputType === "float") {
           const newDecimalPlaces = calculateDecimalPlaces(baseStep);
-          if (newDecimalPlaces !== decimalPlacesRef.current) {
-            decimalPlacesRef.current = newDecimalPlaces;
-            setDecimalPlaces(newDecimalPlaces);
+          if (newDecimalPlaces !== state.decimalPlaces) {
+            setState((prevState) => ({
+              ...prevState,
+              decimalPlaces: newDecimalPlaces
+            }));
           }
           newValue = parseFloat(newValue.toFixed(newDecimalPlaces));
         } else {
@@ -297,37 +246,230 @@ const NumberInput = memo((props: InputProps) => {
           Math.min(props.max ?? 4096, newValue)
         );
 
-        if (newValue !== currentDragValueRef.current) {
-          currentDragValueRef.current = newValue;
+        if (newValue !== state.currentDragValue) {
+          setState((prevState) => ({
+            ...prevState,
+            currentDragValue: newValue
+          }));
           props.onChange(null, newValue);
         }
       }
     },
     [
-      isDragging,
-      isEditable,
-      dragStartX,
-      dragInitialValue,
+      state,
+      props,
       controlKeyPressed,
       shiftKeyPressed,
-      isFloat,
-      props,
+      setState,
+      calculateStep,
       calculateDecimalPlaces
     ]
   );
 
   const handleMouseUp = useCallback(() => {
-    if (isDragging) {
-      setIsDragging(false);
-      if (!hasExceededDragThreshold.current) {
-        setOriginalValue(Number(localValue));
-        makeEditable();
-      }
+    if (state.isDragging) {
+      setState((prevState) => ({
+        ...prevState,
+        isDragging: false,
+        isEditable: !prevState.hasExceededDragThreshold,
+        originalValue: !prevState.hasExceededDragThreshold
+          ? Number(prevState.localValue)
+          : prevState.originalValue
+      }));
     }
-  }, [isDragging, localValue, makeEditable]);
+  }, [state, setState]);
 
-  React.useEffect(() => {
-    if (isDragging) {
+  return { handleMouseMove, handleMouseUp };
+};
+
+// Smaller Components
+const EditableInput: React.FC<{
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur: () => void;
+  onFocus: (event: React.FocusEvent<HTMLInputElement>) => void;
+  isDefault: boolean;
+}> = ({ value, onChange, onBlur, onFocus, isDefault }) => (
+  <TextField
+    type="text"
+    className={`edit-value nodrag${isDefault ? " default" : ""}`}
+    inputProps={{
+      className: "edit-value-input",
+      style: { width: Math.max(value.length * 9, 12) }
+    }}
+    variant="standard"
+    value={value}
+    onChange={onChange}
+    onBlur={onBlur}
+    onFocus={onFocus}
+    autoFocus
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.code === "NumpadEnter") {
+        e.preventDefault();
+        e.stopPropagation();
+        onBlur();
+      }
+    }}
+  />
+);
+
+const DisplayValue: React.FC<{
+  value: number;
+  isFloat: boolean;
+  decimalPlaces: number;
+}> = ({ value, isFloat, decimalPlaces }) => (
+  <div className="value">
+    {typeof value === "number"
+      ? isFloat
+        ? value.toFixed(decimalPlaces)
+        : value
+      : "NaN"}
+  </div>
+);
+
+const RangeIndicator: React.FC<{
+  value: number;
+  min: number;
+  max: number;
+  isDragging: boolean;
+  isEditable: boolean;
+}> = ({ value, min, max, isDragging, isEditable }) => (
+  <div
+    className="range-container"
+    style={{ opacity: isDragging || isEditable ? 1 : 0 }}
+  >
+    <div
+      className="range-indicator"
+      style={{
+        width: `${((value - min) / (max - min)) * 100}%`
+      }}
+    />
+  </div>
+);
+
+const NumberInput: React.FC<InputProps> = (props) => {
+  const [state, setState] = useState<NumberInputState>({
+    isDefault: false,
+    isEditable: false,
+    localValue: props.value.toString(),
+    originalValue: props.value,
+    dragStartX: 0,
+    decimalPlaces: 1,
+    isDragging: false,
+    hasExceededDragThreshold: false,
+    dragInitialValue: props.value,
+    currentDragValue: props.value
+  });
+
+  const { handleMouseMove, handleMouseUp } = useDragHandling(
+    props,
+    state,
+    setState
+  );
+  const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
+
+  // Memoized calculations
+  const baseStep = useMemo(
+    () =>
+      calculateStep(
+        props.min ?? 0,
+        props.max ?? 4096,
+        props.inputType || "float"
+      ),
+    [props.min, props.max, props.inputType, calculateStep]
+  );
+
+  useHotkeys("Escape", () => {
+    setState((prevState) => ({
+      ...prevState,
+      localValue: props.value.toString(),
+      isEditable: false
+    }));
+  });
+
+  useEffect(() => {
+    if (!state.isEditable) {
+      setState((prevState) => ({
+        ...prevState,
+        localValue: props.value.toString()
+      }));
+    }
+  }, [props.value, state.isEditable]);
+
+  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    const normalizedInput = input.replace(/,/g, ".");
+    const regex = props.inputType === "float" ? /[^0-9.-]/g : /[^0-9-]/g;
+    const cleanedInput = normalizedInput.replace(regex, "");
+    setState((prevState) => ({ ...prevState, localValue: cleanedInput }));
+  };
+
+  const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
+    event.target.select();
+  };
+
+  const handleBlur = (shouldSave: boolean) => {
+    let finalValue: number;
+
+    if (shouldSave) {
+      if (props.inputType === "float") {
+        finalValue = parseFloat(state.localValue);
+      } else {
+        finalValue = Math.round(Number(state.localValue));
+      }
+
+      if (isNaN(finalValue)) {
+        finalValue = props.min ?? 0;
+      }
+      finalValue = Math.max(
+        props.min ?? 0,
+        Math.min(props.max ?? 4096, finalValue)
+      );
+
+      setState((prevState) => ({
+        ...prevState,
+        isDefault: finalValue === props.value,
+        localValue: finalValue.toString()
+      }));
+
+      props.onChange(null, finalValue);
+    } else {
+      setState((prevState) => ({
+        ...prevState,
+        localValue: props.value.toString()
+      }));
+    }
+
+    setState((prevState) => ({ ...prevState, isEditable: false }));
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button === 0) {
+      setState((prevState) => ({
+        ...prevState,
+        dragStartX: e.clientX,
+        isDragging: true,
+        hasExceededDragThreshold: false,
+        dragInitialValue: props.value
+      }));
+    } else {
+      setState((prevState) => ({ ...prevState, isEditable: false }));
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!state.hasExceededDragThreshold) {
+      e.preventDefault();
+      setState((prevState) => ({
+        ...prevState,
+        originalValue: Number(prevState.localValue),
+        isEditable: true
+      }));
+    }
+  };
+
+  useEffect(() => {
+    if (state.isDragging) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
       return () => {
@@ -335,77 +477,59 @@ const NumberInput = memo((props: InputProps) => {
         document.removeEventListener("mouseup", handleMouseUp);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [state.isDragging, handleMouseMove, handleMouseUp]);
 
   return (
     <div
+      css={styles}
       className={`number-input ${props.inputType}`}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
-      css={styles}
     >
-      {isEditable ? (
-        <TextField
-          type="text"
-          className={`edit-value nodrag${isDefault ? " default" : ""}`}
-          inputProps={{
-            className: "edit-value-input",
-            style: { width: Math.max(localValue?.length * 9, 12) }
-          }}
-          variant="standard"
-          value={localValue}
+      {state.isEditable ? (
+        <EditableInput
+          value={state.localValue}
           onChange={handleValueChange}
           onBlur={() => handleBlur(true)}
           onFocus={handleInputFocus}
-          autoFocus
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.code === "NumpadEnter") {
-              e.preventDefault();
-              e.stopPropagation();
-              handleBlur(true);
-            }
-          }}
+          isDefault={state.isDefault}
         />
       ) : (
         <></>
       )}
-      <div id={id} className="slider-value nodrag">
+      <div id={props.id} className="slider-value nodrag">
         {props.hideLabel ? null : (
           <PropertyLabel
             name={props.name}
             description={props.description}
-            id={id}
+            id={props.id}
           />
         )}
-        {!isEditable && (
-          <div className="value">
-            {typeof props.value === "number"
-              ? props.inputType === "float"
-                ? props.value.toFixed(decimalPlaces)
-                : props.value
-              : "NaN"}
-          </div>
+        {!state.isEditable && (
+          <DisplayValue
+            value={props.value}
+            isFloat={props.inputType === "float"}
+            decimalPlaces={state.decimalPlaces}
+          />
         )}
       </div>
-
-      <div
-        className="range-container"
-        style={{ opacity: isDragging || isEditable ? 1 : 0 }}
-      >
-        <div
-          className="range-indicator"
-          style={{
-            width: `${
-              ((props.value - (props.min || 0)) /
-                ((props.max || 4096) - (props.min || 0))) *
-              100
-            }%`
-          }}
-        ></div>
-      </div>
+      <RangeIndicator
+        value={props.value}
+        min={props.min || 0}
+        max={props.max || 4096}
+        isDragging={state.isDragging}
+        isEditable={state.isEditable}
+      />
     </div>
   );
-});
+};
 
-NumberInput.displayName = "NumberInput";
-export default NumberInput;
+export default memo(NumberInput, (prevProps, nextProps) => {
+  return (
+    prevProps.value === nextProps.value &&
+    prevProps.min === nextProps.min &&
+    prevProps.max === nextProps.max &&
+    prevProps.inputType === nextProps.inputType &&
+    prevProps.hideLabel === nextProps.hideLabel
+  );
+});
