@@ -56,7 +56,7 @@ interface AssetGridContentProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
   openDeleteDialog: () => void;
   openRenameDialog: () => void;
-  setCurrentAudioAsset: (asset: Asset) => void;
+  // setCurrentAudioAsset: (asset: Asset) => void;
   itemSpacing?: number;
   searchTerm?: string;
 }
@@ -68,7 +68,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   setSelectedAssetIds,
   openDeleteDialog,
   openRenameDialog,
-  setCurrentAudioAsset,
+  // setCurrentAudioAsset,
   itemSpacing = 2,
   searchTerm = ""
 }) => {
@@ -290,7 +290,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
                   openDeleteDialog={openDeleteDialog}
                   openRenameDialog={openRenameDialog}
                   onSelect={() => handleSelectAsset(item.id)}
-                  onSetCurrentAudioAsset={() => setCurrentAudioAsset(item)}
+                  // onSetCurrentAudioAsset={() => setCurrentAudioAsset(item)}
                   onMoveToFolder={() => {
                     refetch();
                     setSelectedAssetIds([]);
@@ -320,19 +320,12 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       openDeleteDialog,
       openRenameDialog,
       handleSelectAsset,
-      setCurrentAudioAsset,
+      // setCurrentAudioAsset,
       refetch,
       setSelectedAssetIds,
       setCurrentFolderId,
       onDragStart
     ]
-  );
-
-  const handleItemsRendered = useCallback(
-    ({ visibleStartIndex, visibleStopIndex }: ListOnItemsRenderedProps) => {
-      // This function is called when items are rendered. You can use it to implement infinite scrolling if needed.
-    },
-    []
   );
 
   useEffect(() => {
@@ -346,7 +339,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       <AutoSizer>
         {({ height, width }) => {
           if (Math.abs(width - containerWidth) > 1) {
-            // Add a small threshold
             setContainerWidth(width);
           }
           return (
@@ -357,7 +349,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
               itemCount={preparedRows.length}
               itemSize={getRowHeight}
               width={width}
-              onItemsRendered={handleItemsRendered}
+              // onItemsRendered={handleItemsRendered}
             >
               {Row}
             </List>
