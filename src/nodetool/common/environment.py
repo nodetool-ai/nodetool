@@ -722,6 +722,13 @@ class Environment(object):
         return cls.get("COMFY_FOLDER")
 
     @classmethod
+    def get_sd_url(cls):
+        """
+        The url of the stable diffusion service.
+        """
+        return cls.get("SD_URL")
+
+    @classmethod
     def get_asset_folder(cls):
         """
         The asset folder is the folder where assets are located.
