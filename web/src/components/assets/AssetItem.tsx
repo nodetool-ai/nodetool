@@ -11,7 +11,6 @@ import AudioFileIcon from "@mui/icons-material/AudioFile";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useAssetStore } from "../../hooks/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
 import DeleteButton from "../buttons/DeleteButton";
@@ -23,26 +22,27 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 const styles = (theme: any) =>
   css({
     "&": {
+      position: "relative",
+      display: "flex",
+      flexDirection: "column",
+      gap: ".2em",
+      overflow: "hidden",
       width: "100%",
       height: "100%",
       cursor: "grab",
-      position: "relative",
       minHeight: "30px",
-      padding: "2px",
-      overflow: "hidden",
       boxSizing: "border-box",
       WebkitBoxSizing: "border-box",
       MozBoxSizing: "border-box"
     },
     ".asset": {
-      position: "absolute",
-      top: 0,
-      left: 0,
+      position: "relative",
       width: "100%",
-      height: 0,
-      paddingTop: "100%",
+      height: "0",
+      paddingBottom: "100%",
+      top: 0,
+      bottom: 0,
       backgroundColor: theme.palette.c_gray0,
-      zIndex: 0,
       overflow: "hidden"
     },
     ".asset .image, .asset .image-aspect-ratio": {
@@ -92,12 +92,12 @@ const styles = (theme: any) =>
       width: "fit-content"
     },
     ".name": {
-      top: "calc(100% - 2.5em)",
-      transition: "opacity 0.2s",
-      maxHeight: "3em",
+      position: "relative",
+      padding: "0 0 0 .5em",
+      width: "95%",
+      height: "3em",
       overflow: "hidden",
       backgroundColor: "transparent"
-      // zIndex: 5000
     },
     ".filetype": {
       top: "0",
@@ -183,17 +183,21 @@ const styles = (theme: any) =>
       backgroundColor: "#437cb522"
     },
     // FOLDER
+    "&.asset-item.folder": {
+      gap: 0
+    },
     "&.folder .asset": {
       backgroundColor: "transparent",
       border: 0,
-      outline: 0
+      outline: 0,
+      gap: 0
     },
     "&.folder .name": {
-      fontSize: theme.fontSizeSmaller,
-      color: "#111",
-      paddingLeft: ".75em",
-      top: "2.5em",
-      bottom: "unset"
+      // fontSize: theme.fontSizeSmaller,
+      // color: "#111",
+      // paddingLeft: ".75em",
+      // top: "2.5em",
+      // bottom: "unset"
     },
     "&.folder:hover": {
       opacity: 0.7
@@ -210,11 +214,12 @@ const styles = (theme: any) =>
     "&.folder svg": {
       position: "absolute",
       margin: 0,
-      left: "-5%",
-      top: "-5%",
-      width: "110%",
-      height: "110%",
-      bottom: "1em",
+      left: "0",
+      top: "0",
+      transform: "scale(1.1)",
+      width: "100%",
+      height: "100%",
+      // bottom: "1em",
       color: theme.palette.c_gray5,
       background: "transparent"
     },
@@ -481,6 +486,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
   );
 
   const handleDoubleClick = useCallback(() => {
+    console.log("handleDoubleClick", asset.get_url);
     if (asset.get_url) {
       setOpenAsset(asset);
     }
