@@ -111,6 +111,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   maxItemSize = 100,
   itemSpacing = 2
 }) => {
+  console.log("AssetGrid rendering");
   const { sortedAssets, currentAssets, error } = useAssets();
   const selectedAssetIds = useSessionStateStore(
     (state) => state.selectedAssetIds
@@ -182,11 +183,19 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             clickedElement.classList.contains("asset-grid-container") ||
             clickedElement.classList.contains("MuiTabs-flexContainer"))
         ) {
-          setSelectedAssetIds([]);
+          if (selectedAssetIds.length > 0) {
+            setSelectedAssetIds([]);
+          }
         }
       }
     },
-    [shiftKeyPressed, controlKeyPressed, metaKeyPressed, setSelectedAssetIds]
+    [
+      shiftKeyPressed,
+      controlKeyPressed,
+      metaKeyPressed,
+      selectedAssetIds,
+      setSelectedAssetIds
+    ]
   );
 
   useEffect(() => {
@@ -227,7 +236,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           : [...selectedAssetIds, assetId];
         setSelectedAssetIds(newAssetIds);
       } else {
-        setSelectedAssetIds([assetId]);
+        if (selectedAssetIds[0] != assetId) {
+          setSelectedAssetIds([assetId]);
+        }
       }
 
       setLastSelectedAssetId(assetId);

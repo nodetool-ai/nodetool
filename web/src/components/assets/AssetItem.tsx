@@ -485,17 +485,21 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     [selectedAssetIds, setSelectedAssetIds, openContextMenu, enableContextMenu]
   );
 
-  const handleDoubleClick = useCallback(() => {
-    console.log("handleDoubleClick", asset.get_url);
-    if (asset.get_url) {
-      setOpenAsset(asset);
-    }
-    if (asset.content_type === "folder") {
-      if (onDoubleClickFolder) {
-        onDoubleClickFolder(asset.id);
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      console.log("handleDoubleClick", asset.get_url);
+      e.stopPropagation();
+      if (asset.get_url) {
+        setOpenAsset(asset);
       }
-    }
-  }, [asset, onDoubleClickFolder]);
+      if (asset.content_type === "folder") {
+        if (onDoubleClickFolder) {
+          onDoubleClickFolder(asset.id);
+        }
+      }
+    },
+    [asset, onDoubleClickFolder]
+  );
 
   const handleClick = useCallback(() => {
     if (isParent) {
