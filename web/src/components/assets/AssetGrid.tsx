@@ -1,28 +1,28 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Divider, Typography } from "@mui/material";
-import { useAssetStore } from "../../hooks/AssetStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
-import { useAssetDeletion } from "../../serverState/useAssetDeletion";
-import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { useAssetUpdate } from "../../serverState/useAssetUpdate";
-import useAssets from "../../serverState/useAssets";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+
 import AudioPlayer from "../audio/AudioPlayer";
-import Dropzone from "./Dropzone";
-import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
+import AssetActionsMenu from "./AssetActionsMenu";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
+import AssetGridContent from "./AssetGridContent";
+import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
+import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
-import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import AssetGridContent from "./AssetGridContent";
-import { useNodeStore } from "../../stores/NodeStore";
+import Dropzone from "./Dropzone";
 
-// Import our new components and hooks
-import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
-import AssetActionsMenu from "./AssetActionsMenu";
+import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetDeletion } from "../../serverState/useAssetDeletion";
+import { useAssetUpdate } from "../../serverState/useAssetUpdate";
+import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { useNodeStore } from "../../stores/NodeStore";
+import useAssets from "../../serverState/useAssets";
+import useSessionStateStore from "../../stores/SessionStateStore";
 
 const styles = (theme: any) =>
   css({
@@ -64,7 +64,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   maxItemSize = 100,
   itemSpacing = 2
 }) => {
-  const { sortedAssets, currentAssets, error } = useAssets();
+  const { sortedAssets, error } = useAssets();
   const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
 
   const { mutation: deleteMutation } = useAssetDeletion();

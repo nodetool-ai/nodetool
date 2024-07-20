@@ -261,7 +261,7 @@ const styles = (theme: any) =>
     // ASSET MISSING
     ".asset-missing": {
       position: "absolute",
-      zIndex: 10000,
+      zIndex: 100,
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
