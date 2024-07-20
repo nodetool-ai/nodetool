@@ -337,7 +337,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   return (
     <div className="asset-grid-content" css={styles}>
       <AutoSizer>
-        {({ height, width }) => {
+        {({ height, width }: { height: number; width: number }) => {
           if (Math.abs(width - containerWidth) > 1) {
             setContainerWidth(width);
           }
