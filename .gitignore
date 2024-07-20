@@ -40,3 +40,5 @@ node_modules
 .DS_Store
 
 .env
+cert.pem
+key.pem
