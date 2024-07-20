@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useEffect, useCallback, useRef, memo } from "react";
+import React, { useState, useCallback, useRef, memo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
@@ -137,15 +137,12 @@ const NumberInput = memo((props: InputProps) => {
   const shiftKeyPressed = isKeyPressed("Shift");
   const [isDefault, setIsDefault] = useState(false);
   const [isEditable, setIsEditable] = useState(false);
-  const [localValue, setLocalValue] = useState<string>(
-    props.value ? props.value.toString() : ""
-  );
-  const [originalValue, setOriginalValue] = useState<number>(
-    props.value !== null ? props.value : 0
-  );
+  const [localValue, setLocalValue] = useState<string>(props.value.toString());
+  const [originalValue, setOriginalValue] = useState<number>(props.value);
 
   const [dragStartX, setDragStartX] = useState(0);
   const [decimalPlaces, setDecimalPlaces] = useState(1);
+  const decimalPlacesRef = useRef(1);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const hasExceededDragThreshold = useRef(false);
@@ -155,26 +152,13 @@ const NumberInput = memo((props: InputProps) => {
 
   const makeEditable = useCallback(() => {
     setIsEditable(true);
-    if (isFloat) {
-      const formattedValue = parseFloat(localValue).toFixed(1);
-      setLocalValue(formattedValue);
-    }
-  }, [isFloat, localValue]);
+    setLocalValue(props.value.toString());
+  }, [props.value]);
 
   useHotkeys("Escape", () => {
-    if (originalValue !== null) {
-      setLocalValue(originalValue.toString());
-    }
-    handleBlur(false);
+    setLocalValue(props.value.toString());
+    setIsEditable(false);
   });
-
-  useEffect(() => {
-    if (props.value) {
-      if (!isEditable) {
-        setLocalValue(props.value.toString());
-      }
-    }
-  }, [props.value, isEditable]);
 
   const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
@@ -214,9 +198,10 @@ const NumberInput = memo((props: InputProps) => {
       }
 
       props.onChange(null, finalValue);
+    } else {
+      setLocalValue(props.value.toString());
     }
 
-    setLocalValue(props.value.toString());
     setIsEditable(false);
   };
 
@@ -262,52 +247,49 @@ const NumberInput = memo((props: InputProps) => {
     return baseStep;
   }
 
+  const calculateDecimalPlaces = useCallback((baseStep: number) => {
+    return Math.max(0, Math.ceil(Math.log10(1 / baseStep)));
+  }, []);
+
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (isDragging && !isEditable) {
         const moveX = e.clientX - dragStartX;
-        const range = (props.max || 4096) - (props.min || 0);
         if (Math.abs(moveX) > 5) {
           hasExceededDragThreshold.current = true;
         }
+
         let baseStep = calculateStep(
           props.min ?? 0,
           props.max ?? 4096,
           props.inputType || "float"
         );
+
+        // Adjust step based on modifier keys
         if (controlKeyPressed && shiftKeyPressed) {
-          baseStep = baseStep * 4;
+          baseStep *= 4;
         } else if (controlKeyPressed) {
-          baseStep = baseStep * 2;
+          baseStep *= 2;
         } else if (shiftKeyPressed) {
-          if (isFloat) {
-            if (range <= 1) {
-              baseStep = 0.01;
-            } else {
-              baseStep = 0.1;
-            }
-          } else {
-            baseStep = 1;
-          }
-        }
-        const pixelsPerStep = shiftKeyPressed ? 20 : 10;
-        const stepIncrement = moveX / pixelsPerStep;
-        const preliminaryNewValue = dragInitialValue + stepIncrement * baseStep;
-        const remainder = preliminaryNewValue % baseStep;
-        let newValue;
-        if (remainder !== 0) {
-          if (remainder >= baseStep / 2) {
-            newValue = preliminaryNewValue + (baseStep - remainder);
-          } else {
-            newValue = preliminaryNewValue - remainder;
-          }
-        } else {
-          newValue = preliminaryNewValue;
+          baseStep = isFloat ? (props.max && props.max <= 1 ? 0.01 : 0.1) : 1;
         }
 
+        const pixelsPerStep = shiftKeyPressed ? 20 : 10;
+        const stepIncrement = moveX / pixelsPerStep;
+        let newValue = dragInitialValue + stepIncrement * baseStep;
+
+        // Round to nearest step
+        newValue = Math.round(newValue / baseStep) * baseStep;
+
         if (props.inputType === "float") {
-          setDecimalPlaces(Math.ceil(Math.log10(1 / baseStep)));
-          newValue = parseFloat(newValue.toFixed(decimalPlaces));
+          const newDecimalPlaces = calculateDecimalPlaces(baseStep);
+          if (newDecimalPlaces !== decimalPlacesRef.current) {
+            decimalPlacesRef.current = newDecimalPlaces;
+            setDecimalPlaces(newDecimalPlaces);
+          }
+          newValue = parseFloat(newValue.toFixed(newDecimalPlaces));
+        } else {
+          newValue = Math.round(newValue);
         }
 
         newValue = Math.max(
@@ -316,23 +298,21 @@ const NumberInput = memo((props: InputProps) => {
         );
 
         if (newValue !== currentDragValueRef.current) {
-          setLocalValue(newValue.toString());
-          props.onChange(null, newValue);
           currentDragValueRef.current = newValue;
+          props.onChange(null, newValue);
         }
       }
     },
     [
       isDragging,
+      isEditable,
       dragStartX,
       dragInitialValue,
       controlKeyPressed,
       shiftKeyPressed,
       isFloat,
-      setDecimalPlaces,
-      decimalPlaces,
       props,
-      isEditable
+      calculateDecimalPlaces
     ]
   );
 
@@ -340,21 +320,22 @@ const NumberInput = memo((props: InputProps) => {
     if (isDragging) {
       setIsDragging(false);
       if (!hasExceededDragThreshold.current) {
-        // only toggle editable state if the drag threshold was not exceeded
         setOriginalValue(Number(localValue));
         makeEditable();
       }
     }
   }, [isDragging, localValue, makeEditable]);
 
-  useEffect(() => {
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [handleMouseMove, handleMouseUp]);
+  React.useEffect(() => {
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   return (
     <div
@@ -425,5 +406,6 @@ const NumberInput = memo((props: InputProps) => {
     </div>
   );
 });
+
 NumberInput.displayName = "NumberInput";
 export default NumberInput;
