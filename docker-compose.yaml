@@ -4,8 +4,24 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
+    volumes:
+      - "./key.pem:/app/key.pem"
+      - "./cert.pem:/app/cert.pem"
+      - ${COMFY_FOLDER}:/comfy
+    command:
+      [
+        "uvicorn",
+        "nodetool.api.app:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "443",
+        "--ssl-keyfile",
+        "/app/key.pem",
+        "--ssl-certfile",
+        "/app/cert.pem"
+      ]
     ports:
-      - "80:80"
       - "443:443"
     environment:
       ENV: ${ENV:-development}
@@ -30,27 +46,7 @@ services:
       POSTGRES_PORT: ${POSTGRES_PORT}
       MEMCACHE_HOST: memcached
       MEMCACHE_PORT: 11211
-      # - WORKER_URL=https://georgi--nodetool-worker-predict.modal.run
-  sd:
-    container_name: sd
-    environment:
       COMFY_FOLDER: /comfy
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-    command:
-      [
-        "uvicorn",
-        "nodetool.api.stable_diffusion:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8001"
-      ]
-    ports:
-      - "8001:8001"
-    volumes:
-      - ${COMFY_FOLDER}:/comfy
     deploy:
       resources:
         reservations:
