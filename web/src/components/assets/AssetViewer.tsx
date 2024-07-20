@@ -475,16 +475,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               onMouseDown={handleDownload}
               aria-label="download"
             >
-              <div
-                style={{
-                  textAlign: "right",
-                  right: "4em",
-                  position: "absolute"
-                }}
-                className="small"
-              >
-                {currentUrl}
-              </div>
               <FileDownloadIcon />
             </IconButton>
           </Tooltip>
