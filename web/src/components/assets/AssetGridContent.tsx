@@ -1,22 +1,23 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import React, {
+  useEffect,
+  useCallback,
+  useMemo,
+  useState,
+  useRef
+} from "react";
+import AutoSizer from "react-virtualized-auto-sizer";
+import {
+  VariableSizeList as List,
+  ListOnItemsRenderedProps
+} from "react-window";
 
-//mui
-import { Box, Divider } from "@mui/material";
-
-//store
-import { useAssetStore } from "../../hooks/AssetStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
-//utils
-// import { devLog } from "../../utils/DevLog";
-//components
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
-//asset components
 import AssetItem from "./AssetItem";
-import React, { useRef, useCallback, useEffect } from "react";
-
 import { colorForType } from "../../config/data_types";
 
 const styles = (theme: any) =>
@@ -24,24 +25,11 @@ const styles = (theme: any) =>
     "&": {
       position: "relative",
       height: "100%",
-      overflow: "auto",
+      overflow: "hidden",
+      paddingBottom: ".5em"
+    },
+    ".autosizer-list": {
       paddingBottom: "10em"
-    },
-    ".infinite-scroll-component__outerdiv": {
-      position: "relative",
-      height: "100%",
-      overflow: "hidden"
-    },
-    ".infinite-scroll-component": {
-      height: "100% !important",
-      overflowX: "hidden",
-      overflowY: "scroll",
-      borderTop: `1px solid ${theme.palette.c_gray2}`,
-      borderBottom: `1px solid ${theme.palette.c_gray2}`,
-      marginTop: "1em",
-      paddingTop: "1em",
-      paddingBottom: "320px",
-      backgroundColor: theme.palette.c_gray1
     },
     ".content-type-header": {
       width: "100%",
@@ -49,8 +37,17 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       fontSize: theme.fontSizeSmall,
       textTransform: "uppercase"
+    },
+    ".divider": {
+      width: "100%",
+      height: "2px",
+      backgroundColor: theme.palette.divider
     }
   });
+
+type AssetOrDivider =
+  | { isDivider: true; type: string }
+  | (Asset & { isDivider: false; type: string });
 
 interface AssetGridContentProps {
   selectedAssetIds: string[];
@@ -59,53 +56,97 @@ interface AssetGridContentProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
   openDeleteDialog: () => void;
   openRenameDialog: () => void;
-  setCurrentAudioAsset: (asset: Asset) => void;
+  // setCurrentAudioAsset: (asset: Asset) => void;
   itemSpacing?: number;
   searchTerm?: string;
 }
 
-const AssetGridContent = ({
+const AssetGridContent: React.FC<AssetGridContentProps> = ({
   selectedAssetIds,
   handleSelectAsset,
   setCurrentFolderId,
   setSelectedAssetIds,
   openDeleteDialog,
   openRenameDialog,
-  setCurrentAudioAsset,
+  // setCurrentAudioAsset,
   itemSpacing = 2,
   searchTerm = ""
-}: AssetGridContentProps) => {
-  const filteredAssets = useSessionStateStore((state) => state.filteredAssets);
-  const setFilteredAssets = useSessionStateStore(
-    (state) => state.setFilteredAssets
-  );
-  const currentFolder = useAssetStore((state) => state.currentFolder);
-  const parentFolder = useAssetStore((state) => state.parentFolder);
-  const itemSizeFactor = 42;
+}) => {
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
   const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
-  const footerSize = assetItemSize > 1 ? 30 : 0;
-  const folderSize = 128;
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { sortedAssetsByType, hasNextPage, fetchNextPage, refetch } =
-    useAssets();
+  const filteredAssets = useSessionStateStore((state) => state.filteredAssets);
+  const setFilteredAssets = useSessionStateStore(
+    (state) => state.setFilteredAssets
+  );
+
+  const { sortedAssetsByType, refetch } = useAssets();
+
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [gridDimensions, setGridDimensions] = useState({
+    columnCount: 1,
+    itemWidth: 0,
+    itemHeight: 0
+  });
+
+  const listRef = useRef<List>(null);
+
+  const getFooterHeight = useCallback((size: number) => {
+    switch (size) {
+      case 1:
+        return 5;
+      case 2:
+        return 40;
+      case 3:
+        return 40;
+      case 4:
+      case 5:
+        return 30;
+      default:
+        return 10;
+    }
+  }, []);
+
+  const footerHeight = useMemo(
+    () => getFooterHeight(assetItemSize),
+    [assetItemSize, getFooterHeight]
+  );
+
+  const calculateGridDimensions = useCallback(
+    (width: number) => {
+      const baseSize = 42; // Base size factor
+      const targetItemSize = baseSize * assetItemSize;
+      const columnCount = Math.max(1, Math.floor(width / targetItemSize));
+      const itemWidth = Math.floor(width / columnCount) - itemSpacing * 2;
+      const itemHeight = itemWidth; // 1:1 aspect ratio
+
+      setGridDimensions({ columnCount, itemWidth, itemHeight });
+    },
+    [assetItemSize, itemSpacing]
+  );
+
+  useEffect(() => {
+    calculateGridDimensions(containerWidth);
+  }, [containerWidth, assetItemSize, calculateGridDimensions]);
 
   useEffect(() => {
     const filterAndSortAssets = (
       assets: Asset[],
       sortByDate: boolean = false
     ) => {
+      const seenIds = new Set();
       const filtered = assets.filter(
         (asset) =>
-          asset.content_type === "folder" ||
-          asset.name.toLowerCase().includes(searchTerm.toLowerCase())
+          (asset.content_type === "folder" ||
+            asset.name.toLowerCase().includes(searchTerm.toLowerCase())) &&
+          !seenIds.has(asset.id) &&
+          seenIds.add(asset.id)
       );
-      if (sortByDate && assets[0]?.created_at) {
+      if (sortByDate && filtered[0]?.created_at) {
         filtered.sort(
           (a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       } else {
         filtered.sort((a, b) => a.name.localeCompare(b.name));
@@ -131,124 +172,190 @@ const AssetGridContent = ({
     setFilteredAssets(newFilteredAssets);
   }, [sortedAssetsByType, searchTerm, setFilteredAssets, assetsOrder]);
 
+  const flatListWithDividers = useMemo(() => {
+    const flatList: AssetOrDivider[] = [];
+    const seenIds = new Set();
+
+    for (const [type, assets] of Object.entries(filteredAssets.assetsByType)) {
+      if (assets.length > 0) {
+        flatList.push({ type, isDivider: true });
+        for (const asset of assets) {
+          if (!seenIds.has(asset.id)) {
+            flatList.push({ ...asset, isDivider: false, type });
+            seenIds.add(asset.id);
+          }
+        }
+      }
+    }
+
+    return flatList;
+  }, [filteredAssets]);
+
+  const preparedRows = useMemo(() => {
+    const rows: AssetOrDivider[][] = [];
+    let currentRow: AssetOrDivider[] = [];
+
+    flatListWithDividers.forEach((item) => {
+      if (item.isDivider) {
+        if (currentRow.length > 0) {
+          rows.push(currentRow);
+          currentRow = [];
+        }
+        rows.push([item]);
+      } else {
+        currentRow.push(item);
+        if (currentRow.length === gridDimensions.columnCount) {
+          rows.push(currentRow);
+          currentRow = [];
+        }
+      }
+    });
+
+    if (currentRow.length > 0) {
+      rows.push(currentRow);
+    }
+
+    return rows;
+  }, [flatListWithDividers, gridDimensions.columnCount]);
+
+  const getRowHeight = useCallback(
+    (index: number) => {
+      const row = preparedRows[index];
+      if (row[0]?.isDivider) return 10; // Divider height
+      return gridDimensions.itemHeight + footerHeight + itemSpacing * 2; // Item height + footer + vertical spacing
+    },
+    [preparedRows, gridDimensions.itemHeight, footerHeight, itemSpacing]
+  );
+
   const onDragStart = useCallback(
     (assetId: string): string[] => {
       const updatedSelectedIds = [...selectedAssetIds, assetId];
-      const scrollElement = scrollContainerRef.current?.querySelector(
-        ".infinite-scroll-component"
-      );
-      if (scrollElement) {
-        scrollElement.scrollTop = 0;
-      }
-
       return updatedSelectedIds;
     },
     [selectedAssetIds]
   );
 
+  const Row = useCallback(
+    ({ index, style }: { index: number; style: React.CSSProperties }) => {
+      const rowItems = preparedRows[index];
+      const isDividerRow = rowItems[0]?.isDivider;
+
+      if (isDividerRow) {
+        const divider = rowItems[0] as { isDivider: true; type: string };
+        return (
+          <div
+            key={`divider-${index}`}
+            style={{
+              ...style,
+              height: `10px`,
+              padding: `${itemSpacing}px ${itemSpacing}px 0`,
+              boxSizing: "border-box",
+              display: "flex",
+              alignItems: "center"
+            }}
+            className="content-type-header"
+          >
+            <div
+              className="divider"
+              style={{
+                width: "100%",
+                height: "2px",
+                backgroundColor: colorForType(divider.type)
+              }}
+            ></div>
+          </div>
+        );
+      }
+
+      return (
+        <div
+          style={{ ...style, display: "flex", justifyContent: "flex-start" }}
+        >
+          {rowItems.map((item, colIndex) => {
+            if (item.isDivider) return null;
+            return (
+              <div
+                key={`asset-${item.id}`}
+                style={{
+                  width: `${gridDimensions.itemWidth}px`,
+                  height: `${gridDimensions.itemHeight + footerHeight}px`,
+                  margin: `${itemSpacing}px`,
+                  flexShrink: 0
+                }}
+              >
+                <AssetItem
+                  asset={item}
+                  draggable={true}
+                  isSelected={selectedAssetIds.includes(item.id)}
+                  openDeleteDialog={openDeleteDialog}
+                  openRenameDialog={openRenameDialog}
+                  onSelect={() => handleSelectAsset(item.id)}
+                  // onSetCurrentAudioAsset={() => setCurrentAudioAsset(item)}
+                  onMoveToFolder={() => {
+                    refetch();
+                    setSelectedAssetIds([]);
+                  }}
+                  onDeleteAssets={() => {
+                    refetch();
+                    setSelectedAssetIds([]);
+                  }}
+                  onDoubleClickFolder={(folderId) => {
+                    setCurrentFolderId(folderId);
+                    setSelectedAssetIds([]);
+                  }}
+                  onDragStart={() => onDragStart(item.id)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      );
+    },
+    [
+      preparedRows,
+      gridDimensions,
+      footerHeight,
+      itemSpacing,
+      selectedAssetIds,
+      openDeleteDialog,
+      openRenameDialog,
+      handleSelectAsset,
+      // setCurrentAudioAsset,
+      refetch,
+      setSelectedAssetIds,
+      setCurrentFolderId,
+      onDragStart
+    ]
+  );
+
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.resetAfterIndex(0, true);
+    }
+  }, [gridDimensions, assetItemSize]);
+
   return (
     <div className="asset-grid-content" css={styles}>
-      <Box
-        className="asset-grid-flex"
-        display="flex"
-        flexWrap="wrap"
-        gap={itemSpacing}
-      >
-        {/* ASSETS */}
-
-        {Object.entries(filteredAssets.assetsByType).map(
-          ([type, assets], index) => (
-            <React.Fragment key={type}>
-              {/* DIVIDER */}
-              {assets.length > 0 && (
-                <div className="content-type-header">
-                  {/* <Typography>{type} </Typography> */}
-                  <div
-                    className="divider"
-                    style={{
-                      borderBottom: `2px solid ${colorForType(type)}`
-                    }}
-                  ></div>
-                </div>
-              )}
-              {/* PARENT FOLDER */}
-              {type == "folder" &&
-                parentFolder &&
-                currentFolder?.name !== "Root" && (
-                  <Box
-                    display="flex"
-                    flexWrap="wrap"
-                    style={{
-                      width: folderSize,
-                      height: folderSize * 0.75
-                    }}
-                  >
-                    <AssetItem
-                      draggable={false}
-                      asset={parentFolder}
-                      isParent={true}
-                      enableContextMenu={false}
-                      onClickParent={(folderId) => {
-                        setCurrentFolderId(folderId);
-                        setSelectedAssetIds([]);
-                      }}
-                      onMoveToFolder={() => {
-                        refetch();
-                        setSelectedAssetIds([]);
-                      }}
-                    />
-                  </Box>
-                )}
-
-              {assets.map((asset) => (
-                <Box
-                  display="flex"
-                  flexWrap="wrap"
-                  key={asset.id}
-                  style={{
-                    width:
-                      asset.content_type === "folder"
-                        ? folderSize
-                        : `${assetItemSize * itemSizeFactor}px`,
-                    height:
-                      asset.content_type === "folder"
-                        ? folderSize * 0.75
-                        : `${assetItemSize * itemSizeFactor + footerSize}px`
-                  }}
-                >
-                  <AssetItem
-                    asset={asset}
-                    draggable={true}
-                    isSelected={selectedAssetIds.includes(asset.id)}
-                    openDeleteDialog={openDeleteDialog}
-                    openRenameDialog={openRenameDialog}
-                    onSelect={() => handleSelectAsset(asset.id)}
-                    onSetCurrentAudioAsset={() => setCurrentAudioAsset(asset)}
-                    onMoveToFolder={() => {
-                      refetch();
-                      setSelectedAssetIds([]);
-                    }}
-                    onDeleteAssets={() => {
-                      refetch();
-                      setSelectedAssetIds([]);
-                    }}
-                    onDoubleClickFolder={(folderId) => {
-                      setCurrentFolderId(folderId);
-                      setSelectedAssetIds([]);
-                    }}
-                    onDragStart={() => onDragStart(asset.id)}
-
-                    // onDragStart={() => [...selectedAssetIds, asset.id]}
-                  />
-                </Box>
-              ))}
-              {index < Object.keys(sortedAssetsByType).length - 1 && (
-                <Divider />
-              )}
-            </React.Fragment>
-          )
-        )}
-      </Box>
+      <AutoSizer>
+        {({ height, width }: { height: number; width: number }) => {
+          if (Math.abs(width - containerWidth) > 1) {
+            setContainerWidth(width);
+          }
+          return (
+            <List
+              ref={listRef}
+              className="autosizer-list"
+              height={height}
+              itemCount={preparedRows.length}
+              itemSize={getRowHeight}
+              width={width}
+              // onItemsRendered={handleItemsRendered}
+            >
+              {Row}
+            </List>
+          );
+        }}
+      </AutoSizer>
     </div>
   );
 };

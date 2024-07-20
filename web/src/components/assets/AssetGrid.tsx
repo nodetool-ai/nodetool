@@ -1,28 +1,28 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Divider, Box, Typography } from "@mui/material";
-import { useNodeStore } from "../../stores/NodeStore";
-import { useAssetStore } from "../../hooks/AssetStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
-import { useAssetDeletion } from "../../serverState/useAssetDeletion";
-import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { prettyDate } from "../../utils/formatDateAndTime";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import { useAssetUpdate } from "../../serverState/useAssetUpdate";
-import useAssets from "../../serverState/useAssets";
-import { Asset } from "../../stores/ApiTypes";
+import { Box, Divider, Typography } from "@mui/material";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+
 import AudioPlayer from "../audio/AudioPlayer";
-import Dropzone from "./Dropzone";
-import AssetActions from "./AssetActions";
-import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
+import AssetActionsMenu from "./AssetActionsMenu";
 import AssetDeleteConfirmation from "./AssetDeleteConfirmation";
+import AssetGridContent from "./AssetGridContent";
+import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
+import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
-import AssetGridContent from "./AssetGridContent";
-import SearchInput from "../search/SearchInput";
-import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
+import Dropzone from "./Dropzone";
+
+import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
+import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetDeletion } from "../../serverState/useAssetDeletion";
+import { useAssetUpdate } from "../../serverState/useAssetUpdate";
+import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { useNodeStore } from "../../stores/NodeStore";
+import useAssets from "../../serverState/useAssets";
+import useSessionStateStore from "../../stores/SessionStateStore";
 
 const styles = (theme: any) =>
   css({
@@ -32,15 +32,6 @@ const styles = (theme: any) =>
       justifyContent: "flex-start",
       height: "100%"
     },
-    ".asset-menu": {
-      margin: "0",
-      display: "flex",
-      flexWrap: "wrap",
-      justifyContent: "start",
-      alignItems: "start",
-      gap: ".5em",
-      transition: "max-height 0.5s ease-in-out"
-    },
     ".dropzone": {
       display: "flex",
       flexDirection: "column",
@@ -49,38 +40,6 @@ const styles = (theme: any) =>
       flexShrink: 1,
       width: "100%",
       maxHeight: "calc(-273px + 100vh)"
-    },
-    ".selected-asset-info": {
-      backgroundColor: theme.palette.c_gray1,
-      minHeight: "100px",
-      minWidth: "200px",
-      overflowY: "auto",
-      overflowX: "hidden",
-      fontSize: ThemeNodetool.fontSizeSmall,
-      padding: "0.1em 0.2em",
-      color: theme.palette.c_gray5
-    },
-    ".file-upload-button button": {
-      width: "100%",
-      maxWidth: "155px"
-    },
-    ".current-folder": {
-      minWidth: "100px",
-      fontSize: ThemeNodetool.fontSizeSmall,
-      color: theme.palette.c_gray5,
-      padding: "0.5em 0 0 .25em"
-    },
-    ".folder-slash": {
-      color: theme.palette.c_hl1,
-      fontWeight: 600,
-      marginRight: "0.25em",
-      userSelect: "none"
-    },
-    ".selected-info": {
-      fontSize: "12px !important",
-      color: theme.palette.c_gray4,
-      minHeight: "25px",
-      display: "block"
     },
     ".audio-controls-container": {
       position: "absolute",
@@ -96,90 +55,79 @@ const styles = (theme: any) =>
     }
   });
 
-/**
- * AssetGrid displays a grid of assets.
- * New assets can be dropped from the OS file system.
- */
-
 interface AssetGridProps {
   maxItemSize?: number;
   itemSpacing?: number;
 }
 
-const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
-  const { sortedAssets, currentAssets, error } = useAssets();
-  const selectedAssetIds = useSessionStateStore(
-    (state) => state.selectedAssetIds
-  );
-  const setSelectedAssetIds = useSessionStateStore(
-    (state) => state.setSelectedAssetIds
-  );
+const AssetGrid: React.FC<AssetGridProps> = ({
+  maxItemSize = 100,
+  itemSpacing = 2
+}) => {
+  const { sortedAssets, error } = useAssets();
   const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
 
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
   const { mutation: moveMutation } = useAssetUpdate();
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [moveToFolderDialogOpen, setMoveToFolderDialogOpen] = useState(false);
-
   const [searchTerm, setSearchTerm] = useState("");
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-  const [lastSelectedAssetId, setLastSelectedAssetId] = useState<string | null>(
-    null
-  );
-
-  const [currentAudioAsset, setCurrentAudioAsset] = useState<Asset | null>(
-    null
-  );
 
   const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
-  const controlKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("control")
-  );
-  const metaKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("meta")
-  );
-  const shiftKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("shift")
-  );
   const spaceKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed(" ")
   );
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const { uploadAsset } = useAssetUpload();
+
+  // Use our new custom hooks
+  const {
+    selectedAssetIds,
+    setSelectedAssetIds,
+    currentAudioAsset,
+    handleSelectAsset,
+    handleSelectAllAssets,
+    handleDeselectAssets
+  } = useAssetSelection(sortedAssets);
+
+  const {
+    deleteDialogOpen,
+    renameDialogOpen,
+    moveToFolderDialogOpen,
+    openDeleteDialog,
+    closeDeleteDialog,
+    openRenameDialog,
+    closeRenameDialog,
+    openMoveToFolderDialog,
+    closeMoveToFolderDialog
+  } = useAssetDialog();
+
   const handleClickOutside = useCallback(
     (e: MouseEvent) => {
       const clickedElement = e.target as HTMLElement;
-      if (!shiftKeyPressed && !controlKeyPressed && !metaKeyPressed) {
-        if (
-          !clickedElement.classList.contains("selected-asset-info") &&
-          (clickedElement.classList.contains("content-type-header") ||
-            clickedElement.classList.contains("selected-info") ||
-            clickedElement.classList.contains("infinite-scroll-component") ||
-            clickedElement.classList.contains("asset-grid-flex") ||
-            clickedElement.classList.contains("divider") ||
-            clickedElement.classList.contains("current-folder") ||
-            clickedElement.classList.contains("asset-info") ||
-            clickedElement.classList.contains("asset-grid-container") ||
-            clickedElement.classList.contains("MuiTabs-flexContainer"))
-        ) {
+      if (
+        !clickedElement.classList.contains("selected-asset-info") &&
+        (clickedElement.classList.contains("content-type-header") ||
+          clickedElement.classList.contains("selected-info") ||
+          clickedElement.classList.contains("infinite-scroll-component") ||
+          clickedElement.classList.contains("asset-grid-flex") ||
+          clickedElement.classList.contains("divider") ||
+          clickedElement.classList.contains("current-folder") ||
+          clickedElement.classList.contains("asset-info") ||
+          clickedElement.classList.contains("asset-grid-container") ||
+          clickedElement.classList.contains("MuiTabs-flexContainer"))
+      ) {
+        if (selectedAssetIds.length > 0) {
           setSelectedAssetIds([]);
-          if (selectedAssetIds.length > 0) {
-            setSelectedAssetIds([]);
-          }
         }
       }
     },
-    [
-      shiftKeyPressed,
-      controlKeyPressed,
-      metaKeyPressed,
-      selectedAssetIds,
-      setSelectedAssetIds
-    ]
+    [selectedAssetIds, setSelectedAssetIds]
   );
 
   useEffect(() => {
@@ -191,77 +139,9 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
 
   useEffect(() => {
     if (F2KeyPressed && selectedAssetIds.length > 0) {
-      setRenameDialogOpen(true);
+      openRenameDialog();
     }
-  }, [F2KeyPressed, selectedAssetIds]);
-
-  const handleSelectAsset = useCallback(
-    (assetId: string) => {
-      const selectedAssetIndex = sortedAssets.findIndex(
-        (asset) => asset.id === assetId
-      );
-      const lastSelectedIndex = lastSelectedAssetId
-        ? sortedAssets.findIndex((asset) => asset.id === lastSelectedAssetId)
-        : -1;
-
-      const selectedAsset = sortedAssets.find((asset) => asset.id === assetId);
-      const isAudio = selectedAsset?.content_type.match("audio") !== null;
-
-      if (shiftKeyPressed && lastSelectedIndex !== -1) {
-        const start = Math.min(selectedAssetIndex, lastSelectedIndex);
-        const end = Math.max(selectedAssetIndex, lastSelectedIndex);
-        const newSelectedIds = sortedAssets
-          .slice(start, end + 1)
-          .map((asset) => asset.id);
-        setSelectedAssetIds(newSelectedIds);
-      } else if (controlKeyPressed || metaKeyPressed) {
-        const newAssetIds = selectedAssetIds.includes(assetId)
-          ? selectedAssetIds.filter((id) => id !== assetId)
-          : [...selectedAssetIds, assetId];
-        setSelectedAssetIds(newAssetIds);
-      } else {
-        setSelectedAssetIds([assetId]);
-      }
-
-      setLastSelectedAssetId(assetId);
-
-      if (isAudio) {
-        setCurrentAudioAsset(selectedAsset ? selectedAsset : null);
-      } else {
-        setCurrentAudioAsset(null);
-      }
-    },
-    [
-      lastSelectedAssetId,
-      shiftKeyPressed,
-      controlKeyPressed,
-      metaKeyPressed,
-      setSelectedAssetIds,
-      selectedAssetIds,
-      sortedAssets
-    ]
-  );
-
-  useEffect(() => {
-    if (selectedAssetIds.length === 0) {
-      setCurrentAudioAsset(null);
-    }
-  }, [selectedAssetIds, setCurrentAudioAsset]);
-
-  const handleSelectAllAssets = useCallback(() => {
-    const allAssetIds = currentAssets.map((asset) => asset.id);
-    setSelectedAssetIds(allAssetIds);
-    setLastSelectedAssetId(null);
-  }, [currentAssets, setSelectedAssetIds]);
-
-  const handleDeselectAssets = useCallback(() => {
-    setSelectedAssetIds([]);
-    setLastSelectedAssetId(null);
-  }, [setSelectedAssetIds]);
-
-  const containerRef = useRef(null);
-
-  const { uploadAsset } = useAssetUpload();
+  }, [F2KeyPressed, selectedAssetIds, openRenameDialog]);
 
   const uploadFiles = useCallback(
     (files: File[]) => {
@@ -289,70 +169,31 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
       {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}
       <AssetUploadOverlay />
-      <div className="asset-menu">
-        <SearchInput
-          onSearchChange={handleSearchChange}
-          onSearchClear={handleSearchClear}
-          focusOnTyping={false}
-          focusSearchInput={false}
-          focusOnEscapeKey={false}
-          maxWidth={"9em"}
-        />
-        <AssetActions
-          setSelectedAssetIds={setSelectedAssetIds}
-          handleSelectAllAssets={handleSelectAllAssets}
-          handleDeselectAssets={handleDeselectAssets}
-          maxItemSize={maxItemSize}
-        />
-
-        {/* Current Folder + Selected Info */}
-        <Typography className="current-folder">
-          <span className="folder-slash">/</span>
-          {currentFolder && `${currentFolder.name}`}
-        </Typography>
-        <div className="selected-asset-info">
-          <Typography variant="body1" className="selected-info">
-            {selectedAssetIds.length > 0 && (
-              <>
-                {selectedAssetIds.length}{" "}
-                {selectedAssetIds.length === 1 ? "item " : "items "}
-                selected
-              </>
-            )}
-          </Typography>
-          {selectedAssetIds.length === 1 && (
-            <Typography variant="body2" className="asset-info">
-              <span
-                style={{
-                  color: "white",
-                  fontSize: ThemeNodetool.fontSizeSmall
-                }}
-              >
-                {selectedAssets[0]?.name}{" "}
-              </span>
-              <br />
-              {selectedAssets[0]?.content_type}
-              <br />
-              {prettyDate(selectedAssets[0]?.created_at)}
-            </Typography>
-          )}
-        </div>
-      </div>
+      <AssetActionsMenu
+        onSearchChange={handleSearchChange}
+        onSearchClear={handleSearchClear}
+        setSelectedAssetIds={setSelectedAssetIds}
+        handleSelectAllAssets={handleSelectAllAssets}
+        handleDeselectAssets={handleDeselectAssets}
+        maxItemSize={maxItemSize}
+        currentFolder={currentFolder}
+        selectedAssetIds={selectedAssetIds}
+        selectedAssets={selectedAssets}
+      />
       <Dropzone onDrop={uploadFiles}>
-        <div className="br">
-          <br />
+        <div style={{ height: "100%" }}>
+          <AssetGridContent
+            selectedAssetIds={selectedAssetIds}
+            handleSelectAsset={handleSelectAsset}
+            setCurrentFolderId={setCurrentFolderId}
+            setSelectedAssetIds={setSelectedAssetIds}
+            openDeleteDialog={openDeleteDialog}
+            openRenameDialog={openRenameDialog}
+            // setCurrentAudioAsset={() => {}}
+            itemSpacing={itemSpacing}
+            searchTerm={searchTerm}
+          />
         </div>
-        <AssetGridContent
-          selectedAssetIds={selectedAssetIds}
-          handleSelectAsset={handleSelectAsset}
-          setCurrentFolderId={setCurrentFolderId}
-          setSelectedAssetIds={setSelectedAssetIds}
-          openDeleteDialog={() => setDeleteDialogOpen(true)}
-          openRenameDialog={() => setRenameDialogOpen(true)}
-          setCurrentAudioAsset={setCurrentAudioAsset}
-          itemSpacing={itemSpacing}
-          searchTerm={searchTerm}
-        />
       </Dropzone>
       <Divider />
       {currentAudioAsset && (
@@ -373,30 +214,30 @@ const AssetGrid = ({ maxItemSize = 10, itemSpacing = 2 }: AssetGridProps) => {
         />
       )}
       <AssetItemContextMenu
-        openDeleteDialog={() => setDeleteDialogOpen(true)}
-        openRenameDialog={() => setRenameDialogOpen(true)}
-        openMoveToFolderDialog={() => setMoveToFolderDialogOpen(true)}
+        openDeleteDialog={openDeleteDialog}
+        openRenameDialog={openRenameDialog}
+        openMoveToFolderDialog={openMoveToFolderDialog}
       />
       <AssetDeleteConfirmation
         mutation={deleteMutation}
         dialogOpen={deleteDialogOpen}
-        setDialogOpen={setDeleteDialogOpen}
+        setDialogOpen={closeDeleteDialog}
         assets={selectedAssetIds}
       />
       <AssetRenameConfirmation
         mutation={updateMutation}
         dialogOpen={renameDialogOpen}
-        setDialogOpen={setRenameDialogOpen}
+        setDialogOpen={closeRenameDialog}
         assets={selectedAssetIds}
       />
       <AssetMoveToFolderConfirmation
         mutation={moveMutation}
         dialogOpen={moveToFolderDialogOpen}
-        setDialogOpen={setMoveToFolderDialogOpen}
+        setDialogOpen={closeMoveToFolderDialog}
         assets={selectedAssetIds}
       />
     </Box>
   );
 };
 
-export default AssetGrid;
+export default React.memo(AssetGrid);

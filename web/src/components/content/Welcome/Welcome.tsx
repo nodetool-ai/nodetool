@@ -1,13 +1,29 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Typography, Tabs, Tab, Box } from "@mui/material";
-import { useState } from "react";
+
+import React, { useState, useCallback, ReactNode, useMemo } from "react";
+import {
+  Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  TextField,
+  InputAdornment,
+  Tabs,
+  Tab,
+  Box,
+  Link
+} from "@mui/material";
+import Fuse from "fuse.js";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SearchIcon from "@mui/icons-material/Search";
 import CloseButton from "../../buttons/CloseButton";
+import { overviewContents, Section } from "./OverviewContent";
 
 interface TabPanelProps {
   children: React.ReactNode;
-  index: number;
   value: number;
+  index: number;
 }
 
 const welcomeStyles = (theme: any) =>
@@ -27,255 +43,309 @@ const welcomeStyles = (theme: any) =>
       overflowY: "auto",
       border: `2px solid ${theme.palette.c_gray3}`
     },
-    ".welcome-tabs": {
-      button: {
-        alignItems: "flex-start",
-        textAlign: "left",
-        paddingLeft: "0",
-        marginRight: "0.5em",
-        minWidth: "unset"
-      }
+    ".panel-title": {
+      paddingLeft: "0",
+      margin: 0,
+      color: theme.palette.c_white,
+      marginBottom: "1em"
+    },
+    ".summary": {
+      fontFamily: theme.fontFamily,
+      fontSize: theme.fontSizeBigger,
+      color: theme.palette.c_hl1,
+      backgroundColor: theme.palette.c_gray1
+    },
+    ".content": {
+      padding: "1em",
+      color: theme.palette.c_white,
+      fontFamily: theme.fontFamily,
+      fontSize: theme.fontSizeBigger
+    },
+
+    ".content ul": {
+      marginLeft: "0",
+      paddingLeft: "1em"
+    },
+    ".content ul li": {
+      listStyleType: "disc",
+      marginLeft: "0",
+      marginBottom: 0,
+      fontSize: theme.fontSizeNormal,
+      fontFamily: theme.fontFamily1
+    },
+    ".search": {
+      marginBottom: "1em"
+    },
+    ".MuiAccordion-root": {
+      background: "transparent",
+      color: theme.palette.c_white,
+      borderBottom: `1px solid ${theme.palette.c_gray3}`
+    },
+    ".MuiAccordionSummary-content.Mui-expanded": {
+      margin: "0"
+    },
+    ".MuiAccordionSummary-root": {
+      minHeight: "48px"
+    },
+    ".MuiAccordionSummary-content": {
+      margin: "12px 0"
+    },
+    ".MuiTypography-root": {
+      fontFamily: theme.fontFamily
+    },
+    "ul, ol": {
+      fontFamily: theme.fontFamily1,
+      paddingLeft: "1.5em",
+      marginTop: "0.5em"
+    },
+    li: {
+      marginBottom: "0.5em"
+    },
+    ".highlight": {
+      backgroundColor: theme.palette.c_hl1,
+      color: theme.palette.c_black
+    },
+    ".tab-content": {
+      marginTop: "1em"
     },
     ".link": {
       color: theme.palette.c_attention,
       display: "block",
-      marginBottom: "1em"
+      marginBottom: "1em",
+      textDecoration: "none"
     },
     ".link .body": {
       fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray6,
       margin: 0
-    },
-    ".body": {
-      marginTop: "1em",
-      maxWidth: "650px",
-      color: theme.palette.c_white,
-      fontSize: theme.fontSizeNormal,
-      fontFamily: theme.fontFamily1,
-      lineHeight: "1.2em"
-    },
-    ul: {
-      listStyleType: "square",
-      fontFamily: theme.fontFamily1,
-      paddingLeft: "1.5em"
-    },
-    li: {
-      marginBottom: "0.5em"
-    },
-    "ul li ul li": {
-      listStyleType: "disc",
-      margin: "0",
-      lineHeight: "1.2em"
-    },
-    ".release": {
-      padding: ".5em 0",
-      marginBottom: "1em",
-      borderBottom: `1px solid ${theme.palette.c_attention}`
     }
   });
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index } = props;
   return (
-    <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box>{children}</Box>}
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`overview-tabpanel-${index}`}
+      aria-labelledby={`overview-tab-${index}`}
+    >
+      {value === index && <Box className="tab-content">{children}</Box>}
     </div>
   );
 }
 
 const Welcome = ({ handleClose }: { handleClose: () => void }) => {
-  const [value, setValue] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
+  const [tabValue, setTabValue] = useState(0);
+  const sections: Section[] = overviewContents.map((section) => ({
+    ...section,
+    originalContent: section.content
+  }));
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue);
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  const handleAccordionChange = useCallback(
+    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+      setExpandedPanels((prev) =>
+        isExpanded ? [...prev, panel] : prev.filter((p) => p !== panel)
+      );
+    },
+    []
+  );
+
+  const highlightText = (text: string, term: string) => {
+    if (!term) return text;
+    const parts = text.split(new RegExp(`(${term})`, "gi"));
+    return parts.map((part, index) =>
+      part.toLowerCase() === term.toLowerCase() ? (
+        <span key={index} className="highlight">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
+  const performSearch = useCallback(
+    (searchTerm: string) => {
+      if (searchTerm.length > 1) {
+        const fuseOptions = {
+          keys: [
+            { name: "title", weight: 0.4 },
+            { name: "content", weight: 0.6 }
+          ],
+          includeMatches: true,
+          ignoreLocation: true,
+          threshold: 0.2,
+          distance: 100,
+          shouldSort: true,
+          includeScore: true,
+          minMatchCharLength: 2,
+          useExtendedSearch: true,
+          tokenize: true,
+          matchAllTokens: false
+        };
+
+        const entries = sections.map((section) => ({
+          ...section,
+          content: React.isValidElement(section.content)
+            ? React.Children.toArray(section.content.props.children)
+                .map((child) =>
+                  typeof child === "string"
+                    ? child
+                    : React.isValidElement(child)
+                    ? child.props.children
+                    : ""
+                )
+                .join(" ")
+            : typeof section.content === "string"
+            ? section.content
+            : ""
+        }));
+
+        const fuse = new Fuse(entries, fuseOptions);
+        const filteredData = fuse
+          .search(searchTerm)
+          .map((result) => result.item);
+
+        return filteredData;
+      }
+      return searchTerm.length === 0 ? sections : [];
+    },
+    [sections]
+  );
+
+  const filteredSections = useMemo(
+    () => performSearch(searchTerm),
+    [performSearch, searchTerm]
+  );
+
+  const renderContent = (content: ReactNode): ReactNode => {
+    if (typeof content === "string") {
+      return highlightText(content, searchTerm);
+    }
+    if (React.isValidElement(content)) {
+      return React.cloneElement(
+        content,
+        {},
+        React.Children.map(content.props.children, (child) =>
+          typeof child === "string"
+            ? highlightText(child, searchTerm)
+            : renderContent(child)
+        )
+      );
+    }
+    if (Array.isArray(content)) {
+      return content.map((item, index) => (
+        <React.Fragment key={index}>{renderContent(item)}</React.Fragment>
+      ));
+    }
+    return content;
   };
 
   return (
-    <div className="welcome" css={welcomeStyles}>
+    <div css={welcomeStyles}>
       <CloseButton onClick={handleClose} />
-      <Typography variant="h4">NodeTool</Typography>
-      <Tabs className="welcome-tabs" value={value} onChange={handleChange}>
-        <Tab label="Overview" />
-        <Tab label="What's new" />
-        <Tab label="Links" />
+      <Typography className="panel-title" variant="h2" gutterBottom>
+        NODETOOL
+      </Typography>
+
+      <Tabs
+        value={tabValue}
+        onChange={handleTabChange}
+        aria-label="overview tabs"
+      >
+        <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
+        <Tab label="Whats New" id="tab-1" aria-controls="tabpanel-1" />
+        <Tab label="Links" id="tab-2" aria-controls="tabpanel-2" />
       </Tabs>
-      {/* OVERVIEW */}
-      <TabPanel value={value} index={0}>
-        <Typography variant="h5">Welcome to NodeTool</Typography>
 
-        <Typography className="body">
-          NodeTool lets you create workflows by combining nodes that perform
-          various tasks.
-          <br />
-          It&apos;s designed to be simple yet powerful and flexible.
-          <br />
-          Combine Machine Learning models from sources like OpenAI, HuggingFace,
-          Replicate, and more.
-        </Typography>
-        <Typography variant="h5"> Quick Tips:</Typography>
-        <ul>
-          <b>Workflows</b>
-          <li>
-            Create and manage workflows
-            <ul>
-              <li>Click on Workflows in the top panel</li>
-              <li>Edit the current workflow in the left panel</li>
-              <li>Save a workflow using the save button in the left Panel</li>
-              <li>Open the examples inside the Workflow menu</li>
-            </ul>
-          </li>
-          <li>
-            {" "}
-            Run workflows with the Play Button in the bottom Panel to see the
-            results{" "}
-          </li>
-          <li>Some processes may take some time </li>
+      <TabPanel value={tabValue} index={0}>
+        <TextField
+          className="search"
+          fullWidth
+          variant="outlined"
+          placeholder="Search topics..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            )
+          }}
+        />
 
-          <b>Node Menu</b>
-          <li>
-            Three ways to open the NodeMenu:
-            <ul>
-              <li>Double-click the canvas</li>
-              <li>Press CTRL+Space</li>
-              <li>Press the Nodes Button (circle icon) in the top Panel</li>
-            </ul>
-            Inside the NodeMenu:
-            <ul>
-              <li>
-                Read the description in the menu to learn how to browse and
-                create nodes
-              </li>
-            </ul>
-          </li>
-
-          <b>Nodes</b>
-          <li>
-            <li>Connect nodes to create data flows</li>
-            <li>
-              Compatible connections are highlighted while making a connection{" "}
-            </li>
-            <li> Delete connections by right clicking them </li>
-            <li> Change node values with left click </li>
-            <li> Changed values will appear highlighted </li>
-            <li> Reset values to default with CTRL+RightClick </li>
-            <li>
-              Number values can be changed by dragging horizontally or clicking
-              on them
-            </li>
-          </li>
-
-          <li>
-            Connection Menu with useful options:
-            <ul>
-              <li>
-                Drag a connection from any input or output and release it on the
-                empty canvas
-              </li>
-            </ul>
-          </li>
-
-          <li>
-            Try to hover or right-click on elements for more options:
-            <ul>
-              <li>Buttons</li>
-              <li>Parameters</li>
-              <li>Node Header</li>
-              <li>Canvas</li>
-              <li>Node Selections</li>
-              <li>Assets</li>
-            </ul>
-          </li>
-
-          <li>
-            Control the left and right panels by clicking, dragging the border,
-            or using hotkeys 1 and 2
-          </li>
-          <b>Assets</b>
-          <li>
-            Drag assets (from your File Explorer / Finder) onto the Asset tab on
-            the right to import them
-          </li>
-          <li>Drag and drop assets onto the canvas to create nodes</li>
-          <li>
-            DoubleClick on any asset in a node or inside the AssetBrowser to
-            open the gallery
-          </li>
-
-          <b>Help</b>
-          <li>
-            Open the HelpMenu in the top right corner for more explanations and
-            Keyboard Shortcuts
-          </li>
-          <li>
-            Visit the{" "}
-            <a
-              href="https://forum.nodetool.ai"
-              target="_blank"
-              rel="noreferrer"
+        {(searchTerm === "" ? sections : filteredSections).map((section) => (
+          <Accordion
+            key={section.id}
+            expanded={expandedPanels.includes(section.id) || searchTerm !== ""}
+            onChange={handleAccordionChange(section.id)}
+          >
+            <AccordionSummary
+              className="summary"
+              expandIcon={<ExpandMoreIcon />}
             >
-              NodeTool forum
-            </a>{" "}
-            to ask questions and connect with others (also in the Links tab)
-          </li>
-          <li>Click outside to close this menu</li>
-          <li>
-            Click the NodeTool icon in the top left corner to open this menu
-            again
-          </li>
-        </ul>
+              <Typography>
+                {highlightText(section.title, searchTerm)}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails className="content">
+              {renderContent(section.originalContent)}
+            </AccordionDetails>
+          </Accordion>
+        ))}
       </TabPanel>
 
-      {/* RELEASE NOTES */}
-      <TabPanel value={value} index={1}>
-        <div className="release">
-          <Typography variant="h5" color="#999">
-            nodetool 0.1.52
-          </Typography>
-          <Typography className="body">
-            <b>Additions</b>
-            <ul>
-              <li>Welcome screen</li>
-              <li>Demucs node for audio separation </li>
-            </ul>
-            <b>Improvements</b>
-            <ul>
-              <li>fixed copy paste between tabs</li>
-            </ul>
-          </Typography>
-        </div>
+      <TabPanel value={tabValue} index={1}>
+        <Typography variant="h5" color="#999">
+          nodetool 0.1.52
+        </Typography>
+        <Typography>
+          <b>Additions</b>
+          <ul>
+            <li>Welcome screen</li>
+            <li>Demucs node for audio separation</li>
+          </ul>
+          <b>Improvements</b>
+          <ul>
+            <li>Fixed copy paste between tabs</li>
+          </ul>
+        </Typography>
       </TabPanel>
-      {/* LINKS */}
-      <TabPanel value={value} index={2}>
+
+      <TabPanel value={tabValue} index={2}>
         <Typography variant="h5" color="#999">
           Links
         </Typography>
-        <div className="link">
-          <a
-            href="https://forum.nodetool.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: "none", color: "inherit" }}
-          >
-            Forum
-          </a>
+        <Link
+          href="https://forum.nodetool.ai"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link"
+        >
+          Forum
           <div className="body">
-            Go to the NodeTool forum for help and advise or share what you made.
+            Go to the NodeTool forum for help and advice or share what you made.
           </div>
-        </div>
-
-        <div className="link">
-          <a
-            href="https://github.com/nodetool-ai/nodetool"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: "none", color: "inherit" }}
-          >
-            GitHub
-          </a>
+        </Link>
+        <Link
+          href="https://github.com/nodetool-ai/nodetool"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link"
+        >
+          GitHub
           <div className="body">
             The source code for NodeTool is available on GitHub.
           </div>
-        </div>
+        </Link>
       </TabPanel>
     </div>
   );
