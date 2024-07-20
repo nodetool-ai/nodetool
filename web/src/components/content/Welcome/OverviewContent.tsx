@@ -16,10 +16,12 @@ export const overviewContents: Section[] = [
       <Typography>
         NodeTool is a no-code AI development environment that simplifies
         creating and integrating AI workflows. With its node-based interface,
-        you can build complex applications without programming. NodeTool enables
-        seamless integration of advanced AI models, allowing the generation and
-        editing of multimedia content like images, text, audio, and video in one
-        workflow.
+        you can build complex applications without programming.
+        <br />
+        <br />
+        NodeTool enables seamless integration of advanced AI models, allowing
+        the generation and editing of multimedia content like images, text,
+        audio, and video in one workflow.
       </Typography>
     )
   },
@@ -114,13 +116,29 @@ export const overviewContents: Section[] = [
     content: (
       <ul>
         <li>
-          Drag assets (from your File Explorer / Finder) onto the Asset tab on
-          the right to import them
+          Drag assets (from FileExplorer / Finder) onto the Asset tab on the
+          right to import them
         </li>
-        <li>Drag and drop assets onto the canvas to create nodes</li>
+        <li>Drag assets onto the canvas to create constant nodes</li>
         <li>
-          Double-click on any asset in a node or inside the AssetBrowser to open
-          the gallery
+          Double-click on any asset in a node or inside the ASSETS panel to open
+          it in the AssetViewer
+        </li>
+        <li>
+          Right-click on any asset to open the Asset Menu for more options
+        </li>
+        <li>Select multiple assets by holding CTRL or SHIFT</li>
+        <li>
+          Move assets between folders by dragging them onto the desired folder,
+          <br />
+          or use the right click menu for moving them into nested folders
+        </li>
+        <li>Search for assets by typing in the search bar</li>
+        <li>Sort assets by name or date</li>
+        <li>Delete: right click menu or X button</li>
+        <li>
+          Rename: right click menu or press F2 key (also works with multiple
+          assets)
         </li>
       </ul>
     )
@@ -135,7 +153,12 @@ export const overviewContents: Section[] = [
           Keyboard Shortcuts
         </li>
         <li>
-          Visit the NodeTool forum to ask questions and connect with others
+          Visit the{" "}
+          <a href="https://forum.nodetool.ai" target="_blank" rel="noreferrer">
+            {" "}
+            NodeTool forum
+          </a>{" "}
+          to ask questions and connect with others
         </li>
         <li>
           Click the NodeTool icon in the top left corner to open this menu again

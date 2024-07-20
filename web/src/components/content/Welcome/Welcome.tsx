@@ -270,7 +270,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           className="search"
           fullWidth
           variant="outlined"
-          placeholder="Search topics..."
+          placeholder="Search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
