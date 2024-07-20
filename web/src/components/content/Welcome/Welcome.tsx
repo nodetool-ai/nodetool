@@ -1,6 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
 import React, { useState, useCallback, ReactNode, useMemo } from "react";
 import {
   Typography,
@@ -19,6 +17,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseButton from "../../buttons/CloseButton";
 import { overviewContents, Section } from "./OverviewContent";
+import { css } from "@emotion/react";
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -135,6 +134,19 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+const extractText = (node: ReactNode): string => {
+  if (typeof node === "string") return node;
+  if (React.isValidElement(node)) {
+    return React.Children.toArray(node.props.children)
+      .map(extractText)
+      .join(" ");
+  }
+  if (Array.isArray(node)) {
+    return node.map(extractText).join(" ");
+  }
+  return "";
+};
+
 const Welcome = ({ handleClose }: { handleClose: () => void }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
@@ -193,19 +205,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
 
         const entries = sections.map((section) => ({
           ...section,
-          content: React.isValidElement(section.content)
-            ? React.Children.toArray(section.content.props.children)
-                .map((child) =>
-                  typeof child === "string"
-                    ? child
-                    : React.isValidElement(child)
-                    ? child.props.children
-                    : ""
-                )
-                .join(" ")
-            : typeof section.content === "string"
-            ? section.content
-            : ""
+          content: extractText(section.content)
         }));
 
         const fuse = new Fuse(entries, fuseOptions);
