@@ -17,6 +17,7 @@ build/
 data/
 dist/
 package/
+postgres_data/
 .ipynb_checkpoints
 
 .bin
