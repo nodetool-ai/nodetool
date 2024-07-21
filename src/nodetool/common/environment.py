@@ -817,12 +817,20 @@ class Environment(object):
         """
         from nodetool.storage.s3_storage import S3Storage
 
+        endpoint_url = cls.get_s3_endpoint_url()
+        access_key_id = cls.get_s3_access_key_id()
+        secret_access_key = cls.get_s3_secret_access_key()
+
+        assert access_key_id is not None, "AWS access key ID is required"
+        assert secret_access_key is not None, "AWS secret access key is required"
+        assert endpoint_url is not None, "S3 endpoint URL is required"
+
         return S3Storage(
             bucket_name=bucket,
             domain=domain,
-            endpoint_url=cls.get_s3_endpoint_url(),
-            access_key_id=cls.get_s3_access_key_id(),
-            secret_access_key=cls.get_s3_secret_access_key(),
+            endpoint_url=endpoint_url,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key,
             region_name=cls.get_s3_region(),
         )
 

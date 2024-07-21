@@ -29,32 +29,6 @@ services:
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       # - WORKER_URL=https://georgi--nodetool-worker-predict.modal.run
-  # worker:
-  #   image: ghcr.io/georgi/nodetool-worker
-  #   container_name: worker
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.worker
-  #   ports:
-  #     - "8888:8888"
-  #   volumes:
-  #     - type: bind
-  #       source: src/nodetool
-  #       target: /app/nodetool
-  #     - type: bind
-  #       source: comfy-models
-  #       target: /root/data/models
-  #     - type: bind
-  #       source: ~/.cache/huggingface
-  #       target: /app/huggingface_cache
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: 1
-  #             capabilities: [gpu]
-  #   environment:
   # chromadb:
   #   container_name: chroma
   #   build:
@@ -81,7 +55,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_DIR}:/var/lib/postgresql/data
     restart: unless-stopped
   # minio:
   #   container_name: minio
@@ -102,7 +76,7 @@ services:
     image: ollama/ollama
     container_name: ollama
     volumes:
-      - /Users/mmg/.ollama:/root/.ollama
+      - ${OLLAMA_PATH}:/root/.ollama
     ports:
       - "11434:11434"
 
