@@ -568,8 +568,7 @@ class Environment(object):
             api_url = cls.get_nodetool_api_url()
 
         if not hasattr(cls, "nodetool_api_client"):
-            if cls.is_production():
-                assert api_url is not None, "Nodetool API URL is required"
+            if api_url is not None:
                 cls.nodetool_api_client = NodetoolAPIClient(
                     user_id=user_id,
                     auth_token=auth_token,

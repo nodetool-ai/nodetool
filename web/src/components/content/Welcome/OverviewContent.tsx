@@ -14,12 +14,27 @@ export const overviewContents: Section[] = [
     title: "What is NodeTool?",
     content: (
       <Typography>
-        NodeTool is a no-code AI development environment that simplifies
-        creating and integrating AI workflows. With its node-based interface,
-        you can build complex applications without programming. NodeTool enables
-        seamless integration of advanced AI models, allowing the generation and
-        editing of multimedia content like images, text, audio, and video in one
-        workflow.
+        NodeTool is a no-code development environment that simplifies creating
+        AI workflows. With its node-based interface, you can build complex
+        applications without programming.
+        <br />
+        <br />
+        NodeTool enables seamless integration of advanced AI models, allowing
+        the generation and editing of multimedia content including images, text,
+        audio, and video - all in one workflow.
+        <br />
+        <br />
+        NodeTool is designed to be user-friendly, but does not hide the
+        complexity of AI models.
+        <br />
+        It provides a visual representation of the data flow, making it easy to
+        understand and modify.
+        <br />
+        <br />
+        <b>
+          Try some of the pre-built examples in the Workflow menu to get
+          inspired.
+        </b>
       </Typography>
     )
   },
@@ -114,28 +129,73 @@ export const overviewContents: Section[] = [
     content: (
       <ul>
         <li>
-          Drag assets (from your File Explorer / Finder) onto the Asset tab on
-          the right to import them
+          Drag assets (from FileExplorer / Finder) onto the Asset tab on the
+          right to import them
         </li>
-        <li>Drag and drop assets onto the canvas to create nodes</li>
+        <li>Drag assets onto the canvas to create constant nodes</li>
         <li>
-          Double-click on any asset in a node or inside the AssetBrowser to open
-          the gallery
+          Double-click on any asset in a node or inside the ASSETS panel to open
+          it in the AssetViewer
+        </li>
+        <li>
+          Right-click on any asset to open the Asset Menu for more options
+        </li>
+        <li>
+          <b>Select</b> multiple assets by holding CTRL or SHIFT
+        </li>
+        <li>
+          <b>Move</b> assets between folders by dragging them onto the desired
+          folder,
+          <br />
+          or use the right click menu for moving them into nested folders
+        </li>
+        <li>
+          <b>Search</b> for assets by typing in the search bar
+        </li>
+        <li>
+          <b>Sort</b> assets by clicking on the name or date buttons
+        </li>
+        <li>
+          <b>Download</b>: select one or more assets and use the right click
+          menu
+        </li>
+        <li>
+          <b>Delete</b>: right click menu or X button
+        </li>
+        <li>
+          <b>Rename</b>: right click menu or press F2 key (also works with
+          multiple assets)
         </li>
       </ul>
     )
   },
   {
     id: "panel7",
+    title: "Settings",
+    content: (
+      <Typography variant="body1">
+        Open the SettingsMenu in the top right corner to adjust the interface.
+        <br />
+        <b>Note:</b> The settings are only saved in your browser.
+      </Typography>
+    )
+  },
+  {
+    id: "panel8",
     title: "Help and Resources",
     content: (
       <ul>
         <li>
-          Open the Help Menu in the top right corner for more explanations and
+          Open the HelpMenu in the top right corner for more explanations and
           Keyboard Shortcuts
         </li>
         <li>
-          Visit the NodeTool forum to ask questions and connect with others
+          Visit the{" "}
+          <a href="https://forum.nodetool.ai" target="_blank" rel="noreferrer">
+            {" "}
+            NodeTool forum
+          </a>{" "}
+          to ask questions and connect with others
         </li>
         <li>
           Click the NodeTool icon in the top left corner to open this menu again

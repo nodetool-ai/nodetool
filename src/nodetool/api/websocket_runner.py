@@ -112,7 +112,8 @@ class WebSocketRunner:
             self.job_id = uuid.uuid4().hex
             self.runner = WorkflowRunner(job_id=self.job_id)
             api_client = Environment.get_nodetool_api_client(
-                user_id=req.user_id, auth_token=req.auth_token, api_url=req.api_url
+                user_id=req.user_id, auth_token=req.auth_token, 
+                # api_url=req.api_url
             )
 
             self.context = ProcessingContext(

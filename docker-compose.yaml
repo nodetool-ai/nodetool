@@ -4,9 +4,25 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    command: ["uvicorn", "nodetool.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - "./key.pem:/app/key.pem"
+      - "./cert.pem:/app/cert.pem"
+      - ${COMFY_FOLDER}:/comfy
+    command:
+      [
+        "uvicorn",
+        "nodetool.api.app:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "443",
+        "--ssl-keyfile",
+        "/app/key.pem",
+        "--ssl-certfile",
+        "/app/cert.pem"
+      ]
     ports:
-      - "8000:8000"
+      - "443:443"
     environment:
       ENV: ${ENV:-development}
       ASSET_BUCKET: ${ASSET_BUCKET}
@@ -28,23 +44,21 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
-      # - WORKER_URL=https://georgi--nodetool-worker-predict.modal.run
-  # chromadb:
-  #   container_name: chroma
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.chroma
-  #   ports:
-  #     - "5000:8000"
-  #   volumes:
-  #     - type: bind
-  #       source: chroma
-  #       target: /chroma/chroma
-  #   environment:
-  #     - CHROMA_SERVER_AUTH_CREDENTIALS=chroma-token
-  #     - CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=chromadb.auth.token.TokenConfigServerAuthCredentialsProvider
-  #     - CHROMA_SERVER_AUTH_TOKEN_TRANSPORT_HEADER=AUTHORIZATION
-  #     - CHROMA_SERVER_AUTH_PROVIDER=chromadb.auth.token.TokenAuthServerProvider
+      MEMCACHE_HOST: memcached
+      MEMCACHE_PORT: 11211
+      COMFY_FOLDER: /comfy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+  memcached:
+    image: memcached:bookworm
+    container_name: memcached
+    ports:
+      - "11211:11211"
   postgres:
     image: postgres:16.3
     container_name: postgres

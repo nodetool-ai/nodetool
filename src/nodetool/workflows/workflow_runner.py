@@ -112,8 +112,6 @@ class WorkflowRunner:
         """
         assert req.graph is not None, "Graph is required"
 
-        graph_capabilities = requires_capabilities_from_request(req)
-
         graph = Graph.from_dict(
             {
                 "nodes": [node.model_dump() for node in req.graph.nodes],
@@ -133,7 +131,7 @@ class WorkflowRunner:
                 node = input_nodes[key]
                 node.assign_property("value", value)
 
-        with self.torch_capabilities(graph_capabilities, context):
+        with self.torch_context(context):
             await self.process_graph(context, graph)
 
         if self.is_cancelled:
@@ -444,29 +442,30 @@ class WorkflowRunner:
         return res_for_update
 
     @contextmanager
-    def torch_capabilities(self, capabilities: list[str], context: ProcessingContext):
+    def torch_context(self, context: ProcessingContext):
         """
-        Context manager for handling GPU-related capabilities, specifically for ComfyUI nodes.
+        Context manager for handling GPU tasks.
 
         Args:
-            capabilities (list[str]): List of required capabilities for the workflow.
             context (ProcessingContext): Manages the execution state and inter-node communication.
-
-        Raises:
-            ValueError: If ComfyUI nodes are required but not supported in the current environment.
 
         Note:
             - Sets up progress tracking hooks for ComfyUI operations.
             - Manages CUDA memory and PyTorch inference mode.
             - Cleans up models and CUDA cache after execution.
         """
-        if "comfy" in capabilities:
-            if "comfy" not in context.capabilities:
-                raise ValueError("Comfy nodes are not supported in this environment")
+        if Environment.get_comfy_folder():
+            import torch
+            import comfy.cli_args
+            gpu_available = torch.cuda.is_available() or torch.backends.mps.is_available()
+
+            log.info(f"GPU available: {gpu_available}")
+
+            comfy.cli_args.args.force_fp16 = True
+            comfy.cli_args.args.cpu = not gpu_available
 
             import comfy.model_management
             import comfy.utils
-            import torch
 
             def hook(value, total, preview_image):
                 comfy.model_management.throw_exception_if_processing_interrupted()
@@ -482,13 +481,14 @@ class WorkflowRunner:
             comfy.utils.set_progress_bar_global_hook(hook)
 
             log.info(
-                f"Using TOrch with VRAM: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+                f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
             )
             with torch.inference_mode():
                 comfy.model_management.cleanup_models()
                 yield
+                comfy.model_management.cleanup_models()
                 log.info(
-                    f"Finished Torch with VRAM: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+                    f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
                 )
 
         else:

@@ -17,6 +17,7 @@ build/
 data/
 dist/
 package/
+postgres_data/
 .ipynb_checkpoints
 
 .bin
@@ -39,3 +40,5 @@ node_modules
 .DS_Store
 
 .env
+cert.pem
+key.pem
