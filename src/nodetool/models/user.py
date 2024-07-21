@@ -15,6 +15,8 @@ from nodetool.models.condition_builder import Field
 
 log = logging.getLogger(__name__)
 
+TOKEN_LIFETIME_DAYS = 180
+
 
 class User(DBModel):
     @classmethod
@@ -150,7 +152,7 @@ class User(DBModel):
 
         if verified:
             auth_token = uuid.uuid4().hex
-            token_valid = datetime.now() + timedelta(days=1)
+            token_valid = datetime.now() + timedelta(days=TOKEN_LIFETIME_DAYS)
 
         if Environment.use_remote_auth():
             passcode = str(random.randint(100000, 999999))

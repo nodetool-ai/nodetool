@@ -108,11 +108,19 @@ class WebSocketRunner:
             if not self.websocket:
                 raise ValueError("WebSocket is not connected")
 
+            assert self.context, "Processing context is not set"
+            assert self.context.api_client, "API client is not set"
+
+            await self.context.api_client.post(
+                "api/auth/verify", json={"token": req.auth_token}
+            )
+
             start_time = time.time()
             self.job_id = uuid.uuid4().hex
             self.runner = WorkflowRunner(job_id=self.job_id)
             api_client = Environment.get_nodetool_api_client(
-                user_id=req.user_id, auth_token=req.auth_token, 
+                user_id=req.user_id,
+                auth_token=req.auth_token,
                 # api_url=req.api_url
             )
 
