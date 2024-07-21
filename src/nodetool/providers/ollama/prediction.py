@@ -9,6 +9,8 @@ async def run_ollama(prediction: Prediction) -> Any:
 
     client = Environment.get_ollama_client()
     params = prediction.params
+    
+    print(f"Running Ollama prediction with model: {model} and params: {params}")
 
     if "raw" in params:
         res = await client.generate(model=model, **params)
