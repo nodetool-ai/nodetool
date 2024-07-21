@@ -14,7 +14,6 @@ export type AudioRef = components["schemas"]["AudioRef"];
 export type VideoRef = components["schemas"]["VideoRef"];
 export type Tensor = components["schemas"]["Tensor"];
 export type TextRef = components["schemas"]["TextRef"];
-export type FileRef = components["schemas"]["FileRef"];
 export type WorkflowRef = components["schemas"]["WorkflowRef"];
 export type NodeRef = components["schemas"]["NodeRef"];
 export type Workflow = components["schemas"]["Workflow"];

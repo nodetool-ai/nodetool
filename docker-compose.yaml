@@ -93,7 +93,3 @@ services:
       - ${OLLAMA_PATH}:/root/.ollama
     ports:
       - "11434:11434"
-
-volumes:
-  # ollama:
-  postgres_data:

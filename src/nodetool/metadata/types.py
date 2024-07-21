@@ -144,7 +144,7 @@ class ImageRef(AssetRef):
     """A reference to an image asset."""
 
     type: Literal["image"] = "image"
-
+    
 
 class WorkflowRef(BaseType):
     type: Literal["workflow"] = "workflow"
@@ -154,10 +154,6 @@ class WorkflowRef(BaseType):
 class NodeRef(BaseType):
     type: Literal["node"] = "node"
     id: str = ""
-
-
-class FileRef(BaseType):
-    type: Literal["file"] = "file"
 
 
 class ModelFile(BaseType):

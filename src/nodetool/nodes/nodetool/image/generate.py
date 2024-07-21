@@ -1,6 +1,4 @@
 import enum
-from nodetool.types.sd_request import SDRequest
-from nodetool.common.environment import Environment
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field

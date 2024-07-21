@@ -21,9 +21,6 @@ from nodetool.metadata.types import (
 )
 from nodetool.workflows.base_node import get_registered_node_classes
 from nodetool.common.environment import Environment
-from nodetool.metadata.types import (
-    FileRef,
-)
 from nodetool.workflows.types import NodeProgress, NodeUpdate
 
 log = Environment.get_logger()
@@ -39,7 +36,6 @@ UnionType = (
     | ImageRef
     | Tensor
     | VideoRef
-    | FileRef
     | ModelRef
     | TextRef
     | WorkflowRef
