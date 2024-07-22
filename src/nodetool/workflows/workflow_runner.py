@@ -132,7 +132,15 @@ class WorkflowRunner:
                 node.assign_property("value", value)
 
         with self.torch_context(context):
-            await self.process_graph(context, graph)
+            try:
+                for node in graph.nodes:
+                    await node.initialize(context)
+                await self.process_graph(context, graph)
+            except Exception as e:
+                for node in graph.nodes:
+                    await node.finalize(context)
+                raise e
+                
 
         if self.is_cancelled:
             log.info("Job cancelled")
@@ -484,7 +492,6 @@ class WorkflowRunner:
                 f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
             )
             with torch.inference_mode():
-                comfy.model_management.cleanup_models()
                 yield
                 comfy.model_management.cleanup_models()
                 log.info(

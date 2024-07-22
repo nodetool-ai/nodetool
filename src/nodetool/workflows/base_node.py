@@ -596,7 +596,7 @@ class BaseNode(BaseModel):
 
     def node_properties(self):
         return {prop.name: getattr(self, prop.name) for prop in self.properties()}
-
+    
     async def convert_output(self, context: Any, output: Any) -> Any:
         if type(self.return_type()) is dict:
             return output
@@ -604,6 +604,23 @@ class BaseNode(BaseModel):
             return output.model_dump()
         else:
             return {"output": output}
+        
+    async def initialize(self, context: Any):
+        """
+        Initialize the node when workflow starts.
+        
+        Responsible for setting up the node, including loading any necessary GPU models.
+        """
+        pass
+    
+    async def finalize(self, context):
+        """
+        Finalizes the workflow by performing any necessary cleanup or post-processing tasks.
+        
+        This method is called when the workflow is shutting down. 
+        It's responsible for cleaning up resources, unloading GPU models, and performing any necessary teardown operations.
+        """
+        pass
 
     async def pre_process(self, context: Any) -> Any:
         """

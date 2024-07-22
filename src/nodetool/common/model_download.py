@@ -30,13 +30,15 @@ async def download_file(url: str, dest: str) -> None:
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.head(url, follow_redirects=True)
-                response.raise_for_status()
+                if response.status_code != 200:
+                    print(f"Failed to download {url}. Status code: {response.status_code}")
+                    return
                 size = int(response.headers.get("content-length", 0))
                 mb = size / 1024 / 1024
 
                 print(f"Downloading {mb} MB to {dest}...")
                 async with client.stream("GET", url, follow_redirects=True) as response:
-                    response.raise_for_status()
+                    print("Status code:", response.status_code)
                     os.makedirs(os.path.dirname(dest), exist_ok=True)
                     with open(dest, "wb") as f:
                         pbar = tqdm.tqdm(
@@ -63,6 +65,9 @@ async def download_models(data_dir: str):
     """
     Downloads the models in parallel into the specified volumes.
     """
+    print("Downloading models...")
+    print(f"Data directory: {data_dir}")
+    
     paths_models = [
         [os.path.join(data_dir, "models", "checkpoints"), model_files.checkpoints],
         [os.path.join(data_dir, "models", "controlnet"), model_files.controlnet],
@@ -95,5 +100,7 @@ async def download_models(data_dir: str):
 
 
 if __name__ == "__main__":
+    import dotenv
+    dotenv.load_dotenv()
     data_dir = Environment.get_comfy_folder()
     asyncio.run(download_models(data_dir))

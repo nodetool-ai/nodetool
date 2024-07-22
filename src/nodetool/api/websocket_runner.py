@@ -84,9 +84,15 @@ class WebSocketRunner:
         Closes the WebSocket connection and cancels any active job.
         """
         if self.active_job:
-            self.active_job.cancel()
+            try:
+                self.active_job.cancel()
+            except Exception:
+                pass
         if self.websocket:
-            await self.websocket.close()
+            try:
+                await self.websocket.close()
+            except Exception:
+                pass
         self.websocket = None
         self.active_job = None
         self.job_id = None
@@ -107,14 +113,6 @@ class WebSocketRunner:
         try:
             if not self.websocket:
                 raise ValueError("WebSocket is not connected")
-
-            assert self.context, "Processing context is not set"
-            assert self.context.api_client, "API client is not set"
-
-            await self.context.api_client.post(
-                "api/auth/verify", json={"token": req.auth_token}
-            )
-
             start_time = time.time()
             self.job_id = uuid.uuid4().hex
             self.runner = WorkflowRunner(job_id=self.job_id)
@@ -130,6 +128,12 @@ class WebSocketRunner:
                 workflow_id=req.workflow_id,
                 api_client=api_client,
             )
+
+            res = await self.context.api_client.post(
+                "api/auth/verify", json={"token": req.auth_token}
+            )
+            if res.json()['valid'] == False:
+                raise ValueError("Invalid auth token")
 
             print("Running job: ", self.job_id)
             if self.pre_run_hook:
