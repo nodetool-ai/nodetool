@@ -92,13 +92,14 @@ const styles = (theme: any) =>
     }
   });
 
-interface PreviewNodeProps extends NodeProps<NodeData> { }
+interface PreviewNodeProps extends NodeProps<NodeData> {}
 
 const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
   const getResult = useResultsStore((state) => state.getResult);
   const result = getResult(props.data.workflow_id, props.id);
 
   return (
+    // <Container css={styles} style={{ position: "absolute" }}>
     <Container css={styles}>
       <Handle
         style={{ top: "50%" }}
