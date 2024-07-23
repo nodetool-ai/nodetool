@@ -613,6 +613,15 @@ class BaseNode(BaseModel):
         """
         pass
     
+    async def move_to_device(self, device: str):
+        """
+        Move the node to a specific device, "cpu", "cuda" or "mps".
+        
+        Args:
+            device (str): The device to move the node to.
+        """
+        pass
+    
     async def finalize(self, context):
         """
         Finalizes the workflow by performing any necessary cleanup or post-processing tasks.

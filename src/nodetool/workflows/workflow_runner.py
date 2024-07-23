@@ -48,23 +48,36 @@ class WorkflowRunner:
         - GPU-intensive workflows are automatically directed to workers with GPU capabilities when available.
         - The class relies on an external ProcessingContext for managing execution state and inter-node communication.
     """
-
-    def __init__(self, job_id: str):
+    
+    def __init__(self, job_id: str, device: str | None = None):
         """
         Initializes a new WorkflowRunner instance.
 
         Args:
             job_id (str): Unique identifier for this workflow execution.
+            device (str): The device to run the workflow on.
 
         Post-conditions:
             - Sets initial status to "running".
             - Initializes is_cancelled to False.
             - Sets current_node to None.
         """
+        import torch
         self.job_id = job_id
         self.status = "running"
         self.is_cancelled = False
         self.current_node: Optional[str] = None
+        if device:
+            self.device = device
+        else:
+            if torch.cuda.is_available():
+                self.device = "cuda"
+            elif torch.backends.mps.is_available():
+                self.device = "mps"
+            else:
+                self.device = "cpu"
+
+            log.info(f"Workflow runs on device: {self.device}")
 
     def is_running(self) -> bool:
         """
@@ -296,9 +309,12 @@ class WorkflowRunner:
                         started_at=started_at.isoformat(),
                     )
                 )
-
+                await node.move_to_device(self.device)
                 result = await node.process(context)
                 result = await node.convert_output(context, result)
+                
+                # this is not the most efficient way to do this, but it's the easiest
+                await node.move_to_device("cpu")
 
                 context.cache_result(node, result)
 
@@ -365,8 +381,6 @@ class WorkflowRunner:
         ]
         input_nodes = [n for n in child_nodes if isinstance(n, GroupInput)]
         output_nodes = [n for n in child_nodes if isinstance(n, GroupOutput)]
-
-        print("output_nodes", output_nodes)
 
         if len(input_nodes) == 0:
             raise ValueError("Loop node must have at least one input node.")
@@ -463,14 +477,11 @@ class WorkflowRunner:
             - Cleans up models and CUDA cache after execution.
         """
         if Environment.get_comfy_folder():
-            import torch
             import comfy.cli_args
-            gpu_available = torch.cuda.is_available() or torch.backends.mps.is_available()
-
-            log.info(f"GPU available: {gpu_available}")
+            import torch
 
             comfy.cli_args.args.force_fp16 = True
-            comfy.cli_args.args.cpu = not gpu_available
+            comfy.cli_args.args.cpu = self.device == torch.device("cpu")
 
             import comfy.model_management
             import comfy.utils

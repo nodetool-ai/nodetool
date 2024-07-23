@@ -1,17 +1,18 @@
+from typing import Any
 from pydantic import Field
 from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import ImageRef
+from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 from enum import Enum
 from pydantic import Field
 from nodetool.metadata.types import AudioRef
-from nodetool.metadata.types import ImageRef
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 
-class TextToSpeech(HuggingfaceNode):
+class TextToSpeech(HuggingFacePipelineNode):
     """
     Generates natural-sounding speech from text input.
     tts, audio, speech, huggingface
@@ -32,16 +33,25 @@ class TextToSpeech(HuggingfaceNode):
         description="The model ID to use for the image generation",
     )
     inputs: str = Field(
+        default="",
         title="Inputs",
         description="The input text to the model",
     )
 
-    async def process(self, context: ProcessingContext) -> AudioRef:
-        result = await self.run_huggingface(
-            model_id=self.model.value, context=context, params={"inputs": self.inputs}
-        )
+    @property
+    def pipeline_task(self) -> str:
+        return 'text-to-audio'
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> AudioRef:
         audio = await context.audio_from_bytes(result)  # type: ignore
         return audio
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> AudioRef:
+        audio = await context.audio_from_bytes(result)  # type: ignore
+        return audio
+    
+    async def process(self, context: ProcessingContext) -> dict[str, float]:
+        return await super().process(context)
 
 
 class TextToAudio(HuggingfaceNode):
@@ -86,7 +96,7 @@ class TextToAudio(HuggingfaceNode):
         return audio
 
 
-class AutomaticSpeechRecognition(HuggingfaceNode):
+class AutomaticSpeechRecognition(HuggingFacePipelineNode):
     """
     Transcribes spoken audio to text.
     asr, speech-to-text, audio, huggingface
@@ -100,21 +110,28 @@ class AutomaticSpeechRecognition(HuggingfaceNode):
     class ModelId(str, Enum):
         OPENAI_WHISPER_LARGE_V3 = "openai/whisper-large-v3"
         OPENAI_WHISPER_LARGE_V2 = "openai/whisper-large-v2"
+        OPENAI_WHISPER_SMALL = "openai/whisper-small"
 
     model: ModelId = Field(
         default=ModelId.OPENAI_WHISPER_LARGE_V3,
         title="Model ID on Huggingface",
         description="The model ID to use for the speech recognition",
     )
-    audio: AudioRef = Field(
+    inputs: AudioRef = Field(
         default=AudioRef(),
         title="Image",
         description="The input audio to transcribe",
     )
+    
+    @property
+    def pipeline_task(self) -> str:
+        return 'automatic-speech-recognition'
 
-    async def process(self, context: ProcessingContext) -> str:
-        audio = await context.asset_to_io(self.audio)
-        result = await self.run_huggingface(
-            model_id=self.model, context=context, data=audio.read()
-        )
-        return result["text"]  # type: ignore
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> AudioRef:
+        return result["text"]
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> AudioRef:
+        return result["text"]
+    
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.asset_to_io(self.inputs)
