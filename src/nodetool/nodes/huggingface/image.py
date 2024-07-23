@@ -1,5 +1,6 @@
 from enum import Enum
 from nodetool.metadata.types import ImageRef
+from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
@@ -7,7 +8,7 @@ from typing import Any
 import asyncio
 
 
-class Classifier(HuggingfaceNode):
+class Classifier(HuggingFacePipelineNode):
     """
     Classifies images into predefined categories.
     image, classification, labeling, categorization
@@ -46,76 +47,86 @@ class Classifier(HuggingfaceNode):
         description="The input image to classify",
     )
 
+    @property
+    def pipeline_task(self) -> str:
+        return 'image-classification'
+
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.image)
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        image = await context.asset_to_io(self.image)
-        result = await self.run_huggingface(
-            model_id=self.model.value, context=context, data=image.read()
-        )
-        return result[0]
+        return await super().process(context)
 
 
-class StableDiffusionXL(HuggingfaceNode):
-    """
-    Generates images from text prompts using advanced diffusion models.
-    image, text, generation, synthesis, text-to-image
+# This has too much overlap with other SD nodes
+# class StableDiffusionXL(HuggingfaceNode):
+#     """
+#     Generates images from text prompts using advanced diffusion models.
+#     image, text, generation, synthesis, text-to-image
 
-    Use cases:
-    - Creating custom illustrations for marketing materials
-    - Generating concept art for game and film development
-    - Producing unique stock imagery for websites and publications
-    - Visualizing interior design concepts for clients
-    """
+#     Use cases:
+#     - Creating custom illustrations for marketing materials
+#     - Generating concept art for game and film development
+#     - Producing unique stock imagery for websites and publications
+#     - Visualizing interior design concepts for clients
+#     """
 
-    class Scheduler(str, Enum):
-        DPMSolverSDEScheduler = "DPMSolverSDEScheduler"
-        EulerDiscreteScheduler = "EulerDiscreteScheduler"
-        LMSDiscreteScheduler = "LMSDiscreteScheduler"
-        DDIMScheduler = "DDIMScheduler"
-        DDPMScheduler = "DDPMScheduler"
-        HeunDiscreteScheduler = "HeunDiscreteScheduler"
-        DPMSolverMultistepScheduler = "DPMSolverMultistepScheduler"
-        DEISMultistepScheduler = "DEISMultistepScheduler"
-        PNDMScheduler = "PNDMScheduler"
-        EulerAncestralDiscreteScheduler = "EulerAncestralDiscreteScheduler"
-        UniPCMultistepScheduler = "UniPCMultistepScheduler"
-        KDPM2DiscreteScheduler = "KDPM2DiscreteScheduler"
-        DPMSolverSinglestepScheduler = "DPMSolverSinglestepScheduler"
-        KDPM2AncestralDiscreteScheduler = "KDPM2AncestralDiscreteScheduler"
+#     class Scheduler(str, Enum):
+#         DPMSolverSDEScheduler = "DPMSolverSDEScheduler"
+#         EulerDiscreteScheduler = "EulerDiscreteScheduler"
+#         LMSDiscreteScheduler = "LMSDiscreteScheduler"
+#         DDIMScheduler = "DDIMScheduler"
+#         DDPMScheduler = "DDPMScheduler"
+#         HeunDiscreteScheduler = "HeunDiscreteScheduler"
+#         DPMSolverMultistepScheduler = "DPMSolverMultistepScheduler"
+#         DEISMultistepScheduler = "DEISMultistepScheduler"
+#         PNDMScheduler = "PNDMScheduler"
+#         EulerAncestralDiscreteScheduler = "EulerAncestralDiscreteScheduler"
+#         UniPCMultistepScheduler = "UniPCMultistepScheduler"
+#         KDPM2DiscreteScheduler = "KDPM2DiscreteScheduler"
+#         DPMSolverSinglestepScheduler = "DPMSolverSinglestepScheduler"
+#         KDPM2AncestralDiscreteScheduler = "KDPM2AncestralDiscreteScheduler"
 
-    class ModelId(str, Enum):
-        STABLE_DIFFUSION_XL_BASE_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
-        CAGLIOSTRO_ANIMAGINE_XL_3_0 = "cagliostrolab/animagine-xl-3.0"
-        NERIJS_PIXEL_ART_XL = "nerijs/pixel-art-xl"
-        STABLE_DIFFUSION_XL_V8 = "stablediffusionapi/juggernaut-xl-v8"
+#     class ModelId(str, Enum):
+#         STABLE_DIFFUSION_XL_BASE_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
+#         CAGLIOSTRO_ANIMAGINE_XL_3_0 = "cagliostrolab/animagine-xl-3.0"
+#         NERIJS_PIXEL_ART_XL = "nerijs/pixel-art-xl"
+#         STABLE_DIFFUSION_XL_V8 = "stablediffusionapi/juggernaut-xl-v8"
 
-    model: ModelId = Field(
-        default=ModelId.STABLE_DIFFUSION_XL_BASE_1_0,
-        title="Model ID on Huggingface",
-        description="The model ID to use for the image generation",
-    )
-    inputs: str = Field(
-        default="A photo of a cat.",
-        title="Inputs",
-        description="The input text to the model",
-    )
+#     model: ModelId = Field(
+#         default=ModelId.STABLE_DIFFUSION_XL_BASE_1_0,
+#         title="Model ID on Huggingface",
+#         description="The model ID to use for the image generation",
+#     )
+#     inputs: str = Field(
+#         default="A photo of a cat.",
+#         title="Inputs",
+#         description="The input text to the model",
+#     )
 
-    negative_prompt: str = Field(default="", description="The negative prompt to use.")
-    seed: int = Field(default=0, ge=0, le=1000000)
-    guidance_scale: float = Field(default=7.0, ge=1.0, le=30.0)
-    num_inference_steps: int = Field(default=30, ge=1, le=100)
-    width: int = Field(default=768, ge=64, le=2048, multiple_of=64)
-    height: int = Field(default=768, ge=64, le=2048, multiple_of=64)
-    scheduler: Scheduler = Scheduler.EulerDiscreteScheduler
+#     negative_prompt: str = Field(default="", description="The negative prompt to use.")
+#     seed: int = Field(default=0, ge=0, le=1000000)
+#     guidance_scale: float = Field(default=7.0, ge=1.0, le=30.0)
+#     num_inference_steps: int = Field(default=30, ge=1, le=100)
+#     width: int = Field(default=768, ge=64, le=2048, multiple_of=64)
+#     height: int = Field(default=768, ge=64, le=2048, multiple_of=64)
+#     scheduler: Scheduler = Scheduler.EulerDiscreteScheduler
 
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        result = await self.run_huggingface(
-            model_id=self.model.value, context=context, params={"inputs": self.inputs}
-        )
-        img = await context.image_from_bytes(result)  # type: ignore
-        return img
+#     async def process(self, context: ProcessingContext) -> ImageRef:
+#         result = await self.run_huggingface(
+#             model_id=self.model.value, context=context, params={"inputs": self.inputs}
+#         )
+#         img = await context.image_from_bytes(result)  # type: ignore
+#         return img
 
 
-class Segformer(HuggingfaceNode):
+class Segformer(HuggingFacePipelineNode):
     """
     Performs semantic segmentation on images, identifying and labeling different regions.
     image, segmentation, object detection, scene parsing
@@ -125,23 +136,39 @@ class Segformer(HuggingfaceNode):
     - Segmenting facial features in images
     """
 
+    class ModelId(str, Enum):
+        NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512 = "nvidia/segformer-b3-finetuned-ade-512-512"
+
+    model: ModelId = Field(
+        default=ModelId.NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512,
+        title="Model ID on Huggingface",
+        description="The model ID to use for the segmentation",
+    )
     image: ImageRef = Field(
         default=ImageRef(),
         title="Image",
         description="The input image to segment",
     )
 
-    async def process(self, context: ProcessingContext) -> dict[str, ImageRef]:
-        image = await context.asset_to_io(self.image)
-        result = await self.run_huggingface(
-            model_id="nvidia/segformer-b3-finetuned-ade-512-512",
-            context=context,
-            data=image.read(),
-        )
+    @property
+    def pipeline_task(self) -> str:
+        return 'image-segmentation'
 
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.image)
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, ImageRef]:
         async def convert_output(item: dict[str, Any]):
             mask = await context.image_from_base64(item["mask"])
             return item["label"], mask
 
         items = await asyncio.gather(*[convert_output(item) for item in list(result)])
+        return {label: mask for label, mask in items}
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, ImageRef]:
+        async def convert_output(item: dict[str, Any]):
+            mask = await context.image_from_pil(item["mask"])
+            return item["label"], mask
+
+        items = await asyncio.gather(*[convert_output(item) for item in result])
         return {label: mask for label, mask in items}
