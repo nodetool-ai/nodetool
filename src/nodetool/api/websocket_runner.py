@@ -132,8 +132,9 @@ class WebSocketRunner:
             res = await self.context.api_client.post(
                 "api/auth/verify", json={"token": req.auth_token}
             )
-            if res.json()['valid'] == False:
-                raise ValueError("Invalid auth token")
+            if Environment.is_production():
+                if res.json()['valid'] == False:
+                    raise ValueError("Invalid auth token")
 
             print("Running job: ", self.job_id)
             if self.pre_run_hook:
