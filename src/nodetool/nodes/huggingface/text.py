@@ -139,3 +139,70 @@ class Summarize(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> str:
         return await super().process(context)
+    
+
+class QuestionAnswering(HuggingFacePipelineNode):
+    """
+    Answers questions based on a given context.
+    text, question answering, natural language processing
+
+    Use cases:
+    - Automated customer support
+    - Information retrieval from documents
+    - Reading comprehension tasks
+    - Enhancing search functionality
+    """
+
+    class QuestionAnsweringModelId(str, Enum):
+        DISTILBERT_BASE_CASED_DISTILLED_SQUAD = "distilbert-base-cased-distilled-squad"
+        BERT_LARGE_UNCASED_WHOLE_WORD_MASKING_FINETUNED_SQUAD = "bert-large-uncased-whole-word-masking-finetuned-squad"
+        DEEPSET_ROBERTA_BASE_SQUAD2 = "deepset/roberta-base-squad2"
+        DISTILBERT_BASE_UNCASED_DISTILLED_SQUAD = "distilbert-base-uncased-distilled-squad"
+
+    model: QuestionAnsweringModelId = Field(
+        default=QuestionAnsweringModelId.DISTILBERT_BASE_CASED_DISTILLED_SQUAD,
+        title="Model ID on Huggingface",
+        description="The model ID to use for question answering",
+    )
+    context: str = Field(
+        default="",
+        title="Context",
+        description="The context or passage to answer questions from",
+    )
+    question: str = Field(
+        default="",
+        title="Question",
+        description="The question to be answered based on the context",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+    
+    async def get_inputs(self, context: ProcessingContext):
+        return {
+            "question": self.question,
+            "context": self.context,
+        }
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'question-answering'
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+        return {
+            "answer": result["answer"],
+            "score": result["score"],
+            "start": result["start"],
+            "end": result["end"],
+        }
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+        return {
+            "answer": result["answer"],
+            "score": result["score"],
+            "start": result["start"],
+            "end": result["end"],
+        }
+
+    async def process(self, context: ProcessingContext) -> dict[str, Any]:
+        return await super().process(context)
