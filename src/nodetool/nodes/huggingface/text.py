@@ -190,12 +190,7 @@ class QuestionAnswering(HuggingFacePipelineNode):
         return 'question-answering'
 
     async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
-        return {
-            "answer": result["answer"],
-            "score": result["score"],
-            "start": result["start"],
-            "end": result["end"],
-        }
+        return await self.process_local_result(context, result)
 
     async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
         return {
@@ -259,12 +254,7 @@ class FillMask(HuggingFacePipelineNode):
         }
 
     async def process_remote_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
-        data = [[item["token_str"], item["score"]] for item in result]
-        columns = [
-            ColumnDef(name="token", data_type="string"),
-            ColumnDef(name="score", data_type="float"),
-        ]
-        return DataframeRef(columns=columns, data=data)
+        return await self.process_local_result(context, result)
 
     async def process_local_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
         data = [[item["token_str"], item["score"]] for item in result]
@@ -275,4 +265,66 @@ class FillMask(HuggingFacePipelineNode):
         return DataframeRef(columns=columns, data=data)
 
     async def process(self, context: ProcessingContext) -> list[dict[str, Any]]:
+        return await super().process(context)
+    
+
+class TableQuestionAnswering(HuggingFacePipelineNode):
+    """
+    Answers questions based on tabular data.
+    table, question answering, natural language processing
+
+    Use cases:
+    - Querying databases using natural language
+    - Analyzing spreadsheet data with questions
+    - Extracting insights from tabular reports
+    - Automated data exploration
+    """
+
+    class TableQuestionAnsweringModelId(str, Enum):
+        GOOGLE_TAPAS_BASE_FINETUNED_WTQ = "google/tapas-base-finetuned-wtq"
+        MICROSOFT_TAPEX_LARGE_FINETUNED_TABFACT = "microsoft/tapex-large-finetuned-tabfact"
+        GOOGLE_TAPAS_LARGE_FINETUNED_SQA = "google/tapas-large-finetuned-sqa"
+
+    model: TableQuestionAnsweringModelId = Field(
+        default=TableQuestionAnsweringModelId.GOOGLE_TAPAS_BASE_FINETUNED_WTQ,
+        title="Model ID on Huggingface",
+        description="The model ID to use for table question answering",
+    )
+    inputs: DataframeRef = Field(
+        default=DataframeRef(),
+        title="Table",
+        description="The input table to query",
+    )
+    question: str = Field(
+        default="",
+        title="Question",
+        description="The question to be answered based on the table",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+    
+    async def get_inputs(self, context: ProcessingContext):
+        table = await context.dataframe_to_pandas(self.inputs)
+        return {
+            "table": table,
+            "query": self.question,
+        }
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'table-question-answering'
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+        return await self.process_local_result(context, result)
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+        return {
+            "answer": result["answer"],
+            "coordinates": result.get("coordinates"),
+            "cells": result.get("cells"),
+            "aggregator": result.get("aggregator"),
+        }
+
+    async def process(self, context: ProcessingContext) -> dict[str, Any]:
         return await super().process(context)
