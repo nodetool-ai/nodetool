@@ -596,3 +596,68 @@ class Translation(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> str:
         return await super().process(context)
+    
+
+class ZeroShotTextClassifier(HuggingFacePipelineNode):
+    """
+    Performs zero-shot classification on text.
+    text, classification, zero-shot, natural language processing
+
+    Use cases:
+    - Classify text into custom categories without training
+    - Topic detection in documents
+    - Sentiment analysis with custom sentiment labels
+    - Intent classification in conversational AI
+    """
+
+    class ZeroShotTextClassifierModelId(str, Enum):
+        FACEBOOK_BART_LARGE_MNLI = "facebook/bart-large-mnli"
+        CROSS_ENCODER_NLI_DEBERTA_V3_BASE = "cross-encoder/nli-deberta-v3-base"
+        MICROSOFT_DEBERTA_V2_XLARGE_MNLI = "microsoft/deberta-v2-xlarge-mnli"
+        ROBERTA_LARGE_MNLI = "roberta-large-mnli"
+
+    model: ZeroShotTextClassifierModelId = Field(
+        default=ZeroShotTextClassifierModelId.FACEBOOK_BART_LARGE_MNLI,
+        title="Model ID on Huggingface",
+        description="The model ID to use for zero-shot classification",
+    )
+    inputs: str = Field(
+        default="",
+        title="Input Text",
+        description="The text to classify",
+    )
+    candidate_labels: str = Field(
+        default="",
+        title="Candidate Labels",
+        description="Comma-separated list of candidate labels for classification",
+    )
+    multi_label: bool = Field(
+        default=False,
+        title="Multi-label Classification",
+        description="Whether to perform multi-label classification",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'zero-shot-classification'
+
+    def get_params(self):
+        return {
+            "candidate_labels": self.candidate_labels.split(","),
+            "multi_label": self.multi_label,
+        }
+
+    async def get_inputs(self, context: ProcessingContext):
+        return self.inputs
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return dict(zip(result['labels'], result['scores']))
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return dict(zip(result['labels'], result['scores']))
+
+    async def process(self, context: ProcessingContext) -> dict[str, float]:
+        return await super().process(context)

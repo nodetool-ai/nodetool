@@ -67,7 +67,7 @@ class ImageClassifier(HuggingFacePipelineNode):
         return await super().process(context)
 
 
-class ZeroShotClassifier(HuggingFacePipelineNode):
+class ZeroShotImageClassifier(HuggingFacePipelineNode):
     """
     Classifies images into categories without the need for training data.
     image, classification, labeling, categorization
@@ -78,7 +78,7 @@ class ZeroShotClassifier(HuggingFacePipelineNode):
     - Automate image tagging for large datasets
     """
 
-    class ZeroShotClassifierModelId(str, Enum):
+    class ZeroShotImageClassifierModelId(str, Enum):
         OPENAI_CLIP_VIT_LARGE_PATCH14 = "openai/clip-vit-large-patch14"
         GOOGLE_SIGLIP_SO400M_PATCH14_384 = "google/siglip-so400m-patch14-384"
         OPENAI_CLIP_VIT_BASE_PATCH16 = "openai/clip-vit-base-patch16"
@@ -86,8 +86,8 @@ class ZeroShotClassifier(HuggingFacePipelineNode):
         PATRICKJOHNCYH_FASHION_CLIP = "patrickjohncyh/fashion-clip"
         LAION_CLIP_VIT_H_14_LAION2B_S32B_B79K = "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
 
-    model: ZeroShotClassifierModelId = Field(
-        default=ZeroShotClassifierModelId.OPENAI_CLIP_VIT_LARGE_PATCH14,
+    model: ZeroShotImageClassifierModelId = Field(
+        default=ZeroShotImageClassifierModelId.OPENAI_CLIP_VIT_LARGE_PATCH14,
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
