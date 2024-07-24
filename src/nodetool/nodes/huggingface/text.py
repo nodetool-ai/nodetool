@@ -358,3 +358,74 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
         return await super().process(context)
+    
+
+class TextToText(HuggingFacePipelineNode):
+    """
+    Performs text-to-text generation tasks.
+    text, generation, translation, summarization, natural language processing
+
+    Use cases:
+    - Text translation
+    - Text summarization
+    - Paraphrasing
+    - Text style transfer
+    """
+
+    class TextToTextModelId(str, Enum):
+        GOOGLE_FLAN_T5_SMALL = "google/flan-t5-small"
+        GOOGLE_FLAN_T5_BASE = "google/flan-t5-base"
+        GOOGLE_FLAN_T5_LARGE = "google/flan-t5-large"
+        COEDIT_LARGE = "grammarly/coedit-large"
+        AYA_101 = "CohereForAI/aya-101"
+
+    model: TextToTextModelId = Field(
+        default=TextToTextModelId.GOOGLE_FLAN_T5_SMALL,
+        title="Model ID on Huggingface",
+        description="The model ID to use for the text-to-text generation",
+    )
+    inputs: str = Field(
+        default="",
+        title="Input Text",
+        description="The input text for the text-to-text task",
+    )
+    prefix: str = Field(
+        default="",
+        title="Task Prefix",
+        description="The prefix to specify the task (e.g., 'translate English to French:', 'summarize:')",
+    )
+    max_length: int = Field(
+        default=50,
+        title="Max Length",
+        description="The maximum length of the generated text",
+    )
+    num_return_sequences: int = Field(
+        default=1,
+        title="Number of Sequences",
+        description="The number of alternative sequences to generate",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'text2text-generation'
+
+    def get_params(self):
+        return {
+            "max_length": self.max_length,
+            "num_return_sequences": self.num_return_sequences,
+        }
+
+    async def get_inputs(self, context: ProcessingContext):
+        return f"{self.prefix} {self.inputs}".strip()
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> list[str]:
+        return [item['generated_text'] for item in result]
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> list[str]:
+        return [item['generated_text'] for item in result]
+
+    async def process(self, context: ProcessingContext) -> list[str]:
+        return await super().process(context)
