@@ -244,3 +244,50 @@ class ObjectDetection(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> list[dict]:
         return await super().process(context)
+    
+
+
+class DepthEstimation(HuggingFacePipelineNode):
+    """
+    Estimates depth from a single image.
+    image, depth estimation, 3D, huggingface
+
+    Use cases:
+    - Generate depth maps for 3D modeling
+    - Assist in augmented reality applications
+    - Enhance computer vision systems for robotics
+    - Improve scene understanding in autonomous vehicles
+    """
+
+    class ModelId(str, Enum):
+        DEPTH_ANYTHING = "LiheYoung/depth-anything-base-hf"
+        INTEL_DPT_LARGE = "Intel/dpt-large"
+
+    model: ModelId = Field(
+        default=ModelId.DEPTH_ANYTHING,
+        title="Model ID on Huggingface",
+        description="The model ID to use for depth estimation",
+    )
+    inputs: ImageRef = Field(
+        default=ImageRef(),
+        title="Image",
+        description="The input image for depth estimation",
+    )
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'depth-estimation'
+
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.inputs)
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> ImageRef:
+        depth_map = await context.image_from_base64(result['depth'])
+        return depth_map
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> ImageRef:
+        depth_ref = await context.image_from_pil(result['depth'])
+        return depth_ref
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        return await super().process(context)

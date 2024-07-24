@@ -345,6 +345,7 @@ class ProcessingContext:
         provider: Provider,
         model: str,
         params: dict[str, Any] | None = None,
+        data: Any = None,
     ) -> PredictionResult:
         """
         Run a prediction on a third-party provider.
@@ -380,6 +381,7 @@ class ProcessingContext:
 
         prediction = Prediction(**res.json())
         prediction.params = params
+        prediction.data = data
 
         async for msg in run_prediction(prediction):
             if self.is_cancelled:
