@@ -7,6 +7,10 @@ from typing import Any
 
 
 class HuggingFacePipelineNode(HuggingfaceNode):
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls is not HuggingFacePipelineNode
+
     run_on_huggingface: bool = Field(
         default=False,
         title="Run on Huggingface",

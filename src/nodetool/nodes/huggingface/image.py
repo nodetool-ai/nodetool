@@ -1,5 +1,5 @@
 from enum import Enum
-from nodetool.metadata.types import ImageRef
+from nodetool.metadata.types import ColumnType, DataframeRef, ImageRef, ColumnDef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -172,3 +172,75 @@ class Segformer(HuggingFacePipelineNode):
 
         items = await asyncio.gather(*[convert_output(item) for item in result])
         return {label: mask for label, mask in items}
+    
+
+
+class ObjectDetection(HuggingFacePipelineNode):
+    """
+    Detects and localizes objects in images.
+    image, object detection, bounding boxes, huggingface
+
+    Use cases:
+    - Identify and count objects in images
+    - Locate specific items in complex scenes
+    - Assist in autonomous vehicle vision systems
+    - Enhance security camera footage analysis
+    """
+
+    class ModelId(str, Enum):
+        FACEBOOK_DETR_RESNET_50 = "facebook/detr-resnet-50"
+
+    model: ModelId = Field(
+        default=ModelId.FACEBOOK_DETR_RESNET_50,
+        title="Model ID on Huggingface",
+        description="The model ID to use for object detection",
+    )
+    inputs: ImageRef = Field(
+        default=ImageRef(),
+        title="Inputs",
+        description="The input image for object detection",
+    )
+    threshold: float = Field(
+        default=0.9,
+        title="Confidence Threshold",
+        description="Minimum confidence score for detected objects",
+    )
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'object-detection'
+
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.inputs)
+
+    def get_params(self):
+        return {
+            "threshold": self.threshold,
+        }
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+        return await self.process_local_result(context, result)
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+        data = [
+            [item["label"],
+            item["score"],
+            item["box"]["xmin"],
+            item["box"]["ymin"],
+            item["box"]["xmax"],
+            item["box"]["ymax"],
+            ]
+            for item in result
+        ]
+        columns = [
+            ColumnDef(name="label", data_type="string"),
+            ColumnDef(name="score", data_type="float"),
+            ColumnDef(name="xmin",  data_type="float"),
+            ColumnDef(name="ymin",  data_type="float"),
+            ColumnDef(name="xmax",  data_type="float"),
+            ColumnDef(name="ymax",  data_type="float"),
+        ]
+        return DataframeRef(columns=columns, data=data)
+
+    async def process(self, context: ProcessingContext) -> list[dict]:
+        return await super().process(context)
