@@ -5,16 +5,97 @@ from nodetool.metadata.types import ColumnDef, DataframeRef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
 
-class Classifier(HuggingFacePipelineNode):
-    class ClassifierModelId(str, Enum):
+class TextGeneration(HuggingFacePipelineNode):
+    """
+    Generates text based on a given prompt.
+    text, generation, natural language processing
+
+    Use cases:
+    - Creative writing assistance
+    - Automated content generation
+    - Chatbots and conversational AI
+    - Code generation and completion
+    """
+
+    class TextGenerationModelId(str, Enum):
+        GPT2 = "openai-community/gpt2"
+        DISTILGPT2 = "distilbert/distilgpt2"
+        QWEN2_0_5 = "Qwen/Qwen2-0.5B-Instruct"
+        STARCODER = "bigcode/starcoder"
+
+    model: TextGenerationModelId = Field(
+        default=TextGenerationModelId.GPT2,
+        title="Model ID on Huggingface",
+        description="The model ID to use for the text generation",
+    )
+    inputs: str = Field(
+        default="",
+        title="Prompt",
+        description="The input text prompt for generation",
+    )
+    max_new_tokens: int = Field(
+        default=50,
+        title="Max New Tokens",
+        description="The maximum number of new tokens to generate",
+    )
+    temperature: float = Field(
+        default=1.0,
+        title="Temperature",
+        description="Controls randomness in generation. Lower values make it more deterministic.",
+        ge=0.0,
+        le=2.0,
+    )
+    top_p: float = Field(
+        default=1.0,
+        title="Top P",
+        description="Controls diversity of generated text. Lower values make it more focused.",
+        ge=0.0,
+        le=1.0,
+    )
+    do_sample: bool = Field(
+        default=True,
+        title="Do Sample",
+        description="Whether to use sampling or greedy decoding",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'text-generation'
+
+    def get_params(self):
+        return {
+            "max_new_tokens": self.max_new_tokens,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "do_sample": self.do_sample,
+        }
+        
+    async def get_inputs(self, context: ProcessingContext):
+        return self.inputs
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
+        return result[0]["generated_text"]
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
+        return result[0]['generated_text']
+
+    async def process(self, context: ProcessingContext) -> str:
+        return await super().process(context)
+
+
+class TextClassifier(HuggingFacePipelineNode):
+    class TextClassifierModelId(str, Enum):
         CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST = "cardiffnlp/twitter-roberta-base-sentiment-latest"
         J_HARTMANN_EMOTION_ENGLISH_DISTILROBERTA_BASE = "j-hartmann/emotion-english-distilroberta-base"
         SAMLOWE_ROBERTA_BASE_GO_EMOTIONS = "SamLowe/roberta-base-go_emotions"
         PROSUSAI_FINBERT = "ProsusAI/finbert"
         DISTILBERT_BASE_UNCASED_FINETUNED_SST_2_ENGLISH = "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
 
-    model: ClassifierModelId = Field(
-        default=ClassifierModelId.CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST,
+    model: TextClassifierModelId = Field(
+        default=TextClassifierModelId.CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST,
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
@@ -38,57 +119,6 @@ class Classifier(HuggingFacePipelineNode):
         return {i['label']: i['score'] for i in list(result)}
     
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        return await super().process(context)
-
-
-class TextGeneration(HuggingFacePipelineNode):
-    class TextGenerationModelId(str, Enum):
-        GPT2 = "openai-community/gpt2"
-        GPT2_MEDIUM = "openai-community/gpt2-medium"
-        GPT2_LARGE = "openai-community/gpt2-large"
-        DISTILGPT2 = "distilbert/distilgpt2"
-
-    model: TextGenerationModelId = Field(
-        default=TextGenerationModelId.GPT2,
-        title="Model ID on Huggingface",
-        description="The model ID to use for the text generation",
-    )
-    inputs: str = Field(
-        default="",
-        title="Inputs",
-        description="The input text to the model",
-    )
-    max_length: int = Field(
-        default=100,
-        title="Max Length",
-        description="The maximum length of the generated text",
-    )
-    do_sample: bool = Field(
-        default=False,
-        title="Do Sample",
-        description="Whether to sample from the model",
-    )
-
-    def get_model_id(self):
-        return self.model.value
-
-    @property
-    def pipeline_task(self) -> str:
-        return 'text-generation'
-
-    def get_params(self):
-        return {
-            "max_length": self.max_length,
-            "do_sample": self.do_sample,
-        }
-
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]["generated_text"]
-
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]['generated_text']
-
-    async def process(self, context: ProcessingContext) -> str:
         return await super().process(context)
 
 

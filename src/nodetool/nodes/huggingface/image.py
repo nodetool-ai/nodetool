@@ -8,7 +8,7 @@ from typing import Any
 import asyncio
 
 
-class Classifier(HuggingFacePipelineNode):
+class ImageClassifier(HuggingFacePipelineNode):
     """
     Classifies images into predefined categories.
     image, classification, labeling, categorization
@@ -20,7 +20,7 @@ class Classifier(HuggingFacePipelineNode):
     - Medical image analysis to assist in diagnosing conditions
     """
 
-    class ClassifierModelId(str, Enum):
+    class ImageClassifierModelId(str, Enum):
         GOOGLE_VIT_BASE_PATCH16_224 = "google/vit-base-patch16-224"
         MICROSOFT_RESNET_50 = "microsoft/resnet-50"
         MICROSOFT_RESNET_18 = "microsoft/resnet-18"
@@ -36,8 +36,8 @@ class Classifier(HuggingFacePipelineNode):
         ORGANIKA_SDXL_DETECTOR = "Organika/sdxl-detector"
         RIZVANDWIKI_GENDER_CLASSIFICATION_2 = "rizvandwiki/gender-classification-2"
 
-    model: ClassifierModelId = Field(
-        default=ClassifierModelId.GOOGLE_VIT_BASE_PATCH16_224,
+    model: ImageClassifierModelId = Field(
+        default=ImageClassifierModelId.GOOGLE_VIT_BASE_PATCH16_224,
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
