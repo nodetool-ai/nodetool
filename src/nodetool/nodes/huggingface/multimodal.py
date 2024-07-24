@@ -1,3 +1,4 @@
+import asyncio
 from enum import Enum
 from typing import Any
 
@@ -224,4 +225,64 @@ class ImageToText(HuggingFacePipelineNode):
         return result[0]['generated_text']
 
     async def process(self, context: ProcessingContext) -> str:
+        return await super().process(context)
+
+
+class MaskGeneration(HuggingFacePipelineNode):
+    """
+    Generates masks for images using segmentation models.
+    image, segmentation, mask generation, computer vision
+
+    Use cases:
+    - Object segmentation in images
+    - Background removal
+    - Image editing and manipulation
+    - Scene understanding and analysis
+    """
+
+    class MaskGenerationModelId(str, Enum):
+        FACEBOOK_SAM_VIT_BASE = "facebook/sam-vit-base"
+        FACEBOOK_SAM_VIT_HUGE = "facebook/sam-vit-huge"
+        FACEBOOK_SAM_VIT_LARGE = "facebook/sam-vit-large"
+
+    model: MaskGenerationModelId = Field(
+        default=MaskGenerationModelId.FACEBOOK_SAM_VIT_BASE,
+        title="Model ID on Huggingface",
+        description="The model ID to use for mask generation",
+    )
+    inputs: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The image to generate masks for",
+    )
+    points_per_side: int = Field(
+        default=32,
+        title="Points per Side",
+        description="Number of points to be sampled along each side of the image",
+        ge=1,
+        le=64,
+    )
+    
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'mask-generation'
+
+    def get_params(self):
+        return {
+            "points_per_side": self.points_per_side,
+        }
+
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.inputs)
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> list[ImageRef]:
+        return await self.process_local_result(context, result)
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> list[ImageRef]:
+        return await asyncio.gather(*[context.image_from_numpy(mask) for mask in result['masks']])
+
+    async def process(self, context: ProcessingContext) -> list[ImageRef]:
         return await super().process(context)
