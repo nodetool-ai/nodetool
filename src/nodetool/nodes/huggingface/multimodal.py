@@ -166,3 +166,62 @@ class ImageFeatureExtraction(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> Tensor:
         return await super().process(context)
+    
+
+class ImageToText(HuggingFacePipelineNode):
+    """
+    Generates text descriptions from images.
+    image, text, captioning, vision-language
+
+    Use cases:
+    - Automatic image captioning
+    - Assisting visually impaired users
+    - Enhancing image search capabilities
+    - Generating alt text for web images
+    """
+
+    class ImageToTextModelId(str, Enum):
+        MICROSOFT_GIT_BASE_COCO = "microsoft/git-base-coco"
+        NLPCONNECT_VIT_GPT2_IMAGE_CAPTIONING = "nlpconnect/vit-gpt2-image-captioning"
+        SALESFORCE_BLIP_IMAGE_CAPTIONING_BASE = "Salesforce/blip-image-captioning-base"
+        SALESFORCE_BLIP_IMAGE_CAPTIONING_LARGE = "Salesforce/blip-image-captioning-large"
+
+    model: ImageToTextModelId = Field(
+        default=ImageToTextModelId.MICROSOFT_GIT_BASE_COCO,
+        title="Model ID on Huggingface",
+        description="The model ID to use for image-to-text generation",
+    )
+    inputs: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The image to generate text from",
+    )
+    max_new_tokens: int = Field(
+        default=50,
+        title="Max New Tokens",
+        description="The maximum number of tokens to generate",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'image-to-text'
+
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.inputs)
+
+    def get_params(self):
+        return {
+            "max_new_tokens": self.max_new_tokens,
+        }
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
+        return result[0]['generated_text']
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
+        return result[0]['generated_text']
+
+    async def process(self, context: ProcessingContext) -> str:
+        return await super().process(context)
