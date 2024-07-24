@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Any
 from pydantic import Field
+from nodetool.metadata.types import ColumnDef, DataframeRef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
 
@@ -205,4 +206,73 @@ class QuestionAnswering(HuggingFacePipelineNode):
         }
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
+        return await super().process(context)
+    
+
+class FillMask(HuggingFacePipelineNode):
+    """
+    Fills in a masked token in a given text.
+    text, fill-mask, natural language processing
+
+    Use cases:
+    - Text completion
+    - Sentence prediction
+    - Language understanding tasks
+    - Generating text options
+    """
+
+    class FillMaskModelId(str, Enum):
+        BERT_BASE_UNCASED = "bert-base-uncased"
+        ROBERTA_BASE = "roberta-base"
+        DISTILBERT_BASE_UNCASED = "distilbert-base-uncased"
+        ALBERT_BASE_V2 = "albert-base-v2"
+
+    model: FillMaskModelId = Field(
+        default=FillMaskModelId.BERT_BASE_UNCASED,
+        title="Model ID on Huggingface",
+        description="The model ID to use for fill-mask task",
+    )
+    inputs: str = Field(
+        default="The capital of France is [MASK].",
+        title="Inputs",
+        description="The input text with [MASK] token to be filled",
+    )
+    top_k: int = Field(
+        default=5,
+        title="Top K",
+        description="Number of top predictions to return",
+    )
+    
+    async def get_inputs(self, context: ProcessingContext):
+        return self.inputs
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'fill-mask'
+
+    def get_params(self):
+        return {
+            "top_k": self.top_k,
+        }
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+        data = [[item["token_str"], item["score"]] for item in result]
+        columns = [
+            ColumnDef(name="token", data_type="string"),
+            ColumnDef(name="score", data_type="float"),
+        ]
+        return DataframeRef(columns=columns, data=data)
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+        data = [[item["token_str"], item["score"]] for item in result]
+        columns = [
+            ColumnDef(name="token", data_type="string"),
+            ColumnDef(name="score", data_type="float"),
+        ]
+        return DataframeRef(columns=columns, data=data)
+
+    async def process(self, context: ProcessingContext) -> list[dict[str, Any]]:
         return await super().process(context)
