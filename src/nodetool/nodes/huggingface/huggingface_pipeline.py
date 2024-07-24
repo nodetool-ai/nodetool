@@ -6,6 +6,8 @@ from transformers import Pipeline
 from enum import Enum
 from typing import Any
 
+from nodetool.workflows.types import NodeProgress
+
 
 class HuggingFacePipelineNode(HuggingfaceNode):
     @classmethod
@@ -19,10 +21,20 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     )
     _pipeline: Pipeline | None = None
 
-    async def initialize(self, context: Any):
+    async def initialize(self, context: ProcessingContext):
         if not self.run_on_huggingface:
             from transformers import pipeline
-            self._pipeline = pipeline(self.pipeline_task, model=self.get_model_id(), device=context.device, torch_dtype=torch.float16)
+            def progress_callback(current: int, total: int):
+                if total is not None:
+                    context.post_message(NodeProgress(node_id=self.id, progress=current, total=total))
+
+            self._pipeline = pipeline(
+                self.pipeline_task, 
+                model=self.get_model_id(), 
+                device=context.device, 
+                torch_dtype=torch.float16,
+                progress_callback=progress_callback
+            )
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
