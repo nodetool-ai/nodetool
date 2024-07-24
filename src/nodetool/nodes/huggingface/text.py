@@ -502,3 +502,97 @@ class TokenClassification(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         return await super().process(context)
+    
+
+class Translation(HuggingFacePipelineNode):
+    """
+    Translates text from one language to another.
+    text, translation, natural language processing
+
+    Use cases:
+    - Multilingual content creation
+    - Cross-language communication
+    - Localization of applications and websites
+    - International market research
+    """
+    
+    class LanguageCode(str, Enum):
+        ENGLISH = "en"
+        FRENCH = "fr"
+        GERMAN = "de"
+        SPANISH = "es"
+        ITALIAN = "it"
+        DUTCH = "nl"
+        PORTUGUESE = "pt"
+        RUSSIAN = "ru"
+        CHINESE = "zh"
+        SWEDISH = "sv"
+        NORWEGIAN = "no"
+        DANISH = "da"
+        FINNISH = "fi"
+        POLISH = "pl"
+        CZECH = "cs"
+        SLOVAK = "sk"
+        SLOVENIAN = "sl"
+        CROATIAN = "hr"
+        SERBIAN = "sr"
+        BOSNIAN = "bs"
+        MONTENEGRIN = "me"
+        ARABIC = "ar"
+        HEBREW = "he"
+        TURKISH = "tr"
+        GREEK = "el"
+        HINDI = "hi"
+        BENGALI = "bn"
+        PUNJABI = "pa"
+        THAI = "th"
+        VIETNAMESE = "vi"
+        INDONESIAN = "id"
+        MALAY = "ms"
+        FILIPINO = "fil"
+        KOERAN = "ko"
+        JAPANESE = "ja"
+        
+
+    inputs: str = Field(
+        default="",
+        title="Input Text",
+        description="The text to translate",
+    )
+    source_lang: LanguageCode = Field(
+        default=LanguageCode.ENGLISH,
+        title="Source Language",
+        description="The source language code (e.g., 'en' for English)",
+    )
+    target_lang: LanguageCode = Field(
+        default=LanguageCode.FRENCH,
+        title="Target Language",
+        description="The target language code (e.g., 'fr' for French)",
+    )
+
+    async def initialize(self, context: Any):
+        if not self.run_on_huggingface:
+            from transformers import pipeline
+            self._pipeline = pipeline(self.pipeline_task, device=context.device)
+
+    @property
+    def pipeline_task(self) -> str:
+        return f'translation_{self.source_lang}_to_{self.target_lang}'
+
+    def get_params(self):
+        return {
+            "src_lang": self.source_lang,
+            "tgt_lang": self.target_lang,
+        }
+
+    async def get_inputs(self, context: ProcessingContext):
+        return self.inputs
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
+        return result[0]['translation_text']
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
+        return result[0]['translation_text']
+
+    async def process(self, context: ProcessingContext) -> str:
+        return await super().process(context)
