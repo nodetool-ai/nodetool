@@ -16,10 +16,12 @@ const styles = (theme: any) =>
       padding: ".5em"
     },
     p: {
-      fontFamily: theme.fontFamily1
+      fontFamily: theme.fontFamily1,
+      width: "100%"
     },
     pre: {
-      fontFamily: theme.fontFamily2
+      fontFamily: theme.fontFamily2,
+      width: "100%"
     }
   });
 

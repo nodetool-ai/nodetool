@@ -25,18 +25,42 @@ const styles = (theme: any) =>
   css({
     "&": {
       backgroundColor: theme.palette.c_gray2,
-      maxHeight: "200px",
+      height: "100%",
+      width: "100%",
       padding: ".25em",
-      overflow: "hidden auto",
+      overflow: "auto",
       userSelect: "text",
       cursor: "text"
+      // display: "flex",
+      // flexDirection: "column"
+    },
+    ".content": {
+      flex: 1,
+      overflowY: "auto",
+      overflowX: "hidden"
     },
     p: {
       margin: "0",
       padding: ".25em",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller
+      fontSize: theme.fontSizeSmaller,
+      wordWrap: "break-word",
+      overflowWrap: "break-word"
     },
+    // "&": {
+    //   backgroundColor: theme.palette.c_gray2,
+    //   maxHeight: "200px",
+    //   padding: ".25em",
+    //   overflow: "hidden auto",
+    //   userSelect: "text",
+    //   cursor: "text"
+    // },
+    // p: {
+    //   margin: "0",
+    //   padding: ".25em",
+    //   fontFamily: theme.fontFamily1,
+    //   fontSize: theme.fontSizeSmaller
+    // },
     ul: {
       margin: "0",
       padding: ".1em 1.75em",
@@ -64,8 +88,8 @@ const styles = (theme: any) =>
     },
     ".actions": {
       position: "absolute",
-      right: "1em",
-      top: "-20px",
+      right: "2.5em",
+      top: "0px",
       padding: "0",
       margin: "0",
       display: "flex",
@@ -77,6 +101,7 @@ const styles = (theme: any) =>
       padding: "0 .2em",
       minWidth: "unset",
       color: theme.palette.c_gray5,
+      fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller
     }
   });
