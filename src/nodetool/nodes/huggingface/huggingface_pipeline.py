@@ -24,16 +24,11 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     async def initialize(self, context: ProcessingContext):
         if not self.run_on_huggingface:
             from transformers import pipeline
-            def progress_callback(current: int, total: int):
-                if total is not None:
-                    context.post_message(NodeProgress(node_id=self.id, progress=current, total=total))
-
             self._pipeline = pipeline(
                 self.pipeline_task, 
                 model=self.get_model_id(), 
                 device=context.device, 
                 torch_dtype=torch.float16,
-                progress_callback=progress_callback
             )
 
     async def move_to_device(self, device: str):
