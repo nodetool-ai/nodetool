@@ -10,12 +10,14 @@ export const typeToString = (type: TypeMetadata): string => {
     case "enum":
       return type.values ? type.values.join(" | ") : "enum";
     case "list":
-      return type.type_args && type.type_args[0] !== undefined
+      return type.type_args && type.type_args.length === 1
         ? `${typeToString(type.type_args[0])}[]`
         : "list";
     case "dict":
-      return type.type_args
-        ? `{ [key: string]: ${typeToString(type.type_args[0])} }`
+      return type.type_args && type.type_args.length === 2
+        ? `{ ${typeToString(type.type_args[0])}: ${typeToString(
+          type.type_args[1]
+        )} }`
         : "dict";
     case "union":
       return type.type_args
@@ -118,6 +120,8 @@ export const isConnectable = (
         if (
           source.type_args &&
           target.type_args &&
+          source.type_args.length === 1 &&
+          target.type_args.length === 1 &&
           source.type_args[0] !== undefined &&
           target.type_args[0] !== undefined
         ) {
@@ -129,7 +133,13 @@ export const isConnectable = (
         return false;
       }
     case "dict":
-      if (target.type === "dict" && source.type_args && target.type_args) {
+      if (
+        target.type === "dict" &&
+        source.type_args &&
+        target.type_args &&
+        source.type_args.length === 2 &&
+        target.type_args.length === 2
+      ) {
         return (
           isConnectable(source.type_args[0], target.type_args[0]) &&
           isConnectable(source.type_args[1], target.type_args[1])
