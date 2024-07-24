@@ -286,3 +286,60 @@ class MaskGeneration(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> list[ImageRef]:
         return await super().process(context)
+    
+
+class VisualQuestionAnswering(HuggingFacePipelineNode):
+    """
+    Answers questions about images.
+    image, text, question answering, multimodal
+
+    Use cases:
+    - Image content analysis
+    - Automated image captioning
+    - Visual information retrieval
+    - Accessibility tools for visually impaired users
+    """
+
+    class VisualQuestionAnsweringModelId(str, Enum):
+        MICROSOFT_GIT_BASE_TEXTVQA = "microsoft/git-base-textvqa"
+        DANDELIN_VLT5_BASE_FINETUNED_VQA = "dandelin/vilt-b32-finetuned-vqa"
+        MINICPM_V_2 = "openbmb/MiniCPM-V-2"
+
+    model: VisualQuestionAnsweringModelId = Field(
+        default=VisualQuestionAnsweringModelId.MICROSOFT_GIT_BASE_TEXTVQA,
+        title="Model ID on Huggingface",
+        description="The model ID to use for visual question answering",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Image",
+        description="The image to analyze",
+    )
+    question: str = Field(
+        default="",
+        title="Question",
+        description="The question to be answered about the image",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'visual-question-answering'
+
+    async def get_inputs(self, context: ProcessingContext):
+        image = await context.image_to_pil(self.image)
+        return {
+            "image": image,
+            "question": self.question,
+        }
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
+        return result[0]['answer']
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
+        return result[0]['answer']
+
+    async def process(self, context: ProcessingContext) -> str:
+        return await super().process(context)
