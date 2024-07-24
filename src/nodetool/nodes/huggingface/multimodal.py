@@ -303,7 +303,7 @@ class VisualQuestionAnswering(HuggingFacePipelineNode):
     class VisualQuestionAnsweringModelId(str, Enum):
         MICROSOFT_GIT_BASE_TEXTVQA = "microsoft/git-base-textvqa"
         DANDELIN_VLT5_BASE_FINETUNED_VQA = "dandelin/vilt-b32-finetuned-vqa"
-        MINICPM_V_2 = "openbmb/MiniCPM-V-2"
+        SALEFORCE_BLIP_VQA_BASE = "Salesforce/blip-vqa-base"
 
     model: VisualQuestionAnsweringModelId = Field(
         default=VisualQuestionAnsweringModelId.MICROSOFT_GIT_BASE_TEXTVQA,

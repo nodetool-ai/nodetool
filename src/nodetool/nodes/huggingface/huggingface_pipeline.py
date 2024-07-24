@@ -1,3 +1,4 @@
+import torch
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
@@ -21,7 +22,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     async def initialize(self, context: Any):
         if not self.run_on_huggingface:
             from transformers import pipeline
-            self._pipeline = pipeline(self.pipeline_task, model=self.get_model_id(), device=context.device)
+            self._pipeline = pipeline(self.pipeline_task, model=self.get_model_id(), device=context.device, torch_dtype=torch.float16)
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
