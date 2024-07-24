@@ -11,6 +11,53 @@ from nodetool.metadata.types import AudioRef
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 
+class AudioClassifier(HuggingFacePipelineNode):
+    """
+    Classifies audio into predefined categories.
+    audio, classification, labeling, categorization
+
+    Use cases:
+    - Classify music genres
+    - Detect speech vs. non-speech audio
+    - Identify environmental sounds
+    - Emotion recognition in speech
+    """
+
+    class AudioClassifierModelId(str, Enum):
+        MIT_AST_FINETUNED_AUDIOSET_10_10_0_BALANCED = "MIT/ast-finetuned-audioset-10-10-0.4593"
+        EHCALABRES_WAV2VEC2_LG_XLSR_EN_SPEECH_EMOTION_RECOGNITION = "ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition"
+
+    model: AudioClassifierModelId = Field(
+        default=AudioClassifierModelId.MIT_AST_FINETUNED_AUDIOSET_10_10_0_BALANCED,
+        title="Model ID on Huggingface",
+        description="The model ID to use for audio classification",
+    )
+    inputs: AudioRef = Field(
+        default=AudioRef(),
+        title="Audio",
+        description="The input audio to classify",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'audio-classification'
+
+    async def get_inputs(self, context: ProcessingContext):
+        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        return samples
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process(self, context: ProcessingContext) -> dict[str, float]:
+        return await super().process(context)
+
 
 class TextToSpeech(HuggingFacePipelineNode):
     """
