@@ -191,3 +191,59 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
     
     async def get_inputs(self, context: ProcessingContext):
         return await context.asset_to_io(self.inputs)
+    
+
+class ZeroShotAudioClassifier(HuggingFacePipelineNode):
+    """
+    Classifies audio into categories without the need for training data.
+    audio, classification, labeling, categorization, zero-shot
+
+    Use cases:
+    - Quickly categorize audio without training data
+    - Identify sounds or music genres without predefined labels
+    - Automate audio tagging for large datasets
+    """
+
+    class ZeroShotAudioClassifierModelId(str, Enum):
+        LAION_CLAP_HTSAT_UNFUSED = "laion/clap-htsat-unfused"
+
+    model: ZeroShotAudioClassifierModelId = Field(
+        default=ZeroShotAudioClassifierModelId.LAION_CLAP_HTSAT_UNFUSED,
+        title="Model ID on Huggingface",
+        description="The model ID to use for the classification",
+    )
+    inputs: AudioRef = Field(
+        default=AudioRef(),
+        title="Audio",
+        description="The input audio to classify",
+    )
+    candidate_labels: str = Field(
+        default="",
+        title="Candidate Labels",
+        description="The candidate labels to classify the audio against, separated by commas",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'zero-shot-audio-classification'
+    
+    def get_params(self):
+        return {
+            "candidate_labels": self.candidate_labels.split(","),
+        }
+
+    async def get_inputs(self, context: ProcessingContext):
+        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        return samples
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process(self, context: ProcessingContext) -> dict[str, float]:
+        return await super().process(context)
