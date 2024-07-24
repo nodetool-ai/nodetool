@@ -261,6 +261,7 @@ class DepthEstimation(HuggingFacePipelineNode):
 
     class ModelId(str, Enum):
         DEPTH_ANYTHING = "LiheYoung/depth-anything-base-hf"
+        DEPTH_ANYTHING_V2_SMALL = "depth-anything/Depth-Anything-V2-Small"
         INTEL_DPT_LARGE = "Intel/dpt-large"
 
     model: ModelId = Field(
@@ -288,6 +289,61 @@ class DepthEstimation(HuggingFacePipelineNode):
     async def process_local_result(self, context: ProcessingContext, result: Any) -> ImageRef:
         depth_ref = await context.image_from_pil(result['depth'])
         return depth_ref
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        return await super().process(context)
+    
+
+class ImageToImage(HuggingFacePipelineNode):
+    """
+    Performs image-to-image transformation tasks.
+    image, transformation, generation, huggingface
+
+    Use cases:
+    - Style transfer
+    - Image inpainting
+    - Image super-resolution
+    - Image colorization
+    """
+
+    class ModelId(str, Enum):
+        SWIN2SR = "caidas/swin2SR-classical-sr-x2-64"
+        REAL_ESRGAN_X4PLUS = "qualcomm/Real-ESRGAN-x4plus"
+        INSTRUCT_PIX2PIX = "timbrooks/instruct-pix2pix"
+
+    model: ModelId = Field(
+        default=ModelId.SWIN2SR,
+        title="Model ID on Huggingface",
+        description="The model ID to use for the image-to-image transformation",
+    )
+    inputs: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The input image to transform",
+    )
+    prompt: str = Field(
+        default="",
+        title="Prompt",
+        description="The text prompt to guide the image transformation (if applicable)",
+    )
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'image-to-image'
+
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.inputs)
+
+    def get_params(self):
+        return {
+            "prompt": self.prompt,
+        }
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> ImageRef:
+        return await context.image_from_base64(result)
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> ImageRef:
+        return await context.image_from_pil(result)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         return await super().process(context)
