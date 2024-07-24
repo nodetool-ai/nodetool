@@ -16,18 +16,12 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         title="Run on Huggingface",
         description="Whether to run the node on Huggingface servers",
     )
-    model: Enum
-    inputs: str = Field(
-        default="",
-        title="Inputs",
-        description="The input text to the model",
-    )
     _pipeline: Pipeline | None = None
 
     async def initialize(self, context: Any):
         if not self.run_on_huggingface:
             from transformers import pipeline
-            self._pipeline = pipeline(self.pipeline_task, model=self.model.value)
+            self._pipeline = pipeline(self.pipeline_task, model=self.get_model_id(), device=context.device)
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -38,12 +32,11 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     def get_params(self):
         return {}
     
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
-
     async def process_remote(self, context: ProcessingContext) -> Any:
+        params = self.get_params()
+        params["inputs"] = await self.get_inputs(context)
         result = await self.run_huggingface(
-            model_id=self.model.value, context=context, params=self.get_params()
+            model_id=self.get_model_id(), context=context, params=params
         )
         return await self.process_remote_result(context, result)
     
@@ -58,6 +51,12 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             return await self.process_remote(context)
         else:
             return await self.process_local(context)
+
+    async def get_inputs(self, context: ProcessingContext):
+        raise NotImplementedError("Subclasses must implement this method")
+
+    def get_model_id(self):
+        raise NotImplementedError("Subclasses must implement this method")
 
     @property
     def pipeline_task(self) -> str:

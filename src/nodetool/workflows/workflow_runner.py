@@ -132,6 +132,7 @@ class WorkflowRunner:
             }
         )
         context.graph = graph
+        context.device = self.device
 
         input_nodes = {node.name: node for node in graph.inputs()}
         output_nodes = graph.outputs()

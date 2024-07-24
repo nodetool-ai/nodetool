@@ -23,12 +23,12 @@ class TextToSpeech(HuggingFacePipelineNode):
     - Generate automated announcements for public spaces
     """
 
-    class ModelId(str, Enum):
+    class TTSModelId(str, Enum):
         FASTSPEECH2_EN_LJSPEECH = "facebook/fastspeech2-en-ljspeech"
         SUNO_BARK = "suno/bark"
 
-    model: ModelId = Field(
-        default=ModelId.SUNO_BARK,
+    model: TTSModelId = Field(
+        default=TTSModelId.SUNO_BARK,
         title="Model ID on Huggingface",
         description="The model ID to use for the image generation",
     )
@@ -37,6 +37,9 @@ class TextToSpeech(HuggingFacePipelineNode):
         title="Inputs",
         description="The input text to the model",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
@@ -65,7 +68,7 @@ class TextToAudio(HuggingfaceNode):
     - Prototype musical ideas quickly
     """
 
-    class ModelId(str, Enum):
+    class TextToAudioModelId(str, Enum):
         MUSICGEN_SMALL = "facebook/musicgen-small"
         MUSICGEN_MEDIUM = "facebook/musicgen-medium"
         MUSICGEN_LARGE = "facebook/musicgen-large"
@@ -73,8 +76,8 @@ class TextToAudio(HuggingfaceNode):
         MUSICGEN_STEREO_SMALL = "facebook/musicgen-stereo-small"
         MUSICGEN_STEREO_LARGE = "facebook/musicgen-stereo-large"
 
-    model: ModelId = Field(
-        default=ModelId.MUSICGEN_SMALL,
+    model: TextToAudioModelId = Field(
+        default=TextToAudioModelId.MUSICGEN_SMALL,
         title="Model ID on Huggingface",
         description="The model ID to use for the audio generation",
     )
@@ -83,6 +86,9 @@ class TextToAudio(HuggingfaceNode):
         title="Inputs",
         description="The input text to the model",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         result = await self.run_huggingface(
@@ -107,13 +113,13 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
     - Implement voice commands in applications
     """
 
-    class ModelId(str, Enum):
+    class ASRModelId(str, Enum):
         OPENAI_WHISPER_LARGE_V3 = "openai/whisper-large-v3"
         OPENAI_WHISPER_LARGE_V2 = "openai/whisper-large-v2"
         OPENAI_WHISPER_SMALL = "openai/whisper-small"
 
-    model: ModelId = Field(
-        default=ModelId.OPENAI_WHISPER_LARGE_V3,
+    model: ASRModelId = Field(
+        default=ASRModelId.OPENAI_WHISPER_LARGE_V3,
         title="Model ID on Huggingface",
         description="The model ID to use for the speech recognition",
     )
@@ -122,6 +128,9 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         title="Image",
         description="The input audio to transcribe",
     )
+
+    def get_model_id(self):
+        return self.model.value
     
     @property
     def pipeline_task(self) -> str:

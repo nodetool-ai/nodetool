@@ -20,7 +20,7 @@ class Classifier(HuggingFacePipelineNode):
     - Medical image analysis to assist in diagnosing conditions
     """
 
-    class ModelId(str, Enum):
+    class ClassifierModelId(str, Enum):
         GOOGLE_VIT_BASE_PATCH16_224 = "google/vit-base-patch16-224"
         MICROSOFT_RESNET_50 = "microsoft/resnet-50"
         MICROSOFT_RESNET_18 = "microsoft/resnet-18"
@@ -36,8 +36,8 @@ class Classifier(HuggingFacePipelineNode):
         ORGANIKA_SDXL_DETECTOR = "Organika/sdxl-detector"
         RIZVANDWIKI_GENDER_CLASSIFICATION_2 = "rizvandwiki/gender-classification-2"
 
-    model: ModelId = Field(
-        default=ModelId.GOOGLE_VIT_BASE_PATCH16_224,
+    model: ClassifierModelId = Field(
+        default=ClassifierModelId.GOOGLE_VIT_BASE_PATCH16_224,
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
@@ -46,6 +46,9 @@ class Classifier(HuggingFacePipelineNode):
         title="Image",
         description="The input image to classify",
     )
+    
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
@@ -75,7 +78,7 @@ class ZeroShotClassifier(HuggingFacePipelineNode):
     - Automate image tagging for large datasets
     """
 
-    class ModelId(str, Enum):
+    class ZeroShotClassifierModelId(str, Enum):
         OPENAI_CLIP_VIT_LARGE_PATCH14 = "openai/clip-vit-large-patch14"
         GOOGLE_SIGLIP_SO400M_PATCH14_384 = "google/siglip-so400m-patch14-384"
         OPENAI_CLIP_VIT_BASE_PATCH16 = "openai/clip-vit-base-patch16"
@@ -83,8 +86,8 @@ class ZeroShotClassifier(HuggingFacePipelineNode):
         PATRICKJOHNCYH_FASHION_CLIP = "patrickjohncyh/fashion-clip"
         LAION_CLIP_VIT_H_14_LAION2B_S32B_B79K = "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
 
-    model: ModelId = Field(
-        default=ModelId.OPENAI_CLIP_VIT_LARGE_PATCH14,
+    model: ZeroShotClassifierModelId = Field(
+        default=ZeroShotClassifierModelId.OPENAI_CLIP_VIT_LARGE_PATCH14,
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
@@ -98,6 +101,9 @@ class ZeroShotClassifier(HuggingFacePipelineNode):
         title="Candidate Labels",
         description="The candidate labels to classify the image against, separated by commas",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
@@ -184,7 +190,7 @@ class ZeroShotClassifier(HuggingFacePipelineNode):
 #         return img
 
 
-class Segformer(HuggingFacePipelineNode):
+class Segmentation(HuggingFacePipelineNode):
     """
     Performs semantic segmentation on images, identifying and labeling different regions.
     image, segmentation, object detection, scene parsing
@@ -194,11 +200,11 @@ class Segformer(HuggingFacePipelineNode):
     - Segmenting facial features in images
     """
 
-    class ModelId(str, Enum):
+    class SegmentationModelId(str, Enum):
         NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512 = "nvidia/segformer-b3-finetuned-ade-512-512"
 
-    model: ModelId = Field(
-        default=ModelId.NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512,
+    model: SegmentationModelId = Field(
+        default=SegmentationModelId.NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512,
         title="Model ID on Huggingface",
         description="The model ID to use for the segmentation",
     )
@@ -207,6 +213,9 @@ class Segformer(HuggingFacePipelineNode):
         title="Image",
         description="The input image to segment",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
@@ -245,11 +254,11 @@ class ObjectDetection(HuggingFacePipelineNode):
     - Enhance security camera footage analysis
     """
 
-    class ModelId(str, Enum):
+    class ObjectDetectionModelId(str, Enum):
         FACEBOOK_DETR_RESNET_50 = "facebook/detr-resnet-50"
 
-    model: ModelId = Field(
-        default=ModelId.FACEBOOK_DETR_RESNET_50,
+    model: ObjectDetectionModelId = Field(
+        default=ObjectDetectionModelId.FACEBOOK_DETR_RESNET_50,
         title="Model ID on Huggingface",
         description="The model ID to use for object detection",
     )
@@ -263,6 +272,14 @@ class ObjectDetection(HuggingFacePipelineNode):
         title="Confidence Threshold",
         description="Minimum confidence score for detected objects",
     )
+    top_k: int = Field(
+        default=5,
+        title="Top K",
+        description="The number of top predictions to return",
+    )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
@@ -304,6 +321,99 @@ class ObjectDetection(HuggingFacePipelineNode):
         return await super().process(context)
     
 
+class ZeroShotObjectDetection(HuggingFacePipelineNode):
+    """
+    Detects objects in images without the need for training data.
+    image, object detection, bounding boxes, zero-shot
+
+    Use cases:
+    - Quickly detect objects in images without training data
+    - Identify objects in images without predefined labels
+    - Automate object detection for large datasets
+    """
+    
+    class ZeroShotObjectDetectionModelId(str, Enum):
+        GOOGLE_OWL_VIT_BASE_PATCH32 = "google/owlvit-base-patch32"
+        GOOGLE_OWL_VIT_LARGE_PATCH14 = "google/owlvit-large-patch14"
+        GOOGLE_OWL_VIT_BASE_PATCH16 = "google/owlvit-base-patch16"
+        GOOGLE_OWL_V2_BASE_PATCH16 = "google/owlv2-base-patch16"
+        GOOGLE_OWL_VIT_BASE_PATCH16_ENSEMBLE = "google/owlv2-base-patch16-ensemble"
+        IDEA_RESEARCH_GROUNDING_DINO_TINY = "IDEA-Research/grounding-dino-tiny"
+        
+    
+    model: ZeroShotObjectDetectionModelId = Field(
+        default=ZeroShotObjectDetectionModelId.GOOGLE_OWL_V2_BASE_PATCH16,
+        title="Model ID on Huggingface",
+        description="The model ID to use for object detection",
+    )
+    
+    inputs: ImageRef = Field(
+        default=ImageRef(),
+        title="Inputs",
+        description="The input image for object detection",
+    )
+    
+    threshold: float = Field(
+        default=0.1,
+        title="Confidence Threshold",
+        description="Minimum confidence score for detected objects",
+    )
+    
+    top_k: int = Field(
+        default=5,
+        title="Top K",
+        description="The number of top predictions to return",
+    )
+    
+    candidate_labels: str = Field(
+        default="",
+        title="Candidate Labels",
+        description="The candidate labels to detect in the image, separated by commas",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+    
+    @property
+    def pipeline_task(self) -> str:
+        return 'zero-shot-object-detection'
+    
+    def get_params(self):
+        return {
+            "candidate_labels": self.candidate_labels.split(","),
+            "threshold": self.threshold,
+        }
+        
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.inputs)
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+        return await self.process_local_result(context, result)
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+        data = [
+            [item["label"],
+            item["score"],
+            item["box"]["xmin"],
+            item["box"]["ymin"],
+            item["box"]["xmax"],
+            item["box"]["ymax"],
+            ]
+            for item in result
+        ]
+        columns = [
+            ColumnDef(name="label", data_type="string"),
+            ColumnDef(name="score", data_type="float"),
+            ColumnDef(name="xmin",  data_type="float"),
+            ColumnDef(name="ymin",  data_type="float"),
+            ColumnDef(name="xmax",  data_type="float"),
+            ColumnDef(name="ymax",  data_type="float"),
+        ]
+        return DataframeRef(columns=columns, data=data)
+
+    async def process(self, context: ProcessingContext) -> list[dict]:
+        return await super().process(context)
+
 
 class DepthEstimation(HuggingFacePipelineNode):
     """
@@ -317,13 +427,13 @@ class DepthEstimation(HuggingFacePipelineNode):
     - Improve scene understanding in autonomous vehicles
     """
 
-    class ModelId(str, Enum):
+    class DepthEstimationModelId(str, Enum):
         DEPTH_ANYTHING = "LiheYoung/depth-anything-base-hf"
         DEPTH_ANYTHING_V2_SMALL = "depth-anything/Depth-Anything-V2-Small"
         INTEL_DPT_LARGE = "Intel/dpt-large"
 
-    model: ModelId = Field(
-        default=ModelId.DEPTH_ANYTHING,
+    model: DepthEstimationModelId = Field(
+        default=DepthEstimationModelId.DEPTH_ANYTHING,
         title="Model ID on Huggingface",
         description="The model ID to use for depth estimation",
     )
@@ -332,6 +442,9 @@ class DepthEstimation(HuggingFacePipelineNode):
         title="Image",
         description="The input image for depth estimation",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
@@ -364,13 +477,13 @@ class ImageToImage(HuggingFacePipelineNode):
     - Image colorization
     """
 
-    class ModelId(str, Enum):
+    class ImageToImageModelId(str, Enum):
         SWIN2SR = "caidas/swin2SR-classical-sr-x2-64"
         REAL_ESRGAN_X4PLUS = "qualcomm/Real-ESRGAN-x4plus"
         INSTRUCT_PIX2PIX = "timbrooks/instruct-pix2pix"
 
-    model: ModelId = Field(
-        default=ModelId.SWIN2SR,
+    model: ImageToImageModelId = Field(
+        default=ImageToImageModelId.SWIN2SR,
         title="Model ID on Huggingface",
         description="The model ID to use for the image-to-image transformation",
     )
@@ -384,6 +497,9 @@ class ImageToImage(HuggingFacePipelineNode):
         title="Prompt",
         description="The text prompt to guide the image transformation (if applicable)",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:

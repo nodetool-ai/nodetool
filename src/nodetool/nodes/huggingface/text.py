@@ -5,15 +5,15 @@ from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineN
 from nodetool.workflows.processing_context import ProcessingContext
 
 class Classifier(HuggingFacePipelineNode):
-    class ModelId(str, Enum):
+    class ClassifierModelId(str, Enum):
         CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST = "cardiffnlp/twitter-roberta-base-sentiment-latest"
         J_HARTMANN_EMOTION_ENGLISH_DISTILROBERTA_BASE = "j-hartmann/emotion-english-distilroberta-base"
         SAMLOWE_ROBERTA_BASE_GO_EMOTIONS = "SamLowe/roberta-base-go_emotions"
         PROSUSAI_FINBERT = "ProsusAI/finbert"
         DISTILBERT_BASE_UNCASED_FINETUNED_SST_2_ENGLISH = "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
 
-    model: ModelId = Field(
-        default=ModelId.CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST,
+    model: ClassifierModelId = Field(
+        default=ClassifierModelId.CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST,
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
@@ -22,6 +22,9 @@ class Classifier(HuggingFacePipelineNode):
         title="Inputs",
         description="The input text to the model",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
@@ -38,14 +41,14 @@ class Classifier(HuggingFacePipelineNode):
 
 
 class TextGeneration(HuggingFacePipelineNode):
-    class ModelId(str, Enum):
+    class TextGenerationModelId(str, Enum):
         GPT2 = "openai-community/gpt2"
         GPT2_MEDIUM = "openai-community/gpt2-medium"
         GPT2_LARGE = "openai-community/gpt2-large"
         DISTILGPT2 = "distilbert/distilgpt2"
 
-    model: ModelId = Field(
-        default=ModelId.GPT2,
+    model: TextGenerationModelId = Field(
+        default=TextGenerationModelId.GPT2,
         title="Model ID on Huggingface",
         description="The model ID to use for the text generation",
     )
@@ -64,6 +67,9 @@ class TextGeneration(HuggingFacePipelineNode):
         title="Do Sample",
         description="Whether to sample from the model",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
@@ -86,13 +92,13 @@ class TextGeneration(HuggingFacePipelineNode):
 
 
 class Summarize(HuggingFacePipelineNode):
-    class ModelId(str, Enum):
+    class SummarizeModelId(str, Enum):
         FALCONSAI_TEXT_SUMMARIZATION = "Falconsai/text_summarization"
         FALCONSAI_MEDICAL_SUMMARIZATION = "Falconsai/medical_summarization"
         IMVLADIKON_HET5_SUMMARIZATION = "imvladikon/het5_summarization"
 
-    model: ModelId = Field(
-        default=ModelId.FALCONSAI_TEXT_SUMMARIZATION,
+    model: SummarizeModelId = Field(
+        default=SummarizeModelId.FALCONSAI_TEXT_SUMMARIZATION,
         title="Model ID on Huggingface",
         description="The model ID to use for the summarization",
     )
@@ -111,6 +117,9 @@ class Summarize(HuggingFacePipelineNode):
         title="Do Sample",
         description="Whether to sample from the model",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
