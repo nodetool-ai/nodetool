@@ -114,3 +114,55 @@ class FeaturesExtraction(HuggingFacePipelineNode):
 
 #     async def process(self, context: ProcessingContext) -> dict[str, Any]:
 #         return await super().process(context)
+
+
+class ImageFeatureExtraction(HuggingFacePipelineNode):
+    """
+    Extracts features from images using pre-trained models.
+    image, feature extraction, embeddings, computer vision
+
+    Use cases:
+    - Image similarity comparison
+    - Clustering images
+    - Input for machine learning models
+    - Content-based image retrieval
+    """
+
+    class ImageFeatureExtractionModelId(str, Enum):
+        MICROSOFT_RESNET_50 = "microsoft/resnet-50"
+        GOOGLE_VIT_BASE_PATCH16_224 = "google/vit-base-patch16-224"
+        FACEBOOK_CONVNEXT_BASE_224 = "facebook/convnext-base-224"
+        OPENAI_CLIP_VIT_BASE_PATCH32 = "openai/clip-vit-base-patch32"
+
+    model: ImageFeatureExtractionModelId = Field(
+        default=ImageFeatureExtractionModelId.MICROSOFT_RESNET_50,
+        title="Model ID on Huggingface",
+        description="The model ID to use for image feature extraction",
+    )
+    inputs: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The image to extract features from",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'image-feature-extraction'
+
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.inputs)
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> Tensor:
+        return await self.process_local_result(context, result)
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> Tensor:
+        # The result is typically a list with a single numpy array
+        # We'll return this array as a Tensor
+        import numpy as np
+        return Tensor.from_numpy(np.array(result[0]))
+
+    async def process(self, context: ProcessingContext) -> Tensor:
+        return await super().process(context)
