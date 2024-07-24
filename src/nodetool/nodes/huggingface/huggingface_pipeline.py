@@ -50,7 +50,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     async def process_local(self, context: ProcessingContext) -> Any:
         assert self._pipeline is not None
         inputs = await self.get_inputs(context)
-        result = self._pipeline(inputs)
+        result = self._pipeline(inputs, **self.get_params())
         return await self.process_local_result(context, result)
 
     async def process(self, context: ProcessingContext) -> Any:

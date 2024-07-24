@@ -41,7 +41,7 @@ class Classifier(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
-    image: ImageRef = Field(
+    inputs: ImageRef = Field(
         default=ImageRef(),
         title="Image",
         description="The input image to classify",
@@ -52,7 +52,7 @@ class Classifier(HuggingFacePipelineNode):
         return 'image-classification'
 
     async def get_inputs(self, context: ProcessingContext):
-        return await context.image_to_pil(self.image)
+        return await context.image_to_pil(self.inputs)
 
     async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
         return {item['label']: item['score'] for item in result}
@@ -62,6 +62,64 @@ class Classifier(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)
+
+
+class ZeroShotClassifier(HuggingFacePipelineNode):
+    """
+    Classifies images into categories without the need for training data.
+    image, classification, labeling, categorization
+
+    Use cases:
+    - Quickly categorize images without training data
+    - Identify objects in images without predefined labels
+    - Automate image tagging for large datasets
+    """
+
+    class ModelId(str, Enum):
+        OPENAI_CLIP_VIT_LARGE_PATCH14 = "openai/clip-vit-large-patch14"
+        GOOGLE_SIGLIP_SO400M_PATCH14_384 = "google/siglip-so400m-patch14-384"
+        OPENAI_CLIP_VIT_BASE_PATCH16 = "openai/clip-vit-base-patch16"
+        OPENAI_CLIP_VIT_BASE_PATCH32 = "openai/clip-vit-base-patch32"
+        PATRICKJOHNCYH_FASHION_CLIP = "patrickjohncyh/fashion-clip"
+        LAION_CLIP_VIT_H_14_LAION2B_S32B_B79K = "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
+
+    model: ModelId = Field(
+        default=ModelId.OPENAI_CLIP_VIT_LARGE_PATCH14,
+        title="Model ID on Huggingface",
+        description="The model ID to use for the classification",
+    )
+    inputs: ImageRef = Field(
+        default=ImageRef(),
+        title="Image",
+        description="The input image to classify",
+    )
+    candidate_labels: str = Field(
+        default="",
+        title="Candidate Labels",
+        description="The candidate labels to classify the image against, separated by commas",
+    )
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'zero-shot-image-classification'
+    
+    def get_params(self):
+        return {
+            "candidate_labels": self.candidate_labels.split(","),
+        }
+
+    async def get_inputs(self, context: ProcessingContext):
+        return await context.image_to_pil(self.inputs)
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process(self, context: ProcessingContext) -> dict[str, float]:
+        return await super().process(context)
+
 
 
 # This has too much overlap with other SD nodes
