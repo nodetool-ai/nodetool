@@ -429,3 +429,76 @@ class TextToText(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> list[str]:
         return await super().process(context)
+    
+
+class TokenClassification(HuggingFacePipelineNode):
+    """
+    Performs token classification tasks such as Named Entity Recognition (NER).
+    text, token classification, named entity recognition, natural language processing
+
+    Use cases:
+    - Named Entity Recognition in text
+    - Part-of-speech tagging
+    - Chunking and shallow parsing
+    - Information extraction from unstructured text
+    """
+
+    class TokenClassificationModelId(str, Enum):
+        DBMDZ_BERT_LARGE_CASED_FINETUNED_CONLL03_ENGLISH = "dbmdz/bert-large-cased-finetuned-conll03-english"
+        DSLIM_BERT_BASE_NER = "dslim/bert-base-NER"
+        JEAN_BAPTISTE_CAMEMBERT_NER = "Jean-Baptiste/camembert-ner"
+        FLAIR_POS_ENGLISH = "flair/pos-english"
+        
+    class AggregationStrategy(str, Enum):
+        SIMPLE = "simple"
+        FIRST = "first"
+        AVERAGE = "average"
+        MAX = "max"
+
+    model: TokenClassificationModelId = Field(
+        default=TokenClassificationModelId.DSLIM_BERT_BASE_NER,
+        title="Model ID on Huggingface",
+        description="The model ID to use for token classification",
+    )
+    inputs: str = Field(
+        default="",
+        title="Input Text",
+        description="The input text for token classification",
+    )
+    aggregation_strategy: AggregationStrategy = Field(
+        default=AggregationStrategy.SIMPLE,
+        title="Aggregation Strategy",
+        description="Strategy to aggregate tokens into entities"
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'token-classification'
+
+    def get_params(self):
+        return {
+            "aggregation_strategy": self.aggregation_strategy.value,
+        }
+
+    async def get_inputs(self, context: ProcessingContext):
+        return self.inputs
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+        return await self.process_local_result(context, result)
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+        data = [[item["entity_group"], item["word"], item["start"], item["end"], float(item["score"])] for item in result]
+        columns = [
+            ColumnDef(name="entity", data_type="string"),
+            ColumnDef(name="word", data_type="string"),
+            ColumnDef(name="start", data_type="int"),
+            ColumnDef(name="end", data_type="int"),
+            ColumnDef(name="score", data_type="float"),
+        ]
+        return DataframeRef(columns=columns, data=data)
+
+    async def process(self, context: ProcessingContext) -> DataframeRef:
+        return await super().process(context)
