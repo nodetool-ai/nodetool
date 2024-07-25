@@ -1,45 +1,16 @@
-import enum
+from typing import Optional
+import PIL.Image
 from comfy.model_patcher import ModelPatcher
 from comfy.sd import CLIP, VAE
 from nodetool.metadata.types import CheckpointFile, ImageRef
+from nodetool.nodes.stable_diffusion.enums import Sampler, Scheduler
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 
 from nodetool.workflows.processing_context import ProcessingContext
 
 
-class Scheduler(str, enum.Enum):
-    normal = "normal"
-    karras = "karras"
-    exponential = "exponential"
-    sgm_uniform = "sgm_uniform"
-    simple = "simple"
-    ddim_uniform = "ddim_uniform"
-
-
-class Sampler(str, enum.Enum):
-    euler = "euler"
-    euler_ancestral = "euler_ancestral"
-    heun = "heun"
-    heunpp2 = "heunpp2"
-    dpm_2 = "dpm_2"
-    dpm_2_ancestral = "dpm_2_ancestral"
-    lms = "lms"
-    dpm_fast = "dpm_fast"
-    dpm_adaptive = "dpm_adaptive"
-    dpmpp_2s_ancestral = "dpmpp_2s_ancestral"
-    dpmpp_sde = "dpmpp_sde"
-    dpmpp_sde_gpu = "dpmpp_sde_gpu"
-    dpmpp_2m = "dpmpp_2m"
-    dpmpp_2m_sde = "dpmpp_2m_sde"
-    dpmpp_2m_sde_gpu = "dpmpp_2m_sde_gpu"
-    dpmpp_3m_sde = "dpmpp_3m_sde"
-    dpmpp_3m_sde_gpu = "dpmpp_3m_sde_gpu"
-    ddpm = "ddpm"
-    lcm = "lcm"
-
-
-class StableDiffusion(BaseNode):
+class SD_Img2Img(BaseNode):
     model: CheckpointFile = Field(
         default=CheckpointFile(), description="Stable Diffusion checkpoint to load."
     )
@@ -52,6 +23,8 @@ class StableDiffusion(BaseNode):
     height: int = Field(default=768, ge=64, le=2048, multiple_of=64)
     scheduler: Scheduler = Field(default=Scheduler.exponential)
     sampler: Sampler = Field(default=Sampler.euler_ancestral)
+    input_image: Optional[ImageRef] = Field(default=None, description="Input image for img2img (optional)")
+    denoise: float = Field(default=0.0, ge=0.0, le=1.0)
     
     _model: ModelPatcher | None = None
     _clip: CLIP | None = None
@@ -65,12 +38,11 @@ class StableDiffusion(BaseNode):
         )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        from comfy.nodes import CLIPTextEncode, EmptyLatentImage, KSampler, VAEDecode, CheckpointLoaderSimple
+        from comfy.nodes import CLIPTextEncode, EmptyLatentImage, KSampler, VAEDecode, VAEEncode
         import PIL.Image
         import numpy as np
+        import torch
         
-        # model_management.load_models_gpu([model])
-
         clip_text_encode = CLIPTextEncode()
         positive_conditioning = clip_text_encode.encode(
             self._clip, self.prompt
@@ -79,8 +51,21 @@ class StableDiffusion(BaseNode):
             self._clip, self.negative_prompt
         )[0]
 
-        empty_latent = EmptyLatentImage()
-        latent = empty_latent.generate(self.width, self.height, 1)[0]
+        if self.input_image:
+            # Load and preprocess the input image
+            input_pil = await context.image_to_pil(self.input_image)
+            input_pil = input_pil.resize((self.width, self.height), PIL.Image.Resampling.LANCZOS)
+            image = input_pil.convert("RGB")
+            image = np.array(image).astype(np.float32) / 255.0
+            input_tensor = torch.from_numpy(image)[None,]
+
+            # Encode the input image to latent space
+            vae_encode = VAEEncode()
+            latent = vae_encode.encode(self._vae, input_tensor)[0]
+        else:
+            # If no input image, create an empty latent
+            empty_latent = EmptyLatentImage()
+            latent = empty_latent.generate(self.width, self.height, 1)[0]
 
         k_sampler = KSampler()
         sampled_latent = k_sampler.sample(
@@ -93,6 +78,7 @@ class StableDiffusion(BaseNode):
             positive=positive_conditioning,
             negative=negative_conditioning,
             latent_image=latent,
+            denoise=self.denoise
         )[0]
 
         vae_decode = VAEDecode()
