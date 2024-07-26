@@ -95,19 +95,6 @@ class ProcessingContext:
     - Supports data conversion between different formats (e.g., TextRef to string, DataFrame to pandas DataFrame).
     """
 
-    user_id: str
-    auth_token: str
-    workflow_id: str
-    capabilities: list[str]
-    variables: dict[str, Any]
-    graph: Graph
-    cost: float = 0.0
-    is_cancelled: bool = False
-    results: dict[str, Any]
-    processed_nodes: set[str]
-    message_queue: Queue | asyncio.Queue
-    api_client: NodetoolAPIClient
-
     def __init__(
         self,
         user_id: str,
@@ -120,6 +107,7 @@ class ProcessingContext:
         capabilities: list[str] | None = None,
         http_client: httpx.AsyncClient | None = None,
         api_client: NodetoolAPIClient | None = None,
+        device: str = "cpu",
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -128,6 +116,8 @@ class ProcessingContext:
         self.results = results if results else {}
         self.processed_nodes = set()
         self.message_queue = queue if queue else asyncio.Queue()
+        self.is_cancelled = False
+        self.device = device
         self.capabilities = (
             capabilities if capabilities else Environment.get_capabilities()
         )
@@ -345,6 +335,7 @@ class ProcessingContext:
         provider: Provider,
         model: str,
         params: dict[str, Any] | None = None,
+        data: Any = None,
     ) -> PredictionResult:
         """
         Run a prediction on a third-party provider.
@@ -380,6 +371,7 @@ class ProcessingContext:
 
         prediction = Prediction(**res.json())
         prediction.params = params
+        prediction.data = data
 
         async for msg in run_prediction(prediction):
             if self.is_cancelled:

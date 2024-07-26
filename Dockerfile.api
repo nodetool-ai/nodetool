@@ -33,6 +33,7 @@ RUN apt-get update && \
     software-properties-common \
     python3-dev \
     python3-venv \
+    tesseract-ocr \
     python3-pip && \
     apt-get clean && \  
     rm -rf /var/lib/apt/lists/* && \

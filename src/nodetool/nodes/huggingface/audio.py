@@ -11,6 +11,53 @@ from nodetool.metadata.types import AudioRef
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 
+class AudioClassifier(HuggingFacePipelineNode):
+    """
+    Classifies audio into predefined categories.
+    audio, classification, labeling, categorization
+
+    Use cases:
+    - Classify music genres
+    - Detect speech vs. non-speech audio
+    - Identify environmental sounds
+    - Emotion recognition in speech
+    """
+
+    class AudioClassifierModelId(str, Enum):
+        MIT_AST_FINETUNED_AUDIOSET_10_10_0_BALANCED = "MIT/ast-finetuned-audioset-10-10-0.4593"
+        EHCALABRES_WAV2VEC2_LG_XLSR_EN_SPEECH_EMOTION_RECOGNITION = "ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition"
+
+    model: AudioClassifierModelId = Field(
+        default=AudioClassifierModelId.MIT_AST_FINETUNED_AUDIOSET_10_10_0_BALANCED,
+        title="Model ID on Huggingface",
+        description="The model ID to use for audio classification",
+    )
+    inputs: AudioRef = Field(
+        default=AudioRef(),
+        title="Audio",
+        description="The input audio to classify",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'audio-classification'
+
+    async def get_inputs(self, context: ProcessingContext):
+        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        return samples
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process(self, context: ProcessingContext) -> dict[str, float]:
+        return await super().process(context)
+
 
 class TextToSpeech(HuggingFacePipelineNode):
     """
@@ -23,12 +70,12 @@ class TextToSpeech(HuggingFacePipelineNode):
     - Generate automated announcements for public spaces
     """
 
-    class ModelId(str, Enum):
+    class TTSModelId(str, Enum):
         FASTSPEECH2_EN_LJSPEECH = "facebook/fastspeech2-en-ljspeech"
         SUNO_BARK = "suno/bark"
 
-    model: ModelId = Field(
-        default=ModelId.SUNO_BARK,
+    model: TTSModelId = Field(
+        default=TTSModelId.SUNO_BARK,
         title="Model ID on Huggingface",
         description="The model ID to use for the image generation",
     )
@@ -37,6 +84,9 @@ class TextToSpeech(HuggingFacePipelineNode):
         title="Inputs",
         description="The input text to the model",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     @property
     def pipeline_task(self) -> str:
@@ -65,7 +115,7 @@ class TextToAudio(HuggingfaceNode):
     - Prototype musical ideas quickly
     """
 
-    class ModelId(str, Enum):
+    class TextToAudioModelId(str, Enum):
         MUSICGEN_SMALL = "facebook/musicgen-small"
         MUSICGEN_MEDIUM = "facebook/musicgen-medium"
         MUSICGEN_LARGE = "facebook/musicgen-large"
@@ -73,8 +123,8 @@ class TextToAudio(HuggingfaceNode):
         MUSICGEN_STEREO_SMALL = "facebook/musicgen-stereo-small"
         MUSICGEN_STEREO_LARGE = "facebook/musicgen-stereo-large"
 
-    model: ModelId = Field(
-        default=ModelId.MUSICGEN_SMALL,
+    model: TextToAudioModelId = Field(
+        default=TextToAudioModelId.MUSICGEN_SMALL,
         title="Model ID on Huggingface",
         description="The model ID to use for the audio generation",
     )
@@ -83,6 +133,9 @@ class TextToAudio(HuggingfaceNode):
         title="Inputs",
         description="The input text to the model",
     )
+
+    def get_model_id(self):
+        return self.model.value
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         result = await self.run_huggingface(
@@ -107,13 +160,13 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
     - Implement voice commands in applications
     """
 
-    class ModelId(str, Enum):
+    class ASRModelId(str, Enum):
         OPENAI_WHISPER_LARGE_V3 = "openai/whisper-large-v3"
         OPENAI_WHISPER_LARGE_V2 = "openai/whisper-large-v2"
         OPENAI_WHISPER_SMALL = "openai/whisper-small"
 
-    model: ModelId = Field(
-        default=ModelId.OPENAI_WHISPER_LARGE_V3,
+    model: ASRModelId = Field(
+        default=ASRModelId.OPENAI_WHISPER_LARGE_V3,
         title="Model ID on Huggingface",
         description="The model ID to use for the speech recognition",
     )
@@ -122,6 +175,9 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         title="Image",
         description="The input audio to transcribe",
     )
+
+    def get_model_id(self):
+        return self.model.value
     
     @property
     def pipeline_task(self) -> str:
@@ -135,3 +191,59 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
     
     async def get_inputs(self, context: ProcessingContext):
         return await context.asset_to_io(self.inputs)
+    
+
+class ZeroShotAudioClassifier(HuggingFacePipelineNode):
+    """
+    Classifies audio into categories without the need for training data.
+    audio, classification, labeling, categorization, zero-shot
+
+    Use cases:
+    - Quickly categorize audio without training data
+    - Identify sounds or music genres without predefined labels
+    - Automate audio tagging for large datasets
+    """
+
+    class ZeroShotAudioClassifierModelId(str, Enum):
+        LAION_CLAP_HTSAT_UNFUSED = "laion/clap-htsat-unfused"
+
+    model: ZeroShotAudioClassifierModelId = Field(
+        default=ZeroShotAudioClassifierModelId.LAION_CLAP_HTSAT_UNFUSED,
+        title="Model ID on Huggingface",
+        description="The model ID to use for the classification",
+    )
+    inputs: AudioRef = Field(
+        default=AudioRef(),
+        title="Audio",
+        description="The input audio to classify",
+    )
+    candidate_labels: str = Field(
+        default="",
+        title="Candidate Labels",
+        description="The candidate labels to classify the audio against, separated by commas",
+    )
+
+    def get_model_id(self):
+        return self.model.value
+
+    @property
+    def pipeline_task(self) -> str:
+        return 'zero-shot-audio-classification'
+    
+    def get_params(self):
+        return {
+            "candidate_labels": self.candidate_labels.split(","),
+        }
+
+    async def get_inputs(self, context: ProcessingContext):
+        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        return samples
+
+    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+        return {item['label']: item['score'] for item in result}
+
+    async def process(self, context: ProcessingContext) -> dict[str, float]:
+        return await super().process(context)

@@ -2,6 +2,7 @@ from typing import Any
 from nodetool.common.environment import Environment
 from nodetool.types.prediction import Prediction, PredictionResult
 
+log = Environment.get_logger()
 
 async def run_ollama(prediction: Prediction) -> Any:
     model = prediction.model
@@ -10,13 +11,12 @@ async def run_ollama(prediction: Prediction) -> Any:
     client = Environment.get_ollama_client()
     params = prediction.params
     
-    print(f"Running Ollama prediction with model: {model} and params: {params}")
-
     if "raw" in params:
         res = await client.generate(model=model, **params)
     elif "prompt" in params:
         res = await client.embeddings(model=model, **params)
     else:
+        log.info("Running params: %s", params)
         res = await client.chat(model=model, **params)
 
     yield PredictionResult(

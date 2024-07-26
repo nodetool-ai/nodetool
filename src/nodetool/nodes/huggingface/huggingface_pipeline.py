@@ -1,3 +1,4 @@
+import torch
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
@@ -5,25 +6,30 @@ from transformers import Pipeline
 from enum import Enum
 from typing import Any
 
+from nodetool.workflows.types import NodeProgress
+
 
 class HuggingFacePipelineNode(HuggingfaceNode):
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls is not HuggingFacePipelineNode
+
     run_on_huggingface: bool = Field(
         default=False,
         title="Run on Huggingface",
         description="Whether to run the node on Huggingface servers",
     )
-    model: Enum
-    inputs: str = Field(
-        default="",
-        title="Inputs",
-        description="The input text to the model",
-    )
     _pipeline: Pipeline | None = None
 
-    async def initialize(self, context: Any):
+    async def initialize(self, context: ProcessingContext):
         if not self.run_on_huggingface:
             from transformers import pipeline
-            self._pipeline = pipeline(self.pipeline_task, model=self.model.value)
+            self._pipeline = pipeline(
+                self.pipeline_task, 
+                model=self.get_model_id(), 
+                device=context.device, 
+                torch_dtype=torch.float16,
+            )
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -34,19 +40,18 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     def get_params(self):
         return {}
     
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
-
     async def process_remote(self, context: ProcessingContext) -> Any:
+        params = self.get_params()
+        params["inputs"] = await self.get_inputs(context)
         result = await self.run_huggingface(
-            model_id=self.model.value, context=context, params=self.get_params()
+            model_id=self.get_model_id(), context=context, params=params
         )
         return await self.process_remote_result(context, result)
     
     async def process_local(self, context: ProcessingContext) -> Any:
         assert self._pipeline is not None
         inputs = await self.get_inputs(context)
-        result = self._pipeline(inputs)
+        result = self._pipeline(inputs, **self.get_params())
         return await self.process_local_result(context, result)
 
     async def process(self, context: ProcessingContext) -> Any:
@@ -54,6 +59,12 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             return await self.process_remote(context)
         else:
             return await self.process_local(context)
+
+    async def get_inputs(self, context: ProcessingContext):
+        raise NotImplementedError("Subclasses must implement this method")
+
+    def get_model_id(self):
+        raise NotImplementedError("Subclasses must implement this method")
 
     @property
     def pipeline_task(self) -> str:
