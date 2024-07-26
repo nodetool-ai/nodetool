@@ -10,6 +10,16 @@ from nodetool.workflows.processing_context import ProcessingContext
 
 
 class SD_Txt2Img(BaseNode):
+    """
+    Generates images from text prompts using Stable Diffusion.
+    image, text-to-image, generative AI, stable diffusion
+
+    Use cases:
+    - Creating custom illustrations for various purposes
+    - Generating concept art for games, films, or other creative projects
+    - Visualizing design ideas or architectural concepts
+    - Producing unique images for marketing and advertising materials
+    """
     model: CheckpointFile = Field(
         default=CheckpointFile(), description="Stable Diffusion checkpoint to load."
     )
