@@ -155,7 +155,7 @@ export default memo(
         {nodeMetadata.layout === "default" && (
           <>
             <ProcessTimer isLoading={isLoading} status={status} />
-            <NodeProgress id={props.id} />
+            <NodeProgress id={props.id} workflowId={workflowId} />
             <NodeLogs id={props.id} workflowId={workflowId} />
             <NodeFooter
               nodeNamespace={node_namespace}

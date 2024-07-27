@@ -3,8 +3,8 @@ import { memo } from "react";
 import { LinearProgress, Typography } from "@mui/material";
 import useResultsStore from "../../stores/ResultsStore";
 
-export const NodeProgress = memo(function NodeProgress({ id }: { id: string; }) {
-  const progress = useResultsStore(state => state.progress)[id];
+export const NodeProgress = memo(function NodeProgress({ id, workflowId }: { id: string; workflowId: string }) {
+  const progress = useResultsStore(state => state.getProgress(workflowId, id));
   if (!progress) {
     return null;
   }

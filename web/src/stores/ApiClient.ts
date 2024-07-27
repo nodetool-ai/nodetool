@@ -2,7 +2,7 @@ import createClient, { type Middleware } from "openapi-fetch";
 import { paths } from "../api.js"; // (generated from openapi-typescript)
 import { useAuth } from "./useAuth.js";
 
-const mode: string =  import.meta.env.MODE;
+const mode: string = import.meta.env.MODE;
 
 export const useRemoteAuth =
   mode === "production" ||
@@ -17,8 +17,8 @@ export const BASE_URL =
   isDevelopment
     ? "http://" + window.location.hostname + ":8000"
     : isStaging
-    ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com"
-    : "https://api.nodetool.ai";
+      ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com"
+      : "https://api.nodetool.ai";
 
 export const WORKER_URL = BASE_URL + "/predict";
 
@@ -26,11 +26,12 @@ export const pingWorker = () => {
   if (isDevelopment) {
     return;
   }
-  const ts = new Date().getTime();
-  const url = WORKER_URL.replace("predict", "?" + ts);
-  fetch(url, {
-    method: "GET",
-  });
+  // only needed for the modal worker to wake up
+  // const ts = new Date().getTime();
+  // const url = WORKER_URL.replace("predict", "?" + ts);
+  // fetch(url, {
+  //   method: "GET",
+  // });
 }
 
 
