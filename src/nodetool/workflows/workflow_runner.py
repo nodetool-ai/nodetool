@@ -288,10 +288,10 @@ class WorkflowRunner:
 
             await node.pre_process(context)
 
-            if isinstance(node, GroupInput) or isinstance(node, GroupNode):
-                cached_result = None
-            else:
+            if node.is_cacheable():
                 cached_result = context.get_cached_result(node)
+            else:
+                cached_result = None
 
             if cached_result is not None:
                 result = cached_result
@@ -314,10 +314,11 @@ class WorkflowRunner:
                 result = await node.process(context)
                 result = await node.convert_output(context, result)
                 
-                # this is not the most efficient way to do this, but it's the easiest
+                # in the future, we will have a better way to handle this
                 await node.move_to_device("cpu")
 
-                context.cache_result(node, result)
+                if node.is_cacheable():
+                    context.cache_result(node, result)
 
             res_for_update = self.prepare_result_for_update(result, node)
             properties_for_update = {

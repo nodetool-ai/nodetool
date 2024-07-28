@@ -14,22 +14,22 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     def is_visible(cls) -> bool:
         return cls is not HuggingFacePipelineNode
 
-    run_on_huggingface: bool = Field(
-        default=False,
-        title="Run on Huggingface",
-        description="Whether to run the node on Huggingface servers",
-    )
+    # run_on_huggingface: bool = Field(
+    #     default=False,
+    #     title="Run on Huggingface",
+    #     description="Whether to run the node on Huggingface servers",
+    # )
     _pipeline: Pipeline | None = None
-
+    
     async def initialize(self, context: ProcessingContext):
-        if not self.run_on_huggingface:
-            from transformers import pipeline
-            self._pipeline = pipeline(
-                self.pipeline_task, 
-                model=self.get_model_id(), 
-                device=context.device, 
-                torch_dtype=torch.float16,
-            )
+        # if not self.run_on_huggingface:
+        from transformers import pipeline
+        self._pipeline = pipeline(
+            self.pipeline_task, 
+            model=self.get_model_id(), 
+            device=context.device, 
+            torch_dtype=torch.float16,
+        )
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -55,10 +55,10 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         return await self.process_local_result(context, result)
 
     async def process(self, context: ProcessingContext) -> Any:
-        if self.run_on_huggingface:
-            return await self.process_remote(context)
-        else:
-            return await self.process_local(context)
+        # if self.run_on_huggingface:
+        #     return await self.process_remote(context)
+        # else:
+        return await self.process_local(context)
 
     async def get_inputs(self, context: ProcessingContext):
         raise NotImplementedError("Subclasses must implement this method")

@@ -413,6 +413,16 @@ class BaseNode(BaseModel):
         return is_assignable(cls.find_property(name).type, value)
 
     @classmethod
+    def is_cacheable(cls):
+        """
+        Check if the node is cacheable.
+        
+        Returns:
+            bool: True if the node is cacheable, False otherwise.
+        """
+        return True
+
+    @classmethod
     def find_property(cls, name: str):
         """
         Find a property of the node by its name.
@@ -821,5 +831,7 @@ class GroupNode(BaseNode):
 
     This node type allows for hierarchical structuring of workflows.
     """
-
-    pass
+    
+    @classmethod
+    def is_cacheable(cls):
+        return False

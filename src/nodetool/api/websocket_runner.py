@@ -136,13 +136,12 @@ class WebSocketRunner:
                 if res.json()['valid'] == False:
                     raise ValueError("Invalid auth token")
 
-            print("Running job: ", self.job_id)
+            log.info("Running job: %s", self.job_id)
             if self.pre_run_hook:
                 self.pre_run_hook()
 
             async for msg in run_workflow(req, self.runner, self.context, use_thread=True):
                 try:
-                    print(msg)
                     await self.websocket.send_text(msg.model_dump_json())
                 except Exception as e:
                     log.exception(e)

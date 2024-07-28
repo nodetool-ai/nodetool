@@ -105,9 +105,10 @@ class ProcessingContext:
         results: dict[str, Any] | None = None,
         queue: Queue | asyncio.Queue | None = None,
         capabilities: list[str] | None = None,
-        http_client: httpx.AsyncClient | None = None,
+        http_client: httpx.AsyncClient |None = None,
         api_client: NodetoolAPIClient | None = None,
         device: str = "cpu",
+        models: dict[str, dict[str, Any]] | None = None,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -118,6 +119,7 @@ class ProcessingContext:
         self.message_queue = queue if queue else asyncio.Queue()
         self.is_cancelled = False
         self.device = device
+        self.models = models if models else {}
         self.capabilities = (
             capabilities if capabilities else Environment.get_capabilities()
         )
@@ -217,16 +219,52 @@ class ProcessingContext:
     def get_cached_result(self, node: BaseNode) -> Any:
         """Get the cached result for a node."""
         key = self.generate_node_cache_key(node)
-        return Environment.get_node_cache().get(key)
+        val = Environment.get_node_cache().get(key)
+        # TODO: remove once caching works for all comfy nodes
+        print("Getting cached node", node.get_node_type(), key)
+        return val
 
     def cache_result(self, node: BaseNode, result: Any, ttl: int = 3600):
         """Cache the result for a node."""
 
         from nodetool.common.comfy_node import ComfyNode
-
-        if not isinstance(node, ComfyNode):
+        
+        all_cacheable = all(
+            out.type.is_cacheable_type()
+            for out in node.outputs()
+        )
+        
+        if all_cacheable:
             key = self.generate_node_cache_key(node)
+            # TODO: remove once caching works for all comfy nodes
+            print("Caching node", node.get_node_type(), key)
             Environment.get_node_cache().set(key, result, ttl)
+            
+    def add_model(self, type: str, name: str, model: Any):
+        """
+        Adds a model to the context.
+
+        Args:
+            type (str): The type of the model.
+            name (str): The name of the model.
+            model (Any): The model to add.
+        """
+        if type not in self.models:
+            self.models[type] = {}
+        self.models[type][name] = model
+        
+    def get_model(self, type: str, name: str) -> Any:
+        """
+        Gets a model from the context.
+
+        Args:
+            type (str): The type of the model.
+            name (str): The name of the model.
+
+        Returns:
+            Any: The model.
+        """
+        return self.models.get(type, {}).get(name, None)
 
     async def find_asset(self, asset_id: str):
         """

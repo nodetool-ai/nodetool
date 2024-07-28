@@ -525,13 +525,7 @@ class VAEEncodeForInpaint:
         return ({"samples": t, "noise_mask": (mask_erosion[:, :, :x, :y].round())},)
 
 
-ckpt_cache = {}
-
-
 def load_checkpoint_cached(ckpt_path, config_path=None):
-    if ckpt_path in ckpt_cache:
-        return ckpt_cache[ckpt_path]
-
     if config_path:
         res = comfy.sd.load_checkpoint(
             config_path,
@@ -547,7 +541,6 @@ def load_checkpoint_cached(ckpt_path, config_path=None):
             output_clip=True,
             embedding_directory=folder_paths.get_folder_paths("embeddings"),
         )
-    # ckpt_cache[ckpt_path] = res
     return res
 
 

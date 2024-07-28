@@ -388,3 +388,7 @@ class GroupInput(BaseNode):
 
     async def process(self, context: Any) -> Any:
         return self._value
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
