@@ -13,7 +13,9 @@ import PIL.Image
 import numpy as np
 import pandas as pd
 from pydub import AudioSegment
+import torch
 
+from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.types.asset import Asset, AssetCreateRequest, AssetList
 from nodetool.types.chat import (
     MessageList,
@@ -95,19 +97,6 @@ class ProcessingContext:
     - Supports data conversion between different formats (e.g., TextRef to string, DataFrame to pandas DataFrame).
     """
 
-    user_id: str
-    auth_token: str
-    workflow_id: str
-    capabilities: list[str]
-    variables: dict[str, Any]
-    graph: Graph
-    cost: float = 0.0
-    is_cancelled: bool = False
-    results: dict[str, Any]
-    processed_nodes: set[str]
-    message_queue: Queue | asyncio.Queue
-    api_client: NodetoolAPIClient
-
     def __init__(
         self,
         user_id: str,
@@ -118,8 +107,10 @@ class ProcessingContext:
         results: dict[str, Any] | None = None,
         queue: Queue | asyncio.Queue | None = None,
         capabilities: list[str] | None = None,
-        http_client: httpx.AsyncClient | None = None,
+        http_client: httpx.AsyncClient |None = None,
         api_client: NodetoolAPIClient | None = None,
+        device: str = "cpu",
+        models: dict[str, dict[str, Any]] | None = None,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -128,6 +119,9 @@ class ProcessingContext:
         self.results = results if results else {}
         self.processed_nodes = set()
         self.message_queue = queue if queue else asyncio.Queue()
+        self.is_cancelled = False
+        self.device = device
+        self.models = models if models else {}
         self.capabilities = (
             capabilities if capabilities else Environment.get_capabilities()
         )
@@ -227,16 +221,52 @@ class ProcessingContext:
     def get_cached_result(self, node: BaseNode) -> Any:
         """Get the cached result for a node."""
         key = self.generate_node_cache_key(node)
-        return Environment.get_node_cache().get(key)
+        val = Environment.get_node_cache().get(key)
+        # TODO: remove once caching works for all comfy nodes
+        print("Getting cached node", node.get_node_type(), key)
+        return val
 
     def cache_result(self, node: BaseNode, result: Any, ttl: int = 3600):
         """Cache the result for a node."""
 
         from nodetool.common.comfy_node import ComfyNode
-
-        if not isinstance(node, ComfyNode):
+        
+        all_cacheable = all(
+            out.type.is_cacheable_type()
+            for out in node.outputs()
+        )
+        
+        if all_cacheable:
             key = self.generate_node_cache_key(node)
+            # TODO: remove once caching works for all comfy nodes
+            print("Caching node", node.get_node_type(), key)
             Environment.get_node_cache().set(key, result, ttl)
+            
+    def add_model(self, type: str, name: str, model: Any):
+        """
+        Adds a model to the context.
+
+        Args:
+            type (str): The type of the model.
+            name (str): The name of the model.
+            model (Any): The model to add.
+        """
+        if type not in self.models:
+            self.models[type] = {}
+        self.models[type][name] = model
+        
+    def get_model(self, type: str, name: str) -> Any:
+        """
+        Gets a model from the context.
+
+        Args:
+            type (str): The type of the model.
+            name (str): The name of the model.
+
+        Returns:
+            Any: The model.
+        """
+        return self.models.get(type, {}).get(name, None)
 
     async def find_asset(self, asset_id: str):
         """
@@ -296,6 +326,32 @@ class ProcessingContext:
             res (dict[str, Any]): The result of the node.
         """
         self.results[node_id] = res
+        
+    def get_node_input_types(self, node_id: str) -> dict[str, TypeMetadata | None]:
+        """
+        Retrieves the input types for a given node, inferred from the output types of the source nodes.
+
+        Args:
+            node_id (str): The ID of the node.
+
+        Returns:
+            dict[str, str]: A dictionary containing the input types for the node, where the keys are the input slot names
+            and the values are the types of the corresponding source nodes.
+        """
+        def output_type(node_id: str, slot: str):
+            node = self.graph.find_node(node_id)
+            print("Node", node)
+            if node is None:
+                return None
+            for output in node.outputs():
+                if output.name == slot:
+                    return output.type
+            return None
+        return {
+            edge.targetHandle: output_type(edge.source, edge.sourceHandle)
+            for edge in self.graph.edges
+            if edge.target == node_id
+        }
 
     def get_node_inputs(self, node_id: str) -> dict[str, Any]:
         """
@@ -345,6 +401,7 @@ class ProcessingContext:
         provider: Provider,
         model: str,
         params: dict[str, Any] | None = None,
+        data: Any = None,
     ) -> PredictionResult:
         """
         Run a prediction on a third-party provider.
@@ -380,6 +437,7 @@ class ProcessingContext:
 
         prediction = Prediction(**res.json())
         prediction.params = params
+        prediction.data = data
 
         async for msg in run_prediction(prediction):
             if self.is_cancelled:
@@ -1051,6 +1109,22 @@ class ProcessingContext:
             ImageRef: The ImageRef object.
         """
         return await self.image_from_pil(PIL.Image.fromarray(image), name=name)
+    
+    async def image_from_tensor(
+        self, image_tensor: torch.Tensor,
+    ):
+        """
+        Creates an ImageRef from a tensor.
+
+        Args:
+            image_tensor (torch.Tensor): The tensor.
+
+        Returns:
+            ImageRef: The ImageRef object.
+        """
+        i = 255.0 * image_tensor[0].cpu().detach().numpy()
+        img = np.clip(i, 0, 255).astype(np.uint8)
+        return await self.image_from_numpy(img)
 
     async def to_str(self, text_ref: TextRef | str) -> str:
         """

@@ -16,6 +16,7 @@ from nodetool.metadata.types import (
     unCLIPFile,
 )
 from nodetool.common.comfy_node import ComfyNode
+from nodetool.workflows.processing_context import ProcessingContext
 
 
 class CheckpointLoaderSimple(ComfyNode):
@@ -27,19 +28,29 @@ class CheckpointLoaderSimple(ComfyNode):
         default=CheckpointFile(), description="The checkpoint to load."
     )
 
-    @validator("ckpt_name", pre=True)
-    def validate_ckpt_name(cls, v):
-        if isinstance(v, str):
-            v = CheckpointFile(name=v)
-        if isinstance(v, dict):
-            v = CheckpointFile(**v)
-        if v.name == "":
-            raise ValueError("The checkpoint name cannot be empty.")
-        return v
-
     @classmethod
     def return_type(cls):
         return {"model": UNet, "clip": CLIP, "vae": VAE}
+    
+
+    async def initialize(self, context: ProcessingContext):
+        unet, clip, vae, _ = await super().process(context)
+
+        context.add_model("comfy.unet", self.ckpt_name.name, unet)
+        context.add_model("comfy.clip", self.ckpt_name.name, clip)
+        context.add_model("comfy.vae", self.ckpt_name.name, vae)
+
+    
+    async def process(self, context: ProcessingContext):
+        return {
+            "model": UNet(name=self.ckpt_name.name),
+            "clip": CLIP(name=self.ckpt_name.name),
+            "vae": VAE(name=self.ckpt_name.name),
+        }
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
 
 
 class CheckpointLoader(CheckpointLoaderSimple):
@@ -55,19 +66,13 @@ class unCLIPCheckpointLoader(ComfyNode):
         default=unCLIPFile(), description="The checkpoint to load."
     )
 
-    @validator("ckpt_name", pre=True)
-    def validate_ckpt_name(cls, v):
-        if isinstance(v, str):
-            v = unCLIPFile(name=v)
-        if isinstance(v, dict):
-            v = unCLIPFile(**v)
-        if v == "":
-            raise ValueError("The checkpoint name cannot be empty.")
-        return v
-
     @classmethod
     def return_type(cls):
         return {"model": UNet, "clip": CLIP, "vae": VAE, "clip_vision": CLIPVision}
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
 
 
 class CLIPVisionLoader(ComfyNode):
@@ -76,39 +81,33 @@ class CLIPVisionLoader(ComfyNode):
         description="The name of the CLIP vision model to load.",
     )
 
-    @validator("clip_name", pre=True)
-    def validate_clip_name(cls, v):
-        if isinstance(v, str):
-            v = CLIPVisionFile(name=v)
-        if isinstance(v, dict):
-            v = CLIPVisionFile(**v)
-        if v.name == "":
-            raise ValueError("The CLIP vision name cannot be empty.")
-        return v
-
     @classmethod
     def return_type(cls):
         return {"clip_vision": CLIPVision}
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
 
 
 class ControlNetLoader(ComfyNode):
     control_net_name: ControlNetFile = Field(
         default=ControlNetFile(), description="The filename of the control net to load."
     )
-
-    @validator("control_net_name", pre=True)
-    def validate_control_net_name(cls, v):
-        if isinstance(v, str):
-            v = ControlNetFile(name=v)
-        if isinstance(v, dict):
-            v = ControlNetFile(**v)
-        if v.name == "":
-            raise ValueError("The control net name cannot be empty.")
-        return v
-
     @classmethod
     def return_type(cls):
         return {"control_net": ControlNet}
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
+    
+    async def initialize(self, context: ProcessingContext):
+        control_net, = await super().process(context)
+        context.add_model("comfy.control_net", self.control_net_name.name, control_net)
+    
+    async def process(self, context: ProcessingContext):
+        return {"control_net": ControlNet(name=self.control_net_name.name)}
 
 
 class UpscaleModelLoader(ComfyNode):
@@ -117,19 +116,13 @@ class UpscaleModelLoader(ComfyNode):
         description="The filename of the upscale model to load.",
     )
 
-    @validator("model_name", pre=True)
-    def validate_model_name(cls, v):
-        if isinstance(v, str):
-            v = UpscaleModelFile(name=v)
-        if isinstance(v, dict):
-            v = UpscaleModelFile(**v)
-        if v.name == "":
-            raise ValueError("The model name cannot be empty.")
-        return v
-
     @classmethod
     def return_type(cls):
         return {"upscale_model": UpscaleModel}
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
 
 
 class GLIGENLoader(ComfyNode):
@@ -138,16 +131,10 @@ class GLIGENLoader(ComfyNode):
         description="The GLIGEN checkpoint to load.",
     )
 
-    @validator("gligen_name", pre=True)
-    def validate_gligen_name(cls, v):
-        if isinstance(v, str):
-            v = GLIGENFile(name=v)
-        if isinstance(v, dict):
-            v = GLIGENFile(**v)
-        if v.name == "":
-            raise ValueError("The GLIGEN name cannot be empty.")
-        return v
-
     @classmethod
     def return_type(cls):
         return {"gligen": GLIGEN}
+
+    @classmethod
+    def is_cacheable(cls):
+        return False

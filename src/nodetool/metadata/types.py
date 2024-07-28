@@ -241,7 +241,11 @@ class UpscaleModelFile(ModelFile):
     type: Literal["comfy.upscale_model_file"] = "comfy.upscale_model_file"
 
 
-class CLIP(BaseType):
+class ComfyModel(BaseType):
+    name: str = ""
+
+
+class CLIP(ComfyModel):
     type: Literal["comfy.clip"] = "comfy.clip"
 
 
@@ -265,15 +269,16 @@ class Latent(BaseType):
     type: Literal["comfy.latent"] = "comfy.latent"
 
 
-class ControlNet(BaseType):
+
+class ControlNet(ComfyModel):
     type: Literal["comfy.control_net"] = "comfy.control_net"
 
 
-class VAE(BaseType):
+class VAE(ComfyModel):
     type: Literal["comfy.vae"] = "comfy.vae"
 
 
-class UNet(BaseType):
+class UNet(ComfyModel):
     type: Literal["comfy.unet"] = "comfy.unet"
 
 

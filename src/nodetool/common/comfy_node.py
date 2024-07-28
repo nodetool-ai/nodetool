@@ -1,6 +1,6 @@
 from enum import Enum
 from nodetool.metadata import is_assignable
-from nodetool.metadata.types import ModelFile
+from nodetool.metadata.types import CheckpointFile, ModelFile
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
@@ -47,10 +47,10 @@ class ComfyNode(BaseNode):
 
         if prop.type.is_model_file_type():
             if isinstance(value, str):
-                value = ModelFile(name=value)
+                value = ModelFile(type=prop.type.type, name=value)
             if isinstance(value, dict):
                 value = ModelFile(**value)
-
+                
         setattr(self, name, value)
 
     async def process(self, context: ProcessingContext):
@@ -71,22 +71,23 @@ class ComfyNode(BaseNode):
         if name in mappings:
             node_class = mappings[name]
             function_name = node_class.FUNCTION
-            comfy_node = node_class()
 
-            def convert_value(value: Any) -> Any:
-                if isinstance(value, enum.Enum):
-                    return value.value
-                elif isinstance(value, ModelFile):
+            def convert_value(name: str, value: Any) -> Any:
+                prop = self.find_property(name)
+                
+                if isinstance(value, ModelFile):
                     return value.name
-                elif isinstance(value, dict) and "name" in value:
-                    return value["name"]
+                elif prop.type.is_comfy_model():
+                    return context.get_model(prop.type.type, value.name) # type: ignore
                 else:
                     return value
 
             kwargs = {
-                name.replace("-", ""): convert_value(value)
+                name.replace("-", ""): convert_value(name, value)
                 for name, value in self.node_properties().items()
             }
+
+            comfy_node = node_class()
             return getattr(comfy_node, function_name)(**kwargs)
 
         else:

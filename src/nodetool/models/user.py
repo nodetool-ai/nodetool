@@ -181,7 +181,8 @@ class User(DBModel):
             u.passcode = passcode
             u.passcode_valid = passcode_valid
             u.updated_at = datetime.now()
-            u.auth_token = auth_token
+            if u.auth_token is None:
+                u.auth_token = auth_token
             u.token_valid = token_valid
             u.save()
             return u, False

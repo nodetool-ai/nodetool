@@ -88,9 +88,9 @@ async def run_workflow(
                 yield Error(error=str(e))
 
             try:
-                await run_future
-            except asyncio.CancelledError:
-                pass
+                run_future.result()
+            except Exception as e:
+                print(f"An error occurred during workflow execution: {e}")
 
     else:
         run_task = asyncio.create_task(run())

@@ -20,9 +20,40 @@ class TypeMetadata(BaseModel):
         from nodetool.metadata.types import asset_types
 
         return self.type in asset_types
-
+    
+    def is_cacheable_type(self):
+        if self.is_list_type() or self.is_union_type() or self.is_dict_type():
+            return all(t.is_cacheable_type() for t in self.type_args)
+        if self.type in [
+            "comfy.image_tensor",
+            "comfy.conditioning"
+        ]:
+            return True
+        if self.is_comfy_type():
+            return False
+        return True
+    
+    def is_serializable_type(self):
+        if self.is_list_type() or self.is_union_type() or self.is_dict_type():
+            return all(t.is_cacheable_type() for t in self.type_args)
+        if self.type in [
+            "comfy.image_tensor",
+        ]:
+            return True
+        if self.is_comfy_type():
+            return False
+        return True
+    
     def is_comfy_type(self):
         return self.type.startswith("comfy.")
+    
+    def is_comfy_model(self):
+        return self.type in [
+            "comfy.unet",
+            "comfy.clip",
+            "comfy.vae",
+            "comfy.control_net",
+        ]
 
     def is_model_file_type(self):
         return self.type in [
@@ -33,12 +64,18 @@ class TypeMetadata(BaseModel):
             "comfy.upscale_model_file",
             "comfy.unclip_file",
         ]
+    
+    def is_primitive_type(self):
+        return self.type in ["int", "float", "bool", "str", "text"]
 
     def is_enum_type(self):
         return self.type == "enum"
 
     def is_list_type(self):
         return self.type == "list"
+    
+    def is_dict_type(self):
+        return self.type == "dict"
 
     def is_union_type(self):
         return self.type == "union"

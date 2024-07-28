@@ -1,5 +1,6 @@
 import asyncio
 from asyncio import AbstractEventLoop
+from concurrent.futures import Future
 import threading
 from typing import Callable, Coroutine, Any, Optional, TypeVar
 
@@ -118,7 +119,7 @@ class ThreadedEventLoop:
         self._loop.run_forever()
         self._loop.close()
 
-    def run_coroutine(self, coro: Coroutine[Any, Any, T]) -> asyncio.Future[T]:
+    def run_coroutine(self, coro: Coroutine[Any, Any, T]) -> Future[T]:
         """Schedule a coroutine to run in this event loop."""
         return asyncio.run_coroutine_threadsafe(coro, self._loop)  # type: ignore
 

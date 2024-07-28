@@ -73,8 +73,7 @@ export const NodeLogs = memo(function NodeLogs({
   workflowId
 }: NodeLogsProps) {
   const logsRef = useRef<HTMLDivElement>(null);
-  const key = hashKey(workflowId, id);
-  const logs = useLogsStore((state) => state.logs[key]);
+  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
 
   useEffect(() => {
     if (logsRef.current) {

@@ -10,8 +10,6 @@ import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
 
 import { useNodeStore } from "../../stores/NodeStore";
-import useResultsStore, { hashKey } from "../../stores/ResultsStore";
-import OutputRenderer from "./OutputRenderer";
 import { NodeHeader } from "./NodeHeader";
 import { NodeFooter } from "./NodeFooter";
 import { NodeInputs } from "./NodeInputs";
@@ -56,14 +54,13 @@ export default memo(
       isLoading: metadataLoading,
       error: metadataError
     } = useMetadata();
-    const findNode = useNodeStore((state) => state.findNode);
     const nodedata = useNodeStore((state) => state.findNode(props.id)?.data);
     const node = useNodeStore((state) => state.findNode(props.id));
-    const getInputEdges = useNodeStore((state) => state.getInputEdges);
+    const hasParent = node?.parentId !== undefined;
+    const parentNode = useNodeStore((state) => hasParent ? state.findNode(node?.parentId || "") : null);
+    const edges = useNodeStore((state) => state.getInputEdges(props.id));
     const workflowId = nodedata?.workflow_id || "";
-    const nodeKey = hashKey(workflowId, props.id);
-    const status = useStatusStore((state) => state.statuses[nodeKey]);
-    const edges = getInputEdges(props.id);
+    const status = useStatusStore((state) => state.getStatus(workflowId, props.id));
     const isLoading =
       status === "running" ||
       status === "starting" ||
@@ -72,8 +69,6 @@ export default memo(
     const isConstantNode = props.type.startsWith("nodetool.constant");
 
     const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
-    const hasParent = node?.parentId !== undefined;
-    const parentNode = hasParent ? findNode(node?.parentId || "") : null;
     useEffect(() => {
       // Set parentIsCollapsed state based on parent node
       if (hasParent) {
@@ -109,11 +104,11 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-            name: "output",
-            type: {
-              type: "string"
-            }
-          };
+          name: "output",
+          type: {
+            type: "string"
+          }
+        };
 
     return (
       <Container
@@ -137,7 +132,7 @@ export default memo(
           <NodeErrors id={props.id} />
           {status == "booting" && (
             <Typography className="node-status">
-              Model is booting, this can take up to 3 minutes.
+              Model is booting (1-3 minutes).
             </Typography>
           )}
         </>
@@ -160,7 +155,7 @@ export default memo(
         {nodeMetadata.layout === "default" && (
           <>
             <ProcessTimer isLoading={isLoading} status={status} />
-            <NodeProgress id={props.id} />
+            <NodeProgress id={props.id} workflowId={workflowId} />
             <NodeLogs id={props.id} workflowId={workflowId} />
             <NodeFooter
               nodeNamespace={node_namespace}
