@@ -142,6 +142,7 @@ class WebSocketRunner:
 
             async for msg in run_workflow(req, self.runner, self.context, use_thread=True):
                 try:
+                    print(msg)
                     await self.websocket.send_text(msg.model_dump_json())
                 except Exception as e:
                     log.exception(e)

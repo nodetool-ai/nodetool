@@ -13,7 +13,9 @@ import PIL.Image
 import numpy as np
 import pandas as pd
 from pydub import AudioSegment
+import torch
 
+from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.types.asset import Asset, AssetCreateRequest, AssetList
 from nodetool.types.chat import (
     MessageList,
@@ -324,6 +326,32 @@ class ProcessingContext:
             res (dict[str, Any]): The result of the node.
         """
         self.results[node_id] = res
+        
+    def get_node_input_types(self, node_id: str) -> dict[str, TypeMetadata | None]:
+        """
+        Retrieves the input types for a given node, inferred from the output types of the source nodes.
+
+        Args:
+            node_id (str): The ID of the node.
+
+        Returns:
+            dict[str, str]: A dictionary containing the input types for the node, where the keys are the input slot names
+            and the values are the types of the corresponding source nodes.
+        """
+        def output_type(node_id: str, slot: str):
+            node = self.graph.find_node(node_id)
+            print("Node", node)
+            if node is None:
+                return None
+            for output in node.outputs():
+                if output.name == slot:
+                    return output.type
+            return None
+        return {
+            edge.targetHandle: output_type(edge.source, edge.sourceHandle)
+            for edge in self.graph.edges
+            if edge.target == node_id
+        }
 
     def get_node_inputs(self, node_id: str) -> dict[str, Any]:
         """
@@ -1081,6 +1109,22 @@ class ProcessingContext:
             ImageRef: The ImageRef object.
         """
         return await self.image_from_pil(PIL.Image.fromarray(image), name=name)
+    
+    async def image_from_tensor(
+        self, image_tensor: torch.Tensor,
+    ):
+        """
+        Creates an ImageRef from a tensor.
+
+        Args:
+            image_tensor (torch.Tensor): The tensor.
+
+        Returns:
+            ImageRef: The ImageRef object.
+        """
+        i = 255.0 * image_tensor[0].cpu().detach().numpy()
+        img = np.clip(i, 0, 255).astype(np.uint8)
+        return await self.image_from_numpy(img)
 
     async def to_str(self, text_ref: TextRef | str) -> str:
         """

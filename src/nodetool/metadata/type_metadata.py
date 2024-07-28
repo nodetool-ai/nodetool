@@ -24,7 +24,21 @@ class TypeMetadata(BaseModel):
     def is_cacheable_type(self):
         if self.is_list_type() or self.is_union_type() or self.is_dict_type():
             return all(t.is_cacheable_type() for t in self.type_args)
-        if self.type == "comfy.conditioning":
+        if self.type in [
+            "comfy.image_tensor",
+            "comfy.conditioning"
+        ]:
+            return True
+        if self.is_comfy_type():
+            return False
+        return True
+    
+    def is_serializable_type(self):
+        if self.is_list_type() or self.is_union_type() or self.is_dict_type():
+            return all(t.is_cacheable_type() for t in self.type_args)
+        if self.type in [
+            "comfy.image_tensor",
+        ]:
             return True
         if self.is_comfy_type():
             return False

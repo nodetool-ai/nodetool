@@ -1,9 +1,12 @@
 from enum import EnumMeta
+import sys
 from types import UnionType
 from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 
 from typing import Any, Type
+
+import torch
 from nodetool.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.type_metadata import TypeMetadata
@@ -24,6 +27,7 @@ from nodetool.metadata.utils import (
     is_union_type,
 )
 
+from nodetool.workflows.property import Property
 from nodetool.workflows.run_job_request import RunJobRequest
 
 """
@@ -397,6 +401,20 @@ class BaseNode(BaseModel):
                 print(f"{self.__class__} Error setting property {name}: {e}")
                 if not skip_errors:
                     raise e
+                
+    def properties_for_update(self):
+        """
+        Properties to send to the client for updating the node.
+        Comfy types and tensors are excluded.
+        """
+        def should_include(prop: Property, value: Any):
+            return not isinstance(value, torch.Tensor) and not prop.type.is_comfy_type()
+
+        return {
+            prop.name: getattr(self, prop.name)
+            for prop in self.properties()
+            if should_include(prop, getattr(self, prop.name))
+        }
 
     @classmethod
     def is_assignable(cls, name: str, value: Any) -> bool:
@@ -735,8 +753,19 @@ class Preview(BaseNode):
     value: Any = Field(None, description="The value to preview.")
     name: str = Field("", description="The name of the preview node.")
     _visible: bool = False
+    
+    @classmethod
+    def is_cacheable(cls):
+        return False
 
     async def process(self, context: Any) -> Any:
+        # infer input type from source node output type
+        input_types: dict[str, TypeMetadata | None] = context.get_node_input_types(self.id)
+        sys.stdout.flush()
+        if input_types:
+            value_type = input_types.get("value", None)
+            if value_type and value_type.type == "comfy.image_tensor":
+                return await context.image_from_tensor(self.value)
         return self.value
 
 

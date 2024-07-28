@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 from functools import lru_cache
 
 from pydantic import BaseModel
+import torch
 
 from nodetool.metadata.types import DataframeRef
 from nodetool.nodes.nodetool.output import GroupOutput
@@ -296,16 +297,11 @@ class WorkflowRunner:
             if cached_result is not None:
                 result = cached_result
             else:
-                properties_for_update = {
-                    prop.name: getattr(node, prop.name)
-                    for prop in node.properties()
-                    if not prop.type.is_comfy_type()
-                }
                 context.post_message(
                     NodeUpdate(
                         node_id=node.id,
                         node_name=node.get_title(),
-                        properties=properties_for_update,
+                        properties=node.properties_for_update(),
                         status="running",
                         started_at=started_at.isoformat(),
                     )
@@ -320,18 +316,13 @@ class WorkflowRunner:
                 if node.is_cacheable():
                     context.cache_result(node, result)
 
-            res_for_update = self.prepare_result_for_update(result, node)
-            properties_for_update = {
-                prop.name: getattr(node, prop.name)
-                for prop in node.properties()
-                if not prop.type.is_comfy_type()
-            }
-
+            res_for_update = await self.prepare_result_for_update(context, result, node)
+            
             context.post_message(
                 NodeUpdate(
                     node_id=node._id,
                     node_name=node.get_title(),
-                    properties=properties_for_update,
+                    properties=node.properties_for_update(),
                     status="completed",
                     result=res_for_update,
                     started_at=started_at.isoformat(),
@@ -438,8 +429,8 @@ class WorkflowRunner:
             return {"output": results[output_nodes[0]._id]}
 
     @staticmethod
-    def prepare_result_for_update(
-        result: Dict[str, Any], node: BaseNode
+    async def prepare_result_for_update(
+        context: ProcessingContext, result: Dict[str, Any], node: BaseNode
     ) -> Dict[str, Any]:
         """
         Prepares the node result for inclusion in a NodeUpdate message.
@@ -456,13 +447,16 @@ class WorkflowRunner:
             - Converts Pydantic models in the result to dictionaries.
         """
         res_for_update = result.copy()
-
+        
         for o in node.outputs():
-            if o.type.is_comfy_type():
+            value = res_for_update.get(o.name)
+            if not o.type.is_serializable_type() or isinstance(value, torch.Tensor):
                 del res_for_update[o.name]
-            if isinstance(res_for_update.get(o.name), BaseModel):
-                res_for_update[o.name] = res_for_update[o.name].model_dump()
+            elif isinstance(value, BaseModel):
+                res_for_update[o.name] = value.model_dump()
 
+        print("res_for_update", node.get_node_type(), res_for_update) 
+        
         return res_for_update
 
     @contextmanager
