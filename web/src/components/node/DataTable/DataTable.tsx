@@ -149,16 +149,20 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_hl1
     },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
-    {
-      transition: "border 0.2s"
-    },
+      {
+        transition: "border 0.2s"
+      },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
-    {
-      borderBottom: "6px solid" + theme.palette.c_hl1
-    },
+      {
+        borderBottom: "6px solid" + theme.palette.c_hl1
+      },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
-    {
-      borderTop: "6px solid" + theme.palette.c_hl1
+      {
+        borderTop: "6px solid" + theme.palette.c_hl1
+      },
+    // frozen columns
+    ".tabulator-row .tabulator-cell.tabulator-frozen": {
+      paddingLeft: "2px !important"
     },
     // actions
     ".table-actions": {
@@ -206,9 +210,9 @@ const styles = (theme: any) =>
         padding: ".5em"
       },
       "& .MuiToggleButton-root:hover, & .MuiToggleButton-root.Mui-selected:hover":
-      {
-        color: theme.palette.c_hl1
-      },
+        {
+          color: theme.palette.c_hl1
+        },
       "& .MuiToggleButton-root.Mui-selected": {
         color: theme.palette.c_white
       }
@@ -242,12 +246,12 @@ const styles = (theme: any) =>
     },
     // row select
     ".tabulator-row .tabulator-cell.row-select, .tabulator .tabulator-header .tabulator-col.row-select .tabulator-col-content, .tabulator-header .tabulator-col.row-select":
-    {
-      width: "25px !important",
-      minWidth: "25px !important",
-      textAlign: "left",
-      padding: "0 !important"
-    }
+      {
+        width: "25px !important",
+        minWidth: "25px !important",
+        textAlign: "left",
+        padding: "0 !important"
+      }
   });
 
 interface DataTableProps {
@@ -271,26 +275,21 @@ const DataTable: React.FC<DataTableProps> = ({
     (state) => state.addNotification
   );
 
-  const downloadAssetContent = useCallback(
-    async (
-      asset: Asset,
-    ) => {
-      if (!asset?.get_url) {
-        return;
-      }
-      const response = await axios.get(asset?.get_url, {
-        responseType: "arraybuffer"
-      });
-      const csv = new TextDecoder().decode(new Uint8Array(response.data));
-      const res: ParseResult<string[]> = Papa.parse(csv);
-      const columnDefs = res.data[0].map((col: string) => ({
-        name: col,
-        data_type: "string"
-      }));
-      const data = res.data.slice(1);
-    },
-    []
-  );
+  const downloadAssetContent = useCallback(async (asset: Asset) => {
+    if (!asset?.get_url) {
+      return;
+    }
+    const response = await axios.get(asset?.get_url, {
+      responseType: "arraybuffer"
+    });
+    const csv = new TextDecoder().decode(new Uint8Array(response.data));
+    const res: ParseResult<string[]> = Papa.parse(csv);
+    const columnDefs = res.data[0].map((col: string) => ({
+      name: col,
+      data_type: "string"
+    }));
+    const data = res.data.slice(1);
+  }, []);
 
   const data = useMemo(() => {
     if (!dataframe.data) return [];
@@ -318,40 +317,40 @@ const DataTable: React.FC<DataTableProps> = ({
     const cols: ColumnDefinition[] = [
       ...(showSelect
         ? [
-          {
-            title: "",
-            field: "select",
-            formatter: "rowSelection" as Formatter,
-            titleFormatter: "rowSelection" as Formatter,
-            hozAlign: "left" as ColumnDefinitionAlign,
-            headerSort: false,
-            width: 25,
-            minWidth: 25,
-            resizable: false,
-            frozen: true,
-            cellClick: function (e: any, cell: CellComponent) {
-              cell.getRow().toggleSelect();
-            },
-            editable: false,
-            cssClass: "row-select"
-          }
-        ]
+            {
+              title: "",
+              field: "select",
+              formatter: "rowSelection" as Formatter,
+              titleFormatter: "rowSelection" as Formatter,
+              hozAlign: "left" as ColumnDefinitionAlign,
+              headerSort: false,
+              width: 25,
+              minWidth: 25,
+              resizable: false,
+              frozen: true,
+              cellClick: function (e: any, cell: CellComponent) {
+                cell.getRow().toggleSelect();
+              },
+              editable: false,
+              cssClass: "row-select"
+            }
+          ]
         : []),
       ...(showRowNumbers
         ? [
-          {
-            title: "",
-            field: "rownum",
-            formatter: "rownum" as Formatter,
-            hozAlign: "left" as ColumnDefinitionAlign,
-            headerSort: false,
-            resizable: true,
-            frozen: true,
-            rowHandle: true,
-            editable: false,
-            cssClass: "row-numbers"
-          }
-        ]
+            {
+              title: "",
+              field: "rownum",
+              formatter: "rownum" as Formatter,
+              hozAlign: "left" as ColumnDefinitionAlign,
+              headerSort: false,
+              resizable: true,
+              frozen: true,
+              rowHandle: true,
+              editable: false,
+              cssClass: "row-numbers"
+            }
+          ]
         : []),
       ...dataframe.columns.map((col) => ({
         title: col.name,
@@ -363,20 +362,20 @@ const DataTable: React.FC<DataTableProps> = ({
           col.data_type === "int"
             ? integerEditor
             : col.data_type === "float"
-              ? floatEditor
-              : col.data_type === "datetime"
-                ? datetimeEditor
-                : "input",
+            ? floatEditor
+            : col.data_type === "datetime"
+            ? datetimeEditor
+            : "input",
         headerHozAlign: "left" as ColumnDefinitionAlign,
         cssClass: col.data_type,
         validator:
           col.data_type === "int"
             ? (["required", "integer"] as StandardValidatorType[])
             : col.data_type === "float"
-              ? (["required", "numeric"] as StandardValidatorType[])
-              : col.data_type === "datetime"
-                ? (["required", "date"] as StandardValidatorType[])
-                : undefined
+            ? (["required", "numeric"] as StandardValidatorType[])
+            : col.data_type === "datetime"
+            ? (["required", "date"] as StandardValidatorType[])
+            : undefined
       }))
     ];
     return cols;

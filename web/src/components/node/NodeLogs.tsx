@@ -28,7 +28,8 @@ const styles = (theme: any) =>
     zIndex: 100,
     h6: {
       margin: 0,
-      padding: 0
+      padding: ".2em .4em",
+      color: theme.palette.c_gray6
     },
     "MuiPaper-root": {
       boxShadow: "none",
@@ -51,6 +52,9 @@ const styles = (theme: any) =>
     ".MuiAccordionSummary-content": {
       padding: 0,
       margin: 0
+    },
+    ".css-7od18z-MuiButtonBase-root-MuiAccordionSummary-root.Mui-expanded": {
+      minHeight: "unset"
     },
     ".logs": {
       fontFamily: theme.fontFamily2,

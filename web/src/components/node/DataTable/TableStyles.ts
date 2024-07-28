@@ -47,5 +47,12 @@ export const styles = (theme: any) =>
     },
     ".table-actions button:hover": {
       color: theme.palette.c_hl1
+    },
+    // columns
+    ".tabulator-row .tabulator-cell.tabulator-frozen": {
+      paddingLeft: "2px !important"
+    },
+    ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
+      padding: "5px 0px 0px 2px"
     }
   });
