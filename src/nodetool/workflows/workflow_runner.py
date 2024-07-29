@@ -472,38 +472,29 @@ class WorkflowRunner:
             - Manages CUDA memory and PyTorch inference mode.
             - Cleans up models and CUDA cache after execution.
         """
-        if Environment.get_comfy_folder():
-            import comfy.cli_args
-            import torch
+        import comfy
+        import comfy.utils
+        import comfy.model_management
 
-            comfy.cli_args.args.force_fp16 = True
-            comfy.cli_args.args.cpu = self.device == torch.device("cpu")
-
-            import comfy.model_management
-            import comfy.utils
-
-            def hook(value, total, preview_image):
-                comfy.model_management.throw_exception_if_processing_interrupted()
-                context.post_message(
-                    NodeProgress(
-                        node_id=self.current_node or "",
-                        progress=value,
-                        total=total,
-                        # preview_image=self.encode_image(preview_image),
-                    )
+        def hook(value, total, preview_image):
+            comfy.model_management.throw_exception_if_processing_interrupted()
+            context.post_message(
+                NodeProgress(
+                    node_id=self.current_node or "",
+                    progress=value,
+                    total=total,
+                    # preview_image=self.encode_image(preview_image),
                 )
-
-            comfy.utils.set_progress_bar_global_hook(hook)
-
-            log.info(
-                f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
             )
-            with torch.inference_mode():
-                yield
-                comfy.model_management.cleanup_models()
-                log.info(
-                    f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
-                )
 
-        else:
+        comfy.utils.set_progress_bar_global_hook(hook)
+
+        log.info(
+            f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+        )
+        with torch.inference_mode():
             yield
+            comfy.model_management.cleanup_models()
+            log.info(
+                f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+            )

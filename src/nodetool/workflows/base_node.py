@@ -10,7 +10,7 @@ import torch
 from nodetool.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.type_metadata import TypeMetadata
-from nodetool.metadata.types import NameToType, TypeToName
+from nodetool.metadata.types import ComfyData, NameToType, TypeToName
 from nodetool.metadata import (
     is_assignable,
 )
@@ -408,7 +408,11 @@ class BaseNode(BaseModel):
         Comfy types and tensors are excluded.
         """
         def should_include(prop: Property, value: Any):
-            return not isinstance(value, torch.Tensor) and not prop.type.is_comfy_type()
+            return (
+                not isinstance(value, torch.Tensor) 
+                and not prop.type.is_comfy_type() 
+                and not isinstance(value, ComfyData)
+            )
 
         return {
             prop.name: getattr(self, prop.name)
@@ -765,7 +769,7 @@ class Preview(BaseNode):
         if input_types:
             value_type = input_types.get("value", None)
             if value_type and value_type.type == "comfy.image_tensor":
-                return await context.image_from_tensor(self.value)
+                return await context.image_from_tensor(self.value.data)
         return self.value
 
 

@@ -34,7 +34,7 @@ class CheckpointLoaderSimple(ComfyNode):
     
 
     async def initialize(self, context: ProcessingContext):
-        unet, clip, vae, _ = await super().process(context)
+        unet, clip, vae, _ = await self.call_comfy_node(context)
 
         context.add_model("comfy.unet", self.ckpt_name.name, unet)
         context.add_model("comfy.clip", self.ckpt_name.name, clip)
@@ -88,6 +88,13 @@ class CLIPVisionLoader(ComfyNode):
     @classmethod
     def is_cacheable(cls):
         return False
+    
+    async def initialize(self, context: ProcessingContext):
+        clip_vision, = await self.call_comfy_node(context)
+        context.add_model("comfy.clip_vision", self.clip_name.name, clip_vision)
+        
+    async def process(self, context: ProcessingContext):
+        return {"clip_vision": CLIPVision(name=self.clip_name.name)}
 
 
 class ControlNetLoader(ComfyNode):
@@ -103,7 +110,7 @@ class ControlNetLoader(ComfyNode):
         return False
     
     async def initialize(self, context: ProcessingContext):
-        control_net, = await super().process(context)
+        control_net, = await self.call_comfy_node(context)
         context.add_model("comfy.control_net", self.control_net_name.name, control_net)
     
     async def process(self, context: ProcessingContext):
@@ -123,6 +130,13 @@ class UpscaleModelLoader(ComfyNode):
     @classmethod
     def is_cacheable(cls):
         return False
+    
+    async def initialize(self, context: ProcessingContext):
+        upscale_model, = await self.call_comfy_node(context)
+        context.add_model("comfy.upscale_model", self.model_name.name, upscale_model)
+
+    async def process(self, context: ProcessingContext):
+        return {"upscale_model": UpscaleModel(name=self.model_name.name)}
 
 
 class GLIGENLoader(ComfyNode):
@@ -138,3 +152,10 @@ class GLIGENLoader(ComfyNode):
     @classmethod
     def is_cacheable(cls):
         return False
+    
+    async def initialize(self, context: ProcessingContext):
+        gligen, = await self.call_comfy_node(context)
+        context.add_model("comfy.gligen", self.gligen_name.name, gligen)
+
+    async def process(self, context: ProcessingContext):
+        return {"gligen": GLIGEN(name=self.gligen_name.name)}

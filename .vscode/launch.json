@@ -10,7 +10,9 @@
             "request": "launch",
             "module": "nodetool.cli",
             "args": [
-                "serve"
+                "serve",
+                "--host",
+                "0.0.0.0"
             ],
             "console": "integratedTerminal"
         },

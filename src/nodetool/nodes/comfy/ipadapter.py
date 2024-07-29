@@ -7,12 +7,14 @@ from nodetool.metadata.types import (
     Embeds,
     IPAdapter,
     IPAdapterFile,
+    ImageRef,
     ImageTensor,
     InsightFace,
     Mask,
     UNet,
 )
 from nodetool.common.comfy_node import ComfyNode
+from nodetool.workflows.processing_context import ProcessingContext
 
 
 class InterpolationMethod(Enum):
@@ -92,17 +94,16 @@ class IPAdapterModelLoader(ComfyNode):
         description="List of available IPAdapter model names.",
     )
 
-    @validator("ipadapter_file", pre=True)
-    def validate_ipadapter_file(cls, v):
-        if isinstance(v, str):
-            v = IPAdapterFile(file=v)
-        if isinstance(v, dict):
-            v = IPAdapterFile(**v)
-        return v
-
     @classmethod
     def return_type(cls):
         return {"ipadapter": IPAdapter}
+
+    async def initialize(self, context: ProcessingContext):
+        ipadapter, = await self.call_comfy_node(context)
+        context.add_model("comfy.ip_adapter", self.ipadapter_file.name, ipadapter)
+        
+    async def process(self, context: ProcessingContext):
+        return {"ipadapter": IPAdapter(name=self.ipadapter_file.name)}
 
 
 class IPAdapterEncoder(ComfyNode):
@@ -156,7 +157,7 @@ class IPAdapterApply(ComfyNode):
     clip_vision: CLIPVision = Field(
         default=CLIPVision(), description="The CLIP vision to use."
     )
-    image: ImageTensor = Field(default=ImageTensor(), description="The image to use.")
+    image: ImageRef = Field(default=ImageRef(), description="The image to use.")
     model: UNet = Field(
         default=UNet(), description="The model to apply the IPAdapter to."
     )
@@ -181,6 +182,12 @@ class IPAdapterApply(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"unet": UNet}
+    
+    async def process(self, context: ProcessingContext):
+        unet, = await self.call_comfy_node(context)
+        name = self.model.name + "_" + self.ipadapter.name
+        context.add_model("comfy.unet", name, unet)
+        return {"unet": UNet(name=name)}
 
 
 class IPAdapterApplyEncoded(IPAdapterApply):

@@ -17,6 +17,7 @@ from nodetool.metadata.types import (
 )
 from nodetool.common.comfy_node import MAX_RESOLUTION
 from nodetool.common.comfy_node import ComfyNode
+from nodetool.workflows.processing_context import ProcessingContext
 
 
 class CLIPTextEncode(ComfyNode):
@@ -323,16 +324,6 @@ class LoraLoader(ComfyNode):
         le=20.0,  # le is 'less than or equal to'
     )
 
-    @validator("lora_name", pre=True)
-    def validate_lora_name(cls, v):
-        if isinstance(v, str):
-            v = LORAFile(name=v)
-        if isinstance(v, dict):
-            v = LORAFile(**v)
-        if v.name == "":
-            raise ValueError("The checkpoint name cannot be empty.")
-        return v
-
     @classmethod
     def get_ttile(cls):
         return "Load LoRA"
@@ -343,6 +334,18 @@ class LoraLoader(ComfyNode):
             "model": UNet,
             "clip": CLIP,
         }
+
+    async def process(self, context: ProcessingContext):
+        unet, clip = await self.call_comfy_node(context)
+
+        context.add_model("comfy.unet", self.lora_name.name, unet)
+        context.add_model("comfy.clip", self.lora_name.name, clip)
+
+        return {
+            "model": UNet(name=self.lora_name.name),
+            "clip": CLIP(name=self.lora_name.name),
+        }
+
 
 
 class LoraLoaderModelOnly(ComfyNode):
@@ -357,16 +360,6 @@ class LoraLoaderModelOnly(ComfyNode):
         le=20.0,  # le is 'less than or equal to'
     )
 
-    @validator("lora_name", pre=True)
-    def validate_lora_name(cls, v):
-        if isinstance(v, str):
-            v = LORAFile(name=v)
-        if isinstance(v, dict):
-            v = LORAFile(**v)
-        if v.name == "":
-            raise ValueError("The checkpoint name cannot be empty.")
-        return v
-
     @classmethod
     def get_ttile(cls):
         return "Load LoRA (Model only)"
@@ -374,6 +367,18 @@ class LoraLoaderModelOnly(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"unet": UNet}
+
+    async def initialize(self, context: ProcessingContext):
+        unet, clip = await self.call_comfy_node(context)
+
+        context.add_model("comfy.unet", self.lora_name.name, unet)
+
+    
+    async def process(self, context: ProcessingContext):
+        return {
+            "model": UNet(name=self.lora_name.name),
+        }
+
 
 
 class VAELoader(ComfyNode):

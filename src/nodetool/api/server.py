@@ -63,6 +63,16 @@ def create_app(
             print(f"Request validation error: {exc}")
             return JSONResponse({"detail": exc.errors()}, status_code=422)
 
+    if Environment.get_comfy_folder():
+        import comfy.cli_args
+        comfy.cli_args.args.force_fp16 = True
+
+        import comfy.model_management
+        import comfy.utils
+        from comfy.nodes import init_custom_nodes
+        init_custom_nodes()
+
+
     @app.get("/health")
     async def health_check() -> str:
         return "OK"

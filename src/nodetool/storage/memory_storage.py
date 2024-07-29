@@ -20,6 +20,11 @@ class MemoryStorage(AbstractStorage):
 
     def get_url(self, key: str):
         return f"{self.base_url}/{key}"
+    
+    def generate_presigned_url(
+        self, client_method: str, object_name: str, expiration=3600 * 24 * 7
+    ):
+        return f"{self.base_url}/{object_name}"
 
     async def file_exists(self, file_name: str) -> bool:
         return file_name in self.storage

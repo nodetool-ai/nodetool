@@ -1,6 +1,6 @@
 from enum import Enum
 from nodetool.metadata import is_assignable
-from nodetool.metadata.types import CheckpointFile, ModelFile
+from nodetool.metadata.types import CheckpointFile, ComfyData, ComfyModel, ImageRef, ModelFile, OutputSlot
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
@@ -27,33 +27,40 @@ class ComfyNode(BaseNode):
     def is_visible(cls) -> bool:
         return cls is not ComfyNode
 
-    def assign_property(self, name: str, value: Any):
-        """
-        Sets the value of a property.
+    # def assign_property(self, name: str, value: Any):
+    #     """
+    #     Sets the value of a property.
 
-        Args:
-            name (str): The name of the property.
-            value (Any): The value to be assigned to the property.
+    #     Args:
+    #         name (str): The name of the property.
+    #         value (Any): The value to be assigned to the property.
 
-        Raises:
-            ValueError: If the value is not assignable to the property.
-        """
-        prop = self.find_property(name)
+    #     Raises:
+    #         ValueError: If the value is not assignable to the property.
+    #     """
+    #     prop = self.find_property(name)
 
-        if not is_assignable(prop.type, value):
-            raise ValueError(
-                f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
-            )
+    #     if not is_assignable(prop.type, value):
+    #         raise ValueError(
+    #             f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
+    #         )
 
-        if prop.type.is_model_file_type():
-            if isinstance(value, str):
-                value = ModelFile(type=prop.type.type, name=value)
-            if isinstance(value, dict):
-                value = ModelFile(**value)
+    #     if prop.type.is_model_file_type():
+    #         if isinstance(value, str):
+    #             value = ModelFile(type=prop.type.type, name=value)
+    #         if isinstance(value, dict):
+    #             value = ModelFile(**value)
                 
-        setattr(self, name, value)
+    #     if prop.type.is_comfy_model():
+    #         if isinstance(value, str):
+    #             value = ComfyModel(type=prop.type.type, name=value)
+    #         if isinstance(value, dict):
+    #             value = ComfyModel(**value)
+                
+    #     setattr(self, name, value)
+        
 
-    async def process(self, context: ProcessingContext):
+    async def call_comfy_node(self, context: ProcessingContext):
         """
         Delegate the processing to the comfy class.
         Values will be converted for model files and enums.
@@ -72,18 +79,30 @@ class ComfyNode(BaseNode):
             node_class = mappings[name]
             function_name = node_class.FUNCTION
 
-            def convert_value(name: str, value: Any) -> Any:
+            async def convert_value(name: str, value: Any) -> Any:
                 prop = self.find_property(name)
                 
                 if isinstance(value, ModelFile):
                     return value.name
+                elif isinstance(value, ImageRef):
+                    tensor = await context.image_to_tensor(value)
+                    return tensor.unsqueeze(0)
+                elif prop.type.is_comfy_data_type():
+                    if not isinstance(value, ComfyData):
+                        raise ValueError(f"not a comfy data type: {value}")
+                    return value.data
                 elif prop.type.is_comfy_model():
-                    return context.get_model(prop.type.type, value.name) # type: ignore
+                    if isinstance(value, dict):
+                        raise ValueError(f"Expected model file for property {name}: {value}")
+                    model = context.get_model(prop.type.type, value.name) # type: ignore
+                    if model is None:
+                        raise ValueError("Model not loaded: ", prop.type.type, value.name)
+                    return model
                 else:
                     return value
 
             kwargs = {
-                name.replace("-", ""): convert_value(name, value)
+                name.replace("-", ""): await convert_value(name, value)
                 for name, value in self.node_properties().items()
             }
 
@@ -92,11 +111,15 @@ class ComfyNode(BaseNode):
 
         else:
             raise ValueError(f"Node {name} not found in mappings")
+        
+    async def process(self, context: ProcessingContext):
+        return await self.call_comfy_node(context)
 
     async def convert_output(self, context: ProcessingContext, value: Any):
         """
         Converts the output value.
-        If the output is a tuple, it will be converted to a dictionary.
+        
+        Comfy data types are wrapped with their respective classes.
 
         Args:
             context (ProcessingContext): The processing context.
@@ -105,8 +128,14 @@ class ComfyNode(BaseNode):
         Returns:
             Any: The converted output value.
         """
+        def convert_value(output: OutputSlot, v: Any) -> Any:
+            if output.type.is_comfy_data_type():
+                return output.type.get_python_type()(data=v)
+            else:
+                return v
+                
         if isinstance(value, tuple):
-            return {o.name: v for o, v in zip(self.outputs(), value)}
+            return {o.name: convert_value(o, v) for o, v in zip(self.outputs(), value)}
         else:
             return value
 

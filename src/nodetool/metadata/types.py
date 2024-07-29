@@ -156,9 +156,6 @@ class NodeRef(BaseType):
     id: str = ""
 
 
-class ModelFile(BaseType):
-    name: str = ""
-
 
 class Provider(str, enum.Enum):
     OpenAI = "openai"
@@ -200,6 +197,17 @@ class LlamaModel(BaseType):
     digest: str = ""
     details: dict = Field(default_factory=dict)
 
+model_file_types = set()
+
+class ModelFile(BaseType):
+    name: str = ""
+    
+    @classmethod
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        if hasattr(cls, "type"):
+            model_file_types.add(cls.type)
+    
 
 class CheckpointFile(ModelFile):
     type: Literal["comfy.checkpoint_file"] = "comfy.checkpoint_file"
@@ -241,15 +249,23 @@ class UpscaleModelFile(ModelFile):
     type: Literal["comfy.upscale_model_file"] = "comfy.upscale_model_file"
 
 
+comfy_model_types = set()
+
 class ComfyModel(BaseType):
     name: str = ""
+    
+    @classmethod
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        if hasattr(cls, "type"):
+            comfy_model_types.add(cls.type)
 
 
 class CLIP(ComfyModel):
     type: Literal["comfy.clip"] = "comfy.clip"
 
 
-class CLIPVision(BaseType):
+class CLIPVision(ComfyModel):
     type: Literal["comfy.clip_vision"] = "comfy.clip_vision"
 
 
@@ -257,17 +273,8 @@ class CLIPVisionOutput(BaseType):
     type: Literal["comfy.clip_vision_output"] = "comfy.clip_vision_output"
 
 
-class GLIGEN(BaseType):
+class GLIGEN(ComfyModel):
     type: Literal["comfy.gligen"] = "comfy.gligen"
-
-
-class Conditioning(BaseType):
-    type: Literal["comfy.conditioning"] = "comfy.conditioning"
-
-
-class Latent(BaseType):
-    type: Literal["comfy.latent"] = "comfy.latent"
-
 
 
 class ControlNet(ComfyModel):
@@ -281,40 +288,59 @@ class VAE(ComfyModel):
 class UNet(ComfyModel):
     type: Literal["comfy.unet"] = "comfy.unet"
 
-
-class ImageTensor(BaseType):
-    type: Literal["comfy.image_tensor"] = "comfy.image_tensor"
-
-
-class UpscaleModel(BaseType):
+class UpscaleModel(ComfyModel):
     type: Literal["comfy.upscale_model"] = "comfy.upscale_model"
 
 
-class LORA(BaseType):
+class LORA(ComfyModel):
     type: Literal["comfy.lora"] = "comfy.lora"
 
 
-class IPAdapter(BaseType):
+class IPAdapter(ComfyModel):
     type: Literal["comfy.ip_adapter"] = "comfy.ip_adapter"
 
 
-class InsightFace(BaseType):
+comfy_data_types = set()
+
+class ComfyData(BaseType):
+    data: Any = None
+    
+    @classmethod
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        if hasattr(cls, "type"):
+            comfy_data_types.add(cls.type)
+
+
+class Conditioning(ComfyData):
+    type: Literal["comfy.conditioning"] = "comfy.conditioning"
+
+
+class Latent(ComfyData):
+    type: Literal["comfy.latent"] = "comfy.latent"
+
+
+class ImageTensor(ComfyData):
+    type: Literal["comfy.image_tensor"] = "comfy.image_tensor"
+
+
+class InsightFace(ComfyData):
     type: Literal["comfy.insight_face"] = "comfy.insight_face"
 
 
-class Mask(BaseType):
+class Mask(ComfyData):
     type: Literal["comfy.mask"] = "comfy.mask"
 
 
-class Sigmas(BaseType):
+class Sigmas(ComfyData):
     type: Literal["comfy.sigmas"] = "comfy.sigmas"
 
 
-class Sampler(BaseType):
+class Sampler(ComfyData):
     type: Literal["comfy.sampler"] = "comfy.sampler"
 
 
-class Embeds(BaseType):
+class Embeds(ComfyData):
     type: Literal["comfy.embeds"] = "comfy.embeds"
 
 

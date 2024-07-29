@@ -36,10 +36,6 @@ class TypeMetadata(BaseModel):
     def is_serializable_type(self):
         if self.is_list_type() or self.is_union_type() or self.is_dict_type():
             return all(t.is_cacheable_type() for t in self.type_args)
-        if self.type in [
-            "comfy.image_tensor",
-        ]:
-            return True
         if self.is_comfy_type():
             return False
         return True
@@ -48,22 +44,16 @@ class TypeMetadata(BaseModel):
         return self.type.startswith("comfy.")
     
     def is_comfy_model(self):
-        return self.type in [
-            "comfy.unet",
-            "comfy.clip",
-            "comfy.vae",
-            "comfy.control_net",
-        ]
+        from nodetool.metadata.types import comfy_model_types
+        return self.type in comfy_model_types
 
     def is_model_file_type(self):
-        return self.type in [
-            "comfy.clip_vision_file",
-            "comfy.checkpoint_file",
-            "comfy.control_net_file",
-            "comfy.gligen_file",
-            "comfy.upscale_model_file",
-            "comfy.unclip_file",
-        ]
+        from nodetool.metadata.types import model_file_types
+        return self.type in model_file_types
+    
+    def is_comfy_data_type(self):
+        from nodetool.metadata.types import comfy_data_types
+        return self.type in comfy_data_types
     
     def is_primitive_type(self):
         return self.type in ["int", "float", "bool", "str", "text"]

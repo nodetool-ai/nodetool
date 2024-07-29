@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import Field
-from nodetool.metadata.types import VAE, ImageTensor, Latent, Mask
+from nodetool.metadata.types import VAE, ImageRef, ImageTensor, Latent, Mask
 from nodetool.common.comfy_node import MAX_RESOLUTION
 from nodetool.common.comfy_node import ComfyNode
 
@@ -58,8 +58,8 @@ class VAEEncode(ComfyNode):
     The VAE Encode node can be used to encode pixel space images into latent space images, using the provided VAE.
     """
 
-    pixels: ImageTensor = Field(
-        default=ImageTensor(), description="The image to encode."
+    pixels: ImageRef = Field(
+        default=ImageRef(), description="The image to encode."
     )
     vae: VAE = Field(default=VAE(), description="The VAE to use.")
 

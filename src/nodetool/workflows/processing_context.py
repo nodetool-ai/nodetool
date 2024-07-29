@@ -340,7 +340,6 @@ class ProcessingContext:
         """
         def output_type(node_id: str, slot: str):
             node = self.graph.find_node(node_id)
-            print("Node", node)
             if node is None:
                 return None
             for output in node.outputs():
@@ -783,6 +782,16 @@ class ProcessingContext:
         """
         buffer = await self.asset_to_io(image_ref)
         return PIL.Image.open(buffer).convert("RGB")
+    
+    async def image_to_tensor(self, image_ref: ImageRef) -> torch.Tensor:
+        """
+        Converts the image to a tensor.
+
+        Args:
+            context (ProcessingContext): The processing context.
+        """
+        image = await self.image_to_pil(image_ref)
+        return torch.tensor(np.array(image)).float() / 255.0
 
     async def image_to_base64(self, image_ref: ImageRef) -> str:
         """
