@@ -78,7 +78,7 @@ class Transcribe(BaseNode):
     async def process(self, context: ProcessingContext) -> str:
         audio_bytes = await context.asset_to_io(self.audio)
 
-        response = await context.run_prediction(
+        res = await context.run_prediction(
             node_id=self._id,
             provider=Provider.OpenAI,
             model="whisper-1",
@@ -87,7 +87,7 @@ class Transcribe(BaseNode):
             },
         )
 
-        res = Transcription(**response)
+        res = Transcription(**res)
 
         return res.text
 

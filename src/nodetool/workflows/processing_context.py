@@ -400,8 +400,9 @@ class ProcessingContext:
         model: str,
         params: dict[str, Any] | None = None,
         data: Any = None,
-    ) -> PredictionResult:
+    ) -> Any:
         """
+
         Run a prediction on a third-party provider.
 
         Args:
@@ -442,7 +443,7 @@ class ProcessingContext:
                 raise JobCancelledException()
             if isinstance(msg, PredictionResult):
                 # TODO: save prediction result
-                return msg.content
+                return msg.decode_content()
             elif isinstance(msg, Prediction):
                 self.post_message(msg)
 
@@ -854,8 +855,7 @@ class ProcessingContext:
             )
             return AudioRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            ref = await self.create_temp_asset(buffer, "mp3")
-            return AudioRef(temp_id=ref.temp_id, uri=ref.uri)
+            return AudioRef(data=buffer.read())
 
     async def audio_from_bytes(
         self,
@@ -935,17 +935,7 @@ class ProcessingContext:
         buffer = BytesIO()
         audio_segment.export(buffer, format="mp3")
         buffer.seek(0)
-        if name:
-            asset = await self.create_asset(
-                name, "audio/mp3", buffer, parent_id=parent_id
-            )
-            return AudioRef(asset_id=asset.id, uri=asset.get_url or "")
-        else:
-            ref = await self.create_temp_asset(buffer, "mp3")
-            return AudioRef(
-                temp_id=ref.temp_id,
-                uri=ref.uri,
-            )
+        return await self.audio_from_io(buffer, name=name, parent_id=parent_id)
 
     async def dataframe_to_pandas(self, df: DataframeRef) -> pd.DataFrame:
         """

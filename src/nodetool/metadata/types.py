@@ -139,6 +139,7 @@ class TextRef(AssetRef):
 
 class AudioRef(AssetRef):
     type: Literal["audio"] = "audio"
+    data: bytes | None = None
 
 
 class ImageRef(AssetRef):

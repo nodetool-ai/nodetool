@@ -24,7 +24,7 @@ type WaveSurferProps = {
   cursorColor?: string;
   waveColor?: string;
   progressColor?: string;
-  url: string;
+  source?: string | Uint8Array;
   barAlign?: "top" | "bottom";
   barGap?: number;
   barWidth?: number;
@@ -53,7 +53,7 @@ const wsprops: WaveSurferProps = {
   cursorColor: "#eee",
   waveColor: "#ddd",
   progressColor: "#555",
-  url: "",
+  source: "",
   barAlign: "bottom",
   barGap: 1,
   barRadius: 0,
@@ -127,7 +127,7 @@ const formatTime = (time: number) => {
 
 const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   const {
-    url = wsprops.url,
+    source,
     alwaysShowControls = wsprops.alwaysShowControls,
     filename = wsprops.filename,
     waveColor = wsprops.waveColor,
@@ -140,6 +140,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     ...otherProps
   } = incomingProps;
 
+  const [audioUrl, setAudioUrl] = useState<string>("");
   const [prevUrl, setPrevUrl] = useState<string | null>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
   const waveFormRef = useRef<HTMLDivElement | null>(null);
@@ -188,13 +189,24 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     }
   }, []);
 
+  useEffect(() => {
+    if (source instanceof Uint8Array) {
+      const blob = new Blob([source], { type: 'audio/mp3' });
+      const url = URL.createObjectURL(blob);
+      setAudioUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setAudioUrl(source ?? "");
+    }
+  }, [source]);
+
   const loadWaveSurfer = useCallback(async () => {
-    if (!url || lastLoadedUrlRef.current === url) return;
+    if (audioUrl === "" || lastLoadedUrlRef.current === audioUrl) return;
 
     const abortCtrl = new AbortController();
 
     try {
-      const response = await axios.get(url, {
+      const response = await axios.get(audioUrl, {
         headers: { Accept: "audio/mp3" },
         responseType: "blob",
         signal: abortCtrl.signal
@@ -203,7 +215,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
       if (
         response.status === 200 &&
         waveFormRef.current &&
-        (!prevUrl || prevUrl !== url)
+        (!prevUrl || prevUrl !== audioUrl)
       ) {
         if (waveSurferRef.current) {
           waveSurferRef.current.destroy();
@@ -239,7 +251,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           container: waveFormRef.current,
           ...wsprops,
           ...otherProps,
-          url,
+          url: audioUrl,
           plugins: [minimap]
         });
         waveSurferRef.current = waveSurfer;
@@ -274,7 +286,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
             setIsPlaying(false);
           }
         });
-        setPrevUrl(url);
+        setPrevUrl(audioUrl);
       } else if (response.status !== 200) {
         devError("Audio file not found.");
       }
@@ -286,13 +298,13 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
       }
     }
 
-    lastLoadedUrlRef.current = url;
+    lastLoadedUrlRef.current = audioUrl;
 
     return () => {
       abortCtrl.abort();
     };
   }, [
-    url,
+    source,
     prevUrl,
     minimapId,
     waveColor,
@@ -346,9 +358,8 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
       onClick={(e) => {
         e.stopPropagation();
       }}
-      className={`audio-controls-container${!fitsContainer ? " zoomed" : ""}${
-        url === "" ? " disabled" : ""
-      }`}
+      className={`audio-controls-container${!fitsContainer ? " zoomed" : ""}${audioUrl === "" ? " disabled" : ""
+        }`}
     >
       <Typography
         variant="body1"
@@ -383,11 +394,10 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
       ></div>
       <div
         id={minimapId}
-        className={`minimap ${
-          waveSurferRef?.current && waveSurferRef.current.getDuration() > 15
-            ? "visible"
-            : ""
-        }`}
+        className={`minimap ${waveSurferRef?.current && waveSurferRef.current.getDuration() > 15
+          ? "visible"
+          : ""
+          }`}
         style={{ height: `${minimapHeight}px` }}
       ></div>
       {(isReady || alwaysShowControls) && (
@@ -395,7 +405,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           isPlaying={isPlaying}
           zoom={zoom}
           filename={filename}
-          assetUrl={url}
+          assetUrl={audioUrl}
           onPlayPause={handlePlayPause}
           loop={loop}
           setLoop={setLoop}

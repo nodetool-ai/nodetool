@@ -34,13 +34,15 @@ export default function AudioProperty(props: PropertyProps) {
         description={props.property.description}
         id={id}
       />
-      <PropertyDropzone
-        asset={asset}
-        uri={uri || ""}
-        onChange={props.onChange}
-        contentType="audio"
-        props={props}
-      />
+      {props.nodeType === "nodetool.constant.Audio" && (
+        <PropertyDropzone
+          asset={asset}
+          uri={uri || ""}
+          onChange={props.onChange}
+          contentType="audio"
+          props={props}
+        />
+      )}
     </div>
   );
 }
