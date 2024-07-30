@@ -47,7 +47,6 @@ class HuggingfaceNode(BaseNode):
                 node_id=self.id,
                 node_name=model_id,
                 status="starting",
-                started_at=datetime.now().isoformat(),
             )
         )
 

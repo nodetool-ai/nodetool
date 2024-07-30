@@ -49,7 +49,7 @@ class WorkflowRunner:
         - GPU-intensive workflows are automatically directed to workers with GPU capabilities when available.
         - The class relies on an external ProcessingContext for managing execution state and inter-node communication.
     """
-    
+
     def __init__(self, job_id: str, device: str | None = None):
         """
         Initializes a new WorkflowRunner instance.
@@ -64,6 +64,7 @@ class WorkflowRunner:
             - Sets current_node to None.
         """
         import torch
+
         self.job_id = job_id
         self.status = "running"
         self.is_cancelled = False
@@ -155,7 +156,6 @@ class WorkflowRunner:
                 for node in graph.nodes:
                     await node.finalize(context)
                 raise e
-                
 
         if self.is_cancelled:
             log.info("Job cancelled")
@@ -297,38 +297,18 @@ class WorkflowRunner:
             if cached_result is not None:
                 result = cached_result
             else:
-                context.post_message(
-                    NodeUpdate(
-                        node_id=node.id,
-                        node_name=node.get_title(),
-                        properties=node.properties_for_update(),
-                        status="running",
-                        started_at=started_at.isoformat(),
-                    )
-                )
+                node.send_update(context, "running")
                 await node.move_to_device(self.device)
                 result = await node.process(context)
                 result = await node.convert_output(context, result)
-                
+
                 # in the future, we will have a better way to handle this
                 await node.move_to_device("cpu")
 
                 if node.is_cacheable():
                     context.cache_result(node, result)
 
-            res_for_update = await self.prepare_result_for_update(context, result, node)
-            
-            context.post_message(
-                NodeUpdate(
-                    node_id=node._id,
-                    node_name=node.get_title(),
-                    properties=node.properties_for_update(),
-                    status="completed",
-                    result=res_for_update,
-                    started_at=started_at.isoformat(),
-                    completed_at=datetime.now().isoformat(),
-                )
-            )
+            node.send_update(context, "completed", result)
 
         except Exception as e:
             context.post_message(
@@ -337,8 +317,6 @@ class WorkflowRunner:
                     node_name=node.get_title(),
                     status="error",
                     error=str(e)[:1000],
-                    started_at=started_at.isoformat(),
-                    completed_at=datetime.now().isoformat(),
                 )
             )
             raise
@@ -427,37 +405,6 @@ class WorkflowRunner:
             return {}
         else:
             return {"output": results[output_nodes[0]._id]}
-
-    @staticmethod
-    async def prepare_result_for_update(
-        context: ProcessingContext, result: Dict[str, Any], node: BaseNode
-    ) -> Dict[str, Any]:
-        """
-        Prepares the node result for inclusion in a NodeUpdate message.
-
-        Args:
-            result (Dict[str, Any]): The raw result from node processing.
-            node (BaseNode): The node that produced the result.
-
-        Returns:
-            Dict[str, Any]: A modified version of the result suitable for status updates.
-
-        Note:
-            - Removes ComfyUI-specific types from the result.
-            - Converts Pydantic models in the result to dictionaries.
-        """
-        res_for_update = result.copy()
-        
-        for o in node.outputs():
-            value = res_for_update.get(o.name)
-            if not o.type.is_serializable_type() or isinstance(value, torch.Tensor):
-                del res_for_update[o.name]
-            elif isinstance(value, BaseModel):
-                res_for_update[o.name] = value.model_dump()
-
-        print("res_for_update", node.get_node_type(), res_for_update) 
-        
-        return res_for_update
 
     @contextmanager
     def torch_context(self, context: ProcessingContext):

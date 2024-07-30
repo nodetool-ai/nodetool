@@ -11,6 +11,7 @@ from nodetool.common.environment import Environment
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.run_job_request import RunJobRequest
+from nodetool.workflows.types import BinaryUpdate
 from nodetool.workflows.workflow_runner import WorkflowRunner
 
 log = Environment.get_logger()
@@ -133,17 +134,22 @@ class WebSocketRunner:
                 "api/auth/verify", json={"token": req.auth_token}
             )
             if Environment.is_production():
-                if res.json()['valid'] == False:
+                if res.json()["valid"] == False:
                     raise ValueError("Invalid auth token")
 
             log.info("Running job: %s", self.job_id)
             if self.pre_run_hook:
                 self.pre_run_hook()
 
-            async for msg in run_workflow(req, self.runner, self.context, use_thread=True):
+            async for msg in run_workflow(
+                req, self.runner, self.context, use_thread=True
+            ):
                 try:
                     print(msg)
-                    await self.websocket.send_text(msg.model_dump_json())
+                    if isinstance(msg, BinaryUpdate):
+                        await self.websocket.send_bytes(msg.encode())
+                    else:
+                        await self.websocket.send_text(msg.model_dump_json())
                 except Exception as e:
                     log.exception(e)
 

@@ -38,6 +38,62 @@ export type NodeState = {
   error: string | null;
 };
 
+function uint8ArrayToDataUri(array: Uint8Array, mimeType: string): string {
+  // Convert the Uint8Array to a regular array of numbers
+  const numberArray = Array.from(array);
+
+  // Convert each number to its corresponding character
+  const characters = numberArray.map(byte => String.fromCharCode(byte));
+
+  // Join the characters into a single string
+  const binaryString = characters.join('');
+
+  // Encode the binary string as base64
+  const base64String = btoa(binaryString);
+
+  // Construct and return the data URI
+  return `data:${mimeType};base64,${base64String}`;
+}
+
+async function extractImage(blob: Blob) {
+  let currentIndex = 0;
+  const buffer = await blob.arrayBuffer();
+  const arr = new Uint8Array(buffer);
+
+  // Helper function to read a null-terminated string
+  function readString(): string {
+    const startIndex = currentIndex;
+    while (currentIndex < arr.length && arr[currentIndex] !== 0) {
+      currentIndex++;
+    }
+    const string = new TextDecoder().decode(arr.slice(startIndex, currentIndex));
+    currentIndex++; // Skip the NULL byte
+    return string;
+  }
+
+  const nodeId = readString();
+  const outputName = readString();
+
+  if (currentIndex >= arr.length) {
+    throw new Error("No PNG data found after the NULL-terminated strings");
+  }
+
+  // Extract PNG data (everything after the second NULL byte)
+  const pngData = arr.slice(currentIndex);
+
+  // Validate PNG signature
+  const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
+  if (pngData.length < pngSignature.length || !pngSignature.every((byte, i) => pngData[i] === byte)) {
+    throw new Error("Invalid PNG signature in the remaining data");
+  }
+
+  return {
+    nodeId,
+    outputName,
+    url: uint8ArrayToDataUri(pngData, "image/png")
+  };
+}
+
 export type WorkflowRunner = {
   socket: WebSocket | null;
   job_id: string | null;
@@ -50,6 +106,7 @@ export type WorkflowRunner = {
     workflow: WorkflowAttributes,
     data: JobUpdate | Prediction | NodeProgress | NodeUpdate
   ) => void;
+  readBinaryMessage: (workflow: WorkflowAttributes, data: Blob) => Promise<void>;
   addNotification: (
     notification: Omit<Notification, "id" | "timestamp">
   ) => void;
@@ -69,35 +126,39 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     set({ statusMessage: message });
   },
   notifications: [],
-    
+
   connect: async (url: string) => {
     const user = useAuth.getState().getUser();
     if (!user) {
       throw new Error("User is not logged in");
     }
-    
+
     if (get().socket) {
       get().disconnect();
     }
-    
+
     set({ current_url: url, state: "connecting" });
 
     const socket = new WebSocket(url);
-    
+
     socket.onopen = () => {
       devLog("WebSocket connected");
       set({ socket });
     };
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+    socket.onmessage = async (event) => {
       // TODO: this needs to be part of the payload
       const workflow = useNodeStore.getState().workflow;
-      get().readMessage(workflow, data);
+      if (event.data instanceof Blob) {
+        await get().readBinaryMessage(workflow, event.data);
+      } else {
+        const data = JSON.parse(event.data);
+        get().readMessage(workflow, data);
+      }
     };
 
     socket.onerror = (error) => {
-      devError("WebSocket error:",error);
+      devError("WebSocket error:", error);
       set({ state: "error" });
     };
 
@@ -105,7 +166,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       devLog("WebSocket disconnected");
       set({ socket: null, state: "idle" });
     };
-    
+
     set({ socket });
 
     return new Promise<void>((resolve) => {
@@ -125,6 +186,26 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       socket.close();
       set({ socket: null, current_url: "", state: "idle" });
     }
+  },
+
+  readBinaryMessage: async (workflow: WorkflowAttributes, data: Blob) => {
+    const setResult = useResultsStore.getState().setResult;
+    const addNotification = get().addNotification;
+    const { nodeId, outputName, url } = await extractImage(data);
+
+    console.log("Received image for node", nodeId, url);
+
+    setResult(workflow.id, nodeId, {
+      [outputName]: {
+        type: "image",
+        uri: url
+      }
+    });
+
+    addNotification({
+      type: "info",
+      content: `Received image for node ${nodeId}`
+    });
   },
 
   readMessage: (
@@ -282,13 +363,13 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
     const connectUrl = WORKER_URL;
-    
+
     if (!get().socket || get().current_url !== connectUrl) {
       await get().connect(connectUrl);
     }
-    
+
     const socket = get().socket;
-    
+
     if (socket === null) {
       throw new Error("Socket is null");
     }
@@ -321,7 +402,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
         edges: edges.map(reactFlowEdgeToGraphEdge)
       }
     };
-    
+
     socket.send(JSON.stringify({
       command: "run_job",
       data: req

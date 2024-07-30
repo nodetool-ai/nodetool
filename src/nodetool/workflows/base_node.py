@@ -10,7 +10,13 @@ import torch
 from nodetool.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.type_metadata import TypeMetadata
-from nodetool.metadata.types import ComfyData, NameToType, TypeToName
+from nodetool.metadata.types import (
+    AssetRef,
+    ComfyData,
+    ImageRef,
+    NameToType,
+    TypeToName,
+)
 from nodetool.metadata import (
     is_assignable,
 )
@@ -29,6 +35,7 @@ from nodetool.metadata.utils import (
 
 from nodetool.workflows.property import Property
 from nodetool.workflows.run_job_request import RunJobRequest
+from nodetool.workflows.types import BinaryUpdate, NodeUpdate
 
 """
 This module defines the core components and functionality for nodes in a workflow graph system.
@@ -401,17 +408,19 @@ class BaseNode(BaseModel):
                 print(f"{self.__class__} Error setting property {name}: {e}")
                 if not skip_errors:
                     raise e
-                
+
     def properties_for_update(self):
         """
         Properties to send to the client for updating the node.
         Comfy types and tensors are excluded.
         """
+
         def should_include(prop: Property, value: Any):
             return (
-                not isinstance(value, torch.Tensor) 
-                and not prop.type.is_comfy_type() 
+                not isinstance(value, torch.Tensor)
+                and not prop.type.is_comfy_type()
                 and not isinstance(value, ComfyData)
+                and not isinstance(value, AssetRef)
             )
 
         return {
@@ -419,6 +428,58 @@ class BaseNode(BaseModel):
             for prop in self.properties()
             if should_include(prop, getattr(self, prop.name))
         }
+
+    def result_for_update(self, result: dict[str, Any]) -> dict[str, Any]:
+        """
+        Prepares the node result for inclusion in a NodeUpdate message.
+
+        Args:
+            result (Dict[str, Any]): The raw result from node processing.
+
+        Returns:
+            Dict[str, Any]: A modified version of the result suitable for status updates.
+
+        Note:
+            - Converts Pydantic models to dictionaries.
+            - Serializes binary data to base64.
+        """
+        res_for_update = {}
+
+        for o in self.outputs():
+            value = result.get(o.name)
+            if isinstance(value, torch.Tensor):
+                continue
+            elif isinstance(value, ComfyData):
+                res_for_update[o.name] = value.serialize()
+            elif isinstance(value, BaseModel):
+                res_for_update[o.name] = value.model_dump()
+            else:
+                res_for_update[o.name] = value
+
+        return res_for_update
+
+    def send_update(
+        self,
+        context: Any,
+        status: str,
+        result: dict[str, Any] | None = None,
+    ):
+        """
+        Send a status update for the node to the client.
+
+        Args:
+            context (Any): The context in which the node is being processed.
+            status (str): The status of the node.
+            result (dict[str, Any], optional): The result of the node's processing. Defaults to {}.
+        """
+        update = NodeUpdate(
+            node_id=self.id,
+            node_name=self.get_title(),
+            status=status,
+            result=self.result_for_update(result) if result is not None else None,
+            properties=self.properties_for_update(),
+        )
+        context.post_message(update)
 
     @classmethod
     def is_assignable(cls, name: str, value: Any) -> bool:
@@ -438,7 +499,7 @@ class BaseNode(BaseModel):
     def is_cacheable(cls):
         """
         Check if the node is cacheable.
-        
+
         Returns:
             bool: True if the node is cacheable, False otherwise.
         """
@@ -628,7 +689,7 @@ class BaseNode(BaseModel):
 
     def node_properties(self):
         return {prop.name: getattr(self, prop.name) for prop in self.properties()}
-    
+
     async def convert_output(self, context: Any, output: Any) -> Any:
         if type(self.return_type()) is dict:
             return output
@@ -636,29 +697,29 @@ class BaseNode(BaseModel):
             return output.model_dump()
         else:
             return {"output": output}
-        
+
     async def initialize(self, context: Any):
         """
         Initialize the node when workflow starts.
-        
+
         Responsible for setting up the node, including loading any necessary GPU models.
         """
         pass
-    
+
     async def move_to_device(self, device: str):
         """
         Move the node to a specific device, "cpu", "cuda" or "mps".
-        
+
         Args:
             device (str): The device to move the node to.
         """
         pass
-    
+
     async def finalize(self, context):
         """
         Finalizes the workflow by performing any necessary cleanup or post-processing tasks.
-        
-        This method is called when the workflow is shutting down. 
+
+        This method is called when the workflow is shutting down.
         It's responsible for cleaning up resources, unloading GPU models, and performing any necessary teardown operations.
         """
         pass
@@ -757,20 +818,31 @@ class Preview(BaseNode):
     value: Any = Field(None, description="The value to preview.")
     name: str = Field("", description="The name of the preview node.")
     _visible: bool = False
-    
+
     @classmethod
     def is_cacheable(cls):
         return False
 
     async def process(self, context: Any) -> Any:
-        # infer input type from source node output type
-        input_types: dict[str, TypeMetadata | None] = context.get_node_input_types(self.id)
-        sys.stdout.flush()
-        if input_types:
-            value_type = input_types.get("value", None)
-            if value_type and value_type.type == "comfy.image_tensor":
-                return await context.image_from_tensor(self.value.data)
         return self.value
+
+    def send_update(
+        self,
+        context: Any,
+        status: str,
+        result: dict[str, Any] | None = None,
+    ):
+        if isinstance(self.value, ImageRef) and self.value.binary is not None:
+            if status == "completed":
+                context.post_message(
+                    BinaryUpdate(
+                        node_id=self.id,
+                        output_name="output",
+                        binary=self.value.binary,
+                    )
+                )
+        else:
+            super().send_update(context, status, result)
 
 
 def get_node_class_by_name(class_name: str) -> list[type[BaseNode]]:
@@ -864,7 +936,7 @@ class GroupNode(BaseNode):
 
     This node type allows for hierarchical structuring of workflows.
     """
-    
+
     @classmethod
     def is_cacheable(cls):
         return False

@@ -16,8 +16,26 @@ class NodeUpdate(BaseModel):
     logs: str | None = None
     result: dict[str, Any] | None = None
     properties: dict[str, Any] | None = None
-    started_at: str | None = None
-    completed_at: str | None = None
+
+
+class BinaryUpdate(BaseModel):
+    type: Literal["binary_update"] = "binary_update"
+    node_id: str
+    output_name: str
+    binary: bytes
+
+    def encode(self) -> bytes:
+        """
+        Create an encoded message containing two null-terminated strings and PNG data.
+        """
+        # Encode the strings as UTF-8 and add null terminators
+        encoded_node_id = self.node_id.encode("utf-8") + b"\x00"
+        encoded_output_name = self.output_name.encode("utf-8") + b"\x00"
+
+        # Combine all parts of the message
+        message = encoded_node_id + encoded_output_name + self.binary
+
+        return message
 
 
 class NodeProgress(BaseModel):
@@ -32,4 +50,6 @@ class Error(BaseModel):
     error: str
 
 
-ProcessingMessage = NodeUpdate | NodeProgress | JobUpdate | Error | Prediction
+ProcessingMessage = (
+    NodeUpdate | BinaryUpdate | NodeProgress | JobUpdate | Error | Prediction
+)

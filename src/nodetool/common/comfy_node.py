@@ -27,39 +27,6 @@ class ComfyNode(BaseNode):
     def is_visible(cls) -> bool:
         return cls is not ComfyNode
 
-    # def assign_property(self, name: str, value: Any):
-    #     """
-    #     Sets the value of a property.
-
-    #     Args:
-    #         name (str): The name of the property.
-    #         value (Any): The value to be assigned to the property.
-
-    #     Raises:
-    #         ValueError: If the value is not assignable to the property.
-    #     """
-    #     prop = self.find_property(name)
-
-    #     if not is_assignable(prop.type, value):
-    #         raise ValueError(
-    #             f"[{self.__class__.__name__}] Invalid value for property `{name}`: {value} (expected {prop.type})"
-    #         )
-
-    #     if prop.type.is_model_file_type():
-    #         if isinstance(value, str):
-    #             value = ModelFile(type=prop.type.type, name=value)
-    #         if isinstance(value, dict):
-    #             value = ModelFile(**value)
-                
-    #     if prop.type.is_comfy_model():
-    #         if isinstance(value, str):
-    #             value = ComfyModel(type=prop.type.type, name=value)
-    #         if isinstance(value, dict):
-    #             value = ComfyModel(**value)
-                
-    #     setattr(self, name, value)
-        
-
     async def call_comfy_node(self, context: ProcessingContext):
         """
         Delegate the processing to the comfy class.
@@ -128,14 +95,16 @@ class ComfyNode(BaseNode):
         Returns:
             Any: The converted output value.
         """
-        def convert_value(output: OutputSlot, v: Any) -> Any:
+        async def convert_value(output: OutputSlot, v: Any) -> Any:
+            if output.type.type == "image":
+                return await context.image_from_tensor(v)
             if output.type.is_comfy_data_type():
                 return output.type.get_python_type()(data=v)
             else:
                 return v
                 
         if isinstance(value, tuple):
-            return {o.name: convert_value(o, v) for o, v in zip(self.outputs(), value)}
+            return {o.name: await convert_value(o, v) for o, v in zip(self.outputs(), value)}
         else:
             return value
 

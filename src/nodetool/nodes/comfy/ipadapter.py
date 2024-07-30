@@ -97,6 +97,10 @@ class IPAdapterModelLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"ipadapter": IPAdapter}
+    
+    @classmethod
+    def is_cacheable(cls):
+        return False
 
     async def initialize(self, context: ProcessingContext):
         ipadapter, = await self.call_comfy_node(context)

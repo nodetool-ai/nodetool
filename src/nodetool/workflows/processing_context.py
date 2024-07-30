@@ -107,7 +107,7 @@ class ProcessingContext:
         results: dict[str, Any] | None = None,
         queue: Queue | asyncio.Queue | None = None,
         capabilities: list[str] | None = None,
-        http_client: httpx.AsyncClient |None = None,
+        http_client: httpx.AsyncClient | None = None,
         api_client: NodetoolAPIClient | None = None,
         device: str = "cpu",
         models: dict[str, dict[str, Any]] | None = None,
@@ -230,18 +230,15 @@ class ProcessingContext:
         """Cache the result for a node."""
 
         from nodetool.common.comfy_node import ComfyNode
-        
-        all_cacheable = all(
-            out.type.is_cacheable_type()
-            for out in node.outputs()
-        )
-        
+
+        all_cacheable = all(out.type.is_cacheable_type() for out in node.outputs())
+
         if all_cacheable:
             key = self.generate_node_cache_key(node)
             # TODO: remove once caching works for all comfy nodes
             print("Caching node", node.get_node_type(), key)
             Environment.get_node_cache().set(key, result, ttl)
-            
+
     def add_model(self, type: str, name: str, model: Any):
         """
         Adds a model to the context.
@@ -254,7 +251,7 @@ class ProcessingContext:
         if type not in self.models:
             self.models[type] = {}
         self.models[type][name] = model
-        
+
     def get_model(self, type: str, name: str) -> Any:
         """
         Gets a model from the context.
@@ -326,7 +323,7 @@ class ProcessingContext:
             res (dict[str, Any]): The result of the node.
         """
         self.results[node_id] = res
-        
+
     def get_node_input_types(self, node_id: str) -> dict[str, TypeMetadata | None]:
         """
         Retrieves the input types for a given node, inferred from the output types of the source nodes.
@@ -338,6 +335,7 @@ class ProcessingContext:
             dict[str, str]: A dictionary containing the input types for the node, where the keys are the input slot names
             and the values are the types of the corresponding source nodes.
         """
+
         def output_type(node_id: str, slot: str):
             node = self.graph.find_node(node_id)
             if node is None:
@@ -346,6 +344,7 @@ class ProcessingContext:
                 if output.name == slot:
                     return output.type
             return None
+
         return {
             edge.targetHandle: output_type(edge.source, edge.sourceHandle)
             for edge in self.graph.edges
@@ -782,7 +781,7 @@ class ProcessingContext:
         """
         buffer = await self.asset_to_io(image_ref)
         return PIL.Image.open(buffer).convert("RGB")
-    
+
     async def image_to_tensor(self, image_ref: ImageRef) -> torch.Tensor:
         """
         Converts the image to a tensor.
@@ -1017,8 +1016,8 @@ class ProcessingContext:
             )
             return ImageRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            ref = await self.create_temp_asset(buffer)
-            return ImageRef(temp_id=ref.temp_id, uri=ref.uri)
+            buffer.seek(0)
+            return ImageRef(binary=buffer.read())
 
     async def image_from_url(
         self,
@@ -1118,9 +1117,10 @@ class ProcessingContext:
             ImageRef: The ImageRef object.
         """
         return await self.image_from_pil(PIL.Image.fromarray(image), name=name)
-    
+
     async def image_from_tensor(
-        self, image_tensor: torch.Tensor,
+        self,
+        image_tensor: torch.Tensor,
     ):
         """
         Creates an ImageRef from a tensor.

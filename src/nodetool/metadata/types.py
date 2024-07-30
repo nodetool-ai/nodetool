@@ -1,3 +1,4 @@
+import base64
 from enum import Enum
 import enum
 from pathlib import Path
@@ -144,7 +145,16 @@ class ImageRef(AssetRef):
     """A reference to an image asset."""
 
     type: Literal["image"] = "image"
-    
+    binary: bytes | None = None
+
+    def model_dump(self):
+        return {
+            "type": self.type,
+            "uri": self.uri,
+            "asset_id": self.asset_id,
+            "temp_id": self.temp_id,
+        }
+
 
 class WorkflowRef(BaseType):
     type: Literal["workflow"] = "workflow"
@@ -154,7 +164,6 @@ class WorkflowRef(BaseType):
 class NodeRef(BaseType):
     type: Literal["node"] = "node"
     id: str = ""
-
 
 
 class Provider(str, enum.Enum):
@@ -182,7 +191,7 @@ class AnthropicModel(str, enum.Enum):
 class FunctionModel(BaseType):
     type: Literal["function_model"] = "function_model"
     provider: Provider = Provider.Empty
-    name: str = ""
+    magename: str = ""
     repo_id: str = ""
     filename: str = ""
     local_path: Path | None = None
@@ -197,17 +206,19 @@ class LlamaModel(BaseType):
     digest: str = ""
     details: dict = Field(default_factory=dict)
 
+
 model_file_types = set()
+
 
 class ModelFile(BaseType):
     name: str = ""
-    
+
     @classmethod
     def __init_subclass__(cls):
         super().__init_subclass__()
         if hasattr(cls, "type"):
             model_file_types.add(cls.type)
-    
+
 
 class CheckpointFile(ModelFile):
     type: Literal["comfy.checkpoint_file"] = "comfy.checkpoint_file"
@@ -251,9 +262,10 @@ class UpscaleModelFile(ModelFile):
 
 comfy_model_types = set()
 
+
 class ComfyModel(BaseType):
     name: str = ""
-    
+
     @classmethod
     def __init_subclass__(cls):
         super().__init_subclass__()
@@ -288,6 +300,7 @@ class VAE(ComfyModel):
 class UNet(ComfyModel):
     type: Literal["comfy.unet"] = "comfy.unet"
 
+
 class UpscaleModel(ComfyModel):
     type: Literal["comfy.upscale_model"] = "comfy.upscale_model"
 
@@ -302,14 +315,18 @@ class IPAdapter(ComfyModel):
 
 comfy_data_types = set()
 
+
 class ComfyData(BaseType):
     data: Any = None
-    
+
     @classmethod
     def __init_subclass__(cls):
         super().__init_subclass__()
         if hasattr(cls, "type"):
             comfy_data_types.add(cls.type)
+
+    def serialize(self):
+        return None
 
 
 class Conditioning(ComfyData):

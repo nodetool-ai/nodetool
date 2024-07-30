@@ -124,7 +124,7 @@ class VAEDecode(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
 
 
 class VAEDecodeTiled(ComfyNode):
