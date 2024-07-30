@@ -244,13 +244,13 @@ class WebSocketRunner:
                 if "bytes" in message:
                     data = message["bytes"]
                     command = WebSocketCommand(**msgpack.unpackb(data))  # type: ignore
+                    response = await self.handle_command(command)
+                    await self.websocket.send_bytes(msgpack.packb(response, use_bin_type=True))  # type: ignore
                 elif "text" in message:
                     data = message["text"]
                     command = WebSocketCommand(**json.loads(data))
-                else:
-                    continue
-                response = await self.handle_command(command)
-                await self.websocket.send_bytes(msgpack.packb(response, use_bin_type=True))  # type: ignore
+                    response = await self.handle_command(command)
+                    await self.websocket.send_text(json.dumps(response))
         except WebSocketDisconnect:
             log.info("WebSocket disconnected")
         except Exception as e:
