@@ -238,8 +238,17 @@ class WebSocketRunner:
         try:
             while True:
                 assert self.websocket, "WebSocket is not connected"
-                data = await self.websocket.receive_bytes()
-                command = WebSocketCommand(**msgpack.unpackb(data))  # type: ignore
+                message = await self.websocket.receive()
+                if message["type"] == "websocket.disconnect":
+                    break
+                if "bytes" in message:
+                    data = message["bytes"]
+                    command = WebSocketCommand(**msgpack.unpackb(data))  # type: ignore
+                elif "text" in message:
+                    data = message["text"]
+                    command = WebSocketCommand(**json.loads(data))
+                else:
+                    continue
                 response = await self.handle_command(command)
                 await self.websocket.send_bytes(msgpack.packb(response, use_bin_type=True))  # type: ignore
         except WebSocketDisconnect:
