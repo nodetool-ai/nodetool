@@ -1,15 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Typography } from "@mui/material";
 import AssetViewer from "../assets/AssetViewer";
 
 interface ImageViewProps {
-  uri?: string;
+  source?: string | Uint8Array;
 }
 
-const ImageView: React.FC<ImageViewProps> = ({ uri }) => {
+const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const [openViewer, setOpenViewer] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
 
-  if (!uri) {
+  useEffect(() => {
+    if (source instanceof Uint8Array) {
+      const blob = new Blob([source], { type: 'image/png' });
+      const url = URL.createObjectURL(blob);
+      setImageUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setImageUrl(source);
+    }
+  }, [source]);
+
+  if (!source) {
     return <Typography>No Image found</Typography>;
   }
 
@@ -28,21 +40,20 @@ const ImageView: React.FC<ImageViewProps> = ({ uri }) => {
     >
       <AssetViewer
         contentType="image/*"
-        url={uri}
+        url={imageUrl}
         open={openViewer}
         onClose={() => setOpenViewer(false)}
       />
       <div
         style={{
           position: "absolute",
-          backgroundImage: `url(${uri})`,
+          backgroundImage: `url(${imageUrl})`,
           backgroundSize: "contain",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
           width: "100%",
           height: "100%",
           minHeight: "20px"
-          //   paddingTop: "100%"
         }}
         onDoubleClick={() => setOpenViewer(true)}
       />

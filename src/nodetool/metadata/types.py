@@ -145,15 +145,7 @@ class ImageRef(AssetRef):
     """A reference to an image asset."""
 
     type: Literal["image"] = "image"
-    binary: bytes | None = None
-
-    def model_dump(self):
-        return {
-            "type": self.type,
-            "uri": self.uri,
-            "asset_id": self.asset_id,
-            "temp_id": self.temp_id,
-        }
+    data: bytes | None = None
 
 
 class WorkflowRef(BaseType):

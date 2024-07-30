@@ -152,7 +152,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
 
   switch (type) {
     case "image":
-      return <ImageView uri={value?.uri} />;
+      if (value?.uri) {
+        return <ImageView source={value?.uri} />;
+      } else {
+        return <ImageView source={value?.data} />;
+      }
     case "audio":
       return (
         <div className="audio" style={{ padding: "1em" }}>

@@ -374,16 +374,6 @@ export interface components {
         [key: string]: string;
       } | null;
     };
-    /** FileRef */
-    FileRef: {
-      /**
-       * Type
-       * @default file
-       * @constant
-       * @enum {string}
-       */
-      type?: "file";
-    };
     /** FolderRef */
     FolderRef: {
       /**
@@ -415,10 +405,10 @@ export interface components {
       /** @default empty */
       provider?: components["schemas"]["Provider"];
       /**
-       * Name
+       * Magename
        * @default
        */
-      name?: string;
+      magename?: string;
       /**
        * Repo Id
        * @default
@@ -465,6 +455,8 @@ export interface components {
       asset_id?: string | null;
       /** Temp Id */
       temp_id?: string | null;
+      /** Data */
+      data?: string | null;
     };
     /** ImageUrl */
     ImageUrl: {
@@ -775,10 +767,6 @@ export interface components {
       result?: Record<string, never> | null;
       /** Properties */
       properties?: Record<string, never> | null;
-      /** Started At */
-      started_at?: string | null;
-      /** Completed At */
-      completed_at?: string | null;
     };
     /** OAuthAuthorizeRequest */
     OAuthAuthorizeRequest: {
@@ -852,6 +840,15 @@ export interface components {
       node_type?: string | null;
       /** Status */
       status: string;
+      /**
+       * Params
+       * @default {}
+       */
+      params?: Record<string, never>;
+      /** Data */
+      data?: unknown;
+      /** Cost */
+      cost?: number | null;
       /** Logs */
       logs?: string | null;
       /** Error */
@@ -880,8 +877,6 @@ export interface components {
        * @default {}
        */
       params?: Record<string, never>;
-      /** Data */
-      data?: string | null;
       /** Version */
       version?: string | null;
       /** Workflow Id */
@@ -1195,8 +1190,6 @@ export interface components {
       updated_at?: string;
       /** Deleted At */
       deleted_at?: string | null;
-      /** Help Thread Id */
-      help_thread_id?: string | null;
     };
     /** ValidationError */
     ValidationError: {
@@ -1638,9 +1631,6 @@ export interface operations {
   /** Run */
   run_api_jobs__post: {
     parameters: {
-      query?: {
-        execute?: boolean;
-      };
       header?: {
         authorization?: string | null;
       };
@@ -1832,7 +1822,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["FileRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | Record<string, never>;
+          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | Record<string, never>;
         };
       };
     };

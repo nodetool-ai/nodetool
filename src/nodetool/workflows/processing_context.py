@@ -1017,7 +1017,7 @@ class ProcessingContext:
             return ImageRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
             buffer.seek(0)
-            return ImageRef(binary=buffer.read())
+            return ImageRef(data=buffer.read())
 
     async def image_from_url(
         self,
