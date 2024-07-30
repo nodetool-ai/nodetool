@@ -104,12 +104,10 @@ class AssetRef(BaseType):
         }
         if self.asset_id:
             res["asset_id"] = self.asset_id
-        if self.temp_id:
-            res["temp_id"] = self.temp_id
         return res
 
     def is_empty(self):
-        return self.uri == "" and self.asset_id is None and self.temp_id is None
+        return self.uri == "" and self.asset_id is None
 
     @classmethod
     def __init_subclass__(cls):
