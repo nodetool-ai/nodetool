@@ -3,6 +3,7 @@ from enum import Enum
 import json
 import time
 import uuid
+import msgpack
 from typing import Any
 from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
@@ -130,12 +131,18 @@ class WebSocketRunner:
                 api_client=api_client,
             )
 
-            res = await self.context.api_client.post(
-                "api/auth/verify", json={"token": req.auth_token}
-            )
             if Environment.is_production():
+                res = await self.context.api_client.post(
+                    "api/auth/verify", json={"token": req.auth_token}
+                )
                 if res.json()["valid"] == False:
                     raise ValueError("Invalid auth token")
+
+            if req.graph is None:
+                workflow = await self.context.get_workflow(req.workflow_id)
+                req.graph = workflow.graph
+
+            # TODO: Create a job model and save it to the database
 
             log.info("Running job: %s", self.job_id)
             if self.pre_run_hook:
@@ -145,11 +152,9 @@ class WebSocketRunner:
                 req, self.runner, self.context, use_thread=True
             ):
                 try:
-                    print(msg)
-                    if isinstance(msg, BinaryUpdate):
-                        await self.websocket.send_bytes(msg.encode())
-                    else:
-                        await self.websocket.send_text(msg.model_dump_json())
+                    # packed_message = msgpack.packb(msg.model_dump(), use_bin_type=True)
+                    # await self.websocket.send_bytes(msg.encode())
+                    await self.websocket.send_text(msg.model_dump_json())
                 except Exception as e:
                     log.exception(e)
 
@@ -160,6 +165,7 @@ class WebSocketRunner:
             log.info(
                 f"Finished job {self.job_id} - Total time: {total_time:.2f} seconds"
             )
+            # TODO: Update the job model with the final status
         except Exception as e:
             log.exception(e)
 

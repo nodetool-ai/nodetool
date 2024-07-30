@@ -85,24 +85,12 @@ async def run(
     user: User = Depends(current_user),
 ):
     from nodetool.workflows.workflow_runner import WorkflowRunner
-    from nodetool.workflows.processing_context import (
-        ProcessingContext,
-    )
-
-    if job_request.graph is None:
-        workflow = Workflow.find(user.id, job_request.workflow_id)
-        if workflow is None:
-            raise HTTPException(status_code=404, detail="Workflow not found")
-        else:
-            job_request.graph = workflow.get_api_graph()
-
-    assert job_request.graph is not None, "Graph is required"
 
     job = JobModel.create(
         job_type=job_request.job_type,
         workflow_id=job_request.workflow_id,
         user_id=user.id,
-        graph=job_request.graph.model_dump(),
+        graph=job_request.graph.model_dump() if job_request.graph else None,
         status="running",
     )
 
