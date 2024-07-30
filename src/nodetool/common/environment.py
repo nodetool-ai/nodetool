@@ -313,13 +313,6 @@ class Environment(object):
         return cls.get("ASSET_BUCKET")
 
     @classmethod
-    def get_temp_bucket(cls):
-        """
-        The temp bucket is the S3 bucket where we store temporary files.
-        """
-        return cls.get("TEMP_BUCKET")
-
-    @classmethod
     def get_env(cls):
         """
         The environment is either "development" or "production".
@@ -522,13 +515,6 @@ class Environment(object):
         The asset domain is the domain where assets are stored.
         """
         return cls.get("ASSET_DOMAIN")
-
-    @classmethod
-    def get_temp_domain(cls):
-        """
-        The temp domain is the domain where temporary files are stored.
-        """
-        return cls.get("TEMP_DOMAIN")
 
     @classmethod
     def get_worker_url(cls):
@@ -862,25 +848,6 @@ class Environment(object):
         return cls.asset_storage
 
     @classmethod
-    def get_temp_storage(cls, use_s3: bool = False):
-        """
-        Get the storage adapter for temporary files.
-        """
-        if not hasattr(cls, "temp_storage"):
-            if cls.is_production() or use_s3:
-                cls.get_logger().info(f"Using S3 for temp storage")
-                return cls.get_s3_storage(cls.get_temp_bucket(), cls.get_temp_domain())
-            else:
-                from nodetool.storage.memory_storage import MemoryStorage
-
-                cls.get_logger().info(f"Using local file storage for temp storage")
-                cls.temp_storage = MemoryStorage(
-                    base_url=cls.get_storage_api_url() + cls.get_temp_bucket()
-                )
-        assert cls.temp_storage is not None
-        return cls.temp_storage
-
-    @classmethod
     def get_logger(cls):
         """
         Get a logger.
@@ -888,7 +855,7 @@ class Environment(object):
         import logging
 
         if not hasattr(cls, "logger"):
-            cls.logger = logging.getLogger("avatai")
+            cls.logger = logging.getLogger("nodetool")
             cls.logger.setLevel(cls.get_log_level())
             cls.logger.addHandler(logging.StreamHandler())
         return cls.logger

@@ -4,7 +4,7 @@
 
 **Args:**
 - **hash_key (bool) (default: False)**
-- **kwargs (Any)**
+- **kwargs (typing.Any)**
 
 ## DBModel
 
@@ -31,12 +31,12 @@ Reload the model instance from the DB.
 
 ### save
 
-Save a model instance to DynamoDB and return the instance.
+Save a model instance and return the instance.
 **Args:**
 
 ### update
 
-Update the model instance and save it to DynamoDB.
+Update the model instance and save it.
 **Args:**
 - **kwargs**
 

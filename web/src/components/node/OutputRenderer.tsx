@@ -160,7 +160,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
         </div>
       );
     case "video":
-      return <video src={value?.uri} controls style={{ width: "100%" }} />;
+      if (value?.uri === "") {
+        const blob = new Blob([value?.data], { type: "video/mp4" });
+        const url = URL.createObjectURL(blob);
+        return <video src={url} controls style={{ width: "100%" }} />;
+      } else {
+        return <video src={value?.uri} controls style={{ width: "100%" }} />;
+      }
     case "dataframe":
       return <DataTable dataframe={value as DataframeRef} editable={false} />;
     case "tensor":

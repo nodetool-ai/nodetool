@@ -16,3 +16,5 @@ Use cases:
 
 ## Model
 
+An enumeration.
+

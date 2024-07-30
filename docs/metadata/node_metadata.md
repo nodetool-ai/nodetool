@@ -11,7 +11,7 @@ Metadata for a node.
 - **primary_field** (str | None)
 - **secondary_field** (str | None)
 - **layout** (str)
-- **properties** (list[nodetool.workflows.property.Property])
-- **outputs** (list[nodetool.metadata.types.OutputSlot])
-- **model_info** (dict[str, typing.Any])
+- **properties** (list)
+- **outputs** (list)
+- **model_info** (dict)
 

@@ -11,8 +11,8 @@ Use cases:
 
 **Tags:** list, add, insert, extend
 
-- **values** (list[typing.Any])
-- **value** (Any)
+- **values** (list)
+- **value** (typing.Any)
 
 ## Dedupe
 
@@ -25,7 +25,7 @@ Use cases:
 
 **Tags:** list, unique, distinct, deduplicate
 
-- **values** (list[typing.Any])
+- **values** (list)
 
 ## Extend
 
@@ -37,8 +37,8 @@ Use cases:
 
 **Tags:** list, merge, concatenate, combine
 
-- **values** (list[typing.Any])
-- **other_values** (list[typing.Any])
+- **values** (list)
+- **other_values** (list)
 
 ## Filter
 
@@ -50,7 +50,7 @@ Use cases:
 
 **Tags:** list, filter, condition, select
 
-- **values**: The list to filter. (list[typing.Any])
+- **values**: The list to filter. (list)
 - **condition**: The Python code to use as the filtering condition. (str)
 
 ## GenerateSequence
@@ -79,7 +79,7 @@ Use cases:
 
 **Tags:** list, get, extract, value
 
-- **values** (list[typing.Any])
+- **values** (list)
 - **index** (int)
 
 ## Length
@@ -93,7 +93,7 @@ Use cases:
 
 **Tags:** list, count, size
 
-- **values** (list[typing.Any])
+- **values** (list)
 
 ## Reduce
 
@@ -111,8 +111,8 @@ Example reduction code:
 
 **Tags:** list, reduce, aggregate, accumulate
 
-- **values**: The list to reduce. (list[typing.Any])
-- **initial_value**: The initial value for the reduction. If not provided, the first value in the list is used. (Any)
+- **values**: The list to reduce. (list)
+- **initial_value**: The initial value for the reduction. If not provided, the first value in the list is used. (typing.Any)
 - **reduction_code**: The Python code to use for the reduction. (str)
 
 ## Reverse
@@ -124,7 +124,7 @@ Use cases:
 
 **Tags:** list, reverse, invert, flip
 
-- **values** (list[typing.Any])
+- **values** (list)
 
 ## SaveList
 
@@ -137,7 +137,7 @@ Use cases:
 
 **Tags:** list, save, file, serialize
 
-- **values**: The list to save. (list[typing.Any])
+- **values**: The list to save. (list)
 - **name** (str)
 
 ## SelectElements
@@ -151,8 +151,8 @@ Use cases:
 
 **Tags:** list, select, index, extract
 
-- **values** (list[typing.Any])
-- **indices** (list[int])
+- **values** (list)
+- **indices** (list)
 
 ## Slice
 
@@ -165,7 +165,7 @@ Use cases:
 
 **Tags:** list, slice, subset, extract
 
-- **values** (list[typing.Any])
+- **values** (list)
 - **start** (int)
 - **stop** (int)
 - **step** (int)
@@ -184,6 +184,6 @@ Example mapping code:
 
 **Tags:** list, transform, modify, apply
 
-- **values**: The list to map. (list[typing.Any])
+- **values**: The list to map. (list)
 - **code**: Python code to use for mapping. (str)
 

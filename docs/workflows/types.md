@@ -1,5 +1,19 @@
 # nodetool.workflows.types
 
+## BinaryUpdate
+
+- **type** (typing.Literal['binary_update'])
+- **node_id** (str)
+- **output_name** (str)
+- **binary** (bytes)
+
+### encode
+
+Create an encoded message containing two null-terminated strings and PNG data.
+**Args:**
+
+**Returns:** bytes
+
 ## Error
 
 - **type** (typing.Literal['error'])
@@ -22,6 +36,4 @@
 - **logs** (str | None)
 - **result** (dict[str, typing.Any] | None)
 - **properties** (dict[str, typing.Any] | None)
-- **started_at** (str | None)
-- **completed_at** (str | None)
 

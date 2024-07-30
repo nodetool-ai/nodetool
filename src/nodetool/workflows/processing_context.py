@@ -202,15 +202,6 @@ class ProcessingContext:
         """
         return Environment.get_asset_storage().get_url(key)
 
-    def temp_storage_url(self, key: str) -> str:
-        """
-        Returns the URL of an asset in the temp storage.
-
-        Args:
-            key (str): The key of the asset.
-        """
-        return Environment.get_temp_storage().get_url(key)
-
     def generate_node_cache_key(
         self,
         node: BaseNode,
@@ -482,8 +473,6 @@ class ProcessingContext:
         """
         if asset.asset_id:
             asset.uri = await self.get_asset_url(asset.asset_id)
-        elif asset.temp_id:
-            asset.uri = self.temp_storage_url(asset.temp_id)
 
     async def create_job(
         self,
@@ -565,24 +554,6 @@ class ProcessingContext:
         )
 
         return Asset(**res.json())
-
-    async def create_temp_asset(self, content: IO, ext: str = "") -> AssetRef:
-        """
-        Uploads a temporary asset with the given content and extension.
-
-        Args:
-            content (IO): The content of the asset.
-            ext (str, optional): The extension of the asset. Defaults to "".
-
-        Returns:
-            str: The URL of the created temporary asset.
-        """
-        key = uuid.uuid4().hex
-        if ext != "":
-            key += "." + ext
-        storage = Environment.get_temp_storage()
-        url = await storage.upload(key, content)  # type: ignore
-        return AssetRef(uri=url, temp_id=key)
 
     async def create_message(self, req: MessageCreateRequest):
         """
@@ -678,21 +649,6 @@ class ProcessingContext:
         io.seek(0)
         return io
 
-    async def download_temp_asset(self, temp_id: str) -> IO:
-        """
-        Downloads a temporary asset from the temp storage.
-
-        Args:
-            temp_id (str): The ID of the temporary asset to download.
-
-        Returns:
-            IO: The downloaded temporary asset.
-        """
-        io = BytesIO()
-        await Environment.get_temp_storage().download(temp_id, io)
-        io.seek(0)
-        return io
-
     async def http_get(self, url: str) -> bytes:
         """
         Sends an HTTP GET request to the specified URL.
@@ -767,8 +723,6 @@ class ProcessingContext:
         # as the URI could be expired
         if asset_ref.asset_id is not None:
             return await self.download_asset(asset_ref.asset_id)
-        elif asset_ref.temp_id is not None:
-            return await self.download_temp_asset(asset_ref.temp_id)
         elif asset_ref.uri != "":
             return await self.download_file(asset_ref.uri)
         raise ValueError(f"AssetRef is empty {asset_ref}")
@@ -974,14 +928,13 @@ class ProcessingContext:
             asset = await self.create_asset(name, "application/octet-stream", buffer)
             return DataframeRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            ref = await self.create_temp_asset(buffer)
             # TODO: avoid for large tables
             rows = data.values.tolist()
             column_defs = [
                 ColumnDef(name=name, data_type=dtype_name(dtype.name))
                 for name, dtype in zip(data.columns, data.dtypes)
             ]
-            return DataframeRef(temp_id=ref.temp_id, columns=column_defs, data=rows)
+            return DataframeRef(columns=column_defs, data=rows)
 
     async def image_from_io(
         self,
@@ -1155,8 +1108,7 @@ class ProcessingContext:
             )
             return TextRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            ref = await self.create_temp_asset(buffer)
-            return TextRef(temp_id=ref.temp_id, uri=ref.uri)
+            return TextRef(data=s)
 
     async def video_from_io(
         self,
@@ -1181,8 +1133,7 @@ class ProcessingContext:
             )
             return VideoRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            ref = await self.create_temp_asset(buffer)
-            return VideoRef(temp_id=ref.temp_id, uri=ref.uri)
+            return VideoRef(data=buffer.read())
 
     async def to_estimator(self, model_ref: ModelRef):
         """

@@ -11,7 +11,7 @@
 ### delete
 
 **Args:**
-- **primary_key (Any)**
+- **primary_key (typing.Any)**
 
 **Returns:** None
 
@@ -24,12 +24,13 @@
 ### get
 
 **Args:**
-- **key (Any)**
+- **key (typing.Any)**
 
 **Returns:** typing.Optional[typing.Dict[str, typing.Any]]
 
 ### get_primary_key
 
+Get the name of the primary key.
 **Args:**
 
 **Returns:** str
@@ -37,14 +38,11 @@
 ### query
 
 **Args:**
-- **condition (str)**
-- **values (typing.Dict[str, typing.Any])**
+- **condition (ConditionBuilder)**
 - **limit (int) (default: 100)**
 - **reverse (bool) (default: False)**
-- **start_key (str | None) (default: None)**
-- **index (str | None) (default: None)**
 
-**Returns:** tuple[list[dict[str, typing.Any]], str]
+**Returns:** tuple
 
 ### save
 

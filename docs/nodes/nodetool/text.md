@@ -118,7 +118,7 @@ Use cases:
 
 **Tags:** text, join, combine
 
-- **strings** (list[str | nodetool.metadata.types.TextRef])
+- **strings** (list)
 - **separator** (str)
 
 ## ParseJSON
@@ -189,7 +189,7 @@ Use cases:
 **Tags:** text, template, formatting
 
 - **string** (str | nodetool.metadata.types.TextRef)
-- **values** (dict[str, typing.Any])
+- **values** (dict)
 
 ## TextID
 
@@ -201,7 +201,7 @@ Returns the asset id.
 
 **Args:**
 - **context (ProcessingContext)**
-- **input (list[nodetool.metadata.types.TextRef | str])**
+- **input (list)**
 - **result (str)**
 
 **Returns:** nodetool.metadata.types.TextRef | str

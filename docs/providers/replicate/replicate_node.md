@@ -58,7 +58,7 @@ Result of the prediction.
 
 **Args:**
 - **model_id (str)**
-- **model_info (dict[str, typing.Any])**
+- **model_info (dict)**
 
 ### capitalize
 

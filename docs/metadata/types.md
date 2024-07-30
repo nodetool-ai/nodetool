@@ -2,6 +2,8 @@
 
 ## AnthropicModel
 
+An enumeration.
+
 ## AssetRef
 
 - **type** (str)
@@ -36,6 +38,7 @@ It is used to create a mapping of type names to their corresponding classes.
 ## CLIP
 
 - **type** (typing.Literal['comfy.clip'])
+- **name** (str)
 
 ## CLIPFile
 
@@ -45,6 +48,7 @@ It is used to create a mapping of type names to their corresponding classes.
 ## CLIPVision
 
 - **type** (typing.Literal['comfy.clip_vision'])
+- **name** (str)
 
 ## CLIPVisionFile
 
@@ -66,7 +70,7 @@ It is used to create a mapping of type names to their corresponding classes.
 
 The result of a chat conversation.
 
-- **messages**: The messages in the conversation (list[str])
+- **messages**: The messages in the conversation (list)
 - **response**: The response from the chat system (str)
 
 ## ChatMessageParam
@@ -82,7 +86,7 @@ The result of a chat conversation.
 ## ChatToolMessageParam
 
 - **role** (typing.Literal['tool'])
-- **content** (Any)
+- **content** (typing.Any)
 - **tool_call_id** (str)
 
 ## ChatToolParam
@@ -107,13 +111,29 @@ The result of a chat conversation.
 - **data_type** (typing.Union[typing.Literal['int'], typing.Literal['float'], typing.Literal['datetime'], typing.Literal['string'], typing.Literal['object']])
 - **description** (str)
 
+## ComfyData
+
+- **type** (str)
+- **data** (typing.Any)
+
+### serialize
+
+**Args:**
+
+## ComfyModel
+
+- **type** (str)
+- **name** (str)
+
 ## Conditioning
 
 - **type** (typing.Literal['comfy.conditioning'])
+- **data** (typing.Any)
 
 ## ControlNet
 
 - **type** (typing.Literal['comfy.control_net'])
+- **name** (str)
 
 ## ControlNetFile
 
@@ -139,10 +159,7 @@ This class represents a dataset, which includes a dataframe of features and a da
 ## Embeds
 
 - **type** (typing.Literal['comfy.embeds'])
-
-## FileRef
-
-- **type** (typing.Literal['file'])
+- **data** (typing.Any)
 
 ## FolderRef
 
@@ -155,13 +172,13 @@ This class represents a dataset, which includes a dataframe of features and a da
 
 - **name** (str)
 - **description** (str)
-- **parameters** (Any)
+- **parameters** (typing.Any)
 
 ## FunctionModel
 
 - **type** (typing.Literal['function_model'])
 - **provider** (Provider)
-- **name** (str)
+- **magename** (str)
 - **repo_id** (str)
 - **filename** (str)
 - **local_path** (pathlib.Path | None)
@@ -169,6 +186,7 @@ This class represents a dataset, which includes a dataframe of features and a da
 ## GLIGEN
 
 - **type** (typing.Literal['comfy.gligen'])
+- **name** (str)
 
 ## GLIGENFile
 
@@ -177,9 +195,12 @@ This class represents a dataset, which includes a dataframe of features and a da
 
 ## GPTModel
 
+An enumeration.
+
 ## IPAdapter
 
 - **type** (typing.Literal['comfy.ip_adapter'])
+- **name** (str)
 
 ## IPAdapterFile
 
@@ -194,18 +215,22 @@ A reference to an image asset.
 - **uri** (str)
 - **asset_id** (str | None)
 - **temp_id** (str | None)
+- **data** (bytes | None)
 
 ## ImageTensor
 
 - **type** (typing.Literal['comfy.image_tensor'])
+- **data** (typing.Any)
 
 ## InsightFace
 
 - **type** (typing.Literal['comfy.insight_face'])
+- **data** (typing.Any)
 
 ## LORA
 
 - **type** (typing.Literal['comfy.lora'])
+- **name** (str)
 
 ## LORAFile
 
@@ -215,6 +240,7 @@ A reference to an image asset.
 ## Latent
 
 - **type** (typing.Literal['comfy.latent'])
+- **data** (typing.Any)
 
 ## LlamaModel
 
@@ -229,6 +255,7 @@ A reference to an image asset.
 ## Mask
 
 - **type** (typing.Literal['comfy.mask'])
+- **data** (typing.Any)
 
 ## Message
 
@@ -294,6 +321,8 @@ This is the base class for all strucutred output types when a node
 
 ## Provider
 
+An enumeration.
+
 ## RankingResult
 
 - **type** (typing.Literal['ranking_result'])
@@ -303,15 +332,17 @@ This is the base class for all strucutred output types when a node
 ## RecordType
 
 - **type** (typing.Literal['record_type'])
-- **columns** (list[nodetool.metadata.types.ColumnDef])
+- **columns** (list)
 
 ## Sampler
 
 - **type** (typing.Literal['comfy.sampler'])
+- **data** (typing.Any)
 
 ## Sigmas
 
 - **type** (typing.Literal['comfy.sigmas'])
+- **data** (typing.Any)
 
 ## Task
 
@@ -323,8 +354,8 @@ This is the base class for all strucutred output types when a node
 - **status** (str)
 - **name** (str)
 - **instructions** (str)
-- **dependencies** (list[str])
-- **required_capabilities** (list[str])
+- **dependencies** (list)
+- **required_capabilities** (list)
 - **started_at** (str)
 - **finished_at** (str | None)
 - **error** (str | None)
@@ -334,7 +365,7 @@ This is the base class for all strucutred output types when a node
 ## Tensor
 
 - **type** (typing.Literal['tensor'])
-- **value** (list[typing.Any])
+- **value** (list)
 - **dtype** (typing.Optional[str])
 
 ### from_list
@@ -382,10 +413,12 @@ This is the base class for all strucutred output types when a node
 ## UNet
 
 - **type** (typing.Literal['comfy.unet'])
+- **name** (str)
 
 ## UpscaleModel
 
 - **type** (typing.Literal['comfy.upscale_model'])
+- **name** (str)
 
 ## UpscaleModelFile
 
@@ -395,6 +428,7 @@ This is the base class for all strucutred output types when a node
 ## VAE
 
 - **type** (typing.Literal['comfy.vae'])
+- **name** (str)
 
 ## VAEFile
 

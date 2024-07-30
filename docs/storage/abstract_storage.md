@@ -27,15 +27,6 @@
 
 **Returns:** bool
 
-### generate_presigned_url
-
-**Args:**
-- **client_method (str)**
-- **object_name (str)**
-- **expiration (default: 604800)**
-
-**Returns:** str
-
 ### get_base_url
 
 **Args:**

@@ -42,10 +42,19 @@ This method handles type conversion for enums, lists, and objects with 'model_va
 ### convert_output
 
 **Args:**
-- **context (Any)**
-- **output (Any)**
+- **context (typing.Any)**
+- **output (typing.Any)**
 
-**Returns:** Any
+**Returns:** typing.Any
+
+### finalize
+
+Finalizes the workflow by performing any necessary cleanup or post-processing tasks.
+
+This method is called when the workflow is shutting down.
+It's responsible for cleaning up resources, unloading GPU models, and performing any necessary teardown operations.
+**Args:**
+- **context**
 
 ### from_dict
 
@@ -64,6 +73,22 @@ Create a Node object from a dictionary representation.
 
 **Args:**
 
+### initialize
+
+Initialize the node when workflow starts.
+
+Responsible for setting up the node, including loading any necessary GPU models.
+**Args:**
+- **context (typing.Any)**
+
+### move_to_device
+
+Move the node to a specific device, "cpu", "cuda" or "mps".
+
+
+**Args:**
+
+- **device (str)**: The device to move the node to.
 ### node_properties
 
 **Args:**
@@ -74,10 +99,46 @@ Pre-process the node before processing.
 This will be called before cache key is computed.
 Default implementation generates a seed for any field named seed.
 **Args:**
-- **context (Any)**
+- **context (typing.Any)**
 
-**Returns:** Any
+**Returns:** typing.Any
 
+### properties_for_update
+
+Properties to send to the client for updating the node.
+Comfy types and tensors are excluded.
+**Args:**
+
+### result_for_update
+
+Prepares the node result for inclusion in a NodeUpdate message.
+
+
+**Args:**
+
+- **result (Dict[str, Any])**: The raw result from node processing.
+
+
+**Returns:**
+
+- **Dict[str, Any]**: A modified version of the result suitable for status updates.
+
+
+**Note:**
+
+
+- Converts Pydantic models to dictionaries.
+- Serializes binary data to base64.
+### send_update
+
+Send a status update for the node to the client.
+
+
+**Args:**
+
+- **context (Any)**: The context in which the node is being processed.
+- **status (str)**: The status of the node.
+- **result (dict[str, Any], optional)**: The result of the node's processing. Defaults to {}.
 ### set_node_properties
 
 Set multiple node properties at once.
@@ -101,7 +162,7 @@ Errors during property assignment are printed regardless of the skip_errors flag
 
 **Args:**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 ## Comment
 
@@ -112,7 +173,7 @@ comment (list[Any]): The content of the comment, stored as a list of elements.
 **Tags:** 
 
 - **headline**: The headline for this comment. (str)
-- **comment**: The comment for this node. (list[typing.Any])
+- **comment**: The comment for this node. (list)
 - **comment_color**: The color for the comment. (str)
 
 ## GroupNode
@@ -159,7 +220,7 @@ value (Any): The value to be previewed.
 
 **Tags:** 
 
-- **value**: The value to preview. (Any)
+- **value**: The value to preview. (typing.Any)
 - **name**: The name of the preview node. (str)
 
 ### add_node_classname

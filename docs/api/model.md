@@ -5,7 +5,7 @@
 **Args:**
 - **user (User) (default: Depends(current_user))**
 
-**Returns:** list[nodetool.metadata.types.FunctionModel]
+**Returns:** list
 
 ### index
 
@@ -13,12 +13,12 @@
 - **folder (str)**
 - **user (User) (default: Depends(current_user))**
 
-**Returns:** list[str]
+**Returns:** list
 
 ### llama_model
 
 **Args:**
 - **user (User) (default: Depends(current_user))**
 
-**Returns:** list[nodetool.metadata.types.LlamaModel]
+**Returns:** list
 

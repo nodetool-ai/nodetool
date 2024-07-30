@@ -30,6 +30,6 @@
 
 - **id** (str)
 - **name** (str)
-- **args** (dict[str, typing.Any])
-- **result** (Any)
+- **args** (dict)
+- **result** (typing.Any)
 

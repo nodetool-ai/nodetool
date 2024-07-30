@@ -97,7 +97,6 @@ class AssetRef(BaseType):
     type: str = "asset"
     uri: str = ""
     asset_id: str | None = None
-    temp_id: str | None = None
 
     def to_dict(self):
         res = {
@@ -131,10 +130,12 @@ class VideoRef(AssetRef):
     type: Literal["video"] = "video"
     duration: Optional[float] = None  # Duration in seconds
     format: Optional[str] = None
+    data: bytes | None = None
 
 
 class TextRef(AssetRef):
     type: Literal["text"] = "text"
+    data: str | None = None
 
 
 class AudioRef(AssetRef):
@@ -184,7 +185,7 @@ class AnthropicModel(str, enum.Enum):
 class FunctionModel(BaseType):
     type: Literal["function_model"] = "function_model"
     provider: Provider = Provider.Empty
-    magename: str = ""
+    name: str = ""
     repo_id: str = ""
     filename: str = ""
     local_path: Path | None = None

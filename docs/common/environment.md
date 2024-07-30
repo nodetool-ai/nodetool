@@ -17,11 +17,6 @@ In local mode (non-production environment), the class uses default values or pro
 input during the setup process. It also supports local file storage and SQLite database for
 development purposes.
 
-Cloud Setup:
-In production mode, the class expects environment variables to be set for various services like
-AWS, OpenAI, and others. It uses AWS services like S3 and DynamoDB for storage and database,
-respectively.
-
 **Tags:** 
 
 ### get_data_path

@@ -40,7 +40,7 @@ If the node returns a prediction, wait for the prediction to complete.
 - **context (ProcessingContext)**: The processing context.
 - **name (str)**: The workflow_id
 - **params (dict)**: The parameters passed to the workflow.
-**Returns:** Any
+**Returns:** typing.Any
 
 ### sanitize_node_name
 

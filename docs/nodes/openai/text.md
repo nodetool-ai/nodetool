@@ -21,6 +21,8 @@ These vectors capture semantic meaning, enabling:
 
 ## EmbeddingModel
 
+An enumeration.
+
 ## GPT
 
 Generate natural language responses using GPT models.
@@ -46,4 +48,6 @@ Leverages OpenAI's GPT models to:
 - **top_p** (float)
 
 ## ResponseFormat
+
+An enumeration.
 

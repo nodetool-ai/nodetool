@@ -93,7 +93,7 @@ Use cases:
 
 **Tags:** list, tensor, conversion, type
 
-- **values** (list[typing.Any])
+- **values** (list)
 
 ## Log
 
@@ -176,7 +176,7 @@ Use cases:
 **Tags:** tensor, tsne, visualization, dimensionality reduction
 
 - **tensor** (Tensor)
-- **color_indices** (list[int])
+- **color_indices** (list)
 - **perplexity** (int)
 
 ## PlotTensor
@@ -232,7 +232,7 @@ Use cases:
 
 **Tags:** tensor, stack, concatenate, join, merge, axis
 
-- **tensors** (list[nodetool.metadata.types.Tensor])
+- **tensors** (list)
 - **axis**: The axis to stack along. (int)
 
 ## Sum

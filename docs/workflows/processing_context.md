@@ -29,6 +29,16 @@ Utility Methods:
 
 **Tags:** It maintains the state of the workflow and provides methods for interacting with the environment.
 
+### add_model
+
+Adds a model to the context.
+
+
+**Args:**
+
+- **type (str)**: The type of the model.
+- **name (str)**: The name of the model.
+- **model (Any)**: The model to add.
 ### asset_storage_url
 
 Returns the URL of an asset in the asset storage.
@@ -136,14 +146,14 @@ Converts the audio to a np.float32 array.
 **Args:**
 
 - **context (ProcessingContext)**: The processing context.
-**Returns:** tuple[numpy.ndarray, int, int]
+**Returns:** tuple
 
 ### cache_result
 
 Cache the result for a node.
 **Args:**
 - **node (BaseNode)**
-- **result (Any)**
+- **result (typing.Any)**
 - **ttl (int) (default: 3600)**
 
 ### convert_value_for_prediction
@@ -382,7 +392,7 @@ Get the cached result for a node.
 **Args:**
 - **node (BaseNode)**
 
-**Returns:** Any
+**Returns:** typing.Any
 
 ### get_chroma_client
 
@@ -417,6 +427,34 @@ Gets messages for a thread.
 **Returns:**
 
 - **MessageList**: The list of messages.
+### get_model
+
+Gets a model from the context.
+
+
+**Args:**
+
+- **type (str)**: The type of the model.
+- **name (str)**: The name of the model.
+
+
+**Returns:**
+
+- **Any**: The model.
+### get_node_input_types
+
+Retrieves the input types for a given node, inferred from the output types of the source nodes.
+
+
+**Args:**
+
+- **node_id (str)**: The ID of the node.
+
+
+**Returns:**
+
+- **dict[str, str]**: A dictionary containing the input types for the node, where the keys are the input slot names
+and the values are the types of the corresponding source nodes.
 ### get_node_inputs
 
 Retrieves the inputs for a given node.
@@ -484,6 +522,20 @@ Sends an HTTP GET request to the specified URL.
 **Args:**
 
 - **url (str)**: The URL to send the request to.
+
+
+**Returns:**
+
+- **bytes**: The response content.
+### http_post
+
+Sends an HTTP POST request to the specified URL.
+
+
+**Args:**
+
+- **url (str)**: The URL to send the request to.
+- **data (dict[str, Any])**: The data to send in the request.
 
 
 **Returns:**
@@ -577,6 +629,19 @@ Creates an ImageRef from a PIL Image object.
 **Returns:**
 
 - **ImageRef**: The ImageRef object.
+### image_from_tensor
+
+Creates an ImageRef from a tensor.
+
+
+**Args:**
+
+- **image_tensor (torch.Tensor)**: The tensor.
+
+
+**Returns:**
+
+- **ImageRef**: The ImageRef object.
 ### image_from_url
 
 Creates an ImageRef from a URL.
@@ -611,6 +676,16 @@ Converts the image to a PIL Image object.
 
 - **context (ProcessingContext)**: The processing context.
 **Returns:** Image
+
+### image_to_tensor
+
+Converts the image to a tensor.
+
+
+**Args:**
+
+- **context (ProcessingContext)**: The processing context.
+**Returns:** Tensor
 
 ### paginate_assets
 

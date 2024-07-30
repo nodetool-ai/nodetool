@@ -105,7 +105,7 @@ Use cases:
 
 **Tags:** video, frames, combine, sequence
 
-- **frames**: The frames to combine into a video. (list[nodetool.metadata.types.ImageRef])
+- **frames**: The frames to combine into a video. (list)
 - **fps**: The FPS of the output video. (float)
 
 ## Denoise

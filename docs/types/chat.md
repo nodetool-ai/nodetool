@@ -14,7 +14,7 @@
 ## MessageList
 
 - **next** (str | None)
-- **messages** (list[nodetool.metadata.types.Message])
+- **messages** (list)
 
 ## TaskCreateRequest
 
@@ -22,13 +22,13 @@
 - **thread_id** (str)
 - **name** (str)
 - **instructions** (str)
-- **dependencies** (list[str])
-- **required_capabilities** (list[str])
+- **dependencies** (list)
+- **required_capabilities** (list)
 
 ## TaskList
 
 - **next** (str | None)
-- **tasks** (list[nodetool.metadata.types.Task])
+- **tasks** (list)
 
 ## TaskUpdateRequest
 

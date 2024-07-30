@@ -12,7 +12,7 @@ Use cases:
 
 **Tags:** 
 
-- **tiles**: List of image tiles to combine. (list[nodetool.metadata.types.ImageRef])
+- **tiles**: List of image tiles to combine. (list)
 - **original_width**: Width of the original image. (int)
 - **original_height**: Height of the original image. (int)
 - **tile_width**: Width of each tile. (int)
@@ -63,9 +63,9 @@ The tiles must be overlapping, with the given overlap size.
 
 Flatten a list of lists into a single list.
 **Args:**
-- **items (list[list[typing.Any]])**
+- **items (list)**
 
-**Returns:** list[typing.Any]
+**Returns:** list
 
 ### in_groups_of
 
@@ -79,7 +79,7 @@ The last group may be smaller than the given size.
 - **items**: A list of items to split into groups.
 - **group_size**: The size of each group.
 - **fill_value**: The value to use to fill the last group if it is smaller than the given size.
-**Returns:** list[list[typing.Any]]
+**Returns:** list
 
 ### make_grid
 
@@ -92,5 +92,5 @@ overlapping, with the given overlap size.
 - **tile_h (default: 512)**
 - **overlap (default: 64)**
 
-**Returns:** tuple[list[list[tuple[int, int]]], int, int]
+**Returns:** tuple
 

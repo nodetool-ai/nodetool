@@ -65,19 +65,6 @@ async def index(
     return AssetList(next=next_cursor, assets=assets)
 
 
-@router.get("/temp")
-async def create_temp(extension: str, user: User = Depends(current_user)) -> TempAsset:
-    """
-    Create a new temporary asset.
-    """
-    s3 = Environment.get_temp_storage()
-    uuid = uuid4().hex
-    return TempAsset(
-        get_url=s3.get_url(f"{uuid}.{extension}"),
-        put_url=s3.generate_presigned_url("put_object", f"{uuid}.{extension}"),
-    )
-
-
 @router.get("/{id}")
 async def get(id: str, user: User = Depends(current_user)) -> Asset:
     """

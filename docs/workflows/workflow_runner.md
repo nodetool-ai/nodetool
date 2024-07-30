@@ -56,27 +56,6 @@ Checks if the workflow is currently in the running state.
 - **bool**: True if the workflow status is "running", False otherwise.
 **Args:**
 
-### prepare_result_for_update
-
-Prepares the node result for inclusion in a NodeUpdate message.
-
-
-**Args:**
-
-- **result (Dict[str, Any])**: The raw result from node processing.
-- **node (BaseNode)**: The node that produced the result.
-
-
-**Returns:**
-
-- **Dict[str, Any]**: A modified version of the result suitable for status updates.
-
-
-**Note:**
-
-
-- Removes ComfyUI-specific types from the result.
-- Converts Pydantic models in the result to dictionaries.
 ### process_graph
 
 Processes the graph by executing nodes in topological order with parallel execution at each level.
@@ -234,20 +213,14 @@ Executes a GroupNode, which represents a subgraph within the main workflow.
 
 - Retrieves inputs for the GroupNode from the context.
 - Calls process_subgraph to handle the execution of the subgraph.
-### torch_capabilities
+### torch_context
 
-Context manager for handling GPU-related capabilities, specifically for ComfyUI nodes.
+Context manager for handling GPU tasks.
 
 
 **Args:**
 
-- **capabilities (list[str])**: List of required capabilities for the workflow.
 - **context (ProcessingContext)**: Manages the execution state and inter-node communication.
-
-
-**Raises:**
-
-- **ValueError**: If ComfyUI nodes are required but not supported in the current environment.
 
 
 **Note:**

@@ -7,7 +7,7 @@ Metadata for a type.
 - **type** (str)
 - **optional** (bool)
 - **values** (typing.Optional[list[str | int]])
-- **type_args** (list[nodetool.metadata.type_metadata.TypeMetadata])
+- **type_args** (list)
 - **type_name** (typing.Optional[str])
 
 ### get_json_schema
@@ -15,7 +15,7 @@ Metadata for a type.
 Returns a JSON schema for the type.
 **Args:**
 
-**Returns:** dict[str, typing.Any]
+**Returns:** dict
 
 ### get_python_type
 
@@ -25,7 +25,23 @@ Returns a JSON schema for the type.
 
 **Args:**
 
+### is_cacheable_type
+
+**Args:**
+
+### is_comfy_data_type
+
+**Args:**
+
+### is_comfy_model
+
+**Args:**
+
 ### is_comfy_type
+
+**Args:**
+
+### is_dict_type
 
 **Args:**
 
@@ -38,6 +54,14 @@ Returns a JSON schema for the type.
 **Args:**
 
 ### is_model_file_type
+
+**Args:**
+
+### is_primitive_type
+
+**Args:**
+
+### is_serializable_type
 
 **Args:**
 

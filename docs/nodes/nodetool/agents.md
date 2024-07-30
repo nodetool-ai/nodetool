@@ -86,7 +86,7 @@ Use cases:
 
 - **model**: The language model to use. (FunctionModel)
 - **task**: The task to process. (Task)
-- **image_nodes**: The image generation nodes to use. (list[nodetool.metadata.types.NodeRef])
+- **image_nodes**: The image generation nodes to use. (list)
 - **max_tokens**: The maximum number of tokens to generate. (int)
 - **temperature**: The temperature to use for sampling. (float)
 - **top_k**: The number of tokens to sample from. (int)

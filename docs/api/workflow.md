@@ -48,7 +48,7 @@
 
 Load workflows ignoring exceptions from missing nodes or old versions.
 **Args:**
-- **workflows (list[nodetool.models.workflow.Workflow])**
+- **workflows (list)**
 
 ### public
 

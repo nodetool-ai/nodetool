@@ -84,16 +84,16 @@ Schedule a coroutine to run in this event loop.
 **Args:**
 - **coro (typing.Coroutine[typing.Any, typing.Any, ~T])**
 
-**Returns:** _asyncio.Future[~T]
+**Returns:** Future
 
 ### run_in_executor
 
 Run a synchronous function in the default executor of this event loop.
 **Args:**
 - **func (typing.Callable[..., ~T])**
-- **args (Any)**
+- **args (typing.Any)**
 
-**Returns:** _asyncio.Future[~T]
+**Returns:** Future
 
 ### start
 

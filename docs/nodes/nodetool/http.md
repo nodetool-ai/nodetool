@@ -3,7 +3,7 @@
 ## HTTPBaseNode
 
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
 
@@ -24,7 +24,7 @@ Use cases:
 **Tags:** http, delete, request, url
 
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
 
@@ -41,7 +41,7 @@ Use cases:
 **Tags:** http, get, request, url
 
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
 
@@ -57,7 +57,7 @@ Use cases:
 **Tags:** http, head, request, url
 
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
 
@@ -74,7 +74,7 @@ Use cases:
 **Tags:** http, post, request, url, data
 
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
 - **data**: The data to send in the POST request. (str)
@@ -92,7 +92,7 @@ Use cases:
 **Tags:** http, put, request, url, data
 
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict[str, str])
+- **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
 - **data**: The data to send in the PUT request. (str)

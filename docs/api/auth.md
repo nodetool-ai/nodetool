@@ -23,6 +23,8 @@
 
 ## OAuthProvider
 
+An enumeration.
+
 ## TokenRequest
 
 - **token** (str)

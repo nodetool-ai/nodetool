@@ -59,7 +59,7 @@ Creates an anthropic completion by sending messages to the anthropic client.
 - **thread_id (str)**
 - **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool])**
-- **tool_choice (dict[str, typing.Any])**
+- **tool_choice (dict)**
 - **kwargs**
 
 **Returns:** Message
@@ -110,7 +110,7 @@ Creates an OpenAI completion using the provided messages.
 ### default_serializer
 
 **Args:**
-- **obj (Any)**
+- **obj (typing.Any)**
 
 **Returns:** dict
 
@@ -170,7 +170,7 @@ Parse a tool call from a string.
 **Args:**
 - **s**
 
-**Returns:** list[nodetool.models.message.ToolCall]
+**Returns:** list
 
 ### process_messages
 

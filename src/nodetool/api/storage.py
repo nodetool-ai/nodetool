@@ -21,8 +21,6 @@ router = APIRouter(prefix="/api/storage", tags=["storage"])
 def storage_for_bucket(bucket: str) -> AbstractStorage:
     if bucket == Environment.get_asset_bucket():
         return Environment.get_asset_storage()
-    elif bucket == Environment.get_temp_bucket():
-        return Environment.get_temp_storage()
     else:
         raise ValueError(f"Invalid bucket: {bucket}")
 

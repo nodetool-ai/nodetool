@@ -13,7 +13,7 @@ Use cases:
 
 - **dataframe**: Dataframe object to add a new column to. (DataframeRef)
 - **column_name**: The name of the new column to be added to the dataframe. (str)
-- **values**: A list of any type of elements which will be the new column's values. (list[typing.Any])
+- **values**: A list of any type of elements which will be the new column's values. (list)
 
 ## CombineDataVertically
 
@@ -40,7 +40,7 @@ Use cases:
 
 **Tags:** list, dataframe, convert
 
-- **values**: List of values to be converted, each value will be a row. (list[typing.Any])
+- **values**: List of values to be converted, each value will be a row. (list)
 - **columns**: Comma separated list of column names (str)
 
 ## ConvertTensorToTable
@@ -55,7 +55,7 @@ Use cases:
 **Tags:** tensor, dataframe, convert
 
 - **tensor**: A tensor object to be converted into a dataframe. (Tensor)
-- **columns**: A list of strings specifying the column names for the resulting dataframe. (list[str])
+- **columns**: A list of strings specifying the column names for the resulting dataframe. (list)
 
 ## ConvertToTensorFormat
 

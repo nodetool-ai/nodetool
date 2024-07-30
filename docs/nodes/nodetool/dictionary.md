@@ -11,8 +11,8 @@ Use cases:
 
 **Tags:** dictionary, add, update
 
-- **dictionary** (dict[str, typing.Any])
-- **new_pairs** (dict[str, typing.Any])
+- **dictionary** (dict)
+- **new_pairs** (dict)
 
 ## CombineDictionaries
 
@@ -25,8 +25,8 @@ Use cases:
 
 **Tags:** dictionary, merge, update
 
-- **dict_a** (dict[str, typing.Any])
-- **dict_b** (dict[str, typing.Any])
+- **dict_a** (dict)
+- **dict_b** (dict)
 
 ## ConvertDictionariesToDataframe
 
@@ -39,7 +39,7 @@ Use cases:
 
 **Tags:** dictionaries, dataframe, convert
 
-- **rows** (list[dict[str, typing.Any]])
+- **rows** (list)
 
 ## ConvertDictionaryToDataframe
 
@@ -52,7 +52,7 @@ Use cases:
 
 **Tags:** dictionary, dataframe, convert
 
-- **dictionary** (dict[str, typing.Any])
+- **dictionary** (dict)
 
 ## ConvertJSONToDictionary
 
@@ -78,8 +78,8 @@ Use cases:
 
 **Tags:** dictionary, create, zip
 
-- **keys** (list[typing.Any])
-- **values** (list[typing.Any])
+- **keys** (list)
+- **values** (list)
 
 ## FilterDictionaryKeys
 
@@ -92,8 +92,8 @@ Use cases:
 
 **Tags:** dictionary, filter, select
 
-- **dictionary** (dict[str, typing.Any])
-- **keys** (list[str])
+- **dictionary** (dict)
+- **keys** (list)
 
 ## GetDictionaryValue
 
@@ -106,7 +106,7 @@ Use cases:
 
 **Tags:** dictionary, get, value, key
 
-- **dictionary** (dict[str, typing.Any])
+- **dictionary** (dict)
 - **key** (str)
 
 ## RemoveFromDictionary
@@ -120,6 +120,6 @@ Use cases:
 
 **Tags:** dictionary, remove, delete
 
-- **dictionary** (dict[str, typing.Any])
+- **dictionary** (dict)
 - **key** (str)
 

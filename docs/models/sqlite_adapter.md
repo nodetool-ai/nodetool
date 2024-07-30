@@ -12,7 +12,7 @@
 ### delete
 
 **Args:**
-- **primary_key (Any)**
+- **primary_key (typing.Any)**
 
 **Returns:** None
 
@@ -25,7 +25,7 @@
 ### get
 
 **Args:**
-- **key (Any)**
+- **key (typing.Any)**
 
 **Returns:** typing.Optional[typing.Dict[str, typing.Any]]
 
@@ -34,21 +34,14 @@
 Retrieves the current schema of the table from the database.
 **Args:**
 
-**Returns:** set[str]
+**Returns:** set
 
 ### get_desired_schema
 
 Retrieves the desired schema based on the defined fields.
 **Args:**
 
-**Returns:** set[str]
-
-### get_primary_key
-
-Get the name of the hash key.
-**Args:**
-
-**Returns:** str
+**Returns:** set
 
 ### migrate_table
 
@@ -60,14 +53,11 @@ Inspects the current schema of the database and migrates the table to the desire
 ### query
 
 **Args:**
-- **condition (str)**
-- **values (typing.Dict[str, typing.Any])**
+- **condition (ConditionBuilder)**
 - **limit (int) (default: 100)**
 - **reverse (bool) (default: False)**
-- **start_key (str | None) (default: None)**
-- **index (str | None) (default: None)**
 
-**Returns:** tuple[list[dict[str, typing.Any]], str]
+**Returns:** tuple
 
 ### save
 
@@ -100,10 +90,10 @@ Deserialize JSON strings to lists and dicts.
 - ****: param py_type: The Python type of the value.
 - ****: return: The value converted to a Python type.
 **Args:**
-- **value (Any)**
+- **value (typing.Any)**
 - **py_type (typing.Type)**
 
-**Returns:** Any
+**Returns:** typing.Any
 
 ### convert_to_sqlite_attributes
 
@@ -123,7 +113,7 @@ Serialize lists and dicts to JSON strings. Encode bytes using base64.
 - ****: param py_type: The Python type of the value.
 - ****: return: The value converted to a SQLite-compatible format.
 **Args:**
-- **value (Any)**
+- **value (typing.Any)**
 - **py_type (typing.Type)**
 
 **Returns:** typing.Union[int, float, str, bytes, NoneType]
@@ -131,7 +121,7 @@ Serialize lists and dicts to JSON strings. Encode bytes using base64.
 ### get_sqlite_type
 
 **Args:**
-- **field_type (Any)**
+- **field_type (typing.Any)**
 
 **Returns:** str
 
