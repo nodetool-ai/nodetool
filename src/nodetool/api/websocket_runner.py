@@ -152,9 +152,8 @@ class WebSocketRunner:
                 req, self.runner, self.context, use_thread=True
             ):
                 try:
-                    # packed_message = msgpack.packb(msg.model_dump(), use_bin_type=True)
-                    # await self.websocket.send_bytes(msg.encode())
-                    await self.websocket.send_text(msg.model_dump_json())
+                    packed_message = msgpack.packb(msg.model_dump(), use_bin_type=True)
+                    await self.websocket.send_bytes(packed_message)  # type: ignore
                 except Exception as e:
                     log.exception(e)
 
@@ -239,13 +238,14 @@ class WebSocketRunner:
         try:
             while True:
                 assert self.websocket, "WebSocket is not connected"
-                data = await self.websocket.receive_text()
-                command = WebSocketCommand(**json.loads(data))
+                data = await self.websocket.receive_bytes()
+                command = WebSocketCommand(**msgpack.unpackb(data))  # type: ignore
                 response = await self.handle_command(command)
-                await self.websocket.send_text(json.dumps(response))
+                await self.websocket.send_bytes(msgpack.packb(response, use_bin_type=True))  # type: ignore
         except WebSocketDisconnect:
             log.info("WebSocket disconnected")
         except Exception as e:
             log.error(f"WebSocket error: {str(e)}")
+            log.exception(e)
         finally:
             await self.disconnect()

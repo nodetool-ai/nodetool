@@ -826,23 +826,23 @@ class Preview(BaseNode):
     async def process(self, context: Any) -> Any:
         return self.value
 
-    def send_update(
-        self,
-        context: Any,
-        status: str,
-        result: dict[str, Any] | None = None,
-    ):
-        if isinstance(self.value, ImageRef) and self.value.binary is not None:
-            if status == "completed":
-                context.post_message(
-                    BinaryUpdate(
-                        node_id=self.id,
-                        output_name="output",
-                        binary=self.value.binary,
-                    )
-                )
-        else:
-            super().send_update(context, status, result)
+    # def send_update(
+    #     self,
+    #     context: Any,
+    #     status: str,
+    #     result: dict[str, Any] | None = None,
+    # ):
+    #     if isinstance(self.value, ImageRef) and self.value.binary is not None:
+    #         if status == "completed":
+    #             context.post_message(
+    #                 BinaryUpdate(
+    #                     node_id=self.id,
+    #                     output_name="output",
+    #                     binary=self.value.binary,
+    #                 )
+    #             )
+    #     else:
+    #         super().send_update(context, status, result)
 
 
 def get_node_class_by_name(class_name: str) -> list[type[BaseNode]]:

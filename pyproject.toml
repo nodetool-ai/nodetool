@@ -51,6 +51,7 @@ mediapipe = "*"
 modal = "*"
 moto = { version = "*", extras = ["s3"] }
 moviepy = "*"
+msgpack = "*"
 numpy = "<2"
 ollama = "*"
 omegaconf = "*"

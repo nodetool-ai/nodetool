@@ -26,6 +26,7 @@ import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore from "./ErrorStore";
+import msgpack from "msgpack-lite";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -37,62 +38,6 @@ export type NodeState = {
   id: string;
   error: string | null;
 };
-
-function uint8ArrayToDataUri(array: Uint8Array, mimeType: string): string {
-  // Convert the Uint8Array to a regular array of numbers
-  const numberArray = Array.from(array);
-
-  // Convert each number to its corresponding character
-  const characters = numberArray.map(byte => String.fromCharCode(byte));
-
-  // Join the characters into a single string
-  const binaryString = characters.join('');
-
-  // Encode the binary string as base64
-  const base64String = btoa(binaryString);
-
-  // Construct and return the data URI
-  return `data:${mimeType};base64,${base64String}`;
-}
-
-async function extractImage(blob: Blob) {
-  let currentIndex = 0;
-  const buffer = await blob.arrayBuffer();
-  const arr = new Uint8Array(buffer);
-
-  // Helper function to read a null-terminated string
-  function readString(): string {
-    const startIndex = currentIndex;
-    while (currentIndex < arr.length && arr[currentIndex] !== 0) {
-      currentIndex++;
-    }
-    const string = new TextDecoder().decode(arr.slice(startIndex, currentIndex));
-    currentIndex++; // Skip the NULL byte
-    return string;
-  }
-
-  const nodeId = readString();
-  const outputName = readString();
-
-  if (currentIndex >= arr.length) {
-    throw new Error("No PNG data found after the NULL-terminated strings");
-  }
-
-  // Extract PNG data (everything after the second NULL byte)
-  const pngData = arr.slice(currentIndex);
-
-  // Validate PNG signature
-  const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
-  if (pngData.length < pngSignature.length || !pngSignature.every((byte, i) => pngData[i] === byte)) {
-    throw new Error("Invalid PNG signature in the remaining data");
-  }
-
-  return {
-    nodeId,
-    outputName,
-    url: uint8ArrayToDataUri(pngData, "image/png")
-  };
-}
 
 export type WorkflowRunner = {
   socket: WebSocket | null;
@@ -106,7 +51,6 @@ export type WorkflowRunner = {
     workflow: WorkflowAttributes,
     data: JobUpdate | Prediction | NodeProgress | NodeUpdate
   ) => void;
-  readBinaryMessage: (workflow: WorkflowAttributes, data: Blob) => Promise<void>;
   addNotification: (
     notification: Omit<Notification, "id" | "timestamp">
   ) => void;
@@ -149,12 +93,9 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     socket.onmessage = async (event) => {
       // TODO: this needs to be part of the payload
       const workflow = useNodeStore.getState().workflow;
-      if (event.data instanceof Blob) {
-        await get().readBinaryMessage(workflow, event.data);
-      } else {
-        const data = JSON.parse(event.data);
-        get().readMessage(workflow, data);
-      }
+      const arrayBuffer = await event.data.arrayBuffer();
+      const data = msgpack.decode(new Uint8Array(arrayBuffer));
+      get().readMessage(workflow, data);
     };
 
     socket.onerror = (error) => {
@@ -186,26 +127,6 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       socket.close();
       set({ socket: null, current_url: "", state: "idle" });
     }
-  },
-
-  readBinaryMessage: async (workflow: WorkflowAttributes, data: Blob) => {
-    const setResult = useResultsStore.getState().setResult;
-    const addNotification = get().addNotification;
-    const { nodeId, outputName, url } = await extractImage(data);
-
-    console.log("Received image for node", nodeId, url);
-
-    setResult(workflow.id, nodeId, {
-      [outputName]: {
-        type: "image",
-        uri: url
-      }
-    });
-
-    addNotification({
-      type: "info",
-      content: `Received image for node ${nodeId}`
-    });
   },
 
   readMessage: (
@@ -403,7 +324,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       }
     };
 
-    socket.send(JSON.stringify({
+    socket.send(msgpack.encode({
       command: "run_job",
       data: req
     }));
@@ -446,7 +367,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       return;
     }
 
-    socket.send(JSON.stringify({
+    socket.send(msgpack.encode({
       command: "cancel_job",
       data: { job_id }
     }));
