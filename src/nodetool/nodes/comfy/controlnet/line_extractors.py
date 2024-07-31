@@ -66,3 +66,40 @@ class ScribblePreprocessor(PreprocessImage):
 
 class ScribbleXDoGPreprocessor(PreprocessImage):
     threshold: float = Field(default=32, le=64, ge=1)
+
+
+class AnyLinePreprocessor(PreprocessImage):
+    _comfy_class: str = "AnyLineArtPreprocessor_aux"
+
+    merge_with_lineart: str = Field(
+        default="lineart_standard",
+        description="The lineart to merge with.",
+    )
+    lineart_lower_bound: float = Field(
+        default=0, description="The lower bound for lineart."
+    )
+    lineart_upper_bound: float = Field(
+        default=1, description="The upper bound for lineart."
+    )
+    object_min_size: int = Field(
+        default=36, description="The minimum size for objects."
+    )
+    object_connectivity: int = Field(
+        default=1, description="The connectivity for objects."
+    )
+
+
+class DiffusionEdge_Preprocessor_Environment(str, Enum):
+    INDOOR = "indoor"
+    URBAN = "urban"
+    NEUTRAL = "neutral"
+
+
+class DiffusionEdge_Preprocessor(PreprocessImage):
+    environment: DiffusionEdge_Preprocessor_Environment = Field(
+        default=DiffusionEdge_Preprocessor_Environment.INDOOR,
+        description="The environment to use.",
+    )
+    patch_batch_size: int = Field(
+        default=4, description="The patch batch size to use.", ge=1, le=16
+    )

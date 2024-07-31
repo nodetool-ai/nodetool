@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 from nodetool.metadata.types import Message
-from nodetool.metadata.types import ImageTensor, Tensor
+from nodetool.metadata.types import Tensor
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import DataframeRef
@@ -254,31 +254,6 @@ class ImageOutput(OutputNode):
                 },
             },
         }
-
-
-class ComfyImageOutput(OutputNode):
-    """
-    Output node for raw image tensor data.
-    image, tensor, raw
-
-    Use cases:
-    - Outputting directly from image generation models
-    - Passing raw image data for further processing
-    - Interfacing with tensor-based image libraries
-    """
-
-    value: ImageTensor = Field(default=ImageTensor(), description="A raw image tensor.")
-
-    def assign_property(self, name: str, value: Any):
-        setattr(self, name, value)
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        import numpy as np
-
-        image = self.value[0]  # type: ignore
-        i = 255.0 * image.cpu().detach().numpy()  # type: ignore
-        img = np.clip(i, 0, 255).astype(np.uint8)
-        return await context.image_from_numpy(img)
 
 
 class VideoOutput(OutputNode):

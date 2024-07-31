@@ -1,7 +1,7 @@
 from enum import Enum
 
 from pydantic import Field
-from nodetool.metadata.types import ImageTensor
+from nodetool.metadata.types import ImageRef
 from nodetool.common.comfy_node import DensePoseModel
 
 from nodetool.common.comfy_node import ComfyNode, EnableDisable
@@ -62,7 +62,7 @@ class DWPose_Preprocessor(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"type": ImageTensor}
+        return {"type": ImageRef}
 
 
 class OpenposePreprocessor(PreprocessImage):
@@ -81,6 +81,7 @@ class OpenposePreprocessor(PreprocessImage):
 
 
 class MediaPipeFaceMeshPreprocessor(PreprocessImage):
+    _comfy_class = "MediaPipe-FaceMeshPreprocessor"
     max_faces: int = Field(
         default=10, description="The maximum number of faces to detect."
     )

@@ -1,7 +1,6 @@
 import nodetool.nodes.comfy
 import nodetool.nodes.comfy.advanced
 import nodetool.nodes.comfy.advanced.conditioning
-import nodetool.nodes.comfy.advanced.loaders
 import nodetool.nodes.comfy.conditioning
 import nodetool.nodes.comfy.controlnet
 import nodetool.nodes.comfy.controlnet.faces_and_poses

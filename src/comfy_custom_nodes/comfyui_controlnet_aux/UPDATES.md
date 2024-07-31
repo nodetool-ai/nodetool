@@ -26,3 +26,17 @@
 * Fixed OpenPose misplacements in some cases 
 * Added Mesh Graphormer - Hand Depth Map & Mask
 * Misaligned hands bug from MeshGraphormer was fixed
+* Added more mask options for MeshGraphormer
+* Added Save Pose Keypoint node for editing
+* Added Unimatch Optical Flow
+* Added Depth Anything & Zoe Depth Anything
+* Removed resolution field from Unimatch Optical Flow as that interpolating optical flow seems unstable
+* Added TEED Soft-Edge Preprocessor
+* Added DiffusionEdge
+* Added Image Luminance and Image Intensity
+* Added Normal DSINE
+* Added TTPlanet Tile (09/05/2024, DD/MM/YYYY)
+* Added AnyLine, Metric3D (18/05/2024)
+* Added Depth Anything V2 (16/06/2024)
+* Added Union model of ControlNet and preprocessors
+![345832280-edf41dab-7619-494c-9f60-60ec1f8789cb](https://github.com/user-attachments/assets/aa55f57c-cad7-48e6-84d3-8f506d847989)

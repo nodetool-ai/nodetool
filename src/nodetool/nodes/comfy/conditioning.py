@@ -9,7 +9,7 @@ from nodetool.metadata.types import (
     CLIPVisionOutput,
     Conditioning,
     ControlNet,
-    ImageTensor,
+    ImageRef,
     LORAFile,
     Mask,
     UNet,
@@ -277,8 +277,8 @@ class CLIPVisionEncode(ComfyNode):
         default=CLIPVision(),
         description="The CLIP vision model to use for encoding.",
     )
-    image: ImageTensor = Field(
-        default=ImageTensor(),
+    image: ImageRef = Field(
+        default=ImageRef(),
         description="The image to encode with the CLIP vision model.",
     )
 
@@ -347,7 +347,6 @@ class LoraLoader(ComfyNode):
         }
 
 
-
 class LoraLoaderModelOnly(ComfyNode):
     model: UNet = Field(default=UNet(), description="The model to apply Lora to.")
     lora_name: LORAFile = Field(
@@ -373,12 +372,10 @@ class LoraLoaderModelOnly(ComfyNode):
 
         context.add_model("comfy.unet", self.lora_name.name, unet)
 
-    
     async def process(self, context: ProcessingContext):
         return {
             "model": UNet(name=self.lora_name.name),
         }
-
 
 
 class VAELoader(ComfyNode):
@@ -480,7 +477,7 @@ class ControlNetApply(ComfyNode):
     control_net: ControlNet = Field(
         default=ControlNet(), description="The control net to apply."
     )
-    image: ImageTensor = Field(default="", description="The image to apply to.")
+    image: ImageRef = Field(default="", description="The image to apply to.")
     strength: float = Field(
         default=1.0, description="The strength of the controlnet.", gt=0.0, lt=10.0
     )
@@ -504,8 +501,8 @@ class ControlNetApplyAdvanced(ComfyNode):
     control_net: ControlNet = Field(
         default=ControlNet(), description="The ControlNet to use."
     )
-    image: ImageTensor = Field(
-        default=ImageTensor(),
+    image: ImageRef = Field(
+        default=ImageRef(),
         description="The image to apply conditioning adjustments to.",
     )
     strength: float = Field(

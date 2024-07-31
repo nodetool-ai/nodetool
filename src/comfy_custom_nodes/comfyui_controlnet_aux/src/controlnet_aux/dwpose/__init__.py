@@ -5,8 +5,6 @@
 # 4th Edited by ControlNet (added face and correct hands)
 # 5th Edited by ControlNet (Improved JSON serialization/deserialization, and lots of bug fixs)
 # This preprocessor is licensed by CMU for non-commercial use only.
-import torch.utils.benchmark as benchmark
-benchmark.timer()
 
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -18,7 +16,7 @@ from . import util
 from .body import Body, BodyResult, Keypoint
 from .hand import Hand
 from .face import Face
-from .types import PoseResult, HandResult, FaceResult
+from .types import PoseResult, HandResult, FaceResult, AnimalPoseResult
 from huggingface_hub import hf_hub_download
 from .wholebody import Wholebody
 import warnings
@@ -28,6 +26,70 @@ from PIL import Image
 from .animalpose import AnimalPoseImage
 
 from typing import Tuple, List, Callable, Union, Optional
+
+
+def draw_animalposes(animals: list[list[Keypoint]], H: int, W: int) -> np.ndarray:
+    canvas = np.zeros(shape=(H, W, 3), dtype=np.uint8)
+    for animal_pose in animals:
+        canvas = draw_animalpose(canvas, animal_pose)
+    return canvas
+
+
+def draw_animalpose(canvas: np.ndarray, keypoints: list[Keypoint]) -> np.ndarray:
+    # order of the keypoints for AP10k and a standardized list of colors for limbs
+    keypointPairsList = [
+        (1, 2),
+        (2, 3),
+        (1, 3),
+        (3, 4),
+        (4, 9),
+        (9, 10),
+        (10, 11),
+        (4, 6),
+        (6, 7),
+        (7, 8),
+        (4, 5),
+        (5, 15),
+        (15, 16),
+        (16, 17),
+        (5, 12),
+        (12, 13),
+        (13, 14),
+    ]
+    colorsList = [
+        (255, 255, 255),
+        (100, 255, 100),
+        (150, 255, 255),
+        (100, 50, 255),
+        (50, 150, 200),
+        (0, 255, 255),
+        (0, 150, 0),
+        (0, 0, 255),
+        (0, 0, 150),
+        (255, 50, 255),
+        (255, 0, 255),
+        (255, 0, 0),
+        (150, 0, 0),
+        (255, 255, 100),
+        (0, 150, 0),
+        (255, 255, 0),
+        (150, 150, 150),
+    ]  # 16 colors needed
+
+    for ind, (i, j) in enumerate(keypointPairsList):
+        p1 = keypoints[i - 1]
+        p2 = keypoints[j - 1]
+
+        if p1 is not None and p2 is not None:
+            cv2.line(
+                canvas,
+                (int(p1.x), int(p1.y)),
+                (int(p2.x), int(p2.y)),
+                colorsList[ind],
+                5,
+            )
+    return canvas
+
 
 def draw_poses(poses: List[PoseResult], H, W, draw_body=True, draw_hand=True, draw_face=True):
     """
@@ -60,35 +122,36 @@ def draw_poses(poses: List[PoseResult], H, W, draw_body=True, draw_hand=True, dr
     return canvas
 
 
-def decode_json_as_poses(json_string: str, normalize_coords: bool = False) -> Tuple[List[PoseResult], int, int]:
-    """ Decode the json_string complying with the openpose JSON output format
+def decode_json_as_poses(
+    pose_json: dict,
+) -> Tuple[List[PoseResult], List[AnimalPoseResult], int, int]:
+    """Decode the json_string complying with the openpose JSON output format
     to poses that controlnet recognizes.
     https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/02_output.md
 
     Args:
         json_string: The json string to decode.
-        normalize_coords: Whether to normalize coordinates of each keypoint by canvas height/width.
-                          `draw_pose` only accepts normalized keypoints. Set this param to True if
-                          the input coords are not normalized.
-    
+
     Returns:
-        poses
+        human_poses
+        animal_poses
         canvas_height
-        canvas_width                      
+        canvas_width
     """
-    pose_json = json.loads(json_string)
-    height = pose_json['canvas_height']
-    width = pose_json['canvas_width']
+    height = pose_json["canvas_height"]
+    width = pose_json["canvas_width"]
 
     def chunks(lst, n):
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), n):
-            yield lst[i:i + n]
-    
-    def decompress_keypoints(numbers: Optional[List[float]]) -> Optional[List[Optional[Keypoint]]]:
+            yield lst[i : i + n]
+
+    def decompress_keypoints(
+        numbers: Optional[List[float]],
+    ) -> Optional[List[Optional[Keypoint]]]:
         if not numbers:
             return None
-        
+
         assert len(numbers) % 3 == 0
 
         def create_keypoint(x, y, c):
@@ -97,21 +160,21 @@ def decode_json_as_poses(json_string: str, normalize_coords: bool = False) -> Tu
             keypoint = Keypoint(x, y)
             return keypoint
 
-        return [
-            create_keypoint(x, y, c)
-            for x, y, c in chunks(numbers, n=3)
-        ]
-    
+        return [create_keypoint(x, y, c) for x, y, c in chunks(numbers, n=3)]
+
     return (
         [
             PoseResult(
-                body=BodyResult(keypoints=decompress_keypoints(pose.get('pose_keypoints_2d'))),
-                left_hand=decompress_keypoints(pose.get('hand_left_keypoints_2d')),
-                right_hand=decompress_keypoints(pose.get('hand_right_keypoints_2d')),
-                face=decompress_keypoints(pose.get('face_keypoints_2d'))
+                body=BodyResult(
+                    keypoints=decompress_keypoints(pose.get("pose_keypoints_2d"))
+                ),
+                left_hand=decompress_keypoints(pose.get("hand_left_keypoints_2d")),
+                right_hand=decompress_keypoints(pose.get("hand_right_keypoints_2d")),
+                face=decompress_keypoints(pose.get("face_keypoints_2d")),
             )
-            for pose in pose_json['people']
+            for pose in pose_json.get("people", [])
         ],
+        [decompress_keypoints(pose) for pose in pose_json.get("animals", [])],
         height,
         width,
     )
@@ -196,17 +259,17 @@ class DwposeDetector:
             include_face = hand_and_face
 
         input_image, output_type = common_input_validate(input_image, output_type, **kwargs)
-        input_image, remove_pad = resize_image_with_pad(input_image, detect_resolution, upscale_method)
-        
         poses = self.detect_poses(input_image)
-        canvas = draw_poses(poses, input_image.shape[0], input_image.shape[1], draw_body=include_body, draw_hand=include_hand, draw_face=include_face) 
+        
+        canvas = draw_poses(poses, input_image.shape[0], input_image.shape[1], draw_body=include_body, draw_hand=include_hand, draw_face=include_face)
+        canvas, remove_pad = resize_image_with_pad(canvas, detect_resolution, upscale_method)
         detected_map = HWC3(remove_pad(canvas))
 
         if output_type == "pil":
             detected_map = Image.fromarray(detected_map)
         
         if image_and_json:
-            return (detected_map, encode_poses_as_dict(poses, detected_map.shape[0], detected_map.shape[1]))
+            return (detected_map, encode_poses_as_dict(poses, input_image.shape[0], input_image.shape[1]))
         
         return detected_map
 
@@ -244,9 +307,18 @@ class AnimalposeDetector:
     def __call__(self, input_image, detect_resolution=512, output_type="pil", image_and_json=False, upscale_method="INTER_CUBIC", **kwargs):
         input_image, output_type = common_input_validate(input_image, output_type, **kwargs)
         input_image, remove_pad = resize_image_with_pad(input_image, detect_resolution, upscale_method)
-        detected_map, openpose_dict = self.animal_pose_estimation(input_image)
+        result = self.animal_pose_estimation(input_image)
+        if result is None:
+            detected_map = np.zeros_like(input_image)
+            openpose_dict = {
+                'version': 'ap10k',
+                'animals': [],
+                'canvas_height': input_image.shape[0],
+                'canvas_width': input_image.shape[1]
+            }
+        else:
+            detected_map, openpose_dict = result
         detected_map = remove_pad(detected_map)
-
         if output_type == "pil":
             detected_map = Image.fromarray(detected_map)
         

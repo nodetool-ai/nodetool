@@ -61,7 +61,7 @@ else:
     true_hand_category = {"Right": "left", "Left": "right"}
 
 class MeshGraphormerMediapipe(Preprocessor):
-    def __init__(self, args=args) -> None:
+    def __init__(self, args=args, detect_thr=0.6, presence_thr=0.6) -> None:
         #global logger
         # Setup CUDA, GPU & distributed training
         args.num_gpus = int(os.environ['WORLD_SIZE']) if 'WORLD_SIZE' in os.environ else 1
@@ -190,11 +190,13 @@ class MeshGraphormerMediapipe(Preprocessor):
                     transforms.Normalize(
                         mean=[0.485, 0.456, 0.406],
                         std=[0.229, 0.224, 0.225])])
-        
-        base_options = python.BaseOptions(model_asset_path=str( Path(__file__).parent / "hand_landmarker.task" ))
+        #Fix File loading is not yet supported on Windows
+        with open(str( Path(__file__).parent / "hand_landmarker.task" ), 'rb') as file:
+            model_data = file.read()
+        base_options = python.BaseOptions(model_asset_buffer=model_data)
         options = vision.HandLandmarkerOptions(base_options=base_options,
-                                            min_hand_detection_confidence=0.6,
-                                            min_hand_presence_confidence=0.6,
+                                            min_hand_detection_confidence=detect_thr,
+                                            min_hand_presence_confidence=presence_thr,
                                             min_tracking_confidence=0.6,
                                             num_hands=2)
 
@@ -325,6 +327,7 @@ class MeshGraphormerMediapipe(Preprocessor):
         hands = []
         depth_failure = False
         crop_lens = []
+        abs_boxes = []
         
         for idx in range(len(hand_landmarks_list)):
             hand = true_hand_category[handedness_list[idx][0].category_name]
@@ -342,6 +345,7 @@ class MeshGraphormerMediapipe(Preprocessor):
             y_min = int(min(y_coordinates) * height)
             y_max = int(max(y_coordinates) * height)
             y_c = (y_min + y_max)//2
+            abs_boxes.append([x_min, x_max, y_min, y_max])
 
             #if x_max - x_min < 60 or y_max - y_min < 60:
             #    continue
@@ -404,6 +408,7 @@ class MeshGraphormerMediapipe(Preprocessor):
         info["hands"] = hands
         info["crop_boxes"] = crop_boxes
         info["crop_lens"] = crop_lens
+        info["abs_boxes"] = abs_boxes
         return depthmap, mask, info
     
     def get_keypoints(self, img, Graphormer_model, mano, mesh_sampler, scale, crop_len):
@@ -465,8 +470,3 @@ class MeshGraphormerMediapipe(Preprocessor):
             pass
         mpjpe = pjpe/(len(crop_boxes) * 21)
         return mpjpe
-
-
-
-
-

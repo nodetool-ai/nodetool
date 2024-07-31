@@ -1,6 +1,5 @@
 from typing import Any
 from pydantic import Field
-from nodetool.metadata.types import DataframeRef, ImageTensor
 from nodetool.metadata.types import asset_to_ref
 from nodetool.models.asset import Asset
 from nodetool.metadata.types import FolderRef
@@ -327,51 +326,6 @@ class TextFolder(Folder):
         assets = await super().process(context)
         texts = [asset for asset in assets if isinstance(asset, TextRef)]
         return texts
-
-
-class ComfyImageInput(AssetSchemaMixin, InputNode):
-    """
-    Image input optimized for Comfy workflows.
-    input, parameter, image
-
-    Use cases:
-    - Load and preprocess images for Comfy models
-    - Handle multi-frame images and alpha channels
-    - Convert images to tensor format for ML tasks
-    """
-
-    value: ImageRef = Field(ImageRef(), description="The image to use as input.")
-
-    async def process(self, context: ProcessingContext) -> ImageTensor:
-        from PIL import Image, ImageOps, ImageSequence
-        import torch
-        import numpy as np
-
-        img = await context.image_to_pil(self.value)
-
-        output_images = []
-        output_masks = []
-        for i in ImageSequence.Iterator(img):
-            i = ImageOps.exif_transpose(i)
-            image = i.convert("RGB")  # type: ignore
-            image = np.array(image).astype(np.float32) / 255.0
-            image = torch.from_numpy(image)[None,]
-            if "A" in i.getbands():  # type: ignore
-                mask = np.array(i.getchannel("A")).astype(np.float32) / 255.0  # type: ignore
-                mask = 1.0 - torch.from_numpy(mask)
-            else:
-                mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")
-            output_images.append(image)
-            output_masks.append(mask.unsqueeze(0))
-
-        if len(output_images) > 1:
-            output_image = torch.cat(output_images, dim=0)
-            output_mask = torch.cat(output_masks, dim=0)
-        else:
-            output_image = output_images[0]
-            output_mask = output_masks[0]
-
-        return output_image  # type: ignore
 
 
 class GroupInput(BaseNode):

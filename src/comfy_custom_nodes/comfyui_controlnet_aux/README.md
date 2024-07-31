@@ -1,19 +1,13 @@
 # ComfyUI's ControlNet Auxiliary Preprocessors
-
-This is a rework of [comfyui_controlnet_preprocessors](https://github.com/Fannovel16/comfy_controlnet_preprocessors) based on [ControlNet auxiliary models by 🤗](https://github.com/patrickvonplaten/controlnet_aux). I think the old repo isn't good enough to maintain.
-
-YOU NEED TO REMOVE `comfyui_controlnet_preprocessors` BEFORE USING THIS REPO. THESE TWO CONFLICT WITH EACH OTHER. 
-
-All old workflows still can be used with custom nodes in this repo but the version option won't do anything. Almost all v1 preprocessors are replaced by v1.1 except those doesn't apppear in v1.1.
-
-You don't need to care about the differences between v1 and v1.1 lol.
+![](./examples/example_mesh_graphormer.png)
+Plug-and-play [ComfyUI](https://github.com/comfyanonymous/ComfyUI) node sets for making [ControlNet](https://github.com/lllyasviel/ControlNet/) hint images
 
 The code is copy-pasted from the respective folders in https://github.com/lllyasviel/ControlNet/tree/main/annotator and connected to [the 🤗 Hub](https://huggingface.co/lllyasviel/Annotators).
 
 All credit & copyright goes to https://github.com/lllyasviel.
 
 # Marigold
-**NEW!** Check out Marigold Depth Estimator which can generate very detailed and sharp depth map from high-resolution images. The mesh created by it is even 3D-printable. Due to diffusers, it can't be implemented in this extension but there is an Comfy implementation by Kijai
+Check out Marigold Depth Estimator which can generate very detailed and sharp depth map from high-resolution still images. The mesh created by it is even 3D-printable. Due to diffusers, it can't be implemented in this extension but there is an Comfy implementation by Kijai
 https://github.com/kijai/ComfyUI-Marigold
 
 ![](./examples/example_marigold_flat.jpg)
@@ -53,16 +47,19 @@ You need to use its node directly to set thresholds.
 |-----------------------------|---------------------------|-------------------------------------------|
 | Binary Lines                | binary                    | control_scribble                          |
 | Canny Edge                  | canny                     | control_v11p_sd15_canny <br> control_canny <br> t2iadapter_canny |
-| HED Lines                   | hed                       | control_v11p_sd15_softedge <br> control_hed |
+| HED Soft-Edge Lines         | hed                       | control_v11p_sd15_softedge <br> control_hed |
 | Standard Lineart            | standard_lineart          | control_v11p_sd15_lineart                 |
 | Realistic Lineart           | lineart (or `lineart_coarse` if `coarse` is enabled) | control_v11p_sd15_lineart |
 | Anime Lineart               | lineart_anime             | control_v11p_sd15s2_lineart_anime         |
 | Manga Lineart               | lineart_anime_denoise     | control_v11p_sd15s2_lineart_anime         |
 | M-LSD Lines                 | mlsd                      | control_v11p_sd15_mlsd <br> control_mlsd  |
-| PiDiNet Lines               | pidinet                   | control_v11p_sd15_softedge <br> control_scribble |
+| PiDiNet Soft-Edge Lines     | pidinet                   | control_v11p_sd15_softedge <br> control_scribble |
 | Scribble Lines              | scribble                  | control_v11p_sd15_scribble <br> control_scribble |
 | Scribble XDoG Lines         | scribble_xdog             | control_v11p_sd15_scribble <br> control_scribble |
 | Fake Scribble Lines         | scribble_hed              | control_v11p_sd15_scribble <br> control_scribble |
+| TEED Soft-Edge Lines        | teed                      | [controlnet-sd-xl-1.0-softedge-dexined](https://huggingface.co/SargeZT/controlnet-sd-xl-1.0-softedge-dexined/blob/main/controlnet-sd-xl-1.0-softedge-dexined.safetensors) <br> control_v11p_sd15_softedge (Theoretically)
+| Scribble PiDiNet Lines      | scribble_pidinet          | control_v11p_sd15_scribble <br> control_scribble |
+| AnyLine Lineart             |                           | mistoLine_fp16.safetensors <br> mistoLine_rank256 <br> control_v11p_sd15s2_lineart_anime <br> control_v11p_sd15_lineart |
 
 ## Normal and Depth Estimators
 | Preprocessor Node           | sd-webui-controlnet/other |          ControlNet/T2I-Adapter           |
@@ -72,7 +69,13 @@ You need to use its node directly to set thresholds.
 | Zoe Depth Map             | depth_zoe                 | control_v11f1p_sd15_depth <br> control_depth <br> t2iadapter_depth |
 | MiDaS Normal Map          | normal_map                | control_normal                            |
 | BAE Normal Map            | normal_bae                | control_v11p_sd15_normalbae               |
-| MeshGraphormer Hand Refiner ([HandRefinder](https://github.com/wenquanlu/HandRefiner))  |               | [control_sd15_inpaint_depth_hand_fp16](https://huggingface.co/hr16/ControlNet-HandRefiner-pruned/blob/main/control_sd15_inpaint_depth_hand_fp16.safetensors) |
+| MeshGraphormer Hand Refiner ([HandRefinder](https://github.com/wenquanlu/HandRefiner))  | depth_hand_refiner | [control_sd15_inpaint_depth_hand_fp16](https://huggingface.co/hr16/ControlNet-HandRefiner-pruned/blob/main/control_sd15_inpaint_depth_hand_fp16.safetensors) |
+| Depth Anything            |  depth_anything           | [Depth-Anything](https://huggingface.co/spaces/LiheYoung/Depth-Anything/blob/main/checkpoints_controlnet/diffusion_pytorch_model.safetensors) |
+| Zoe Depth Anything <br> (Basically Zoe but the encoder is replaced with DepthAnything)       | depth_anything | [Depth-Anything](https://huggingface.co/spaces/LiheYoung/Depth-Anything/blob/main/checkpoints_controlnet/diffusion_pytorch_model.safetensors) |
+| Normal DSINE              |                           | control_normal/control_v11p_sd15_normalbae |
+| Metric3D Depth            |                           | control_v11f1p_sd15_depth <br> control_depth <br> t2iadapter_depth |
+| Metric3D Normal           |                           | control_v11p_sd15_normalbae |
+| Depth Anything V2         |                           | [Depth-Anything](https://huggingface.co/spaces/LiheYoung/Depth-Anything/blob/main/checkpoints_controlnet/diffusion_pytorch_model.safetensors) |
 
 ## Faces and Poses Estimators
 | Preprocessor Node           | sd-webui-controlnet/other |          ControlNet/T2I-Adapter           |
@@ -82,6 +85,17 @@ You need to use its node directly to set thresholds.
 | MediaPipe Face Mesh         | mediapipe_face            | controlnet_sd21_laion_face_v2             | 
 | Animal Estimator                 | animal_openpose           | [control_sd15_animal_openpose_fp16](https://huggingface.co/huchenlei/animal_openpose/blob/main/control_sd15_animal_openpose_fp16.pth) |
 
+## Optical Flow Estimators
+| Preprocessor Node           | sd-webui-controlnet/other |          ControlNet/T2I-Adapter           |
+|-----------------------------|---------------------------|-------------------------------------------|
+| Unimatch Optical Flow       |                           | [DragNUWA](https://github.com/ProjectNUWA/DragNUWA) |
+
+### How to get OpenPose-format JSON?
+#### User-side
+This workflow will save images to ComfyUI's output folder (the same location as output images). If you haven't found `Save Pose Keypoints` node, update this extension
+![](./examples/example_save_kps.png)
+
+#### Dev-side
 An array of [OpenPose-format JSON](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/02_output.md#json-output-format) corresponsding to each frame in an IMAGE batch can be gotten from DWPose and OpenPose using `app.nodeOutputs` on the UI or `/history` API endpoint. JSON output from AnimalPose uses a kinda similar format to OpenPose JSON:
 ```
 [
@@ -156,6 +170,12 @@ for o in history['outputs']:
 | Color Pallete               | color                     | t2iadapter_color                          |
 | Content Shuffle             | shuffle                   | t2iadapter_style                          |
 
+## Recolor
+| Preprocessor Node           | sd-webui-controlnet/other |          ControlNet/T2I-Adapter           |
+|-----------------------------|---------------------------|-------------------------------------------|
+| Image Luminance             | recolor_luminance         | [ioclab_sd15_recolor](https://huggingface.co/lllyasviel/sd_control_collection/resolve/main/ioclab_sd15_recolor.safetensors) <br> [sai_xl_recolor_256lora](https://huggingface.co/lllyasviel/sd_control_collection/resolve/main/sai_xl_recolor_256lora.safetensors) <br> [bdsqlsz_controlllite_xl_recolor_luminance](https://huggingface.co/bdsqlsz/qinglong_controlnet-lllite/resolve/main/bdsqlsz_controlllite_xl_recolor_luminance.safetensors) |
+| Image Intensity             | recolor_intensity         | Idk. Maybe same as above? |
+
 # Examples
 > A picture is worth a thousand words
 
@@ -169,6 +189,10 @@ Credit to https://huggingface.co/thibaud/controlnet-sd21 for most examples below
 ![](https://huggingface.co/thibaud/controlnet-sd21/resolve/main/example_lineart.png)
 ### Scribble/Fake Scribble
 ![](https://huggingface.co/thibaud/controlnet-sd21/resolve/main/example_scribble.png)
+### TEED Soft-Edge Lines
+![](./examples/example_teed.png)
+### Anyline Lineart
+![](./examples/example_anyline.png)
 
 ## Normal and Depth Map
 ### Depth (idk the preprocessor they use)
@@ -179,6 +203,15 @@ Credit to https://huggingface.co/thibaud/controlnet-sd21 for most examples below
 ![](https://huggingface.co/thibaud/controlnet-sd21/resolve/main/example_normalbae.png)
 ## MeshGraphormer
 ![](./examples/example_mesh_graphormer.png)
+## Depth Anything & Zoe Depth Anything
+![](./examples/example_depth_anything.png)
+## DSINE
+![](./examples/example_dsine.png)
+## Metric3D
+![](./examples/example_metric3d.png)
+## Depth Anything V2
+![](./examples/example_depth_anything_v2.png)
+
 ## Faces and Poses
 ### OpenPose
 ![](https://huggingface.co/thibaud/controlnet-sd21/resolve/main/example_openpose.png)
@@ -201,6 +234,13 @@ Credit to https://huggingface.co/thibaud/controlnet-sd21 for most examples below
 ### Color Pallete for T2I-Adapter
 ![](https://huggingface.co/thibaud/controlnet-sd21/resolve/main/example_color.png)
 
+## Optical Flow
+### Unimatch
+![](./examples/example_unimatch.png)
+
+## Recolor
+![](./examples/example_recolor.png)
+
 # Testing workflow
 https://github.com/Fannovel16/comfyui_controlnet_aux/blob/master/tests/test_cn_aux_full.json
 ![](https://github.com/Fannovel16/comfyui_controlnet_aux/blob/master/tests/pose.png?raw=true)
@@ -221,7 +261,8 @@ Set `bbox_detector` and `pose_estimator` according to this picture. You can try 
 If onnxruntime is installed successfully and the checkpoint used endings with `.onnx`, it will replace default cv2 backend to take advantage of GPU. Note that if you are using NVidia card, this method currently can only works on CUDA 11.8 (ComfyUI_windows_portable_nvidia_cu118_or_cpu.7z) unless you compile onnxruntime yourself.
 
 1. Know your onnxruntime build:
-* * NVidia/AMD GPU: `onnxruntime-gpu`
+* * NVidia CUDA 11.x or bellow/AMD GPU: `onnxruntime-gpu`
+* * NVidia CUDA 12.x: `onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/`
 * * DirectML: `onnxruntime-directml`
 * * OpenVINO: `onnxruntime-openvino`
 
@@ -257,3 +298,18 @@ Note that if this is your first time using ComfyUI, please test if it can run on
 * sam:  [dhkim2810/MobileSAM/mobile_sam.pt](https://huggingface.co/dhkim2810/MobileSAM/blob/main/mobile_sam.pt)
 * uniformer:  [lllyasviel/Annotators/upernet_global_small.pth](https://huggingface.co/lllyasviel/Annotators/blob/main/upernet_global_small.pth)
 * zoe:  [lllyasviel/Annotators/ZoeD_M12_N.pt](https://huggingface.co/lllyasviel/Annotators/blob/main/ZoeD_M12_N.pt)
+* teed:  [bdsqlsz/qinglong_controlnet-lllite/7_model.pth](https://huggingface.co/bdsqlsz/qinglong_controlnet-lllite/blob/main/Annotators/7_model.pth)
+* depth_anything: Either [LiheYoung/Depth-Anything/checkpoints/depth_anything_vitl14.pth](https://huggingface.co/spaces/LiheYoung/Depth-Anything/blob/main/checkpoints/depth_anything_vitl14.pth), [LiheYoung/Depth-Anything/checkpoints/depth_anything_vitb14.pth](https://huggingface.co/spaces/LiheYoung/Depth-Anything/blob/main/checkpoints/depth_anything_vitb14.pth) or [LiheYoung/Depth-Anything/checkpoints/depth_anything_vits14.pth](https://huggingface.co/spaces/LiheYoung/Depth-Anything/blob/main/checkpoints/depth_anything_vits14.pth)
+* diffusion_edge: Either [hr16/Diffusion-Edge/diffusion_edge_indoor.pt](https://huggingface.co/hr16/Diffusion-Edge/blob/main/diffusion_edge_indoor.pt), [hr16/Diffusion-Edge/diffusion_edge_urban.pt](https://huggingface.co/hr16/Diffusion-Edge/blob/main/diffusion_edge_urban.pt) or [hr16/Diffusion-Edge/diffusion_edge_natrual.pt](https://huggingface.co/hr16/Diffusion-Edge/blob/main/diffusion_edge_natrual.pt)
+* unimatch: Either [hr16/Unimatch/gmflow-scale2-regrefine6-mixdata.pth](https://huggingface.co/hr16/Unimatch/blob/main/gmflow-scale2-regrefine6-mixdata.pth), [hr16/Unimatch/gmflow-scale2-mixdata.pth](https://huggingface.co/hr16/Unimatch/blob/main/gmflow-scale2-mixdata.pth) or [hr16/Unimatch/gmflow-scale1-mixdata.pth](https://huggingface.co/hr16/Unimatch/blob/main/gmflow-scale1-mixdata.pth)
+* zoe_depth_anything: Either [LiheYoung/Depth-Anything/checkpoints_metric_depth/depth_anything_metric_depth_indoor.pt](https://huggingface.co/spaces/LiheYoung/Depth-Anything/blob/main/checkpoints_metric_depth/depth_anything_metric_depth_indoor.pt) or [LiheYoung/Depth-Anything/checkpoints_metric_depth/depth_anything_metric_depth_outdoor.pt](https://huggingface.co/spaces/LiheYoung/Depth-Anything/blob/main/checkpoints_metric_depth/depth_anything_metric_depth_outdoor.pt)
+# 1500 Stars 😄
+<a href="https://star-history.com/#Fannovel16/comfyui_controlnet_aux&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Fannovel16/comfyui_controlnet_aux&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Fannovel16/comfyui_controlnet_aux&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Fannovel16/comfyui_controlnet_aux&type=Date" />
+  </picture>
+</a>
+
+Thanks for yalls supports. I never thought the graph for stars would be linear lol.

@@ -1,13 +1,11 @@
 from pydantic import Field
-from nodetool.metadata.types import Conditioning, ControlNet, ImageTensor
+from nodetool.metadata.types import Conditioning, ControlNet, ImageRef, ImageTensor
 from nodetool.common.comfy_node import MAX_RESOLUTION
 from nodetool.common.comfy_node import ComfyNode
 
 
 class PreprocessImage(ComfyNode):
-    image: ImageTensor = Field(
-        default=ImageTensor(), description="The image to preprocess."
-    )
+    image: ImageRef = Field(default=ImageRef(), description="The image to preprocess.")
     resolution: int = Field(
         default=512,
         description="The width of the image to generate.",
@@ -17,4 +15,8 @@ class PreprocessImage(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
+
+    @classmethod
+    def is_visible(cls):
+        return cls is not PreprocessImage

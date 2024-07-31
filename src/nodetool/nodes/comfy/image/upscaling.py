@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import Field, validator
-from nodetool.metadata.types import ImageTensor, UpscaleModel
+from nodetool.metadata.types import ImageRef, UpscaleModel
 from nodetool.common.comfy_node import ComfyNode
 
 
@@ -18,7 +18,7 @@ class UpscaleMethod(str, Enum):
 
 
 class ImageScale(ComfyNode):
-    image: ImageTensor = Field(default=ImageTensor(), description="The image to scale.")
+    image: ImageRef = Field(default=ImageRef(), description="The image to scale.")
     upscale_method: UpscaleMethod = Field(
         default=UpscaleMethod.NEAREST_EXACT,
         description="The method to use for upscaling the image.",
@@ -32,11 +32,11 @@ class ImageScale(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
 
 
 class ImageScaleBy(ComfyNode):
-    image: ImageTensor = Field(default=ImageTensor(), description="The image to scale.")
+    image: ImageRef = Field(default=ImageRef(), description="The image to scale.")
     upscale_method: UpscaleMethod = Field(
         default=UpscaleMethod.NEAREST_EXACT,
         description="The method to use for upscaling the image.",
@@ -47,7 +47,7 @@ class ImageScaleBy(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
 
 
 class ImageUpscaleWithModel(ComfyNode):
@@ -55,10 +55,8 @@ class ImageUpscaleWithModel(ComfyNode):
         default="",
         description="The model to use for upscaling the image.",
     )
-    image: ImageTensor = Field(
-        default=ImageTensor(), description="The image to upscale."
-    )
+    image: ImageRef = Field(default=ImageRef(), description="The image to upscale.")
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}

@@ -1,7 +1,7 @@
 from enum import Enum
 
 from pydantic import Field
-from nodetool.metadata.types import ImageTensor, Mask
+from nodetool.metadata.types import ImageRef, Mask
 
 from nodetool.common.comfy_node import ComfyNode
 
@@ -28,10 +28,10 @@ class PorterDuffModeEnum(str, Enum):
 
 
 class PorterDuffImageComposite(ComfyNode):
-    source: ImageTensor = Field(default=ImageTensor(), description="The source image.")
+    source: ImageRef = Field(default=ImageRef(), description="The source image.")
     source_alpha: Mask = Field(default=Mask(), description="The source alpha (mask).")
-    destination: ImageTensor = Field(
-        default=ImageTensor(), description="The destination image."
+    destination: ImageRef = Field(
+        default=ImageRef(), description="The destination image."
     )
     destination_alpha: Mask = Field(
         default=Mask(), description="The destination alpha (mask)."
@@ -43,22 +43,22 @@ class PorterDuffImageComposite(ComfyNode):
 
     @classmethod
     def return_types(cls):
-        return {"image": ImageTensor, "mask": Mask}
+        return {"image": ImageRef, "mask": Mask}
 
 
 class SplitImageWithAlpha(ComfyNode):
-    image: ImageTensor = Field(
-        default=ImageTensor(), description="The image with an alpha channel to split."
+    image: ImageRef = Field(
+        default=ImageRef(), description="The image with an alpha channel to split."
     )
 
     @classmethod
     def return_types(cls):
-        return {"image": ImageTensor, "mask": Mask}
+        return {"image": ImageRef, "mask": Mask}
 
 
 class JoinImageWithAlpha(ComfyNode):
-    image: ImageTensor = Field(
-        default=ImageTensor(), description="The image to join with an alpha channel."
+    image: ImageRef = Field(
+        default=ImageRef(), description="The image to join with an alpha channel."
     )
     alpha: Mask = Field(
         default=Mask(), description="The alpha channel (mask) to join with the image."
@@ -66,4 +66,4 @@ class JoinImageWithAlpha(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}

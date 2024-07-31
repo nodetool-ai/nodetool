@@ -1,20 +1,40 @@
 import os
 import random
+import tempfile
+import warnings
+from contextlib import suppress
+from pathlib import Path
 
 import cv2
 import numpy as np
 import torch
-from pathlib import Path
-import warnings
-from huggingface_hub import hf_hub_download
+from huggingface_hub import constants, hf_hub_download
+from torch.hub import get_dir, download_url_to_file
+from ast import literal_eval
 
+
+TORCHHUB_PATH = Path(__file__).parent / 'depth_anything' / 'torchhub'
 HF_MODEL_NAME = "lllyasviel/Annotators"
 DWPOSE_MODEL_NAME = "yzd-v/DWPose"
-ANIFACESEG_MODEL_NAME = "bdsqlsz/qinglong_controlnet-lllite"
+BDS_MODEL_NAME = "bdsqlsz/qinglong_controlnet-lllite"
 DENSEPOSE_MODEL_NAME = "LayerNorm/DensePose-TorchScript-with-hint-image"
 MESH_GRAPHORMER_MODEL_NAME = "hr16/ControlNet-HandRefiner-pruned"
 SAM_MODEL_NAME = "dhkim2810/MobileSAM"
+UNIMATCH_MODEL_NAME = "hr16/Unimatch"
+DEPTH_ANYTHING_MODEL_NAME = "LiheYoung/Depth-Anything" #HF Space
+DIFFUSION_EDGE_MODEL_NAME = "hr16/Diffusion-Edge"
+METRIC3D_MODEL_NAME = "JUGGHM/Metric3D"
 
+DEPTH_ANYTHING_V2_MODEL_NAME_DICT = {
+    "depth_anything_v2_vits.pth": "depth-anything/Depth-Anything-V2-Small",
+    "depth_anything_v2_vitb.pth": "depth-anything/Depth-Anything-V2-Base",
+    "depth_anything_v2_vitl.pth": "depth-anything/Depth-Anything-V2-Large",
+    "depth_anything_v2_vitg.pth": "depth-anything/Depth-Anything-V2-Giant",
+    "depth_anything_v2_metric_vkitti_vitl.pth": "depth-anything/Depth-Anything-V2-Metric-VKITTI-Large",
+    "depth_anything_v2_metric_hypersim_vitl.pth": "depth-anything/Depth-Anything-V2-Metric-Hypersim-Large"
+}
+
+temp_dir = tempfile.gettempdir()
 annotator_ckpts_path = os.path.join(Path(__file__).parents[2], 'ckpts')
 USE_SYMLINKS = False
 
@@ -25,19 +45,19 @@ except:
     pass
 
 try:
-    USE_SYMLINKS = eval(os.environ['AUX_USE_SYMLINKS'])
+    USE_SYMLINKS = literal_eval(os.environ['AUX_USE_SYMLINKS'])
 except:
     warnings.warn("USE_SYMLINKS not set successfully. Using default value: False to download models.")
     pass
 
-# fix SSL: CERTIFICATE_VERIFY_FAILED issue with pytorch download https://github.com/pytorch/pytorch/issues/33288
 try:
-    from torch.hub import load_state_dict_from_url
-    test_url = "https://download.pytorch.org/models/mobilenet_v2-b0353104.pth"
-    load_state_dict_from_url(test_url, progress=False)
+    temp_dir = os.environ['AUX_TEMP_DIR']
+    if len(temp_dir) >= 60:
+        warnings.warn(f"custom temp dir is too long. Using default")
+        temp_dir = tempfile.gettempdir()
 except:
-    import ssl
-    ssl._create_default_https_context = ssl._create_unverified_context
+    warnings.warn(f"custom temp dir not set successfully")
+    pass
 
 here = Path(__file__).parent.resolve()
 
@@ -60,8 +80,11 @@ def HWC3(x):
         return y
 
 
-def make_noise_disk(H, W, C, F):
-    noise = np.random.uniform(low=0, high=1, size=((H // F) + 2, (W // F) + 2, C))
+def make_noise_disk(H, W, C, F, rng=None):
+    if rng:
+        noise = rng.uniform(low=0, high=1, size=((H // F) + 2, (W // F) + 2, C))
+    else:
+        noise = np.random.uniform(low=0, high=1, size=((H // F) + 2, (W // F) + 2, C))
     noise = cv2.resize(noise, (W + 2 * F, H + 2 * F), interpolation=cv2.INTER_CUBIC)
     noise = noise[F: F + H, F: F + W]
     noise -= np.min(noise)
@@ -129,19 +152,21 @@ def pad64(x):
     return int(np.ceil(float(x) / 64.0) * 64 - x)
 
 #https://github.com/Mikubill/sd-webui-controlnet/blob/main/scripts/processor.py#L17
-#Added upscale_method param
-def resize_image_with_pad(input_image, resolution, upscale_method = "", skip_hwc3=False):
+#Added upscale_method, mode params
+def resize_image_with_pad(input_image, resolution, upscale_method = "", skip_hwc3=False, mode='edge'):
     if skip_hwc3:
         img = input_image
     else:
         img = HWC3(input_image)
     H_raw, W_raw, _ = img.shape
+    if resolution == 0:
+        return img, lambda x: x
     k = float(resolution) / float(min(H_raw, W_raw))
     H_target = int(np.round(float(H_raw) * k))
     W_target = int(np.round(float(W_raw) * k))
     img = cv2.resize(img, (W_target, H_target), interpolation=get_upscale_method(upscale_method) if k > 1 else cv2.INTER_AREA)
     H_pad, W_pad = pad64(H_target), pad64(W_target)
-    img_padded = np.pad(img, [[0, H_pad], [0, W_pad], [0, 0]], mode='edge')
+    img_padded = np.pad(img, [[0, H_pad], [0, W_pad], [0, 0]], mode=mode)
 
     def remove_pad(x):
         return safer_memory(x[:H_target, :W_target, ...])
@@ -220,16 +245,62 @@ def ade_palette():
             [184, 255, 0], [0, 133, 255], [255, 214, 0], [25, 194, 194],
             [102, 255, 0], [92, 0, 255]]
 
-def custom_hf_download(pretrained_model_or_path, filename, cache_dir=annotator_ckpts_path, subfolder='', use_symlinks=USE_SYMLINKS):
-    # Fix for Windows, added by @georgi
-    path = os.path.join(*pretrained_model_or_path.split('/'))
-    local_dir = os.path.join(cache_dir, path)
-    model_path = os.path.join(local_dir, *subfolder.split('/'), filename)
+#https://stackoverflow.com/a/44873382
+#Assume that the minimum version of Python ppl use is 3.9
+def sha256sum(file_path):
+    import hashlib
+    h  = hashlib.sha256()
+    b  = bytearray(128*1024)
+    mv = memoryview(b)
+    with open(file_path, 'rb', buffering=0) as f:
+        while n := f.readinto(mv):
+            h.update(mv[:n])
+    return h.hexdigest()
+
+def check_hash_from_torch_hub(file_path, filename):
+    basename, _ = filename.split('.')
+    _, ref_hash = basename.split('-')
+    curr_hash = sha256sum(file_path)
+    return curr_hash[:len(ref_hash)] == ref_hash
+
+def custom_torch_download(filename, ckpts_dir=annotator_ckpts_path):
+    local_dir = os.path.join(get_dir(), 'checkpoints')
+    model_path = os.path.join(local_dir, filename)
+
+    if not os.path.exists(model_path):
+        print(f"Failed to find {model_path}.\n Downloading from pytorch.org")
+        local_dir = os.path.join(ckpts_dir, "torch")
+        if not os.path.exists(local_dir):
+            os.mkdir(local_dir)
+
+        model_path = os.path.join(local_dir, filename)
+
+        if not os.path.exists(model_path):
+            model_url = "https://download.pytorch.org/models/"+filename
+            try:
+                download_url_to_file(url = model_url, dst = model_path)
+            except:
+                warnings.warn(f"SSL verify failed, try use HTTP instead. {filename}'s hash will be checked")
+                download_url_to_file(url = model_url, dst = model_path)
+                assert check_hash_from_torch_hub(model_path, filename), f"Hash check failed as file {filename} is corrupted"
+                print("Hash check passed")
     
+    print(f"model_path is {model_path}")
+    return model_path
+
+def custom_hf_download(pretrained_model_or_path, filename, cache_dir=temp_dir, ckpts_dir=annotator_ckpts_path, subfolder='', use_symlinks=USE_SYMLINKS, repo_type="model"):
+
+    local_dir = os.path.join(ckpts_dir, pretrained_model_or_path)
+    model_path = os.path.join(local_dir, *subfolder.split('/'), filename)
+
+    if len(str(model_path)) >= 255:
+        warnings.warn(f"Path {model_path} is too long, \n please change annotator_ckpts_path in config.yaml")
+
     if not os.path.exists(model_path):
         print(f"Failed to find {model_path}.\n Downloading from huggingface.co")
+        print(f"cacher folder is {cache_dir}, you can change it by custom_tmp_path in config.yaml")
         if use_symlinks:
-            cache_dir_d = os.getenv("HUGGINGFACE_HUB_CACHE")
+            cache_dir_d = constants.HF_HUB_CACHE    # use huggingface newer env variables `HF_HUB_CACHE`
             if cache_dir_d is None:
                 import platform
                 if platform.system() == "Windows":
@@ -238,12 +309,11 @@ def custom_hf_download(pretrained_model_or_path, filename, cache_dir=annotator_c
                     cache_dir_d = os.path.join(os.getenv("HOME"), ".cache", "huggingface", "hub")
             try:
                 # test_link
-                if not os.path.exists(cache_dir_d):
-                    os.makedirs(cache_dir_d)
-                open(os.path.join(cache_dir_d, f"linktest_{filename}.txt"), "w")
-                os.link(os.path.join(cache_dir_d, f"linktest_{filename}.txt"), os.path.join(cache_dir, f"linktest_{filename}.txt"))
-                os.remove(os.path.join(cache_dir, f"linktest_{filename}.txt"))
-                os.remove(os.path.join(cache_dir_d, f"linktest_{filename}.txt"))
+                Path(cache_dir_d).mkdir(parents=True, exist_ok=True)
+                Path(ckpts_dir).mkdir(parents=True, exist_ok=True)
+                (Path(cache_dir_d) / f"linktest_{filename}.txt").touch()
+                # symlink instead of link avoid `invalid cross-device link` error.
+                os.symlink(os.path.join(cache_dir_d, f"linktest_{filename}.txt"), os.path.join(ckpts_dir, f"linktest_{filename}.txt"))
                 print("Using symlinks to download models. \n",\
                       "Make sure you have enough space on your cache folder. \n",\
                       "And do not purge the cache folder after downloading.\n",\
@@ -252,9 +322,13 @@ def custom_hf_download(pretrained_model_or_path, filename, cache_dir=annotator_c
             except:
                 print("Maybe not able to create symlink. Disable using symlinks.")
                 use_symlinks = False
-                cache_dir_d = os.path.join(cache_dir, pretrained_model_or_path, "cache")
+                cache_dir_d = os.path.join(cache_dir, "ckpts", pretrained_model_or_path)
+            finally:    # always remove test link files
+                with suppress(FileNotFoundError):
+                    os.remove(os.path.join(ckpts_dir, f"linktest_{filename}.txt"))
+                    os.remove(os.path.join(cache_dir_d, f"linktest_{filename}.txt"))
         else:
-            cache_dir_d = os.path.join(cache_dir, pretrained_model_or_path, "cache")
+            cache_dir_d = os.path.join(cache_dir, "ckpts", pretrained_model_or_path)
 
         model_path = hf_hub_download(repo_id=pretrained_model_or_path,
             cache_dir=cache_dir_d,
@@ -263,12 +337,16 @@ def custom_hf_download(pretrained_model_or_path, filename, cache_dir=annotator_c
             filename=filename,
             local_dir_use_symlinks=use_symlinks,
             resume_download=True,
-            etag_timeout=100
+            etag_timeout=100,
+            repo_type=repo_type
         )
         if not use_symlinks:
             try:
                 import shutil
-                shutil.rmtree(cache_dir_d)
+                shutil.rmtree(os.path.join(cache_dir, "ckpts"))
             except Exception as e :
                 print(e)
+
+    print(f"model_path is {model_path}")
+
     return model_path
