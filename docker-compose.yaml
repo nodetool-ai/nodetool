@@ -47,6 +47,7 @@ services:
       MEMCACHE_HOST: memcached
       MEMCACHE_PORT: 11211
       COMFY_FOLDER: /comfy
+      CHROMA_URL: http://chroma:9000
     deploy:
       resources:
         reservations:
@@ -57,6 +58,26 @@ services:
   memcached:
     image: memcached:bookworm
     container_name: memcached
+  chroma:
+    container_name: chroma
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    volumes:
+      - ${CHROMA_PATH}:/chroma-data
+    command:
+      [
+        "chroma",
+        "run",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "9000",
+        "--path",
+        "/chroma-data"
+      ]
+    ports:
+      - "9000:9000"
   postgres:
     image: postgres:16.3
     container_name: postgres

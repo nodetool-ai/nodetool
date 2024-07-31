@@ -44,6 +44,10 @@ class NearestNeighbors(BaseNode):
 
 class ChromaNode(BaseNode):
 
+    @classmethod
+    def is_visible(cls):
+        return cls is not ChromaNode
+
     def get_or_create_collection(self, context: ProcessingContext, name: str):
         """
         Get or create a collection with the given name.

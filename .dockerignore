@@ -1,9 +1,7 @@
 Dockerfile
-Dockerfile.backend
 README.md
-sdk/
-data/
-chroma/
+web/node_modules/
+.venv/
 *.pyc
 *.pyo
 *.pyd
