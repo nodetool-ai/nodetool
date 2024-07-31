@@ -148,7 +148,7 @@ const PropertyDropzone = ({
                   Your browser does not support the audio element.
                 </audio>
                 <p className="centered uppercase">{filename}</p>
-                <AudioPlayer filename={filename} url={uri as string} />
+                <AudioPlayer filename={filename} source={uri as string} />
               </div>
             ) : (
               <p className="centered uppercase">Drop audio</p>

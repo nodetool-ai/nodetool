@@ -17,13 +17,6 @@ export interface paths {
      */
     post: operations["create_api_assets__post"];
   };
-  "/api/assets/temp": {
-    /**
-     * Create Temp
-     * @description Create a new temporary asset.
-     */
-    get: operations["create_temp_api_assets_temp_get"];
-  };
   "/api/assets/{id}": {
     /**
      * Get
@@ -273,8 +266,6 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-      /** Temp Id */
-      temp_id?: string | null;
     };
     /** AssetUpdateRequest */
     AssetUpdateRequest: {
@@ -307,8 +298,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-      /** Temp Id */
-      temp_id?: string | null;
+      /** Data */
+      data?: string | null;
     };
     /** AuthRequest */
     AuthRequest: {
@@ -350,8 +341,6 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-      /** Temp Id */
-      temp_id?: string | null;
       /** Columns */
       columns?: components["schemas"]["ColumnDef"][] | null;
       /** Data */
@@ -390,8 +379,6 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-      /** Temp Id */
-      temp_id?: string | null;
     };
     /** FunctionModel */
     FunctionModel: {
@@ -405,10 +392,10 @@ export interface components {
       /** @default empty */
       provider?: components["schemas"]["Provider"];
       /**
-       * Magename
+       * Name
        * @default
        */
-      magename?: string;
+      name?: string;
       /**
        * Repo Id
        * @default
@@ -453,8 +440,6 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-      /** Temp Id */
-      temp_id?: string | null;
       /** Data */
       data?: string | null;
     };
@@ -662,8 +647,6 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-      /** Temp Id */
-      temp_id?: string | null;
     };
     /** Node */
     Node: {
@@ -1061,13 +1044,6 @@ export interface components {
       /** Finished At */
       finished_at?: string | null;
     };
-    /** TempAsset */
-    TempAsset: {
-      /** Get Url */
-      get_url: string;
-      /** Put Url */
-      put_url: string;
-    };
     /** Tensor */
     Tensor: {
       /**
@@ -1101,8 +1077,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-      /** Temp Id */
-      temp_id?: string | null;
+      /** Data */
+      data?: string | null;
     };
     /** TokenResponse */
     TokenResponse: {
@@ -1216,12 +1192,12 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-      /** Temp Id */
-      temp_id?: string | null;
       /** Duration */
       duration?: number | null;
       /** Format */
       format?: string | null;
+      /** Data */
+      data?: string | null;
     };
     /** Workflow */
     Workflow: {
@@ -1355,37 +1331,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["Asset"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /**
-   * Create Temp
-   * @description Create a new temporary asset.
-   */
-  create_temp_api_assets_temp_get: {
-    parameters: {
-      query: {
-        extension: string;
-      };
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["TempAsset"];
         };
       };
       /** @description Validation Error */

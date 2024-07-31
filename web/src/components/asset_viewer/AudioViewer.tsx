@@ -80,7 +80,7 @@ const AudioViewer: React.FC<AudioViewerProps> = ({ asset, url }) => {
       <Typography variant="body2">{asset?.content_type}</Typography>
       <AudioPlayer
         alwaysShowControls={true}
-        url={asset?.get_url || url || ""}
+        source={asset?.get_url || url || ""}
         filename={asset?.name}
         fontSize="normal"
         height={50}

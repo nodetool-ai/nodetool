@@ -200,7 +200,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         <AudioPlayer
           fontSize="small"
           alwaysShowControls={true}
-          url={currentAudioAsset?.get_url || ""}
+          source={currentAudioAsset?.get_url || ""}
           filename={currentAudioAsset?.name}
           height={30}
           waveformHeight={30}
