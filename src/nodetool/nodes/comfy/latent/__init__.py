@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import Field
-from nodetool.metadata.types import VAE, ImageRef, ImageTensor, Latent, Mask
+from nodetool.metadata.types import VAE, ImageRef, ImageRef, Latent, Mask
 from nodetool.common.comfy_node import MAX_RESOLUTION
 from nodetool.common.comfy_node import ComfyNode
 
@@ -71,8 +71,8 @@ class VAEEncode(ComfyNode):
 
 
 class VAEEncodeTiled(ComfyNode):
-    pixels: ImageTensor = Field(
-        default=ImageTensor(), description="The image pixels to encode."
+    pixels: ImageRef = Field(
+        default=ImageRef(), description="The image pixels to encode."
     )
     vae: VAE = Field(default=VAE(), description="The VAE to use for encoding.")
     tile_size: int = Field(
@@ -89,8 +89,8 @@ class VAEEncodeTiled(ComfyNode):
 
 
 class VAEEncodeForInpaint(ComfyNode):
-    pixels: ImageTensor = Field(
-        default=ImageTensor(), description="The image pixels to encode for inpainting."
+    pixels: ImageRef = Field(
+        default=ImageRef(), description="The image pixels to encode for inpainting."
     )
     vae: VAE = Field(default=VAE(), description="The VAE to use for encoding.")
     mask: Mask = Field(default=Mask(), description="The mask to apply for inpainting.")
@@ -145,7 +145,7 @@ class VAEDecodeTiled(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
 
 
 # class SaveLatent(ComfyNode):

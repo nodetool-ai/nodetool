@@ -17,7 +17,7 @@ class CombineImageGrid(GraphNode):
 
 
 class SliceImageGrid(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to slice into a grid.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to slice into a grid.')
     tile_width: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Width of each tile.')
     tile_height: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Height of each tile.')
     overlap: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Overlap between tiles.')

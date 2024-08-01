@@ -13,15 +13,15 @@ class KSamplerSelect(GraphNode):
 
 
 class SamplerCustom(GraphNode):
-    model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet'), description='The model used by the sampler.')
+    model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet', name=''), description='The model used by the sampler.')
     add_noise: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Whether to add noise or not.')
     noise_seed: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The seed for the noise generation.')
     cfg: float | GraphNode | tuple[GraphNode, str] = Field(default=8.0, description='The cfg (classifier-free guidance) parameter.')
-    positive: Conditioning | GraphNode | tuple[GraphNode, str] = Field(default=Conditioning(type='comfy.conditioning'), description='The positive conditioning.')
-    negative: Conditioning | GraphNode | tuple[GraphNode, str] = Field(default=Conditioning(type='comfy.conditioning'), description='The negative conditioning.')
-    sampler: Sampler | GraphNode | tuple[GraphNode, str] = Field(default=Sampler(type='comfy.sampler'), description='The sampler to use.')
-    sigmas: Sigmas | GraphNode | tuple[GraphNode, str] = Field(default=Sigmas(type='comfy.sigmas'), description='The sigmas used in sampling.')
-    latent_image: Latent | GraphNode | tuple[GraphNode, str] = Field(default=Latent(type='comfy.latent'), description='The latent image to sample from.')
+    positive: Conditioning | GraphNode | tuple[GraphNode, str] = Field(default=Conditioning(type='comfy.conditioning', data=None), description='The positive conditioning.')
+    negative: Conditioning | GraphNode | tuple[GraphNode, str] = Field(default=Conditioning(type='comfy.conditioning', data=None), description='The negative conditioning.')
+    sampler: Sampler | GraphNode | tuple[GraphNode, str] = Field(default=Sampler(type='comfy.sampler', data=None), description='The sampler to use.')
+    sigmas: Sigmas | GraphNode | tuple[GraphNode, str] = Field(default=Sigmas(type='comfy.sigmas', data=None), description='The sigmas used in sampling.')
+    latent_image: Latent | GraphNode | tuple[GraphNode, str] = Field(default=Latent(type='comfy.latent', data=None), description='The latent image to sample from.')
     @classmethod
     def get_node_type(cls): return "comfy.sampling.samplers.SamplerCustom"
 

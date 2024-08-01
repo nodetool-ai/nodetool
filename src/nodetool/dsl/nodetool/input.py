@@ -8,7 +8,7 @@ class AudioFolder(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to use as input.')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to use as input.')
     limit: int | GraphNode | tuple[GraphNode, str] = Field(default=1000, description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.input.AudioFolder"
@@ -19,7 +19,7 @@ class AudioInput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    value: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio to use as input.')
+    value: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The audio to use as input.')
     @classmethod
     def get_node_type(cls): return "nodetool.input.AudioInput"
 
@@ -45,16 +45,6 @@ class ChatInput(GraphNode):
 
 
 
-class ComfyImageInput(GraphNode):
-    label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
-    name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
-    description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    value: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to use as input.')
-    @classmethod
-    def get_node_type(cls): return "nodetool.input.ComfyImageInput"
-
-
-
 class FloatInput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
@@ -71,7 +61,7 @@ class Folder(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to use as input.')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to use as input.')
     limit: int | GraphNode | tuple[GraphNode, str] = Field(default=1000, description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.input.Folder"
@@ -88,7 +78,7 @@ class ImageFolder(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to use as input.')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to use as input.')
     limit: int | GraphNode | tuple[GraphNode, str] = Field(default=1000, description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.input.ImageFolder"
@@ -99,7 +89,7 @@ class ImageInput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    value: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to use as input.')
+    value: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to use as input.')
     @classmethod
     def get_node_type(cls): return "nodetool.input.ImageInput"
 
@@ -131,7 +121,7 @@ class TextFolder(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to use as input.')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to use as input.')
     limit: int | GraphNode | tuple[GraphNode, str] = Field(default=1000, description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.input.TextFolder"
@@ -142,7 +132,7 @@ class TextInput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    value: TextRef | GraphNode | tuple[GraphNode, str] = Field(default=TextRef(type='text', uri='', asset_id=None, temp_id=None), description='The text to use as input.')
+    value: TextRef | GraphNode | tuple[GraphNode, str] = Field(default=TextRef(type='text', uri='', asset_id=None, data=None), description='The text to use as input.')
     @classmethod
     def get_node_type(cls): return "nodetool.input.TextInput"
 
@@ -152,7 +142,7 @@ class VideoFolder(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to use as input.')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to use as input.')
     limit: int | GraphNode | tuple[GraphNode, str] = Field(default=1000, description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.input.VideoFolder"
@@ -163,7 +153,7 @@ class VideoInput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Input Label', description='The label for this input node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this input node.')
-    value: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, temp_id=None, duration=None, format=None), description='The video to use as input.')
+    value: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, duration=None, format=None, data=None), description='The video to use as input.')
     @classmethod
     def get_node_type(cls): return "nodetool.input.VideoInput"
 

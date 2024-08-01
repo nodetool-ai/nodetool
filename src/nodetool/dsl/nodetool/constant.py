@@ -5,7 +5,7 @@ from nodetool.dsl.graph import GraphNode
 
 
 class Audio(GraphNode):
-    value: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description=None)
+    value: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.constant.Audio"
 
@@ -25,7 +25,7 @@ class Constant(GraphNode):
 
 
 class DataFrame(GraphNode):
-    value: DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=DataframeRef(type='dataframe', uri='', asset_id=None, temp_id=None, columns=None, data=None), description=None)
+    value: DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=DataframeRef(type='dataframe', uri='', asset_id=None, columns=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.constant.DataFrame"
 
@@ -46,7 +46,7 @@ class Float(GraphNode):
 
 
 class Image(GraphNode):
-    value: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description=None)
+    value: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.constant.Image"
 
@@ -67,14 +67,14 @@ class String(GraphNode):
 
 
 class Text(GraphNode):
-    value: TextRef | GraphNode | tuple[GraphNode, str] = Field(default=TextRef(type='text', uri='', asset_id=None, temp_id=None), description=None)
+    value: TextRef | GraphNode | tuple[GraphNode, str] = Field(default=TextRef(type='text', uri='', asset_id=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.constant.Text"
 
 
 
 class Video(GraphNode):
-    value: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, temp_id=None, duration=None, format=None), description=None)
+    value: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, duration=None, format=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.constant.Video"
 

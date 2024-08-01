@@ -1,8 +1,7 @@
 from enum import Enum
 from pydantic import Field
-from nodetool.metadata.types import ImageTensor, Mask
+from nodetool.metadata.types import ImageRef, Mask
 from nodetool.common.comfy_node import ComfyNode
-from nodetool.nodes.comfy.image import ColorChannel
 
 
 class ChannelEnum(str, Enum):
@@ -34,7 +33,7 @@ class MaskToImage(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
 
 
 class ImageToMask(ComfyNode):
@@ -42,8 +41,8 @@ class ImageToMask(ComfyNode):
     The Convert Image yo Mask node can be used to convert a specific channel of an image into a mask.
     """
 
-    image: ImageTensor = Field(
-        default=ImageTensor(), description="The image to extract the mask."
+    image: ImageRef = Field(
+        default=ImageRef(), description="The image to extract the mask."
     )
     channel: ChannelEnum = Field(
         default=ChannelEnum.RED, description="The channel to use for the mask."
@@ -59,8 +58,8 @@ class ImageToMask(ComfyNode):
 
 
 class ImageColorToMask(ComfyNode):
-    image: ImageTensor = Field(
-        default=ImageTensor(), description="The image to extract the color mask."
+    image: ImageRef = Field(
+        default=ImageRef(), description="The image to extract the color mask."
     )
     color: int = Field(default=0, description="The color to use for the mask.")
 

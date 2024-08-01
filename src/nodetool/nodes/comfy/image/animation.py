@@ -1,12 +1,12 @@
 from enum import Enum
 from typing import Any
 from pydantic import Field
-from nodetool.metadata.types import ImageTensor
+from nodetool.metadata.types import ImageRef, ImageRef
 from nodetool.common.comfy_node import ComfyNode
 
 
 class SaveAnimatedWEBP(ComfyNode):
-    images: list[ImageTensor] = Field(
+    images: list[ImageRef] = Field(
         default_factory=list, description="list of images to save as animated WEBP."
     )
     filename_prefix: str = Field(
@@ -33,7 +33,7 @@ class SaveAnimatedWEBP(ComfyNode):
 
 
 class SaveAnimatedPNG(ComfyNode):
-    images: list[ImageTensor] = Field(
+    images: list[ImageRef] = Field(
         default_factory=list, description="list of images to save as animated PNG."
     )
     filename_prefix: str = Field(

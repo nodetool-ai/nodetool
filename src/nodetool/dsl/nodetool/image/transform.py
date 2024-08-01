@@ -5,7 +5,7 @@ from nodetool.dsl.graph import GraphNode
 
 
 class Blur(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to blur.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to blur.')
     radius: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Blur radius.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.Blur"
@@ -13,7 +13,7 @@ class Blur(GraphNode):
 
 
 class Canny(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to canny.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to canny.')
     low_threshold: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description='Low threshold.')
     high_threshold: int | GraphNode | tuple[GraphNode, str] = Field(default=200, description='High threshold.')
     @classmethod
@@ -22,21 +22,21 @@ class Canny(GraphNode):
 
 
 class Contour(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to contour.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to contour.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.Contour"
 
 
 
 class ConvertToGrayscale(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to convert.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to convert.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.ConvertToGrayscale"
 
 
 
 class Crop(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to crop.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to crop.')
     left: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The left coordinate.')
     top: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The top coordinate.')
     right: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The right coordinate.')
@@ -47,14 +47,14 @@ class Crop(GraphNode):
 
 
 class Emboss(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to emboss.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to emboss.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.Emboss"
 
 
 
 class Expand(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to expand.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to expand.')
     border: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Border size.')
     fill: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Fill color.')
     @classmethod
@@ -63,14 +63,14 @@ class Expand(GraphNode):
 
 
 class FindEdges(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to find edges.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to find edges.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.FindEdges"
 
 
 
 class Fit(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to fit.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to fit.')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Width to fit to.')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Height to fit to.')
     @classmethod
@@ -80,7 +80,7 @@ class Fit(GraphNode):
 from nodetool.nodes.nodetool.image.transform import ChannelEnum
 
 class GetChannel(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to get the channel from.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to get the channel from.')
     channel: ChannelEnum | GraphNode | tuple[GraphNode, str] = Field(default=ChannelEnum('R'), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.GetChannel"
@@ -88,14 +88,14 @@ class GetChannel(GraphNode):
 
 
 class Invert(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to adjust the brightness for.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to adjust the brightness for.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.Invert"
 
 
 
 class Posterize(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to posterize.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to posterize.')
     bits: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='Number of bits to posterize to.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.Posterize"
@@ -103,7 +103,7 @@ class Posterize(GraphNode):
 
 
 class Resize(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to resize.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to resize.')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The target width.')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The target height.')
     @classmethod
@@ -112,7 +112,7 @@ class Resize(GraphNode):
 
 
 class Scale(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to scale.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to scale.')
     scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The scale factor.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.Scale"
@@ -120,14 +120,14 @@ class Scale(GraphNode):
 
 
 class Smooth(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to smooth.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to smooth.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.Smooth"
 
 
 
 class Solarize(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to solarize.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to solarize.')
     threshold: int | GraphNode | tuple[GraphNode, str] = Field(default=128, description='Threshold for solarization.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.transform.Solarize"

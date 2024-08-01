@@ -12,7 +12,7 @@ class AmplitudeToDB(GraphNode):
 
 
 class ChromaSTFT(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to extract chromagram from.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The audio file to extract chromagram from.')
     n_fft: int | GraphNode | tuple[GraphNode, str] = Field(default=2048, description='The number of samples per frame.')
     hop_length: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The number of samples between frames.')
     @classmethod
@@ -48,7 +48,7 @@ class GriffinLim(GraphNode):
 
 
 class MFCC(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to extract MFCCs from.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The audio file to extract MFCCs from.')
     n_mfcc: int | GraphNode | tuple[GraphNode, str] = Field(default=13, description='The number of MFCCs to extract.')
     n_fft: int | GraphNode | tuple[GraphNode, str] = Field(default=2048, description='The number of samples per frame.')
     hop_length: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The number of samples between frames.')
@@ -60,7 +60,7 @@ class MFCC(GraphNode):
 
 
 class MelSpectrogram(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to convert to a tensor.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The audio file to convert to a tensor.')
     n_fft: int | GraphNode | tuple[GraphNode, str] = Field(default=2048, description='The number of samples per frame.')
     hop_length: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The number of samples between frames.')
     n_mels: int | GraphNode | tuple[GraphNode, str] = Field(default=128, description='The number of Mel bands to generate.')
@@ -87,7 +87,7 @@ class PowertToDB(GraphNode):
 
 
 class STFT(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to compute the STFT matrix from.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The audio file to compute the STFT matrix from.')
     n_fft: int | GraphNode | tuple[GraphNode, str] = Field(default=2048, description='The number of samples per frame.')
     hop_length: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The number of samples between frames.')
     win_length: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='The window length. If None, it defaults to n_fft.')
@@ -99,7 +99,7 @@ class STFT(GraphNode):
 
 
 class SpectralContrast(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to extract spectral contrast from.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The audio file to extract spectral contrast from.')
     n_fft: int | GraphNode | tuple[GraphNode, str] = Field(default=2048, description='The number of samples per frame.')
     hop_length: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The number of samples between frames.')
     @classmethod

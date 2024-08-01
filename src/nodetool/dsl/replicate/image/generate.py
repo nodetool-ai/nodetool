@@ -11,7 +11,7 @@ class AdInpaint(GraphNode):
     scale: int | GraphNode | tuple[GraphNode, str] = Field(default=3, description='Factor to scale image by (maximum: 4)')
     prompt: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Product name or prompt')
     image_num: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of image to generate')
-    image_path: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='input image')
+    image_path: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='input image')
     manual_seed: int | GraphNode | tuple[GraphNode, str] = Field(default=-1, description='Manual Seed')
     product_size: Product_size | GraphNode | tuple[GraphNode, str] = Field(default=Product_size('Original'), description='Max product size')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description='Guidance Scale')
@@ -26,7 +26,7 @@ from nodetool.nodes.replicate.image.generate import Output_format
 class ConsistentCharacter(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Set a seed for reproducibility. Random by default.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='A headshot photo', description='Describe the subject. Include clothes and hairstyle for more consistency.')
-    subject: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='An image of a person. Best images are square close ups of a face, but they do not have to be.')
+    subject: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='An image of a person. Best images are square close ups of a face, but they do not have to be.')
     output_format: Output_format | GraphNode | tuple[GraphNode, str] = Field(default=Output_format('webp'), description='Format of the output images')
     output_quality: int | GraphNode | tuple[GraphNode, str] = Field(default=80, description='Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Things you do not want to see in your image')
@@ -41,7 +41,7 @@ class ConsistentCharacter(GraphNode):
 
 class Controlnet_Realistic_Vision(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Leave blank to randomize')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description=' num_inference_steps')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='(a tabby cat)+++, high resolution, sitting on a park bench', description=None)
     strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.8, description='control strength/weight')
@@ -64,19 +64,19 @@ class Controlnet_X_IP_Adapter_Realistic_Vision_V5(GraphNode):
     scheduler: Scheduler | GraphNode | tuple[GraphNode, str] = Field(default=Scheduler('DDIM'), description='Choose a scheduler.')
     guess_mode: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='In this mode, the ControlNet encoder will try best to recognize the content of the input image even if you remove all prompts. The `guidance_scale` between 3.0 and 5.0 is recommended.')
     int_kwargs: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
-    mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='mask image for inpainting controlnet')
+    mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='mask image for inpainting controlnet')
     max_height: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Max height/Resolution of image')
-    tile_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Control image for tile controlnet')
+    tile_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Control image for tile controlnet')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of images to generate')
     img2img_image: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Image2image image')
-    lineart_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Control image for canny controlnet')
+    lineart_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Control image for canny controlnet')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7, description='Scale for classifier-free guidance')
-    scribble_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Control image for scribble controlnet')
+    scribble_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Control image for scribble controlnet')
     ip_adapter_ckpt: Ip_adapter_ckpt | GraphNode | tuple[GraphNode, str] = Field(default=Ip_adapter_ckpt('ip-adapter_sd15.bin'), description='IP Adapter checkpoint')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='Longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality', description='Negative prompt - using compel, use +++ to increase words weight//// negative-embeddings available ///// FastNegativeV2 , boring_e621_v4 , verybadimagenegative_v1 || to use them, write their keyword in negative prompt')
-    brightness_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Control image for brightness controlnet')
+    brightness_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Control image for brightness controlnet')
     img2img_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='img2img strength, does not work when inpainting image is given, 0.1-same image, 0.99-complete destruction of image')
-    inpainting_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Control image for inpainting controlnet')
+    inpainting_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Control image for inpainting controlnet')
     ip_adapter_image: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='IP Adapter image')
     ip_adapter_weight: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='IP Adapter weight')
     sorted_controlnets: str | GraphNode | tuple[GraphNode, str] = Field(default='lineart, tile, inpainting', description='Comma seperated string of controlnet names, list of names: tile, inpainting, lineart,depth ,scribble , brightness /// example value: tile, inpainting, lineart ')
@@ -119,13 +119,13 @@ from nodetool.nodes.replicate.image.generate import Sizing_strategy
 
 class Illusions(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description=None)
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Optional img2img')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Optional img2img')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description=None)
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='a painting of a 19th century town', description=None)
-    mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Optional mask for inpainting')
+    mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Optional mask for inpainting')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of outputs')
-    control_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Control image')
+    control_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Control image')
     controlnet_end: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='When controlnet conditioning ends')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description='Scale for classifier-free guidance')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='ugly, disfigured, low quality, blurry, nsfw', description='The negative prompt to guide image generation.')
@@ -178,9 +178,9 @@ from nodetool.nodes.replicate.image.generate import Refine
 from nodetool.nodes.replicate.image.generate import Scheduler
 
 class OpenDalle_Lora(GraphNode):
-    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='An astronaut riding a rainbow unicorn', description='Input prompt')
@@ -206,7 +206,7 @@ from nodetool.nodes.replicate.image.generate import Scheduler
 class PlaygroundV2(GraphNode):
     mask: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='Astronaut in a jungle, cold color palette, muted colors, detailed, 8k', description='Input prompt')
@@ -225,9 +225,9 @@ class PlaygroundV2(GraphNode):
 from nodetool.nodes.replicate.image.generate import Scheduler
 
 class Proteus(GraphNode):
-    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image. Recommended 1024 or 1280')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image. Recommended 1024 or 1280')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='black fluffy gorgeous dangerous cat animal creature, large orange eyes, big fluffy ears, piercing gaze, full moon, dark ambiance, best quality, extremely detailed', description='Input prompt')
@@ -252,7 +252,7 @@ class PulidBase(GraphNode):
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of the output image (ignored if structure image given)')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of the output image (ignored if structure image given)')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='A photo of a person', description='You might need to include a gender in the prompt to get the desired result')
-    face_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The face image to use for the generation')
+    face_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The face image to use for the generation')
     face_style: Face_style | GraphNode | tuple[GraphNode, str] = Field(default=Face_style('high-fidelity'), description='Style of the face')
     output_format: Output_format | GraphNode | tuple[GraphNode, str] = Field(default=Output_format('webp'), description='Format of the output images')
     output_quality: int | GraphNode | tuple[GraphNode, str] = Field(default=80, description='Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.')
@@ -266,9 +266,9 @@ class PulidBase(GraphNode):
 from nodetool.nodes.replicate.image.generate import Scheduler
 
 class RealVisXL2_LCM(GraphNode):
-    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='dark shot, front shot, closeup photo of a 25 y.o latino man, perfect eyes, natural skin, skin moles, looks at viewer, cinematic shot', description='Input prompt')
@@ -287,9 +287,9 @@ class RealVisXL2_LCM(GraphNode):
 from nodetool.nodes.replicate.image.generate import Scheduler
 
 class RealVisXL_V2(GraphNode):
-    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='dark shot, front shot, closeup photo of a 25 y.o latino man, perfect eyes, natural skin, skin moles, looks at viewer, cinematic shot', description='Input prompt')
@@ -315,9 +315,9 @@ from nodetool.nodes.replicate.image.generate import Controlnet_3
 from nodetool.nodes.replicate.image.generate import Sizing_strategy
 
 class RealVisXL_V3_Multi_Controlnet_Lora(GraphNode):
-    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=768, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='An astronaut riding a rainbow unicorn', description='Input prompt')
@@ -338,11 +338,11 @@ class RealVisXL_V3_Multi_Controlnet_Lora(GraphNode):
     controlnet_1_end: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='When controlnet conditioning ends')
     controlnet_2_end: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='When controlnet conditioning ends')
     controlnet_3_end: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='When controlnet conditioning ends')
-    controlnet_1_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for first controlnet')
+    controlnet_1_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for first controlnet')
     controlnet_1_start: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='When controlnet conditioning starts')
-    controlnet_2_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for second controlnet')
+    controlnet_2_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for second controlnet')
     controlnet_2_start: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='When controlnet conditioning starts')
-    controlnet_3_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for third controlnet')
+    controlnet_3_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for third controlnet')
     controlnet_3_start: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='When controlnet conditioning starts')
     num_inference_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     disable_safety_checker: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Disable safety checker for generated images. This feature is only available through the API.')
@@ -389,7 +389,7 @@ from nodetool.nodes.replicate.image.generate import Product_fill
 
 class SDXL_Ad_Inpaint(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Empty or 0 for a random image')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Remove background from this image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Remove background from this image')
     prompt: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Describe the new setting for your product')
     img_size: Img_size | GraphNode | tuple[GraphNode, str] = Field(default=Img_size('1024, 1024'), description='Possible SDXL image sizes')
     apply_img: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Applies the original product image to the final result')
@@ -407,7 +407,7 @@ class SDXL_Ad_Inpaint(GraphNode):
 
 class SDXL_Controlnet(GraphNode):
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Random seed. Set to 0 to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='aerial view, a futuristic research complex in a bright foggy jungle, hard lighting', description='Input prompt')
     condition_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='controlnet conditioning scale for generalization')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='low quality, bad quality, sketches', description='Input Negative Prompt')
@@ -420,9 +420,9 @@ from nodetool.nodes.replicate.image.generate import Refine
 from nodetool.nodes.replicate.image.generate import Scheduler
 
 class SDXL_Emoji(GraphNode):
-    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='An astronaut riding a rainbow unicorn', description='Input prompt')
@@ -446,9 +446,9 @@ from nodetool.nodes.replicate.image.generate import Refine
 from nodetool.nodes.replicate.image.generate import Scheduler
 
 class SDXL_Pixar(GraphNode):
-    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='An astronaut riding a rainbow unicorn', description='Input prompt')
@@ -510,7 +510,7 @@ from nodetool.nodes.replicate.image.generate import Scheduler
 class StableDiffusionInpainting(GraphNode):
     mask: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description="Mask image - make sure it's the same size as the input image")
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of denoising steps')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='modern bed with beige sheet and pillows', description='Input prompt')
     strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.7, description='1.0 corresponds to full destruction of information in image')
@@ -526,9 +526,9 @@ from nodetool.nodes.replicate.image.generate import Refine
 from nodetool.nodes.replicate.image.generate import Scheduler
 
 class StableDiffusionXL(GraphNode):
-    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
+    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of output image')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of output image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='An astronaut riding a rainbow unicorn', description='Input prompt')
@@ -575,11 +575,11 @@ class StyleTransfer(GraphNode):
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Width of the output image (ignored if structure image given)')
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description='Height of the output image (ignored if structure image given)')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='An astronaut riding a unicorn', description='Prompt for the image')
-    style_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Copy the style from this image')
+    style_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Copy the style from this image')
     output_format: Output_format | GraphNode | tuple[GraphNode, str] = Field(default=Output_format('webp'), description='Format of the output images')
     output_quality: int | GraphNode | tuple[GraphNode, str] = Field(default=80, description='Quality of the output images, from 0 to 100. 100 is best quality, 0 is lowest quality.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Things you do not want to see in your image')
-    structure_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='An optional image to copy structure from. Output images will use the same aspect ratio.')
+    structure_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='An optional image to copy structure from. Output images will use the same aspect ratio.')
     number_of_images: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of images to generate')
     structure_depth_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Strength of the depth controlnet')
     structure_denoising_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.65, description='How much of the original image (and colors) to preserve (0 is all, 1 is none, 0.65 is a good balance)')

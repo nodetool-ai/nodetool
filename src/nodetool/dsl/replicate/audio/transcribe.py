@@ -9,7 +9,7 @@ from nodetool.nodes.replicate.audio.transcribe import Timestamp
 
 class IncrediblyFastWhisper(GraphNode):
     task: Task | GraphNode | tuple[GraphNode, str] = Field(default=Task('transcribe'), description='Task to perform: transcribe or translate to another language.')
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='Audio file')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='Audio file')
     hf_token: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description="Provide a hf.co/settings/token for Pyannote.audio to diarise the audio clips. You need to agree to the terms in 'https://huggingface.co/pyannote/speaker-diarization-3.1' and 'https://huggingface.co/pyannote/segmentation-3.0' first.")
     language: Language | GraphNode | tuple[GraphNode, str] = Field(default=Language('None'), description="Language spoken in the audio, specify 'None' to perform language detection.")
     timestamp: Timestamp | GraphNode | tuple[GraphNode, str] = Field(default=Timestamp('chunk'), description='Whisper supports both chunked as well as word level timestamps.')
@@ -22,7 +22,7 @@ class IncrediblyFastWhisper(GraphNode):
 from nodetool.nodes.replicate.audio.transcribe import Transcription
 
 class Whisper(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='Audio file')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='Audio file')
     model: str | GraphNode | tuple[GraphNode, str] = Field(default='large-v3', description='This version only supports Whisper-large-v3.')
     language: Language | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='language spoken in the audio, specify None to perform language detection')
     patience: float | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, the default (1.0) is equivalent to conventional beam search')

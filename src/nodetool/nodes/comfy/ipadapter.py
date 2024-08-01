@@ -8,7 +8,6 @@ from nodetool.metadata.types import (
     IPAdapter,
     IPAdapterFile,
     ImageRef,
-    ImageTensor,
     InsightFace,
     Mask,
     UNet,
@@ -50,9 +49,7 @@ class InsightFaceLoader(ComfyNode):
 
 
 class PrepImageForInsightFace(ComfyNode):
-    image: ImageTensor = Field(
-        default=ImageTensor(), description="The image to prepare."
-    )
+    image: ImageRef = Field(default=ImageRef(), description="The image to prepare.")
     crop_position: CropPosition = Field(
         default=CropPosition.CENTER, description="The crop position to use."
     )
@@ -65,13 +62,11 @@ class PrepImageForInsightFace(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
 
 
 class PrepImageForClipVision(ComfyNode):
-    image: ImageTensor = Field(
-        default=ImageTensor(), description="The image to prepare."
-    )
+    image: ImageRef = Field(default=ImageRef(), description="The image to prepare.")
     interpolation: InterpolationMethod = Field(
         default=InterpolationMethod.LANCZOS,
         description="The interpolation method to use.",
@@ -85,7 +80,7 @@ class PrepImageForClipVision(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
 
 
 class IPAdapterModelLoader(ComfyNode):
@@ -97,15 +92,15 @@ class IPAdapterModelLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"ipadapter": IPAdapter}
-    
+
     @classmethod
     def is_cacheable(cls):
         return False
 
     async def initialize(self, context: ProcessingContext):
-        ipadapter, = await self.call_comfy_node(context)
+        (ipadapter,) = await self.call_comfy_node(context)
         context.add_model("comfy.ip_adapter", self.ipadapter_file.name, ipadapter)
-        
+
     async def process(self, context: ProcessingContext):
         return {"ipadapter": IPAdapter(name=self.ipadapter_file.name)}
 
@@ -114,8 +109,8 @@ class IPAdapterEncoder(ComfyNode):
     clip_vision: CLIPVision = Field(
         default=CLIPVision(), description="The CLIP vision to use."
     )
-    image_1: ImageTensor = Field(
-        default=ImageTensor(), description="The first image to encode."
+    image_1: ImageRef = Field(
+        default=ImageRef(), description="The first image to encode."
     )
     ipadapter_plus: bool = Field(
         default=False, description="Whether to use IPAdapter+ enhancements."
@@ -124,13 +119,13 @@ class IPAdapterEncoder(ComfyNode):
     weight_1: float = Field(default=1.0, description="The weight for the first image.")
 
     # Optional Inputs
-    image_2: ImageTensor | None = Field(
+    image_2: ImageRef | None = Field(
         default=None, description="The second image to encode (optional)."
     )
-    image_3: ImageTensor | None = Field(
+    image_3: ImageRef | None = Field(
         default=None, description="The third image to encode (optional)."
     )
-    image_4: ImageTensor | None = Field(
+    image_4: ImageRef | None = Field(
         default=None, description="The fourth image to encode (optional)."
     )
     weight_2: float = Field(
@@ -186,9 +181,9 @@ class IPAdapterApply(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"unet": UNet}
-    
+
     async def process(self, context: ProcessingContext):
-        unet, = await self.call_comfy_node(context)
+        (unet,) = await self.call_comfy_node(context)
         name = self.model.name + "_" + self.ipadapter.name
         context.add_model("comfy.unet", name, unet)
         return {"unet": UNet(name=name)}
@@ -213,7 +208,7 @@ class IPAdapterApplyFaceID(ComfyNode):
     insightface: InsightFace = Field(
         default=InsightFace(), description="The InsightFace."
     )
-    image: ImageTensor = Field(default=ImageTensor(), description="The image to use.")
+    image: ImageRef = Field(default=ImageRef(), description="The image to use.")
     model: UNet = Field(default=UNet(), description="The model to apply the IPAdapter.")
     weight: float = Field(
         default=1.0, description="The weight for processing.", ge=-1, le=3
@@ -255,7 +250,7 @@ class IPAdapterApplyFaceID(ComfyNode):
     def return_type(cls):
         # Assuming that the return type is an updated image after applying FaceID,
         # if the return type is known and different, that specific type should be used instead.
-        return ImageTensor
+        return ImageRef
 
 
 class IPAdapterSaveEmbeds(ComfyNode):

@@ -4,24 +4,26 @@ from nodetool.metadata.types import *
 from nodetool.dsl.graph import GraphNode
 
 
-class PreprocessImage(GraphNode):
-    image: ImageTensor | GraphNode | tuple[GraphNode, str] = Field(default=ImageTensor(type='comfy.image_tensor'), description='The image to preprocess.')
+class ImageIntensityDetector(GraphNode):
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
+    gamma_correction: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The gamma correction value.')
     @classmethod
-    def get_node_type(cls): return "comfy.controlnet.PreprocessImage"
+    def get_node_type(cls): return "comfy.controlnet.others.ImageIntensityDetector"
 
 
 
-class SAMPreprocessor(GraphNode):
-    image: ImageTensor | GraphNode | tuple[GraphNode, str] = Field(default=ImageTensor(type='comfy.image_tensor'), description='The image to preprocess.')
+class ImageLuminanceDetector(GraphNode):
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
+    gamma_correction: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The gamma correction value.')
     @classmethod
-    def get_node_type(cls): return "comfy.controlnet.others.SAMPreprocessor"
+    def get_node_type(cls): return "comfy.controlnet.others.ImageLuminanceDetector"
 
 
 
 class TilePreprocessor(GraphNode):
-    image: ImageTensor | GraphNode | tuple[GraphNode, str] = Field(default=ImageTensor(type='comfy.image_tensor'), description='The image to preprocess.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to preprocess.')
     resolution: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='The width of the image to generate.')
     pyrUp_iters: int | GraphNode | tuple[GraphNode, str] = Field(default=3, description='The number of times to apply pyrUp.')
     @classmethod

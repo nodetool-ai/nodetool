@@ -13,7 +13,7 @@ from nodetool.nodes.replicate.audio.separate import Output_format
 class Demucs(GraphNode):
     jobs: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Choose the number of parallel jobs to use for separation.')
     stem: Stem | GraphNode | tuple[GraphNode, str] = Field(default=Stem('none'), description='If you just want to isolate one stem, you can choose it here.')
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='Upload the file to be processed here.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='Upload the file to be processed here.')
     model: Model | GraphNode | tuple[GraphNode, str] = Field(default=Model('htdemucs'), description='Choose the demucs audio that proccesses your audio. The readme has more information on what to choose.')
     split: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Choose whether or not the audio should be split into chunks.')
     shifts: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Choose the amount random shifts for equivariant stabilization. This performs multiple predictions with random shifts of the input and averages them, which makes it x times slower.')

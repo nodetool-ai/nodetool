@@ -4,14 +4,8 @@ from nodetool.metadata.types import *
 from nodetool.dsl.graph import GraphNode
 
 
-class ChromaNode(GraphNode):
-    @classmethod
-    def get_node_type(cls): return "nodetool.vector.Chroma"
-
-
-
 class IndexFolder(GraphNode):
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to index')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to index')
     @classmethod
     def get_node_type(cls): return "nodetool.vector.IndexFolder"
 
@@ -27,8 +21,8 @@ class NearestNeighbors(GraphNode):
 
 
 class QueryImage(GraphNode):
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to query')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to query')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to query')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to query')
     n_results: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of results to return')
     @classmethod
     def get_node_type(cls): return "nodetool.vector.QueryImage"
@@ -36,8 +30,8 @@ class QueryImage(GraphNode):
 
 
 class QueryText(GraphNode):
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to query')
-    text: TextRef | GraphNode | tuple[GraphNode, str] = Field(default=TextRef(type='text', uri='', asset_id=None, temp_id=None), description='The text to query')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to query')
+    text: TextRef | GraphNode | tuple[GraphNode, str] = Field(default=TextRef(type='text', uri='', asset_id=None, data=None), description='The text to query')
     n_results: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of results to return')
     @classmethod
     def get_node_type(cls): return "nodetool.vector.QueryText"

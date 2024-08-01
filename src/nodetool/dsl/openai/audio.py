@@ -17,7 +17,7 @@ class TextToSpeech(GraphNode):
 
 
 class Transcribe(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to transcribe.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The audio file to transcribe.')
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The temperature to use for the transcription.')
     @classmethod
     def get_node_type(cls): return "openai.audio.Transcribe"
@@ -25,7 +25,7 @@ class Transcribe(GraphNode):
 
 
 class Translate(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='The audio file to translate.')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='The audio file to translate.')
     temperature: float | GraphNode | tuple[GraphNode, str] = Field(default=0.0, description='The temperature to use for the translation.')
     @classmethod
     def get_node_type(cls): return "openai.audio.Translate"

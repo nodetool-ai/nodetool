@@ -48,7 +48,7 @@ class RealisticVoiceCloning(GraphNode):
     protect: float | GraphNode | tuple[GraphNode, str] = Field(default=0.33, description="Control how much of the original vocals' breath and voiceless consonants to leave in the AI vocals. Set 0.5 to disable.")
     rvc_model: Rvc_model | GraphNode | tuple[GraphNode, str] = Field(default=Rvc_model('Squidward'), description="RVC model for a specific voice. If using a custom model, this should match the name of the downloaded model. If a 'custom_rvc_model_download_url' is provided, this will be automatically set to the name of the downloaded model.")
     index_rate: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description="Control how much of the AI's accent to leave in the vocals.")
-    song_input: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='Upload your audio file here.')
+    song_input: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='Upload your audio file here.')
     reverb_size: float | GraphNode | tuple[GraphNode, str] = Field(default=0.15, description='The larger the room, the longer the reverb time.')
     pitch_change: Pitch_change | GraphNode | tuple[GraphNode, str] = Field(default=Pitch_change('no-change'), description='Adjust pitch of AI vocals. Options: `no-change`, `male-to-female`, `female-to-male`.')
     rms_mix_rate: float | GraphNode | tuple[GraphNode, str] = Field(default=0.25, description="Control how much to use the original vocal's loudness (0) or a fixed loudness (1).")
@@ -88,7 +88,7 @@ class StyleTTS2(GraphNode):
     text: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Text to convert to speech')
     alpha: float | GraphNode | tuple[GraphNode, str] = Field(default=0.3, description='Only used for long text inputs or in case of reference speaker,             determines the timbre of the speaker. Use lower values to sample style based             on previous or reference speech instead of text.')
     weights: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Replicate weights url for inference with model that is fine-tuned on new speakers.            If provided, a reference speech must also be provided.             If not provided, the default model will be used.')
-    reference: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='Reference speech to copy style from')
+    reference: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='Reference speech to copy style from')
     diffusion_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=10, description='Number of diffusion steps')
     embedding_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Embedding scale, use higher values for pronounced emotion')
     @classmethod
@@ -108,7 +108,7 @@ class TortoiseTTS(GraphNode):
     voice_b: Voice_b | GraphNode | tuple[GraphNode, str] = Field(default=Voice_b('disabled'), description='(Optional) Create new voice from averaging the latents for `voice_a`, `voice_b` and `voice_c`. Use `disabled` to disable voice mixing.')
     voice_c: Voice_c | GraphNode | tuple[GraphNode, str] = Field(default=Voice_c('disabled'), description='(Optional) Create new voice from averaging the latents for `voice_a`, `voice_b` and `voice_c`. Use `disabled` to disable voice mixing.')
     cvvp_amount: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='How much the CVVP model should influence the output. Increasing this can in some cases reduce the likelyhood of multiple speakers. Defaults to 0 (disabled)')
-    custom_voice: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='(Optional) Create a custom voice based on an mp3 file of a speaker. Audio should be at least 15 seconds, only contain one speaker, and be in mp3 format. Overrides the `voice_a` input.')
+    custom_voice: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='(Optional) Create a custom voice based on an mp3 file of a speaker. Audio should be at least 15 seconds, only contain one speaker, and be in mp3 format. Overrides the `voice_a` input.')
     @classmethod
     def get_node_type(cls): return "replicate.audio.generate.TortoiseTTS"
 

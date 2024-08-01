@@ -8,7 +8,7 @@ class AudioOutput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
-    value: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description=None)
+    value: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.output.AudioOutput"
 
@@ -34,21 +34,11 @@ class ChatOutput(GraphNode):
 
 
 
-class ComfyImageOutput(GraphNode):
-    label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
-    name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
-    description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
-    value: ImageTensor | GraphNode | tuple[GraphNode, str] = Field(default=ImageTensor(type='comfy.image_tensor'), description='A raw image tensor.')
-    @classmethod
-    def get_node_type(cls): return "nodetool.output.ComfyImageOutput"
-
-
-
 class DataframeOutput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
-    value: DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=DataframeRef(type='dataframe', uri='', asset_id=None, temp_id=None, columns=None, data=None), description=None)
+    value: DataframeRef | GraphNode | tuple[GraphNode, str] = Field(default=DataframeRef(type='dataframe', uri='', asset_id=None, columns=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.output.DataframeOutput"
 
@@ -95,7 +85,7 @@ class ImageOutput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
-    value: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description=None)
+    value: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.output.ImageOutput"
 
@@ -125,7 +115,7 @@ class ModelOutput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
-    value: ModelRef | GraphNode | tuple[GraphNode, str] = Field(default=ModelRef(type='model_ref', uri='', asset_id=None, temp_id=None), description=None)
+    value: ModelRef | GraphNode | tuple[GraphNode, str] = Field(default=ModelRef(type='model_ref', uri='', asset_id=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.output.ModelOutput"
 
@@ -155,7 +145,7 @@ class TextOutput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
-    value: TextRef | GraphNode | tuple[GraphNode, str] = Field(default=TextRef(type='text', uri='', asset_id=None, temp_id=None), description=None)
+    value: TextRef | GraphNode | tuple[GraphNode, str] = Field(default=TextRef(type='text', uri='', asset_id=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.output.TextOutput"
 
@@ -165,7 +155,7 @@ class VideoOutput(GraphNode):
     label: str | GraphNode | tuple[GraphNode, str] = Field(default='Output Label', description='The label for this output node.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The parameter name for the workflow.')
     description: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The description for this output node.')
-    value: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, temp_id=None, duration=None, format=None), description=None)
+    value: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, duration=None, format=None, data=None), description=None)
     @classmethod
     def get_node_type(cls): return "nodetool.output.VideoOutput"
 

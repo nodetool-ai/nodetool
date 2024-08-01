@@ -1,5 +1,5 @@
 from pydantic import Field
-from nodetool.metadata.types import ImageRef, ImageTensor
+from nodetool.metadata.types import ImageRef, ImageRef
 from nodetool.common.comfy_node import ComfyNode
 
 
@@ -12,4 +12,4 @@ class ImageCrop(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
