@@ -11,5 +11,31 @@ class TilePreprocessor(PreprocessImage):
     )
 
 
-class SAMPreprocessor(PreprocessImage):
-    pass
+class ImageLuminanceDetector(PreprocessImage):
+    """
+    Detect the luminance of an image.
+    """
+
+    gamma_correction: float = Field(
+        default=1.0,
+        description="The gamma correction value.",
+        ge=0.1,
+        le=2.0,
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Image Luminance"
+
+
+class ImageIntensityDetector(PreprocessImage):
+    gamma_correction: float = Field(
+        default=1.0,
+        description="The gamma correction value.",
+        ge=0.1,
+        le=2.0,
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Image Intensity"

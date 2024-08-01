@@ -17,7 +17,7 @@ class LatentCompositeMasked(ComfyNode):
     resize_source: bool = Field(
         default=False, description="Whether to resize the source."
     )
-    mask: Mask = Field(None, description="The mask to use.")
+    mask: Mask = Field(Mask(), description="The mask to use.")
 
     @classmethod
     def return_type(cls):
@@ -58,9 +58,7 @@ class VAEEncode(ComfyNode):
     The VAE Encode node can be used to encode pixel space images into latent space images, using the provided VAE.
     """
 
-    pixels: ImageRef = Field(
-        default=ImageRef(), description="The image to encode."
-    )
+    pixels: ImageRef = Field(default=ImageRef(), description="The image to encode.")
     vae: VAE = Field(default=VAE(), description="The VAE to use.")
 
     @classmethod
