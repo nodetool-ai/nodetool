@@ -1,5 +1,5 @@
 from nodetool.common.environment import Environment
-from nodetool import nodes
+from nodetool import comfy.nodes as nodes
 from IPython import start_ipython
 import dotenv
 

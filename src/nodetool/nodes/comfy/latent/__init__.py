@@ -22,6 +22,10 @@ class LatentCompositeMasked(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
+    
+    @classmethod
+    def get_title(cls):
+        return "Latent Composite Masked"
 
 
 class EmptyLatentImage(ComfyNode):
@@ -274,6 +278,10 @@ class LatentComposite(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
+    
+    @classmethod
+    def get_title(cls):
+        return "Latent Composite"
 
 
 class LatentBlend(ComfyNode):
@@ -286,6 +294,75 @@ class LatentBlend(ComfyNode):
     blend_factor: float = Field(
         default=0.5, description="The blend factor between samples."
     )
+
+    @classmethod
+    def return_type(cls):
+        return {"latent": Latent}
+    
+    @classmethod
+    def get_title(cls):
+        return "Latent Blend"
+
+
+class LatentFlip(ComfyNode):
+    """
+    The Flip Latent node can be used to flip latent images.
+    """
+
+    samples: Latent = Field(
+        default=Latent(), description="The latent samples to flip."
+    )
+    horizontal: bool = Field(
+        default=False, description="Whether to flip horizontally."
+    )
+    vertical: bool = Field(default=False, description="Whether to flip vertically.")
+
+    @classmethod
+    def get_title(cls):
+        return "Flip Latent"
+
+    @classmethod
+    def return_type(cls):
+        return {"latent": Latent}
+    
+
+class LatentRotate(ComfyNode):
+    """
+    The Rotate Latent node can be used to rotate latent images.
+    """
+
+    samples: Latent = Field(
+        default=Latent(), description="The latent samples to rotate."
+    )
+    angle: float = Field(
+        default=0.0, description="The angle to rotate the latent by."
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Rotate Latent"
+
+    @classmethod
+    def return_type(cls):
+        return {"latent": Latent}
+    
+
+class LatentCrop(ComfyNode):
+    """
+    The Crop Latent node can be used to crop latent images.
+    """
+
+    samples: Latent = Field(
+        default=Latent(), description="The latent samples to crop."
+    )
+    x: int = Field(default=0, description="The x-coordinate for cropping.")
+    y: int = Field(default=0, description="The y-coordinate for cropping.")
+    width: int = Field(default=512, description="The width of the crop.")
+    height: int = Field(default=512, description="The height of the crop.")
+
+    @classmethod
+    def get_title(cls):
+        return "Crop Latent"
 
     @classmethod
     def return_type(cls):

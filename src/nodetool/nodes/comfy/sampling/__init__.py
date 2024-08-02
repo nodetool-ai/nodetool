@@ -74,7 +74,6 @@ class KSamplerAdvanced(ComfyNode):
     """
     The KSampler Advanced node is the more advanced version of the KSampler node. While the KSampler node always adds noise to the latent followed by completely denoising the noised up latent, the KSampler Advanced node provides extra settings to control this behavior. The KSampler Advanced node can be told not to add noise into the latent with the add_noise setting. It can also be made to return partially denoised images via the return_with_leftover_noise setting. Unlike the KSampler node, this node does not have a denoise setting but this process is instead controlled by the start_at_step and end_at_step settings. This makes it possible to e.g. hand over a partially denoised latent to a separate KSampler Advanced node to finish the process.
     """
-
     model: UNet = Field(default=UNet(), description="The model to use.")
     add_noise: EnableDisable = Field(
         default=EnableDisable.ENABLE, description="Enable or disable noise addition."
@@ -111,6 +110,10 @@ class KSamplerAdvanced(ComfyNode):
         default=EnableDisable.DISABLE,
         description="Whether to return with leftover noise or not.",
     )
+    
+    @classmethod
+    def get_title(cls):
+        return "KSampler (Advanced)"
 
     @classmethod
     def return_type(cls):

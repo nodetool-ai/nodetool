@@ -1,19 +1,3 @@
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Copyright (c) @comfyanonymous
-# Project Repository: https://github.com/comfyanonymous/ComfyUI
-
 import comfy.nodes as nodes
 import comfy.folder_paths as folder_paths
 from comfy.cli_args import args
@@ -53,7 +37,7 @@ class RepeatImageBatch:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": { "image": ("IMAGE",),
-                              "amount": ("INT", {"default": 1, "min": 1, "max": 64}),
+                              "amount": ("INT", {"default": 1, "min": 1, "max": 4096}),
                               }}
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "repeat"
@@ -62,6 +46,25 @@ class RepeatImageBatch:
 
     def repeat(self, image, amount):
         s = image.repeat((amount, 1,1,1))
+        return (s,)
+
+class ImageFromBatch:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": { "image": ("IMAGE",),
+                              "batch_index": ("INT", {"default": 0, "min": 0, "max": 4095}),
+                              "length": ("INT", {"default": 1, "min": 1, "max": 4096}),
+                              }}
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "frombatch"
+
+    CATEGORY = "image/batch"
+
+    def frombatch(self, image, batch_index, length):
+        s_in = image
+        batch_index = min(s_in.shape[0] - 1, batch_index)
+        length = min(s_in.shape[0] - batch_index, length)
+        s = s_in[batch_index:batch_index + length].clone()
         return (s,)
 
 class SaveAnimatedWEBP:
@@ -186,6 +189,7 @@ class SaveAnimatedPNG:
 NODE_CLASS_MAPPINGS = {
     "ImageCrop": ImageCrop,
     "RepeatImageBatch": RepeatImageBatch,
+    "ImageFromBatch": ImageFromBatch,
     "SaveAnimatedWEBP": SaveAnimatedWEBP,
     "SaveAnimatedPNG": SaveAnimatedPNG,
 }

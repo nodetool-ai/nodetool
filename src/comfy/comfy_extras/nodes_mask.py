@@ -1,19 +1,3 @@
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Copyright (c) @comfyanonymous
-# Project Repository: https://github.com/comfyanonymous/ComfyUI
-
 import numpy as np
 import scipy.ndimage
 import torch
@@ -357,6 +341,24 @@ class GrowMask:
             out.append(output)
         return (torch.stack(out, dim=0),)
 
+class ThresholdMask:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+                "required": {
+                    "mask": ("MASK",),
+                    "value": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                }
+        }
+
+    CATEGORY = "mask"
+
+    RETURN_TYPES = ("MASK",)
+    FUNCTION = "image_to_mask"
+
+    def image_to_mask(self, mask, value):
+        mask = (mask > value).float()
+        return (mask,)
 
 
 NODE_CLASS_MAPPINGS = {
@@ -371,6 +373,7 @@ NODE_CLASS_MAPPINGS = {
     "MaskComposite": MaskComposite,
     "FeatherMask": FeatherMask,
     "GrowMask": GrowMask,
+    "ThresholdMask": ThresholdMask,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
