@@ -17,3 +17,6 @@ class RunJobRequest(BaseModel):
     api_url: str | None = None
     env: dict[str, Any] | None = None
     graph: Graph | None = None
+    explicit_types: bool = False
+
+
