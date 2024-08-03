@@ -194,6 +194,33 @@ ipadapter = [
     },
 ]
 
+clip = [
+    {
+        "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors",
+    },
+    {
+        "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors"
+    },
+    {
+        "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetensors"
+    }
+]
+
+vae = [
+    {
+        "url": "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.sft"
+    }
+]
+
+unet = [
+    {
+        "url": "https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.sft"
+    },
+    {
+        "url": "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/flux1-schnell.sft"
+    }
+]
+
 clip_vision = [
     {
         "url": "https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin",
@@ -389,6 +416,9 @@ def files_for(model_list: list[dict[str, str]]) -> list[str]:
 
 
 model_files = {
+    "clip": files_for(clip),
+    "vae": files_for(vae),
+    "unet": files_for(unet),
     "checkpoints": files_for(checkpoints),
     "loras": files_for(loras),
     "clip_vision": files_for(clip_vision),

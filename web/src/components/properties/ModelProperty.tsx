@@ -33,6 +33,10 @@ export function modelFolder(type: TypeName) {
       return "upscale_models";
     case "comfy.lora_file":
       return "loras";
+    case "comfy.unet_file":
+      return "unet";
+    case "comfy.vae_file":
+      return "vae";
     default:
       return undefined;
   }

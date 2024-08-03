@@ -10,13 +10,18 @@ import comfy.node_helpers as node_helpers
 class BasicScheduler:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"model": ("MODEL",),
-                     "scheduler": (comfy.samplers.SCHEDULER_NAMES, ),
-                     "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
-                     "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                      }
-               }
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "scheduler": (comfy.samplers.SCHEDULER_NAMES,),
+                "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
+                "denoise": (
+                    "FLOAT",
+                    {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01},
+                ),
+            }
+        }
+
     RETURN_TYPES = ("SIGMAS",)
     CATEGORY = "sampling/custom_sampling/schedulers"
 
@@ -27,78 +32,172 @@ class BasicScheduler:
         if denoise < 1.0:
             if denoise <= 0.0:
                 return (torch.FloatTensor([]),)
-            total_steps = int(steps/denoise)
+            total_steps = int(steps / denoise)
 
-        sigmas = comfy.samplers.calculate_sigmas(model.get_model_object("model_sampling"), scheduler, total_steps).cpu()
-        sigmas = sigmas[-(steps + 1):]
-        return (sigmas, )
+        sigmas = comfy.samplers.calculate_sigmas(
+            model.get_model_object("model_sampling"), scheduler, total_steps
+        ).cpu()
+        sigmas = sigmas[-(steps + 1) :]
+        return (sigmas,)
 
 
 class KarrasScheduler:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
-                     "sigma_max": ("FLOAT", {"default": 14.614642, "min": 0.0, "max": 5000.0, "step":0.01, "round": False}),
-                     "sigma_min": ("FLOAT", {"default": 0.0291675, "min": 0.0, "max": 5000.0, "step":0.01, "round": False}),
-                     "rho": ("FLOAT", {"default": 7.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                    }
-               }
+        return {
+            "required": {
+                "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
+                "sigma_max": (
+                    "FLOAT",
+                    {
+                        "default": 14.614642,
+                        "min": 0.0,
+                        "max": 5000.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "sigma_min": (
+                    "FLOAT",
+                    {
+                        "default": 0.0291675,
+                        "min": 0.0,
+                        "max": 5000.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "rho": (
+                    "FLOAT",
+                    {
+                        "default": 7.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+            }
+        }
+
     RETURN_TYPES = ("SIGMAS",)
     CATEGORY = "sampling/custom_sampling/schedulers"
 
     FUNCTION = "get_sigmas"
 
     def get_sigmas(self, steps, sigma_max, sigma_min, rho):
-        sigmas = k_diffusion_sampling.get_sigmas_karras(n=steps, sigma_min=sigma_min, sigma_max=sigma_max, rho=rho)
-        return (sigmas, )
+        sigmas = k_diffusion_sampling.get_sigmas_karras(
+            n=steps, sigma_min=sigma_min, sigma_max=sigma_max, rho=rho
+        )
+        return (sigmas,)
+
 
 class ExponentialScheduler:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
-                     "sigma_max": ("FLOAT", {"default": 14.614642, "min": 0.0, "max": 5000.0, "step":0.01, "round": False}),
-                     "sigma_min": ("FLOAT", {"default": 0.0291675, "min": 0.0, "max": 5000.0, "step":0.01, "round": False}),
-                    }
-               }
+        return {
+            "required": {
+                "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
+                "sigma_max": (
+                    "FLOAT",
+                    {
+                        "default": 14.614642,
+                        "min": 0.0,
+                        "max": 5000.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "sigma_min": (
+                    "FLOAT",
+                    {
+                        "default": 0.0291675,
+                        "min": 0.0,
+                        "max": 5000.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+            }
+        }
+
     RETURN_TYPES = ("SIGMAS",)
     CATEGORY = "sampling/custom_sampling/schedulers"
 
     FUNCTION = "get_sigmas"
 
     def get_sigmas(self, steps, sigma_max, sigma_min):
-        sigmas = k_diffusion_sampling.get_sigmas_exponential(n=steps, sigma_min=sigma_min, sigma_max=sigma_max)
-        return (sigmas, )
+        sigmas = k_diffusion_sampling.get_sigmas_exponential(
+            n=steps, sigma_min=sigma_min, sigma_max=sigma_max
+        )
+        return (sigmas,)
+
 
 class PolyexponentialScheduler:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
-                     "sigma_max": ("FLOAT", {"default": 14.614642, "min": 0.0, "max": 5000.0, "step":0.01, "round": False}),
-                     "sigma_min": ("FLOAT", {"default": 0.0291675, "min": 0.0, "max": 5000.0, "step":0.01, "round": False}),
-                     "rho": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                    }
-               }
+        return {
+            "required": {
+                "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
+                "sigma_max": (
+                    "FLOAT",
+                    {
+                        "default": 14.614642,
+                        "min": 0.0,
+                        "max": 5000.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "sigma_min": (
+                    "FLOAT",
+                    {
+                        "default": 0.0291675,
+                        "min": 0.0,
+                        "max": 5000.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "rho": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+            }
+        }
+
     RETURN_TYPES = ("SIGMAS",)
     CATEGORY = "sampling/custom_sampling/schedulers"
 
     FUNCTION = "get_sigmas"
 
     def get_sigmas(self, steps, sigma_max, sigma_min, rho):
-        sigmas = k_diffusion_sampling.get_sigmas_polyexponential(n=steps, sigma_min=sigma_min, sigma_max=sigma_max, rho=rho)
-        return (sigmas, )
+        sigmas = k_diffusion_sampling.get_sigmas_polyexponential(
+            n=steps, sigma_min=sigma_min, sigma_max=sigma_max, rho=rho
+        )
+        return (sigmas,)
+
 
 class SDTurboScheduler:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"model": ("MODEL",),
-                     "steps": ("INT", {"default": 1, "min": 1, "max": 10}),
-                     "denoise": ("FLOAT", {"default": 1.0, "min": 0, "max": 1.0, "step": 0.01}),
-                      }
-               }
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "steps": ("INT", {"default": 1, "min": 1, "max": 10}),
+                "denoise": (
+                    "FLOAT",
+                    {"default": 1.0, "min": 0, "max": 1.0, "step": 0.01},
+                ),
+            }
+        }
+
     RETURN_TYPES = ("SIGMAS",)
     CATEGORY = "sampling/custom_sampling/schedulers"
 
@@ -106,77 +205,143 @@ class SDTurboScheduler:
 
     def get_sigmas(self, model, steps, denoise):
         start_step = 10 - int(10 * denoise)
-        timesteps = torch.flip(torch.arange(1, 11) * 100 - 1, (0,))[start_step:start_step + steps]
+        timesteps = torch.flip(torch.arange(1, 11) * 100 - 1, (0,))[
+            start_step : start_step + steps
+        ]
         sigmas = model.get_model_object("model_sampling").sigma(timesteps)
         sigmas = torch.cat([sigmas, sigmas.new_zeros([1])])
-        return (sigmas, )
+        return (sigmas,)
+
 
 class BetaSamplingScheduler:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"model": ("MODEL",),
-                     "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
-                     "alpha": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 50.0, "step":0.01, "round": False}),
-                     "beta": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 50.0, "step":0.01, "round": False}),
-                      }
-               }
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
+                "alpha": (
+                    "FLOAT",
+                    {
+                        "default": 0.6,
+                        "min": 0.0,
+                        "max": 50.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "beta": (
+                    "FLOAT",
+                    {
+                        "default": 0.6,
+                        "min": 0.0,
+                        "max": 50.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+            }
+        }
+
     RETURN_TYPES = ("SIGMAS",)
     CATEGORY = "sampling/custom_sampling/schedulers"
 
     FUNCTION = "get_sigmas"
 
     def get_sigmas(self, model, steps, alpha, beta):
-        sigmas = comfy.samplers.beta_scheduler(model.get_model_object("model_sampling"), steps, alpha=alpha, beta=beta)
-        return (sigmas, )
+        sigmas = comfy.samplers.beta_scheduler(
+            model.get_model_object("model_sampling"), steps, alpha=alpha, beta=beta
+        )
+        return (sigmas,)
+
 
 class VPScheduler:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
-                     "beta_d": ("FLOAT", {"default": 19.9, "min": 0.0, "max": 5000.0, "step":0.01, "round": False}), #TODO: fix default values
-                     "beta_min": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 5000.0, "step":0.01, "round": False}),
-                     "eps_s": ("FLOAT", {"default": 0.001, "min": 0.0, "max": 1.0, "step":0.0001, "round": False}),
-                    }
-               }
+        return {
+            "required": {
+                "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
+                "beta_d": (
+                    "FLOAT",
+                    {
+                        "default": 19.9,
+                        "min": 0.0,
+                        "max": 5000.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),  # TODO: fix default values
+                "beta_min": (
+                    "FLOAT",
+                    {
+                        "default": 0.1,
+                        "min": 0.0,
+                        "max": 5000.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "eps_s": (
+                    "FLOAT",
+                    {
+                        "default": 0.001,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "step": 0.0001,
+                        "round": False,
+                    },
+                ),
+            }
+        }
+
     RETURN_TYPES = ("SIGMAS",)
     CATEGORY = "sampling/custom_sampling/schedulers"
 
     FUNCTION = "get_sigmas"
 
     def get_sigmas(self, steps, beta_d, beta_min, eps_s):
-        sigmas = k_diffusion_sampling.get_sigmas_vp(n=steps, beta_d=beta_d, beta_min=beta_min, eps_s=eps_s)
-        return (sigmas, )
+        sigmas = k_diffusion_sampling.get_sigmas_vp(
+            n=steps, beta_d=beta_d, beta_min=beta_min, eps_s=eps_s
+        )
+        return (sigmas,)
+
 
 class SplitSigmas:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"sigmas": ("SIGMAS", ),
-                    "step": ("INT", {"default": 0, "min": 0, "max": 10000}),
-                     }
-                }
-    RETURN_TYPES = ("SIGMAS","SIGMAS")
+        return {
+            "required": {
+                "sigmas": ("SIGMAS",),
+                "step": ("INT", {"default": 0, "min": 0, "max": 10000}),
+            }
+        }
+
+    RETURN_TYPES = ("SIGMAS", "SIGMAS")
     RETURN_NAMES = ("high_sigmas", "low_sigmas")
     CATEGORY = "sampling/custom_sampling/sigmas"
 
     FUNCTION = "get_sigmas"
 
     def get_sigmas(self, sigmas, step):
-        sigmas1 = sigmas[:step + 1]
+        sigmas1 = sigmas[: step + 1]
         sigmas2 = sigmas[step:]
         return (sigmas1, sigmas2)
+
 
 class SplitSigmasDenoise:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"sigmas": ("SIGMAS", ),
-                    "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                     }
-                }
-    RETURN_TYPES = ("SIGMAS","SIGMAS")
+        return {
+            "required": {
+                "sigmas": ("SIGMAS",),
+                "denoise": (
+                    "FLOAT",
+                    {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01},
+                ),
+            }
+        }
+
+    RETURN_TYPES = ("SIGMAS", "SIGMAS")
     RETURN_NAMES = ("high_sigmas", "low_sigmas")
     CATEGORY = "sampling/custom_sampling/sigmas"
 
@@ -186,16 +351,19 @@ class SplitSigmasDenoise:
         steps = max(sigmas.shape[-1] - 1, 0)
         total_steps = round(steps * denoise)
         sigmas1 = sigmas[:-(total_steps)]
-        sigmas2 = sigmas[-(total_steps + 1):]
+        sigmas2 = sigmas[-(total_steps + 1) :]
         return (sigmas1, sigmas2)
+
 
 class FlipSigmas:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"sigmas": ("SIGMAS", ),
-                     }
-                }
+        return {
+            "required": {
+                "sigmas": ("SIGMAS",),
+            }
+        }
+
     RETURN_TYPES = ("SIGMAS",)
     CATEGORY = "sampling/custom_sampling/sigmas"
 
@@ -210,13 +378,16 @@ class FlipSigmas:
             sigmas[0] = 0.0001
         return (sigmas,)
 
+
 class KSamplerSelect:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"sampler_name": (comfy.samplers.SAMPLER_NAMES, ),
-                      }
-               }
+        return {
+            "required": {
+                "sampler_name": (comfy.samplers.SAMPLER_NAMES,),
+            }
+        }
+
     RETURN_TYPES = ("SAMPLER",)
     CATEGORY = "sampling/custom_sampling/samplers"
 
@@ -224,119 +395,183 @@ class KSamplerSelect:
 
     def get_sampler(self, sampler_name):
         sampler = comfy.samplers.sampler_object(sampler_name)
-        return (sampler, )
+        return (sampler,)
+
 
 class SamplerDPMPP_3M_SDE:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"eta": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "s_noise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "noise_device": (['gpu', 'cpu'], ),
-                      }
-               }
+        return {
+            "required": {
+                "eta": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "s_noise": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "noise_device": (["gpu", "cpu"],),
+            }
+        }
+
     RETURN_TYPES = ("SAMPLER",)
     CATEGORY = "sampling/custom_sampling/samplers"
 
     FUNCTION = "get_sampler"
 
     def get_sampler(self, eta, s_noise, noise_device):
-        if noise_device == 'cpu':
+        if noise_device == "cpu":
             sampler_name = "dpmpp_3m_sde"
         else:
             sampler_name = "dpmpp_3m_sde_gpu"
-        sampler = comfy.samplers.ksampler(sampler_name, {"eta": eta, "s_noise": s_noise})
-        return (sampler, )
+        sampler = comfy.samplers.ksampler(
+            sampler_name, {"eta": eta, "s_noise": s_noise}
+        )
+        return (sampler,)
+
 
 class SamplerDPMPP_2M_SDE:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"solver_type": (['midpoint', 'heun'], ),
-                     "eta": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "s_noise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "noise_device": (['gpu', 'cpu'], ),
-                      }
-               }
+        return {
+            "required": {
+                "solver_type": (["midpoint", "heun"],),
+                "eta": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "s_noise": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "noise_device": (["gpu", "cpu"],),
+            }
+        }
+
     RETURN_TYPES = ("SAMPLER",)
     CATEGORY = "sampling/custom_sampling/samplers"
 
     FUNCTION = "get_sampler"
 
     def get_sampler(self, solver_type, eta, s_noise, noise_device):
-        if noise_device == 'cpu':
+        if noise_device == "cpu":
             sampler_name = "dpmpp_2m_sde"
         else:
             sampler_name = "dpmpp_2m_sde_gpu"
-        sampler = comfy.samplers.ksampler(sampler_name, {"eta": eta, "s_noise": s_noise, "solver_type": solver_type})
-        return (sampler, )
+        sampler = comfy.samplers.ksampler(
+            sampler_name, {"eta": eta, "s_noise": s_noise, "solver_type": solver_type}
+        )
+        return (sampler,)
 
 
 class SamplerDPMPP_SDE:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"eta": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "s_noise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "r": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "noise_device": (['gpu', 'cpu'], ),
-                      }
-               }
+        return {
+            "required": {
+                "eta": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "s_noise": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "r": (
+                    "FLOAT",
+                    {
+                        "default": 0.5,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "noise_device": (["gpu", "cpu"],),
+            }
+        }
+
     RETURN_TYPES = ("SAMPLER",)
     CATEGORY = "sampling/custom_sampling/samplers"
 
     FUNCTION = "get_sampler"
 
     def get_sampler(self, eta, s_noise, r, noise_device):
-        if noise_device == 'cpu':
+        if noise_device == "cpu":
             sampler_name = "dpmpp_sde"
         else:
             sampler_name = "dpmpp_sde_gpu"
-        sampler = comfy.samplers.ksampler(sampler_name, {"eta": eta, "s_noise": s_noise, "r": r})
-        return (sampler, )
+        sampler = comfy.samplers.ksampler(
+            sampler_name, {"eta": eta, "s_noise": s_noise, "r": r}
+        )
+        return (sampler,)
+
 
 class SamplerDPMPP_2S_Ancestral:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"eta": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "s_noise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                      }
-               }
-    RETURN_TYPES = ("SAMPLER",)
-    CATEGORY = "sampling/custom_sampling/samplers"
-
-    FUNCTION = "get_sampler"
-
-    def get_sampler(self, eta, s_noise):
-        sampler = comfy.samplers.ksampler("dpmpp_2s_ancestral", {"eta": eta, "s_noise": s_noise})
-        return (sampler, )
-
-class SamplerEulerAncestral:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {"required":
-                    {"eta": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "s_noise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                      }
-               }
-    RETURN_TYPES = ("SAMPLER",)
-    CATEGORY = "sampling/custom_sampling/samplers"
-
-    FUNCTION = "get_sampler"
-
-    def get_sampler(self, eta, s_noise):
-        sampler = comfy.samplers.ksampler("euler_ancestral", {"eta": eta, "s_noise": s_noise})
-        return (sampler, )
-
-class SamplerEulerAncestralCFGPP:
-    @classmethod
-    def INPUT_TYPES(s):
         return {
             "required": {
-                "eta": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step":0.01, "round": False}),
-                "s_noise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step":0.01, "round": False}),
-            }}
+                "eta": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "s_noise": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+            }
+        }
+
     RETURN_TYPES = ("SAMPLER",)
     CATEGORY = "sampling/custom_sampling/samplers"
 
@@ -344,17 +579,100 @@ class SamplerEulerAncestralCFGPP:
 
     def get_sampler(self, eta, s_noise):
         sampler = comfy.samplers.ksampler(
-            "euler_ancestral_cfg_pp",
-            {"eta": eta, "s_noise": s_noise})
-        return (sampler, )
+            "dpmpp_2s_ancestral", {"eta": eta, "s_noise": s_noise}
+        )
+        return (sampler,)
+
+
+class SamplerEulerAncestral:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "eta": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "s_noise": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+            }
+        }
+
+    RETURN_TYPES = ("SAMPLER",)
+    CATEGORY = "sampling/custom_sampling/samplers"
+
+    FUNCTION = "get_sampler"
+
+    def get_sampler(self, eta, s_noise):
+        sampler = comfy.samplers.ksampler(
+            "euler_ancestral", {"eta": eta, "s_noise": s_noise}
+        )
+        return (sampler,)
+
+
+class SamplerEulerAncestralCFGPP:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "eta": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "s_noise": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 10.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+            }
+        }
+
+    RETURN_TYPES = ("SAMPLER",)
+    CATEGORY = "sampling/custom_sampling/samplers"
+
+    FUNCTION = "get_sampler"
+
+    def get_sampler(self, eta, s_noise):
+        sampler = comfy.samplers.ksampler(
+            "euler_ancestral_cfg_pp", {"eta": eta, "s_noise": s_noise}
+        )
+        return (sampler,)
+
 
 class SamplerLMS:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"order": ("INT", {"default": 4, "min": 1, "max": 100}),
-                      }
-               }
+        return {
+            "required": {
+                "order": ("INT", {"default": 4, "min": 1, "max": 100}),
+            }
+        }
+
     RETURN_TYPES = ("SAMPLER",)
     CATEGORY = "sampling/custom_sampling/samplers"
 
@@ -362,34 +680,143 @@ class SamplerLMS:
 
     def get_sampler(self, order):
         sampler = comfy.samplers.ksampler("lms", {"order": order})
-        return (sampler, )
+        return (sampler,)
+
 
 class SamplerDPMAdaptative:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"order": ("INT", {"default": 3, "min": 2, "max": 3}),
-                     "rtol": ("FLOAT", {"default": 0.05, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "atol": ("FLOAT", {"default": 0.0078, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "h_init": ("FLOAT", {"default": 0.05, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "pcoeff": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "icoeff": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "dcoeff": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "accept_safety": ("FLOAT", {"default": 0.81, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "eta": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                     "s_noise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.01, "round": False}),
-                      }
-               }
+        return {
+            "required": {
+                "order": ("INT", {"default": 3, "min": 2, "max": 3}),
+                "rtol": (
+                    "FLOAT",
+                    {
+                        "default": 0.05,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "atol": (
+                    "FLOAT",
+                    {
+                        "default": 0.0078,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "h_init": (
+                    "FLOAT",
+                    {
+                        "default": 0.05,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "pcoeff": (
+                    "FLOAT",
+                    {
+                        "default": 0.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "icoeff": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "dcoeff": (
+                    "FLOAT",
+                    {
+                        "default": 0.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "accept_safety": (
+                    "FLOAT",
+                    {
+                        "default": 0.81,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "eta": (
+                    "FLOAT",
+                    {
+                        "default": 0.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+                "s_noise": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "round": False,
+                    },
+                ),
+            }
+        }
+
     RETURN_TYPES = ("SAMPLER",)
     CATEGORY = "sampling/custom_sampling/samplers"
 
     FUNCTION = "get_sampler"
 
-    def get_sampler(self, order, rtol, atol, h_init, pcoeff, icoeff, dcoeff, accept_safety, eta, s_noise):
-        sampler = comfy.samplers.ksampler("dpm_adaptive", {"order": order, "rtol": rtol, "atol": atol, "h_init": h_init, "pcoeff": pcoeff,
-                                                              "icoeff": icoeff, "dcoeff": dcoeff, "accept_safety": accept_safety, "eta": eta,
-                                                              "s_noise":s_noise })
-        return (sampler, )
+    def get_sampler(
+        self,
+        order,
+        rtol,
+        atol,
+        h_init,
+        pcoeff,
+        icoeff,
+        dcoeff,
+        accept_safety,
+        eta,
+        s_noise,
+    ):
+        sampler = comfy.samplers.ksampler(
+            "dpm_adaptive",
+            {
+                "order": order,
+                "rtol": rtol,
+                "atol": atol,
+                "h_init": h_init,
+                "pcoeff": pcoeff,
+                "icoeff": icoeff,
+                "dcoeff": dcoeff,
+                "accept_safety": accept_safety,
+                "eta": eta,
+                "s_noise": s_noise,
+            },
+        )
+        return (sampler,)
+
 
 class Noise_EmptyNoise:
     def __init__(self):
@@ -397,7 +824,12 @@ class Noise_EmptyNoise:
 
     def generate_noise(self, input_latent):
         latent_image = input_latent["samples"]
-        return torch.zeros(latent_image.shape, dtype=latent_image.dtype, layout=latent_image.layout, device="cpu")
+        return torch.zeros(
+            latent_image.shape,
+            dtype=latent_image.dtype,
+            layout=latent_image.layout,
+            device="cpu",
+        )
 
 
 class Noise_RandomNoise:
@@ -406,33 +838,60 @@ class Noise_RandomNoise:
 
     def generate_noise(self, input_latent):
         latent_image = input_latent["samples"]
-        batch_inds = input_latent["batch_index"] if "batch_index" in input_latent else None
+        batch_inds = (
+            input_latent["batch_index"] if "batch_index" in input_latent else None
+        )
         return comfy.sample.prepare_noise(latent_image, self.seed, batch_inds)
+
 
 class SamplerCustom:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"model": ("MODEL",),
-                    "add_noise": ("BOOLEAN", {"default": True}),
-                    "noise_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-                    "cfg": ("FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step":0.1, "round": 0.01}),
-                    "positive": ("CONDITIONING", ),
-                    "negative": ("CONDITIONING", ),
-                    "sampler": ("SAMPLER", ),
-                    "sigmas": ("SIGMAS", ),
-                    "latent_image": ("LATENT", ),
-                     }
-                }
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "add_noise": ("BOOLEAN", {"default": True}),
+                "noise_seed": (
+                    "INT",
+                    {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF},
+                ),
+                "cfg": (
+                    "FLOAT",
+                    {
+                        "default": 8.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.1,
+                        "round": 0.01,
+                    },
+                ),
+                "positive": ("CONDITIONING",),
+                "negative": ("CONDITIONING",),
+                "sampler": ("SAMPLER",),
+                "sigmas": ("SIGMAS",),
+                "latent_image": ("LATENT",),
+            }
+        }
 
-    RETURN_TYPES = ("LATENT","LATENT")
+    RETURN_TYPES = ("LATENT", "LATENT")
     RETURN_NAMES = ("output", "denoised_output")
 
     FUNCTION = "sample"
 
     CATEGORY = "sampling/custom_sampling"
 
-    def sample(self, model, add_noise, noise_seed, cfg, positive, negative, sampler, sigmas, latent_image):
+    def sample(
+        self,
+        model,
+        add_noise,
+        noise_seed,
+        cfg,
+        positive,
+        negative,
+        sampler,
+        sigmas,
+        latent_image,
+    ):
         latent = latent_image
         latent_image = latent["samples"]
         latent = latent.copy()
@@ -449,32 +908,52 @@ class SamplerCustom:
             noise_mask = latent["noise_mask"]
 
         x0_output = {}
-        callback = latent_preview.prepare_callback(model, sigmas.shape[-1] - 1, x0_output)
+        callback = latent_preview.prepare_callback(
+            model, sigmas.shape[-1] - 1, x0_output
+        )
 
         disable_pbar = not comfy.utils.PROGRESS_BAR_ENABLED
-        samples = comfy.sample.sample_custom(model, noise, cfg, sampler, sigmas, positive, negative, latent_image, noise_mask=noise_mask, callback=callback, disable_pbar=disable_pbar, seed=noise_seed)
+        samples = comfy.sample.sample_custom(
+            model,
+            noise,
+            cfg,
+            sampler,
+            sigmas,
+            positive,
+            negative,
+            latent_image,
+            noise_mask=noise_mask,
+            callback=callback,
+            disable_pbar=disable_pbar,
+            seed=noise_seed,
+        )
 
         out = latent.copy()
         out["samples"] = samples
         if "x0" in x0_output:
             out_denoised = latent.copy()
-            out_denoised["samples"] = model.model.process_latent_out(x0_output["x0"].cpu())
+            out_denoised["samples"] = model.model.process_latent_out(
+                x0_output["x0"].cpu()
+            )
         else:
             out_denoised = out
         return (out, out_denoised)
+
 
 class Guider_Basic(comfy.samplers.CFGGuider):
     def set_conds(self, positive):
         self.inner_set_conds({"positive": positive})
 
+
 class BasicGuider:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"model": ("MODEL",),
-                    "conditioning": ("CONDITIONING", ),
-                     }
-                }
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "conditioning": ("CONDITIONING",),
+            }
+        }
 
     RETURN_TYPES = ("GUIDER",)
 
@@ -486,16 +965,27 @@ class BasicGuider:
         guider.set_conds(conditioning)
         return (guider,)
 
+
 class CFGGuider:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"model": ("MODEL",),
-                    "positive": ("CONDITIONING", ),
-                    "negative": ("CONDITIONING", ),
-                    "cfg": ("FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step":0.1, "round": 0.01}),
-                     }
-                }
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "positive": ("CONDITIONING",),
+                "negative": ("CONDITIONING",),
+                "cfg": (
+                    "FLOAT",
+                    {
+                        "default": 8.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.1,
+                        "round": 0.01,
+                    },
+                ),
+            }
+        }
 
     RETURN_TYPES = ("GUIDER",)
 
@@ -508,34 +998,78 @@ class CFGGuider:
         guider.set_cfg(cfg)
         return (guider,)
 
+
 class Guider_DualCFG(comfy.samplers.CFGGuider):
     def set_cfg(self, cfg1, cfg2):
         self.cfg1 = cfg1
         self.cfg2 = cfg2
 
     def set_conds(self, positive, middle, negative):
-        middle = node_helpers.conditioning_set_values(middle, {"prompt_type": "negative"})
-        self.inner_set_conds({"positive": positive, "middle": middle, "negative": negative})
+        middle = node_helpers.conditioning_set_values(
+            middle, {"prompt_type": "negative"}
+        )
+        self.inner_set_conds(
+            {"positive": positive, "middle": middle, "negative": negative}
+        )
 
     def predict_noise(self, x, timestep, model_options={}, seed=None):
         negative_cond = self.conds.get("negative", None)
         middle_cond = self.conds.get("middle", None)
 
-        out = comfy.samplers.calc_cond_batch(self.inner_model, [negative_cond, middle_cond, self.conds.get("positive", None)], x, timestep, model_options)
-        return comfy.samplers.cfg_function(self.inner_model, out[1], out[0], self.cfg2, x, timestep, model_options=model_options, cond=middle_cond, uncond=negative_cond) + (out[2] - out[1]) * self.cfg1
+        out = comfy.samplers.calc_cond_batch(
+            self.inner_model,
+            [negative_cond, middle_cond, self.conds.get("positive", None)],
+            x,
+            timestep,
+            model_options,
+        )
+        return (
+            comfy.samplers.cfg_function(
+                self.inner_model,
+                out[1],
+                out[0],
+                self.cfg2,
+                x,
+                timestep,
+                model_options=model_options,
+                cond=middle_cond,
+                uncond=negative_cond,
+            )
+            + (out[2] - out[1]) * self.cfg1
+        )
+
 
 class DualCFGGuider:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"model": ("MODEL",),
-                    "cond1": ("CONDITIONING", ),
-                    "cond2": ("CONDITIONING", ),
-                    "negative": ("CONDITIONING", ),
-                    "cfg_conds": ("FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step":0.1, "round": 0.01}),
-                    "cfg_cond2_negative": ("FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step":0.1, "round": 0.01}),
-                     }
-                }
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "cond1": ("CONDITIONING",),
+                "cond2": ("CONDITIONING",),
+                "negative": ("CONDITIONING",),
+                "cfg_conds": (
+                    "FLOAT",
+                    {
+                        "default": 8.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.1,
+                        "round": 0.01,
+                    },
+                ),
+                "cfg_cond2_negative": (
+                    "FLOAT",
+                    {
+                        "default": 8.0,
+                        "min": 0.0,
+                        "max": 100.0,
+                        "step": 0.1,
+                        "round": 0.01,
+                    },
+                ),
+            }
+        }
 
     RETURN_TYPES = ("GUIDER",)
 
@@ -548,12 +1082,11 @@ class DualCFGGuider:
         guider.set_cfg(cfg_conds, cfg_cond2_negative)
         return (guider,)
 
+
 class DisableNoise:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":{
-                     }
-                }
+        return {"required": {}}
 
     RETURN_TYPES = ("NOISE",)
     FUNCTION = "get_noise"
@@ -566,10 +1099,14 @@ class DisableNoise:
 class RandomNoise(DisableNoise):
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":{
-                    "noise_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-                     }
-                }
+        return {
+            "required": {
+                "noise_seed": (
+                    "INT",
+                    {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF},
+                ),
+            }
+        }
 
     def get_noise(self, noise_seed):
         return (Noise_RandomNoise(noise_seed),)
@@ -578,16 +1115,17 @@ class RandomNoise(DisableNoise):
 class SamplerCustomAdvanced:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"noise": ("NOISE", ),
-                    "guider": ("GUIDER", ),
-                    "sampler": ("SAMPLER", ),
-                    "sigmas": ("SIGMAS", ),
-                    "latent_image": ("LATENT", ),
-                     }
-                }
+        return {
+            "required": {
+                "noise": ("NOISE",),
+                "guider": ("GUIDER",),
+                "sampler": ("SAMPLER",),
+                "sigmas": ("SIGMAS",),
+                "latent_image": ("LATENT",),
+            }
+        }
 
-    RETURN_TYPES = ("LATENT","LATENT")
+    RETURN_TYPES = ("LATENT", "LATENT")
     RETURN_NAMES = ("output", "denoised_output")
 
     FUNCTION = "sample"
@@ -598,7 +1136,9 @@ class SamplerCustomAdvanced:
         latent = latent_image
         latent_image = latent["samples"]
         latent = latent.copy()
-        latent_image = comfy.sample.fix_empty_latent_channels(guider.model_patcher, latent_image)
+        latent_image = comfy.sample.fix_empty_latent_channels(
+            guider.model_patcher, latent_image
+        )
         latent["samples"] = latent_image
 
         noise_mask = None
@@ -606,31 +1146,46 @@ class SamplerCustomAdvanced:
             noise_mask = latent["noise_mask"]
 
         x0_output = {}
-        callback = latent_preview.prepare_callback(guider.model_patcher, sigmas.shape[-1] - 1, x0_output)
+        callback = latent_preview.prepare_callback(
+            guider.model_patcher, sigmas.shape[-1] - 1, x0_output
+        )
 
         disable_pbar = not comfy.utils.PROGRESS_BAR_ENABLED
-        samples = guider.sample(noise.generate_noise(latent), latent_image, sampler, sigmas, denoise_mask=noise_mask, callback=callback, disable_pbar=disable_pbar, seed=noise.seed)
+        samples = guider.sample(
+            noise.generate_noise(latent),
+            latent_image,
+            sampler,
+            sigmas,
+            denoise_mask=noise_mask,
+            callback=callback,
+            disable_pbar=disable_pbar,
+            seed=noise.seed,
+        )
         samples = samples.to(comfy.model_management.intermediate_device())
 
         out = latent.copy()
         out["samples"] = samples
         if "x0" in x0_output:
             out_denoised = latent.copy()
-            out_denoised["samples"] = guider.model_patcher.model.process_latent_out(x0_output["x0"].cpu())
+            out_denoised["samples"] = guider.model_patcher.model.process_latent_out(
+                x0_output["x0"].cpu()
+            )
         else:
             out_denoised = out
         return (out, out_denoised)
 
+
 class AddNoise:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"model": ("MODEL",),
-                     "noise": ("NOISE", ),
-                     "sigmas": ("SIGMAS", ),
-                     "latent_image": ("LATENT", ),
-                     }
-                }
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "noise": ("NOISE",),
+                "sigmas": ("SIGMAS",),
+                "latent_image": ("LATENT",),
+            }
+        }
 
     RETURN_TYPES = ("LATENT",)
 
@@ -656,7 +1211,7 @@ class AddNoise:
         else:
             scale = sigmas[0]
 
-        if torch.count_nonzero(latent_image) > 0: #Don't shift the empty latent image.
+        if torch.count_nonzero(latent_image) > 0:  # Don't shift the empty latent image.
             latent_image = process_latent_in(latent_image)
         noisy = model_sampling.noise_scaling(scale, noisy, latent_image)
         noisy = process_latent_out(noisy)
@@ -688,7 +1243,6 @@ NODE_CLASS_MAPPINGS = {
     "SplitSigmas": SplitSigmas,
     "SplitSigmasDenoise": SplitSigmasDenoise,
     "FlipSigmas": FlipSigmas,
-
     "CFGGuider": CFGGuider,
     "DualCFGGuider": DualCFGGuider,
     "BasicGuider": BasicGuider,

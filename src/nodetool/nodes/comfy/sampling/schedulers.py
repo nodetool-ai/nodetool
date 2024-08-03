@@ -10,6 +10,7 @@ class BasicScheduler(ComfyNode):
         default=SchedulerEnum.NORMAL, description="The scheduler name."
     )
     steps: int = Field(default=20, description="The number of steps.")
+    denoise: float = Field(default=1.0, description="The denoising factor.")
 
     @classmethod
     def return_type(cls):
