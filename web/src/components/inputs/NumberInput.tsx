@@ -71,7 +71,6 @@ const styles = (theme: any) =>
       position: "absolute",
       width: "auto",
       height: "10px",
-      // minHeight: "10px",
       top: "1px",
       right: "-1em",
       fontFamily: theme.font_family1,
@@ -351,14 +350,14 @@ const NumberInput: React.FC<InputProps> = (props) => {
   const [state, setState] = useState<NumberInputState>({
     isDefault: false,
     isEditable: false,
-    localValue: props.value.toString(),
-    originalValue: props.value,
+    localValue: props.value?.toString() ?? "",
+    originalValue: props.value ?? 0,
     dragStartX: 0,
     decimalPlaces: 1,
     isDragging: false,
     hasExceededDragThreshold: false,
-    dragInitialValue: props.value,
-    currentDragValue: props.value
+    dragInitialValue: props.value ?? 0,
+    currentDragValue: props.value ?? 0
   });
 
   const { handleMouseMove, handleMouseUp } = useDragHandling(
@@ -382,7 +381,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
   useHotkeys("Escape", () => {
     setState((prevState) => ({
       ...prevState,
-      localValue: props.value.toString(),
+      localValue: (props.value ?? 0).toString(),
       isEditable: false
     }));
   });
@@ -391,7 +390,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
     if (!state.isEditable) {
       setState((prevState) => ({
         ...prevState,
-        localValue: props.value.toString()
+        localValue: (props.value ?? 0).toString()
       }));
     }
   }, [props.value, state.isEditable]);
@@ -436,7 +435,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
     } else {
       setState((prevState) => ({
         ...prevState,
-        localValue: props.value.toString()
+        localValue: (props.value ?? 0).toString()
       }));
     }
 
