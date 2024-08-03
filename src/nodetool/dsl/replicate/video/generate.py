@@ -50,7 +50,7 @@ class AnimateDiffIllusions(GraphNode):
     output_format: Output_format | GraphNode | tuple[GraphNode, str] = Field(default=Output_format('mp4'), description="Output format of the video. Can be 'mp4' or 'gif'")
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description='Guidance Scale. How closely do we want to adhere to the prompt and its contents')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
-    controlnet_video: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, temp_id=None, duration=None, format=None), description='A short video/gif that will be used as the keyframes for QR Code Monster to use, Please note, all of the frames will be used as keyframes')
+    controlnet_video: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, duration=None, format=None, data=None), description='A short video/gif that will be used as the keyframes for QR Code Monster to use, Please note, all of the frames will be used as keyframes')
     film_interpolation: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Whether to use FILM for between-frame interpolation (film-net.github.io)')
     prompt_fixed_ratio: float | GraphNode | tuple[GraphNode, str] = Field(default=0.5, description='Defines the ratio of adherence to the fixed part of the prompt versus the dynamic part (from prompt map). Value should be between 0 (only dynamic) to 1 (only fixed).')
     custom_base_model_url: str | GraphNode | tuple[GraphNode, str] = Field(default='', description="Only used when base model is set to 'CUSTOM'. URL of the custom model to download if 'CUSTOM' is selected in the base model. Only downloads from 'https://civitai.com/api/download/models/' are allowed")
@@ -66,7 +66,7 @@ class AnimateDiffIllusions(GraphNode):
 
 
 class AudioToWaveform(GraphNode):
-    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, temp_id=None), description='Audio file to create waveform from')
+    audio: AudioRef | GraphNode | tuple[GraphNode, str] = Field(default=AudioRef(type='audio', uri='', asset_id=None, data=None), description='Audio file to create waveform from')
     bg_color: str | GraphNode | tuple[GraphNode, str] = Field(default='#000000', description='Background color of waveform')
     fg_alpha: float | GraphNode | tuple[GraphNode, str] = Field(default=0.75, description='Opacity of foreground waveform')
     bar_count: int | GraphNode | tuple[GraphNode, str] = Field(default=100, description='Number of bars in waveform')
@@ -97,7 +97,7 @@ class HotshotXL(GraphNode):
 from nodetool.nodes.replicate.video.generate import Output_type
 
 class RobustVideoMatting(GraphNode):
-    input_video: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, temp_id=None, duration=None, format=None), description='Video to segment.')
+    input_video: VideoRef | GraphNode | tuple[GraphNode, str] = Field(default=VideoRef(type='video', uri='', asset_id=None, duration=None, format=None, data=None), description='Video to segment.')
     output_type: Output_type | GraphNode | tuple[GraphNode, str] = Field(default=Output_type('green-screen'), description=None)
     @classmethod
     def get_node_type(cls): return "replicate.video.generate.RobustVideoMatting"
@@ -118,16 +118,16 @@ class Tooncrafter(GraphNode):
     loop: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Loop the video')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Set a seed for reproducibility. Random by default.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description=None)
-    image_1: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='First input image')
-    image_2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Second input image')
-    image_3: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Third input image (optional)')
-    image_4: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Fourth input image (optional)')
-    image_5: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Fifth input image (optional)')
-    image_6: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Sixth input image (optional)')
-    image_7: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Seventh input image (optional)')
-    image_8: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Eighth input image (optional)')
-    image_9: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Ninth input image (optional)')
-    image_10: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Tenth input image (optional)')
+    image_1: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='First input image')
+    image_2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Second input image')
+    image_3: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Third input image (optional)')
+    image_4: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Fourth input image (optional)')
+    image_5: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Fifth input image (optional)')
+    image_6: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Sixth input image (optional)')
+    image_7: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Seventh input image (optional)')
+    image_8: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Eighth input image (optional)')
+    image_9: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Ninth input image (optional)')
+    image_10: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Tenth input image (optional)')
     max_width: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Maximum width of the video')
     max_height: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Maximum height of the video')
     interpolate: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Enable 2x interpolation using FILM')
@@ -146,15 +146,15 @@ class VideoMorpher(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Set a seed for reproducibility. Random by default.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The prompt has a small effect, but most of the video is driven by the subject images')
     checkpoint: Checkpoint | GraphNode | tuple[GraphNode, str] = Field(default=Checkpoint('realistic'), description='The checkpoint to use for the model')
-    style_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Apply the style from this image to the whole video')
+    style_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Apply the style from this image to the whole video')
     aspect_ratio: Aspect_ratio | GraphNode | tuple[GraphNode, str] = Field(default=Aspect_ratio('2:3'), description='The aspect ratio of the video')
     style_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='How strong the style is applied')
     use_controlnet: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Use geometric circles to guide the generation')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='What you do not want to see in the video')
-    subject_image_1: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The first subject of the video')
-    subject_image_2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The second subject of the video')
-    subject_image_3: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The third subject of the video')
-    subject_image_4: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The fourth subject of the video')
+    subject_image_1: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The first subject of the video')
+    subject_image_2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The second subject of the video')
+    subject_image_3: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The third subject of the video')
+    subject_image_4: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The fourth subject of the video')
     @classmethod
     def get_node_type(cls): return "replicate.video.generate.VideoMorpher"
 

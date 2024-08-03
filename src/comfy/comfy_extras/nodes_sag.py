@@ -1,32 +1,15 @@
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Copyright (c) @comfyanonymous
-# Project Repository: https://github.com/comfyanonymous/ComfyUI
-
 import torch
 from torch import einsum
 import torch.nn.functional as F
 import math
 
 from einops import rearrange, repeat
-import os
-from comfy.ldm.modules.attention import optimized_attention, _ATTN_PRECISION
+from comfy.ldm.modules.attention import optimized_attention
 import comfy.samplers
 
 # from comfy/ldm/modules/attention.py
 # but modified to return attention scores as well as output
-def attention_basic_with_sim(q, k, v, heads, mask=None):
+def attention_basic_with_sim(q, k, v, heads, mask=None, attn_precision=None):
     b, _, dim_head = q.shape
     dim_head //= heads
     scale = dim_head ** -0.5
@@ -42,7 +25,7 @@ def attention_basic_with_sim(q, k, v, heads, mask=None):
     )
 
     # force cast to fp32 to avoid overflowing
-    if _ATTN_PRECISION =="fp32":
+    if attn_precision == torch.float32:
         sim = einsum('b i d, b j d -> b i j', q.float(), k.float()) * scale
     else:
         sim = einsum('b i d, b j d -> b i j', q, k) * scale
@@ -74,7 +57,7 @@ def create_blur_map(x0, attn, sigma=3.0, threshold=1.0):
     attn = attn.reshape(b, -1, hw1, hw2)
     # Global Average Pool
     mask = attn.mean(1, keepdim=False).sum(1, keepdim=False) > threshold
-    ratio = math.ceil(math.sqrt(lh * lw / hw1))
+    ratio = 2**(math.ceil(math.sqrt(lh * lw / hw1)) - 1).bit_length()
     mid_shape = [math.ceil(lh / ratio), math.ceil(lw / ratio)]
 
     # Reshape
@@ -113,7 +96,7 @@ class SelfAttentionGuidance:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": { "model": ("MODEL",),
-                             "scale": ("FLOAT", {"default": 0.5, "min": -2.0, "max": 5.0, "step": 0.1}),
+                             "scale": ("FLOAT", {"default": 0.5, "min": -2.0, "max": 5.0, "step": 0.01}),
                              "blur_sigma": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 10.0, "step": 0.1}),
                               }}
     RETURN_TYPES = ("MODEL",)
@@ -137,13 +120,13 @@ class SelfAttentionGuidance:
             if 1 in cond_or_uncond:
                 uncond_index = cond_or_uncond.index(1)
                 # do the entire attention operation, but save the attention scores to attn_scores
-                (out, sim) = attention_basic_with_sim(q, k, v, heads=heads)
+                (out, sim) = attention_basic_with_sim(q, k, v, heads=heads, attn_precision=extra_options["attn_precision"])
                 # when using a higher batch size, I BELIEVE the result batch dimension is [uc1, ... ucn, c1, ... cn]
                 n_slices = heads * b
                 attn_scores = sim[n_slices * uncond_index:n_slices * (uncond_index+1)]
                 return out
             else:
-                return optimized_attention(q, k, v, heads=heads)
+                return optimized_attention(q, k, v, heads=heads, attn_precision=extra_options["attn_precision"])
 
         def post_cfg_function(args):
             nonlocal attn_scores
@@ -159,12 +142,14 @@ class SelfAttentionGuidance:
             sigma = args["sigma"]
             model_options = args["model_options"]
             x = args["input"]
+            if min(cfg_result.shape[2:]) <= 4: #skip when too small to add padding
+                return cfg_result
 
             # create the adversarially blurred image
             degraded = create_blur_map(uncond_pred, uncond_attn, sag_sigma, sag_threshold)
             degraded_noised = degraded + x - uncond_pred
             # call into the UNet
-            (sag, _) = comfy.samplers.calc_cond_uncond_batch(model, uncond, None, degraded_noised, sigma, model_options)
+            (sag,) = comfy.samplers.calc_cond_batch(model, [uncond], degraded_noised, sigma, model_options)
             return cfg_result + (degraded - sag) * sag_scale
 
         m.set_model_sampler_post_cfg_function(post_cfg_function, disable_cfg1_optimization=True)

@@ -5,6 +5,8 @@ import numpy as np
 from pydantic import Field
 from nodetool.metadata.types import ImageRef, Mask
 from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.nodetool import constant
+from nodetool.workflows.processing_context import ProcessingContext
 
 
 class ImageCompositeMasked(ComfyNode):
@@ -31,6 +33,25 @@ class ColorChannel(str, Enum):
     BLUE = "blue"
 
 
+class LoadImage(ComfyNode):
+    """
+    The Load Image node can be used to to load an image. Images can be uploaded in the asset manager or by dropping an image onto the node. Once the image has been uploaded they can be selected inside the node.
+    """
+
+    image: ImageRef = Field(default=ImageRef(), description="The image to load.")
+    upload: str = Field(default="", description="unused")
+
+    @classmethod
+    def return_type(cls):
+        return {"image": ImageRef}
+
+    def assign_property(self, name: str, value: Any):
+        if name == "image" and isinstance(value, str):
+            self.image = ImageRef(uri=value)
+        else:
+            super().assign_property(name, value)
+
+
 class LoadImageMask(ComfyNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to load.")
     channel: ColorChannel = Field(
@@ -40,6 +61,37 @@ class LoadImageMask(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"mask": Mask}
+
+
+class SaveImage(ComfyNode):
+    """
+    The Save Image node can be used to save images. To simply preview an image inside the node graph use the Preview Image node. It can be hard to keep track of all the images that you generate. To help with organizing your images you can pass specially formatted strings to an output node with a file_prefix widget.
+    """
+
+    images: ImageRef = Field(default=ImageRef(), description="The image to save.")
+    filename_prefix: str = Field(
+        default="",
+        description="The prefix for the filename where the image will be saved.",
+    )
+
+    async def process(self, context: ProcessingContext):
+        rand = "".join(random.choice("abcdefghijklmnopqrstupvxyz") for x in range(5))
+        name = f"{self.filename_prefix}_{rand}.png"
+        img = await context.image_to_pil(self.images)
+        ref = await context.image_from_pil(img, name=name)
+        return {"image": ref}
+
+    @classmethod
+    def return_type(cls):
+        return {"image": ImageRef}
+
+
+class PreviewImage(SaveImage):
+    """
+    The Preview Image node can be used to preview images inside the node graph.
+    """
+
+    pass
 
 
 class ImagePadForOutpaint(ComfyNode):

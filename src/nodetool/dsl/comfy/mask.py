@@ -5,7 +5,7 @@ from nodetool.dsl.graph import GraphNode
 
 
 class CropMask(GraphNode):
-    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask'), description='The mask to crop.')
+    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The mask to crop.')
     x: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The x position for cropping.')
     y: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The y position for cropping.')
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=512, description='Width of the crop.')
@@ -16,7 +16,7 @@ class CropMask(GraphNode):
 
 
 class FeatherMask(GraphNode):
-    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask'), description='The mask to feather.')
+    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The mask to feather.')
     left: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Feather amount on the left.')
     top: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Feather amount on the top.')
     right: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Feather amount on the right.')
@@ -27,7 +27,7 @@ class FeatherMask(GraphNode):
 
 
 class GrowMask(GraphNode):
-    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask'), description='The mask to grow.')
+    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The mask to grow.')
     expand: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The amount to expand the mask.')
     tapered_corners: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Whether to taper the corners.')
     @classmethod
@@ -36,7 +36,7 @@ class GrowMask(GraphNode):
 
 
 class ImageColorToMask(GraphNode):
-    image: ImageTensor | GraphNode | tuple[GraphNode, str] = Field(default=ImageTensor(type='comfy.image_tensor'), description='The image to extract the color mask.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to extract the color mask.')
     color: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The color to use for the mask.')
     @classmethod
     def get_node_type(cls): return "comfy.mask.ImageColorToMask"
@@ -45,7 +45,7 @@ class ImageColorToMask(GraphNode):
 from nodetool.nodes.comfy.mask import ChannelEnum
 
 class ImageToMask(GraphNode):
-    image: ImageTensor | GraphNode | tuple[GraphNode, str] = Field(default=ImageTensor(type='comfy.image_tensor'), description='The image to extract the mask.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to extract the mask.')
     channel: ChannelEnum | GraphNode | tuple[GraphNode, str] = Field(default=ChannelEnum('red'), description='The channel to use for the mask.')
     @classmethod
     def get_node_type(cls): return "comfy.mask.ImageToMask"
@@ -53,7 +53,7 @@ class ImageToMask(GraphNode):
 
 
 class InvertMask(GraphNode):
-    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask'), description='The mask to invert.')
+    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The mask to invert.')
     @classmethod
     def get_node_type(cls): return "comfy.mask.InvertMask"
 
@@ -61,8 +61,8 @@ class InvertMask(GraphNode):
 from nodetool.nodes.comfy.mask import OperationEnum
 
 class MaskComposite(GraphNode):
-    destination: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask'), description='The destination mask.')
-    source: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask'), description='The source mask.')
+    destination: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The destination mask.')
+    source: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The source mask.')
     x: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The x position.')
     y: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The y position.')
     operation: OperationEnum | GraphNode | tuple[GraphNode, str] = Field(default=OperationEnum('multiply'), description='The operation to use.')
@@ -72,7 +72,7 @@ class MaskComposite(GraphNode):
 
 
 class MaskToImage(GraphNode):
-    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask'), description='The mask to convert.')
+    mask: Mask | GraphNode | tuple[GraphNode, str] = Field(default=Mask(type='comfy.mask', data=None), description='The mask to convert.')
     @classmethod
     def get_node_type(cls): return "comfy.mask.MaskToImage"
 

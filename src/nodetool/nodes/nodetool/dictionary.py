@@ -6,7 +6,7 @@ from nodetool.metadata.types import DataframeRef
 from nodetool.workflows.base_node import BaseNode
 
 
-class GetDictionaryValue(BaseNode):
+class GetValue(BaseNode):
     """
     Retrieves a value from a dictionary using a specified key.
     dictionary, get, value, key
@@ -27,7 +27,7 @@ class GetDictionaryValue(BaseNode):
         return self.dictionary[self.key]
 
 
-class AddToDictionary(BaseNode):
+class Update(BaseNode):
     """
     Updates a dictionary with new key-value pairs.
     dictionary, add, update
@@ -49,7 +49,7 @@ class AddToDictionary(BaseNode):
         return self.dictionary
 
 
-class RemoveFromDictionary(BaseNode):
+class Remove(BaseNode):
     """
     Removes a key-value pair from a dictionary.
     dictionary, remove, delete
@@ -71,7 +71,7 @@ class RemoveFromDictionary(BaseNode):
         return self.dictionary
 
 
-class ConvertJSONToDictionary(BaseNode):
+class ParseJSON(BaseNode):
     """
     Parses a JSON string into a Python dictionary.
     json, parse, dictionary
@@ -93,7 +93,7 @@ class ConvertJSONToDictionary(BaseNode):
         return res
 
 
-class CreateDictionaryFromList(BaseNode):
+class Zip(BaseNode):
     """
     Creates a dictionary from parallel lists of keys and values.
     dictionary, create, zip
@@ -113,7 +113,7 @@ class CreateDictionaryFromList(BaseNode):
         return dict(zip(self.keys, self.values))
 
 
-class CombineDictionaries(BaseNode):
+class Combine(BaseNode):
     """
     Merges two dictionaries, with second dictionary values taking precedence.
     dictionary, merge, update
@@ -133,7 +133,7 @@ class CombineDictionaries(BaseNode):
         return {**self.dict_a, **self.dict_b}
 
 
-class FilterDictionaryKeys(BaseNode):
+class Filter(BaseNode):
     """
     Creates a new dictionary with only specified keys from the input.
     dictionary, filter, select
@@ -151,7 +151,7 @@ class FilterDictionaryKeys(BaseNode):
         return {key: self.dictionary[key] for key in self.keys}
 
 
-class ConvertDictionaryToDataframe(BaseNode):
+class ConvertToDataframe(BaseNode):
     """
     Transforms a single dictionary into a one-row pandas DataFrame.
     dictionary, dataframe, convert
@@ -168,24 +168,4 @@ class ConvertDictionaryToDataframe(BaseNode):
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         df = pd.DataFrame([self.model_dump()])
-        return await context.dataframe_from_pandas(df)
-
-
-class ConvertDictionariesToDataframe(BaseNode):
-    """
-    Converts a list of dictionaries into a multi-row pandas DataFrame.
-    dictionaries, dataframe, convert
-
-    Use cases:
-    - Transform list of JSON objects into tabular format
-    - Prepare multiple data records for analysis
-    - Convert API results to a structured dataset
-    """
-
-    _layout = "small"
-
-    rows: list[dict[(str, Any)]] = []
-
-    async def process(self, context: ProcessingContext) -> DataframeRef:
-        df = pd.DataFrame(self.rows)
         return await context.dataframe_from_pandas(df)

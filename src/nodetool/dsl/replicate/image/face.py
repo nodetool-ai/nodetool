@@ -6,9 +6,9 @@ from nodetool.dsl.graph import GraphNode
 
 class BecomeImage(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Fix the random seed for reproducibility')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='An image of a person to be converted')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='An image of a person to be converted')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='a person', description=None)
-    image_to_become: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Any image to convert the person to')
+    image_to_become: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Any image to convert the person to')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='Things you do not want in the image')
     prompt_strength: float | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Strength of the prompt. This is the CFG scale, higher numbers lead to stronger prompt, lower numbers will keep more of a likeness to the original.')
     number_of_images: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Number of images to generate')
@@ -26,7 +26,7 @@ from nodetool.nodes.replicate.image.face import Style
 
 class FaceToMany(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Fix the random seed for reproducibility')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='An image of a person to be converted')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='An image of a person to be converted')
     style: Style | GraphNode | tuple[GraphNode, str] = Field(default=Style('3D'), description='Style to convert to')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='a person', description=None)
     lora_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=1, description='How strong the LoRA will be')
@@ -43,7 +43,7 @@ class FaceToMany(GraphNode):
 
 class FaceToSticker(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Fix the random seed for reproducibility')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='An image of a person to be converted to a sticker')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='An image of a person to be converted to a sticker')
     steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description=None)
     width: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description=None)
     height: int | GraphNode | tuple[GraphNode, str] = Field(default=1024, description=None)
@@ -65,11 +65,11 @@ from nodetool.nodes.replicate.image.face import Output_format
 
 class InstantId(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input face image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input face image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='a person', description='Input prompt')
     scheduler: Scheduler | GraphNode | tuple[GraphNode, str] = Field(default=Scheduler('EulerDiscreteScheduler'), description='Scheduler')
     enable_lcm: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Enable Fast Inference with LCM (Latent Consistency Models) - speeds up inference steps, trade-off is the quality of the generated image. Performs better with close-up portrait face images')
-    pose_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='(Optional) reference pose image')
+    pose_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='(Optional) reference pose image')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of images to output')
     sdxl_weights: Sdxl_weights | GraphNode | tuple[GraphNode, str] = Field(default=Sdxl_weights('stable-diffusion-xl-base-1.0'), description='Pick which base weights you want to use')
     output_format: Output_format | GraphNode | tuple[GraphNode, str] = Field(default=Output_format('webp'), description='Format of the output images')
@@ -122,11 +122,11 @@ class PhotoMakerStyle(GraphNode):
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='A photo of a person img', description="Prompt. Example: 'a photo of a man/woman img'. The phrase 'img' is the trigger word.")
     num_steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Number of sample steps')
     style_name: Style_name | GraphNode | tuple[GraphNode, str] = Field(default=Style_name('(No style)'), description="Style template. The style template will add a style-specific prompt and negative prompt to the user's prompt.")
-    input_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The input image, for example a photo of your face.')
+    input_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The input image, for example a photo of your face.')
     num_outputs: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='Number of output images')
-    input_image2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Additional input image (optional)')
-    input_image3: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Additional input image (optional)')
-    input_image4: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Additional input image (optional)')
+    input_image2: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Additional input image (optional)')
+    input_image3: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Additional input image (optional)')
+    input_image4: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Additional input image (optional)')
     guidance_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=5, description='Guidance scale. A guidance scale of 1 corresponds to doing no classifier free guidance.')
     negative_prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry', description='Negative Prompt. The negative prompt should NOT contain the trigger word.')
     style_strength_ratio: float | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Style strength (%)')

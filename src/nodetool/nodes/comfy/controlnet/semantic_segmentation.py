@@ -2,6 +2,10 @@ from pydantic import Field
 from nodetool.nodes.comfy.controlnet import PreprocessImage
 
 
+class SAMPreprocessor(PreprocessImage):
+    pass
+
+
 class AnimeFace_SemSegPreprocessor(PreprocessImage):
     remove_background_using_abgr: bool = Field(
         default=True,

@@ -5,7 +5,7 @@ from nodetool.dsl.graph import GraphNode
 
 
 class AdaptiveContrast(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to adjust the contrast for.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to adjust the contrast for.')
     clip_limit: float | GraphNode | tuple[GraphNode, str] = Field(default=2.0, description='Clip limit for adaptive contrast.')
     grid_size: int | GraphNode | tuple[GraphNode, str] = Field(default=8, description='Grid size for adaptive contrast.')
     @classmethod
@@ -14,7 +14,7 @@ class AdaptiveContrast(GraphNode):
 
 
 class AutoContrast(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to adjust the contrast for.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to adjust the contrast for.')
     cutoff: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='Represents the percentage of pixels to ignore at both the darkest and lightest ends of the histogram. A cutoff value of 5 means ignoring the darkest 5% and the lightest 5% of pixels, enhancing overall contrast by stretching the remaining pixel values across the full brightness range.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.AutoContrast"
@@ -22,7 +22,7 @@ class AutoContrast(GraphNode):
 
 
 class Brightness(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to adjust the brightness for.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to adjust the brightness for.')
     factor: float | int | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Factor to adjust the brightness. 1.0 means no change.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.Brightness"
@@ -30,7 +30,7 @@ class Brightness(GraphNode):
 
 
 class Color(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to adjust the brightness for.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to adjust the brightness for.')
     factor: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Factor to adjust the contrast. 1.0 means no change.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.Color"
@@ -38,7 +38,7 @@ class Color(GraphNode):
 
 
 class Contrast(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to adjust the brightness for.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to adjust the brightness for.')
     factor: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Factor to adjust the contrast. 1.0 means no change.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.Contrast"
@@ -46,28 +46,28 @@ class Contrast(GraphNode):
 
 
 class Detail(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to detail.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to detail.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.Detail"
 
 
 
 class EdgeEnhance(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to edge enhance.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to edge enhance.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.EdgeEnhance"
 
 
 
 class Equalize(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to equalize.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to equalize.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.Equalize"
 
 
 
 class RankFilter(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to rank filter.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to rank filter.')
     size: int | GraphNode | tuple[GraphNode, str] = Field(default=3, description='Rank filter size.')
     rank: int | GraphNode | tuple[GraphNode, str] = Field(default=3, description='Rank filter rank.')
     @classmethod
@@ -76,14 +76,14 @@ class RankFilter(GraphNode):
 
 
 class Sharpen(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to sharpen.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to sharpen.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.Sharpen"
 
 
 
 class Sharpness(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to adjust the brightness for.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to adjust the brightness for.')
     factor: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='Factor to adjust the contrast. 1.0 means no change.')
     @classmethod
     def get_node_type(cls): return "nodetool.image.enhance.Sharpness"
@@ -91,7 +91,7 @@ class Sharpness(GraphNode):
 
 
 class UnsharpMask(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to unsharp mask.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to unsharp mask.')
     radius: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='Unsharp mask radius.')
     percent: int | GraphNode | tuple[GraphNode, str] = Field(default=150, description='Unsharp mask percent.')
     threshold: int | GraphNode | tuple[GraphNode, str] = Field(default=3, description='Unsharp mask threshold.')

@@ -16,9 +16,9 @@ from nodetool.nodes.replicate.image.process import Scheduler
 
 class Magic_Style_Transfer(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='An astronaut riding a rainbow unicorn', description='Input prompt')
-    ip_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image for img2img or inpaint mode')
+    ip_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image for img2img or inpaint mode')
     ip_scale: float | GraphNode | tuple[GraphNode, str] = Field(default=0.3, description='IP Adapter strength.')
     strength: float | GraphNode | tuple[GraphNode, str] = Field(default=0.9, description='When img2img is active, the denoising strength. 1 means total destruction of the input image.')
     scheduler: Scheduler | GraphNode | tuple[GraphNode, str] = Field(default=Scheduler('K_EULER'), description='scheduler')
@@ -39,22 +39,22 @@ class Magic_Style_Transfer(GraphNode):
 
 
 class ModNet(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='input image')
     @classmethod
     def get_node_type(cls): return "replicate.image.process.ModNet"
 
 
 
 class ObjectRemover(GraphNode):
-    org_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Original input image')
-    mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Mask image')
+    org_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Original input image')
+    mask_image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Mask image')
     @classmethod
     def get_node_type(cls): return "replicate.image.process.ObjectRemover"
 
 
 
 class RemoveBackground(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     @classmethod
     def get_node_type(cls): return "replicate.image.process.RemoveBackground"
 

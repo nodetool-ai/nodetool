@@ -5,7 +5,7 @@ from nodetool.dsl.graph import GraphNode
 
 
 class SaveAnimatedPNG(GraphNode):
-    images: list[ImageTensor] | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='list of images to save as animated PNG.')
+    images: list[ImageRef] | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='list of images to save as animated PNG.')
     filename_prefix: str | GraphNode | tuple[GraphNode, str] = Field(default='ComfyUI', description='Prefix for the filename.')
     fps: float | GraphNode | tuple[GraphNode, str] = Field(default=6.0, description='Frames per second.')
     compress_level: int | GraphNode | tuple[GraphNode, str] = Field(default=4, description='PNG compression level.')
@@ -18,7 +18,7 @@ class SaveAnimatedPNG(GraphNode):
 from enum import Enum
 
 class SaveAnimatedWEBP(GraphNode):
-    images: list[ImageTensor] | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='list of images to save as animated WEBP.')
+    images: list[ImageRef] | GraphNode | tuple[GraphNode, str] = Field(default=PydanticUndefined, description='list of images to save as animated WEBP.')
     filename_prefix: str | GraphNode | tuple[GraphNode, str] = Field(default='ComfyUI', description='Prefix for the filename.')
     fps: float | GraphNode | tuple[GraphNode, str] = Field(default=6.0, description='Frames per second.')
     lossless: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Whether to use lossless compression.')

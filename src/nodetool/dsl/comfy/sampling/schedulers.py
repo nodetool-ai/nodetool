@@ -6,7 +6,7 @@ from nodetool.dsl.graph import GraphNode
 from nodetool.nodes.comfy.sampling import SchedulerEnum
 
 class BasicScheduler(GraphNode):
-    model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet'), description='The model to use.')
+    model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet', name=''), description='The model to use.')
     scheduler: SchedulerEnum | GraphNode | tuple[GraphNode, str] = Field(default=SchedulerEnum('normal'), description='The scheduler name.')
     steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='The number of steps.')
     @classmethod
@@ -44,7 +44,7 @@ class PolyexponentialScheduler(GraphNode):
 
 
 class SDTurboScheduler(GraphNode):
-    model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet'), description='The model for which to use the scheduler.')
+    model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet', name=''), description='The model for which to use the scheduler.')
     steps: int | GraphNode | tuple[GraphNode, str] = Field(default=1, description='The number of steps for the scheduler.')
     denoise: float | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description='The denoising factor to apply in the scheduler.')
     @classmethod

@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import Field
-from nodetool.metadata.types import VAE, ImageRef, ImageTensor, Latent, Mask
+from nodetool.metadata.types import VAE, ImageRef, ImageRef, Latent, Mask
 from nodetool.common.comfy_node import MAX_RESOLUTION
 from nodetool.common.comfy_node import ComfyNode
 
@@ -17,11 +17,15 @@ class LatentCompositeMasked(ComfyNode):
     resize_source: bool = Field(
         default=False, description="Whether to resize the source."
     )
-    mask: Mask = Field(None, description="The mask to use.")
+    mask: Mask = Field(Mask(), description="The mask to use.")
 
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
+    
+    @classmethod
+    def get_title(cls):
+        return "Latent Composite Masked"
 
 
 class EmptyLatentImage(ComfyNode):
@@ -58,9 +62,7 @@ class VAEEncode(ComfyNode):
     The VAE Encode node can be used to encode pixel space images into latent space images, using the provided VAE.
     """
 
-    pixels: ImageRef = Field(
-        default=ImageRef(), description="The image to encode."
-    )
+    pixels: ImageRef = Field(default=ImageRef(), description="The image to encode.")
     vae: VAE = Field(default=VAE(), description="The VAE to use.")
 
     @classmethod
@@ -73,8 +75,8 @@ class VAEEncode(ComfyNode):
 
 
 class VAEEncodeTiled(ComfyNode):
-    pixels: ImageTensor = Field(
-        default=ImageTensor(), description="The image pixels to encode."
+    pixels: ImageRef = Field(
+        default=ImageRef(), description="The image pixels to encode."
     )
     vae: VAE = Field(default=VAE(), description="The VAE to use for encoding.")
     tile_size: int = Field(
@@ -91,8 +93,8 @@ class VAEEncodeTiled(ComfyNode):
 
 
 class VAEEncodeForInpaint(ComfyNode):
-    pixels: ImageTensor = Field(
-        default=ImageTensor(), description="The image pixels to encode for inpainting."
+    pixels: ImageRef = Field(
+        default=ImageRef(), description="The image pixels to encode for inpainting."
     )
     vae: VAE = Field(default=VAE(), description="The VAE to use for encoding.")
     mask: Mask = Field(default=Mask(), description="The mask to apply for inpainting.")
@@ -147,7 +149,7 @@ class VAEDecodeTiled(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageTensor}
+        return {"image": ImageRef}
 
 
 # class SaveLatent(ComfyNode):
@@ -276,6 +278,10 @@ class LatentComposite(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
+    
+    @classmethod
+    def get_title(cls):
+        return "Latent Composite"
 
 
 class LatentBlend(ComfyNode):
@@ -288,6 +294,75 @@ class LatentBlend(ComfyNode):
     blend_factor: float = Field(
         default=0.5, description="The blend factor between samples."
     )
+
+    @classmethod
+    def return_type(cls):
+        return {"latent": Latent}
+    
+    @classmethod
+    def get_title(cls):
+        return "Latent Blend"
+
+
+class LatentFlip(ComfyNode):
+    """
+    The Flip Latent node can be used to flip latent images.
+    """
+
+    samples: Latent = Field(
+        default=Latent(), description="The latent samples to flip."
+    )
+    horizontal: bool = Field(
+        default=False, description="Whether to flip horizontally."
+    )
+    vertical: bool = Field(default=False, description="Whether to flip vertically.")
+
+    @classmethod
+    def get_title(cls):
+        return "Flip Latent"
+
+    @classmethod
+    def return_type(cls):
+        return {"latent": Latent}
+    
+
+class LatentRotate(ComfyNode):
+    """
+    The Rotate Latent node can be used to rotate latent images.
+    """
+
+    samples: Latent = Field(
+        default=Latent(), description="The latent samples to rotate."
+    )
+    angle: float = Field(
+        default=0.0, description="The angle to rotate the latent by."
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Rotate Latent"
+
+    @classmethod
+    def return_type(cls):
+        return {"latent": Latent}
+    
+
+class LatentCrop(ComfyNode):
+    """
+    The Crop Latent node can be used to crop latent images.
+    """
+
+    samples: Latent = Field(
+        default=Latent(), description="The latent samples to crop."
+    )
+    x: int = Field(default=0, description="The x-coordinate for cropping.")
+    y: int = Field(default=0, description="The y-coordinate for cropping.")
+    width: int = Field(default=512, description="The width of the crop.")
+    height: int = Field(default=512, description="The height of the crop.")
+
+    @classmethod
+    def get_title(cls):
+        return "Crop Latent"
 
     @classmethod
     def return_type(cls):

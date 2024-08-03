@@ -35,6 +35,13 @@ class ConvertToAudio(GraphNode):
 
 
 
+class ConvertToImage(GraphNode):
+    tensor: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description='The input tensor to convert to an image. Should have either 1, 3, or 4 channels.')
+    @classmethod
+    def get_node_type(cls): return "nodetool.tensor.ConvertToImage"
+
+
+
 class Exp(GraphNode):
     x: int | float | nodetool.metadata.types.Tensor | GraphNode | tuple[GraphNode, str] = Field(default=1.0, description=None)
     @classmethod
@@ -108,7 +115,7 @@ class PlotTensor(GraphNode):
 
 class SaveTensor(GraphNode):
     value: Tensor | GraphNode | tuple[GraphNode, str] = Field(default=Tensor(type='tensor', value=[], dtype=None), description='The tensor to save.')
-    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None, temp_id=None), description='The folder to save the tensor in.')
+    folder: FolderRef | GraphNode | tuple[GraphNode, str] = Field(default=FolderRef(type='folder', uri='', asset_id=None), description='The folder to save the tensor in.')
     name: str | GraphNode | tuple[GraphNode, str] = Field(default='tensor.npy', description='The name of the asset to save.')
     @classmethod
     def get_node_type(cls): return "nodetool.tensor.SaveTensor"

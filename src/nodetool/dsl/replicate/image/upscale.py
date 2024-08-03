@@ -13,7 +13,7 @@ from nodetool.nodes.replicate.image.upscale import Tiling_height
 class ClarityUpscaler(GraphNode):
     mask: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Mask image to mark areas that should be preserved during upscaling')
     seed: int | GraphNode | tuple[GraphNode, str] = Field(default=1337, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='input image')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='masterpiece, best quality, highres, <lora:more_details:0.5> <lora:SDXLrender_v2.0:1>', description='Prompt')
     dynamic: float | GraphNode | tuple[GraphNode, str] = Field(default=6, description='HDR, try from 3 - 9')
     handfix: Handfix | GraphNode | tuple[GraphNode, str] = Field(default=Handfix('disabled'), description='Use clarity to fix hands in the image')
@@ -42,7 +42,7 @@ from nodetool.nodes.replicate.image.upscale import Resolution
 class HighResolutionControlNetTile(GraphNode):
     hdr: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='HDR improvement over the original image')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Control image for scribble controlnet')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Control image for scribble controlnet')
     steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Steps')
     prompt: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Prompt for the model')
     scheduler: Scheduler | GraphNode | tuple[GraphNode, str] = Field(default=Scheduler('DDIM'), description='Choose a scheduler.')
@@ -61,9 +61,9 @@ from nodetool.nodes.replicate.image.upscale import Resolution
 
 class MagicImageRefiner(GraphNode):
     hdr: float | GraphNode | tuple[GraphNode, str] = Field(default=0, description='HDR improvement over the original image')
-    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='When provided, refines some section of the image. Must be the same size as the image')
+    mask: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='When provided, refines some section of the image. Must be the same size as the image')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Image to refine')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Image to refine')
     steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Steps')
     prompt: str | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Prompt for the model')
     scheduler: Scheduler | GraphNode | tuple[GraphNode, str] = Field(default=Scheduler('DDIM'), description='Choose a scheduler.')
@@ -79,7 +79,7 @@ class MagicImageRefiner(GraphNode):
 
 
 class RealEsrGan(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     scale: float | GraphNode | tuple[GraphNode, str] = Field(default=4, description='Factor to scale image by')
     face_enhance: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='Run GFPGAN face enhancement along with upscaling')
     @classmethod
@@ -90,7 +90,7 @@ from nodetool.nodes.replicate.image.upscale import Task
 
 class Swin2SR(GraphNode):
     task: Task | GraphNode | tuple[GraphNode, str] = Field(default=Task('real_sr'), description='Choose a task')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     @classmethod
     def get_node_type(cls): return "replicate.image.upscale.Swin2SR"
 
@@ -100,7 +100,7 @@ from nodetool.nodes.replicate.image.upscale import Task_type
 
 class SwinIR(GraphNode):
     jpeg: int | GraphNode | tuple[GraphNode, str] = Field(default=40, description='scale factor, activated for JPEG Compression Artifact Reduction. Leave it as default or arbitrary if other tasks are selected')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='input image')
     noise: Noise | GraphNode | tuple[GraphNode, str] = Field(default=Noise(15), description='noise level, activated for Grayscale Image Denoising and Color Image Denoising. Leave it as default or arbitrary if other tasks are selected')
     task_type: Task_type | GraphNode | tuple[GraphNode, str] = Field(default=Task_type('Real-World Image Super-Resolution-Large'), description='Choose a task')
     @classmethod
@@ -116,7 +116,7 @@ from nodetool.nodes.replicate.image.upscale import Seam_fix_mode
 class UltimateSDUpscale(GraphNode):
     cfg: float | GraphNode | tuple[GraphNode, str] = Field(default=8, description='CFG')
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Sampling seed, leave Empty for Random')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     steps: int | GraphNode | tuple[GraphNode, str] = Field(default=20, description='Steps')
     denoise: float | GraphNode | tuple[GraphNode, str] = Field(default=0.2, description='Denoise')
     upscaler: Upscaler | GraphNode | tuple[GraphNode, str] = Field(default=Upscaler('4x-UltraSharp'), description='Upscaler')
@@ -145,7 +145,7 @@ class UltimateSDUpscale(GraphNode):
 from nodetool.nodes.replicate.image.upscale import Scale
 
 class ruDallE_SR(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     scale: Scale | GraphNode | tuple[GraphNode, str] = Field(default=Scale(4), description='Choose up-scaling factor')
     @classmethod
     def get_node_type(cls): return "replicate.image.upscale.ruDallE_SR"

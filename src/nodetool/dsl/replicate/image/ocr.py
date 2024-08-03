@@ -12,7 +12,7 @@ class LatexOCR(GraphNode):
 
 
 class TextExtractOCR(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Image to process')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Image to process')
     @classmethod
     def get_node_type(cls): return "replicate.image.ocr.TextExtractOCR"
 

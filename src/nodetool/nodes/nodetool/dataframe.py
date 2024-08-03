@@ -138,7 +138,7 @@ class AddNewDataColumn(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class ConvertListToTable(BaseNode):
+class FromList(BaseNode):
     """
     Convert list of values to dataframe.
     list, dataframe, convert

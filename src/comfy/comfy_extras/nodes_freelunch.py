@@ -1,23 +1,7 @@
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Copyright (c) @comfyanonymous
-# Project Repository: https://github.com/comfyanonymous/ComfyUI
-
 #code originally taken from: https://github.com/ChenyangSi/FreeU (under MIT License)
 
 import torch
-
+import logging
 
 def Fourier_filter(x, threshold, scale):
     # FFT
@@ -50,7 +34,7 @@ class FreeU:
     RETURN_TYPES = ("MODEL",)
     FUNCTION = "patch"
 
-    CATEGORY = "_for_testing"
+    CATEGORY = "model_patches/unet"
 
     def patch(self, model, b1, b2, s1, s2):
         model_channels = model.model.model_config.unet_config["model_channels"]
@@ -58,14 +42,14 @@ class FreeU:
         on_cpu_devices = {}
 
         def output_block_patch(h, hsp, transformer_options):
-            scale = scale_dict.get(h.shape[1], None)
+            scale = scale_dict.get(int(h.shape[1]), None)
             if scale is not None:
                 h[:,:h.shape[1] // 2] = h[:,:h.shape[1] // 2] * scale[0]
                 if hsp.device not in on_cpu_devices:
                     try:
                         hsp = Fourier_filter(hsp, threshold=1, scale=scale[1])
                     except:
-                        print("Device", hsp.device, "does not support the torch.fft functions used in the FreeU node, switching to CPU.")
+                        logging.warning("Device {} does not support the torch.fft functions used in the FreeU node, switching to CPU.".format(hsp.device))
                         on_cpu_devices[hsp.device] = True
                         hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(hsp.device)
                 else:
@@ -89,7 +73,7 @@ class FreeU_V2:
     RETURN_TYPES = ("MODEL",)
     FUNCTION = "patch"
 
-    CATEGORY = "_for_testing"
+    CATEGORY = "model_patches/unet"
 
     def patch(self, model, b1, b2, s1, s2):
         model_channels = model.model.model_config.unet_config["model_channels"]
@@ -97,7 +81,7 @@ class FreeU_V2:
         on_cpu_devices = {}
 
         def output_block_patch(h, hsp, transformer_options):
-            scale = scale_dict.get(h.shape[1], None)
+            scale = scale_dict.get(int(h.shape[1]), None)
             if scale is not None:
                 hidden_mean = h.mean(1).unsqueeze(1)
                 B = hidden_mean.shape[0]
@@ -111,7 +95,7 @@ class FreeU_V2:
                     try:
                         hsp = Fourier_filter(hsp, threshold=1, scale=scale[1])
                     except:
-                        print("Device", hsp.device, "does not support the torch.fft functions used in the FreeU node, switching to CPU.")
+                        logging.warning("Device {} does not support the torch.fft functions used in the FreeU node, switching to CPU.".format(hsp.device))
                         on_cpu_devices[hsp.device] = True
                         hsp = Fourier_filter(hsp.cpu(), threshold=1, scale=scale[1]).to(hsp.device)
                 else:

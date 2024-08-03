@@ -5,7 +5,7 @@ from nodetool.dsl.graph import GraphNode
 
 
 class HyperTile(GraphNode):
-    model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet'), description='The model to use for generating hyper-tiles.')
+    model: UNet | GraphNode | tuple[GraphNode, str] = Field(default=UNet(type='comfy.unet', name=''), description='The model to use for generating hyper-tiles.')
     tile_size: int | GraphNode | tuple[GraphNode, str] = Field(default=256, description='The size of the tile to generate.')
     swap_size: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='The swap size used during generation.')
     max_depth: int | GraphNode | tuple[GraphNode, str] = Field(default=0, description='The maximum depth for tiling.')

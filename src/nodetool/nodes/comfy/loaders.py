@@ -4,15 +4,18 @@ from nodetool.metadata.types import (
     CLIP,
     GLIGEN,
     VAE,
+    CLIPFile,
     CLIPVision,
     CLIPVisionFile,
     CheckpointFile,
     ControlNet,
     ControlNetFile,
     GLIGENFile,
+    LORAFile,
     UNet,
     UpscaleModel,
     UpscaleModelFile,
+    VAEFile,
     unCLIPFile,
 )
 from nodetool.common.comfy_node import ComfyNode
@@ -31,6 +34,10 @@ class CheckpointLoaderSimple(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"model": UNet, "clip": CLIP, "vae": VAE}
+    
+    @classmethod
+    def get_title(cls):
+        return "Load Checkpoint"
     
 
     async def initialize(self, context: ProcessingContext):
@@ -104,6 +111,10 @@ class ControlNetLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"control_net": ControlNet}
+    
+    @classmethod
+    def get_title(cls):
+        return "Load ControlNet Model"
 
     @classmethod
     def is_cacheable(cls):
@@ -126,6 +137,10 @@ class UpscaleModelLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"upscale_model": UpscaleModel}
+    
+    @classmethod
+    def get_title(cls):
+        return "Load Upscale Model"
 
     @classmethod
     def is_cacheable(cls):
@@ -148,6 +163,10 @@ class GLIGENLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"gligen": GLIGEN}
+    
+    @classmethod
+    def get_title(cls):
+        return "Load GLIGEN Model"
 
     @classmethod
     def is_cacheable(cls):
@@ -159,3 +178,124 @@ class GLIGENLoader(ComfyNode):
 
     async def process(self, context: ProcessingContext):
         return {"gligen": GLIGEN(name=self.gligen_name.name)}
+
+
+class LoraLoader(ComfyNode):
+    model: UNet = Field(default=UNet(), description="The model to apply Lora to.")
+    clip: CLIP = Field(default=CLIP(), description="The CLIP model to apply Lora to.")
+    lora_name: LORAFile = Field(
+        default=LORAFile(), description="The name of the LoRA to load."
+    )
+    strength_model: float = Field(
+        default=1.0,
+        description="The strength of the LoRA to apply to the model.",
+        ge=-20.0,  # ge is 'greater than or equal to'
+        le=20.0,  # le is 'less than or equal to'
+    )
+    strength_clip: float = Field(
+        default=1.0,
+        description="The strength of the LoRA to apply to the CLIP.",
+        ge=-20.0,  # ge is 'greater than or equal to'
+        le=20.0,  # le is 'less than or equal to'
+    )
+
+    @classmethod
+    def get_ttile(cls):
+        return "Load LoRA"
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "model": UNet,
+            "clip": CLIP,
+        }
+
+    async def process(self, context: ProcessingContext):
+        unet, clip = await self.call_comfy_node(context)
+
+        context.add_model("comfy.unet", self.lora_name.name, unet)
+        context.add_model("comfy.clip", self.lora_name.name, clip)
+
+        return {
+            "model": UNet(name=self.lora_name.name),
+            "clip": CLIP(name=self.lora_name.name),
+        }
+
+
+class LoraLoaderModelOnly(ComfyNode):
+    model: UNet = Field(default=UNet(), description="The model to apply Lora to.")
+    lora_name: LORAFile = Field(
+        default=LORAFile(), description="The name of the LoRA to load."
+    )
+    strength_model: float = Field(
+        default=1.0,
+        description="The strength of the LoRA to apply to the model.",
+        ge=-20.0,  # ge is 'greater than or equal to'
+        le=20.0,  # le is 'less than or equal to'
+    )
+
+    @classmethod
+    def get_ttile(cls):
+        return "Load LoRA (Model only)"
+
+    @classmethod
+    def return_type(cls):
+        return {"unet": UNet}
+
+    async def initialize(self, context: ProcessingContext):
+        unet, clip = await self.call_comfy_node(context)
+
+        context.add_model("comfy.unet", self.lora_name.name, unet)
+
+    async def process(self, context: ProcessingContext):
+        return {
+            "model": UNet(name=self.lora_name.name),
+        }
+
+
+class VAELoader(ComfyNode):
+    vae_name: VAEFile = Field(
+        default=VAEFile(), description="The name of the VAE to load."
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Load VAE"
+
+    @classmethod
+    def return_type(cls):
+        return {"vae": VAE}
+
+
+class CLIPLoader(ComfyNode):
+    clip_name: CLIPFile = Field(
+        default=CLIPFile(),
+        description="The name of the CLIP to load.",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Load CLIP"
+
+    @classmethod
+    def return_type(cls):
+        return {"clip": CLIP}
+
+
+class DualCLIPLoader(ComfyNode):
+    clip_name1: CLIPFile = Field(
+        default=CLIPFile(),
+        description="The name of the CLIP to load.",
+    )
+    clip_name2: CLIPFile = Field(
+        default=CLIPFile(),
+        description="The name of the CLIP to load.",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Load Dual CLIP"
+
+    @classmethod
+    def return_types(cls):
+        return {"clip": CLIP}

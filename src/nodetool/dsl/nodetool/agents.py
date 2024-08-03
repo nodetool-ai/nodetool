@@ -19,7 +19,7 @@ class AgentNode(GraphNode):
 class DataframeAgent(GraphNode):
     model: FunctionModel | GraphNode | tuple[GraphNode, str] = Field(default=FunctionModel(type='function_model', provider=<Provider.Empty: 'empty'>, name='', repo_id='', filename='', local_path=None), description='The language model to use.')
     prompt: str | GraphNode | tuple[GraphNode, str] = Field(default='', description='The user prompt')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='The image to use in the prompt.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='The image to use in the prompt.')
     tool_name: str | GraphNode | tuple[GraphNode, str] = Field(default='add_row', description='The name of the tool to use.')
     tool_description: str | GraphNode | tuple[GraphNode, str] = Field(default='Adds one row.', description='The description of the tool to use.')
     max_tokens: int | GraphNode | tuple[GraphNode, str] = Field(default=1000, description='The maximum number of tokens to generate.')

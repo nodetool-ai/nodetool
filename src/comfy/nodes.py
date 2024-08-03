@@ -35,6 +35,7 @@ from PIL.PngImagePlugin import PngInfo
 import numpy as np
 import safetensors.torch
 
+import comfy.node_helpers as node_helpers
 import comfy.samplers
 import comfy.sample
 import comfy.sd
@@ -415,114 +416,119 @@ class VAEDecodeTiled:
 class VAEEncode:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {"pixels": ("IMAGE",), "vae": ("VAE",)}}
-
+        return {"required": { "pixels": ("IMAGE", ), "vae": ("VAE", )}}
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "encode"
 
     CATEGORY = "latent"
 
-    @staticmethod
-    def vae_encode_crop_pixels(pixels):
-        x = (pixels.shape[1] // 8) * 8
-        y = (pixels.shape[2] // 8) * 8
-        if pixels.shape[1] != x or pixels.shape[2] != y:
-            x_offset = (pixels.shape[1] % 8) // 2
-            y_offset = (pixels.shape[2] % 8) // 2
-            pixels = pixels[:, x_offset : x + x_offset, y_offset : y + y_offset, :]
-        return pixels
-
     def encode(self, vae, pixels):
-        pixels = self.vae_encode_crop_pixels(pixels)
-        t = vae.encode(pixels[:, :, :, :3])
-        return ({"samples": t},)
-
+        t = vae.encode(pixels[:,:,:,:3])
+        return ({"samples":t}, )
 
 class VAEEncodeTiled:
     @classmethod
     def INPUT_TYPES(s):
-        return {
-            "required": {
-                "pixels": ("IMAGE",),
-                "vae": ("VAE",),
-                "tile_size": (
-                    "INT",
-                    {"default": 512, "min": 320, "max": 4096, "step": 64},
-                ),
-            }
-        }
-
+        return {"required": {"pixels": ("IMAGE", ), "vae": ("VAE", ),
+                             "tile_size": ("INT", {"default": 512, "min": 320, "max": 4096, "step": 64})
+                            }}
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "encode"
 
     CATEGORY = "_for_testing"
 
     def encode(self, vae, pixels, tile_size):
-        pixels = VAEEncode.vae_encode_crop_pixels(pixels)
-        t = vae.encode_tiled(
-            pixels[:, :, :, :3],
-            tile_x=tile_size,
-            tile_y=tile_size,
-        )
-        return ({"samples": t},)
-
+        t = vae.encode_tiled(pixels[:,:,:,:3], tile_x=tile_size, tile_y=tile_size, )
+        return ({"samples":t}, )
 
 class VAEEncodeForInpaint:
     @classmethod
     def INPUT_TYPES(s):
-        return {
-            "required": {
-                "pixels": ("IMAGE",),
-                "vae": ("VAE",),
-                "mask": ("MASK",),
-                "grow_mask_by": ("INT", {"default": 6, "min": 0, "max": 64, "step": 1}),
-            }
-        }
-
+        return {"required": { "pixels": ("IMAGE", ), "vae": ("VAE", ), "mask": ("MASK", ), "grow_mask_by": ("INT", {"default": 6, "min": 0, "max": 64, "step": 1}),}}
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "encode"
 
     CATEGORY = "latent/inpaint"
 
     def encode(self, vae, pixels, mask, grow_mask_by=6):
-        x = (pixels.shape[1] // 8) * 8
-        y = (pixels.shape[2] // 8) * 8
-        mask = torch.nn.functional.interpolate(
-            mask.reshape((-1, 1, mask.shape[-2], mask.shape[-1])),
-            size=(pixels.shape[1], pixels.shape[2]),
-            mode="bilinear",
-        )
+        x = (pixels.shape[1] // vae.downscale_ratio) * vae.downscale_ratio
+        y = (pixels.shape[2] // vae.downscale_ratio) * vae.downscale_ratio
+        mask = torch.nn.functional.interpolate(mask.reshape((-1, 1, mask.shape[-2], mask.shape[-1])), size=(pixels.shape[1], pixels.shape[2]), mode="bilinear")
 
         pixels = pixels.clone()
         if pixels.shape[1] != x or pixels.shape[2] != y:
-            x_offset = (pixels.shape[1] % 8) // 2
-            y_offset = (pixels.shape[2] % 8) // 2
-            pixels = pixels[:, x_offset : x + x_offset, y_offset : y + y_offset, :]
-            mask = mask[:, :, x_offset : x + x_offset, y_offset : y + y_offset]
+            x_offset = (pixels.shape[1] % vae.downscale_ratio) // 2
+            y_offset = (pixels.shape[2] % vae.downscale_ratio) // 2
+            pixels = pixels[:,x_offset:x + x_offset, y_offset:y + y_offset,:]
+            mask = mask[:,:,x_offset:x + x_offset, y_offset:y + y_offset]
 
-        # grow mask by a few pixels to keep things seamless in latent space
+        #grow mask by a few pixels to keep things seamless in latent space
         if grow_mask_by == 0:
             mask_erosion = mask
         else:
             kernel_tensor = torch.ones((1, 1, grow_mask_by, grow_mask_by))
             padding = math.ceil((grow_mask_by - 1) / 2)
 
-            mask_erosion = torch.clamp(
-                torch.nn.functional.conv2d(
-                    mask.round(), kernel_tensor, padding=padding
-                ),
-                0,
-                1,
-            )
+            mask_erosion = torch.clamp(torch.nn.functional.conv2d(mask.round(), kernel_tensor, padding=padding), 0, 1)
 
         m = (1.0 - mask.round()).squeeze(1)
         for i in range(3):
-            pixels[:, :, :, i] -= 0.5
-            pixels[:, :, :, i] *= m
-            pixels[:, :, :, i] += 0.5
+            pixels[:,:,:,i] -= 0.5
+            pixels[:,:,:,i] *= m
+            pixels[:,:,:,i] += 0.5
         t = vae.encode(pixels)
 
-        return ({"samples": t, "noise_mask": (mask_erosion[:, :, :x, :y].round())},)
+        return ({"samples":t, "noise_mask": (mask_erosion[:,:,:x,:y].round())}, )
+
+
+class InpaintModelConditioning:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"positive": ("CONDITIONING", ),
+                             "negative": ("CONDITIONING", ),
+                             "vae": ("VAE", ),
+                             "pixels": ("IMAGE", ),
+                             "mask": ("MASK", ),
+                             }}
+
+    RETURN_TYPES = ("CONDITIONING","CONDITIONING","LATENT")
+    RETURN_NAMES = ("positive", "negative", "latent")
+    FUNCTION = "encode"
+
+    CATEGORY = "conditioning/inpaint"
+
+    def encode(self, positive, negative, pixels, vae, mask):
+        x = (pixels.shape[1] // 8) * 8
+        y = (pixels.shape[2] // 8) * 8
+        mask = torch.nn.functional.interpolate(mask.reshape((-1, 1, mask.shape[-2], mask.shape[-1])), size=(pixels.shape[1], pixels.shape[2]), mode="bilinear")
+
+        orig_pixels = pixels
+        pixels = orig_pixels.clone()
+        if pixels.shape[1] != x or pixels.shape[2] != y:
+            x_offset = (pixels.shape[1] % 8) // 2
+            y_offset = (pixels.shape[2] % 8) // 2
+            pixels = pixels[:,x_offset:x + x_offset, y_offset:y + y_offset,:]
+            mask = mask[:,:,x_offset:x + x_offset, y_offset:y + y_offset]
+
+        m = (1.0 - mask.round()).squeeze(1)
+        for i in range(3):
+            pixels[:,:,:,i] -= 0.5
+            pixels[:,:,:,i] *= m
+            pixels[:,:,:,i] += 0.5
+        concat_latent = vae.encode(pixels)
+        orig_latent = vae.encode(orig_pixels)
+
+        out_latent = {}
+
+        out_latent["samples"] = orig_latent
+        out_latent["noise_mask"] = mask
+
+        out = []
+        for conditioning in [positive, negative]:
+            c = node_helpers.conditioning_set_values(conditioning, {"concat_latent_image": concat_latent,
+                                                                    "concat_mask": mask})
+            out.append(c)
+        return (out[0], out[1], out_latent)
 
 
 def load_checkpoint_cached(ckpt_path, config_path=None):
@@ -1865,11 +1871,11 @@ class LoadImage:
         output_masks = []
         for i in ImageSequence.Iterator(img):
             i = ImageOps.exif_transpose(i)
-            image = i.convert("RGB")
+            image = i.convert("RGB") # type: ignore
             image = np.array(image).astype(np.float32) / 255.0
             image = torch.from_numpy(image)[None,]
-            if "A" in i.getbands():
-                mask = np.array(i.getchannel("A")).astype(np.float32) / 255.0
+            if "A" in i.getbands(): # type: ignore
+                mask = np.array(i.getchannel("A")).astype(np.float32) / 255.0 # type: ignore
                 mask = 1.0 - torch.from_numpy(mask)
             else:
                 mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")

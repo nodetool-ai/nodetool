@@ -5,7 +5,7 @@ from nodetool.dsl.graph import GraphNode
 
 
 class CodeFormer(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image')
     upscale: int | GraphNode | tuple[GraphNode, str] = Field(default=2, description='The final upsampling scale of the image')
     face_upsample: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Upsample restored faces for high-resolution AI-created images')
     background_enhance: bool | GraphNode | tuple[GraphNode, str] = Field(default=True, description='Enhance background image with Real-ESRGAN')
@@ -16,7 +16,7 @@ class CodeFormer(GraphNode):
 
 
 class Maxim(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image.')
     model: nodetool.nodes.replicate.image.enhance.Maxim.Model | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Choose a model.')
     @classmethod
     def get_node_type(cls): return "replicate.image.enhance.Maxim"
@@ -24,7 +24,7 @@ class Maxim(GraphNode):
 
 
 class Night_Enhancement(GraphNode):
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Input image.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Input image.')
     @classmethod
     def get_node_type(cls): return "replicate.image.enhance.Night_Enhancement"
 
@@ -32,7 +32,7 @@ class Night_Enhancement(GraphNode):
 
 class OldPhotosRestoration(GraphNode):
     HR: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='whether the input image is high-resolution')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='input image.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='input image.')
     with_scratch: bool | GraphNode | tuple[GraphNode, str] = Field(default=False, description='whether the input image is scratched')
     @classmethod
     def get_node_type(cls): return "replicate.image.enhance.OldPhotosRestoration"
@@ -42,7 +42,7 @@ from nodetool.nodes.replicate.image.enhance import Color_fix_type
 
 class Supir_V0F(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Low quality input image.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Low quality input image.')
     s_cfg: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description=' Classifier-free guidance scale for prompts.')
     s_churn: float | GraphNode | tuple[GraphNode, str] = Field(default=5, description='Original churn hy-param of EDM.')
     s_noise: float | GraphNode | tuple[GraphNode, str] = Field(default=1.003, description='Original noise hy-param of EDM.')
@@ -66,7 +66,7 @@ from nodetool.nodes.replicate.image.enhance import Color_fix_type
 
 class Supir_V0Q(GraphNode):
     seed: int | None | GraphNode | tuple[GraphNode, str] = Field(default=None, description='Random seed. Leave blank to randomize the seed')
-    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, temp_id=None), description='Low quality input image.')
+    image: ImageRef | GraphNode | tuple[GraphNode, str] = Field(default=ImageRef(type='image', uri='', asset_id=None, data=None), description='Low quality input image.')
     s_cfg: float | GraphNode | tuple[GraphNode, str] = Field(default=7.5, description=' Classifier-free guidance scale for prompts.')
     s_churn: float | GraphNode | tuple[GraphNode, str] = Field(default=5, description='Original churn hy-param of EDM.')
     s_noise: float | GraphNode | tuple[GraphNode, str] = Field(default=1.003, description='Original noise hy-param of EDM.')

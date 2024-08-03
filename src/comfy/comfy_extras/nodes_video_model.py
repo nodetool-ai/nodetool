@@ -1,24 +1,9 @@
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Copyright (c) @comfyanonymous
-# Project Repository: https://github.com/comfyanonymous/ComfyUI
-
 import comfy.nodes as nodes
 import torch
 import comfy.utils
 import comfy.sd
 import comfy.folder_paths as folder_paths
+from comfy.comfy_extras import nodes_model_merging
 
 
 class ImageOnlyCheckpointLoader:
@@ -94,10 +79,54 @@ class VideoLinearCFGGuidance:
         m.set_model_sampler_cfg_function(linear_cfg)
         return (m, )
 
+class VideoTriangleCFGGuidance:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": { "model": ("MODEL",),
+                              "min_cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step":0.5, "round": 0.01}),
+                              }}
+    RETURN_TYPES = ("MODEL",)
+    FUNCTION = "patch"
+
+    CATEGORY = "sampling/video_models"
+
+    def patch(self, model, min_cfg):
+        def linear_cfg(args):
+            cond = args["cond"]
+            uncond = args["uncond"]
+            cond_scale = args["cond_scale"]
+            period = 1.0
+            values = torch.linspace(0, 1, cond.shape[0], device=cond.device)
+            values = 2 * (values / period - torch.floor(values / period + 0.5)).abs()
+            scale = (values * (cond_scale - min_cfg) + min_cfg).reshape((cond.shape[0], 1, 1, 1))
+
+            return uncond + scale * (cond - uncond)
+
+        m = model.clone()
+        m.set_model_sampler_cfg_function(linear_cfg)
+        return (m, )
+
+class ImageOnlyCheckpointSave(nodes_model_merging.CheckpointSave):
+    CATEGORY = "_for_testing"
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": { "model": ("MODEL",),
+                              "clip_vision": ("CLIP_VISION",),
+                              "vae": ("VAE",),
+                              "filename_prefix": ("STRING", {"default": "checkpoints/ComfyUI"}),},
+                "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},}
+
+    def save(self, model, clip_vision, vae, filename_prefix, prompt=None, extra_pnginfo=None):
+        comfy_extras.nodes_model_merging.save_checkpoint(model, clip_vision=clip_vision, vae=vae, filename_prefix=filename_prefix, output_dir=self.output_dir, prompt=prompt, extra_pnginfo=extra_pnginfo)
+        return {}
+
 NODE_CLASS_MAPPINGS = {
     "ImageOnlyCheckpointLoader": ImageOnlyCheckpointLoader,
     "SVD_img2vid_Conditioning": SVD_img2vid_Conditioning,
     "VideoLinearCFGGuidance": VideoLinearCFGGuidance,
+    "VideoTriangleCFGGuidance": VideoTriangleCFGGuidance,
+    "ImageOnlyCheckpointSave": ImageOnlyCheckpointSave,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
