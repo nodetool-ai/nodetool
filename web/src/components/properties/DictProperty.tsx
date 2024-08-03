@@ -11,7 +11,7 @@ import DictTable, { DictDataType } from "../node/DataTable/DictTable";
 import PropertyLabel from "../node/PropertyLabel";
 
 const detectTypeFromDict = (dict: any) => {
-  if (dict.length === 0) {
+  if (!Array.isArray(dict) || dict.length === 0) {
     return "string";
   }
   const first = dict[0];
@@ -45,11 +45,13 @@ export default function DictProperty(props: PropertyProps) {
   const property = props.property;
 
   if (props.nodeType !== "nodetool.constant.Dict") {
-    return <PropertyLabel
-      name={property.name}
-      description={property.description}
-      id={id}
-    />;
+    return (
+      <PropertyLabel
+        name={property.name}
+        description={property.description}
+        id={id}
+      />
+    );
   }
 
   return (
