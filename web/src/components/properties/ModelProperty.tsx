@@ -35,8 +35,6 @@ export function modelFolder(type: TypeName) {
       return "loras";
     case "comfy.unet_file":
       return "unet";
-    case "comfy.vae_file":
-      return "vae";
     default:
       return undefined;
   }
@@ -50,22 +48,25 @@ export default function ModelProperty(props: PropertyProps) {
   const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
   const folder = modelFolder(props.property.type.type);
 
-  const { data, isError } = useQuery(
-    ["models", folder],
-    async () => {
-      if (folder === undefined) return [];
-      if (folder === "function_model") return loadFunctionModels();
-      if (folder === "llama_model") return loadLlamaModels();
-      return loadModelFiles(folder);
+  const { data, isError } = useQuery(["models", folder], async () => {
+    if (folder === undefined) return [];
+    if (folder === "function_model") return loadFunctionModels();
+    if (folder === "llama_model") return loadLlamaModels();
+    return loadModelFiles(folder);
+  });
+
+  const modelNames =
+    data?.map((model: FunctionModel | LlamaModel | string) =>
+      typeof model === "string" ? model : model.name
+    ) || [];
+
+  const providerFor = useCallback(
+    (name: string) => {
+      return functionModels.find((model: FunctionModel) => model.name === name)
+        ?.provider;
     },
+    [functionModels]
   );
-
-  const modelNames = data?.map((model: FunctionModel | LlamaModel | string) =>
-    typeof model === "string" ? model : model.name) || [];
-
-  const providerFor = useCallback((name: string) => {
-    return functionModels.find((model: FunctionModel) => model.name === name)?.provider;
-  }, [functionModels]);
 
   const selectValue = props.value?.name || "";
 
@@ -103,7 +104,9 @@ export default function ModelProperty(props: PropertyProps) {
         }}
       >
         {isError && <MenuItem value="">Error loading models</MenuItem>}
-        {folder === undefined && <MenuItem value="">No models available</MenuItem>}
+        {folder === undefined && (
+          <MenuItem value="">No models available</MenuItem>
+        )}
         {modelNames.map((modelName) => (
           <MenuItem key={modelName} value={modelName}>
             {modelName}
