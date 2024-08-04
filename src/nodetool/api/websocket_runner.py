@@ -14,6 +14,7 @@ from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.types import BinaryUpdate
 from nodetool.workflows.workflow_runner import WorkflowRunner
+from nodetool.api.types.wrap_primitive_types import wrap_primitive_types
 
 log = Environment.get_logger()
 
@@ -99,25 +100,6 @@ class WebSocketRunner:
         self.active_job = None
         self.job_id = None
 
-    def wrap_primitive_types(self, value):
-        if isinstance(value, dict) and "result" in value and value["result"] is not None:
-            # Only wrap items inside the "result" object if it's not None
-            wrapped_result = {}
-            for k, v in value["result"].items():
-                if isinstance(v, str):
-                    wrapped_result[k] = {"type": "string", "value": v}
-                elif isinstance(v, int):
-                    wrapped_result[k] = {"type": "integer", "value": v}
-                elif isinstance(v, float):
-                    wrapped_result[k] = {"type": "float", "value": v}
-                elif isinstance(v, bool):
-                    wrapped_result[k] = {"type": "boolean", "value": v}
-                else:
-                    # For complex types like image, audio, etc., keep the structure as is
-                    wrapped_result[k] = v
-            value["result"] = wrapped_result
-        return value
-
     async def run_job(
         self,
         req: RunJobRequest,
@@ -167,23 +149,17 @@ class WebSocketRunner:
                 self.pre_run_hook()
 
             async for msg in run_workflow(
-                req, self.runner, self.context, use_thread=True
+            req, self.runner, self.context, use_thread=True
             ):
                 try:
                     msg_dict = msg.model_dump()
                     
                     # Only wrap the result if explicit_types is True
-                    if req.explicit_types:
-                        msg_dict = self.wrap_primitive_types(msg_dict)
+                    if req.explicit_types and "result" in msg_dict:
+                        msg_dict["result"] = wrap_primitive_types(msg_dict["result"])
                     
                     packed_message = msgpack.packb(msg_dict, use_bin_type=True)
-                    
-                    try:
-                        log.info(f"++++++++++++++++++++++ {self.job_id}: {msg.type} {msg.status} {msg.node_name}")
-                    except AttributeError as e:
-                        log.error(f"Error accessing NodeUpdate attributes: {e}")
-                        log.debug(f"NodeUpdate object: {msg}")  
-                    
+                
                     await self.websocket.send_bytes(packed_message)  # type: ignore
                 except Exception as e:
                     log.exception(f"Error processing message in job {self.job_id}: {e}")
