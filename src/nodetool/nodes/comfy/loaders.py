@@ -13,6 +13,7 @@ from nodetool.metadata.types import (
     GLIGENFile,
     LORAFile,
     UNet,
+    UNetFile,
     UpscaleModel,
     UpscaleModelFile,
     VAEFile,
@@ -34,11 +35,10 @@ class CheckpointLoaderSimple(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"model": UNet, "clip": CLIP, "vae": VAE}
-    
+
     @classmethod
     def get_title(cls):
         return "Load Checkpoint"
-    
 
     async def initialize(self, context: ProcessingContext):
         unet, clip, vae, _ = await self.call_comfy_node(context)
@@ -47,7 +47,6 @@ class CheckpointLoaderSimple(ComfyNode):
         context.add_model("comfy.clip", self.ckpt_name.name, clip)
         context.add_model("comfy.vae", self.ckpt_name.name, vae)
 
-    
     async def process(self, context: ProcessingContext):
         return {
             "model": UNet(name=self.ckpt_name.name),
@@ -95,11 +94,11 @@ class CLIPVisionLoader(ComfyNode):
     @classmethod
     def is_cacheable(cls):
         return False
-    
+
     async def initialize(self, context: ProcessingContext):
-        clip_vision, = await self.call_comfy_node(context)
+        (clip_vision,) = await self.call_comfy_node(context)
         context.add_model("comfy.clip_vision", self.clip_name.name, clip_vision)
-        
+
     async def process(self, context: ProcessingContext):
         return {"clip_vision": CLIPVision(name=self.clip_name.name)}
 
@@ -108,10 +107,11 @@ class ControlNetLoader(ComfyNode):
     control_net_name: ControlNetFile = Field(
         default=ControlNetFile(), description="The filename of the control net to load."
     )
+
     @classmethod
     def return_type(cls):
         return {"control_net": ControlNet}
-    
+
     @classmethod
     def get_title(cls):
         return "Load ControlNet Model"
@@ -119,11 +119,11 @@ class ControlNetLoader(ComfyNode):
     @classmethod
     def is_cacheable(cls):
         return False
-    
+
     async def initialize(self, context: ProcessingContext):
-        control_net, = await self.call_comfy_node(context)
+        (control_net,) = await self.call_comfy_node(context)
         context.add_model("comfy.control_net", self.control_net_name.name, control_net)
-    
+
     async def process(self, context: ProcessingContext):
         return {"control_net": ControlNet(name=self.control_net_name.name)}
 
@@ -137,7 +137,7 @@ class UpscaleModelLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"upscale_model": UpscaleModel}
-    
+
     @classmethod
     def get_title(cls):
         return "Load Upscale Model"
@@ -145,9 +145,9 @@ class UpscaleModelLoader(ComfyNode):
     @classmethod
     def is_cacheable(cls):
         return False
-    
+
     async def initialize(self, context: ProcessingContext):
-        upscale_model, = await self.call_comfy_node(context)
+        (upscale_model,) = await self.call_comfy_node(context)
         context.add_model("comfy.upscale_model", self.model_name.name, upscale_model)
 
     async def process(self, context: ProcessingContext):
@@ -163,7 +163,7 @@ class GLIGENLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"gligen": GLIGEN}
-    
+
     @classmethod
     def get_title(cls):
         return "Load GLIGEN Model"
@@ -171,9 +171,9 @@ class GLIGENLoader(ComfyNode):
     @classmethod
     def is_cacheable(cls):
         return False
-    
+
     async def initialize(self, context: ProcessingContext):
-        gligen, = await self.call_comfy_node(context)
+        (gligen,) = await self.call_comfy_node(context)
         context.add_model("comfy.gligen", self.gligen_name.name, gligen)
 
     async def process(self, context: ProcessingContext):
@@ -266,12 +266,27 @@ class VAELoader(ComfyNode):
     def return_type(cls):
         return {"vae": VAE}
 
+    async def initialize(self, context: ProcessingContext):
+        (vae,) = await self.call_comfy_node(context)
+        context.add_model("comfy.vae", self.vae_name.name, vae)
+
+    async def process(self, context: ProcessingContext):
+        return {"vae": VAE(name=self.vae_name.name)}
+
 
 class CLIPLoader(ComfyNode):
     clip_name: CLIPFile = Field(
         default=CLIPFile(),
         description="The name of the CLIP to load.",
     )
+
+    async def initialize(self, context: ProcessingContext):
+        unet, clip = await self.call_comfy_node(context)
+
+        context.add_model("comfy.clip", self.clip_name.name, unet)
+
+    async def process(self, context: ProcessingContext):
+        return {"clip": CLIP(name=self.clip_name.name)}
 
     @classmethod
     def get_title(cls):
@@ -280,6 +295,12 @@ class CLIPLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"clip": CLIP}
+
+
+class DualCLIPEnum(str, Enum):
+    SDXL = "sdxl"
+    SD3 = "sd3"
+    FLUX = "flux"
 
 
 class DualCLIPLoader(ComfyNode):
@@ -291,11 +312,46 @@ class DualCLIPLoader(ComfyNode):
         default=CLIPFile(),
         description="The name of the CLIP to load.",
     )
+    type: DualCLIPEnum = Field(
+        default=DualCLIPEnum.SDXL,
+        description="The type of the dual CLIP model to load.",
+    )
+
+    async def initialize(self, context: ProcessingContext):
+        (clip,) = await self.call_comfy_node(context)
+
+        context.add_model("comfy.clip", self.clip_name1.name, clip)
+
+    async def process(self, context: ProcessingContext):
+        return {"clip": CLIP(name=self.clip_name1.name)}
 
     @classmethod
     def get_title(cls):
         return "Load Dual CLIP"
 
     @classmethod
-    def return_types(cls):
+    def return_type(cls):
         return {"clip": CLIP}
+
+
+class UNETLoader(ComfyNode):
+    unet_name: UNetFile = Field(
+        default=UNetFile(),
+        description="The name of the UNet model to load.",
+    )
+
+    async def initialize(self, context: ProcessingContext):
+        (unet,) = await self.call_comfy_node(context)
+
+        context.add_model("comfy.unet", self.unet_name.name, unet)
+
+    async def process(self, context: ProcessingContext):
+        return {"unet": UNet(name=self.unet_name.name)}
+
+    @classmethod
+    def get_title(cls):
+        return "Load Diffusion Model"
+
+    @classmethod
+    def return_type(cls):
+        return {"unet": UNet}

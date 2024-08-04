@@ -9,98 +9,144 @@
   "thumbnail_url": "/examples/lora.png",
   "graph": {
     "3": {
+      "type": "comfy.sampling.KSampler",
       "inputs": {
-        "seed": 400138736423385,
-        "steps": 10,
-        "cfg": 8,
-        "sampler_name": "euler",
-        "scheduler": "normal",
+        "seed": 2117469102,
+        "steps": 30,
+        "cfg": 6.5,
+        "sampler_name": "dpmpp_2m_sde",
+        "scheduler": "karras",
         "denoise": 1,
-        "model": ["10", 0],
-        "positive": ["6", 0],
-        "negative": ["7", 0],
-        "latent_image": ["5", 0]
+        "latent_image": [
+          "5",
+          "latent"
+        ],
+        "negative": [
+          "7",
+          "conditioning"
+        ],
+        "positive": [
+          "6",
+          "conditioning"
+        ],
+        "model": [
+          "10",
+          "model"
+        ]
       },
-      "class_type": "KSampler",
-      "_meta": {
-        "title": "KSampler"
+      "position": {
+        "x": 521,
+        "y": 147
       }
     },
     "4": {
+      "type": "comfy.loaders.CheckpointLoaderSimple",
       "inputs": {
-        "ckpt_name": "Realistic_Vision_V6.safetensors"
+        "ckpt_name": {
+          "type": "comfy.checkpoint_file",
+          "name": "Realistic_Vision_V5.safetensors"
+        }
       },
-      "class_type": "CheckpointLoaderSimple",
-      "_meta": {
-        "title": "Load Checkpoint"
+      "position": {
+        "x": 9,
+        "y": 272.25
       }
     },
     "5": {
+      "type": "comfy.latent.EmptyLatentImage",
       "inputs": {
-        "width": 512,
-        "height": 512,
+        "width": 768,
+        "height": 768,
         "batch_size": 1
       },
-      "class_type": "EmptyLatentImage",
-      "_meta": {
-        "title": "Empty Latent Image"
+      "position": {
+        "x": 344.5,
+        "y": 388
       }
     },
     "6": {
+      "type": "comfy.conditioning.CLIPTextEncode",
       "inputs": {
-        "text": "man",
-        "clip": ["10", 1]
+        "text": "Swedish man",
+        "clip": [
+          "10",
+          "clip"
+        ]
       },
-      "class_type": "CLIPTextEncode",
-      "_meta": {
-        "title": "CLIP Text Encode (Prompt)"
+      "position": {
+        "x": 344.5,
+        "y": 66.5
       }
     },
     "7": {
+      "type": "comfy.conditioning.CLIPTextEncode",
       "inputs": {
         "text": "text, watermark",
-        "clip": ["10", 1]
+        "clip": [
+          "10",
+          "clip"
+        ]
       },
-      "class_type": "CLIPTextEncode",
-      "_meta": {
-        "title": "CLIP Text Encode (Prompt)"
+      "position": {
+        "x": 344.5,
+        "y": 227.5
       }
     },
     "8": {
+      "type": "comfy.latent.VAEDecode",
       "inputs": {
-        "samples": ["3", 0],
-        "vae": ["4", 2]
+        "samples": [
+          "3",
+          "latent"
+        ],
+        "vae": [
+          "4",
+          "vae"
+        ]
       },
-      "class_type": "VAEDecode",
-      "_meta": {
-        "title": "VAE Decode"
-      }
-    },
-    "9": {
-      "inputs": {
-        "filename_prefix": "ComfyUI",
-        "images": ["8", 0]
-      },
-      "class_type": "SaveImage",
-      "_meta": {
-        "title": "Save Image"
+      "position": {
+        "x": 666,
+        "y": 272.25
       }
     },
     "10": {
+      "type": "comfy.loaders.LoraLoader",
       "inputs": {
         "lora_name": {
-            "type": "comfy.lora_file",
-            "name": "add_detail.safetensors"
+          "type": "comfy.lora_file",
+          "name": "add_detail.safetensors"
         },
-        "strength_model": 3.33,
-        "strength_clip": 3.0700000000000003,
-        "model": ["4", 0],
-        "clip": ["4", 1]
+        "strength_model": 1.5,
+        "strength_clip": 1.5,
+        "model": [
+          "4",
+          "model"
+        ],
+        "clip": [
+          "4",
+          "clip"
+        ]
       },
-      "class_type": "LoraLoader",
-      "_meta": {
-        "title": "Load LoRA"
+      "position": {
+        "x": 166,
+        "y": 30
       }
+    },
+    "11": {
+      "type": "nodetool.workflows.base_node.Preview",
+      "inputs": {
+        "value": [
+          "8",
+          "image"
+        ],
+        "name": "image_image_2024-08-03"
+      },
+      "position": {
+        "x": 790,
+        "y": 156
+      },
+      "width": 290,
+      "height": 310
     }
   }
 }

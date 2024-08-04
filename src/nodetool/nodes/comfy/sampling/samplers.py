@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import Field
-from nodetool.metadata.types import Conditioning, Latent, Sampler, Sigmas, UNet
+from nodetool.metadata.types import Conditioning, Guider, Latent, Noise, Sampler, Sigmas, UNet
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.comfy.sampling import SamplerEnum
 
@@ -75,5 +75,19 @@ class SamplerCustom(ComfyNode):
     )
 
     @classmethod
-    def return_types(cls):
-        return {"latent": Latent}, Latent
+    def return_type(cls):
+        return {"latent": Latent}
+
+
+class SamplerCustomAdvanced(ComfyNode):
+    noise: Noise = Field(default=Noise(), description="The noise to apply.")
+    guider: Guider = Field(default=Guider(), description="The guider to apply.")
+    sampler: Sampler = Field(default=Sampler(), description="The sampler to use.")
+    sigmas: Sigmas = Field(default=Sigmas(), description="The sigmas used in sampling.")
+    latent_image: Latent = Field(
+        default=Latent(), description="The latent image to sample from."
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"output": Latent, "denoised_output": Latent}

@@ -9,88 +9,122 @@
   "thumbnail_url": "/examples/stable_diffusion.png",
   "graph": {
     "3": {
+      "type": "comfy.sampling.KSampler",
       "inputs": {
-        "seed": 1,
-        "steps": 20,
+        "seed": 2950108239,
+        "steps": 30,
         "cfg": 8,
-        "sampler_name": "euler",
+        "sampler_name": "dpmpp_sde",
         "scheduler": "normal",
         "denoise": 1,
-        "model": [
-          "4",
-          0
-        ],
-        "positive": [
-          "6",
-          0
-        ],
         "negative": [
           "7",
-          0
+          "conditioning"
         ],
         "latent_image": [
           "5",
-          0
+          "latent"
+        ],
+        "positive": [
+          "6",
+          "conditioning"
+        ],
+        "model": [
+          "4",
+          "model"
         ]
       },
-      "class_type": "KSampler"
+      "position": {
+        "x": 388,
+        "y": 86
+      }
     },
     "4": {
+      "type": "comfy.loaders.CheckpointLoaderSimple",
       "inputs": {
-        "ckpt_name": "Realistic_Vision_V5.safetensors"
+        "ckpt_name": {
+          "type": "comfy.checkpoint_file",
+          "name": "Realistic_Vision_V5.safetensors"
+        }
       },
-      "class_type": "CheckpointLoaderSimple"
+      "position": {
+        "x": 9,
+        "y": 49.5
+      }
     },
     "5": {
+      "type": "comfy.latent.EmptyLatentImage",
       "inputs": {
         "width": 512,
         "height": 512,
         "batch_size": 1
       },
-      "class_type": "EmptyLatentImage"
+      "position": {
+        "x": 198.5,
+        "y": 327
+      }
     },
     "6": {
+      "type": "comfy.conditioning.CLIPTextEncode",
       "inputs": {
-        "text": "portrait of a collie",
+        "text": "portrait of Aristotle",
         "clip": [
           "4",
-          1
+          "clip"
         ]
       },
-      "class_type": "CLIPTextEncode"
+      "position": {
+        "x": 198.5,
+        "y": 5.5
+      }
     },
     "7": {
+      "type": "comfy.conditioning.CLIPTextEncode",
       "inputs": {
         "text": "text, watermark",
         "clip": [
           "4",
-          1
+          "clip"
         ]
       },
-      "class_type": "CLIPTextEncode"
+      "position": {
+        "x": 198.5,
+        "y": 166.5
+      }
     },
     "8": {
+      "type": "comfy.latent.VAEDecode",
       "inputs": {
         "samples": [
           "3",
-          0
+          "latent"
         ],
         "vae": [
           "4",
-          2
+          "vae"
         ]
       },
-      "class_type": "VAEDecode"
+      "position": {
+        "x": 520,
+        "y": 211.25
+      }
     },
     "9": {
+      "type": "nodetool.workflows.base_node.Preview",
       "inputs": {
-        "filename_prefix": "ComfyUI",
-        "images": [
+        "value": [
           "8",
-          0
-        ]
+          "image"
+        ],
+        "name": "image_image_2024-08-03"
       },
-      "class_type": "SaveImage"
+      "position": {
+        "x": 638,
+        "y": 130
+      },
+      "width": 236,
+      "height": 253
     }
   }
+}
 }
