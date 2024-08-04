@@ -2,16 +2,14 @@
 import { css } from "@emotion/react";
 import React, {
   useEffect,
+  useLayoutEffect,
   useCallback,
   useMemo,
   useState,
   useRef
 } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
-import {
-  VariableSizeList as List,
-  ListOnItemsRenderedProps
-} from "react-window";
+import { FixedSizeList as List } from "react-window";
 
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
@@ -56,7 +54,6 @@ interface AssetGridContentProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
   openDeleteDialog: () => void;
   openRenameDialog: () => void;
-  // setCurrentAudioAsset: (asset: Asset) => void;
   itemSpacing?: number;
   searchTerm?: string;
 }
@@ -68,7 +65,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   setSelectedAssetIds,
   openDeleteDialog,
   openRenameDialog,
-  // setCurrentAudioAsset,
   itemSpacing = 2,
   searchTerm = ""
 }) => {
@@ -83,14 +79,14 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
 
   const { sortedAssetsByType, refetch } = useAssets();
 
-  const [containerWidth, setContainerWidth] = useState(0);
   const [gridDimensions, setGridDimensions] = useState({
-    columnCount: 1,
+    columns: 1,
     itemWidth: 0,
     itemHeight: 0
   });
+  const [gridKey, setGridKey] = useState(0);
 
-  const listRef = useRef<List>(null);
+  const containerWidthRef = useRef<number>(0);
 
   const getFooterHeight = useCallback((size: number) => {
     switch (size) {
@@ -117,18 +113,21 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     (width: number) => {
       const baseSize = 42; // Base size factor
       const targetItemSize = baseSize * assetItemSize;
-      const columnCount = Math.max(1, Math.floor(width / targetItemSize));
-      const itemWidth = Math.floor(width / columnCount) - itemSpacing * 2;
+      const columns = Math.max(1, Math.floor(width / targetItemSize));
+      const itemWidth = Math.floor(
+        (width - itemSpacing * (columns + 1)) / columns
+      );
       const itemHeight = itemWidth; // 1:1 aspect ratio
 
-      setGridDimensions({ columnCount, itemWidth, itemHeight });
+      setGridDimensions({ columns, itemWidth, itemHeight });
+      setGridKey((prevKey) => prevKey + 1);
     },
     [assetItemSize, itemSpacing]
   );
 
-  useEffect(() => {
-    calculateGridDimensions(containerWidth);
-  }, [containerWidth, assetItemSize, calculateGridDimensions]);
+  useLayoutEffect(() => {
+    calculateGridDimensions(containerWidthRef.current);
+  }, [calculateGridDimensions]);
 
   useEffect(() => {
     const filterAndSortAssets = (
@@ -172,59 +171,79 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     setFilteredAssets(newFilteredAssets);
   }, [sortedAssetsByType, searchTerm, setFilteredAssets, assetsOrder]);
 
-  const flatListWithDividers = useMemo(() => {
-    const flatList: AssetOrDivider[] = [];
-    const seenIds = new Set();
-
-    for (const [type, assets] of Object.entries(filteredAssets.assetsByType)) {
+  const preparedItems = useMemo(() => {
+    const items: AssetOrDivider[] = [];
+    Object.entries(filteredAssets.assetsByType).forEach(([type, assets]) => {
       if (assets.length > 0) {
-        flatList.push({ type, isDivider: true });
-        for (const asset of assets) {
-          if (!seenIds.has(asset.id)) {
-            flatList.push({ ...asset, isDivider: false, type });
-            seenIds.add(asset.id);
-          }
-        }
+        items.push({ type, isDivider: true });
+        items.push(
+          ...assets.map((asset) => ({ ...asset, isDivider: false, type }))
+        );
       }
-    }
-
-    return flatList;
+    });
+    return items;
   }, [filteredAssets]);
 
-  const preparedRows = useMemo(() => {
-    const rows: AssetOrDivider[][] = [];
-    let currentRow: AssetOrDivider[] = [];
-
-    flatListWithDividers.forEach((item) => {
+  const rowCount = useMemo(() => {
+    let count = 0;
+    let currentRowItemCount = 0;
+    preparedItems.forEach((item) => {
       if (item.isDivider) {
-        if (currentRow.length > 0) {
-          rows.push(currentRow);
-          currentRow = [];
+        if (currentRowItemCount > 0) {
+          count++;
         }
-        rows.push([item]);
+        count++;
+        currentRowItemCount = 0;
       } else {
-        currentRow.push(item);
-        if (currentRow.length === gridDimensions.columnCount) {
-          rows.push(currentRow);
-          currentRow = [];
+        currentRowItemCount++;
+        if (currentRowItemCount === gridDimensions.columns) {
+          count++;
+          currentRowItemCount = 0;
         }
       }
     });
-
-    if (currentRow.length > 0) {
-      rows.push(currentRow);
+    if (currentRowItemCount > 0) {
+      count++;
     }
+    return count;
+  }, [preparedItems, gridDimensions.columns]);
 
-    return rows;
-  }, [flatListWithDividers, gridDimensions.columnCount]);
+  const getItemsForRow = useCallback(
+    (rowIndex: number) => {
+      let currentRow = 0;
+      let itemsInCurrentRow = 0;
+      let startIndex = 0;
 
-  const getRowHeight = useCallback(
-    (index: number) => {
-      const row = preparedRows[index];
-      if (row[0]?.isDivider) return 10; // Divider height
-      return gridDimensions.itemHeight + footerHeight + itemSpacing * 2; // Item height + footer + vertical spacing
+      for (let i = 0; i < preparedItems.length; i++) {
+        const item = preparedItems[i];
+        if (item.isDivider) {
+          if (itemsInCurrentRow > 0) {
+            currentRow++;
+            itemsInCurrentRow = 0;
+          }
+          if (currentRow === rowIndex) {
+            return [item];
+          }
+          currentRow++;
+          startIndex = i + 1;
+        } else {
+          itemsInCurrentRow++;
+          if (
+            itemsInCurrentRow === gridDimensions.columns ||
+            i === preparedItems.length - 1
+          ) {
+            if (currentRow === rowIndex) {
+              return preparedItems.slice(startIndex, i + 1);
+            }
+            currentRow++;
+            itemsInCurrentRow = 0;
+            startIndex = i + 1;
+          }
+        }
+      }
+      return [];
     },
-    [preparedRows, gridDimensions.itemHeight, footerHeight, itemSpacing]
+    [preparedItems, gridDimensions.columns]
   );
 
   const onDragStart = useCallback(
@@ -237,7 +256,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
 
   const Row = useCallback(
     ({ index, style }: { index: number; style: React.CSSProperties }) => {
-      const rowItems = preparedRows[index];
+      const rowItems = getItemsForRow(index);
       const isDividerRow = rowItems[0]?.isDivider;
 
       if (isDividerRow) {
@@ -247,8 +266,8 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
             key={`divider-${index}`}
             style={{
               ...style,
-              height: `10px`,
-              padding: `${itemSpacing}px ${itemSpacing}px 0`,
+              height: "30px", // Adjusted divider height
+              padding: `${itemSpacing}px ${itemSpacing}px`,
               boxSizing: "border-box",
               display: "flex",
               alignItems: "center"
@@ -290,7 +309,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
                   openDeleteDialog={openDeleteDialog}
                   openRenameDialog={openRenameDialog}
                   onSelect={() => handleSelectAsset(item.id)}
-                  // onSetCurrentAudioAsset={() => setCurrentAudioAsset(item)}
                   onMoveToFolder={() => {
                     refetch();
                     setSelectedAssetIds([]);
@@ -312,7 +330,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       );
     },
     [
-      preparedRows,
+      getItemsForRow,
       gridDimensions,
       footerHeight,
       itemSpacing,
@@ -320,7 +338,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       openDeleteDialog,
       openRenameDialog,
       handleSelectAsset,
-      // setCurrentAudioAsset,
       refetch,
       setSelectedAssetIds,
       setCurrentFolderId,
@@ -328,28 +345,25 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     ]
   );
 
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.resetAfterIndex(0, true);
-    }
-  }, [gridDimensions, assetItemSize]);
-
   return (
     <div className="asset-grid-content" css={styles}>
       <AutoSizer>
         {({ height, width }: { height: number; width: number }) => {
-          if (Math.abs(width - containerWidth) > 1) {
-            setContainerWidth(width);
+          if (width !== containerWidthRef.current) {
+            containerWidthRef.current = width;
+            // Use requestAnimationFrame to defer the state update
+            requestAnimationFrame(() => calculateGridDimensions(width));
           }
           return (
             <List
-              ref={listRef}
+              key={gridKey}
               className="autosizer-list"
               height={height}
-              itemCount={preparedRows.length}
-              itemSize={getRowHeight}
+              itemCount={rowCount}
+              itemSize={
+                gridDimensions.itemHeight + footerHeight + itemSpacing * 2
+              }
               width={width}
-              // onItemsRendered={handleItemsRendered}
             >
               {Row}
             </List>
