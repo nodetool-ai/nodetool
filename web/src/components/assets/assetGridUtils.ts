@@ -116,6 +116,9 @@ export const getItemsForRow = (
     const item = preparedItems[i];
     if (item.isDivider) {
       if (itemsInCurrentRow > 0) {
+        if (currentRow === rowIndex) {
+          return preparedItems.slice(startIndex, i);
+        }
         currentRow++;
         itemsInCurrentRow = 0;
       }
@@ -136,5 +139,11 @@ export const getItemsForRow = (
       }
     }
   }
+
+  // Return the last row even if it's not complete
+  if (currentRow === rowIndex && itemsInCurrentRow > 0) {
+    return preparedItems.slice(startIndex);
+  }
+
   return [];
 };
