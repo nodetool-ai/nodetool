@@ -31,11 +31,11 @@ export const useCreateLoopNode = () => {
         childNode.expandParent = true;
         addNode(childNode);
       };
-      createChildNode(GROUP_INPUT_NODE_TYPE, 0, 60);
+      createChildNode(GROUP_INPUT_NODE_TYPE, 0, 37);
       createChildNode(
         GROUP_OUTPUT_NODE_TYPE,
         (loopNode.data.properties.width || 445) - 50,
-        60
+        37
       );
     },
     [addNode, createNode, getMetadata]
