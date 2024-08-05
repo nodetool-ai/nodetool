@@ -412,9 +412,12 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     (e: React.DragEvent) => {
       let assetIds;
 
+      console.log("HANDLE DRAG 000", selectedAssetIds);
       if (selectedAssetIds && selectedAssetIds.includes(asset.id)) {
         assetIds = selectedAssetIds;
+        console.log("HANDLE DRAG selectedAssetIds", selectedAssetIds);
       } else {
+        console.log("HANDLE DRAG use single", selectedAssetIds, " :", assetIds);
         assetIds = [asset.id];
         setSelectedAssetIds(assetIds);
       }
