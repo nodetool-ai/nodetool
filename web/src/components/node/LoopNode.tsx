@@ -80,11 +80,12 @@ const styles = (theme: any) =>
       padding: ".2em .75em",
       textAlign: "center",
       display: "block",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.c_input,
       color: theme.palette.c_white,
       fontSize: theme.fontSizeSmall
     },
     ".output-label": {
+      backgroundColor: theme.palette.c_output,
       position: "absolute",
       top: "4.2em",
       left: "unset",

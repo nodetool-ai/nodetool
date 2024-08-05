@@ -52,6 +52,10 @@ declare module "@mui/material/styles" {
     c_hl1?: string;
     c_hl1_1?: string;
     c_hl2?: string;
+    c_selection?: string;
+    c_input?: string;
+    c_output?: string;
+
     c_success?: string;
     c_attention?: string;
     c_warning?: string;
@@ -90,6 +94,10 @@ const ThemeNodes: Theme = createTheme({
     c_hl1: "#76e5b8",
     c_hl1_1: "#bdf0e9",
     c_hl2: "#1ec7c7",
+    c_selection: "#8EACA777",
+    c_input: "#374f4f",
+    c_output: "#493f4d",
+
     c_success: "#50fa7b",
     c_attention: "#e35bff",
     c_warning: "#ffb86c",

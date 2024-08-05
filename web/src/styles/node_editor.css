@@ -94,8 +94,13 @@
   padding: 0;
 }
 /* GROUP INPUT OUTPUT*/
-/* .react-flow__node-nodetool\.input\.GroupInput .node-header, */
-/* .react-flow__node-nodetool\.output\.GroupOutput .node-header, */
+ .react-flow__node-nodetool\.input\.GroupInput .node-header {
+  background-color: var(--c_input) !important;
+}
+ .react-flow__node-nodetool\.output\.GroupOutput .node-header {
+  background-color: var(--c_output) !important;
+}
+
 .react-flow__node-nodetool\.input\.GroupInput .node-footer,
 .react-flow__node-nodetool\.output\.GroupOutput .node-footer,
 .react-flow__node-nodetool\.input\.GroupInput .process-timer,
@@ -103,10 +108,7 @@
 .react-flow__node-nodetool\.output\.GroupOutput label {
   display: none !important;
 }
-/* .react-flow__node-nodetool\.input\.GroupInput {
-  left: 30px;
-  top: -24px;
-}*/
+
 .react-flow__node-nodetool\.input\.GroupInput .node-inputs,
 .react-flow__node-nodetool\.output\.GroupOutput .node-inputs{
   margin: 0;

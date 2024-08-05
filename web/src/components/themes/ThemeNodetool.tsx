@@ -58,6 +58,8 @@ declare module "@mui/material/styles" {
     c_hl1_1?: string;
     c_hl2?: string;
     c_selection?: string;
+    c_input?: string;
+    c_output?: string;
     /* Status */
     c_attention?: string;
     c_delete?: string;
@@ -107,6 +109,9 @@ const ThemeNodetool: Theme = createTheme({
     c_hl1_1: "#325954",
     c_hl2: "#128B6E",
     c_selection: "#8EACA777",
+    c_input: "#374f4f",
+    c_output: "#493f4d",
+
     /* Statuses */
     c_attention: "#E35BFF",
     c_delete: "#FF2222",
