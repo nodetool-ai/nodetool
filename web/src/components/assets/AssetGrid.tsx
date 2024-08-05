@@ -62,7 +62,7 @@ interface AssetGridProps {
 
 const AssetGrid: React.FC<AssetGridProps> = ({
   maxItemSize = 100,
-  itemSpacing = 2
+  itemSpacing = 5
 }) => {
   const { sortedAssets, error } = useAssets();
   const selectedAssets = useSessionStateStore((state) => state.selectedAssets);

@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React from "react";
 import AssetGrid from "./AssetGrid";
 import { Box } from "@mui/material";
-import { css } from "@emotion/react";
 
 const styles = (theme: any) =>
   css({

@@ -1,22 +1,27 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, {
-  useEffect,
-  useLayoutEffect,
   useCallback,
+  useEffect,
   useMemo,
-  useState,
-  useRef
+  useRef,
+  useState
 } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeList as List } from "react-window";
-
+import { VariableSizeList as List } from "react-window";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
-import AssetItem from "./AssetItem";
-import { colorForType } from "../../config/data_types";
+import AssetGridRow from "./AssetGridRow";
+import {
+  getFooterHeight,
+  calculateGridDimensions,
+  prepareItems,
+  calculateRowCount,
+  getItemsForRow,
+  DIVIDER_HEIGHT
+} from "./assetGridUtils";
 
 const styles = (theme: any) =>
   css({
@@ -42,10 +47,6 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.divider
     }
   });
-
-type AssetOrDivider =
-  | { isDivider: true; type: string }
-  | (Asset & { isDivider: false; type: string });
 
 interface AssetGridContentProps {
   selectedAssetIds: string[];
@@ -78,56 +79,44 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   );
 
   const { sortedAssetsByType, refetch } = useAssets();
-
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
     itemWidth: 0,
     itemHeight: 0
   });
-  const [gridKey, setGridKey] = useState(0);
 
-  const containerWidthRef = useRef<number>(0);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
-  const getFooterHeight = useCallback((size: number) => {
-    switch (size) {
-      case 1:
-        return 5;
-      case 2:
-        return 40;
-      case 3:
-        return 40;
-      case 4:
-      case 5:
-        return 30;
-      default:
-        return 10;
-    }
-  }, []);
+  const listRef = useRef<List>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const footerHeight = useMemo(
     () => getFooterHeight(assetItemSize),
-    [assetItemSize, getFooterHeight]
+    [assetItemSize]
   );
 
-  const calculateGridDimensions = useCallback(
+  const updateGridDimensions = useCallback(
     (width: number) => {
-      const baseSize = 42; // Base size factor
-      const targetItemSize = baseSize * assetItemSize;
-      const columns = Math.max(1, Math.floor(width / targetItemSize));
-      const itemWidth = Math.floor(
-        (width - itemSpacing * (columns + 1)) / columns
-      );
-      const itemHeight = itemWidth; // 1:1 aspect ratio
-
-      setGridDimensions({ columns, itemWidth, itemHeight });
-      setGridKey((prevKey) => prevKey + 1);
+      if (width > 0) {
+        const dimensions = calculateGridDimensions(
+          width,
+          assetItemSize,
+          itemSpacing
+        );
+        setGridDimensions((prevDimensions) => {
+          if (
+            prevDimensions.columns !== dimensions.columns ||
+            prevDimensions.itemWidth !== dimensions.itemWidth ||
+            prevDimensions.itemHeight !== dimensions.itemHeight
+          ) {
+            return dimensions;
+          }
+          return prevDimensions;
+        });
+      }
     },
     [assetItemSize, itemSpacing]
   );
-
-  useLayoutEffect(() => {
-    calculateGridDimensions(containerWidthRef.current);
-  }, [calculateGridDimensions]);
 
   useEffect(() => {
     const filterAndSortAssets = (
@@ -172,165 +161,60 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   }, [sortedAssetsByType, searchTerm, setFilteredAssets, assetsOrder]);
 
   const preparedItems = useMemo(() => {
-    const items: AssetOrDivider[] = [];
-    Object.entries(filteredAssets.assetsByType).forEach(([type, assets]) => {
-      if (assets.length > 0) {
-        items.push({ type, isDivider: true });
-        items.push(
-          ...assets.map((asset) => ({ ...asset, isDivider: false, type }))
-        );
-      }
-    });
+    const items = prepareItems(filteredAssets.assetsByType);
     return items;
   }, [filteredAssets]);
 
   const rowCount = useMemo(() => {
-    let count = 0;
-    let currentRowItemCount = 0;
-    preparedItems.forEach((item) => {
-      if (item.isDivider) {
-        if (currentRowItemCount > 0) {
-          count++;
-        }
-        count++;
-        currentRowItemCount = 0;
-      } else {
-        currentRowItemCount++;
-        if (currentRowItemCount === gridDimensions.columns) {
-          count++;
-          currentRowItemCount = 0;
-        }
-      }
-    });
-    if (currentRowItemCount > 0) {
-      count++;
-    }
+    const count = calculateRowCount(preparedItems, gridDimensions.columns);
     return count;
   }, [preparedItems, gridDimensions.columns]);
 
-  const getItemsForRow = useCallback(
-    (rowIndex: number) => {
-      let currentRow = 0;
-      let itemsInCurrentRow = 0;
-      let startIndex = 0;
-
-      for (let i = 0; i < preparedItems.length; i++) {
-        const item = preparedItems[i];
-        if (item.isDivider) {
-          if (itemsInCurrentRow > 0) {
-            currentRow++;
-            itemsInCurrentRow = 0;
-          }
-          if (currentRow === rowIndex) {
-            return [item];
-          }
-          currentRow++;
-          startIndex = i + 1;
-        } else {
-          itemsInCurrentRow++;
-          if (
-            itemsInCurrentRow === gridDimensions.columns ||
-            i === preparedItems.length - 1
-          ) {
-            if (currentRow === rowIndex) {
-              return preparedItems.slice(startIndex, i + 1);
-            }
-            currentRow++;
-            itemsInCurrentRow = 0;
-            startIndex = i + 1;
-          }
-        }
-      }
-      return [];
-    },
-    [preparedItems, gridDimensions.columns]
-  );
-
   const onDragStart = useCallback(
-    (assetId: string): string[] => {
-      const updatedSelectedIds = [...selectedAssetIds, assetId];
-      return updatedSelectedIds;
-    },
+    (assetId: string): string[] => [...selectedAssetIds, assetId],
     [selectedAssetIds]
   );
 
-  const Row = useCallback(
-    ({ index, style }: { index: number; style: React.CSSProperties }) => {
-      const rowItems = getItemsForRow(index);
-      const isDividerRow = rowItems[0]?.isDivider;
-
-      if (isDividerRow) {
-        const divider = rowItems[0] as { isDivider: true; type: string };
-        return (
-          <div
-            key={`divider-${index}`}
-            style={{
-              ...style,
-              height: "30px", // Adjusted divider height
-              padding: `${itemSpacing}px ${itemSpacing}px`,
-              boxSizing: "border-box",
-              display: "flex",
-              alignItems: "center"
-            }}
-            className="content-type-header"
-          >
-            <div
-              className="divider"
-              style={{
-                width: "100%",
-                height: "2px",
-                backgroundColor: colorForType(divider.type)
-              }}
-            ></div>
-          </div>
-        );
-      }
-
-      return (
-        <div
-          style={{ ...style, display: "flex", justifyContent: "flex-start" }}
-        >
-          {rowItems.map((item, colIndex) => {
-            if (item.isDivider) return null;
-            return (
-              <div
-                key={`asset-${item.id}`}
-                style={{
-                  width: `${gridDimensions.itemWidth}px`,
-                  height: `${gridDimensions.itemHeight + footerHeight}px`,
-                  margin: `${itemSpacing}px`,
-                  flexShrink: 0
-                }}
-              >
-                <AssetItem
-                  asset={item}
-                  draggable={true}
-                  isSelected={selectedAssetIds.includes(item.id)}
-                  openDeleteDialog={openDeleteDialog}
-                  openRenameDialog={openRenameDialog}
-                  onSelect={() => handleSelectAsset(item.id)}
-                  onMoveToFolder={() => {
-                    refetch();
-                    setSelectedAssetIds([]);
-                  }}
-                  onDeleteAssets={() => {
-                    refetch();
-                    setSelectedAssetIds([]);
-                  }}
-                  onDoubleClickFolder={(folderId) => {
-                    setCurrentFolderId(folderId);
-                    setSelectedAssetIds([]);
-                  }}
-                  onDragStart={() => onDragStart(item.id)}
-                />
-              </div>
-            );
-          })}
-        </div>
+  const getRowHeight = useCallback(
+    (index: number) => {
+      const rowItems = getItemsForRow(
+        preparedItems,
+        index,
+        gridDimensions.columns
       );
+      if (rowItems[0]?.isDivider) {
+        return DIVIDER_HEIGHT;
+      }
+      const height = gridDimensions.itemHeight + footerHeight + itemSpacing * 2;
+      return height;
     },
+    [preparedItems, gridDimensions, footerHeight, itemSpacing]
+  );
+
+  const itemData = useMemo(
+    () => ({
+      getItemsForRow: (index: number) => {
+        const items = getItemsForRow(
+          preparedItems,
+          index,
+          gridDimensions.columns
+        );
+        return items;
+      },
+      gridDimensions,
+      footerHeight,
+      itemSpacing,
+      selectedAssetIds,
+      openDeleteDialog,
+      openRenameDialog,
+      handleSelectAsset,
+      refetch,
+      setSelectedAssetIds,
+      setCurrentFolderId,
+      onDragStart
+    }),
     [
-      getItemsForRow,
+      preparedItems,
       gridDimensions,
       footerHeight,
       itemSpacing,
@@ -345,28 +229,67 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     ]
   );
 
+  useEffect(() => {
+    if (containerRef.current) {
+      const resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          setContainerSize({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height
+          });
+        }
+      });
+
+      resizeObserver.observe(containerRef.current);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, []);
+
+  useEffect(() => {
+    updateGridDimensions(containerSize.width);
+  }, [containerSize, updateGridDimensions]);
+
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.resetAfterIndex(0);
+    }
+  }, [gridDimensions, assetItemSize, preparedItems]);
+
   return (
-    <div className="asset-grid-content" css={styles}>
+    <div
+      className="asset-grid-content"
+      css={styles}
+      ref={containerRef}
+      style={{ width: "100%", height: "100%" }}
+    >
       <AutoSizer>
         {({ height, width }: { height: number; width: number }) => {
-          if (width !== containerWidthRef.current) {
-            containerWidthRef.current = width;
-            // Use requestAnimationFrame to defer the state update
-            requestAnimationFrame(() => calculateGridDimensions(width));
-          }
           return (
-            <List
-              key={gridKey}
-              className="autosizer-list"
-              height={height}
-              itemCount={rowCount}
-              itemSize={
-                gridDimensions.itemHeight + footerHeight + itemSpacing * 2
-              }
-              width={width}
-            >
-              {Row}
-            </List>
+            <>
+              {sortedAssetsByType.totalCount === 0 ? (
+                <div>Loading...</div>
+              ) : gridDimensions.itemWidth <= 0 ||
+                gridDimensions.itemHeight <= 0 ? (
+                <div>Calculating dimensions...</div>
+              ) : rowCount === 0 ? (
+                <div>No items to display</div>
+              ) : (
+                <List
+                  ref={listRef}
+                  className="autosizer-list"
+                  height={height}
+                  itemCount={rowCount}
+                  itemSize={getRowHeight}
+                  width={width}
+                  itemData={itemData}
+                >
+                  {AssetGridRow}
+                </List>
+              )}
+            </>
           );
         }}
       </AutoSizer>

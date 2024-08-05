@@ -82,56 +82,6 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     ]
   );
 
-  // const handleSelectAsset = useCallback(
-  //   (assetId: string) => {
-  //     const selectedAssetIndex = sortedAssets.findIndex(
-  //       (asset) => asset.id === assetId
-  //     );
-  //     const lastSelectedIndex = lastSelectedAssetId
-  //       ? sortedAssets.findIndex((asset) => asset.id === lastSelectedAssetId)
-  //       : -1;
-
-  //     const selectedAsset = sortedAssets.find((asset) => asset.id === assetId);
-  //     const isAudio = selectedAsset?.content_type.match("audio") !== null;
-
-  //     if (shiftKeyPressed && lastSelectedIndex !== -1) {
-  //       const start = Math.min(selectedAssetIndex, lastSelectedIndex);
-  //       const end = Math.max(selectedAssetIndex, lastSelectedIndex);
-  //       const newSelectedIds = sortedAssets
-  //         .slice(start, end + 1)
-  //         .map((asset) => asset.id);
-  //       console.log("set_", newSelectedIds);
-  //       setSelectedAssetIds(newSelectedIds);
-  //     } else if (controlKeyPressed || metaKeyPressed) {
-  //       const newAssetIds = selectedAssetIds.includes(assetId)
-  //         ? selectedAssetIds.filter((id) => id !== assetId)
-  //         : [...selectedAssetIds, assetId];
-  //       setSelectedAssetIds(newAssetIds);
-  //     } else {
-  //       if (selectedAssetIds[0] !== assetId) {
-  //         setSelectedAssetIds([assetId]);
-  //       }
-  //     }
-
-  //     setLastSelectedAssetId(assetId);
-
-  //     if (isAudio) {
-  //       setCurrentAudioAsset(selectedAsset ? selectedAsset : null);
-  //     } else {
-  //       setCurrentAudioAsset(null);
-  //     }
-  //   },
-  //   [
-  //     sortedAssets,
-  //     lastSelectedAssetId,
-  //     shiftKeyPressed,
-  //     controlKeyPressed,
-  //     metaKeyPressed,
-  //     setSelectedAssetIds,
-  //     selectedAssetIds
-  //   ]
-  // );
-
   const handleSelectAllAssets = useCallback(() => {
     const allAssetIds = sortedAssets.map((asset) => asset.id);
     setSelectedAssetIds(allAssetIds);
