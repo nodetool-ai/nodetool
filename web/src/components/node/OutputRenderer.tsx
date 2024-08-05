@@ -199,15 +199,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               let name: string;
               switch (item.type) {
                 case "image":
-                  contentType = "image/*";
+                  contentType = "image/png";
                   name = item.name || `Image ${index + 1}.png`;
                   break;
                 case "audio":
-                  contentType = "audio/*";
+                  contentType = "audio/mp3";
                   name = item.name || `Audio ${index + 1}.mp3`;
                   break;
                 case "video":
-                  contentType = "video/*";
+                  contentType = "video/mp4";
                   name = item.name || `Video ${index + 1}.mp4`;
                   break;
                 default:
