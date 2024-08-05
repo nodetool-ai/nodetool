@@ -97,6 +97,7 @@ class AssetRef(BaseType):
     type: str = "asset"
     uri: str = ""
     asset_id: str | None = None
+    data: bytes | None = None
 
     def to_dict(self):
         res = {
@@ -128,24 +129,20 @@ class VideoRef(AssetRef):
     type: Literal["video"] = "video"
     duration: Optional[float] = None  # Duration in seconds
     format: Optional[str] = None
-    data: bytes | None = None
 
 
 class TextRef(AssetRef):
     type: Literal["text"] = "text"
-    data: str | None = None
 
 
 class AudioRef(AssetRef):
     type: Literal["audio"] = "audio"
-    data: bytes | None = None
 
 
 class ImageRef(AssetRef):
     """A reference to an image asset."""
 
     type: Literal["image"] = "image"
-    data: bytes | None = None
 
 
 class WorkflowRef(BaseType):

@@ -719,9 +719,12 @@ class ProcessingContext:
         Raises:
             ValueError: If the AssetRef is empty.
         """
-        # Asset ID takes precedence over URI
-        # as the URI could be expired
-        if asset_ref.asset_id is not None:
+        # Date takes precedence over anything else as it is the most up-to-date
+        # and already in memory
+        if asset_ref.data:
+            return BytesIO(asset_ref.data)
+        # Asset ID takes precedence over URI as the URI could be expired
+        elif asset_ref.asset_id is not None:
             return await self.download_asset(asset_ref.asset_id)
         elif asset_ref.uri != "":
             return await self.download_file(asset_ref.uri)
@@ -1108,7 +1111,7 @@ class ProcessingContext:
             )
             return TextRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
-            return TextRef(data=s)
+            return TextRef(data=s.encode("utf-8"))
 
     async def video_from_io(
         self,
