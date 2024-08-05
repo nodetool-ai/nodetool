@@ -1,21 +1,27 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { DataframeRef, Message, Tensor } from "../../stores/ApiTypes";
+import { Asset, DataframeRef, Message, Tensor } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
-import AssetViewer from "../assets/AssetViewer";
 import { useState } from "react";
 import ThreadMessageList from "./ThreadMessageList";
-import ImageList from "./ImageList";
-import { Button, ButtonGroup, Container, Typography } from "@mui/material";
+// import ImageList from "./ImageList";
+import { Button, ButtonGroup, Container } from "@mui/material";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
 import TaskTable from "./DataTable/TaskTable";
 import ImageView from "./ImageView";
+import AssetGrid from "../assets/AssetGrid";
+import AssetGridContent from "../assets/AssetGridContent";
+
+interface SortedAssetsByType {
+  assetsByType: Record<string, Asset[]>;
+  totalCount: number;
+}
 
 export type OutputRendererProps = {
   value: any;
@@ -31,8 +37,6 @@ const styles = (theme: any) =>
       overflow: "auto",
       userSelect: "text",
       cursor: "text"
-      // display: "flex",
-      // flexDirection: "column"
     },
     ".content": {
       flex: 1,
@@ -47,20 +51,6 @@ const styles = (theme: any) =>
       wordWrap: "break-word",
       overflowWrap: "break-word"
     },
-    // "&": {
-    //   backgroundColor: theme.palette.c_gray2,
-    //   maxHeight: "200px",
-    //   padding: ".25em",
-    //   overflow: "hidden auto",
-    //   userSelect: "text",
-    //   cursor: "text"
-    // },
-    // p: {
-    //   margin: "0",
-    //   padding: ".25em",
-    //   fontFamily: theme.fontFamily1,
-    //   fontSize: theme.fontSizeSmaller
-    // },
     ul: {
       margin: "0",
       padding: ".1em 1.75em",
@@ -152,7 +142,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
 
   switch (type) {
     case "image":
-      return <ImageView source={value?.uri === "" ? value?.data : value?.uri} />;
+      return (
+        <ImageView source={value?.uri === "" ? value?.data : value?.uri} />
+      );
     case "audio":
       return (
         <div className="audio" style={{ padding: "1em" }}>
@@ -201,11 +193,50 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           if (value[0].type === "task") {
             return <TaskTable data={value} />;
           }
-          if (value[0].type === "image") {
-            return <ImageList images={value} />;
+          if (["image", "audio", "video"].includes(value[0].type)) {
+            const assets: Asset[] = value.map((item: any, index: number) => {
+              let contentType: string;
+              let name: string;
+              switch (item.type) {
+                case "image":
+                  contentType = "image/*";
+                  name = item.name || `Image ${index + 1}.png`;
+                  break;
+                case "audio":
+                  contentType = "audio/*";
+                  name = item.name || `Audio ${index + 1}.mp3`;
+                  break;
+                case "video":
+                  contentType = "video/*";
+                  name = item.name || `Video ${index + 1}.mp4`;
+                  break;
+                default:
+                  contentType = "application/octet-stream";
+                  name = item.name || `File ${index + 1}`;
+              }
+
+              return {
+                id: item.id || `output-${item.type}-${index}`,
+                user_id: "",
+                workflow_id: null,
+                parent_id: "",
+                name: name,
+                content_type: contentType,
+                metadata: {},
+                created_at: new Date().toISOString(),
+                get_url: item.uri || item.data,
+                thumb_url: item.thumb_url || item.uri || item.data,
+                duration: item.duration || null
+              } as Asset;
+            });
+
+            return (
+              <AssetGridContent assets={assets} onlyUseProvidedAssets={true} />
+            );
           }
         }
       }
+
       return (
         <Container>
           {value.map((v: any, i: number) => (

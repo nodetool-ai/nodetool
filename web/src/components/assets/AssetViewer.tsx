@@ -448,6 +448,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             {currentAsset?.name && (
               <Typography variant="body2">{currentAsset.name}</Typography>
             )}
+            {currentAsset?.id && (
+              <Typography variant="body2">{currentAsset.id}</Typography>
+            )}
           </div>
         </div>
       </>

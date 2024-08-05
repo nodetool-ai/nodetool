@@ -22,6 +22,9 @@ import {
   getItemsForRow,
   DIVIDER_HEIGHT
 } from "./assetGridUtils";
+import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
 
 const styles = (theme: any) =>
   css({
@@ -49,36 +52,61 @@ const styles = (theme: any) =>
   });
 
 interface AssetGridContentProps {
-  selectedAssetIds: string[];
-  handleSelectAsset: (assetId: string) => void;
-  setCurrentFolderId: (folderId: string) => void;
-  setSelectedAssetIds: (assetIds: string[]) => void;
-  openDeleteDialog: () => void;
-  openRenameDialog: () => void;
   itemSpacing?: number;
   searchTerm?: string;
+  assets?: Asset[];
+  onlyUseProvidedAssets?: boolean;
 }
 
 const AssetGridContent: React.FC<AssetGridContentProps> = ({
-  selectedAssetIds,
-  handleSelectAsset,
-  setCurrentFolderId,
-  setSelectedAssetIds,
-  openDeleteDialog,
-  openRenameDialog,
   itemSpacing = 2,
-  searchTerm = ""
+  searchTerm = "",
+  assets = [],
+  onlyUseProvidedAssets = false
 }) => {
+  const { sortedAssets } = useAssets();
+  const { selectedAssetIds, setSelectedAssetIds, handleSelectAsset } =
+    useAssetSelection(sortedAssets);
+  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
+
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
+  const { sortedAssetsByType, refetch } = useAssets();
   const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
-  const filteredAssets = useSessionStateStore((state) => state.filteredAssets);
+  // const filteredAssets = assets;
+  const { openDeleteDialog, openRenameDialog } = useAssetDialog();
   const setFilteredAssets = useSessionStateStore(
     (state) => state.setFilteredAssets
   );
 
-  const { sortedAssetsByType, refetch } = useAssets();
+  const finalAssetsByType = useMemo(() => {
+    if (onlyUseProvidedAssets || assets.length > 1) {
+      const assetsByType = assets.reduce((acc, asset) => {
+        const type = asset.content_type || "other";
+        if (!acc[type]) {
+          acc[type] = [];
+        }
+        acc[type].push(asset);
+        return acc;
+      }, {} as Record<string, Asset[]>);
+
+      return {
+        assetsByType,
+        totalCount: assets.length
+      };
+    }
+
+    return sortedAssetsByType;
+  }, [assets, sortedAssetsByType, onlyUseProvidedAssets]);
+
+  const preparedItems = useMemo(() => {
+    if (!finalAssetsByType || !finalAssetsByType.assetsByType) {
+      return [];
+    }
+    return prepareItems(finalAssetsByType.assetsByType);
+  }, [finalAssetsByType]);
+
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
     itemWidth: 0,
@@ -159,11 +187,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
 
     setFilteredAssets(newFilteredAssets);
   }, [sortedAssetsByType, searchTerm, setFilteredAssets, assetsOrder]);
-
-  const preparedItems = useMemo(() => {
-    const items = prepareItems(filteredAssets.assetsByType);
-    return items;
-  }, [filteredAssets]);
 
   const rowCount = useMemo(() => {
     const count = calculateRowCount(preparedItems, gridDimensions.columns);

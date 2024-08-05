@@ -23,6 +23,7 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import useAssets from "../../serverState/useAssets";
 import useSessionStateStore from "../../stores/SessionStateStore";
+import { Asset } from "../../stores/ApiTypes";
 
 const styles = (theme: any) =>
   css({
@@ -55,18 +56,25 @@ const styles = (theme: any) =>
     }
   });
 
+interface SortedAssetsByType {
+  assetsByType: Record<string, Asset[]>;
+  totalCount: number;
+}
+
 interface AssetGridProps {
   maxItemSize?: number;
   itemSpacing?: number;
+  assets?: Asset[];
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
   maxItemSize = 100,
-  itemSpacing = 5
+  itemSpacing = 5,
+  assets
 }) => {
   const { sortedAssets, error } = useAssets();
-  const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
 
+  const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
   const { mutation: moveMutation } = useAssetUpdate();
@@ -74,7 +82,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
-  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
 
   const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
   const spaceKeyPressed = useKeyPressedStore((state) =>
@@ -85,12 +92,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const { uploadAsset } = useAssetUpload();
 
-  // Use our new custom hooks
   const {
     selectedAssetIds,
     setSelectedAssetIds,
     currentAudioAsset,
-    handleSelectAsset,
     handleSelectAllAssets,
     handleDeselectAssets
   } = useAssetSelection(sortedAssets);
@@ -183,15 +188,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       <Dropzone onDrop={uploadFiles}>
         <div style={{ height: "100%" }}>
           <AssetGridContent
-            selectedAssetIds={selectedAssetIds}
-            handleSelectAsset={handleSelectAsset}
-            setCurrentFolderId={setCurrentFolderId}
-            setSelectedAssetIds={setSelectedAssetIds}
-            openDeleteDialog={openDeleteDialog}
-            openRenameDialog={openRenameDialog}
-            // setCurrentAudioAsset={() => {}}
             itemSpacing={itemSpacing}
             searchTerm={searchTerm}
+            assets={assets}
           />
         </div>
       </Dropzone>

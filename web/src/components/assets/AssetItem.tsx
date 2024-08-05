@@ -192,13 +192,7 @@ const styles = (theme: any) =>
       outline: 0,
       gap: 0
     },
-    "&.folder .name": {
-      // fontSize: theme.fontSizeSmaller,
-      // color: "#111",
-      // paddingLeft: ".75em",
-      // top: "2.5em",
-      // bottom: "unset"
-    },
+    "&.folder .name": {},
     "&.folder:hover": {
       opacity: 0.7
     },
@@ -219,7 +213,6 @@ const styles = (theme: any) =>
       transform: "scale(1.1)",
       width: "100%",
       height: "100%",
-      // bottom: "1em",
       color: theme.palette.c_gray5,
       background: "transparent"
     },
@@ -334,33 +327,33 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
 
   const { mutation: updateAssetMutation } = useAssetUpdate();
 
-  const assetType = useMemo(
-    () => asset.content_type.split("/")[0],
-    [asset.content_type]
-  );
-  const assetFileEnding = useMemo(
-    () => asset.content_type.split("/")[1],
-    [asset.content_type]
-  );
+  const assetType = useMemo(() => {
+    return asset?.content_type ? asset.content_type.split("/")[0] : "unknown";
+  }, [asset?.content_type]);
+
+  const assetFileEnding = useMemo(() => {
+    return asset?.content_type ? asset.content_type.split("/")[1] : "unknown";
+  }, [asset?.content_type]);
+
   const isImage = useMemo(
-    () => asset.content_type.match("image") !== null,
-    [asset.content_type]
+    () => asset?.content_type?.match("image") !== null,
+    [asset?.content_type]
   );
   const isText = useMemo(
-    () => asset.content_type.match("text") !== null,
-    [asset.content_type]
+    () => asset?.content_type?.match("text") !== null,
+    [asset?.content_type]
   );
   const isAudio = useMemo(
-    () => asset.content_type.match("audio") !== null,
-    [asset.content_type]
+    () => asset?.content_type?.match("audio") !== null,
+    [asset?.content_type]
   );
   const isVideo = useMemo(
-    () => asset.content_type.match("video") !== null,
-    [asset.content_type]
+    () => asset?.content_type?.match("video") !== null,
+    [asset?.content_type]
   );
   const isFolder = useMemo(
-    () => asset.content_type.match("folder") !== null,
-    [asset.content_type]
+    () => asset?.content_type?.match("folder") !== null,
+    [asset?.content_type]
   );
 
   const handleDelete = useCallback(() => {

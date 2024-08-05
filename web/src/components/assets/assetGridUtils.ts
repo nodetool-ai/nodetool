@@ -26,7 +26,7 @@ export const calculateGridDimensions = (
   assetItemSize: number,
   itemSpacing: number
 ) => {
-  const baseSize = 42; // Base size factor
+  const baseSize = 42; // multiplier for the asset size slider value
   const minItemSize = baseSize * assetItemSize;
   const maxItemSize = minItemSize * 1.1;
   const maxColumns = 12;
@@ -62,18 +62,25 @@ export const calculateGridDimensions = (
 };
 
 export const prepareItems = (
-  filteredAssets: Record<string, Asset[]>
+  assetsByType: Record<string, Asset[]> | undefined | null
 ): AssetOrDivider[] => {
-  const items: AssetOrDivider[] = [];
-  Object.entries(filteredAssets).forEach(([type, assets]) => {
-    if (assets.length > 0) {
-      items.push({ type, isDivider: true });
-      items.push(
-        ...assets.map((asset) => ({ ...asset, isDivider: false, type }))
-      );
+  if (!assetsByType) {
+    return [];
+  }
+
+  return Object.entries(assetsByType).flatMap(
+    ([type, assets]): AssetOrDivider[] => {
+      if (assets.length === 0) {
+        return [];
+      }
+      return [
+        { isDivider: true, type },
+        ...assets.map(
+          (asset): AssetOrDivider => ({ ...asset, isDivider: false, type })
+        )
+      ];
     }
-  });
-  return items;
+  );
 };
 
 export const calculateRowCount = (
