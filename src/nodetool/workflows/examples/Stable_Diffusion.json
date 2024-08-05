@@ -17,22 +17,10 @@
         "sampler_name": "dpmpp_sde",
         "scheduler": "normal",
         "denoise": 1,
-        "negative": [
-          "7",
-          "conditioning"
-        ],
-        "latent_image": [
-          "5",
-          "latent"
-        ],
-        "positive": [
-          "6",
-          "conditioning"
-        ],
-        "model": [
-          "4",
-          "model"
-        ]
+        "negative": ["7", "conditioning"],
+        "latent_image": ["5", "latent"],
+        "positive": ["6", "conditioning"],
+        "model": ["4", "model"]
       },
       "position": {
         "x": 388,
@@ -68,10 +56,7 @@
       "type": "comfy.conditioning.CLIPTextEncode",
       "inputs": {
         "text": "portrait of Aristotle",
-        "clip": [
-          "4",
-          "clip"
-        ]
+        "clip": ["4", "clip"]
       },
       "position": {
         "x": 198.5,
@@ -82,10 +67,7 @@
       "type": "comfy.conditioning.CLIPTextEncode",
       "inputs": {
         "text": "text, watermark",
-        "clip": [
-          "4",
-          "clip"
-        ]
+        "clip": ["4", "clip"]
       },
       "position": {
         "x": 198.5,
@@ -95,14 +77,8 @@
     "8": {
       "type": "comfy.latent.VAEDecode",
       "inputs": {
-        "samples": [
-          "3",
-          "latent"
-        ],
-        "vae": [
-          "4",
-          "vae"
-        ]
+        "samples": ["3", "latent"],
+        "vae": ["4", "vae"]
       },
       "position": {
         "x": 520,
@@ -112,10 +88,7 @@
     "9": {
       "type": "nodetool.workflows.base_node.Preview",
       "inputs": {
-        "value": [
-          "8",
-          "image"
-        ],
+        "value": ["8", "image"],
         "name": "image_image_2024-08-03"
       },
       "position": {
@@ -126,5 +99,4 @@
       "height": 253
     }
   }
-}
 }
