@@ -93,6 +93,27 @@
 .react-flow__node {
   padding: 0;
 }
+/* GROUP INPUT OUTPUT*/
+/* .react-flow__node-nodetool\.input\.GroupInput .node-header, */
+/* .react-flow__node-nodetool\.output\.GroupOutput .node-header, */
+.react-flow__node-nodetool\.input\.GroupInput .node-footer,
+.react-flow__node-nodetool\.output\.GroupOutput .node-footer,
+.react-flow__node-nodetool\.input\.GroupInput .process-timer,
+.react-flow__node-nodetool\.output\.GroupOutput .process-timer,
+.react-flow__node-nodetool\.output\.GroupOutput label {
+  display: none !important;
+}
+/* .react-flow__node-nodetool\.input\.GroupInput {
+  left: 30px;
+  top: -24px;
+}*/
+.react-flow__node-nodetool\.input\.GroupInput .node-inputs,
+.react-flow__node-nodetool\.output\.GroupOutput .node-inputs{
+  margin: 0;
+  position: absolute;
+  left: -1px;
+  top: 2px;
+} 
 
 /* NODE BODY */
 .react-flow .node-body {

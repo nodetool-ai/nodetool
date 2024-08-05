@@ -95,7 +95,7 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
   };
 
   return (
-    <div css={footerStyles}>
+    <div className="node-footer" css={footerStyles}>
       <Tooltip
         title="Select node then click to show in NodeMenu "
         placement="bottom-start"
