@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import ThemeNodes from "../themes/ThemeNodes";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, useMemo, useCallback } from "react";
 import { NodeProps } from "reactflow";
 import { isEqual } from "lodash";
 import { Container, Typography } from "@mui/material";
@@ -56,18 +56,19 @@ export default memo(
       isLoading: metadataLoading,
       error: metadataError
     } = useMetadata();
-    const nodedata = useNodeStore((state) => state.findNode(props.id)?.data);
-    const node = useNodeStore((state) => state.findNode(props.id));
-    const hasParent = node?.parentId !== undefined;
-    const parentNode = useNodeStore((state) => hasParent ? state.findNode(node?.parentId || "") : null);
-    const edges = useNodeStore((state) => state.getInputEdges(props.id));
-    const workflowId = nodedata?.workflow_id || "";
-    const status = useStatusStore((state) => state.getStatus(workflowId, props.id));
-    const isLoading =
+    const nodedata = useNodeStore(useCallback((state) => state.findNode(props.id)?.data, [props.id]));
+    const node = useNodeStore(useCallback((state) => state.findNode(props.id), [props.id]));
+    const hasParent = useMemo(() => node?.parentId !== undefined, [node]);
+    const parentNode = useNodeStore(useCallback((state) => hasParent ? state.findNode(node?.parentId || "") : null, [hasParent, node?.parentId]));
+    const edges = useNodeStore(useCallback((state) => state.getInputEdges(props.id), [props.id]));
+    const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
+    const status = useStatusStore(useCallback((state) => state.getStatus(workflowId, props.id), [workflowId, props.id]));
+    const isLoading = useMemo(() =>
       status === "running" ||
       status === "starting" ||
-      status === "booting";
-    const isConstantNode = props.type.startsWith("nodetool.constant");
+      status === "booting",
+    [status]);
+    const isConstantNode = useMemo(() => props.type.startsWith("nodetool.constant"), [props.type]);
 
     const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
     useEffect(() => {
@@ -77,18 +78,20 @@ export default memo(
       }
     }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
 
-    const isInputNode = props.type.startsWith("nodetool.input");
-    const isOutputNode =
+    const isInputNode = useMemo(() => props.type.startsWith("nodetool.input"), [props.type]);
+    const isOutputNode = useMemo(() =>
       props.type.startsWith("nodetool.output") ||
       props.type === "comfy.image.SaveImage" ||
-      props.type === "comfy.image.PreviewImage";
+      props.type === "comfy.image.PreviewImage",
+    [props.type]);
 
-    const className = `node-body ${props.data.collapsed ? "collapsed" : ""}
+    const className = useMemo(() => `node-body ${props.data.collapsed ? "collapsed" : ""}
       ${hasParent ? "has-parent" : ""}
       ${isInputNode ? " input-node" : ""} ${isOutputNode ? " output-node" : ""}
       ${props.data.dirty ? "dirty" : ""}`
       .replace(/\s+/g, " ")
-      .trim();
+      .trim(),
+    [props.data.collapsed, hasParent, isInputNode, isOutputNode, props.data.dirty]);
     if (!metadata) {
       return (
         <Container className={className}>
@@ -126,12 +129,14 @@ export default memo(
         }}
       >
         <>
-          <NodeHeader
-            id={props.id}
-            nodeTitle={node_title}
-            isLoading={isLoading}
-            hasParent={hasParent}
-          />
+          {useMemo(() => (
+            <NodeHeader
+              id={props.id}
+              nodeTitle={node_title}
+              isLoading={isLoading}
+              hasParent={hasParent}
+            />
+          ), [props.id, node_title, isLoading, hasParent])}
           <div className="node-content-hidden" />
           <NodeErrors id={props.id} />
           {status == "booting" && (
@@ -143,18 +148,20 @@ export default memo(
         {!isOutputNode && (
           <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
         )}
-        <NodeInputs
-          id={props.id}
-          layout={nodeMetadata.layout}
-          properties={nodeMetadata.properties}
-          nodeType={props.type}
-          data={props.data}
-          onlyFields={isConstantNode}
-          onlyHandles={false}
-          edges={edges}
-          primaryField={nodeMetadata.primary_field || ""}
-          secondaryField={nodeMetadata.secondary_field || ""}
-        />
+        {useMemo(() => (
+          <NodeInputs
+            id={props.id}
+            layout={nodeMetadata.layout}
+            properties={nodeMetadata.properties}
+            nodeType={props.type}
+            data={props.data}
+            onlyFields={isConstantNode}
+            onlyHandles={false}
+            edges={edges}
+            primaryField={nodeMetadata.primary_field || ""}
+            secondaryField={nodeMetadata.secondary_field || ""}
+          />
+        ), [props.id, nodeMetadata, props.type, props.data, isConstantNode, edges])}
 
         {isOutputNode && typeof result === "object" && (
           Object.entries(result).map(([key, value]) => (
@@ -169,11 +176,13 @@ export default memo(
               <NodeProgress id={props.id} workflowId={workflowId} />
             )}
             <NodeLogs id={props.id} workflowId={workflowId} />
-            <NodeFooter
-              nodeNamespace={node_namespace}
-              type={firstOutput.type.type}
-              metadata={nodeMetadata}
-            />
+            {useMemo(() => (
+              <NodeFooter
+                nodeNamespace={node_namespace}
+                type={firstOutput.type.type}
+                metadata={nodeMetadata}
+              />
+            ), [node_namespace, firstOutput.type.type, nodeMetadata])}
           </>
         )}
       </Container>
