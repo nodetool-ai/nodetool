@@ -1,0 +1,212 @@
+{
+    "id": "hires_fix",
+    "access": "private",
+    "created_at": "2024-07-06T20:13:38.331865",
+    "updated_at": "2024-07-06T20:23:13.098945",
+    "name": "High Resolution 2 Pass",
+    "description": "",
+    "thumbnail": "",
+    "thumbnail_url": "/examples/hires_fix.png",
+    "graph": {
+        "3": {
+            "type": "comfy.sampling.KSampler",
+            "inputs": {
+                "seed": 1146442523,
+                "seed_control_mode": 1146442523,
+                "steps": 12,
+                "cfg": 8,
+                "sampler_name": "dpmpp_sde",
+                "scheduler": "normal",
+                "denoise": 1,
+                "negative": [
+                    "7",
+                    "conditioning"
+                ],
+                "positive": [
+                    "6",
+                    "conditioning"
+                ],
+                "model": [
+                    "16",
+                    "model"
+                ],
+                "latent_image": [
+                    "5",
+                    "latent"
+                ]
+            },
+            "position": {
+                "x": 422.5,
+                "y": 86
+            }
+        },
+        "5": {
+            "type": "comfy.latent.EmptyLatentImage",
+            "inputs": {
+                "width": 768,
+                "height": 768,
+                "batch_size": 1
+            },
+            "position": {
+                "x": 208,
+                "y": 300
+            }
+        },
+        "6": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "A serene Japanese garden at twilight, cherry blossoms in full bloom. A traditional wooden bridge arches over a koi pond, with lanterns casting a warm glow. Mount Fuji looms in the misty background. Watercolor style, soft pastel colors, Studio Ghibli inspired, dreamy atmosphere, golden hour lighting, 4k resolution.",
+                "clip": [
+                    "16",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 199,
+                "y": 30
+            }
+        },
+        "7": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "bad hands, text, watermark\n",
+                "clip": [
+                    "16",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 196,
+                "y": 172
+            }
+        },
+        "8": {
+            "type": "comfy.latent.VAEDecode",
+            "inputs": {
+                "vae": [
+                    "16",
+                    "vae"
+                ],
+                "samples": [
+                    "3",
+                    "latent"
+                ]
+            },
+            "position": {
+                "x": 617.8607978515629,
+                "y": 288.5939360351561
+            }
+        },
+        "10": {
+            "type": "comfy.latent.LatentUpscale",
+            "inputs": {
+                "upscale_method": "bilinear",
+                "width": 1152,
+                "height": 1152,
+                "crop": "disabled",
+                "samples": [
+                    "3",
+                    "latent"
+                ]
+            },
+            "position": {
+                "x": 605,
+                "y": 71
+            }
+        },
+        "11": {
+            "type": "comfy.sampling.KSampler",
+            "inputs": {
+                "seed": 1146442523,
+                "seed_control_mode": 1146442523,
+                "steps": 14,
+                "cfg": 8,
+                "sampler_name": "dpmpp_2m",
+                "scheduler": "simple",
+                "denoise": 0.5,
+                "positive": [
+                    "6",
+                    "conditioning"
+                ],
+                "negative": [
+                    "7",
+                    "conditioning"
+                ],
+                "latent_image": [
+                    "10",
+                    "latent"
+                ],
+                "model": [
+                    "16",
+                    "model"
+                ]
+            },
+            "position": {
+                "x": 792.5,
+                "y": 57
+            }
+        },
+        "13": {
+            "type": "comfy.latent.VAEDecode",
+            "inputs": {
+                "samples": [
+                    "11",
+                    "latent"
+                ],
+                "vae": [
+                    "16",
+                    "vae"
+                ]
+            },
+            "position": {
+                "x": 929,
+                "y": 63
+            }
+        },
+        "16": {
+            "type": "comfy.loaders.CheckpointLoaderSimple",
+            "inputs": {
+                "ckpt_name": {
+                    "type": "comfy.checkpoint_file",
+                    "name": "Realistic_Vision_V5.safetensors"
+                }
+            },
+            "position": {
+                "x": -5,
+                "y": 157
+            }
+        },
+        "17": {
+            "type": "nodetool.workflows.base_node.Preview",
+            "inputs": {
+                "value": [
+                    "8",
+                    "image"
+                ],
+                "name": "image_image_2024-08-06"
+            },
+            "position": {
+                "x": 763,
+                "y": 365
+            },
+            "width": 173,
+            "height": 171
+        },
+        "18": {
+            "type": "nodetool.workflows.base_node.Preview",
+            "inputs": {
+                "value": [
+                    "13",
+                    "image"
+                ],
+                "name": "image_image_2024-08-06"
+            },
+            "position": {
+                "x": 942,
+                "y": 160
+            },
+            "width": 298,
+            "height": 293
+        }
+    }
+}

@@ -1,0 +1,148 @@
+{
+    "id": "img2img",
+    "access": "private",
+    "created_at": "2024-07-06T20:13:38.331865",
+    "updated_at": "2024-07-06T20:23:13.098945",
+    "name": "Image to Image",
+    "description": "",
+    "thumbnail": "",
+    "thumbnail_url": "/examples/img2img.png",
+    "graph": {
+        "3": {
+            "type": "comfy.sampling.KSampler",
+            "inputs": {
+                "seed": 1575288973,
+                "seed_control_mode": 1575288973,
+                "steps": 20,
+                "cfg": 8,
+                "sampler_name": "dpmpp_2m",
+                "scheduler": "normal",
+                "denoise": 0.7,
+                "latent_image": [
+                    "12",
+                    "latent"
+                ],
+                "model": [
+                    "14",
+                    "model"
+                ],
+                "negative": [
+                    "7",
+                    "conditioning"
+                ],
+                "positive": [
+                    "6",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 431.5,
+                "y": 93
+            }
+        },
+        "6": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "a cute animal",
+                "clip": [
+                    "14",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 207.5,
+                "y": 93
+            }
+        },
+        "7": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "watermark, text\n",
+                "clip": [
+                    "14",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 206.5,
+                "y": 194.5
+            }
+        },
+        "8": {
+            "type": "comfy.latent.VAEDecode",
+            "inputs": {
+                "samples": [
+                    "3",
+                    "latent"
+                ],
+                "vae": [
+                    "14",
+                    "vae"
+                ]
+            },
+            "position": {
+                "x": 554,
+                "y": 93
+            }
+        },
+        "10": {
+            "type": "comfy.image.LoadImage",
+            "inputs": {
+                "image": {
+                    "uri": "https://app.nodetool.ai/examples/phantasy_animals.png",
+                    "type": "image"
+                }
+            },
+            "position": {
+                "x": 54,
+                "y": 325
+            }
+        },
+        "12": {
+            "type": "comfy.latent.VAEEncode",
+            "inputs": {
+                "pixels": [
+                    "10",
+                    "image"
+                ],
+                "vae": [
+                    "14",
+                    "vae"
+                ]
+            },
+            "position": {
+                "x": 307.4899798583985,
+                "y": 353.8400134277344
+            }
+        },
+        "14": {
+            "type": "comfy.loaders.CheckpointLoaderSimple",
+            "inputs": {
+                "ckpt_name": {
+                    "type": "comfy.checkpoint_file",
+                    "name": "Realistic_Vision_V5.safetensors"
+                }
+            },
+            "position": {
+                "x": -4,
+                "y": 195
+            }
+        },
+        "15": {
+            "type": "nodetool.workflows.base_node.Preview",
+            "inputs": {
+                "value": [
+                    "8",
+                    "image"
+                ],
+                "name": "image_image_2024-08-06"
+            },
+            "position": {
+                "x": 668,
+                "y": 86
+            },
+            "width": 277,
+            "height": 295
+        }
+    }
+}

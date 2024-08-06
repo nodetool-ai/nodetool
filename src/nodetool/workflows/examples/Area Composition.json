@@ -1,0 +1,473 @@
+{
+    "id": "area_composition",
+    "access": "private",
+    "created_at": "2024-07-06T20:13:38.331865",
+    "updated_at": "2024-07-06T20:23:13.098945",
+    "name": "Area Composition",
+    "description": "",
+    "thumbnail": "",
+    "thumbnail_url": "/examples/area_composition.png",
+    "graph": {
+        "3": {
+            "type": "comfy.sampling.KSampler",
+            "inputs": {
+                "seed": 1126615549,
+                "seed_control_mode": 1126615549,
+                "steps": 13,
+                "cfg": 8.5,
+                "sampler_name": "dpmpp_sde",
+                "scheduler": "normal",
+                "denoise": 1,
+                "negative": [
+                    "7",
+                    "conditioning"
+                ],
+                "latent_image": [
+                    "5",
+                    "latent"
+                ],
+                "positive": [
+                    "19",
+                    "conditioning"
+                ],
+                "model": [
+                    "45",
+                    "model"
+                ]
+            },
+            "position": {
+                "x": 964,
+                "y": 85.5
+            }
+        },
+        "5": {
+            "type": "comfy.latent.EmptyLatentImage",
+            "inputs": {
+                "width": 704,
+                "height": 1280,
+                "batch_size": 1
+            },
+            "position": {
+                "x": 796,
+                "y": 334
+            }
+        },
+        "6": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "(masterpiece) (best quality) beautiful landscape breathtaking amazing view nature photograph forest mountains ocean (sky) national park scenery",
+                "clip": [
+                    "44",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 164,
+                "y": -210.25
+            }
+        },
+        "7": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "(hands), text, error, cropped, (worst quality:1.2), (low quality:1.2), normal quality, (jpeg artifacts:1.3), signature, watermark, username, blurry, artist name, monochrome, sketch, censorship, censor, (copyright:1.2), extra legs, (forehead mark) (depth of field) (emotionless) (penis) (pumpkin)",
+                "clip": [
+                    "44",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 664,
+                "y": -68
+            }
+        },
+        "8": {
+            "type": "comfy.latent.VAEDecode",
+            "inputs": {
+                "vae": [
+                    "46",
+                    "vae"
+                ],
+                "samples": [
+                    "3",
+                    "latent"
+                ]
+            },
+            "position": {
+                "x": 1481.5,
+                "y": 18.5
+            }
+        },
+        "9": {
+            "type": "comfy.image.SaveImage",
+            "inputs": {
+                "filename_prefix": "ComfyUI",
+                "images": [
+                    "8",
+                    "image"
+                ]
+            },
+            "position": {
+                "x": 1641.5,
+                "y": 18.5
+            }
+        },
+        "10": {
+            "type": "comfy.conditioning.ConditioningCombine",
+            "inputs": {
+                "conditioning_2": [
+                    "6",
+                    "conditioning"
+                ],
+                "conditioning_1": [
+                    "15",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 368,
+                "y": -161.25
+            }
+        },
+        "11": {
+            "type": "comfy.conditioning.ConditioningSetArea",
+            "inputs": {
+                "width": 704,
+                "height": 384,
+                "x": 0,
+                "y": 512,
+                "strength": 1,
+                "conditioning": [
+                    "17",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 368,
+                "y": 156.25
+            }
+        },
+        "12": {
+            "type": "comfy.conditioning.ConditioningCombine",
+            "inputs": {
+                "conditioning_2": [
+                    "11",
+                    "conditioning"
+                ],
+                "conditioning_1": [
+                    "35",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 565,
+                "y": 300.5
+            }
+        },
+        "13": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "(best quality) (evening:1.2) (sky:1.2) (clouds) (colorful) (HDR:1.2) (sunset:1.3)\n",
+                "clip": [
+                    "44",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": -47,
+                "y": 334.75
+            }
+        },
+        "14": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "(best quality) (night:1.3) (darkness) sky (black) (stars:1.2) (galaxy:1.2) (space) (universe)",
+                "clip": [
+                    "44",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": -47,
+                "y": 534.75
+            }
+        },
+        "15": {
+            "type": "comfy.conditioning.ConditioningSetArea",
+            "inputs": {
+                "width": 704,
+                "height": 384,
+                "x": 0,
+                "y": 704,
+                "strength": 1,
+                "conditioning": [
+                    "33",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 164,
+                "y": -22.25
+            }
+        },
+        "17": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "(best quality) (daytime:1.2) sky (blue)\n",
+                "clip": [
+                    "44",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 164,
+                "y": 156.25
+            }
+        },
+        "18": {
+            "type": "comfy.conditioning.ConditioningSetArea",
+            "inputs": {
+                "width": 704,
+                "height": 384,
+                "x": 0,
+                "y": 320,
+                "strength": 1,
+                "conditioning": [
+                    "13",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 164,
+                "y": 334.75
+            }
+        },
+        "19": {
+            "type": "comfy.conditioning.ConditioningCombine",
+            "inputs": {
+                "conditioning_1": [
+                    "12",
+                    "conditioning"
+                ],
+                "conditioning_2": [
+                    "10",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 769,
+                "y": 117.25
+            }
+        },
+        "22": {
+            "type": "comfy.latent.LatentUpscale",
+            "inputs": {
+                "upscale_method": "bilinear",
+                "width": 1088,
+                "height": 1920,
+                "crop": "disabled",
+                "samples": [
+                    "3",
+                    "latent"
+                ]
+            },
+            "position": {
+                "x": 1345,
+                "y": 221
+            }
+        },
+        "24": {
+            "type": "comfy.sampling.KSampler",
+            "inputs": {
+                "seed": 1126615549,
+                "seed_control_mode": 1126615549,
+                "steps": 14,
+                "cfg": 7,
+                "sampler_name": "dpmpp_2m",
+                "scheduler": "simple",
+                "denoise": 0.5,
+                "positive": [
+                    "26",
+                    "conditioning"
+                ],
+                "negative": [
+                    "27",
+                    "conditioning"
+                ],
+                "latent_image": [
+                    "22",
+                    "latent"
+                ],
+                "model": [
+                    "46",
+                    "model"
+                ]
+            },
+            "position": {
+                "x": 1547,
+                "y": 496
+            }
+        },
+        "26": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "(best quality) beautiful (HDR:1.2) (realistic:1.2) landscape breathtaking amazing view nature scenery photograph forest mountains ocean daytime night evening morning, (sky:1.2)\n",
+                "clip": [
+                    "47",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 1347,
+                "y": 618
+            }
+        },
+        "27": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "(hands), text, error, cropped, (worst quality:1.2), (low quality:1.2), normal quality, (jpeg artifacts:1.3), signature, watermark, username, blurry, artist name, monochrome, sketch, censorship, censor, (copyright:1.2), extra legs, (forehead mark) (depth of field) (emotionless) (penis) (pumpkin)",
+                "clip": [
+                    "47",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 1347,
+                "y": 442
+            }
+        },
+        "31": {
+            "type": "comfy.latent.VAEDecode",
+            "inputs": {
+                "vae": [
+                    "46",
+                    "vae"
+                ],
+                "samples": [
+                    "24",
+                    "latent"
+                ]
+            },
+            "position": {
+                "x": 1669,
+                "y": 416
+            }
+        },
+        "32": {
+            "type": "comfy.image.SaveImage",
+            "inputs": {
+                "filename_prefix": "ComfyUI",
+                "images": [
+                    "31",
+                    "image"
+                ]
+            },
+            "position": {
+                "x": 1829,
+                "y": 416
+            }
+        },
+        "33": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "(masterpiece) (best quality) morning sky\n\n",
+                "clip": [
+                    "44",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": -47,
+                "y": -22.25
+            }
+        },
+        "34": {
+            "type": "comfy.conditioning.ConditioningSetArea",
+            "inputs": {
+                "width": 704,
+                "height": 384,
+                "x": 0,
+                "y": 0,
+                "strength": 1.2000000000000002,
+                "conditioning": [
+                    "14",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 164,
+                "y": 534.75
+            }
+        },
+        "35": {
+            "type": "comfy.conditioning.ConditioningCombine",
+            "inputs": {
+                "conditioning_1": [
+                    "34",
+                    "conditioning"
+                ],
+                "conditioning_2": [
+                    "18",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 368,
+                "y": 389.75
+            }
+        },
+        "44": {
+            "type": "comfy.conditioning.CLIPSetLastLayer",
+            "inputs": {
+                "stop_at_clip_layer": -2,
+                "clip": [
+                    "45",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": -242,
+                "y": 22
+            }
+        },
+        "45": {
+            "type": "comfy.loaders.CheckpointLoaderSimple",
+            "inputs": {
+                "ckpt_name": {
+                    "type": "comfy.checkpoint_file",
+                    "name": "Realistic_Vision_V5.safetensors"
+                }
+            },
+            "position": {
+                "x": -415.5,
+                "y": 266.25
+            }
+        },
+        "46": {
+            "type": "comfy.loaders.CheckpointLoaderSimple",
+            "inputs": {
+                "ckpt_name": {
+                    "type": "comfy.checkpoint_file",
+                    "name": "dreamshaper-v6.safetensors"
+                }
+            },
+            "position": {
+                "x": 957,
+                "y": 589
+            }
+        },
+        "47": {
+            "type": "comfy.conditioning.CLIPSetLastLayer",
+            "inputs": {
+                "stop_at_clip_layer": -2,
+                "clip": [
+                    "46",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 1147,
+                "y": 450
+            }
+        }
+    }
+}

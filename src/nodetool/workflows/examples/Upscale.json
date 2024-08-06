@@ -1,0 +1,158 @@
+{
+    "id": "upscale",
+    "access": "private",
+    "created_at": "2024-07-06T20:13:38.331865",
+    "updated_at": "2024-07-06T20:23:13.098945",
+    "name": "Upscale",
+    "description": "",
+    "thumbnail": "",
+    "thumbnail_url": "/examples/upscale.png",
+    "graph": {
+        "3": {
+            "type": "comfy.sampling.KSampler",
+            "inputs": {
+                "seed": 3603916327,
+                "seed_control_mode": 3603916327,
+                "steps": 20,
+                "cfg": 8,
+                "sampler_name": "ddim",
+                "scheduler": "exponential",
+                "denoise": 1,
+                "positive": [
+                    "6",
+                    "conditioning"
+                ],
+                "negative": [
+                    "7",
+                    "conditioning"
+                ],
+                "model": [
+                    "4",
+                    "model"
+                ],
+                "latent_image": [
+                    "5",
+                    "latent"
+                ]
+            },
+            "position": {
+                "x": 430.5,
+                "y": 84
+            }
+        },
+        "4": {
+            "type": "comfy.loaders.CheckpointLoaderSimple",
+            "inputs": {
+                "ckpt_name": {
+                    "type": "comfy.checkpoint_file",
+                    "name": "Realistic_Vision_V5.safetensors"
+                }
+            },
+            "position": {
+                "x": 31,
+                "y": 132
+            }
+        },
+        "5": {
+            "type": "comfy.latent.EmptyLatentImage",
+            "inputs": {
+                "width": 768,
+                "height": 768,
+                "batch_size": 1
+            },
+            "position": {
+                "x": 251,
+                "y": 410
+            }
+        },
+        "6": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "A futuristic AI laboratory, holographic displays, robotic arms, and glowing circuit patterns. Sleek metallic surfaces reflect neon lights. A humanoid robot stands in the center, its eyes emitting a soft blue glow. Hyper-realistic, 8k resolution, cinematic lighting, depth of field, highly detailed, concept art by Syd Mead and H.R. Giger.\"",
+                "clip": [
+                    "4",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 228,
+                "y": 149
+            }
+        },
+        "7": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "bad hands",
+                "clip": [
+                    "4",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 228,
+                "y": 291
+            }
+        },
+        "8": {
+            "type": "comfy.latent.VAEDecode",
+            "inputs": {
+                "samples": [
+                    "3",
+                    "latent"
+                ],
+                "vae": [
+                    "4",
+                    "vae"
+                ]
+            },
+            "position": {
+                "x": 592.5,
+                "y": 219.5
+            }
+        },
+        "9": {
+            "type": "comfy.image.SaveImage",
+            "inputs": {
+                "filename_prefix": "ComfyUI",
+                "images": [
+                    "14",
+                    "image"
+                ]
+            },
+            "position": {
+                "x": 994,
+                "y": 232
+            }
+        },
+        "13": {
+            "type": "comfy.loaders.UpscaleModelLoader",
+            "inputs": {
+                "model_name": {
+                    "type": "comfy.upscale_model_file",
+                    "name": "RealESRGAN_x2.pth"
+                }
+            },
+            "position": {
+                "x": 592.5,
+                "y": 357.5
+            }
+        },
+        "14": {
+            "type": "comfy.image.upscaling.ImageUpscaleWithModel",
+            "inputs": {
+                "image": [
+                    "8",
+                    "image"
+                ],
+                "upscale_model": [
+                    "13",
+                    "upscale_model"
+                ]
+            },
+            "position": {
+                "x": 789,
+                "y": 288.5
+            }
+        }
+    }
+}

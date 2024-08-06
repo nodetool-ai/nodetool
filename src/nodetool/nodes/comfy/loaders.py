@@ -40,14 +40,16 @@ class CheckpointLoaderSimple(ComfyNode):
     def get_title(cls):
         return "Load Checkpoint"
 
-    async def initialize(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext):
+        if self.ckpt_name.name == "":
+            raise Exception("Checkpoint name must be selected.")
+
         unet, clip, vae = await self.call_comfy_node(context)
 
         context.add_model("comfy.unet", self.ckpt_name.name, unet)
         context.add_model("comfy.clip", self.ckpt_name.name, clip)
         context.add_model("comfy.vae", self.ckpt_name.name, vae)
 
-    async def process(self, context: ProcessingContext):
         return {
             "model": UNet(name=self.ckpt_name.name),
             "clip": CLIP(name=self.ckpt_name.name),
@@ -80,6 +82,24 @@ class unCLIPCheckpointLoader(ComfyNode):
     def is_cacheable(cls):
         return False
 
+    async def process(self, context: ProcessingContext):
+        if self.ckpt_name.name == "":
+            raise Exception("Checkpoint name must be selected.")
+
+        unet, clip, vae, clip_vision = await self.call_comfy_node(context)
+
+        context.add_model("comfy.unet", self.ckpt_name.name, unet)
+        context.add_model("comfy.clip", self.ckpt_name.name, clip)
+        context.add_model("comfy.vae", self.ckpt_name.name, vae)
+        context.add_model("comfy.clip_vision", self.ckpt_name.name, clip_vision)
+
+        return {
+            "model": UNet(name=self.ckpt_name.name),
+            "clip": CLIP(name=self.ckpt_name.name),
+            "vae": VAE(name=self.ckpt_name.name),
+            "clip_vision": CLIPVision(name=self.ckpt_name.name),
+        }
+
 
 class CLIPVisionLoader(ComfyNode):
     clip_name: CLIPVisionFile = Field(
@@ -95,11 +115,11 @@ class CLIPVisionLoader(ComfyNode):
     def is_cacheable(cls):
         return False
 
-    async def initialize(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext):
+        if self.clip_name.name == "":
+            raise Exception("CLIP vision name must be selected.")
         (clip_vision,) = await self.call_comfy_node(context)
         context.add_model("comfy.clip_vision", self.clip_name.name, clip_vision)
-
-    async def process(self, context: ProcessingContext):
         return {"clip_vision": CLIPVision(name=self.clip_name.name)}
 
 
@@ -120,11 +140,11 @@ class ControlNetLoader(ComfyNode):
     def is_cacheable(cls):
         return False
 
-    async def initialize(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext):
+        if self.control_net_name.name == "":
+            raise Exception("ControlNet name must be selected.")
         (control_net,) = await self.call_comfy_node(context)
         context.add_model("comfy.control_net", self.control_net_name.name, control_net)
-
-    async def process(self, context: ProcessingContext):
         return {"control_net": ControlNet(name=self.control_net_name.name)}
 
 
@@ -146,11 +166,11 @@ class UpscaleModelLoader(ComfyNode):
     def is_cacheable(cls):
         return False
 
-    async def initialize(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext):
+        if self.model_name.name == "":
+            raise Exception("Upscale model name must be selected.")
         (upscale_model,) = await self.call_comfy_node(context)
         context.add_model("comfy.upscale_model", self.model_name.name, upscale_model)
-
-    async def process(self, context: ProcessingContext):
         return {"upscale_model": UpscaleModel(name=self.model_name.name)}
 
 
@@ -172,11 +192,11 @@ class GLIGENLoader(ComfyNode):
     def is_cacheable(cls):
         return False
 
-    async def initialize(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext):
+        if self.gligen_name.name == "":
+            raise Exception("GLIGEN name must be selected.")
         (gligen,) = await self.call_comfy_node(context)
         context.add_model("comfy.gligen", self.gligen_name.name, gligen)
-
-    async def process(self, context: ProcessingContext):
         return {"gligen": GLIGEN(name=self.gligen_name.name)}
 
 
@@ -211,6 +231,9 @@ class LoraLoader(ComfyNode):
         }
 
     async def process(self, context: ProcessingContext):
+        if self.lora_name.name == "":
+            raise Exception("LoRA name must be selected.")
+
         unet, clip = await self.call_comfy_node(context)
 
         context.add_model("comfy.unet", self.lora_name.name, unet)
@@ -242,12 +265,13 @@ class LoraLoaderModelOnly(ComfyNode):
     def return_type(cls):
         return {"unet": UNet}
 
-    async def initialize(self, context: ProcessingContext):
-        unet, clip = await self.call_comfy_node(context)
-
-        context.add_model("comfy.unet", self.lora_name.name, unet)
-
     async def process(self, context: ProcessingContext):
+        if self.lora_name.name == "":
+            raise Exception("LoRA name must be selected.")
+
+        lora, _ = await self.call_comfy_node(context)
+
+        context.add_model("comfy.lora", self.lora_name.name, lora)
         return {
             "model": UNet(name=self.lora_name.name),
         }
@@ -266,11 +290,12 @@ class VAELoader(ComfyNode):
     def return_type(cls):
         return {"vae": VAE}
 
-    async def initialize(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext):
+        if self.vae_name.name == "":
+            raise Exception("VAE name must be selected.")
+
         (vae,) = await self.call_comfy_node(context)
         context.add_model("comfy.vae", self.vae_name.name, vae)
-
-    async def process(self, context: ProcessingContext):
         return {"vae": VAE(name=self.vae_name.name)}
 
 
@@ -280,12 +305,12 @@ class CLIPLoader(ComfyNode):
         description="The name of the CLIP to load.",
     )
 
-    async def initialize(self, context: ProcessingContext):
-        unet, clip = await self.call_comfy_node(context)
-
-        context.add_model("comfy.clip", self.clip_name.name, unet)
-
     async def process(self, context: ProcessingContext):
+        if self.clip_name.name == "":
+            raise Exception("CLIP name must be selected")
+
+        (clip,) = await self.call_comfy_node(context)
+        context.add_model("comfy.clip", self.clip_name.name, clip)
         return {"clip": CLIP(name=self.clip_name.name)}
 
     @classmethod
@@ -317,12 +342,13 @@ class DualCLIPLoader(ComfyNode):
         description="The type of the dual CLIP model to load.",
     )
 
-    async def initialize(self, context: ProcessingContext):
+    async def process(self, context: ProcessingContext):
+        if self.clip_name1.name == "":
+            raise Exception("CLIP name must be selected")
+
         (clip,) = await self.call_comfy_node(context)
 
         context.add_model("comfy.clip", self.clip_name1.name, clip)
-
-    async def process(self, context: ProcessingContext):
         return {"clip": CLIP(name=self.clip_name1.name)}
 
     @classmethod
@@ -340,12 +366,12 @@ class UNETLoader(ComfyNode):
         description="The name of the UNet model to load.",
     )
 
-    async def initialize(self, context: ProcessingContext):
-        (unet,) = await self.call_comfy_node(context)
-
-        context.add_model("comfy.unet", self.unet_name.name, unet)
-
     async def process(self, context: ProcessingContext):
+        if self.unet_name.name == "":
+            raise Exception("UNet name must be selected")
+
+        (unet,) = await self.call_comfy_node(context)
+        context.add_model("comfy.unet", self.unet_name.name, unet)
         return {"unet": UNet(name=self.unet_name.name)}
 
     @classmethod
@@ -355,26 +381,3 @@ class UNETLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"unet": UNet}
-
-
-class UpscaleModelLoader(ComfyNode):
-    model_name: UpscaleModelFile = Field(
-        default=UpscaleModelFile(),
-        description="The filename of the upscale model to load.",
-    )
-
-    async def initialize(self, context: ProcessingContext):
-        (upscale_model,) = await self.call_comfy_node(context)
-
-        context.add_model("comfy.upscale_model", self.model_name.name, upscale_model)
-
-    async def process(self, context: ProcessingContext):
-        return {"upscale_model": UpscaleModel(name=self.model_name.name)}
-
-    @classmethod
-    def get_title(cls):
-        return "Load Upscale Model"
-
-    @classmethod
-    def return_type(cls):
-        return {"upscale_model": UpscaleModel}
