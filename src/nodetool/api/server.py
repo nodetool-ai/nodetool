@@ -65,13 +65,14 @@ def create_app(
 
     if Environment.get_comfy_folder():
         import comfy.cli_args
+
         comfy.cli_args.args.force_fp16 = True
 
         import comfy.model_management
         import comfy.utils
-        from comfy.nodes import init_custom_nodes
-        init_custom_nodes()
+        from comfy.nodes import init_extra_nodes
 
+        init_extra_nodes()
 
     @app.get("/health")
     async def health_check() -> str:

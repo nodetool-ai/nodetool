@@ -39,7 +39,6 @@ class LoadImage(ComfyNode):
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to load.")
-    upload: str = Field(default="", description="unused")
 
     @classmethod
     def return_type(cls):
@@ -51,6 +50,9 @@ class LoadImage(ComfyNode):
         else:
             super().assign_property(name, value)
 
+    async def process(self, context: ProcessingContext):
+        return {"image": self.image}
+
 
 class LoadImageMask(ComfyNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to load.")
@@ -61,6 +63,21 @@ class LoadImageMask(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"mask": Mask}
+
+    async def process(self, context: ProcessingContext):
+        img = await context.image_to_pil(self.image)
+        img = np.array(img)
+
+        if self.channel == ColorChannel.RED:
+            mask = img[:, :, 0]
+        elif self.channel == ColorChannel.GREEN:
+            mask = img[:, :, 1]
+        elif self.channel == ColorChannel.BLUE:
+            mask = img[:, :, 2]
+        else:
+            mask = img[:, :, 3]
+
+        return {"mask": Mask(data=mask)}
 
 
 class SaveImage(ComfyNode):

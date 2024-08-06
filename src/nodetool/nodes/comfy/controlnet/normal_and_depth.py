@@ -4,7 +4,7 @@ from pydantic import Field
 from nodetool.metadata.types import ImageRef, Mask
 from nodetool.common.comfy_node import MAX_RESOLUTION, EnableDisable
 from nodetool.nodes.comfy.controlnet import PreprocessImage
-from nodetool.workflows.base_node import add_node_classname
+from nodetool.workflows.base_node import add_comfy_classname
 
 
 class LeReSDepthMapPreprocessor(PreprocessImage):
@@ -75,7 +75,7 @@ class BAE_Normal_Map_Preprocessor(PreprocessImage):
     _comfy_class: str = "BAE-NormalMapPreprocessor"
 
 
-add_node_classname(BAE_Normal_Map_Preprocessor)
+add_comfy_classname(BAE_Normal_Map_Preprocessor)
 
 
 class ZoeDepthMapPreprocessor(PreprocessImage):

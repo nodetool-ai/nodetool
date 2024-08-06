@@ -41,7 +41,7 @@ class CheckpointLoaderSimple(ComfyNode):
         return "Load Checkpoint"
 
     async def initialize(self, context: ProcessingContext):
-        unet, clip, vae, _ = await self.call_comfy_node(context)
+        unet, clip, vae = await self.call_comfy_node(context)
 
         context.add_model("comfy.unet", self.ckpt_name.name, unet)
         context.add_model("comfy.clip", self.ckpt_name.name, clip)

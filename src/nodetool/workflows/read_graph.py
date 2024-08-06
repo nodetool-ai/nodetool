@@ -1,6 +1,7 @@
+from typing import Dict, List, Tuple, Any, Optional
+from nodetool.common.comfy_node import resolve_comfy_class
 from nodetool.types.graph import Edge, Node
-import uuid
-from nodetool.workflows.base_node import get_node_class, get_node_class_by_name
+from nodetool.workflows.base_node import get_node_class, get_comfy_class_by_name
 
 """
 This module provides functionality to read and parse graph structures from JSON representations.
@@ -25,8 +26,190 @@ Example Usage:
     edges, nodes = read_graph(json_graph)
 """
 
+# Constants
+TYPE_KEY = "type"
+CLASS_TYPE_KEY = "class_type"
+DATA_KEY = "data"
+INPUTS_KEY = "inputs"
+POSITION_KEY = "position"
+WIDTH_KEY = "width"
+HEIGHT_KEY = "height"
+PARENT_ID_KEY = "parent_id"
 
-def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
+
+class GraphParsingError(Exception):
+    """Custom exception for graph parsing errors."""
+
+    pass
+
+
+def generate_edge_id(edges: List[Edge]) -> str:
+    """
+    Finds the highest ID in the list of edges and returns a new ID that is one higher.
+    """
+    return str(max([int(edge.id or "0", 16) for edge in edges], default=0) + 1)
+
+
+def create_node(node_id: str, node_data: Dict[str, Any]) -> Node:
+    """
+    Create a Node object from node data.
+
+    Args:
+        node_id (str): The ID of the node.
+        node_data (Dict[str, Any]): The data for the node.
+
+    Returns:
+        Node: A new Node object.
+
+    Raises:
+        GraphParsingError: If the node type cannot be determined or found.
+    """
+    if CLASS_TYPE_KEY in node_data:
+        node_type = get_comfy_class_by_name(node_data[CLASS_TYPE_KEY]).get_node_type()
+    elif TYPE_KEY in node_data:
+        node_class = get_node_class(node_data[TYPE_KEY])
+        if not node_class:
+            raise GraphParsingError(
+                f"Could not find node class {node_data[TYPE_KEY]} for node {node_id}"
+            )
+        node_type = node_data[TYPE_KEY]
+    else:
+        raise GraphParsingError(f"Node {node_id} does not have a type")
+
+    node_inputs = node_data.get(DATA_KEY, node_data.get(INPUTS_KEY, {}))
+    data = {
+        name: value
+        for name, value in node_inputs.items()
+        if not (isinstance(value, list) and len(value) == 2)
+    }
+
+    ui_properties = {
+        key: node_data[key]
+        for key in [POSITION_KEY, WIDTH_KEY, HEIGHT_KEY]
+        if key in node_data
+    }
+
+    return Node(
+        id=node_id,
+        type=node_type,
+        data=data,
+        parent_id=node_data.get(PARENT_ID_KEY),
+        ui_properties=ui_properties,
+    )
+
+
+def create_edges(
+    node_id: str, node_data: Dict[str, Any], node_by_id: Dict[str, Node]
+) -> List[Edge]:
+    """
+    Create Edge objects for a node's inputs.
+
+    Args:
+        node_id (str): The ID of the target node.
+        node_data (Dict[str, Any]): The data for the node.
+        node_by_id (Dict[str, Node]): A dictionary mapping node IDs to Node objects.
+
+    Returns:
+        List[Edge]: A list of new Edge objects.
+
+    Raises:
+        GraphParsingError: If a referenced source node cannot be found.
+    """
+    edges = []
+    node_inputs = node_data.get(DATA_KEY, node_data.get(INPUTS_KEY, {}))
+
+    for input_name, input_value in node_inputs.items():
+        if isinstance(input_value, list) and len(input_value) == 2:
+            source_id, source_handle = input_value
+            source_node = node_by_id.get(source_id)
+            if source_node is None:
+                raise GraphParsingError(
+                    f"Could not find source node {source_id} referenced by {node_id}"
+                )
+
+            # supporting comfy workflow format, which uses index instead of handle
+            # the index will be resolved in the workflow runner
+            if isinstance(source_handle, int):
+                source_node_class = get_node_class(source_node.type)
+                assert source_node_class
+                source_handle = str(
+                    source_node_class.find_output_by_index(source_handle).name
+                )
+
+            edge = Edge(
+                id=generate_edge_id(edges),
+                source=source_id,
+                sourceHandle=source_handle,
+                target=node_id,
+                targetHandle=input_name,
+            )
+            edges.append(edge)
+
+    return edges
+
+
+def get_widget_names(class_name: str) -> List[str]:
+    """
+    Get the names of the widgets for a given node class.
+
+    Args:
+        class_name (str): The name of the node class.
+
+    Returns:
+        List[str]: A list of widget names for the node class.
+    """
+    node_class = resolve_comfy_class(class_name)
+    if node_class:
+        inputs = getattr(node_class, "INPUT_TYPES").__func__(node_class)
+
+        return [
+            name for name, value in inputs.get("required", {}).items() if len(value) > 1
+        ]
+    return []
+
+
+def convert_graph(input_graph: dict[str, Any]) -> dict[str, Any]:
+    """
+    Convert a graph from the ComfyUI format to the ComfyUI API format.
+
+    Args:
+        input_graph (dict[str, Any]): The graph in ComfyUI format.
+
+    Returns:
+        dict[str, Any]: The graph in ComfyUI API format.
+    """
+    output_graph = {}
+
+    # Process nodes
+    for node in input_graph["nodes"]:
+        node_id = str(node["id"])
+        output_graph[node_id] = {"class_type": node["type"], "data": {}}
+
+        # Add widget values if present
+        if "widgets_values" in node:
+            names = get_widget_names(node["type"])
+            for name, value in zip(names, node["widgets_values"]):
+                output_graph[node_id]["data"][name] = value
+
+        # Process inputs
+        if "inputs" in node:
+            for input_data in node["inputs"]:
+                if input_data["link"] is not None:
+                    # Find the corresponding link
+                    for link in input_graph["links"]:
+                        if link[0] == input_data["link"]:
+                            source_node_id = str(link[1])
+                            source_node_output = link[2]
+                            output_graph[node_id]["data"][input_data["name"]] = [
+                                source_node_id,
+                                source_node_output,
+                            ]
+                            break
+
+    return output_graph
+
+
+def read_graph(json: Dict[str, Any]) -> Tuple[List[Edge], List[Node]]:
     """
     This function reads a graph from a dictionary representation.
 
@@ -44,7 +227,11 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
         }
     }
 
-    It also supports the comfy workflow format:
+    It also supports the comfy workflow format.
+    In this case, we only search the comfy namespace for node classes
+    to avoid conflicts with other node classes.
+
+    The format of the ComfyUI representation has the following structure:
     {
         "source_node_id": {
             "class_type": "node_type",
@@ -65,8 +252,7 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
     - A tuple containing two lists: a list of edges and a list of nodes.
 
     Raises:
-    - Exception: If the node type or class cannot be found.
-    - Exception: If a source node referenced by a node cannot be found.
+    - GraphParsingError: If there's an error in parsing the graph structure.
 
     Example usage:
     ```
@@ -85,104 +271,51 @@ def read_graph(json: dict) -> tuple[list[Edge], list[Node]]:
     edges, nodes = read_graph(graph_json)
     ```
     """
-    nodes: list[Node] = []
-    edges: list[Edge] = []
-    node_by_id: dict[str, Node] = {}
+    if "last_node_id" in json:
+        json = convert_graph(json)
 
-    def generate_edge_id():
-        """
-        Finds the highest ID in the list of edges and returns a new ID that is one higher.
-        """
-        return str(max([int(edge.id or "0", 16) for edge in edges], default=0) + 1)
+    nodes: List[Node] = []
+    edges: List[Edge] = []
+    node_by_id: Dict[str, Node] = {}
 
-    # we loop through the nodes twice to make sure all nodes are created before we try to connect them
-    for node_id, node in json.items():
-        # supporting comfy workflow format
-        if "class_type" in node:
-            classes = get_node_class_by_name(node["class_type"])
-            assert (
-                len(classes) > 0
-            ), f"Could not find node class {node['class_type']} for node {node_id}"
-            node_type = classes[0].get_node_type()
-            if len(classes) > 1:
-                for cls in classes:
-                    if cls.get_node_type().startswith("comfy."):
-                        node_type = cls.get_node_type()
-                        break
+    # First pass: create all nodes
+    for node_id, node_data in json.items():
+        try:
+            node = create_node(node_id, node_data)
+            nodes.append(node)
+            node_by_id[node_id] = node
+        except GraphParsingError as e:
+            raise GraphParsingError(f"Error creating node {node_id}: {str(e)}")
 
-        elif "type" in node:
-            assert get_node_class(
-                node["type"]
-            ), f"Could not find node class {node['type']} for node {node_id}"
-            node_type = node["type"]
-        else:
-            raise Exception(f"Node {node_id} does not have a type")
-
-        node_inputs = node.get("data", node.get("inputs", {}))
-        data = {
-            name: value
-            for name, value in node_inputs.items()
-            if not (isinstance(value, list) and len(value) == 2)
-        }
-
-        parent_id = node.get("parent_id", None)
-        ui_properties = {}
-
-        if "position" in node:
-            ui_properties["position"] = node["position"]
-
-        if "width" in node:
-            ui_properties["width"] = node["width"]
-
-        if "height" in node:
-            ui_properties["height"] = node["height"]
-
-        node_instance = Node(
-            id=node_id,
-            type=node_type,
-            data=data,
-            parent_id=parent_id,
-            ui_properties=ui_properties,
-        )
-
-        nodes.append(node_instance)
-        node_by_id[node_id] = node_instance
-
-    # connect the nodes
-    for node_id, node in json.items():
-        # supporting comfy workflow format
-        node_inputs = node.get("data", node.get("inputs", {}))
-
-        # loop through the inputs and connect them
-        for input_name, input_value in node_inputs.items():
-            # Check if the input value is a list and if it has exactly 2 elements
-            if isinstance(input_value, list) and len(input_value) == 2:
-                source_id, source_handle = input_value
-
-                # look up the source node by ID, so we can find the output handle
-                source_node = node_by_id.get(source_id)
-                if source_node is None:
-                    raise Exception(
-                        f"Could not find source node {source_id} referenced by {node_id}"
-                    )
-
-                # supporting comfy workflow format, which uses index instead of handle
-                # the index will be resolved in the workflow runner
-                if isinstance(source_handle, int):
-                    source_node_class = get_node_class(source_node.type)
-                    assert source_node_class
-                    source_handle = str(
-                        source_node_class.find_output_by_index(source_handle).name
-                    )
-
-                edge = Edge(
-                    id=generate_edge_id(),
-                    source=source_id,
-                    sourceHandle=source_handle,
-                    target=node_id,
-                    targetHandle=input_name,
-                )
-
-                edges.append(edge)
+    # Second pass: create all edges
+    for node_id, node_data in json.items():
+        try:
+            new_edges = create_edges(node_id, node_data, node_by_id)
+            edges.extend(new_edges)
+        except GraphParsingError as e:
+            raise GraphParsingError(
+                f"Error creating edges for node {node_id}: {str(e)}"
+            )
 
     return edges, nodes
+
+
+# Example usage
+if __name__ == "__main__":
+    graph_json = {
+        "source_node_id": {
+            "type": "InputNode",
+        },
+        "node_id": {
+            "type": "ProcessNode",
+            "data": {
+                "property_name": "property_value",
+                "input": ["source_node_id", "output"],
+            },
+        },
+    }
+    try:
+        edges, nodes = read_graph(graph_json)
+        print(f"Successfully parsed graph: {len(nodes)} nodes and {len(edges)} edges")
+    except GraphParsingError as e:
+        print(f"Error parsing graph: {str(e)}")

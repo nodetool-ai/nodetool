@@ -11,12 +11,12 @@ from nodetool.workflows.processing_context import ProcessingContext
 
 from nodetool.workflows.base_node import (
     NODE_BY_TYPE,
-    NODES_BY_CLASSNAME,
+    COMFY_NODE_CLASSES,
     BaseNode,
     GroupNode,
     add_node_type,
     get_node_class,
-    get_node_class_by_name,
+    get_comfy_class_by_name,
     requires_capabilities,
     requires_capabilities_from_request,
     type_metadata,
@@ -215,8 +215,8 @@ def test_add_node_type_and_classname():
 
     add_node_type(TestNode)
     assert TestNode.get_node_type() in NODE_BY_TYPE
-    assert "TestNode" in NODES_BY_CLASSNAME
-    assert TestNode in NODES_BY_CLASSNAME["TestNode"]
+    assert "TestNode" in COMFY_NODE_CLASSES
+    assert TestNode in COMFY_NODE_CLASSES["TestNode"]
 
 
 def test_get_node_class_and_by_name():
@@ -225,7 +225,7 @@ def test_get_node_class_and_by_name():
 
     add_node_type(TestNode)
     assert get_node_class(TestNode.get_node_type()) == TestNode
-    assert TestNode in get_node_class_by_name("TestNode")
+    assert TestNode in get_comfy_class_by_name("TestNode")
 
 
 def test_base_node_from_dict():

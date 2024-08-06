@@ -16,7 +16,7 @@
 
 import os
 import time
-from typing import Optional, Union
+from typing import Any, Optional, Union
 import os
 
 from nodetool.common.environment import Environment
@@ -34,6 +34,36 @@ custom_nodes_directory = os.path.join(
 
 def model_path(name: str) -> str:
     return os.path.join(models_dir, name)
+
+
+def get_output_directory() -> str:
+    """NOT USED"""
+    return "/tmp"
+
+
+def get_temp_directory() -> str:
+    """NOT USED"""
+    raise NotImplementedError("Not implemented")
+
+
+def get_input_directory() -> str:
+    """NOT USED"""
+    return "/tmp"
+
+
+def get_save_image_path(filename_prefix: str, output_dir: str, *args) -> Any:
+    """NOT USED"""
+    raise NotImplementedError("Not implemented")
+
+
+def get_annotated_filepath(filename: str) -> str:
+    """NOT USED"""
+    raise NotImplementedError("Not implemented")
+
+
+def exists_annotated_filepath(filename: str) -> bool:
+    """NOT USED"""
+    raise NotImplementedError("Not implemented")
 
 
 folder_names_and_paths: dict[str, tuple[list[str], set[str]]] = {

@@ -100,6 +100,60 @@ export function nodeTypeFor(content_type: string): TypeName | null {
   }
 }
 
+function extractWorkflowFromPng(file: File): Promise<Record<string, never> | null> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = function (event: ProgressEvent<FileReader>) {
+      const arrayBuffer = event.target?.result as ArrayBuffer;
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      // Find the tEXt chunk with the "workflow" keyword
+      const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
+      let offset = pngSignature.length;
+
+      while (offset < uint8Array.length) {
+        const chunkLength = uint8Array[offset] * 16777216 + uint8Array[offset + 1] * 65536 + uint8Array[offset + 2] * 256 + uint8Array[offset + 3];
+        offset += 4;
+
+        const chunkType = String.fromCharCode(uint8Array[offset], uint8Array[offset + 1], uint8Array[offset + 2], uint8Array[offset + 3]);
+        offset += 4;
+
+        if (chunkType === 'tEXt') {
+          let keywordEnd = offset;
+          while (uint8Array[keywordEnd] !== 0 && keywordEnd < offset + chunkLength) {
+            keywordEnd++;
+          }
+
+          const keyword = String.fromCharCode(...uint8Array.slice(offset, keywordEnd));
+
+          if (keyword === 'workflow') {
+            const textContent = new TextDecoder().decode(uint8Array.slice(keywordEnd + 1, offset + chunkLength));
+            try {
+              const workflow = JSON.parse(textContent);
+              resolve(workflow);
+              return;
+            } catch (error) {
+              reject(new Error('Failed to parse workflow JSON'));
+              return;
+            }
+          }
+        }
+
+        offset += chunkLength + 4; // Skip CRC
+      }
+
+      resolve(null); // No workflow found
+    };
+
+    reader.onerror = function () {
+      reject(new Error('Error reading file'));
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 export const useDropHandler = (): DropHandler => {
   const reactFlow = useReactFlow();
   const addNode = useNodeStore((state) => state.addNode);
@@ -159,7 +213,26 @@ export const useDropHandler = (): DropHandler => {
       const nonJsonFiles: File[] = [];
 
       files.forEach((file) => {
-        if (file.type === "application/json") {
+        if (file.type === "image/png") {
+          extractWorkflowFromPng(file).then((workflow) => {
+            if (workflow) {
+              createWorkflow({
+                name: file.name,
+                description: "created from comfy",
+                access: "private",
+                comfy_workflow: workflow
+              })
+                .then((workflow) => {
+                  setWorkflow(workflow);
+                })
+                .catch((error) => {
+                  alert(error.detail);
+                });
+            } else {
+              nonJsonFiles.push(file);
+            }
+          });
+        } else if (file.type === "application/json") {
           const reader = new FileReader();
           reader.onload = (event) => {
             if (event.target) {

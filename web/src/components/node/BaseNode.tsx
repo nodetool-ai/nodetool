@@ -19,6 +19,8 @@ import { ProcessTimer } from "./ProcessTimer";
 import { NodeProgress } from "./NodeProgress";
 import { NodeErrors } from "./NodeErrors";
 import useStatusStore from "../../stores/StatusStore";
+import useResultsStore from "../../stores/ResultsStore";
+import OutputRenderer from "./OutputRenderer";
 
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
@@ -79,7 +81,9 @@ export default memo(
     const isInputNode = props.type.startsWith("nodetool.input");
     const isOutputNode =
       props.type.startsWith("nodetool.output") ||
-      props.type === "comfy.image.SaveImage";
+      props.type === "comfy.image.SaveImage" ||
+      props.type === "comfy.image.PreviewImage";
+
     const className = `node-body ${props.data.collapsed ? "collapsed" : ""}
       ${hasParent ? "has-parent" : ""}
       ${isInputNode ? " input-node" : ""} ${isOutputNode ? " output-node" : ""}
@@ -96,6 +100,7 @@ export default memo(
         </Container>
       );
     }
+    const result = useResultsStore((state) => state.getResult(props.data.workflow_id, props.id));
 
     const nodeMetadata = metadata.metadataByType[props.type];
     const node_title = titleize(nodeMetadata.title || "");
@@ -151,6 +156,12 @@ export default memo(
           primaryField={nodeMetadata.primary_field || ""}
           secondaryField={nodeMetadata.secondary_field || ""}
         />
+
+        {isOutputNode && typeof result === "object" && (
+          Object.entries(result).map(([key, value]) => (
+            <OutputRenderer key={key} value={value} />
+          ))
+        )}
 
         {nodeMetadata.layout === "default" && (
           <>

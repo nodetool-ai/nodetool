@@ -52,14 +52,15 @@ This module is essential for constructing and managing complex computational gra
 """
 
 NODE_BY_TYPE: dict[str, type["BaseNode"]] = {}
-NODES_BY_CLASSNAME: dict[str, list[type["BaseNode"]]] = {}
+COMFY_NODE_CLASSES: dict[str, type["BaseNode"]] = {}
 
 log = Environment.get_logger()
 
 
-def add_node_classname(node_class: type["BaseNode"]) -> None:
+def add_comfy_classname(node_class: type["BaseNode"]) -> None:
     """
-    Register a node class by its class name in the NODES_BY_CLASSNAME dictionary.
+    Register a comfy node class by its class name in the NODES_BY_CLASSNAME dictionary.
+    To avoid name conflicts, we store comfy classes in a separate dictionary.
 
     Args:
         node_class (type["BaseNode"]): The node class to be registered.
@@ -73,10 +74,7 @@ def add_node_classname(node_class: type["BaseNode"]) -> None:
     else:
         class_name = node_class.__name__
 
-    if class_name not in NODES_BY_CLASSNAME:
-        NODES_BY_CLASSNAME[class_name] = []
-
-    NODES_BY_CLASSNAME[class_name].append(node_class)
+    COMFY_NODE_CLASSES[class_name] = node_class
 
 
 def add_node_type(node_class: type["BaseNode"]) -> None:
@@ -90,7 +88,9 @@ def add_node_type(node_class: type["BaseNode"]) -> None:
     node_type = node_class.get_node_type()
 
     NODE_BY_TYPE[node_type] = node_class
-    add_node_classname(node_class)
+
+    if node_type.startswith("comfy."):
+        add_comfy_classname(node_class)
 
 
 def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
@@ -827,26 +827,8 @@ class Preview(BaseNode):
     async def process(self, context: Any) -> Any:
         return self.value
 
-    # def send_update(
-    #     self,
-    #     context: Any,
-    #     status: str,
-    #     result: dict[str, Any] | None = None,
-    # ):
-    #     if isinstance(self.value, ImageRef) and self.value.binary is not None:
-    #         if status == "completed":
-    #             context.post_message(
-    #                 BinaryUpdate(
-    #                     node_id=self.id,
-    #                     output_name="output",
-    #                     binary=self.value.binary,
-    #                 )
-    #             )
-    #     else:
-    #         super().send_update(context, status, result)
 
-
-def get_node_class_by_name(class_name: str) -> list[type[BaseNode]]:
+def get_comfy_class_by_name(class_name: str) -> type[BaseNode]:
     """
     Retrieve node classes based on their class name.
 
@@ -859,9 +841,11 @@ def get_node_class_by_name(class_name: str) -> list[type[BaseNode]]:
     Note:
         If no exact match is found, it attempts to find a match by removing hyphens from the class name.
     """
-    if not class_name in NODES_BY_CLASSNAME:
+    if not class_name in COMFY_NODE_CLASSES:
         class_name = class_name.replace("-", "")
-    return NODES_BY_CLASSNAME.get(class_name, [])
+    if not class_name in COMFY_NODE_CLASSES:
+        log.error(f"Could not find comfy class {class_name}")
+    return COMFY_NODE_CLASSES[class_name]
 
 
 def get_node_class(node_type: str) -> type[BaseNode] | None:
