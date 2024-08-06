@@ -66,7 +66,6 @@ export default memo(
     const isLoading =
       status === "running" ||
       status === "starting" ||
-      status === "processing" ||
       status === "booting";
     const isConstantNode = props.type.startsWith("nodetool.constant");
 
@@ -165,8 +164,10 @@ export default memo(
 
         {nodeMetadata.layout === "default" && (
           <>
-            <ProcessTimer isLoading={isLoading} status={status} />
-            <NodeProgress id={props.id} workflowId={workflowId} />
+            <ProcessTimer status={status} />
+            {status === "running" && (
+              <NodeProgress id={props.id} workflowId={workflowId} />
+            )}
             <NodeLogs id={props.id} workflowId={workflowId} />
             <NodeFooter
               nodeNamespace={node_namespace}

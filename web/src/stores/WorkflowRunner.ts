@@ -283,6 +283,8 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const clearStatuses = useStatusStore.getState().clearStatuses;
     const clearLogs = useLogsStore.getState().clearLogs;
     const clearErrors = useErrorStore.getState().clearErrors;
+    const clearResults = useResultsStore.getState().clearResults;
+    const clearProgress = useResultsStore.getState().clearProgress;
     const connectUrl = WORKER_URL;
 
     if (!get().socket || get().current_url !== connectUrl) {
@@ -304,6 +306,8 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     clearStatuses(workflow.id);
     clearLogs(workflow.id);
     clearErrors(workflow.id);
+    clearResults(workflow.id);
+    clearProgress(workflow.id);
 
     set({
       state: "running",

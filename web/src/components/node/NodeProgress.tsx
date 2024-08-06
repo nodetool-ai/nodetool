@@ -9,12 +9,12 @@ export const NodeProgress = memo(function NodeProgress({ id, workflowId }: { id:
     return null;
   }
   return (
-    <div className="node-progress">
+    <div className="node-progress" style={{ marginTop: "0.5em" }}>
       <LinearProgress
         variant="determinate"
         value={(progress.progress * 100) / progress.total}
         color="secondary" />
-      <Typography variant="caption" component="div" color="textSecondary">
+      <Typography variant="caption" component="div" color="textSecondary" style={{ textAlign: "center", marginTop: "0.5em" }}>
         {progress.progress} / {progress.total}
       </Typography>
     </div>

@@ -5,6 +5,8 @@ type ResultsStore = {
   results: Record<string, any>;
   progress: Record<string, { progress: number; total: number }>;
   deleteResult: (workflowId: string, nodeId: string) => void;
+  clearResults: (workflowId: string) => void;
+  clearProgress: (workflowId: string) => void;
   setResult: (workflowId: string, nodeId: string, result: any) => void;
   getResult: (workflowId: string, nodeId: string) => any;
   setProgress: (
@@ -37,6 +39,31 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = hashKey(workflowId, nodeId);
     delete results[key];
     set({ results });
+  },
+  /**
+   * Clear the results for a workflow.
+   * The results are removed from the results map.
+   */
+  clearResults: (workflowId: string) => {
+    const results = get().results;
+    for (const key in results) {
+      if (key.startsWith(workflowId)) {
+        delete results[key];
+      }
+    }
+    set({ results });
+  },
+  /**
+   * Clear the progress for a workflow.
+   */
+  clearProgress: (workflowId: string) => {
+    const progress = get().progress;
+    for (const key in progress) {
+      if (key.startsWith(workflowId)) {
+        delete progress[key];
+      }
+    }
+    set({ progress });
   },
   /**
    * Set the result for a node.

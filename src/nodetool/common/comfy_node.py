@@ -87,6 +87,8 @@ class ComfyNode(BaseNode):
             name.replace("-", ""): await convert_value(name, value)
             for name, value in self.node_properties().items()
         }
+        if "seed_control_mode" in kwargs:
+            del kwargs["seed_control_mode"]
 
         comfy_node = node_class()
         return getattr(comfy_node, function_name)(**kwargs)

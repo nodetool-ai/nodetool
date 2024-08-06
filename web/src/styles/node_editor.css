@@ -137,10 +137,6 @@
   font-size: 0;
 }
 
-.react-flow__node-bool .process-timer {
-  display: none;
-}
-
 /* PANE  */
 .react-flow .react-flow__pane {
   cursor: default !important;
@@ -165,17 +161,13 @@
   background-color: #2c2c2c33;
   margin: auto;
   padding: 0px 2px;
-  opacity: 0;
+  /* opacity: 0; */
   transition: opacity 1s 1s;
 }
 
 .react-flow .selected .process-timer {
   color: var(--c_black);
   background-color: transparent;
-}
-
-.react-flow .loading .process-timer {
-  opacity: 1;
 }
 
 .node-inputs {
