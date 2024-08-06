@@ -134,7 +134,6 @@ export interface NodeStore {
   edgeUpdateSuccessful: boolean;
   generateNodeId: () => string;
   generateEdgeId: () => string;
-  invalidateResults: (nodeId: string) => void;
   getInputEdges: (nodeId: string) => Edge[];
   getOutputEdges: (nodeId: string) => Edge[];
   getSelection: () => NodeSelection;
@@ -162,7 +161,9 @@ export interface NodeStore {
   getWorkflow: () => Workflow;
   newWorkflow: () => string;
   saveWorkflow: () => Promise<Workflow>;
-  syncWorkflow: () => void;
+  syncWithWorkflowStore: () => void;
+  getWorkflowIsDirty: () => boolean;
+  setWorkflowDirty: (dirty: boolean) => void;
   updateFromWorkflowStore: () => Promise<void>;
   validateConnection: (
     connection: Connection,
@@ -174,7 +175,6 @@ export interface NodeStore {
   loadJSON: (json: string) => void;
   createNode: (metadata: NodeMetadata, position: XYPosition) => Node<NodeData>;
   autoLayout: () => void;
-  workflowIsDirty: boolean;
 }
 
 export const useTemporalStore = <T>(
@@ -187,6 +187,7 @@ export const useNodeStore = create<NodeStore>()(
     (set, get) => ({
       explicitSave: false as boolean,
       shouldAutoLayout: false as boolean,
+      unsavedWorkflows: new Set() as Set<string>,
       workflow: {
         id: "",
         name: "",
@@ -378,10 +379,26 @@ export const useNodeStore = create<NodeStore>()(
         return json;
       },
 
+      getWorkflowIsDirty: () => {
+        return useWorkflowStore.getState().unsavedWorkflows.has(get().workflow.id);
+      },
+
+      setWorkflowDirty: (dirty: boolean) => {
+        const unsavedWorkflows = useWorkflowStore.getState().unsavedWorkflows;
+        if (dirty) {
+          unsavedWorkflows.add(get().workflow.id);
+        } else if (!dirty) {
+          unsavedWorkflows.delete(get().workflow.id);
+        }
+        useWorkflowStore.getState().setUnsavedWorkflows(unsavedWorkflows);
+      },
+
       /**
        * Set the current workflow.
        */
       setWorkflow: (workflow: Workflow) => {
+        get().syncWithWorkflowStore();
+
         const generateEdgeId = get().generateEdgeId;
         const shouldAutoLayout = get().shouldAutoLayout;
         const graphEdgeToReactFlowEdge = (edge: GraphEdge): Edge => {
@@ -424,16 +441,15 @@ export const useNodeStore = create<NodeStore>()(
       newWorkflow: () => {
         const newWorkflow = useWorkflowStore.getState().newWorkflow();
         get().setWorkflow(newWorkflow);
-        get().syncWorkflow();
+        get().syncWithWorkflowStore();
         get().saveWorkflow();
-        set({ workflowIsDirty: false });
         return newWorkflow.id;
       },
 
       /**
        * Sync with workflow store.
        */
-      syncWorkflow: () => {
+      syncWithWorkflowStore: () => {
         useWorkflowStore.getState().add(get().getWorkflow());
       },
 
@@ -458,7 +474,7 @@ export const useNodeStore = create<NodeStore>()(
       saveWorkflow: async () => {
         const updateWorkflow = useWorkflowStore.getState().update;
         const workflow = get().getWorkflow();
-        set({ workflowIsDirty: false });
+        get().setWorkflowDirty(false);
         set({ lastWorkflow: workflow });
         return updateWorkflow(workflow);
       },
@@ -510,7 +526,7 @@ export const useNodeStore = create<NodeStore>()(
         node.expandParent = true;
         node.data.workflow_id = get().workflow.id;
 
-        set({ nodes: [...get().nodes, node] });
+        set({ nodes: [...get().nodes, node], workflowIsDirty: true });
         useNotificationStore.getState().addNotification({
           type: "node",
           content: "NODE: " + node.type?.replaceAll("_", " "),
@@ -567,7 +583,7 @@ export const useNodeStore = create<NodeStore>()(
        * @param node The updated node.
        */
       updateNode: (id: string, node: Partial<Node<NodeData>>) => {
-        get().invalidateResults(id);
+        get().setWorkflowDirty(true);
         set({
           nodes: get().nodes.map(
             (n) => (n.id === id ? { ...n, ...node } : n) as Node
@@ -591,6 +607,7 @@ export const useNodeStore = create<NodeStore>()(
                 : node) as Node
           )
         });
+        get().setWorkflowDirty(true);
       },
 
       /**
@@ -606,58 +623,18 @@ export const useNodeStore = create<NodeStore>()(
             (node) =>
               (node.id === id
                 ? {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      workflow_id,
-                      properties: { ...node.data.properties, ...properties }
-                    }
+                  ...node,
+                  data: {
+                    ...node.data,
+                    workflow_id,
+                    properties: { ...node.data.properties, ...properties }
                   }
+                }
                 : node) as Node
           ),
           workflowIsDirty: true
         });
-      },
-
-      /**
-       * Invalidate the results of a node and all nodes that depend on it.
-       *
-       * @param nodeId The id of the node to invalidate.
-       */
-      invalidateResults: (nodeId: string) => {
-        const node = get().findNode(nodeId);
-        if (!node) {
-          return devError("node not found", nodeId);
-        }
-        if (!node.data.dirty) {
-          devLog("invalidate results", nodeId);
-          node.data.dirty = true;
-          const { nodes, edges } = subgraph(get().edges, get().nodes, node);
-
-          for (const n of nodes) {
-            n.data.dirty = true;
-          }
-
-          // clear all properties that have an input edge
-          for (const e of edges) {
-            const targetNode = get().findNode(e.target);
-            if (targetNode && e.targetHandle) {
-              delete targetNode.data.properties[e.targetHandle];
-            }
-          }
-
-          // Replace the nodes in the workflow with the updated nodes.
-          set({
-            nodes: get().nodes.map((n) => {
-              const node = nodes.find((node) => node.id === n.id);
-              if (node) {
-                return node;
-              } else {
-                return n;
-              }
-            })
-          });
-        }
+        get().setWorkflowDirty(true);
       },
 
       /**
@@ -712,8 +689,8 @@ export const useNodeStore = create<NodeStore>()(
             node.data.workflow_id = get().workflow.id;
           });
         }
-        set({ workflowIsDirty: true });
         set({ nodes });
+        get().setWorkflowDirty(true);
       },
 
       /**
@@ -722,8 +699,8 @@ export const useNodeStore = create<NodeStore>()(
        * @param edges The edges of the workflow.
        */
       setEdges: (edges: Edge[]) => {
-        set({ workflowIsDirty: true });
         set({ edges });
+        get().setWorkflowDirty(true);
       },
 
       /**
@@ -734,7 +711,7 @@ export const useNodeStore = create<NodeStore>()(
       onNodesChange: (changes: NodeChange[]) => {
         const nodes = applyNodeChanges(changes, get().nodes);
         set({ nodes });
-        set({ workflowIsDirty: true });
+        get().setWorkflowDirty(true);
       },
 
       /**
@@ -746,6 +723,7 @@ export const useNodeStore = create<NodeStore>()(
         set({
           edges: applyEdgeChanges(changes, get().edges)
         });
+        get().setWorkflowDirty(true);
       },
 
       /**
@@ -845,7 +823,6 @@ export const useNodeStore = create<NodeStore>()(
 
         const findNode = get().findNode;
         const edges = get().edges;
-        const invalidateResults = get().invalidateResults;
         const setEdges = get().setEdges;
         const getMetadata = useMetadataStore.getState().getMetadata;
         if (!connection.source || !connection.target) {
@@ -884,7 +861,6 @@ export const useNodeStore = create<NodeStore>()(
             className: Slugify(srcType || "")
           };
           setEdges(addEdge(newConnection, filteredEdges));
-          invalidateResults(connection.target as string);
         }
       }
     }),

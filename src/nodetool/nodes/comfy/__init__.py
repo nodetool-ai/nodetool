@@ -1,3 +1,5 @@
+from typing import Any
+from nodetool.common.comfy_node import ComfyNode
 import nodetool.nodes.comfy
 import nodetool.nodes.comfy.advanced
 import nodetool.nodes.comfy.advanced.conditioning
@@ -32,3 +34,15 @@ import nodetool.nodes.comfy.sampling.schedulers
 import nodetool.nodes.comfy.sampling.sigmas
 import nodetool.nodes.comfy.sampling.guiders
 import nodetool.nodes.comfy.sampling.noise
+
+
+class PrimitiveNode(ComfyNode):
+    _comfy_class = "PrimitiveNode"
+
+    @classmethod
+    def return_type(cls):
+        return Any
+
+
+class Note(ComfyNode):
+    _comfy_class = "Note"

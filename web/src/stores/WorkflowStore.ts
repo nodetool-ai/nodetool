@@ -5,6 +5,8 @@ import { QueryClient, QueryKey } from "react-query";
 
 export interface WorkflowStore {
   shouldFitToScreen: boolean;
+  unsavedWorkflows: Set<string>;
+  setUnsavedWorkflows: (unsavedWorkflows: Set<string>) => void;
   setShouldFitToScreen: (shouldFitToScreen: boolean) => void;
   invalidateQueries: (queryKey: QueryKey) => void;
   queryClient: QueryClient | null;
@@ -26,6 +28,11 @@ export interface WorkflowStore {
 
 export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   shouldFitToScreen: false,
+  unsavedWorkflows: new Set(),
+
+  setUnsavedWorkflows: (unsavedWorkflows: Set<string>) => {
+    set({ unsavedWorkflows });
+  },
 
   /**
    * Set whether the graph should fit to the screen.
@@ -121,7 +128,9 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       throw error;
     }
     for (const workflow of data.workflows) {
-      get().add(workflow);
+      if (!get().unsavedWorkflows.has(workflow.id)) {
+        get().add(workflow);
+      }
     }
     return data;
   },
@@ -134,7 +143,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const promises = workflowIds.map((id) => getWorkflow(id));
     const workflows = await Promise.all(promises);
     for (const workflow of workflows) {
-      if (workflow) {
+      if (workflow && !get().unsavedWorkflows.has(workflow.id)) {
         get().add(workflow);
       }
     }
@@ -201,7 +210,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     if (error) {
       throw error;
     }
+    const unsavedWorkflows = get().unsavedWorkflows;
+    unsavedWorkflows.delete(workflow.id);
     get().add(data);
+    set({ unsavedWorkflows });
     return data;
   },
 
@@ -232,5 +244,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       throw error;
     }
     get().invalidateQueries(["workflows"]);
+    const unsavedWorkflows = get().unsavedWorkflows;
+    unsavedWorkflows.delete(id);
+    set({ unsavedWorkflows });
   }
 }));

@@ -324,17 +324,6 @@ const NodeEditor: React.FC<unknown> = () => {
     onDragOver
   } = useDragHandlers(resumeHistoryAndSave);
 
-  const invalidateResults = useNodeStore((state) => state.invalidateResults);
-
-  const onEdgesDelete = useCallback(
-    (edges: Edge[]) => {
-      edges.forEach((edge) => {
-        invalidateResults(edge.target);
-      });
-    },
-    [invalidateResults]
-  );
-
   /* COLLAPSE NODE */
   const onNodeDoubleClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
@@ -492,7 +481,6 @@ const NodeEditor: React.FC<unknown> = () => {
               onEdgeUpdate={onEdgeUpdate}
               onEdgeUpdateStart={onEdgeUpdateStart}
               onEdgeUpdateEnd={onEdgeUpdateEnd}
-              onEdgesDelete={onEdgesDelete}
               onNodesChange={handleNodesChange}
               onNodeDragStart={onNodeDragStart}
               onNodeDragStop={onNodeDragStop}

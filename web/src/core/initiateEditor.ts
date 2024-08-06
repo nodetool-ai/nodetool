@@ -5,7 +5,7 @@ const initiateEditor = async (workflowId: string | undefined) => {
   const getWorkflow = useWorkflowStore.getState().get;
   const getFromCache = useWorkflowStore.getState().getFromCache;
   const currentWorkflow = useNodeStore.getState().workflow;
-  const syncWorkflow = useNodeStore.getState().syncWorkflow;
+  const syncWorkflow = useNodeStore.getState().syncWithWorkflowStore;
   const setWorkflow = useNodeStore.getState().setWorkflow;
 
   if (!workflowId) {
