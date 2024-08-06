@@ -1,0 +1,181 @@
+{
+    "id": "stable_diffusion_xl",
+    "access": "private",
+    "created_at": "2024-07-06T20:13:38.331865",
+    "updated_at": "2024-07-06T20:23:13.098945",
+    "name": "Stable Diffusion XL",
+    "description": "",
+    "thumbnail": "",
+    "thumbnail_url": "/examples/stable_diffusion_xl.png",
+    "graph": {
+        "4": {
+            "type": "comfy.loaders.CheckpointLoaderSimple",
+            "inputs": {
+                "ckpt_name": {
+                    "type": "comfy.checkpoint_file",
+                    "name": "sd_xl_base_1.0.safetensors"
+                }
+            },
+            "position": {
+                "x": 181,
+                "y": 78
+            }
+        },
+        "5": {
+            "type": "comfy.latent.EmptyLatentImage",
+            "inputs": {
+                "width": 1024,
+                "height": 1024,
+                "batch_size": 1
+            },
+            "position": {
+                "x": 385,
+                "y": 267
+            }
+        },
+        "6": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "a woman",
+                "clip": [
+                    "4",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 366,
+                "y": 9
+            }
+        },
+        "7": {
+            "type": "comfy.conditioning.CLIPTextEncode",
+            "inputs": {
+                "text": "deformed",
+                "clip": [
+                    "4",
+                    "clip"
+                ]
+            },
+            "position": {
+                "x": 359,
+                "y": 138
+            }
+        },
+        "10": {
+            "type": "comfy.sampling.KSamplerAdvanced",
+            "inputs": {
+                "add_noise": "enable",
+                "noise_seed": 2275274373,
+                "seed_control_mode": "randomize",
+                "cfg": 8,
+                "sampler_name": "euler",
+                "scheduler": "normal",
+                "start_at_step": 0,
+                "return_with_leftover_noise": "enable",
+                "end_at_step": 10,
+                "steps": 10,
+                "latent_image": [
+                    "5",
+                    "latent"
+                ],
+                "negative": [
+                    "7",
+                    "conditioning"
+                ],
+                "model": [
+                    "4",
+                    "model"
+                ],
+                "positive": [
+                    "6",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 552,
+                "y": 110
+            }
+        },
+        "11": {
+            "type": "comfy.sampling.KSamplerAdvanced",
+            "inputs": {
+                "add_noise": "enable",
+                "noise_seed": 2275274373,
+                "seed_control_mode": "fixed",
+                "cfg": 8,
+                "sampler_name": "euler",
+                "scheduler": "normal",
+                "end_at_step": 40,
+                "return_with_leftover_noise": "disable",
+                "start_at_step": 10,
+                "steps": 30,
+                "latent_image": [
+                    "10",
+                    "latent"
+                ],
+                "negative": [
+                    "7",
+                    "conditioning"
+                ],
+                "model": [
+                    "4",
+                    "model"
+                ],
+                "positive": [
+                    "6",
+                    "conditioning"
+                ]
+            },
+            "position": {
+                "x": 726,
+                "y": 110
+            }
+        },
+        "12": {
+            "type": "comfy.loaders.CheckpointLoaderSimple",
+            "inputs": {
+                "ckpt_name": {
+                    "type": "comfy.checkpoint_file",
+                    "name": "sd_xl_refiner_1.0.safetensors"
+                }
+            },
+            "position": {
+                "x": 720,
+                "y": 13
+            }
+        },
+        "17": {
+            "type": "comfy.latent.VAEDecode",
+            "inputs": {
+                "samples": [
+                    "11",
+                    "latent"
+                ],
+                "vae": [
+                    "12",
+                    "vae"
+                ]
+            },
+            "position": {
+                "x": 911,
+                "y": 234
+            }
+        },
+        "46": {
+            "type": "nodetool.workflows.base_node.Preview",
+            "inputs": {
+                "value": [
+                    "17",
+                    "image"
+                ],
+                "name": "image_image_2024-08-06"
+            },
+            "position": {
+                "x": 1042,
+                "y": 101
+            },
+            "width": 242,
+            "height": 341
+        }
+    }
+}
