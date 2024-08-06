@@ -4,6 +4,7 @@ import { iconForType, datatypeByName } from "../../config/data_types";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
+import { memo } from "react";
 
 export interface NodeFooterProps {
   nodeNamespace: string;
@@ -46,7 +47,7 @@ export const footerStyles = (theme: any) =>
     }
   });
 
-export const NodeFooter: React.FC<NodeFooterProps> = ({
+export const NodeFooter = memo<NodeFooterProps>(({
   nodeNamespace,
   type,
   metadata
@@ -132,4 +133,4 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
       </div>
     </div>
   );
-};
+});

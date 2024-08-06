@@ -45,8 +45,8 @@ const styles = (theme: any) =>
       maxWidth: "180px",
       padding: "10px",
       color: "red",
-      fontFamily: theme.fontFamily1
-    }
+      fontFamily: theme.fontFamily1,
+    },
   });
 
 export default memo(
@@ -54,21 +54,31 @@ export default memo(
     const {
       data: metadata,
       isLoading: metadataLoading,
-      error: metadataError
+      error: metadataError,
     } = useMetadata();
-    const nodedata = useNodeStore(useCallback((state) => state.findNode(props.id)?.data, [props.id]));
-    const node = useNodeStore(useCallback((state) => state.findNode(props.id), [props.id]));
-    const hasParent = useMemo(() => node?.parentId !== undefined, [node]);
-    const parentNode = useNodeStore(useCallback((state) => hasParent ? state.findNode(node?.parentId || "") : null, [hasParent, node?.parentId]));
-    const edges = useNodeStore(useCallback((state) => state.getInputEdges(props.id), [props.id]));
+    const nodedata = useNodeStore(
+      useCallback((state) => state.findNode(props.id)?.data, [props.id])
+    );
+    const node = useNodeStore(
+      useCallback((state) => state.findNode(props.id), [props.id])
+    );
+    const hasParent = node?.parentId !== undefined;
+    const parentNode = useNodeStore(
+      useCallback(
+        (state) => (hasParent ? state.findNode(node?.parentId || "") : null),
+        [hasParent, node?.parentId]
+      )
+    );
+    const edges = useNodeStore(
+      useCallback((state) => state.getInputEdges(props.id), [props.id])
+    );
     const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
-    const status = useStatusStore(useCallback((state) => state.getStatus(workflowId, props.id), [workflowId, props.id]));
-    const isLoading = useMemo(() =>
-      status === "running" ||
-      status === "starting" ||
-      status === "booting",
-    [status]);
-    const isConstantNode = useMemo(() => props.type.startsWith("nodetool.constant"), [props.type]);
+    const status = useStatusStore(
+      (state) => state.getStatus(workflowId, props.id),
+    );
+    const isLoading =
+      status === "running" || status === "starting" || status === "booting";
+    const isConstantNode = props.type.startsWith("nodetool.constant");
 
     const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
     useEffect(() => {
@@ -78,20 +88,28 @@ export default memo(
       }
     }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
 
-    const isInputNode = useMemo(() => props.type.startsWith("nodetool.input"), [props.type]);
-    const isOutputNode = useMemo(() =>
+    const isInputNode = props.type.startsWith("nodetool.input");
+    const isOutputNode =
       props.type.startsWith("nodetool.output") ||
       props.type === "comfy.image.SaveImage" ||
-      props.type === "comfy.image.PreviewImage",
-    [props.type]);
+      props.type === "comfy.image.PreviewImage";
 
-    const className = useMemo(() => `node-body ${props.data.collapsed ? "collapsed" : ""}
+    const className = useMemo(
+      () =>
+        `node-body ${props.data.collapsed ? "collapsed" : ""}
       ${hasParent ? "has-parent" : ""}
       ${isInputNode ? " input-node" : ""} ${isOutputNode ? " output-node" : ""}
       ${props.data.dirty ? "dirty" : ""}`
-      .replace(/\s+/g, " ")
-      .trim(),
-    [props.data.collapsed, hasParent, isInputNode, isOutputNode, props.data.dirty]);
+          .replace(/\s+/g, " ")
+          .trim(),
+      [
+        props.data.collapsed,
+        hasParent,
+        isInputNode,
+        isOutputNode,
+        props.data.dirty,
+      ]
+    );
     if (!metadata) {
       return (
         <Container className={className}>
@@ -102,19 +120,21 @@ export default memo(
         </Container>
       );
     }
-    const result = useResultsStore(useCallback((state) => state.getResult(props.data.workflow_id, props.id), [props.data.workflow_id, props.id]));
+    const result = useResultsStore(
+      (state) => state.getResult(props.data.workflow_id, props.id),
+    );
 
-    const nodeMetadata = useMemo(() => metadata.metadataByType[props.type], [metadata, props.type]);
-    const node_title = useMemo(() => titleize(nodeMetadata.title || ""), [nodeMetadata.title]);
-    const node_namespace = useMemo(() => nodeMetadata.namespace || "", [nodeMetadata.namespace]);
+    const nodeMetadata = metadata.metadataByType[props.type];
+    const node_title = titleize(nodeMetadata.title || "");
+    const node_namespace = nodeMetadata.namespace || "";
     const firstOutput =
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
           name: "output",
           type: {
-            type: "string"
-          }
+            type: "string",
+          },
         };
 
     return (
@@ -125,50 +145,45 @@ export default memo(
           display: parentIsCollapsed ? "none" : "block",
           backgroundColor: hasParent
             ? ThemeNodes.palette.c_node_bg_group
-            : ThemeNodes.palette.c_node_bg
+            : ThemeNodes.palette.c_node_bg,
         }}
       >
         <>
-          {useMemo(() => (
-            <NodeHeader
-              id={props.id}
-              nodeTitle={node_title}
-              isLoading={isLoading}
-              hasParent={hasParent}
-            />
-          ), [props.id, node_title, isLoading, hasParent])}
+          <NodeHeader
+            id={props.id}
+            nodeTitle={node_title}
+            isLoading={isLoading}
+            hasParent={hasParent}
+          />
           <div className="node-content-hidden" />
           <NodeErrors id={props.id} />
           {status == "booting" && (
             <Typography className="node-status">
-              Model is booting (1-3 minutes).
+              Model is booting, taking minutes.
             </Typography>
           )}
         </>
         {!isOutputNode && (
           <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
         )}
-        {useMemo(() => (
-          <NodeInputs
-            id={props.id}
-            layout={nodeMetadata.layout}
-            properties={nodeMetadata.properties}
-            nodeType={props.type}
-            data={props.data}
-            onlyFields={isConstantNode}
-            onlyHandles={false}
-            edges={edges}
-            primaryField={nodeMetadata.primary_field || ""}
-            secondaryField={nodeMetadata.secondary_field || ""}
-          />
-        ), [props.id, nodeMetadata, props.type, props.data, isConstantNode, edges])}
-
-        {isOutputNode && typeof result === "object" && (
-          Object.entries(result).map(([key, value]) => (
+        <NodeInputs
+          id={props.id}
+          layout={nodeMetadata.layout}
+          properties={nodeMetadata.properties}
+          nodeType={props.type}
+          data={props.data}
+          onlyFields={isConstantNode}
+          onlyHandles={false}
+          edges={edges}
+          primaryField={nodeMetadata.primary_field || ""}
+          secondaryField={nodeMetadata.secondary_field || ""}
+        />
+        {isOutputNode &&
+          typeof result === "object" &&
+          useMemo(() => Object.entries(result).map(([key, value]) => (
             <OutputRenderer key={key} value={value} />
-          ))
-        )}
-
+          )), [result])
+        }
         {nodeMetadata.layout === "default" && (
           <>
             <ProcessTimer status={status} />
@@ -176,13 +191,11 @@ export default memo(
               <NodeProgress id={props.id} workflowId={workflowId} />
             )}
             <NodeLogs id={props.id} workflowId={workflowId} />
-            {useMemo(() => (
-              <NodeFooter
-                nodeNamespace={node_namespace}
-                type={firstOutput.type.type}
-                metadata={nodeMetadata}
-              />
-            ), [node_namespace, firstOutput.type.type, nodeMetadata])}
+            <NodeFooter
+              nodeNamespace={node_namespace}
+              type={firstOutput.type.type}
+              metadata={nodeMetadata}
+            />
           </>
         )}
       </Container>
