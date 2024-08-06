@@ -146,6 +146,21 @@ def create_edges(
             edges.append(edge)
 
 
+def is_comfy_widget(type: str | list) -> bool:
+    """
+    Check if the widget type is a Comfy widget.
+
+    Args:
+        type (str): The type of the widget.
+
+    Returns:
+        bool: True if the widget is a Comfy widget, False otherwise.
+    """
+    if isinstance(type, list):
+        return True
+    return type in ["INT", "FLOAT", "STRING", "BOOLEAN"]
+
+
 def get_widget_names(class_name: str) -> List[str]:
     """
     Get the names of the widgets for a given node class.
@@ -158,11 +173,21 @@ def get_widget_names(class_name: str) -> List[str]:
     """
     node_class = resolve_comfy_class(class_name)
     if node_class:
-        inputs = getattr(node_class, "INPUT_TYPES").__func__(node_class)
+        inputs = list(
+            getattr(node_class, "INPUT_TYPES")
+            .__func__(node_class)
+            .get("required", {})
+            .items()
+        )
+        inputs = [name for name, value in inputs if is_comfy_widget(value[0])]
 
-        return [
-            name for name, value in inputs.get("required", {}).items() if len(value) > 1
-        ]
+        # add seed_control_mode after seed for all samplers
+        for i in range(len(inputs)):
+            if inputs[i] in ["seed", "noise_seed"]:
+                inputs.insert(i + 1, "seed_control_mode")
+                break
+
+        return inputs
     return []
 
 
