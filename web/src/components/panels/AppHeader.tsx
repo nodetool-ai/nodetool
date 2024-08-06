@@ -170,7 +170,7 @@ function AppHeader() {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
-  const workflowIsDirty = useNodeStore((state) => state.workflowIsDirty);
+  const workflowIsDirty = useNodeStore((state) => state.getWorkflowIsDirty());
   const areMessagesVisible = true;
   const buttonAppearance = useSettingsStore(
     (state) => state.settings.buttonAppearance
@@ -324,9 +324,8 @@ function AppHeader() {
               <Button
                 aria-controls="simple-menu"
                 aria-haspopup="true"
-                className={`nav-button ${
-                  path.startsWith("/workflows") ? "active" : ""
-                }`}
+                className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
+                  }`}
                 onClick={() => navigate("/workflows")}
               >
                 <WorkflowsIcon />
@@ -418,9 +417,8 @@ function AppHeader() {
           <Button
             onClick={handleNavigateToLastWorkflow}
             disabled={path.startsWith("/editor")}
-            className={`last-workflow ${
-              path.startsWith("/editor") ? "disabled" : ""
-            }`}
+            className={`last-workflow ${path.startsWith("/editor") ? "disabled" : ""
+              }`}
           >
             {lastWorkflow?.name}
             {workflowIsDirty && <span>*</span>}

@@ -526,7 +526,9 @@ export const useNodeStore = create<NodeStore>()(
         node.expandParent = true;
         node.data.workflow_id = get().workflow.id;
 
-        set({ nodes: [...get().nodes, node], workflowIsDirty: true });
+        set({ nodes: [...get().nodes, node] });
+        get().setWorkflowDirty(true);
+
         useNotificationStore.getState().addNotification({
           type: "node",
           content: "NODE: " + node.type?.replaceAll("_", " "),
@@ -632,7 +634,6 @@ export const useNodeStore = create<NodeStore>()(
                 }
                 : node) as Node
           ),
-          workflowIsDirty: true
         });
         get().setWorkflowDirty(true);
       },

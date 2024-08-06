@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useEffect, useMemo } from "react";
 import ReactFlow, {
   useStore,
   useReactFlow,
@@ -146,9 +146,10 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* LOADING*/
   const showLoading = loadingMetadata || metadata?.length === 0;
+  const workflowIsDirty = useNodeStore((state) => state.getWorkflowIsDirty());
 
   /* CLOSE BROWSER TAB */
-  const addBeforeUnloadListener = () => {
+  const addBeforeUnloadListener = useCallback(() => {
     if (window.__beforeUnloadListenerAdded) {
       return;
     }
@@ -156,7 +157,6 @@ const NodeEditor: React.FC<unknown> = () => {
       if (!window.location.pathname.includes("editor")) {
         return;
       }
-      const workflowIsDirty = useNodeStore.getState().workflowIsDirty;
       if (!workflowIsDirty || settings.alertBeforeTabClose === false) {
         return;
       }
@@ -165,7 +165,8 @@ const NodeEditor: React.FC<unknown> = () => {
       return "";
     });
     window.__beforeUnloadListenerAdded = true;
-  };
+  }, [workflowIsDirty, settings.alertBeforeTabClose]);
+
   addBeforeUnloadListener();
 
   // OPEN NODE MENU
