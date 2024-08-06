@@ -73,8 +73,8 @@ export default memo(
       useCallback((state) => state.getInputEdges(props.id), [props.id])
     );
     const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
-    const status = useStatusStore(
-      (state) => state.getStatus(workflowId, props.id),
+    const status = useStatusStore((state) =>
+      state.getStatus(workflowId, props.id)
     );
     const isLoading =
       status === "running" || status === "starting" || status === "booting";
@@ -110,6 +110,18 @@ export default memo(
         props.data.dirty,
       ]
     );
+    const result = useResultsStore((state) =>
+      state.getResult(props.data.workflow_id, props.id)
+    );
+    const memoizedOutput = useMemo(() => {
+      if (typeof result === "object") {
+        return Object.entries(result).map(([key, value]) => (
+          <OutputRenderer key={key} value={value} />
+        ));
+      }
+      return null;
+    }, [result]);
+
     if (!metadata) {
       return (
         <Container className={className}>
@@ -120,9 +132,6 @@ export default memo(
         </Container>
       );
     }
-    const result = useResultsStore(
-      (state) => state.getResult(props.data.workflow_id, props.id),
-    );
 
     const nodeMetadata = metadata.metadataByType[props.type];
     const node_title = titleize(nodeMetadata.title || "");
@@ -131,11 +140,11 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-          name: "output",
-          type: {
-            type: "string",
-          },
-        };
+            name: "output",
+            type: {
+              type: "string",
+            },
+          };
 
     return (
       <Container
@@ -178,12 +187,7 @@ export default memo(
           primaryField={nodeMetadata.primary_field || ""}
           secondaryField={nodeMetadata.secondary_field || ""}
         />
-        {isOutputNode &&
-          typeof result === "object" &&
-          useMemo(() => Object.entries(result).map(([key, value]) => (
-            <OutputRenderer key={key} value={value} />
-          )), [result])
-        }
+        {isOutputNode && typeof result === "object" && memoizedOutput}
         {nodeMetadata.layout === "default" && (
           <>
             <ProcessTimer status={status} />
