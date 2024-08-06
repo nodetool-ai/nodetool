@@ -355,3 +355,26 @@ class UNETLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"unet": UNet}
+
+
+class UpscaleModelLoader(ComfyNode):
+    model_name: UpscaleModelFile = Field(
+        default=UpscaleModelFile(),
+        description="The filename of the upscale model to load.",
+    )
+
+    async def initialize(self, context: ProcessingContext):
+        (upscale_model,) = await self.call_comfy_node(context)
+
+        context.add_model("comfy.upscale_model", self.model_name.name, upscale_model)
+
+    async def process(self, context: ProcessingContext):
+        return {"upscale_model": UpscaleModel(name=self.model_name.name)}
+
+    @classmethod
+    def get_title(cls):
+        return "Load Upscale Model"
+
+    @classmethod
+    def return_type(cls):
+        return {"upscale_model": UpscaleModel}

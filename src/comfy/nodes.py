@@ -2841,6 +2841,7 @@ def init_builtin_extra_nodes():
 
     import_failed = []
     for node_file in extras_files:
+        print("Loading extra node file: {}".format(node_file))
         if not load_custom_node(
             os.path.join(extras_dir, node_file), module_parent="comfy_extras"
         ):

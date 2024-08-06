@@ -1360,13 +1360,13 @@ tqdm = ["tqdm"]
 
 [[package]]
 name = "ftfy"
-version = "6.2.0"
+version = "6.2.3"
 description = "Fixes mojibake and other problems with Unicode, after the fact"
 optional = false
-python-versions = ">=3.8,<4"
+python-versions = "<4,>=3.8.1"
 files = [
-    {file = "ftfy-6.2.0-py3-none-any.whl", hash = "sha256:f94a2c34b76e07475720e3096f5ca80911d152406fbde66fdb45c4d0c9150026"},
-    {file = "ftfy-6.2.0.tar.gz", hash = "sha256:5e42143c7025ef97944ca2619d6b61b0619fc6654f98771d39e862c1424c75c0"},
+    {file = "ftfy-6.2.3-py3-none-any.whl", hash = "sha256:f15761b023f3061a66207d33f0c0149ad40a8319fd16da91796363e2c049fdf8"},
+    {file = "ftfy-6.2.3.tar.gz", hash = "sha256:79b505988f29d577a58a9069afe75553a02a46e42de6091c0660cdc67812badc"},
 ]
 
 [package.dependencies]
@@ -2709,12 +2709,12 @@ dev = ["absl-py", "pyink", "pylint (>=2.6.0)", "pytest", "pytest-xdist"]
 
 [[package]]
 name = "modal"
-version = "0.64.7"
+version = "0.64.9"
 description = "Python client library for Modal"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "modal-0.64.7-py3-none-any.whl", hash = "sha256:7091787a823217bfc8227d892fdc05029300f4a2ff37d6049fd2cc895ffc36e0"},
+    {file = "modal-0.64.9-py3-none-any.whl", hash = "sha256:5537d595473594676232b74da633f49d296d74b61bde36f3a3168ae9b3a25d8a"},
 ]
 
 [package.dependencies]
@@ -5345,6 +5345,24 @@ docs = ["linkify-it-py", "myst-parser", "sphinx", "sphinx-book-theme"]
 test = ["pytest"]
 
 [[package]]
+name = "spandrel"
+version = "0.3.4"
+description = "Give your project support for a variety of PyTorch model architectures, including auto-detecting model architecture from just .pth files. spandrel gives you arch support."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "spandrel-0.3.4-py3-none-any.whl", hash = "sha256:1b5585bcb0298fc817e5b556880431353f48770f98328c3ce54f4ed9768f2c13"},
+]
+
+[package.dependencies]
+einops = "*"
+numpy = "*"
+safetensors = "*"
+torch = "*"
+torchvision = "*"
+typing-extensions = "*"
+
+[[package]]
 name = "starlette"
 version = "0.37.2"
 description = "The little ASGI library that shines."
@@ -6592,4 +6610,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "db037e486a5a61e9c42a2586f97e90c228773b9836beba0e3fa4ef0a5c8cde0d"
+content-hash = "39a2a4c6f67d6765cd83651cca52a15ef34bbab1a2e6e6e18ca564d957c8f4a6"

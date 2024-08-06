@@ -375,6 +375,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       command: "cancel_job",
       data: { job_id }
     }));
+    set({ state: "cancelled" });
   },
 }));
 
