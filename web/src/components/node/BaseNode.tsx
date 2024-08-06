@@ -102,11 +102,11 @@ export default memo(
         </Container>
       );
     }
-    const result = useResultsStore((state) => state.getResult(props.data.workflow_id, props.id));
+    const result = useResultsStore(useCallback((state) => state.getResult(props.data.workflow_id, props.id), [props.data.workflow_id, props.id]));
 
-    const nodeMetadata = metadata.metadataByType[props.type];
-    const node_title = titleize(nodeMetadata.title || "");
-    const node_namespace = nodeMetadata.namespace || "";
+    const nodeMetadata = useMemo(() => metadata.metadataByType[props.type], [metadata, props.type]);
+    const node_title = useMemo(() => titleize(nodeMetadata.title || ""), [nodeMetadata.title]);
+    const node_namespace = useMemo(() => nodeMetadata.namespace || "", [nodeMetadata.namespace]);
     const firstOutput =
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
