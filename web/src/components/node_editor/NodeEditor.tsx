@@ -29,6 +29,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
+import { shallow } from 'zustand/shallow';
 // components
 import CommandMenu from "../menus/CommandMenu";
 import ConnectionLine from "./ConnectionLine";
@@ -72,18 +73,33 @@ declare global {
 }
 
 const NodeEditor: React.FC<unknown> = () => {
-  const nodes = useNodeStore((state) => state.nodes);
-  const edges = useNodeStore((state) => state.edges);
-  const onConnect = useNodeStore((state) => state.onConnect);
-  const onNodesChange = useNodeStore((state) => state.onNodesChange);
-  const onEdgesChange = useNodeStore((state) => state.onEdgesChange);
-  const onEdgeUpdate = useNodeStore((state) => state.onEdgeUpdate);
-  const updateNode = useNodeStore((state) => state.updateNodeData);
+  const {
+    nodes,
+    edges,
+    onConnect,
+    onNodesChange,
+    onEdgesChange,
+    onEdgeUpdate,
+    updateNodeData,
+    getWorkflowIsDirty
+  } = useNodeStore(
+    (state) => ({
+      nodes: state.nodes,
+      edges: state.edges,
+      onConnect: state.onConnect,
+      onNodesChange: state.onNodesChange,
+      onEdgesChange: state.onEdgesChange,
+      onEdgeUpdate: state.onEdgeUpdate,
+      updateNodeData: state.updateNodeData,
+      getWorkflowIsDirty: state.getWorkflowIsDirty
+    }),
+    shallow
+  );
 
-  const triggerOnConnect = (connection: Connection) => {
+  const triggerOnConnect = useCallback((connection: Connection) => {
     onConnect(connection);
     handleOnConnect(connection);
-  };
+  }, [onConnect, handleOnConnect]);
 
   const connecting = useConnectionStore((state) => state.connecting);
 
@@ -146,14 +162,14 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* LOADING*/
   const showLoading = loadingMetadata || metadata?.length === 0;
-  const workflowIsDirty = useNodeStore((state) => state.getWorkflowIsDirty());
+  const workflowIsDirty = useMemo(() => getWorkflowIsDirty(), [getWorkflowIsDirty]);
 
   /* CLOSE BROWSER TAB */
   const addBeforeUnloadListener = useCallback(() => {
     if (window.__beforeUnloadListenerAdded) {
       return;
     }
-    window.addEventListener("beforeunload", (event) => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!window.location.pathname.includes("editor")) {
         return;
       }
@@ -163,9 +179,16 @@ const NodeEditor: React.FC<unknown> = () => {
       event.preventDefault();
       event.returnValue = "";
       return "";
-    });
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
     window.__beforeUnloadListenerAdded = true;
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [workflowIsDirty, settings.alertBeforeTabClose]);
+
+  useEffect(() => {
+    const cleanup = addBeforeUnloadListener();
+    return cleanup;
+  }, [addBeforeUnloadListener]);
 
   addBeforeUnloadListener();
 
@@ -330,14 +353,14 @@ const NodeEditor: React.FC<unknown> = () => {
     (event: React.MouseEvent, node: Node) => {
       const clickedElement = event.target as HTMLElement;
       if (clickedElement.classList.contains("node-title")) {
-        updateNode(node.id, {
+        updateNodeData(node.id, {
           properties: { ...node.data.properties },
           workflow_id: node.data.workflow_id || "",
           collapsed: !node.data.collapsed
         });
       }
     },
-    [updateNode]
+    [updateNodeData]
   );
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
