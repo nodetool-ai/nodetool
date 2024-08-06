@@ -96,6 +96,14 @@ const NodeEditor: React.FC<unknown> = () => {
     shallow
   );
 
+  const { handleOnConnect, onConnectStart, onConnectEnd } =
+    useConnectionHandlers();
+  /* OPTIONS */
+  const proOptions = {
+    //https://reactflow.dev/docs/guides/remove-attribution/
+    hideAttribution: true
+  };
+
   const triggerOnConnect = useCallback((connection: Connection) => {
     onConnect(connection);
     handleOnConnect(connection);
@@ -362,14 +370,6 @@ const NodeEditor: React.FC<unknown> = () => {
     },
     [updateNodeData]
   );
-
-  const { handleOnConnect, onConnectStart, onConnectEnd } =
-    useConnectionHandlers();
-  /* OPTIONS */
-  const proOptions = {
-    //https://reactflow.dev/docs/guides/remove-attribution/
-    hideAttribution: true
-  };
 
   /* VIEWPORT */
   const currentZoom = useStore((state) => state.transform[2]);
