@@ -223,6 +223,7 @@ export const useDropHandler = (): DropHandler => {
                 comfy_workflow: workflow
               })
                 .then((workflow) => {
+                  console.log("workflow", workflow);
                   setWorkflow(workflow);
                 })
                 .catch((error) => {

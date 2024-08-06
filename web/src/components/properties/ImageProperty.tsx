@@ -25,7 +25,7 @@ export default function ImageProperty(props: PropertyProps) {
         description={props.property.description}
         id={id}
       />
-      {props.nodeType === "nodetool.constant.Image" && (
+      {(props.nodeType === "nodetool.constant.Image" || props.nodeType === "comfy.image.LoadImage") && (
         <PropertyDropzone
           asset={asset}
           uri={uri}

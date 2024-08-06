@@ -99,23 +99,23 @@ def create_node(node_id: str, node_data: Dict[str, Any]) -> Node:
 
 
 def create_edges(
-    node_id: str, node_data: Dict[str, Any], node_by_id: Dict[str, Node]
-) -> List[Edge]:
+    edges: List[Edge],
+    node_id: str,
+    node_data: Dict[str, Any],
+    node_by_id: Dict[str, Node],
+):
     """
     Create Edge objects for a node's inputs.
 
     Args:
+        edges (List[Edge]): The list of existing edges.
         node_id (str): The ID of the target node.
         node_data (Dict[str, Any]): The data for the node.
         node_by_id (Dict[str, Node]): A dictionary mapping node IDs to Node objects.
 
-    Returns:
-        List[Edge]: A list of new Edge objects.
-
     Raises:
         GraphParsingError: If a referenced source node cannot be found.
     """
-    edges = []
     node_inputs = node_data.get(DATA_KEY, node_data.get(INPUTS_KEY, {}))
 
     for input_name, input_value in node_inputs.items():
@@ -144,8 +144,6 @@ def create_edges(
                 targetHandle=input_name,
             )
             edges.append(edge)
-
-    return edges
 
 
 def get_widget_names(class_name: str) -> List[str]:
@@ -184,6 +182,13 @@ def convert_graph(input_graph: dict[str, Any]) -> dict[str, Any]:
     for node in input_graph["nodes"]:
         node_id = str(node["id"])
         output_graph[node_id] = {"class_type": node["type"], "data": {}}
+
+        # Add position information
+        if "pos" in node:
+            output_graph[node_id][POSITION_KEY] = {
+                "x": node["pos"][0] / 2,
+                "y": node["pos"][1] / 2,
+            }
 
         # Add widget values if present
         if "widgets_values" in node:
@@ -290,8 +295,7 @@ def read_graph(json: Dict[str, Any]) -> Tuple[List[Edge], List[Node]]:
     # Second pass: create all edges
     for node_id, node_data in json.items():
         try:
-            new_edges = create_edges(node_id, node_data, node_by_id)
-            edges.extend(new_edges)
+            create_edges(edges, node_id, node_data, node_by_id)
         except GraphParsingError as e:
             raise GraphParsingError(
                 f"Error creating edges for node {node_id}: {str(e)}"
