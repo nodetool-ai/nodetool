@@ -6,7 +6,7 @@
     "name": "Flux",
     "description": "SOTA Image Generation",
     "thumbnail": "",
-    "thumbnail_url": "/examples/stable_diffusion.png",
+    "thumbnail_url": "/examples/flux_schnell_example.png",
     "graph": {
         "1": {
             "type": "comfy.loaders.UNETLoader",

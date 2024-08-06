@@ -6,7 +6,7 @@
     "name": "Image to Image",
     "description": "",
     "thumbnail": "",
-    "thumbnail_url": "/examples/img2img.png",
+    "thumbnail_url": "/examples/image_to_image.png",
     "graph": {
         "3": {
             "type": "comfy.sampling.KSampler",

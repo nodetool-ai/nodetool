@@ -6,7 +6,7 @@
     "name": "Scribble Controlnet",
     "description": "",
     "thumbnail": "",
-    "thumbnail_url": "/examples/scribble.png",
+    "thumbnail_url": "/examples/input_scribble_example.png",
     "graph": {
         "3": {
             "type": "comfy.sampling.KSampler",
