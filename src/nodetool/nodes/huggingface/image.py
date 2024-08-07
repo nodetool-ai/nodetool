@@ -6,6 +6,18 @@ from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
 from typing import Any
 import asyncio
+from nodetool.workflows.base_node import BaseNode
+from nodetool.metadata.types import ImageRef
+import torch
+from diffusers import AuraFlowPipeline
+from diffusers import AutoPipelineForText2Image, AutoPipelineForImage2Image
+from diffusers import (
+    KandinskyV22Pipeline,
+    KandinskyV22PriorPipeline,
+    KandinskyV22Img2ImgPipeline,
+)
+
+from nodetool.workflows.types import NodeProgress
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -46,22 +58,26 @@ class ImageClassifier(HuggingFacePipelineNode):
         title="Image",
         description="The input image to classify",
     )
-    
+
     def get_model_id(self):
         return self.model.value
 
     @property
     def pipeline_task(self) -> str:
-        return 'image-classification'
+        return "image-classification"
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return {item['label']: item['score'] for item in result}
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return {item["label"]: item["score"] for item in result}
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return {item['label']: item['score'] for item in result}
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return {item["label"]: item["score"] for item in result}
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)
@@ -107,8 +123,8 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'zero-shot-image-classification'
-    
+        return "zero-shot-image-classification"
+
     def get_params(self):
         return {
             "candidate_labels": self.candidate_labels.split(","),
@@ -117,15 +133,18 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return {item['label']: item['score'] for item in result}
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return {item["label"]: item["score"] for item in result}
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return {item['label']: item['score'] for item in result}
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return {item["label"]: item["score"] for item in result}
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)
-
 
 
 # This has too much overlap with other SD nodes
@@ -201,7 +220,9 @@ class Segmentation(HuggingFacePipelineNode):
     """
 
     class SegmentationModelId(str, Enum):
-        NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512 = "nvidia/segformer-b3-finetuned-ade-512-512"
+        NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512 = (
+            "nvidia/segformer-b3-finetuned-ade-512-512"
+        )
 
     model: SegmentationModelId = Field(
         default=SegmentationModelId.NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512,
@@ -219,12 +240,14 @@ class Segmentation(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'image-segmentation'
+        return "image-segmentation"
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.image)
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, ImageRef]:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, ImageRef]:
         async def convert_output(item: dict[str, Any]):
             mask = await context.image_from_base64(item["mask"])
             return item["label"], mask
@@ -232,14 +255,15 @@ class Segmentation(HuggingFacePipelineNode):
         items = await asyncio.gather(*[convert_output(item) for item in list(result)])
         return {label: mask for label, mask in items}
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, ImageRef]:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, ImageRef]:
         async def convert_output(item: dict[str, Any]):
             mask = await context.image_from_pil(item["mask"])
             return item["label"], mask
 
         items = await asyncio.gather(*[convert_output(item) for item in result])
         return {label: mask for label, mask in items}
-    
 
 
 class ObjectDetection(HuggingFacePipelineNode):
@@ -283,7 +307,7 @@ class ObjectDetection(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'object-detection'
+        return "object-detection"
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
@@ -293,33 +317,38 @@ class ObjectDetection(HuggingFacePipelineNode):
             "threshold": self.threshold,
         }
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> DataframeRef:
         return await self.process_local_result(context, result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> DataframeRef:
         data = [
-            [item["label"],
-            item["score"],
-            item["box"]["xmin"],
-            item["box"]["ymin"],
-            item["box"]["xmax"],
-            item["box"]["ymax"],
+            [
+                item["label"],
+                item["score"],
+                item["box"]["xmin"],
+                item["box"]["ymin"],
+                item["box"]["xmax"],
+                item["box"]["ymax"],
             ]
             for item in result
         ]
         columns = [
             ColumnDef(name="label", data_type="string"),
             ColumnDef(name="score", data_type="float"),
-            ColumnDef(name="xmin",  data_type="float"),
-            ColumnDef(name="ymin",  data_type="float"),
-            ColumnDef(name="xmax",  data_type="float"),
-            ColumnDef(name="ymax",  data_type="float"),
+            ColumnDef(name="xmin", data_type="float"),
+            ColumnDef(name="ymin", data_type="float"),
+            ColumnDef(name="xmax", data_type="float"),
+            ColumnDef(name="ymax", data_type="float"),
         ]
         return DataframeRef(columns=columns, data=data)
 
     async def process(self, context: ProcessingContext) -> list[dict]:
         return await super().process(context)
-    
+
 
 class ZeroShotObjectDetection(HuggingFacePipelineNode):
     """
@@ -331,7 +360,7 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
     - Identify objects in images without predefined labels
     - Automate object detection for large datasets
     """
-    
+
     class ZeroShotObjectDetectionModelId(str, Enum):
         GOOGLE_OWL_VIT_BASE_PATCH32 = "google/owlvit-base-patch32"
         GOOGLE_OWL_VIT_LARGE_PATCH14 = "google/owlvit-large-patch14"
@@ -339,32 +368,31 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
         GOOGLE_OWL_V2_BASE_PATCH16 = "google/owlv2-base-patch16"
         GOOGLE_OWL_VIT_BASE_PATCH16_ENSEMBLE = "google/owlv2-base-patch16-ensemble"
         IDEA_RESEARCH_GROUNDING_DINO_TINY = "IDEA-Research/grounding-dino-tiny"
-        
-    
+
     model: ZeroShotObjectDetectionModelId = Field(
         default=ZeroShotObjectDetectionModelId.GOOGLE_OWL_V2_BASE_PATCH16,
         title="Model ID on Huggingface",
         description="The model ID to use for object detection",
     )
-    
+
     inputs: ImageRef = Field(
         default=ImageRef(),
         title="Inputs",
         description="The input image for object detection",
     )
-    
+
     threshold: float = Field(
         default=0.1,
         title="Confidence Threshold",
         description="Minimum confidence score for detected objects",
     )
-    
+
     top_k: int = Field(
         default=5,
         title="Top K",
         description="The number of top predictions to return",
     )
-    
+
     candidate_labels: str = Field(
         default="",
         title="Candidate Labels",
@@ -373,41 +401,46 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
 
     def get_model_id(self):
         return self.model.value
-    
+
     @property
     def pipeline_task(self) -> str:
-        return 'zero-shot-object-detection'
-    
+        return "zero-shot-object-detection"
+
     def get_params(self):
         return {
             "candidate_labels": self.candidate_labels.split(","),
             "threshold": self.threshold,
         }
-        
+
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> DataframeRef:
         return await self.process_local_result(context, result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> DataframeRef:
         data = [
-            [item["label"],
-            item["score"],
-            item["box"]["xmin"],
-            item["box"]["ymin"],
-            item["box"]["xmax"],
-            item["box"]["ymax"],
+            [
+                item["label"],
+                item["score"],
+                item["box"]["xmin"],
+                item["box"]["ymin"],
+                item["box"]["xmax"],
+                item["box"]["ymax"],
             ]
             for item in result
         ]
         columns = [
             ColumnDef(name="label", data_type="string"),
             ColumnDef(name="score", data_type="float"),
-            ColumnDef(name="xmin",  data_type="float"),
-            ColumnDef(name="ymin",  data_type="float"),
-            ColumnDef(name="xmax",  data_type="float"),
-            ColumnDef(name="ymax",  data_type="float"),
+            ColumnDef(name="xmin", data_type="float"),
+            ColumnDef(name="ymin", data_type="float"),
+            ColumnDef(name="xmax", data_type="float"),
+            ColumnDef(name="ymax", data_type="float"),
         ]
         return DataframeRef(columns=columns, data=data)
 
@@ -448,22 +481,26 @@ class DepthEstimation(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'depth-estimation'
+        return "depth-estimation"
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> ImageRef:
-        depth_map = await context.image_from_base64(result['depth'])
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> ImageRef:
+        depth_map = await context.image_from_base64(result["depth"])
         return depth_map
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> ImageRef:
-        depth_ref = await context.image_from_pil(result['depth'])
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> ImageRef:
+        depth_ref = await context.image_from_pil(result["depth"])
         return depth_ref
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         return await super().process(context)
-    
+
 
 class ImageToImage(HuggingFacePipelineNode):
     """
@@ -503,7 +540,7 @@ class ImageToImage(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'image-to-image'
+        return "image-to-image"
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
@@ -513,11 +550,292 @@ class ImageToImage(HuggingFacePipelineNode):
             "prompt": self.prompt,
         }
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> ImageRef:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> ImageRef:
         return await context.image_from_base64(result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> ImageRef:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> ImageRef:
         return await context.image_from_pil(result)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         return await super().process(context)
+
+
+class AuraFlowNode(BaseNode):
+    """
+    Generates images using the AuraFlow pipeline.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Create unique images from text descriptions
+    - Generate illustrations for creative projects
+    - Produce visual content for digital media
+    """
+
+    prompt: str = Field(
+        default="A cat holding a sign that says hello world",
+        description="A text prompt describing the desired image.",
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: AuraFlowPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = AuraFlowPipeline.from_pretrained(
+            "fal/AuraFlow", torch_dtype=torch.float16
+        )
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility if a seed is provided
+        generator = None
+        if self.seed != -1:
+            generator = torch.Generator(device=self._pipeline.device).manual_seed(
+                self.seed
+            )
+
+        output = self._pipeline(self.prompt, generator=generator)
+        image = output.images[0]
+
+        return await context.image_from_pil(image)
+
+
+class Kandinsky2Node(BaseNode):
+    """
+    Generates images using the Kandinsky 2.2 model. Provide image for img2img mode.
+    image, generation, AI, text-to-image, image-to-image
+
+    Use cases:
+    - Create high-quality images from text descriptions
+    - Transform existing images based on text prompts
+    - Generate detailed illustrations for creative projects
+    - Produce visual content for digital media and art
+    """
+
+    prompt: str = Field(
+        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+        description="A text prompt describing the desired image.",
+    )
+    negative_prompt: str = Field(
+        default="", description="A text prompt describing what to avoid in the image."
+    )
+    num_inference_steps: int = Field(
+        default=50, description="The number of denoising steps.", ge=1, le=100
+    )
+    width: int = Field(
+        default=768, description="The width of the generated image.", ge=128, le=1024
+    )
+    height: int = Field(
+        default=768, description="The height of the generated image.", ge=128, le=1024
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The input image to transform (optional)",
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _prior_pipeline: KandinskyV22PriorPipeline | None = None
+    _pipeline: KandinskyV22Pipeline | KandinskyV22Img2ImgPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-prior", torch_dtype=torch.float16
+        )
+        if self.image.is_empty():
+            self._pipeline = KandinskyV22Pipeline.from_pretrained(
+                "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
+            )
+        else:
+            self._pipeline = KandinskyV22Img2ImgPipeline.from_pretrained(
+                "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
+            )
+
+    async def move_to_device(self, device: str):
+        # Commented out as in the example
+        # if self._prior_pipeline is not None and self._pipeline is not None:
+        #     self._prior_pipeline.to(device)
+        #     self._pipeline.to(device)
+        pass
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._prior_pipeline is None or self._pipeline is None:
+            raise ValueError("Pipelines not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        def progress_callback(
+            step: int, timestep: int, latents: torch.FloatTensor
+        ) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        # Enable sequential CPU offload for memory efficiency
+        self._prior_pipeline.enable_sequential_cpu_offload()
+        self._pipeline.enable_sequential_cpu_offload()
+
+        # Generate image embeddings
+        prior_output = self._prior_pipeline(
+            self.prompt, negative_prompt=self.negative_prompt, generator=generator
+        )
+        image_emb, negative_image_emb = prior_output.to_tuple()
+
+        if self.image.is_empty():
+            output = self._pipeline(
+                image_embeds=image_emb,
+                negative_image_embeds=negative_image_emb,
+                height=self.height,
+                width=self.width,
+                num_inference_steps=self.num_inference_steps,
+                generator=generator,
+                callback=progress_callback,
+                callback_steps=1,
+            )
+        else:
+            input_image = await context.image_to_pil(self.image)
+            output = self._pipeline(
+                image=input_image,
+                image_embeds=image_emb,
+                negative_image_embeds=negative_image_emb,
+                height=self.height,
+                width=self.width,
+                num_inference_steps=self.num_inference_steps,
+                generator=generator,
+                callback=progress_callback,
+                callback_steps=1,
+            )
+
+        image = output.images[0]
+
+        return await context.image_from_pil(image)
+
+
+class Kandinsky3Node(BaseNode):
+    """
+    Generates images using the Kandinsky-3 model. Provide image for img2img mode.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Create detailed images from text descriptions
+    - Generate unique illustrations for creative projects
+    - Produce visual content for digital media and art
+    """
+
+    prompt: str = Field(
+        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+        description="A text prompt describing the desired image.",
+    )
+    num_inference_steps: int = Field(
+        default=25, description="The number of denoising steps.", ge=1, le=100
+    )
+    width: int = Field(
+        default=512, description="The width of the generated image.", ge=64, le=2048
+    )
+    height: int = Field(
+        default=512, description="The height of the generated image.", ge=64, le=2048
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The input image to transform (optional)",
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: AutoPipelineForText2Image | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        if self.image.is_empty():
+            self._pipeline = AutoPipelineForText2Image.from_pretrained(
+                "kandinsky-community/kandinsky-3",
+                variant="fp16",
+                torch_dtype=torch.float16,
+            )
+        else:
+            self._pipeline = AutoPipelineForImage2Image.from_pretrained(
+                "kandinsky-community/kandinsky-3",
+                variant="fp16",
+                torch_dtype=torch.float16,
+            )
+
+        assert self._pipeline is not None
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        def progress_callback(
+            step: int, timestep: int, latents: torch.FloatTensor
+        ) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        # self._pipeline.enable_sequential_cpu_offload()
+
+        if self.image.is_empty():
+            output = self._pipeline(
+                prompt=self.prompt,
+                num_inference_steps=self.num_inference_steps,
+                generator=generator,
+                width=self.width,
+                height=self.height,
+                callback=progress_callback,
+                callback_steps=1,
+            )
+        else:
+            input_image = await context.image_to_pil(self.image)
+            output = self._pipeline(
+                prompt=self.prompt,
+                num_inference_steps=self.num_inference_steps,
+                generator=generator,
+                image=input_image,
+                width=self.width,
+                height=self.height,
+                callback=progress_callback,
+            )
+
+        image = output.images[0]
+
+        return await context.image_from_pil(image)
