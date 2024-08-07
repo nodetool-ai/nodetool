@@ -7,7 +7,7 @@ import comfy.utils
 import comfy.model_management
 from comfy.clip_vision import clip_preprocess
 from comfy.ldm.modules.attention import optimized_attention
-import comfy.folder_paths as folder_paths
+import folder_paths as folder_paths
 
 from torch import nn
 from PIL import Image

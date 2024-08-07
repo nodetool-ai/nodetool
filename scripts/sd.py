@@ -1,5 +1,5 @@
 import torch
-from comfy.nodes import (
+from nodes import (
     CheckpointLoaderSimple,
     CLIPTextEncode,
     KSampler,

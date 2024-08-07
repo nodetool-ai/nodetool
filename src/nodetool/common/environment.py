@@ -695,9 +695,9 @@ class Environment(object):
         if len(cls.model_files) > 0:
             return cls.model_files.get(folder, [])
         else:
-            import comfy.folder_paths
+            import folder_paths
 
-            return comfy.folder_paths.get_filename_list(folder)
+            return folder_paths.get_filename_list(folder)
 
     @classmethod
     def get_comfy_folder(cls):

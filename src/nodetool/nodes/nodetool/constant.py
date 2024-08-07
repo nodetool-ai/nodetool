@@ -99,6 +99,22 @@ class Image(Constant):
         return self.value
 
 
+class Integer(Constant):
+    """Represents an integer constant in the workflow.
+    number, integer, whole
+
+    Use cases:
+    - Set numerical parameters for calculations
+    - Define counts, indices, or sizes
+    - Provide fixed numerical inputs for processing
+    """
+
+    value: int = 0
+
+    async def process(self, context: ProcessingContext) -> int:
+        return self.value
+
+
 class List(Constant):
     """Represents a list constant in the workflow.
     array, squence, collection

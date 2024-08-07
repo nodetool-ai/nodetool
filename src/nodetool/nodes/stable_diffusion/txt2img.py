@@ -1,7 +1,21 @@
+from typing import Optional
 from comfy.model_patcher import ModelPatcher
-from comfy.nodes import LatentUpscale
+from comfy_extras.nodes_custom_sampler import (
+    BasicGuider,
+    BasicScheduler,
+    KSamplerSelect,
+    RandomNoise,
+    SamplerCustomAdvanced,
+)
+from nodes import LatentUpscale
 from comfy.sd import CLIP, VAE
-from nodetool.metadata.types import CheckpointFile, ImageRef
+from nodetool.metadata.types import (
+    CLIPFile,
+    CheckpointFile,
+    ImageRef,
+    UNetFile,
+    VAEFile,
+)
 from nodetool.nodes.stable_diffusion.enums import Sampler, Scheduler
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
@@ -20,6 +34,7 @@ class SD_Txt2Img(BaseNode):
     - Visualizing design ideas or architectural concepts
     - Producing unique images for marketing and advertising materials
     """
+
     model: CheckpointFile = Field(
         default=CheckpointFile(), description="Stable Diffusion checkpoint to load."
     )
@@ -27,34 +42,50 @@ class SD_Txt2Img(BaseNode):
     negative_prompt: str = Field(default="", description="The negative prompt to use.")
     seed: int = Field(default=0, ge=0, le=1000000)
     guidance_scale: float = Field(default=7.0, ge=1.0, le=30.0)
-    num_inference_steps: int = Field(default=30, ge=1, le=100, description="Number of inference steps.")
-    num_hires_steps: int = Field(default=0, ge=0, le=100, description="Number of high resolution steps. If 0, no high resolution steps are taken.")
-    hires_denoise: float = Field(default=0.5, ge=0.0, le=1.0, description="Denoising strength for high resolution steps.")
+    num_inference_steps: int = Field(
+        default=30, ge=1, le=100, description="Number of inference steps."
+    )
+    num_hires_steps: int = Field(
+        default=0,
+        ge=0,
+        le=100,
+        description="Number of high resolution steps. If 0, no high resolution steps are taken.",
+    )
+    hires_denoise: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Denoising strength for high resolution steps.",
+    )
     width: int = Field(default=512, ge=64, le=2048, multiple_of=64)
     height: int = Field(default=512, ge=64, le=2048, multiple_of=64)
     scheduler: Scheduler = Field(default=Scheduler.exponential)
     sampler: Sampler = Field(default=Sampler.euler_ancestral)
-    
+
     _model: ModelPatcher | None = None
     _clip: CLIP | None = None
     _vae: VAE | None = None
-    
+
     async def initialize(self, context: ProcessingContext):
-        from comfy.nodes import CheckpointLoaderSimple
+        from nodes import CheckpointLoaderSimple
+
         checkpoint_loader = CheckpointLoaderSimple()
-        self._model, self._clip, self._vae, _ = checkpoint_loader.load_checkpoint( # type: ignore
+        self._model, self._clip, self._vae = checkpoint_loader.load_checkpoint(
             self.model.name
         )
-        
+
     async def process(self, context: ProcessingContext) -> ImageRef:
-        from comfy.nodes import CLIPTextEncode, EmptyLatentImage, KSampler, VAEDecode, CheckpointLoaderSimple
+        from nodes import (
+            CLIPTextEncode,
+            EmptyLatentImage,
+            KSampler,
+            VAEDecode,
+        )
         import PIL.Image
         import numpy as np
-        
+
         clip_text_encode = CLIPTextEncode()
-        positive_conditioning = clip_text_encode.encode(
-            self._clip, self.prompt
-        )[0]
+        positive_conditioning = clip_text_encode.encode(self._clip, self.prompt)[0]
         negative_conditioning = clip_text_encode.encode(
             self._clip, self.negative_prompt
         )[0]
@@ -81,14 +112,14 @@ class SD_Txt2Img(BaseNode):
             negative=negative_conditioning,
             latent_image=latent,
         )[0]
-        
+
         if self.num_hires_steps > 0:
             hires_latent = LatentUpscale().upscale(
                 samples=sampled_latent,
                 upscale_method="nearest-exact",
                 width=self.width,
                 height=self.height,
-                crop=False
+                crop=False,
             )[0]
 
             sampled_latent = k_sampler.sample(
@@ -113,4 +144,85 @@ class SD_Txt2Img(BaseNode):
         )
 
         return await context.image_from_pil(img)
-    
+
+
+class Flux(BaseNode):
+    """
+    Generates images from text prompts using a custom Stable Diffusion workflow.
+    image, text-to-image, generative AI, stable diffusion, custom workflow
+
+    Use cases:
+    - Creating custom illustrations with specific model configurations
+    - Generating images with fine-tuned control over the sampling process
+    - Experimenting with different VAE, CLIP, and UNET combinations
+    """
+
+    prompt: str = Field(default="", description="The prompt to use.")
+    width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
+    height: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
+    batch_size: int = Field(default=1, ge=1, le=16)
+    steps: int = Field(default=4, ge=1, le=100, description="Number of sampling steps.")
+    scheduler: Scheduler = Field(default=Scheduler.simple)
+    sampler: Sampler = Field(default=Sampler.euler)
+    noise_seed: int = Field(default=689015878, ge=0, le=1000000000)
+
+    _vae: Optional[VAE] = None
+    _clip: Optional[CLIP] = None
+    _unet: Optional[ModelPatcher] = None
+
+    async def initialize(self, context: ProcessingContext):
+        from nodes import (
+            DualCLIPLoader,
+            VAELoader,
+            UNETLoader,
+        )
+
+        self._unet = UNETLoader().load_unet("flux1-schnell.sft", "fp16")[0]
+        self._vae = VAELoader().load_vae("ae.sft")[0]
+        self._clip = DualCLIPLoader().load_clip(
+            "clip_l.safetensors", "t5xxl_fp8_e4m3fn.safetensors", "flux"
+        )[0]
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        from nodes import (
+            EmptyLatentImage,
+            CLIPTextEncode,
+            VAEDecode,
+        )
+
+        # Create empty latent image
+        empty_latent = EmptyLatentImage().generate(
+            self.width, self.height, self.batch_size
+        )[0]
+
+        # Encode text prompt
+        conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
+
+        # Set up sampler and scheduler
+        sampler = KSamplerSelect().get_sampler(self.sampler.value)[0]
+        sigmas = BasicScheduler().get_sigmas(
+            self._unet,
+            self.scheduler.value,
+            self.steps,
+            1,
+        )[0]
+
+        guider = BasicGuider().get_guider(self._unet, conditioning)[0]
+        noise = RandomNoise().get_noise(self.noise_seed)[0]
+
+        sampled_latent = SamplerCustomAdvanced().sample(
+            noise, guider, sampler, sigmas, empty_latent
+        )[0]
+
+        decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
+
+        import PIL.Image
+        import numpy as np
+
+        img = PIL.Image.fromarray(
+            np.clip(decoded_image.squeeze(0).cpu().numpy() * 255, 0, 255).astype(  # type: ignore
+                np.uint8
+            )
+        )
+
+        return await context.image_from_pil(img)

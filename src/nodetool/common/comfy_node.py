@@ -18,7 +18,7 @@ MAX_RESOLUTION = 8192 * 2
 
 
 def resolve_comfy_class(name: str) -> type | None:
-    from comfy.nodes import NODE_CLASS_MAPPINGS as mappings  # type: ignore
+    from nodes import NODE_CLASS_MAPPINGS as mappings  # type: ignore
 
     return mappings.get(name, None)
 

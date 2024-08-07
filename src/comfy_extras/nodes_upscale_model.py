@@ -4,7 +4,7 @@ from spandrel import ModelLoader, ImageModelDescriptor
 from comfy import model_management
 import torch
 import comfy.utils
-import comfy.folder_paths as folder_paths
+import folder_paths
 
 try:
     from spandrel_extra_arches import EXTRA_REGISTRY

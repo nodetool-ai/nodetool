@@ -1,5 +1,5 @@
 import comfy.utils
-import comfy.folder_paths as folder_paths
+import folder_paths
 import torch
 import logging
 

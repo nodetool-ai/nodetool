@@ -1,7 +1,7 @@
 import torchaudio
 import torch
 import comfy.model_management
-import comfy.folder_paths as folder_paths
+import folder_paths
 import os
 import io
 import json

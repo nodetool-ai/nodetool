@@ -1,10 +1,10 @@
 import comfy.samplers
 import comfy.sample
 from comfy.k_diffusion import sampling as k_diffusion_sampling
-import comfy.latent_preview as latent_preview
+import latent_preview
 import torch
 import comfy.utils
-import comfy.node_helpers as node_helpers
+import node_helpers
 
 
 class BasicScheduler:
@@ -1133,6 +1133,12 @@ class SamplerCustomAdvanced:
     CATEGORY = "sampling/custom_sampling"
 
     def sample(self, noise, guider, sampler, sigmas, latent_image):
+        print("SamplerCustomAdvanced")
+        print(noise)
+        print(guider)
+        print(sampler)
+        print(sigmas)
+        print(latent_image)
         latent = latent_image
         latent_image = latent["samples"]
         latent = latent.copy()
