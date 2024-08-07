@@ -12,6 +12,7 @@ import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
 import AssetUploadOverlay from "./AssetUploadOverlay";
 import Dropzone from "./Dropzone";
+import FolderList from "./FolderList";
 
 import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -21,9 +22,9 @@ import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useNodeStore } from "../../stores/NodeStore";
-import useAssets from "../../serverState/useAssets";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { Asset } from "../../stores/ApiTypes";
+import { useGetAssets } from "./useGetAssets";
 
 const styles = (theme: any) =>
   css({
@@ -31,7 +32,7 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-start",
-      height: "100%"
+      height: "100%",
     },
     ".dropzone": {
       display: "flex",
@@ -40,7 +41,7 @@ const styles = (theme: any) =>
       flexGrow: 1,
       flexShrink: 1,
       width: "100%",
-      maxHeight: "calc(-273px + 100vh)"
+      maxHeight: "calc(-273px + 100vh)",
     },
     ".audio-controls-container": {
       position: "absolute",
@@ -52,14 +53,9 @@ const styles = (theme: any) =>
       left: "0",
       width: "100%",
       padding: "0.5em",
-      backgroundColor: theme.palette.c_gray1
-    }
+      backgroundColor: theme.palette.c_gray1,
+    },
   });
-
-interface SortedAssetsByType {
-  assetsByType: Record<string, Asset[]>;
-  totalCount: number;
-}
 
 interface AssetGridProps {
   maxItemSize?: number;
@@ -70,18 +66,26 @@ interface AssetGridProps {
 const AssetGrid: React.FC<AssetGridProps> = ({
   maxItemSize = 100,
   itemSpacing = 5,
-  assets
+  assets,
 }) => {
-  const { sortedAssets, error } = useAssets();
+  const [searchTerm, setSearchTerm] = useState("");
+  const { folders, otherAssets, allAssets, error } = useGetAssets(
+    searchTerm,
+    assets
+  );
+
+  console.log("AssetGrid - folders:", folders);
+  console.log("AssetGrid - otherAssets:", otherAssets);
+  console.log("AssetGrid - allAssets:", allAssets);
 
   const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
   const { mutation: moveMutation } = useAssetUpdate();
 
-  const [searchTerm, setSearchTerm] = useState("");
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
+  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
 
   const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
   const spaceKeyPressed = useKeyPressedStore((state) =>
@@ -97,8 +101,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     setSelectedAssetIds,
     currentAudioAsset,
     handleSelectAllAssets,
-    handleDeselectAssets
-  } = useAssetSelection(sortedAssets);
+    handleDeselectAssets,
+    handleSelectAsset,
+  } = useAssetSelection(allAssets);
 
   const {
     deleteDialogOpen,
@@ -109,7 +114,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     openRenameDialog,
     closeRenameDialog,
     openMoveToFolderDialog,
-    closeMoveToFolderDialog
+    closeMoveToFolderDialog,
   } = useAssetDialog();
 
   const handleClickOutside = useCallback(
@@ -155,7 +160,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         uploadAsset({
           file: file,
           workflow_id: workflow.id,
-          parent_id: currentFolderId || undefined
+          parent_id: currentFolderId || undefined,
         });
       });
     },
@@ -163,12 +168,16 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
 
   const handleSearchChange = (newSearchTerm: string) => {
+    console.log("Search term changed:", newSearchTerm);
     setSearchTerm(newSearchTerm);
   };
 
   const handleSearchClear = () => {
+    console.log("Search cleared");
     setSearchTerm("");
   };
+
+  console.log("Rendering AssetGrid");
 
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
@@ -187,11 +196,14 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       />
       <Dropzone onDrop={uploadFiles}>
         <div style={{ height: "100%" }}>
-          <AssetGridContent
-            itemSpacing={itemSpacing}
-            searchTerm={searchTerm}
-            assets={assets}
+          <FolderList
+            folders={folders}
+            selectedAssetIds={selectedAssetIds}
+            handleSelectAsset={handleSelectAsset}
+            setCurrentFolderId={setCurrentFolderId}
           />
+
+          <AssetGridContent itemSpacing={itemSpacing} assets={otherAssets} />
         </div>
       </Dropzone>
       <Divider />

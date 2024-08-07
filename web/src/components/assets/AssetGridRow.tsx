@@ -19,7 +19,6 @@ interface AssetGridRowProps {
     handleSelectAsset: (id: string) => void;
     refetch: () => void;
     setSelectedAssetIds: (ids: string[]) => void;
-    setCurrentFolderId: (id: string) => void;
     onDragStart: (id: string) => string[];
   };
 }
@@ -36,8 +35,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     handleSelectAsset,
     refetch,
     setSelectedAssetIds,
-    setCurrentFolderId,
-    onDragStart
+    onDragStart,
   } = data;
 
   const rowItems = getItemsForRow(index);
@@ -58,7 +56,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           padding: `${itemSpacing}px ${itemSpacing}px`,
           boxSizing: "border-box",
           display: "flex",
-          alignItems: "center"
+          alignItems: "center",
         }}
         className="content-type-header"
       >
@@ -67,7 +65,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           style={{
             width: "100%",
             height: "2px",
-            backgroundColor: colorForType(divider.type)
+            backgroundColor: colorForType(divider.type),
           }}
         />
       </div>
@@ -81,7 +79,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
         display: "flex",
         flexWrap: "wrap",
         width: "100%",
-        boxSizing: "border-box"
+        boxSizing: "border-box",
       }}
     >
       {rowItems.map((item) => {
@@ -100,7 +98,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
               height: `${gridDimensions.itemHeight + footerHeight}px`,
               padding: `${itemSpacing}px`,
               flexShrink: 0,
-              boxSizing: "border-box"
+              boxSizing: "border-box",
             }}
           >
             <AssetItem
@@ -116,10 +114,6 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
               }}
               onDeleteAssets={() => {
                 refetch();
-                setSelectedAssetIds([]);
-              }}
-              onDoubleClickFolder={(folderId) => {
-                setCurrentFolderId(folderId);
                 setSelectedAssetIds([]);
               }}
               onDragStart={() => onDragStart(item.id)}
