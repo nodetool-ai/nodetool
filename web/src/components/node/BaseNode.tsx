@@ -110,6 +110,17 @@ export default memo(
         props.data.dirty,
       ]
     );
+    const result = useResultsStore(
+      (state) => state.getResult(props.data.workflow_id, props.id),
+    );
+    const renderedResult = useMemo(() => {
+      if (isOutputNode && typeof result === "object") {
+        return Object.entries(result).map(([key, value]) => (
+          <OutputRenderer key={key} value={value} />
+        ));
+      }
+    }, [isOutputNode, result]);
+
     if (!metadata) {
       return (
         <Container className={className}>
@@ -120,10 +131,6 @@ export default memo(
         </Container>
       );
     }
-    const result = useResultsStore(
-      (state) => state.getResult(props.data.workflow_id, props.id),
-    );
-
     const nodeMetadata = metadata.metadataByType[props.type];
     const node_title = titleize(nodeMetadata.title || "");
     const node_namespace = nodeMetadata.namespace || "";
@@ -178,12 +185,7 @@ export default memo(
           primaryField={nodeMetadata.primary_field || ""}
           secondaryField={nodeMetadata.secondary_field || ""}
         />
-        {isOutputNode &&
-          typeof result === "object" &&
-          useMemo(() => Object.entries(result).map(([key, value]) => (
-            <OutputRenderer key={key} value={value} />
-          )), [result])
-        }
+        {renderedResult}
         {nodeMetadata.layout === "default" && (
           <>
             <ProcessTimer status={status} />
