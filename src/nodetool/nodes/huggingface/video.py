@@ -1,5 +1,6 @@
 from typing import Any
 from pydantic import Field
+from nodetool.providers.huggingface.huggingface_node import progress_callback
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef, VideoRef
@@ -81,6 +82,8 @@ class AnimateDiffNode(BaseNode):
             num_frames=self.num_frames,
             guidance_scale=self.guidance_scale,
             num_inference_steps=self.num_inference_steps,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
             generator=generator,
         )
 

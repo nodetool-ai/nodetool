@@ -2,6 +2,7 @@ from enum import Enum
 from nodetool.metadata.types import ColumnType, DataframeRef, ImageRef, ColumnDef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
+from nodetool.providers.huggingface.huggingface_node import progress_callback
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
 from typing import Any
@@ -16,8 +17,6 @@ from diffusers import (
     KandinskyV22PriorPipeline,
     KandinskyV22Img2ImgPipeline,
 )
-
-from nodetool.workflows.types import NodeProgress
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -579,6 +578,9 @@ class AuraFlowNode(BaseNode):
         default="A cat holding a sign that says hello world",
         description="A text prompt describing the desired image.",
     )
+    num_inference_steps: int = Field(
+        default=25, description="The number of denoising steps.", ge=1, le=100
+    )
     seed: int = Field(
         default=-1,
         description="Seed for the random number generator. Use -1 for a random seed.",
@@ -607,7 +609,11 @@ class AuraFlowNode(BaseNode):
                 self.seed
             )
 
-        output = self._pipeline(self.prompt, generator=generator)
+        output = self._pipeline(
+            self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+        )
         image = output.images[0]
 
         return await context.image_from_pil(image)
@@ -684,17 +690,6 @@ class Kandinsky2Node(BaseNode):
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
-        def progress_callback(
-            step: int, timestep: int, latents: torch.FloatTensor
-        ) -> None:
-            context.post_message(
-                NodeProgress(
-                    node_id=self.id,
-                    progress=step,
-                    total=self.num_inference_steps,
-                )
-            )
-
         # Enable sequential CPU offload for memory efficiency
         self._prior_pipeline.enable_sequential_cpu_offload()
         self._pipeline.enable_sequential_cpu_offload()
@@ -713,7 +708,7 @@ class Kandinsky2Node(BaseNode):
                 width=self.width,
                 num_inference_steps=self.num_inference_steps,
                 generator=generator,
-                callback=progress_callback,
+                callback=progress_callback(self.id, self.num_inference_steps, context),
                 callback_steps=1,
             )
         else:
@@ -789,8 +784,9 @@ class Kandinsky3Node(BaseNode):
         assert self._pipeline is not None
 
     async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        # if self._pipeline is not None:
+        #     self._pipeline.to(device)
+        pass
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -801,18 +797,7 @@ class Kandinsky3Node(BaseNode):
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
-        def progress_callback(
-            step: int, timestep: int, latents: torch.FloatTensor
-        ) -> None:
-            context.post_message(
-                NodeProgress(
-                    node_id=self.id,
-                    progress=step,
-                    total=self.num_inference_steps,
-                )
-            )
-
-        # self._pipeline.enable_sequential_cpu_offload()
+        self._pipeline.enable_sequential_cpu_offload()
 
         if self.image.is_empty():
             output = self._pipeline(
@@ -821,7 +806,7 @@ class Kandinsky3Node(BaseNode):
                 generator=generator,
                 width=self.width,
                 height=self.height,
-                callback=progress_callback,
+                callback=progress_callback(self.id, self.num_inference_steps, context),
                 callback_steps=1,
             )
         else:

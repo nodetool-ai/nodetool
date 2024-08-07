@@ -6,7 +6,8 @@ from nodetool.providers.replicate.replicate_node import convert_output_value
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from typing import Any, Type
-from nodetool.workflows.types import NodeUpdate
+import torch
+from nodetool.workflows.types import NodeProgress, NodeUpdate
 
 
 class HuggingfaceNode(BaseNode):
@@ -70,3 +71,16 @@ class HuggingfaceNode(BaseNode):
         return {
             "output": output,
         }
+
+
+def progress_callback(node_id: str, total_steps: int, context: ProcessingContext):
+    def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+        context.post_message(
+            NodeProgress(
+                node_id=node_id,
+                progress=step,
+                total=total_steps,
+            )
+        )
+
+    return callback
