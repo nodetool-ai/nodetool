@@ -17,6 +17,8 @@ from diffusers import (
     KandinskyV22PriorPipeline,
     KandinskyV22Img2ImgPipeline,
 )
+from diffusers import StableCascadeDecoderPipeline, StableCascadePriorPipeline
+from nodetool.workflows.types import NodeProgress
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -824,3 +826,110 @@ class Kandinsky3Node(BaseNode):
         image = output.images[0]
 
         return await context.image_from_pil(image)
+
+
+class StableCascadeNode(BaseNode):
+    """
+    Generates images using the Stable Cascade model, which involves a two-stage process with a prior and a decoder.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Create high-quality images from text descriptions
+    - Generate detailed illustrations for creative projects
+    - Produce visual content for digital media and art
+    """
+
+    prompt: str = Field(
+        default="an image of a shiba inu, donning a spacesuit and helmet",
+        description="A text prompt describing the desired image.",
+    )
+    negative_prompt: str = Field(
+        default="", description="A text prompt describing what to avoid in the image."
+    )
+    width: int = Field(
+        default=1024, description="The width of the generated image.", ge=256, le=2048
+    )
+    height: int = Field(
+        default=1024, description="The height of the generated image.", ge=256, le=2048
+    )
+    prior_num_inference_steps: int = Field(
+        default=20,
+        description="The number of denoising steps for the prior.",
+        ge=1,
+        le=100,
+    )
+    decoder_num_inference_steps: int = Field(
+        default=10,
+        description="The number of denoising steps for the decoder.",
+        ge=1,
+        le=100,
+    )
+    prior_guidance_scale: float = Field(
+        default=4.0, description="Guidance scale for the prior.", ge=0.0, le=20.0
+    )
+    decoder_guidance_scale: float = Field(
+        default=0.0, description="Guidance scale for the decoder.", ge=0.0, le=20.0
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _prior_pipeline: StableCascadePriorPipeline | None = None
+    _decoder_pipeline: StableCascadeDecoderPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._prior_pipeline = StableCascadePriorPipeline.from_pretrained(
+            "stabilityai/stable-cascade-prior",
+            variant="bf16",
+            torch_dtype=torch.bfloat16,
+        )
+        self._decoder_pipeline = StableCascadeDecoderPipeline.from_pretrained(
+            "stabilityai/stable-cascade", variant="bf16", torch_dtype=torch.float16
+        )
+
+    async def move_to_device(self, device: str):
+        # Commented out as we're using CPU offload
+        # if self._prior_pipeline is not None and self._decoder_pipeline is not None:
+        #     self._prior_pipeline.to(device)
+        #     self._decoder_pipeline.to(device)
+        pass
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._prior_pipeline is None or self._decoder_pipeline is None:
+            raise ValueError("Pipelines not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        # Enable CPU offload for memory efficiency
+        self._prior_pipeline.enable_model_cpu_offload()
+        self._decoder_pipeline.enable_model_cpu_offload()
+
+        # Generate image embeddings with the prior
+        prior_output = self._prior_pipeline(
+            prompt=self.prompt,
+            height=self.height,
+            width=self.width,
+            negative_prompt=self.negative_prompt,
+            guidance_scale=self.prior_guidance_scale,
+            num_images_per_prompt=1,
+            num_inference_steps=self.prior_num_inference_steps,
+            generator=generator,
+        )
+
+        # Generate the final image with the decoder
+        decoder_output = self._decoder_pipeline(
+            image_embeddings=prior_output.image_embeddings.to(torch.float16),
+            prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
+            guidance_scale=self.decoder_guidance_scale,
+            output_type="pil",
+            num_inference_steps=self.decoder_num_inference_steps,
+            generator=generator,
+        ).images[0]
+
+        return await context.image_from_pil(decoder_output)

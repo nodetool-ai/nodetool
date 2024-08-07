@@ -26,6 +26,7 @@ import nodetool.nodes.comfy.latent
 import nodetool.nodes.comfy.latent.advanced
 import nodetool.nodes.comfy.latent.batch
 import nodetool.nodes.comfy.latent.inpaint
+import nodetool.nodes.comfy.latent.stable_cascade
 import nodetool.nodes.comfy.latent.transform
 import nodetool.nodes.comfy.loaders
 import nodetool.nodes.comfy.mask
