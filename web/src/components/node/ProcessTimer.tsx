@@ -6,7 +6,7 @@ export const ProcessTimer = memo(function ProcessTimer({
 }: {
   status: string;
 }) {
-  const [seconds, setSeconds] = useState(0);
+  const [seconds, setSeconds] = useState("");
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -17,7 +17,8 @@ export const ProcessTimer = memo(function ProcessTimer({
       interval = setInterval(() => {
         const currentTime = Date.now();
         const diffInSeconds = ((currentTime - (startTime as number))) / 1000;
-        setSeconds(Math.round(diffInSeconds * 10) / 10);
+        // format the seconds to 1 decimal place
+        setSeconds(diffInSeconds.toFixed(1) + "s");
       }, 100);
     } else if (status === "completed" || status === "failed") {
       if (interval)
@@ -31,11 +32,11 @@ export const ProcessTimer = memo(function ProcessTimer({
 
   return (
     <div className={"process-timer"}>
-      {status === "starting" && <Box sx={{ color: "yellow" }}>{seconds}s starting...</Box>}
-      {status === "booting" && <Box sx={{ color: "yellow" }}>{seconds}s starting...</Box>}
-      {status === "running" && <Box sx={{ color: "white" }}>{seconds}s running...</Box>}
+      {status === "starting" && <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>}
+      {status === "booting" && <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>}
+      {status === "running" && <Box sx={{ color: "white" }}>{seconds} running...</Box>}
       {status === "failed" && <Box sx={{ color: "red" }}>failed</Box>}
-      {status === "completed" && <Box sx={{ color: "green" }}>{seconds}s ●</Box>}
+      {status === "completed" && <Box sx={{ color: "green" }}>{seconds} ●</Box>}
     </div>
   );
 });

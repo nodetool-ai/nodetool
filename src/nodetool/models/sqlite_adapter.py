@@ -16,7 +16,8 @@ from nodetool.models.condition_builder import (
 from .database_adapter import DatabaseAdapter
 from typing import Any, Type, Union, get_origin, get_args
 import json
-import enum
+from enum import EnumMeta as EnumType
+from enum import Enum
 
 
 def convert_to_sqlite_format(
@@ -58,7 +59,7 @@ def convert_to_sqlite_format(
         return value.isoformat()
     elif py_type is bool or (isinstance(py_type, type) and issubclass(py_type, bool)):
         return int(value)
-    elif issubclass(py_type, enum.Enum):
+    elif issubclass(py_type, Enum):
         return value.value
     else:
         raise TypeError(f"Unsupported type for SQLite: {py_type}")
@@ -98,7 +99,7 @@ def convert_from_sqlite_format(value: Any, py_type: Type) -> Any:
         return datetime.fromisoformat(value)
     elif py_type is bool or (isinstance(py_type, type) and issubclass(py_type, bool)):
         return bool(value)
-    elif issubclass(py_type, enum.Enum):
+    elif issubclass(py_type, Enum):
         return py_type(value)
     else:
         raise TypeError(f"Unsupported type for SQLite: {py_type}")
@@ -156,7 +157,7 @@ def get_sqlite_type(field_type: Any) -> str:
         return "TEXT"
     elif field_type is bytes:  # bytes are stored as BLOB
         return "BLOB"
-    elif field_type.__class__ is enum.EnumType:
+    elif field_type.__class__ is EnumType:
         return "TEXT"
     elif field_type is None:  # NoneType translates to NULL
         return "NULL"

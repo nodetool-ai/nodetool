@@ -22,22 +22,14 @@ class S3Storage(AbstractStorage):
     def __init__(
         self,
         bucket_name: str,
-        region_name: str,
         endpoint_url: str,
-        access_key_id: str,
-        secret_access_key: str,
+        client: Any,
         domain: str | None = None,
     ):
         self.bucket_name = bucket_name
         self.endpoint_url = endpoint_url
         self.domain = domain
-        self.s3 = boto3.client(
-            "s3",
-            region_name=region_name,
-            endpoint_url=endpoint_url,
-            aws_access_key_id=access_key_id,
-            aws_secret_access_key=secret_access_key,
-        )
+        self.s3 = client
 
     def get_base_url(self):
         """

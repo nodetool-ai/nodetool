@@ -1,45 +1,115 @@
-#!/usr/bin/env python
 import pytest
-import httpx
 import io
-import respx
+import boto3
 from moto import mock_aws
-from nodetool.common.aws_client import AWSClient
-from nodetool.common.environment import Environment
 from nodetool.storage.s3_storage import S3Storage
 
 file_name = "test_asset.jpg"
-data = b"0" * 1024 * 1024 * 10
+data = b"0" * 1024 * 1024  # 1 MB of data for testing
 
 
-@pytest.fixture(scope="module")
-def storage():
-    mock = mock_aws()
-    mock.start()
-    s3_temp = AWSClient("region").get_s3_storage(bucket="temp", domain="temp.test")
-    yield s3_temp
-    mock.stop()
+@pytest.fixture(scope="function")
+def s3_client():
+    with mock_aws():
+        yield boto3.client("s3", region_name="us-east-1")
 
 
-@pytest.fixture()
-def get_url(storage: S3Storage):
-    return
-
-
-@pytest.mark.asyncio
-async def test_download_stream(storage: S3Storage):
-    get_url = f"https://temp.test/{file_name}"
-    with respx.mock as mock:
-        mock.get(get_url).mock(return_value=httpx.Response(200, content=data))
-        size = 0
-        async for chunk in storage.download_stream(file_name):
-            size += len(chunk)
-        assert size == 1024 * 1024 * 10
+@pytest.fixture(scope="function")
+def storage(s3_client):
+    bucket_name = "test-bucket"
+    s3_client.create_bucket(Bucket=bucket_name)
+    return S3Storage(
+        bucket_name=bucket_name,
+        endpoint_url="http://localhost:5000",  # This is ignored by moto
+        client=s3_client,
+    )
 
 
 @pytest.mark.asyncio
-async def test_delete(storage: S3Storage):
-    delete_url = storage.generate_presigned_url("delete_object", file_name)
-    with respx.mock as mock:
-        mock.delete(delete_url).mock(return_value=httpx.Response(200))
-        await storage.delete(file_name)
+async def test_file_exists(storage):
+    # Test non-existent file
+    assert not await storage.file_exists(file_name)
+
+    # Upload a file
+    await storage.upload(file_name, io.BytesIO(data))
+
+    # Test existing file
+    assert await storage.file_exists(file_name)
+
+
+@pytest.mark.asyncio
+async def test_get_mtime(storage):
+    # Upload a file
+    await storage.upload(file_name, io.BytesIO(data))
+
+    # Get the mtime
+    mtime = await storage.get_mtime(file_name)
+    assert mtime is not None
+
+
+@pytest.mark.asyncio
+async def test_download(storage):
+    # Upload a file
+    await storage.upload(file_name, io.BytesIO(data))
+
+    # Download the file
+    output = io.BytesIO()
+    await storage.download(file_name, output)
+    assert output.getvalue() == data
+
+
+@pytest.mark.asyncio
+async def test_upload(storage):
+    # Upload a file
+    url = await storage.upload(file_name, io.BytesIO(data))
+    assert url.startswith(f"https://{storage.bucket_name}.s3")
+
+    # Verify the file was uploaded
+    assert await storage.file_exists(file_name)
+
+
+@pytest.mark.asyncio
+async def test_download_stream(storage):
+    # Upload a file
+    await storage.upload(file_name, io.BytesIO(data))
+
+    # Download the file as a stream
+    downloaded_data = b""
+    async for chunk in storage.download_stream(file_name):
+        downloaded_data += chunk
+    assert downloaded_data == data
+
+
+@pytest.mark.asyncio
+async def test_delete(storage):
+    # Upload a file
+    await storage.upload(file_name, io.BytesIO(data))
+
+    # Verify the file exists
+    assert await storage.file_exists(file_name)
+
+    # Delete the file
+    await storage.delete(file_name)
+
+    # Verify the file no longer exists
+    assert not await storage.file_exists(file_name)
+
+
+@pytest.mark.asyncio
+async def test_get_base_url(storage):
+    base_url = storage.get_base_url()
+    assert (
+        base_url
+        == f"https://{storage.bucket_name}.s3.{storage.s3.meta.region_name}.amazonaws.com"
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_url(storage):
+    # Test with domain
+    storage.domain = "example.com"
+    assert storage.get_url(file_name) == f"https://example.com/{file_name}"
+
+    # Test without domain
+    storage.domain = None
+    assert storage.get_url(file_name) == f"{storage.get_base_url()}/{file_name}"
