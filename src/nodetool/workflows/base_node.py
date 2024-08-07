@@ -848,6 +848,13 @@ def get_comfy_class_by_name(class_name: str) -> type[BaseNode]:
     return COMFY_NODE_CLASSES[class_name]
 
 
+def find_node_class_by_name(class_name: str) -> type[BaseNode] | None:
+    for node_class in get_registered_node_classes():
+        if node_class.__name__ == class_name:
+            return node_class
+    return None
+
+
 def get_node_class(node_type: str) -> type[BaseNode] | None:
     """
     Retrieve a node class based on its unique node type identifier.
@@ -861,7 +868,7 @@ def get_node_class(node_type: str) -> type[BaseNode] | None:
     if node_type in NODE_BY_TYPE:
         return NODE_BY_TYPE[node_type]
     else:
-        return None
+        return find_node_class_by_name(node_type.split(".")[-1])
 
 
 def get_registered_node_classes() -> list[type[BaseNode]]:
