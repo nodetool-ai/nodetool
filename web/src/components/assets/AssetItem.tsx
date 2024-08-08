@@ -1,3 +1,21 @@
+// import React, { useState, useCallback, useMemo } from "react";
+// import { ButtonGroup, Typography } from "@mui/material";
+// import FolderIcon from "@mui/icons-material/Folder";
+// import NorthWest from "@mui/icons-material/NorthWest";
+// import ImageIcon from "@mui/icons-material/Image";
+// import VideoFileIcon from "@mui/icons-material/VideoFile";
+// import AudioFileIcon from "@mui/icons-material/AudioFile";
+// import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+// import useSessionStateStore from "../../stores/SessionStateStore";
+// import useContextMenuStore from "../../stores/ContextMenuStore";
+// import { Asset } from "../../stores/ApiTypes";
+// import AssetViewer from "./AssetViewer";
+// import DeleteButton from "../buttons/DeleteButton";
+// import { devError } from "../../utils/DevLog";
+// import { useAssetUpdate } from "../../serverState/useAssetUpdate";
+// import { secondsToHMS } from "../../utils/formatDateAndTime";
+// import { useSettingsStore } from "../../stores/SettingsStore";
+
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useState, useMemo } from "react";
@@ -216,8 +234,13 @@ export type AssetItemProps = {
   showInfo?: boolean;
   showFiletype?: boolean;
   showDuration?: boolean;
+  openDeleteDialog?: () => void;
+  openRenameDialog?: () => void;
   onSelect?: () => void;
   onClickParent?: (id: string) => void;
+  onDragStart?: (assetId: string) => string[];
+  onMoveToFolder?: () => void;
+  onDeleteAssets?: () => void;
   onSetCurrentAudioAsset?: (asset: Asset) => void;
 };
 
@@ -233,8 +256,10 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     showInfo = true,
     showFiletype = true,
     showDuration = true,
-    // onSelect,
-    // onClickParent,
+    openDeleteDialog,
+    onSelect,
+    onClickParent,
+    onMoveToFolder,
     onSetCurrentAudioAsset,
   } = props;
 
@@ -254,7 +279,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     handleDrop,
     handleContextMenu,
     handleDelete,
-  } = useAssetActions(asset);
+  } = useAssetActions(asset, onMoveToFolder);
 
   const assetType = useMemo(() => {
     return asset?.content_type ? asset.content_type.split("/")[0] : "unknown";
@@ -289,7 +314,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
       } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
-      onContextMenu={(e) => (enableContextMenu ? handleContextMenu(e) : null)}
+      onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
       key={asset.id}
       draggable={draggable}
       onDragStart={handleDrag}
@@ -297,7 +322,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
         e.stopPropagation();
         handleDoubleClick(setOpenAsset);
       }}
-      onClick={() => handleClick(asset)}
+      onClick={() => handleClick(onSelect, onClickParent, isParent)}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
@@ -306,7 +331,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
           <DeleteButton<Asset>
             className="asset-delete"
             item={asset}
-            onClick={handleDelete}
+            onClick={() => handleDelete(openDeleteDialog)}
           />
         </ButtonGroup>
       )}
