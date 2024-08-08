@@ -1,5 +1,6 @@
 from typing import Optional
 import PIL.Image
+import torch
 from comfy.model_patcher import ModelPatcher
 from comfy.sd import CLIP, VAE
 from nodetool.metadata.types import CheckpointFile, ImageRef
@@ -286,7 +287,7 @@ class ControlNet(BaseNode):
         from nodes import CheckpointLoaderSimple, ControlNetLoader
 
         checkpoint_loader = CheckpointLoaderSimple()
-        self._model, self._clip, self._vae, _ = checkpoint_loader.load_checkpoint(  # type: ignore
+        self._model, self._clip, self._vae = checkpoint_loader.load_checkpoint(  # type: ignore
             self.model.name
         )
 
