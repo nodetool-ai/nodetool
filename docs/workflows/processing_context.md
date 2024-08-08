@@ -226,20 +226,6 @@ Creates a task.
 **Returns:**
 
 - **Task**: The created task.
-### create_temp_asset
-
-Uploads a temporary asset with the given content and extension.
-
-
-**Args:**
-
-- **content (IO)**: The content of the asset.
-- **ext (str, optional)**: The extension of the asset. Defaults to "".
-
-
-**Returns:**
-
-- **str**: The URL of the created temporary asset.
 ### dataframe_from_pandas
 
 Converts a pandas DataFrame to a DataframeRef object.
@@ -293,19 +279,6 @@ Download a file from URL.
 **Returns:**
 
 - **IO**: The downloaded file.
-### download_temp_asset
-
-Downloads a temporary asset from the temp storage.
-
-
-**Args:**
-
-- **temp_id (str)**: The ID of the temporary asset to download.
-
-
-**Returns:**
-
-- **IO**: The downloaded temporary asset.
 ### find_asset
 
 Finds an asset by id.
@@ -783,16 +756,6 @@ Results are stored in the context's results dictionary after a node is processed
 
 - **node_id (str)**: The ID of the node.
 - **res (dict[str, Any])**: The result of the node.
-### temp_storage_url
-
-Returns the URL of an asset in the temp storage.
-
-
-**Args:**
-
-- **key (str)**: The key of the asset.
-**Returns:** str
-
 ### text_from_str
 
 **Args:**
@@ -871,6 +834,21 @@ Creates an VideoRef from an IO object.
 
 - **context (ProcessingContext)**: The processing context.
 - **buffer (IO)**: The IO object.
+- **name (Optional[str], optional)**: The name of the asset. Defaults to None.
+
+
+**Returns:**
+
+- **VideoRef**: The VideoRef object.
+### video_from_numpy
+
+Creates a VideoRef from a numpy array.
+
+
+**Args:**
+
+- **context (ProcessingContext)**: The processing context.
+- **video (np.ndarray)**: The numpy array.
 - **name (Optional[str], optional)**: The name of the asset. Defaults to None.
 
 

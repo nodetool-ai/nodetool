@@ -2,7 +2,7 @@
 
 ### get_examples
 
-**Returns:** list
+**Returns:** typing.List[nodetool.types.workflow.Workflow]
 
 ### load_example
 

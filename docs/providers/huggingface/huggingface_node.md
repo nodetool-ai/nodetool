@@ -28,3 +28,10 @@
 
 **Returns:** typing.Any
 
+### progress_callback
+
+**Args:**
+- **node_id (str)**
+- **total_steps (int)**
+- **context (ProcessingContext)**
+

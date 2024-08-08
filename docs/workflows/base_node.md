@@ -223,9 +223,10 @@ value (Any): The value to be previewed.
 - **value**: The value to preview. (typing.Any)
 - **name**: The name of the preview node. (str)
 
-### add_node_classname
+### add_comfy_classname
 
-Register a node class by its class name in the NODES_BY_CLASSNAME dictionary.
+Register a comfy node class by its class name in the NODES_BY_CLASSNAME dictionary.
+To avoid name conflicts, we store comfy classes in a separate dictionary.
 
 
 **Args:**
@@ -250,20 +251,14 @@ Add a node type to the registry.
 - **node_class (type[Node])**: The class of the node.
 **Returns:** None
 
-### get_node_class
-
-Retrieve a node class based on its unique node type identifier.
-
+### find_node_class_by_name
 
 **Args:**
+- **class_name (str)**
 
-- **node_type (str)**: The node type identifier.
+**Returns:** type[nodetool.workflows.base_node.BaseNode] | None
 
-
-**Returns:**
-
-- **type[BaseNode] | None**: The node class if found, None otherwise.
-### get_node_class_by_name
+### get_comfy_class_by_name
 
 Retrieve node classes based on their class name.
 
@@ -281,6 +276,19 @@ Retrieve node classes based on their class name.
 **Note:**
 
 If no exact match is found, it attempts to find a match by removing hyphens from the class name.
+### get_node_class
+
+Retrieve a node class based on its unique node type identifier.
+
+
+**Args:**
+
+- **node_type (str)**: The node type identifier.
+
+
+**Returns:**
+
+- **type[BaseNode] | None**: The node class if found, None otherwise.
 ### get_registered_node_classes
 
 Retrieve all registered and visible node classes.

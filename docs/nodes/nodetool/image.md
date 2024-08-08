@@ -88,7 +88,6 @@ Use cases:
 - **folder**: The folder to save the image in. (FolderRef)
 - **name** (str)
 
-- [nodetool.nodes.nodetool.image.classify](image/classify.md)
 - [nodetool.nodes.nodetool.image.enhance](image/enhance.md)
 - [nodetool.nodes.nodetool.image.grid](image/grid.md)
 - [nodetool.nodes.nodetool.image.source](image/source.md)

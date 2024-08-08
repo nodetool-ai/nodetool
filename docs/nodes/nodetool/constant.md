@@ -81,6 +81,19 @@ Use cases:
 
 - **value** (ImageRef)
 
+## Integer
+
+Represents an integer constant in the workflow.
+
+Use cases:
+- Set numerical parameters for calculations
+- Define counts, indices, or sizes
+- Provide fixed numerical inputs for processing
+
+**Tags:** number, integer, whole
+
+- **value** (int)
+
 ## List
 
 Represents a list constant in the workflow.

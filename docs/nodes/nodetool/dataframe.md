@@ -29,20 +29,6 @@ Use cases:
 - **dataframe_a**: First DataFrame to be appended. (DataframeRef)
 - **dataframe_b**: Second DataFrame to be appended. (DataframeRef)
 
-## ConvertListToTable
-
-Convert list of values to dataframe.
-
-Use cases:
-- Transform list data into structured dataframe
-- Prepare list data for analysis or visualization
-- Convert API responses to dataframe format
-
-**Tags:** list, dataframe, convert
-
-- **values**: List of values to be converted, each value will be a row. (list)
-- **columns**: Comma separated list of column names (str)
-
 ## ConvertTensorToTable
 
 Convert tensor to dataframe.
@@ -154,6 +140,20 @@ Use cases:
 
 - **dataframe**: The input dataframe. (DataframeRef)
 - **template**: The template for the string representation. Each column can be referenced by {column_name}. (str)
+
+## FromList
+
+Convert list of values to dataframe.
+
+Use cases:
+- Transform list data into structured dataframe
+- Prepare list data for analysis or visualization
+- Convert API responses to dataframe format
+
+**Tags:** list, dataframe, convert
+
+- **values**: List of values to be converted, each value will be a row. (list)
+- **columns**: Comma separated list of column names (str)
 
 ## ImportCSVData
 
