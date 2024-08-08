@@ -49,7 +49,7 @@ const styles = (theme: any) =>
       color: "red",
       fontFamily: theme.fontFamily1,
     },
-    ".node-body": {
+    "&.node-body": {
       display: "flex",
       flexDirection: "column",
     },
@@ -161,7 +161,7 @@ export default memo(
         className={className}
         css={styles}
         style={{
-          display: parentIsCollapsed ? "none" : "block",
+          display: parentIsCollapsed ? "none" : "flex",
           minHeight: `${minHeight}px`,
           backgroundColor: hasParent
             ? ThemeNodes.palette.c_node_bg_group
