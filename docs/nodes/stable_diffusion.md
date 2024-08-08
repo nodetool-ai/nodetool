@@ -82,7 +82,7 @@ Use cases:
 - **height** (int)
 - **scheduler** (Scheduler)
 - **sampler** (Sampler)
-- **input_image**: Input image for img2img (optional) (typing.Optional[nodetool.metadata.types.ImageRef])
+- **input_image**: Input image for img2img (optional) (ImageRef)
 - **denoise** (float)
 - **hires_model**: Hires model checkpoint to load. (CheckpointFile)
 - **num_hires_steps** (int)
@@ -116,7 +116,7 @@ Use cases:
 - **height** (int)
 - **scheduler** (Scheduler)
 - **sampler** (Sampler)
-- **input_image**: Input image for img2img (optional) (typing.Optional[nodetool.metadata.types.ImageRef])
+- **input_image**: Input image for img2img (optional) (ImageRef)
 - **denoise** (float)
 
 ### initialize

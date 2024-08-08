@@ -12,7 +12,11 @@ Use cases:
 **Tags:** image, generation, AI, text-to-image
 
 - **prompt**: A text prompt describing the desired image. (str)
+- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
+- **guidance_scale**: The guidance scale for the transformation. (float)
 - **num_inference_steps**: The number of denoising steps. (int)
+- **width**: The width of the generated image. (int)
+- **height**: The height of the generated image. (int)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 
 ### initialize
@@ -24,6 +28,36 @@ Use cases:
 
 **Args:**
 - **device (str)**
+
+## BaseImageToImage
+
+Base class for image-to-image transformation tasks.
+
+**Tags:** image, transformation, generation, huggingface
+
+- **inputs**: The input image to transform (ImageRef)
+- **prompt**: The text prompt to guide the image transformation (if applicable) (str)
+
+### get_inputs
+
+**Args:**
+- **context (ProcessingContext)**
+
+### process_local_result
+
+**Args:**
+- **context (ProcessingContext)**
+- **result (typing.Any)**
+
+**Returns:** ImageRef
+
+### process_remote_result
+
+**Args:**
+- **context (ProcessingContext)**
+- **result (typing.Any)**
+
+**Returns:** ImageRef
 
 ## DepthEstimation
 
@@ -65,6 +99,14 @@ Use cases:
 
 **Returns:** ImageRef
 
+## IPAdapter_SD15_Model
+
+An enumeration.
+
+## IPAdapter_SDXL_Model
+
+An enumeration.
+
 ## ImageClassifier
 
 Classifies images into predefined categories.
@@ -105,26 +147,23 @@ Use cases:
 
 **Returns:** dict
 
-## ImageToImage
+## InstructPix2Pix
 
-Performs image-to-image transformation tasks.
+Performs image editing based on text instructions using the InstructPix2Pix model.
 
 Use cases:
-- Style transfer
-- Image inpainting
-- Image super-resolution
-- Image colorization
+- Apply specific edits to images based on text instructions
+- Modify image content or style guided by text prompts
+- Create variations of existing images with controlled changes
 
-**Tags:** image, transformation, generation, huggingface
+**Tags:** image, editing, transformation, huggingface
 
-- **model**: The model ID to use for the image-to-image transformation (ImageToImageModelId)
 - **inputs**: The input image to transform (ImageRef)
-- **prompt**: The text prompt to guide the image transformation (if applicable) (str)
-
-### get_inputs
-
-**Args:**
-- **context (ProcessingContext)**
+- **prompt**: The text prompt to guide the image transformation. (str)
+- **negative_prompt**: The negative text prompt to avoid in the transformation. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **guidance_scale**: The guidance scale for the transformation. (float)
+- **image_guidance_scale**: The image guidance scale for the transformation. (float)
 
 ### get_model_id
 
@@ -134,40 +173,97 @@ Use cases:
 
 **Args:**
 
-### process_local_result
+## Kandinsky2
 
-**Args:**
-- **context (ProcessingContext)**
-- **result (typing.Any)**
-
-**Returns:** ImageRef
-
-### process_remote_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (typing.Any)**
-
-**Returns:** ImageRef
-
-## Kandinsky2Node
-
-Generates images using the Kandinsky 2.2 model. Provide image for img2img mode.
+Generates images using the Kandinsky 2.2 model from text prompts.
 
 Use cases:
 - Create high-quality images from text descriptions
-- Transform existing images based on text prompts
 - Generate detailed illustrations for creative projects
 - Produce visual content for digital media and art
+- Explore AI-generated imagery for concept development
 
-**Tags:** image, generation, AI, text-to-image, image-to-image
+**Tags:** image, generation, AI, text-to-image
 
 - **prompt**: A text prompt describing the desired image. (str)
 - **negative_prompt**: A text prompt describing what to avoid in the image. (str)
 - **num_inference_steps**: The number of denoising steps. (int)
 - **width**: The width of the generated image. (int)
 - **height**: The height of the generated image. (int)
-- **image**: The input image to transform (optional) (ImageRef)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+## Kandinsky2ControlNet
+
+Transforms existing images based on text prompts and control images using the Kandinsky 2.2 model with ControlNet.
+
+Use cases:
+- Transform existing images based on text prompts with precise control
+- Apply specific styles or concepts to existing images guided by control images
+- Modify photographs or artworks with AI-generated elements while maintaining specific structures
+- Create variations of existing visual content with controlled transformations
+
+**Tags:** image, generation, AI, image-to-image, controlnet
+
+- **prompt**: The prompt to guide the image generation. (str)
+- **negative_prompt**: The prompt not to guide the image generation. (str)
+- **hint**: The controlnet condition image. (ImageRef)
+- **height**: The height in pixels of the generated image. (int)
+- **width**: The width in pixels of the generated image. (int)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **guidance_scale**: Guidance scale as defined in Classifier-Free Diffusion Guidance. (float)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **output_type**: The output format of the generated image. (str)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+## Kandinsky2Img2Img
+
+Transforms existing images based on text prompts using the Kandinsky 2.2 model.
+
+Use cases:
+- Transform existing images based on text prompts
+- Apply specific styles or concepts to existing images
+- Modify photographs or artworks with AI-generated elements
+- Create variations of existing visual content
+
+**Tags:** image, generation, AI, image-to-image
+
+- **prompt**: A text prompt describing the desired image transformation. (str)
+- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **strength**: The strength of the transformation. Use a value between 0.0 and 1.0. (float)
+- **image**: The input image to transform (ImageRef)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+## Kandinsky3
+
+Generates images using the Kandinsky-3 model from text prompts.
+
+Use cases:
+- Create detailed images from text descriptions
+- Generate unique illustrations for creative projects
+- Produce visual content for digital media and art
+- Explore AI-generated imagery for concept development
+
+**Tags:** image, generation, AI, text-to-image
+
+- **prompt**: A text prompt describing the desired image. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **width**: The width of the generated image. (int)
+- **height**: The height of the generated image. (int)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 
 ### initialize
@@ -180,22 +276,22 @@ Use cases:
 **Args:**
 - **device (str)**
 
-## Kandinsky3Node
+## Kandinsky3Img2Img
 
-Generates images using the Kandinsky-3 model. Provide image for img2img mode.
+Transforms existing images using the Kandinsky-3 model based on text prompts.
 
 Use cases:
-- Create detailed images from text descriptions
-- Generate unique illustrations for creative projects
-- Produce visual content for digital media and art
+- Modify existing images based on text descriptions
+- Apply specific styles or concepts to photographs or artwork
+- Create variations of existing visual content
+- Blend AI-generated elements with existing images
 
-**Tags:** image, generation, AI, text-to-image
+**Tags:** image, generation, AI, image-to-image
 
-- **prompt**: A text prompt describing the desired image. (str)
+- **prompt**: A text prompt describing the desired image transformation. (str)
 - **num_inference_steps**: The number of denoising steps. (int)
-- **width**: The width of the generated image. (int)
-- **height**: The height of the generated image. (int)
-- **image**: The input image to transform (optional) (ImageRef)
+- **strength**: The strength of the transformation. Use a value between 0.0 and 1.0. (float)
+- **image**: The input image to transform (ImageRef)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 
 ### initialize
@@ -254,10 +350,102 @@ Use cases:
 
 **Returns:** DataframeRef
 
+## PixArtAlphaNode
+
+Generates images from text prompts using the PixArt-Alpha model.
+
+Use cases:
+- Create unique images from detailed text descriptions
+- Generate concept art for creative projects
+- Produce visual content for digital media and marketing
+- Explore AI-generated imagery for artistic inspiration
+
+**Tags:** image, generation, AI, text-to-image
+
+- **prompt**: A text prompt describing the desired image. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **guidance_scale**: The scale for classifier-free guidance. (float)
+- **width**: The width of the generated image. (int)
+- **height**: The height of the generated image. (int)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+## RealESRGAN
+
+Performs image super-resolution using the Real-ESRGAN model.
+
+Use cases:
+- Enhance low-resolution images
+- Restore details in blurry or pixelated images
+- Improve visual quality of old or compressed images
+
+**Tags:** image, super-resolution, enhancement, huggingface
+
+- **inputs**: The input image to transform (ImageRef)
+- **prompt**: The text prompt to guide the image transformation (if applicable) (str)
+
+### get_model_id
+
+**Args:**
+
+### get_params
+
+**Args:**
+
 ## SDXLTurbo
 
+Generates images from text prompts using SDXL Turbo.
+
+Use cases:
+- Rapid prototyping of visual concepts
+- Real-time image generation for interactive applications
+- Quick visualization of ideas for brainstorming sessions
+- Creating multiple variations of an image concept quickly
+
+**Tags:** image, generation, AI, text-to-image, fast
+
+- **model**: The SDXL Turbo model to use for generation. (SDXLTurboModelId)
 - **prompt**: The prompt for image generation. (str)
-- **init_image**: The initial image for Image-to-Image generation (optional). (ImageRef)
+- **seed**: Seed for the random number generator. (int)
+- **num_inference_steps**: Number of inference steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **width**: Width of the generated image. (int)
+- **height**: Height of the generated image (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+## SDXLTurboImg2Img
+
+Transforms existing images based on text prompts using SDXL Turbo.
+
+Use cases:
+- Modifying existing images to fit a specific style or theme
+- Enhancing or altering stock photos for unique marketing materials
+- Transforming rough sketches into detailed illustrations
+- Creating variations of existing artwork or designs
+
+**Tags:** image, generation, AI, image-to-image
+
+- **model**: The SDXL Turbo model to use for generation. (SDXLTurboModelId)
+- **prompt**: The prompt for image generation. (str)
+- **init_image**: The initial image for Image-to-Image generation. (ImageRef)
 - **seed**: Seed for the random number generator. (int)
 - **num_inference_steps**: Number of inference steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
@@ -274,6 +462,10 @@ Use cases:
 
 **Args:**
 - **device (str)**
+
+## SDXLTurboModelId
+
+An enumeration.
 
 ## Segmentation
 
@@ -343,6 +535,231 @@ Use cases:
 
 **Args:**
 - **device (str)**
+
+## StableDiffusion
+
+Generates images from text prompts using Stable Diffusion.
+
+Use cases:
+- Creating custom illustrations for various projects
+- Generating concept art for creative endeavors
+- Producing unique visual content for marketing materials
+- Exploring AI-generated art for personal or professional use
+
+**Tags:** image, generation, AI, text-to-image
+
+- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **num_inference_steps**: Number of denoising steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **width**: Width of the generated image. (int)
+- **height**: Height of the generated image (int)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+## StableDiffusion3ControlNetNode
+
+Generates images using Stable Diffusion 3 with ControlNet.
+
+Use cases:
+- Generate images with precise control over composition and structure
+- Create variations of existing images while maintaining specific features
+- Artistic image generation with guided outputs
+
+**Tags:** image, generation, AI, text-to-image, controlnet
+
+- **prompt**: A text prompt describing the desired image. (str)
+- **control_model**: The ControlNet model to use for image generation. (StableDiffusion3ControlNetModelId)
+- **control_image**: The control image to guide the generation process. (ImageRef)
+- **controlnet_conditioning_scale**: The scale of the ControlNet conditioning. (float)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+## StableDiffusionImg2Img
+
+Transforms existing images based on text prompts using Stable Diffusion.
+
+Use cases:
+- Modifying existing images to fit a specific style or theme
+- Enhancing or altering photographs
+- Creating variations of existing artwork
+- Applying text-guided edits to images
+
+**Tags:** image, generation, AI, image-to-image
+
+- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **init_image**: The initial image for Image-to-Image generation. (ImageRef)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **num_inference_steps**: Number of denoising steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **strength**: Strength for Image-to-Image generation. Higher values allow for more deviation from the original image. (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+## StableDiffusionModelId
+
+An enumeration.
+
+## StableDiffusionScheduler
+
+An enumeration.
+
+## StableDiffusionXL
+
+Generates images from text prompts using Stable Diffusion XL.
+
+Use cases:
+- Creating custom illustrations for marketing materials
+- Generating concept art for game and film development
+- Producing unique stock imagery for websites and publications
+- Visualizing interior design concepts for clients
+
+**Tags:** image, generation, AI, text-to-image
+
+- **model**: The Stable Diffusion XL model to use for generation. (StableDiffusionXLModelId)
+- **prompt**: The prompt for image generation. (str)
+- **seed**: Seed for the random number generator. (int)
+- **num_inference_steps**: Number of inference steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **width**: Width of the generated image. (int)
+- **height**: Height of the generated image (int)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SDXL_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+## StableDiffusionXLControlNetNode
+
+Generates images using Stable Diffusion XL with ControlNet.
+
+Use cases:
+- Generate high-quality images with precise control over structures and features
+- Create variations of existing images while maintaining specific characteristics
+- Artistic image generation with guided outputs based on various control types
+
+**Tags:** image, generation, AI, text-to-image, controlnet
+
+- **prompt**: A text prompt describing the desired image. (str)
+- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
+- **control_image**: The control image to guide the generation process (already processed). (ImageRef)
+- **control_model**: The type of ControlNet model to use. (StableDiffusionXLControlNetModel)
+- **controlnet_conditioning_scale**: The scale of the ControlNet conditioning. (float)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+## StableDiffusionXLImg2Img
+
+Transforms existing images based on text prompts using Stable Diffusion XL.
+
+Use cases:
+- Modifying existing images to fit a specific style or theme
+- Enhancing or altering stock photos for unique marketing materials
+- Transforming rough sketches into detailed illustrations
+- Creating variations of existing artwork or designs
+
+**Tags:** image, generation, AI, image-to-image
+
+- **model**: The Stable Diffusion XL model to use for generation. (StableDiffusionXLModelId)
+- **prompt**: The prompt for image generation. (str)
+- **init_image**: The initial image for Image-to-Image generation. (ImageRef)
+- **seed**: Seed for the random number generator. (int)
+- **num_inference_steps**: Number of inference steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **width**: Width of the generated image. (int)
+- **height**: Height of the generated image (int)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **strength**: Strength for Image-to-Image generation. (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+## StableDiffusionXLModelId
+
+An enumeration.
+
+## Swin2SR
+
+Performs image super-resolution using the Swin2SR model.
+
+Use cases:
+- Enhance low-resolution images
+- Improve image quality for printing or display
+- Upscale images for better detail
+
+**Tags:** image, super-resolution, enhancement, huggingface
+
+- **inputs**: The input image to transform (ImageRef)
+- **prompt**: The text prompt to guide the image transformation (if applicable) (str)
+
+### get_model_id
+
+**Args:**
+
+### get_params
+
+**Args:**
 
 ## ZeroShotImageClassifier
 
@@ -433,4 +850,16 @@ Use cases:
 - **result (typing.Any)**
 
 **Returns:** DataframeRef
+
+### get_scheduler_class
+
+**Args:**
+- **scheduler (StableDiffusionScheduler)**
+
+### make_hint
+
+**Args:**
+- **image (Image)**
+
+**Returns:** Tensor
 
