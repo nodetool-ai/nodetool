@@ -29,6 +29,22 @@ from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, Auto
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline  # type: ignore
 from diffusers import PixArtAlphaPipeline  # type: ignore
+from diffusers.schedulers import (
+    DPMSolverSDEScheduler,  # type: ignore
+    EulerDiscreteScheduler,  # type: ignore
+    LMSDiscreteScheduler,  # type: ignore
+    DDIMScheduler,  # type: ignore
+    DDPMScheduler,  # type: ignore
+    HeunDiscreteScheduler,  # type: ignore
+    DPMSolverMultistepScheduler,  # type: ignore
+    DEISMultistepScheduler,  # type: ignore
+    PNDMScheduler,  # type: ignore
+    EulerAncestralDiscreteScheduler,  # type: ignore
+    UniPCMultistepScheduler,  # type: ignore
+    KDPM2DiscreteScheduler,  # type: ignore
+    DPMSolverSinglestepScheduler,  # type: ignore
+    KDPM2AncestralDiscreteScheduler,  # type: ignore
+)
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -158,66 +174,54 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
         return await super().process(context)
 
 
-# This has too much overlap with other SD nodes
-# class StableDiffusionXL(HuggingfaceNode):
-#     """
-#     Generates images from text prompts using advanced diffusion models.
-#     image, text, generation, synthesis, text-to-image
+class StableDiffusionScheduler(str, Enum):
+    DPMSolverSDEScheduler = "DPMSolverSDEScheduler"
+    EulerDiscreteScheduler = "EulerDiscreteScheduler"
+    LMSDiscreteScheduler = "LMSDiscreteScheduler"
+    DDIMScheduler = "DDIMScheduler"
+    DDPMScheduler = "DDPMScheduler"
+    HeunDiscreteScheduler = "HeunDiscreteScheduler"
+    DPMSolverMultistepScheduler = "DPMSolverMultistepScheduler"
+    DEISMultistepScheduler = "DEISMultistepScheduler"
+    PNDMScheduler = "PNDMScheduler"
+    EulerAncestralDiscreteScheduler = "EulerAncestralDiscreteScheduler"
+    UniPCMultistepScheduler = "UniPCMultistepScheduler"
+    KDPM2DiscreteScheduler = "KDPM2DiscreteScheduler"
+    DPMSolverSinglestepScheduler = "DPMSolverSinglestepScheduler"
+    KDPM2AncestralDiscreteScheduler = "KDPM2AncestralDiscreteScheduler"
 
-#     Use cases:
-#     - Creating custom illustrations for marketing materials
-#     - Generating concept art for game and film development
-#     - Producing unique stock imagery for websites and publications
-#     - Visualizing interior design concepts for clients
-#     """
 
-#     class Scheduler(str, Enum):
-#         DPMSolverSDEScheduler = "DPMSolverSDEScheduler"
-#         EulerDiscreteScheduler = "EulerDiscreteScheduler"
-#         LMSDiscreteScheduler = "LMSDiscreteScheduler"
-#         DDIMScheduler = "DDIMScheduler"
-#         DDPMScheduler = "DDPMScheduler"
-#         HeunDiscreteScheduler = "HeunDiscreteScheduler"
-#         DPMSolverMultistepScheduler = "DPMSolverMultistepScheduler"
-#         DEISMultistepScheduler = "DEISMultistepScheduler"
-#         PNDMScheduler = "PNDMScheduler"
-#         EulerAncestralDiscreteScheduler = "EulerAncestralDiscreteScheduler"
-#         UniPCMultistepScheduler = "UniPCMultistepScheduler"
-#         KDPM2DiscreteScheduler = "KDPM2DiscreteScheduler"
-#         DPMSolverSinglestepScheduler = "DPMSolverSinglestepScheduler"
-#         KDPM2AncestralDiscreteScheduler = "KDPM2AncestralDiscreteScheduler"
-
-#     class ModelId(str, Enum):
-#         STABLE_DIFFUSION_XL_BASE_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
-#         CAGLIOSTRO_ANIMAGINE_XL_3_0 = "cagliostrolab/animagine-xl-3.0"
-#         NERIJS_PIXEL_ART_XL = "nerijs/pixel-art-xl"
-#         STABLE_DIFFUSION_XL_V8 = "stablediffusionapi/juggernaut-xl-v8"
-
-#     model: ModelId = Field(
-#         default=ModelId.STABLE_DIFFUSION_XL_BASE_1_0,
-#         title="Model ID on Huggingface",
-#         description="The model ID to use for the image generation",
-#     )
-#     inputs: str = Field(
-#         default="A photo of a cat.",
-#         title="Inputs",
-#         description="The input text to the model",
-#     )
-
-#     negative_prompt: str = Field(default="", description="The negative prompt to use.")
-#     seed: int = Field(default=0, ge=0, le=1000000)
-#     guidance_scale: float = Field(default=7.0, ge=1.0, le=30.0)
-#     num_inference_steps: int = Field(default=30, ge=1, le=100)
-#     width: int = Field(default=768, ge=64, le=2048, multiple_of=64)
-#     height: int = Field(default=768, ge=64, le=2048, multiple_of=64)
-#     scheduler: Scheduler = Scheduler.EulerDiscreteScheduler
-
-#     async def process(self, context: ProcessingContext) -> ImageRef:
-#         result = await self.run_huggingface(
-#             model_id=self.model.value, context=context, params={"inputs": self.inputs}
-#         )
-#         img = await context.image_from_bytes(result)  # type: ignore
-#         return img
+def get_scheduler_class(scheduler: StableDiffusionScheduler):
+    if scheduler == StableDiffusionScheduler.DPMSolverSDEScheduler:
+        return DPMSolverSDEScheduler
+    elif scheduler == StableDiffusionScheduler.EulerDiscreteScheduler:
+        return EulerDiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.LMSDiscreteScheduler:
+        return LMSDiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.DDIMScheduler:
+        return DDIMScheduler
+    elif scheduler == StableDiffusionScheduler.DDPMScheduler:
+        return DDPMScheduler
+    elif scheduler == StableDiffusionScheduler.HeunDiscreteScheduler:
+        return HeunDiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.DPMSolverMultistepScheduler:
+        return DPMSolverMultistepScheduler
+    elif scheduler == StableDiffusionScheduler.DEISMultistepScheduler:
+        return DEISMultistepScheduler
+    elif scheduler == StableDiffusionScheduler.PNDMScheduler:
+        return PNDMScheduler
+    elif scheduler == StableDiffusionScheduler.EulerAncestralDiscreteScheduler:
+        return EulerAncestralDiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.UniPCMultistepScheduler:
+        return UniPCMultistepScheduler
+    elif scheduler == StableDiffusionScheduler.KDPM2DiscreteScheduler:
+        return KDPM2DiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.DPMSolverSinglestepScheduler:
+        return DPMSolverSinglestepScheduler
+    elif scheduler == StableDiffusionScheduler.KDPM2AncestralDiscreteScheduler:
+        return KDPM2AncestralDiscreteScheduler
+    else:
+        raise ValueError(f"Invalid scheduler: {scheduler}")
 
 
 class Segmentation(HuggingFacePipelineNode):
@@ -1394,6 +1398,10 @@ class StableDiffusion(BaseNode):
     height: int = Field(
         default=512, ge=256, le=1024, description="Height of the generated image"
     )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.HeunDiscreteScheduler,
+        description="The scheduler to use for the diffusion process.",
+    )
     ip_adapter_model: IPAdapter_SD15_Model = Field(
         default=IPAdapter_SD15_Model.NONE,
         description="The IP adapter model to use for image processing",
@@ -1420,12 +1428,17 @@ class StableDiffusion(BaseNode):
             self._pipe = StableDiffusionPipeline.from_pretrained(
                 self.model.value, torch_dtype=torch.float16, safety_checker=None
             )
+            self._set_scheduler(self.scheduler)
             if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
                 self._pipe.load_ip_adapter(
                     "h94/IP-Adapter",
                     subfolder="models",
                     weight_name=self.ip_adapter_model,
                 )
+
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        scheduler_class = get_scheduler_class(scheduler_type)
+        self._pipe.scheduler = scheduler_class.from_config(self._pipe.scheduler.config)
 
     async def move_to_device(self, device: str):
         if self._pipe is not None:
@@ -1506,6 +1519,10 @@ class StableDiffusionImg2Img(BaseNode):
     guidance_scale: float = Field(
         default=7.5, ge=1.0, le=20.0, description="Guidance scale for generation."
     )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.HeunDiscreteScheduler,
+        description="The scheduler to use for the diffusion process.",
+    )
     strength: float = Field(
         default=0.8,
         ge=0.0,
@@ -1519,11 +1536,16 @@ class StableDiffusionImg2Img(BaseNode):
     def get_title(cls):
         return "Stable Diffusion (Img2Img)"
 
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        scheduler_class = get_scheduler_class(scheduler_type)
+        self._pipe.scheduler = scheduler_class.from_config(self._pipe.scheduler.config)
+
     async def initialize(self, context: ProcessingContext):
         if self._pipe is None:
             self._pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
                 self.model.value, torch_dtype=torch.float16, safety_checker=None
             )
+            self._set_scheduler(self.scheduler)
 
     async def move_to_device(self, device: str):
         if self._pipe is not None:
@@ -1561,6 +1583,12 @@ class StableDiffusionXLModelId(str, Enum):
     REALVISXL = "SG161222/RealVisXL_V4.0"
 
 
+class IPAdapter_SDXL_Model(str, Enum):
+    NONE = ""
+    IP_ADAPTER = "ip-adapter_sdxl.safetensors"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sdxl_vit-h.safetensors"
+
+
 class StableDiffusionXL(BaseNode):
     """
     Generates images from text prompts using Stable Diffusion XL.
@@ -1578,10 +1606,6 @@ class StableDiffusionXL(BaseNode):
         description="The Stable Diffusion XL model to use for generation.",
     )
 
-    model: StableDiffusionXLModelId = Field(
-        default=StableDiffusionXLModelId.SDXL_1_0,
-        description="The Stable Diffusion XL model to use for generation.",
-    )
     prompt: str = Field(default="", description="The prompt for image generation.")
     seed: int = Field(
         default=-1,
@@ -1601,6 +1625,24 @@ class StableDiffusionXL(BaseNode):
     height: int = Field(
         default=1024, ge=64, le=2048, description="Height of the generated image"
     )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.DDIMScheduler,
+        description="The scheduler to use for the diffusion process.",
+    )
+    ip_adapter_model: IPAdapter_SDXL_Model = Field(
+        default=IPAdapter_SDXL_Model.NONE,
+        description="The IP adapter model to use for image processing",
+    )
+    ip_adapter_image: ImageRef = Field(
+        default=ImageRef(),
+        description="When provided the image will be fed into the IP adapter",
+    )
+    ip_adapter_scale: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Strength of the IP adapter image",
+    )
 
     _pipe: Any = None
 
@@ -1615,6 +1657,13 @@ class StableDiffusionXL(BaseNode):
                 torch_dtype=torch.float16,
                 variant="fp16",
             )
+            self._set_scheduler(self.scheduler)
+            if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+                self._pipe.load_ip_adapter(
+                    "h94/IP-Adapter",
+                    subfolder="sdxl_models",
+                    weight_name=self.ip_adapter_model,
+                )
 
     async def move_to_device(self, device: str):
         if self._pipe is not None:
@@ -1629,12 +1678,19 @@ class StableDiffusionXL(BaseNode):
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
+        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+            assert not self.ip_adapter_image.is_empty()
+            ip_adapter_image = await context.image_to_pil(self.ip_adapter_image)
+        else:
+            ip_adapter_image = None
+
         image = self._pipe(
             prompt=self.prompt,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
             width=self.width,
             height=self.height,
+            ip_adapter_image=ip_adapter_image,
             callback=progress_callback(self.id, self.num_inference_steps, context),
             callback_steps=1,
             generator=generator,
@@ -1682,6 +1738,10 @@ class StableDiffusionXLImg2Img(BaseNode):
     height: int = Field(
         default=1024, ge=64, le=2048, description="Height of the generated image"
     )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.DDIMScheduler,
+        description="The scheduler to use for the diffusion process.",
+    )
     strength: float = Field(
         default=0.8,
         ge=0.0,
@@ -1702,6 +1762,11 @@ class StableDiffusionXLImg2Img(BaseNode):
                 torch_dtype=torch.float16,
                 variant="fp16",
             )
+            self._set_scheduler(self.scheduler)
+
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        scheduler_class = globals()[scheduler_type.value]
+        self._pipe.scheduler = scheduler_class.from_config(self._pipe.scheduler.config)
 
     async def move_to_device(self, device: str):
         if self._pipe is not None:
