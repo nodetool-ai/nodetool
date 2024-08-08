@@ -1,4 +1,5 @@
 from enum import Enum
+from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import ColumnType, DataframeRef, ImageRef, ColumnDef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
@@ -891,9 +892,6 @@ class StableCascadeNode(BaseNode):
 
     async def move_to_device(self, device: str):
         # Commented out as we're using CPU offload
-        # if self._prior_pipeline is not None and self._decoder_pipeline is not None:
-        #     self._prior_pipeline.to(device)
-        #     self._decoder_pipeline.to(device)
         pass
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -933,3 +931,95 @@ class StableCascadeNode(BaseNode):
         ).images[0]
 
         return await context.image_from_pil(decoder_output)
+
+
+class SDXLTurbo(BaseNode):
+    prompt: str = Field(default="", description="The prompt for image generation.")
+    init_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The initial image for Image-to-Image generation (optional).",
+    )
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        le=1000000,
+        description="Seed for the random number generator.",
+    )
+    num_inference_steps: int = Field(
+        default=1, ge=1, le=50, description="Number of inference steps."
+    )
+    guidance_scale: float = Field(
+        default=7.0, ge=0.0, le=20.0, description="Guidance scale for generation."
+    )
+    width: int = Field(
+        default=512, ge=64, le=2048, description="Width of the generated image."
+    )
+    height: int = Field(
+        default=512, ge=64, le=2048, description="Height of the generated image"
+    )
+    strength: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Strength for Image-to-Image generation.",
+    )
+
+    _pipe: Any = None
+
+    @classmethod
+    def get_title(cls):
+        return "SDXL Turbo"
+
+    async def initialize(self, context: ProcessingContext):
+        if self._pipe is None:
+            if self.init_image.is_empty():
+                self._pipe = AutoPipelineForText2Image.from_pretrained(
+                    "stabilityai/sdxl-turbo", torch_dtype=torch.float16, variant="fp16"
+                )
+            else:
+                self._pipe = AutoPipelineForImage2Image.from_pretrained(
+                    "stabilityai/sdxl-turbo", torch_dtype=torch.float16, variant="fp16"
+                )
+
+    async def move_to_device(self, device: str):
+        if self._pipe is not None:
+            self._pipe.to(device)
+
+    async def process(self, context) -> ImageRef:
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        if self.init_image.is_empty():
+            # Text-to-Image generation
+            image = self._pipe(
+                prompt=self.prompt,
+                num_inference_steps=self.num_inference_steps,
+                guidance_scale=self.guidance_scale,
+                width=self.width,
+                height=self.height,
+                callback=progress_callback(self.id, self.num_inference_steps, context),
+                callback_steps=1,
+                generator=generator,
+            ).images[0]
+        else:
+            # Image-to-Image generation
+            init_image = await context.image_to_pil(self.init_image)
+            init_image = init_image.resize((self.width, self.height))
+            image = self._pipe(
+                prompt=self.prompt,
+                image=init_image,
+                width=self.width,
+                height=self.height,
+                num_inference_steps=self.num_inference_steps,
+                strength=self.strength,
+                guidance_scale=self.guidance_scale,
+                callback=progress_callback(self.id, self.num_inference_steps, context),
+                callback_steps=1,
+                generator=generator,
+            ).images[0]
+
+        # Convert PIL Image to ImageRef
+        print(image)
+        return await context.image_from_pil(image)
