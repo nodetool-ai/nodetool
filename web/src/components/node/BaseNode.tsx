@@ -25,6 +25,8 @@ import OutputRenderer from "./OutputRenderer";
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
 export const TOOLTIP_ENTER_NEXT_DELAY = 350;
+const BASE_HEIGHT = 0;
+const INCREMENT_PER_OUTPUT = 25;
 /**
  * Split a camelCase string into a space separated string.
  */
@@ -46,6 +48,10 @@ const styles = (theme: any) =>
       padding: "10px",
       color: "red",
       fontFamily: theme.fontFamily1,
+    },
+    ".node-body": {
+      display: "flex",
+      flexDirection: "column",
     },
   });
 
@@ -121,6 +127,12 @@ export default memo(
       }
     }, [isOutputNode, result]);
 
+    const minHeight = useMemo(() => {
+      if (!metadata) return BASE_HEIGHT;
+      const outputCount =
+        metadata.metadataByType[props.type]?.outputs.length || 0;
+      return BASE_HEIGHT + outputCount * INCREMENT_PER_OUTPUT;
+    }, [metadata, props.type]);
     if (!metadata) {
       return (
         <Container className={className}>
@@ -150,6 +162,7 @@ export default memo(
         css={styles}
         style={{
           display: parentIsCollapsed ? "none" : "block",
+          minHeight: `${minHeight}px`,
           backgroundColor: hasParent
             ? ThemeNodes.palette.c_node_bg_group
             : ThemeNodes.palette.c_node_bg,
