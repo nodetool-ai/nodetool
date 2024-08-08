@@ -360,10 +360,20 @@ class DualCLIPLoader(ComfyNode):
         return {"clip": CLIP}
 
 
+class WeightDataTypeEnum(str, Enum):
+    DEFAULT = "default"
+    FP8_E4M3FN = "fp8_e4m3fn"
+    FP8_E5M2 = "fp8_e5m2"
+
+
 class UNETLoader(ComfyNode):
     unet_name: UNetFile = Field(
         default=UNetFile(),
         description="The name of the UNet model to load.",
+    )
+    weight_dtype: WeightDataTypeEnum = Field(
+        WeightDataTypeEnum.DEFAULT,
+        description="The weight data type to use.",
     )
 
     async def process(self, context: ProcessingContext):
@@ -372,6 +382,7 @@ class UNETLoader(ComfyNode):
 
         (unet,) = await self.call_comfy_node(context)
         context.add_model("comfy.unet", self.unet_name.name, unet)
+
         return {"unet": UNet(name=self.unet_name.name)}
 
     @classmethod

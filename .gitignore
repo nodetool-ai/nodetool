@@ -22,6 +22,7 @@ postgres_data/
 
 .bin
 .vite
+.venv
 node_modules
 
 # Cache

@@ -1,7 +1,6 @@
 import nodetool.nodes.nodetool.dataframe
 import nodetool.nodes.nodetool.dictionary
 import nodetool.nodes.nodetool.image
-import nodetool.nodes.nodetool.image.classify
 import nodetool.nodes.nodetool.image.enhance
 import nodetool.nodes.nodetool.image.grid
 import nodetool.nodes.nodetool.image.source

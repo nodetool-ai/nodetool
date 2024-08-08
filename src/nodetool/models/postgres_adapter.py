@@ -19,7 +19,7 @@ from typing import Any, Type, Union, get_origin, get_args
 from psycopg2.extras import Json
 from psycopg2.extras import RealDictCursor
 from psycopg2.sql import SQL, Identifier, Placeholder, Composed
-import enum
+from enum import EnumMeta as EnumType
 
 
 log = Environment.get_logger()
@@ -58,7 +58,7 @@ def convert_to_postgres_format(
         return psycopg2.Binary(value)
     elif py_type is Any:
         return Json(value)
-    elif py_type.__class__ is enum.EnumType:
+    elif py_type.__class__ is EnumType:
         return value.value
     else:
         raise TypeError(f"Unsupported type for PostgreSQL: {py_type}")
@@ -93,7 +93,7 @@ def convert_from_postgres_format(value: Any, py_type: Type | None) -> Any:
         return value
     elif py_type is datetime:
         return value
-    elif py_type.__class__ is enum.EnumType:
+    elif py_type.__class__ is EnumType:
         return py_type(value)
     else:
         raise TypeError(f"Unsupported type for PostgreSQL: {py_type}")
@@ -155,7 +155,7 @@ def get_postgres_type(field_type: Any) -> str:
         return "BYTEA"
     elif field_type is None:
         return "NULL"
-    elif field_type.__class__ is enum.EnumType:
+    elif field_type.__class__ is EnumType:
         return "TEXT"
     else:
         raise Exception(f"Unsupported field type: {field_type}")

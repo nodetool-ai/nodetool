@@ -695,9 +695,9 @@ class Environment(object):
         if len(cls.model_files) > 0:
             return cls.model_files.get(folder, [])
         else:
-            import comfy.folder_paths
+            import folder_paths
 
-            return comfy.folder_paths.get_filename_list(folder)
+            return folder_paths.get_filename_list(folder)
 
     @classmethod
     def get_comfy_folder(cls):
@@ -801,6 +801,7 @@ class Environment(object):
         Get the S3 service.
         """
         from nodetool.storage.s3_storage import S3Storage
+        import boto3
 
         endpoint_url = cls.get_s3_endpoint_url()
         access_key_id = cls.get_s3_access_key_id()
@@ -810,13 +811,19 @@ class Environment(object):
         assert secret_access_key is not None, "AWS secret access key is required"
         assert endpoint_url is not None, "S3 endpoint URL is required"
 
+        client = boto3.client(
+            "s3",
+            region_name=cls.get_s3_region(),
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=secret_access_key,
+        )
+
         return S3Storage(
             bucket_name=bucket,
             domain=domain,
             endpoint_url=endpoint_url,
-            access_key_id=access_key_id,
-            secret_access_key=secret_access_key,
-            region_name=cls.get_s3_region(),
+            client=client,
         )
 
     @classmethod

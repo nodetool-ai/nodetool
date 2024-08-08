@@ -104,6 +104,15 @@ class WorkflowRunner:
         """
         self.status = "cancelled"
         self.is_cancelled = True
+        # send node update to cancel the current node
+        if self.current_node and self.context:
+            self.context.post_message(
+                NodeUpdate(
+                    node_id=self.current_node,
+                    node_name="",
+                    status="cancelled",
+                )
+            )
 
     async def run(self, req: RunJobRequest, context: ProcessingContext) -> None:
         """
@@ -133,6 +142,7 @@ class WorkflowRunner:
                 "edges": [edge.model_dump() for edge in req.graph.edges],
             }
         )
+        self.context = context
         context.graph = graph
         context.device = self.device
 
@@ -150,7 +160,18 @@ class WorkflowRunner:
         with self.torch_context(context):
             try:
                 for node in graph.nodes:
-                    await node.initialize(context)
+                    try:
+                        await node.initialize(context)
+                    except Exception as e:
+                        context.post_message(
+                            NodeUpdate(
+                                node_id=node.id,
+                                node_name=node.get_title(),
+                                status="error",
+                                error=str(e)[:1000],
+                            )
+                        )
+                        raise
                 await self.process_graph(context, graph)
             except Exception as e:
                 for node in graph.nodes:

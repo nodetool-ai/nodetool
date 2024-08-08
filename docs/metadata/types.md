@@ -9,7 +9,7 @@ An enumeration.
 - **type** (str)
 - **uri** (str)
 - **asset_id** (str | None)
-- **temp_id** (str | None)
+- **data** (bytes | None)
 
 ### is_empty
 
@@ -24,7 +24,7 @@ An enumeration.
 - **type** (typing.Literal['audio'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **temp_id** (str | None)
+- **data** (bytes | None)
 
 ## BaseType
 
@@ -145,9 +145,8 @@ The result of a chat conversation.
 - **type** (typing.Literal['dataframe'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **temp_id** (str | None)
-- **columns** (list[nodetool.metadata.types.ColumnDef] | None)
 - **data** (list[list[typing.Any]] | None)
+- **columns** (list[nodetool.metadata.types.ColumnDef] | None)
 
 ## Dataset
 
@@ -166,7 +165,7 @@ This class represents a dataset, which includes a dataframe of features and a da
 - **type** (typing.Literal['folder'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **temp_id** (str | None)
+- **data** (bytes | None)
 
 ## FunctionDefinition
 
@@ -178,7 +177,7 @@ This class represents a dataset, which includes a dataframe of features and a da
 
 - **type** (typing.Literal['function_model'])
 - **provider** (Provider)
-- **magename** (str)
+- **name** (str)
 - **repo_id** (str)
 - **filename** (str)
 - **local_path** (pathlib.Path | None)
@@ -197,6 +196,11 @@ This class represents a dataset, which includes a dataframe of features and a da
 
 An enumeration.
 
+## Guider
+
+- **type** (typing.Literal['comfy.guider'])
+- **data** (typing.Any)
+
 ## IPAdapter
 
 - **type** (typing.Literal['comfy.ip_adapter'])
@@ -214,7 +218,6 @@ A reference to an image asset.
 - **type** (typing.Literal['image'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **temp_id** (str | None)
 - **data** (bytes | None)
 
 ## ImageTensor
@@ -297,12 +300,17 @@ Convert a Model object to a Message object.
 - **type** (typing.Literal['model_ref'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **temp_id** (str | None)
+- **data** (bytes | None)
 
 ## NodeRef
 
 - **type** (typing.Literal['node'])
 - **id** (str)
+
+## Noise
+
+- **type** (typing.Literal['comfy.noise'])
+- **data** (typing.Any)
 
 ## OutputSlot
 
@@ -401,7 +409,7 @@ An enumeration.
 - **type** (typing.Literal['text'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **temp_id** (str | None)
+- **data** (bytes | None)
 
 ## TrainTestOutput
 
@@ -413,6 +421,11 @@ An enumeration.
 ## UNet
 
 - **type** (typing.Literal['comfy.unet'])
+- **name** (str)
+
+## UNetFile
+
+- **type** (typing.Literal['comfy.unet_file'])
 - **name** (str)
 
 ## UpscaleModel
@@ -440,7 +453,7 @@ An enumeration.
 - **type** (typing.Literal['video'])
 - **uri** (str)
 - **asset_id** (str | None)
-- **temp_id** (str | None)
+- **data** (bytes | None)
 - **duration** (typing.Optional[float])
 - **format** (typing.Optional[str])
 

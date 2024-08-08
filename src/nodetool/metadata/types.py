@@ -108,7 +108,7 @@ class AssetRef(BaseType):
         return res
 
     def is_empty(self):
-        return self.uri == "" and self.asset_id is None
+        return self.uri == "" and self.asset_id is None and self.data is None
 
     @classmethod
     def __init_subclass__(cls):
@@ -211,7 +211,7 @@ class ModelFile(BaseType):
 
 class CheckpointFile(ModelFile):
     type: Literal["comfy.checkpoint_file"] = "comfy.checkpoint_file"
-    
+
 
 class UNetFile(ModelFile):
     type: Literal["comfy.unet_file"] = "comfy.unet_file"
@@ -304,7 +304,7 @@ class LORA(ComfyModel):
 
 class IPAdapter(ComfyModel):
     type: Literal["comfy.ip_adapter"] = "comfy.ip_adapter"
-    
+
 
 comfy_data_types = set()
 
@@ -324,11 +324,11 @@ class ComfyData(BaseType):
 
 class Conditioning(ComfyData):
     type: Literal["comfy.conditioning"] = "comfy.conditioning"
-    
+
 
 class Noise(ComfyData):
     type: Literal["comfy.noise"] = "comfy.noise"
-    
+
 
 class Guider(ComfyData):
     type: Literal["comfy.guider"] = "comfy.guider"

@@ -5,7 +5,7 @@ import comfy.model_management
 import comfy.model_sampling
 
 import torch
-import comfy.folder_paths as folder_paths
+import folder_paths
 import json
 import os
 
@@ -264,6 +264,7 @@ class CLIPSave:
 
         metadata = {}
         if not args.disable_metadata:
+            metadata["format"] = "pt"
             metadata["prompt"] = prompt_info
             if extra_pnginfo is not None:
                 for x in extra_pnginfo:

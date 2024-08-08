@@ -11,4 +11,5 @@
 - **api_url** (str | None)
 - **env** (dict[str, typing.Any] | None)
 - **graph** (nodetool.types.graph.Graph | None)
+- **explicit_types** (bool)
 

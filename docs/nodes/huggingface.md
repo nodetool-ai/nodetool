@@ -5,3 +5,4 @@
 - [nodetool.nodes.huggingface.image](huggingface/image.md)
 - [nodetool.nodes.huggingface.multimodal](huggingface/multimodal.md)
 - [nodetool.nodes.huggingface.text](huggingface/text.md)
+- [nodetool.nodes.huggingface.video](huggingface/video.md)

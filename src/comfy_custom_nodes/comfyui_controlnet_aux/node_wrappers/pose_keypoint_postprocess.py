@@ -1,4 +1,4 @@
-import comfy.folder_paths
+import folder_paths
 import json
 import os
 import numpy as np

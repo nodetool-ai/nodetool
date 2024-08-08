@@ -17,7 +17,7 @@
 """
 
 import torch
-import comfy.nodes as nodes
+import nodes
 import comfy.utils
 
 

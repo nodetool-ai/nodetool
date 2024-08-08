@@ -6,8 +6,6 @@ from transformers import Pipeline
 from enum import Enum
 from typing import Any
 
-from nodetool.workflows.types import NodeProgress
-
 
 class HuggingFacePipelineNode(HuggingfaceNode):
     @classmethod
@@ -20,26 +18,28 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     #     description="Whether to run the node on Huggingface servers",
     # )
     _pipeline: Pipeline | None = None
-    
+
     async def initialize(self, context: ProcessingContext):
         # if not self.run_on_huggingface:
         from transformers import pipeline
+
         self._pipeline = pipeline(
-            self.pipeline_task, 
-            model=self.get_model_id(), 
-            device=context.device, 
+            self.pipeline_task,
+            model=self.get_model_id(),
+            device=context.device,
             torch_dtype=torch.float16,
         )
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
             import torch
-            self._pipeline.model.to(device) # type: ignore
+
+            self._pipeline.model.to(device)  # type: ignore
             self._pipeline.device = torch.device(device)
 
     def get_params(self):
         return {}
-    
+
     async def process_remote(self, context: ProcessingContext) -> Any:
         params = self.get_params()
         params["inputs"] = await self.get_inputs(context)
@@ -47,7 +47,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             model_id=self.get_model_id(), context=context, params=params
         )
         return await self.process_remote_result(context, result)
-    
+
     async def process_local(self, context: ProcessingContext) -> Any:
         assert self._pipeline is not None
         inputs = await self.get_inputs(context)

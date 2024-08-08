@@ -4,12 +4,17 @@ from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import ImageRef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
+from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from enum import Enum
 from pydantic import Field
 from nodetool.metadata.types import AudioRef
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
+import torch
+from diffusers import StableAudioPipeline
+from nodetool.workflows.types import NodeProgress
+
 
 class AudioClassifier(HuggingFacePipelineNode):
     """
@@ -24,8 +29,12 @@ class AudioClassifier(HuggingFacePipelineNode):
     """
 
     class AudioClassifierModelId(str, Enum):
-        MIT_AST_FINETUNED_AUDIOSET_10_10_0_BALANCED = "MIT/ast-finetuned-audioset-10-10-0.4593"
-        EHCALABRES_WAV2VEC2_LG_XLSR_EN_SPEECH_EMOTION_RECOGNITION = "ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition"
+        MIT_AST_FINETUNED_AUDIOSET_10_10_0_BALANCED = (
+            "MIT/ast-finetuned-audioset-10-10-0.4593"
+        )
+        EHCALABRES_WAV2VEC2_LG_XLSR_EN_SPEECH_EMOTION_RECOGNITION = (
+            "ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition"
+        )
 
     model: AudioClassifierModelId = Field(
         default=AudioClassifierModelId.MIT_AST_FINETUNED_AUDIOSET_10_10_0_BALANCED,
@@ -43,17 +52,21 @@ class AudioClassifier(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'audio-classification'
+        return "audio-classification"
 
     async def get_inputs(self, context: ProcessingContext):
         samples, _, _ = await context.audio_to_numpy(self.inputs)
         return samples
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return {item['label']: item['score'] for item in result}
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return {item["label"]: item["score"] for item in result}
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return {item['label']: item['score'] for item in result}
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return {item["label"]: item["score"] for item in result}
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)
@@ -90,16 +103,20 @@ class TextToSpeech(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'text-to-audio'
+        return "text-to-audio"
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> AudioRef:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> AudioRef:
         audio = await context.audio_from_bytes(result)  # type: ignore
         return audio
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> AudioRef:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> AudioRef:
         audio = await context.audio_from_bytes(result)  # type: ignore
         return audio
-    
+
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)
 
@@ -138,6 +155,7 @@ class TextToAudio(HuggingfaceNode):
         return self.model.value
 
     async def process(self, context: ProcessingContext) -> AudioRef:
+        # we need to run this remote as the model is too big to run locally
         result = await self.run_huggingface(
             model_id=self.model.value,
             context=context,
@@ -146,6 +164,88 @@ class TextToAudio(HuggingfaceNode):
             },
         )
         audio = await context.audio_from_bytes(result)  # type: ignore
+        return audio
+
+
+class StableAudioNode(BaseNode):
+    """
+    Generates audio using the Stable Audio Pipeline based on a text prompt.
+    audio, generation, AI, text-to-audio
+
+    Use cases:
+    - Creating custom sound effects based on textual descriptions
+    - Generating background audio for videos or games
+    - Exploring AI-generated audio for creative projects
+    """
+
+    prompt: str = Field(
+        default="A peaceful piano melody.",
+        description="A text prompt describing the desired audio.",
+    )
+    negative_prompt: str = Field(
+        default="Low quality.",
+        description="A text prompt describing what you don't want in the audio.",
+    )
+    duration: float = Field(
+        default=10.0,
+        description="The desired duration of the generated audio in seconds.",
+        ge=1.0,
+        le=300.0,
+    )
+    num_inference_steps: int = Field(
+        default=200,
+        description="Number of denoising steps. More steps generally improve quality but increase generation time.",
+        ge=50,
+        le=500,
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: StableAudioPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = StableAudioPipeline.from_pretrained(
+            "stabilityai/stable-audio-open-1.0",
+            torch_dtype=torch.float16,
+        )
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = torch.Generator("cuda").manual_seed(0)
+
+        def progress_callback(
+            step: int, timestep: int, latents: torch.FloatTensor
+        ) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        audio = self._pipeline(
+            self.prompt,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            audio_end_in_s=self.duration,
+            num_waveforms_per_prompt=1,
+            generator=generator,
+            callback=progress_callback,
+        ).audios[0]
+
+        output = audio.T.float().cpu().numpy()
+        sampling_rate = self._pipeline.vae.sampling_rate
+        audio = await context.audio_from_numpy(output, sampling_rate)
         return audio
 
 
@@ -178,20 +278,24 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
 
     def get_model_id(self):
         return self.model.value
-    
+
     @property
     def pipeline_task(self) -> str:
-        return 'automatic-speech-recognition'
+        return "automatic-speech-recognition"
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> AudioRef:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> AudioRef:
         return result["text"]
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> AudioRef:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> AudioRef:
         return result["text"]
-    
+
     async def get_inputs(self, context: ProcessingContext):
         return await context.asset_to_io(self.inputs)
-    
+
 
 class ZeroShotAudioClassifier(HuggingFacePipelineNode):
     """
@@ -228,8 +332,8 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'zero-shot-audio-classification'
-    
+        return "zero-shot-audio-classification"
+
     def get_params(self):
         return {
             "candidate_labels": self.candidate_labels.split(","),
@@ -239,11 +343,15 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
         samples, _, _ = await context.audio_to_numpy(self.inputs)
         return samples
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return {item['label']: item['score'] for item in result}
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return {item["label"]: item["score"] for item in result}
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return {item['label']: item['score'] for item in result}
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return {item["label"]: item["score"] for item in result}
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)

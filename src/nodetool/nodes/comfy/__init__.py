@@ -3,6 +3,8 @@ from nodetool.common.comfy_node import ComfyNode
 import nodetool.nodes.comfy
 import nodetool.nodes.comfy.advanced
 import nodetool.nodes.comfy.advanced.conditioning
+import nodetool.nodes.comfy.advanced.loaders
+import nodetool.nodes.comfy.advanced.model
 import nodetool.nodes.comfy.conditioning
 import nodetool.nodes.comfy.controlnet
 import nodetool.nodes.comfy.controlnet.faces_and_poses
@@ -24,6 +26,7 @@ import nodetool.nodes.comfy.latent
 import nodetool.nodes.comfy.latent.advanced
 import nodetool.nodes.comfy.latent.batch
 import nodetool.nodes.comfy.latent.inpaint
+import nodetool.nodes.comfy.latent.stable_cascade
 import nodetool.nodes.comfy.latent.transform
 import nodetool.nodes.comfy.loaders
 import nodetool.nodes.comfy.mask

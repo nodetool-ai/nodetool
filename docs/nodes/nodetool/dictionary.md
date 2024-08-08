@@ -1,20 +1,6 @@
 # nodetool.nodes.nodetool.dictionary
 
-## AddToDictionary
-
-Updates a dictionary with new key-value pairs.
-
-Use cases:
-- Extend a configuration with additional settings
-- Add new entries to a cache or lookup table
-- Merge user input with existing data
-
-**Tags:** dictionary, add, update
-
-- **dictionary** (dict)
-- **new_pairs** (dict)
-
-## CombineDictionaries
+## Combine
 
 Merges two dictionaries, with second dictionary values taking precedence.
 
@@ -28,20 +14,7 @@ Use cases:
 - **dict_a** (dict)
 - **dict_b** (dict)
 
-## ConvertDictionariesToDataframe
-
-Converts a list of dictionaries into a multi-row pandas DataFrame.
-
-Use cases:
-- Transform list of JSON objects into tabular format
-- Prepare multiple data records for analysis
-- Convert API results to a structured dataset
-
-**Tags:** dictionaries, dataframe, convert
-
-- **rows** (list)
-
-## ConvertDictionaryToDataframe
+## ConvertToDataframe
 
 Transforms a single dictionary into a one-row pandas DataFrame.
 
@@ -54,34 +27,7 @@ Use cases:
 
 - **dictionary** (dict)
 
-## ConvertJSONToDictionary
-
-Parses a JSON string into a Python dictionary.
-
-Use cases:
-- Process API responses
-- Load configuration files
-- Deserialize stored data
-
-**Tags:** json, parse, dictionary
-
-- **json_string** (str)
-
-## CreateDictionaryFromList
-
-Creates a dictionary from parallel lists of keys and values.
-
-Use cases:
-- Convert separate data columns into key-value pairs
-- Create lookups from parallel data structures
-- Transform list data into associative arrays
-
-**Tags:** dictionary, create, zip
-
-- **keys** (list)
-- **values** (list)
-
-## FilterDictionaryKeys
+## Filter
 
 Creates a new dictionary with only specified keys from the input.
 
@@ -95,7 +41,7 @@ Use cases:
 - **dictionary** (dict)
 - **keys** (list)
 
-## GetDictionaryValue
+## GetValue
 
 Retrieves a value from a dictionary using a specified key.
 
@@ -109,7 +55,20 @@ Use cases:
 - **dictionary** (dict)
 - **key** (str)
 
-## RemoveFromDictionary
+## ParseJSON
+
+Parses a JSON string into a Python dictionary.
+
+Use cases:
+- Process API responses
+- Load configuration files
+- Deserialize stored data
+
+**Tags:** json, parse, dictionary
+
+- **json_string** (str)
+
+## Remove
 
 Removes a key-value pair from a dictionary.
 
@@ -122,4 +81,32 @@ Use cases:
 
 - **dictionary** (dict)
 - **key** (str)
+
+## Update
+
+Updates a dictionary with new key-value pairs.
+
+Use cases:
+- Extend a configuration with additional settings
+- Add new entries to a cache or lookup table
+- Merge user input with existing data
+
+**Tags:** dictionary, add, update
+
+- **dictionary** (dict)
+- **new_pairs** (dict)
+
+## Zip
+
+Creates a dictionary from parallel lists of keys and values.
+
+Use cases:
+- Convert separate data columns into key-value pairs
+- Create lookups from parallel data structures
+- Transform list data into associative arrays
+
+**Tags:** dictionary, create, zip
+
+- **keys** (list)
+- **values** (list)
 

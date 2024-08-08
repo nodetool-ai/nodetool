@@ -27,7 +27,7 @@ data_dir = Environment.get_comfy_folder()
 models_dir = os.path.join(data_dir, "models")
 
 custom_nodes_directory = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+    os.path.dirname((os.path.realpath(__file__))),
     "comfy_custom_nodes",
 )
 

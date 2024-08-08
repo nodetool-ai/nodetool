@@ -71,8 +71,7 @@ def image(pil_image: PIL.Image.Image, user: User):
     buffer = io.BytesIO()
     pil_image.save(buffer, format="PNG")
     buffer.seek(0)
-    uri = asyncio.run(Environment.get_asset_storage().upload("test.jpg", buffer))
-    return ImageRef(uri=uri, asset_id="test")
+    return ImageRef(data=buffer.read())
 
 
 @pytest.fixture(scope="function")

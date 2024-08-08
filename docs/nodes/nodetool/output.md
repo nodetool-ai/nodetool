@@ -56,28 +56,6 @@ Use cases:
 
 **Args:**
 
-## ComfyImageOutput
-
-Output node for raw image tensor data.
-
-Use cases:
-- Outputting directly from image generation models
-- Passing raw image data for further processing
-- Interfacing with tensor-based image libraries
-
-**Tags:** image, tensor, raw
-
-- **label**: The label for this output node. (str)
-- **name**: The parameter name for the workflow. (str)
-- **description**: The description for this output node. (str)
-- **value**: A raw image tensor. (ImageTensor)
-
-### assign_property
-
-**Args:**
-- **name (str)**
-- **value (typing.Any)**
-
 ## DataframeOutput
 
 Output node for structured data references.

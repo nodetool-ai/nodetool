@@ -18,7 +18,6 @@ import safetensors.torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "comfy"))
 
-from comfy import node_helpers
 import comfy.diffusers_load
 import comfy.samplers
 import comfy.sample
@@ -34,8 +33,9 @@ from comfy.cli_args import args
 import importlib
 import importlib.util
 
-import comfy.folder_paths as folder_paths
-import comfy.latent_preview as latent_preview
+import folder_paths
+import node_helpers
+import latent_preview
 
 from nodetool.common.environment import Environment
 

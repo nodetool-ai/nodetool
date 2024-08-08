@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import comfy.folder_paths as folder_paths
+import folder_paths
 import comfy.clip_model
 import comfy.clip_vision
 import comfy.ops

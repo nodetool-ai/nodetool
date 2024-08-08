@@ -3,7 +3,7 @@ import scipy.ndimage
 import torch
 import comfy.utils
 
-from comfy.nodes import MAX_RESOLUTION
+from nodes import MAX_RESOLUTION
 
 def composite(destination, source, x, y, mask = None, multiplier = 8, resize_source = False):
     source = source.to(destination.device)

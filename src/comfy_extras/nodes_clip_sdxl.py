@@ -1,5 +1,5 @@
 import torch
-from comfy.nodes import MAX_RESOLUTION
+from nodes import MAX_RESOLUTION
 
 class CLIPTextEncodeSDXLRefiner:
     @classmethod

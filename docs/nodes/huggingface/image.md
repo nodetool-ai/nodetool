@@ -1,5 +1,30 @@
 # nodetool.nodes.huggingface.image
 
+## AuraFlowNode
+
+Generates images using the AuraFlow pipeline.
+
+Use cases:
+- Create unique images from text descriptions
+- Generate illustrations for creative projects
+- Produce visual content for digital media
+
+**Tags:** image, generation, AI, text-to-image
+
+- **prompt**: A text prompt describing the desired image. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
 ## DepthEstimation
 
 Estimates depth from a single image.
@@ -125,6 +150,64 @@ Use cases:
 
 **Returns:** ImageRef
 
+## Kandinsky2Node
+
+Generates images using the Kandinsky 2.2 model. Provide image for img2img mode.
+
+Use cases:
+- Create high-quality images from text descriptions
+- Transform existing images based on text prompts
+- Generate detailed illustrations for creative projects
+- Produce visual content for digital media and art
+
+**Tags:** image, generation, AI, text-to-image, image-to-image
+
+- **prompt**: A text prompt describing the desired image. (str)
+- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **width**: The width of the generated image. (int)
+- **height**: The height of the generated image. (int)
+- **image**: The input image to transform (optional) (ImageRef)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+## Kandinsky3Node
+
+Generates images using the Kandinsky-3 model. Provide image for img2img mode.
+
+Use cases:
+- Create detailed images from text descriptions
+- Generate unique illustrations for creative projects
+- Produce visual content for digital media and art
+
+**Tags:** image, generation, AI, text-to-image
+
+- **prompt**: A text prompt describing the desired image. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **width**: The width of the generated image. (int)
+- **height**: The height of the generated image. (int)
+- **image**: The input image to transform (optional) (ImageRef)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
 ## ObjectDetection
 
 Detects and localizes objects in images.
@@ -171,6 +254,27 @@ Use cases:
 
 **Returns:** DataframeRef
 
+## SDXLTurbo
+
+- **prompt**: The prompt for image generation. (str)
+- **init_image**: The initial image for Image-to-Image generation (optional). (ImageRef)
+- **seed**: Seed for the random number generator. (int)
+- **num_inference_steps**: Number of inference steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **width**: Width of the generated image. (int)
+- **height**: Height of the generated image (int)
+- **strength**: Strength for Image-to-Image generation. (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
 ## Segmentation
 
 Performs semantic segmentation on images, identifying and labeling different regions.
@@ -208,6 +312,37 @@ Use cases:
 - **result (typing.Any)**
 
 **Returns:** dict
+
+## StableCascadeNode
+
+Generates images using the Stable Cascade model, which involves a two-stage process with a prior and a decoder.
+
+Use cases:
+- Create high-quality images from text descriptions
+- Generate detailed illustrations for creative projects
+- Produce visual content for digital media and art
+
+**Tags:** image, generation, AI, text-to-image
+
+- **prompt**: A text prompt describing the desired image. (str)
+- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
+- **width**: The width of the generated image. (int)
+- **height**: The height of the generated image. (int)
+- **prior_num_inference_steps**: The number of denoising steps for the prior. (int)
+- **decoder_num_inference_steps**: The number of denoising steps for the decoder. (int)
+- **prior_guidance_scale**: Guidance scale for the prior. (float)
+- **decoder_guidance_scale**: Guidance scale for the decoder. (float)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
 
 ## ZeroShotImageClassifier
 

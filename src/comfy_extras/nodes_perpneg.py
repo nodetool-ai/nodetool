@@ -3,7 +3,7 @@ import comfy.model_management
 import comfy.sampler_helpers
 import comfy.samplers
 import comfy.utils
-import comfy.node_helpers as node_helpers
+import node_helpers
 
 def perp_neg(x, noise_pred_pos, noise_pred_neg, noise_pred_nocond, neg_scale, cond_scale):
     pos = noise_pred_pos - noise_pred_nocond

@@ -10,15 +10,6 @@ Create a new asset.
 
 **Returns:** Asset
 
-### create_temp
-
-Create a new temporary asset.
-**Args:**
-- **extension (str)**
-- **user (User) (default: Depends(current_user))**
-
-**Returns:** TempAsset
-
 ### delete
 
 Deletes the asset for the given id.

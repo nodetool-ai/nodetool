@@ -855,7 +855,7 @@ class ProcessingContext:
         if data.dtype == np.int16:
             data_bytes = data.tobytes()
         elif data.dtype == np.float32 or data.dtype == np.float64:
-            data_bytes = (data * (2**15 - 1)).astype(np.int16).tobytes()
+            data_bytes = (data * (2**14)).astype(np.int16).tobytes()
         else:
             raise ValueError(f"Unsupported dtype {data.dtype}")
 
@@ -1112,6 +1112,30 @@ class ProcessingContext:
             return TextRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
             return TextRef(data=s.encode("utf-8"))
+
+    async def video_from_numpy(
+        self,
+        video: np.ndarray,
+        name: str | None = None,
+        parent_id: str | None = None,
+    ) -> VideoRef:
+        """
+        Creates a VideoRef from a numpy array.
+
+        Args:
+            context (ProcessingContext): The processing context.
+            video (np.ndarray): The numpy array.
+            name (Optional[str], optional): The name of the asset. Defaults to None.
+
+        Returns:
+            VideoRef: The VideoRef object.
+        """
+        import imageio
+
+        buffer = BytesIO()
+        imageio.mimwrite(buffer, video, format="mp4")  # type: ignore
+        buffer.seek(0)
+        return await self.video_from_io(buffer, name=name, parent_id=parent_id)
 
     async def video_from_io(
         self,

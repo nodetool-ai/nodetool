@@ -1,5 +1,5 @@
-import comfy.nodes as nodes
-import comfy.folder_paths as folder_paths
+import nodes
+import folder_paths
 
 MAX_RESOLUTION = nodes.MAX_RESOLUTION
 

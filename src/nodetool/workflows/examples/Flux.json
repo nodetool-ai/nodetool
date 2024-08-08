@@ -8,179 +8,50 @@
     "thumbnail": "",
     "thumbnail_url": "/examples/flux_schnell_example.png",
     "graph": {
-        "1": {
-            "type": "comfy.loaders.UNETLoader",
+        "5": {
+            "type": "comfy.latent.EmptyLatentImage",
             "inputs": {
-                "unet_name": {
-                    "type": "comfy.unet_file",
-                    "name": "flux1-schnell.sft"
-                }
+                "width": 1024,
+                "height": 1024,
+                "batch_size": 1
             },
             "position": {
-                "x": 601.5,
-                "y": 78
+                "x": 404,
+                "y": 61.5
             }
         },
-        "3": {
-            "type": "comfy.sampling.guiders.BasicGuider",
-            "inputs": {
-                "conditioning": [
-                    "4",
-                    "conditioning"
-                ],
-                "model": [
-                    "1",
-                    "unet"
-                ]
-            },
-            "position": {
-                "x": 803,
-                "y": 553.5
-            }
-        },
-        "4": {
+        "6": {
             "type": "comfy.conditioning.CLIPTextEncode",
             "inputs": {
-                "text": "a big street",
+                "text": "a bottle with a rainbow galaxy inside it on top of a wooden table on a table in the middle of a modern kitchen",
                 "clip": [
                     "11",
                     "clip"
                 ]
             },
             "position": {
-                "x": 601.5,
-                "y": 563.5
-            }
-        },
-        "5": {
-            "type": "comfy.latent.EmptyLatentImage",
-            "inputs": {
-                "width": 768,
-                "height": 768,
-                "batch_size": 1
-            },
-            "position": {
-                "x": 803,
-                "y": 261
-            }
-        },
-        "6": {
-            "type": "comfy.sampling.noise.RandomNoise",
-            "inputs": {
-                "noise_seed": 389791571
-            },
-            "position": {
-                "x": 803,
-                "y": 411.5
-            }
-        },
-        "7": {
-            "type": "comfy.sampling.samplers.SamplerCustomAdvanced",
-            "inputs": {
-                "latent_image": [
-                    "5",
-                    "latent"
-                ],
-                "sigmas": [
-                    "8",
-                    "sigmas"
-                ],
-                "noise": [
-                    "6",
-                    "noise"
-                ],
-                "guider": [
-                    "3",
-                    "guider"
-                ],
-                "sampler": [
-                    "9",
-                    "sampler"
-                ]
-            },
-            "position": {
-                "x": 1005,
-                "y": 411.5
+                "x": 202.5,
+                "y": 317
             }
         },
         "8": {
-            "type": "comfy.sampling.schedulers.BasicScheduler",
+            "type": "comfy.latent.VAEDecode",
             "inputs": {
-                "scheduler": "simple",
-                "steps": 4,
-                "denoise": 1,
-                "model": [
-                    "1",
-                    "unet"
+                "vae": [
+                    "10",
+                    "vae"
+                ],
+                "samples": [
+                    "13",
+                    "output"
                 ]
             },
             "position": {
-                "x": 803,
-                "y": 78
-            }
-        },
-        "9": {
-            "type": "comfy.sampling.samplers.KSamplerSelect",
-            "inputs": {
-                "sampler_name": "euler"
-            },
-            "position": {
-                "x": 803,
-                "y": 702
+                "x": 786,
+                "y": 248.75
             }
         },
         "10": {
-            "type": "nodetool.workflows.base_node.Preview",
-            "inputs": {
-                "name": "comfy.latent_output_2024-08-03",
-                "value": [
-                    "12",
-                    "image"
-                ]
-            },
-            "position": {
-                "x": 1323,
-                "y": 297
-            },
-            "width": 474,
-            "height": 500
-        },
-        "11": {
-            "type": "comfy.loaders.DualCLIPLoader",
-            "inputs": {
-                "clip_name1": {
-                    "type": "comfy.clip_file",
-                    "name": "t5xxl_fp16.safetensors"
-                },
-                "clip_name2": {
-                    "type": "comfy.clip_file",
-                    "name": "clip_l.safetensors"
-                },
-                "type": "flux"
-            },
-            "position": {
-                "x": 400.5,
-                "y": 563.5
-            }
-        },
-        "12": {
-            "type": "comfy.latent.VAEDecode",
-            "inputs": {
-                "samples": [
-                    "7",
-                    "output"
-                ],
-                "vae": [
-                    "13",
-                    "vae"
-                ]
-            },
-            "position": {
-                "x": 1194,
-                "y": 477
-            }
-        },
-        "13": {
             "type": "comfy.loaders.VAELoader",
             "inputs": {
                 "vae_name": {
@@ -189,9 +60,140 @@
                 }
             },
             "position": {
-                "x": 1005,
-                "y": 588.5
+                "x": 606,
+                "y": 170.5
             }
+        },
+        "11": {
+            "type": "comfy.loaders.DualCLIPLoader",
+            "inputs": {
+                "clip_name1": {
+                    "type": "comfy.clip_file",
+                    "name": "clip_l.safetensors"
+                },
+                "clip_name2": {
+                    "type": "comfy.clip_file",
+                    "name": "t5xxl_fp8_e4m3fn.safetensors"
+                },
+                "type": "flux"
+            },
+            "position": {
+                "x": 17,
+                "y": 281
+            }
+        },
+        "12": {
+            "type": "comfy.loaders.UNETLoader",
+            "inputs": {
+                "unet_name": {
+                    "type": "comfy.unet_file",
+                    "name": "flux1-schnell.sft"
+                },
+                "weight_dtype": "default"
+            },
+            "position": {
+                "x": 202.5,
+                "y": 487.5
+            }
+        },
+        "13": {
+            "type": "comfy.sampling.samplers.SamplerCustomAdvanced",
+            "inputs": {
+                "noise": [
+                    "25",
+                    "noise"
+                ],
+                "guider": [
+                    "22",
+                    "guider"
+                ],
+                "sampler": [
+                    "16",
+                    "sampler"
+                ],
+                "sigmas": [
+                    "17",
+                    "sigmas"
+                ],
+                "latent_image": [
+                    "5",
+                    "latent"
+                ]
+            },
+            "position": {
+                "x": 606,
+                "y": 327
+            }
+        },
+        "16": {
+            "type": "comfy.sampling.samplers.KSamplerSelect",
+            "inputs": {
+                "sampler_name": "euler"
+            },
+            "position": {
+                "x": 404,
+                "y": 198.5
+            }
+        },
+        "17": {
+            "type": "comfy.sampling.schedulers.BasicScheduler",
+            "inputs": {
+                "scheduler": "simple",
+                "steps": 4,
+                "denoise": 1,
+                "model": [
+                    "12",
+                    "unet"
+                ]
+            },
+            "position": {
+                "x": 404,
+                "y": 497.5
+            }
+        },
+        "22": {
+            "type": "comfy.sampling.guiders.BasicGuider",
+            "inputs": {
+                "conditioning": [
+                    "6",
+                    "conditioning"
+                ],
+                "model": [
+                    "12",
+                    "unet"
+                ]
+            },
+            "position": {
+                "x": 404,
+                "y": 327
+            }
+        },
+        "25": {
+            "type": "comfy.sampling.noise.RandomNoise",
+            "inputs": {
+                "noise_seed": 689015878,
+                "seed_control_mode": "randomize"
+            },
+            "position": {
+                "x": 404,
+                "y": 643.5
+            }
+        },
+        "26": {
+            "type": "nodetool.workflows.base_node.Preview",
+            "inputs": {
+                "value": [
+                    "8",
+                    "image"
+                ],
+                "name": "image_image_2024-08-07"
+            },
+            "position": {
+                "x": 926,
+                "y": 164
+            },
+            "width": 301,
+            "height": 321
         }
     }
 }

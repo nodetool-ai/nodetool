@@ -1,4 +1,4 @@
-import comfy.node_helpers as node_helpers
+import node_helpers
 
 class CLIPTextEncodeFlux:
     @classmethod

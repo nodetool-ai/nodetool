@@ -79,22 +79,6 @@ Use cases:
 
 **Args:**
 
-## ComfyImageInput
-
-Image input optimized for Comfy workflows.
-
-Use cases:
-- Load and preprocess images for Comfy models
-- Handle multi-frame images and alpha channels
-- Convert images to tensor format for ML tasks
-
-**Tags:** input, parameter, image
-
-- **label**: The label for this input node. (str)
-- **name**: The parameter name for the workflow. (str)
-- **description**: The description for this input node. (str)
-- **value**: The image to use as input. (ImageRef)
-
 ## FloatInput
 
 Float parameter input for workflows.

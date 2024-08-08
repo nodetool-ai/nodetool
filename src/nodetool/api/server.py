@@ -70,7 +70,7 @@ def create_app(
 
         import comfy.model_management
         import comfy.utils
-        from comfy.nodes import init_extra_nodes
+        from nodes import init_extra_nodes
 
         init_extra_nodes()
 

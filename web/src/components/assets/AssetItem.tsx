@@ -194,60 +194,6 @@ const styles = (theme: any) =>
       border: `2px solid ${theme.palette.c_gray2}`,
       backgroundColor: "#437cb522",
     },
-    // // FOLDER
-    // "&.asset-item.folder": {
-    //   gap: 0,
-    // },
-    // "&.folder .asset": {
-    //   backgroundColor: "transparent",
-    //   border: 0,
-    //   outline: 0,
-    //   gap: 0,
-    // },
-    // "&.folder .name": {},
-    // "&.folder:hover": {
-    //   opacity: 0.7,
-    // },
-    // "&.folder::after": {
-    //   backgroundColor: "transparent",
-    //   padding: "2em",
-    // },
-    // "&.folder:after, &.folder.selected:after": {
-    //   border: 0,
-    //   outline: 0,
-    //   backgroundColor: "transparent",
-    // },
-    // "&.folder svg": {
-    //   position: "absolute",
-    //   margin: 0,
-    //   left: "0",
-    //   top: "0",
-    //   transform: "scale(1.1)",
-    //   width: "100%",
-    //   height: "100%",
-    //   color: theme.palette.c_gray5,
-    //   background: "transparent",
-    // },
-    // "&.folder.selected svg": {
-    //   color: theme.palette.c_hl1,
-    // },
-    // // PARENT FOLDER
-    // "&.folder.parent": {
-    //   cursor: "pointer",
-    // },
-    // "&.folder.parent .name": {
-    //   fontSize: theme.fontSizeSmaller,
-    // },
-    // "&.folder.parent svg.parent-icon": {
-    //   color: theme.palette.c_gray6,
-    //   backgroundColor: "transparent",
-    //   width: "40%",
-    //   height: "40%",
-    //   bottom: "20%",
-    //   top: "unset",
-    //   right: "5px",
-    //   left: "unset",
-    // },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {
       color: theme.palette.c_hl1,
@@ -361,10 +307,6 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     () => asset?.content_type?.match("video") !== null,
     [asset?.content_type]
   );
-  // const isFolder = useMemo(
-  //   () => asset?.content_type?.match("folder") !== null,
-  //   [asset?.content_type]
-  // );
 
   return (
     <div

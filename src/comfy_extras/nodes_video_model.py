@@ -1,9 +1,9 @@
-import comfy.nodes as nodes
+import nodes
 import torch
 import comfy.utils
 import comfy.sd
-import comfy.folder_paths as folder_paths
-from comfy.comfy_extras import nodes_model_merging
+import folder_paths
+import comfy_extras.nodes_model_merging
 
 
 class ImageOnlyCheckpointLoader:
@@ -106,7 +106,7 @@ class VideoTriangleCFGGuidance:
         m.set_model_sampler_cfg_function(linear_cfg)
         return (m, )
 
-class ImageOnlyCheckpointSave(nodes_model_merging.CheckpointSave):
+class ImageOnlyCheckpointSave(comfy_extras.nodes_model_merging.CheckpointSave):
     CATEGORY = "_for_testing"
 
     @classmethod

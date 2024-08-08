@@ -79,6 +79,33 @@ Use cases:
 
 **Returns:** AudioRef
 
+## StableAudioNode
+
+Generates audio using the Stable Audio Pipeline based on a text prompt.
+
+Use cases:
+- Creating custom sound effects based on textual descriptions
+- Generating background audio for videos or games
+- Exploring AI-generated audio for creative projects
+
+**Tags:** audio, generation, AI, text-to-audio
+
+- **prompt**: A text prompt describing the desired audio. (str)
+- **negative_prompt**: A text prompt describing what you don't want in the audio. (str)
+- **duration**: The desired duration of the generated audio in seconds. (float)
+- **num_inference_steps**: Number of denoising steps. More steps generally improve quality but increase generation time. (int)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
 ## TextToAudio
 
 Generates audio (music or sound effects) from text descriptions.
