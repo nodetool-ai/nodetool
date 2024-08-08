@@ -266,6 +266,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Data */
+      data?: string | null;
     };
     /** AssetUpdateRequest */
     AssetUpdateRequest: {
@@ -341,10 +343,10 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
-      /** Columns */
-      columns?: components["schemas"]["ColumnDef"][] | null;
       /** Data */
       data?: unknown[][] | null;
+      /** Columns */
+      columns?: components["schemas"]["ColumnDef"][] | null;
     };
     /** Edge */
     Edge: {
@@ -379,6 +381,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Data */
+      data?: string | null;
     };
     /** FunctionModel */
     FunctionModel: {
@@ -647,6 +651,8 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Data */
+      data?: string | null;
     };
     /** Node */
     Node: {
@@ -932,6 +938,11 @@ export interface components {
       /** Env */
       env?: Record<string, never> | null;
       graph?: components["schemas"]["Graph"] | null;
+      /**
+       * Explicit Types
+       * @default false
+       */
+      explicit_types?: boolean;
     };
     /** Task */
     Task: {
@@ -1192,12 +1203,12 @@ export interface components {
       uri?: string;
       /** Asset Id */
       asset_id?: string | null;
+      /** Data */
+      data?: string | null;
       /** Duration */
       duration?: number | null;
       /** Format */
       format?: string | null;
-      /** Data */
-      data?: string | null;
     };
     /** Workflow */
     Workflow: {

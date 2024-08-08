@@ -17,6 +17,7 @@ import TaskTable from "./DataTable/TaskTable";
 import ImageView from "./ImageView";
 import AssetGrid from "../assets/AssetGrid";
 import AssetGridContent from "../assets/AssetGridContent";
+import { uint8ArrayToDataUri } from "../../utils/binary";
 
 interface SortedAssetsByType {
   assetsByType: Record<string, Asset[]>;
@@ -215,6 +216,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
                   name = item.name || `File ${index + 1}`;
               }
 
+              const get_url = item.uri || uint8ArrayToDataUri(item.data, contentType);
+              const thumb_url = item.thumb_url || get_url;
+
               return {
                 id: item.id || `output-${item.type}-${index}`,
                 user_id: "",
@@ -224,8 +228,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
                 content_type: contentType,
                 metadata: {},
                 created_at: new Date().toISOString(),
-                get_url: item.uri || item.data,
-                thumb_url: item.thumb_url || item.uri || item.data,
+                get_url: get_url,
+                thumb_url: thumb_url,
                 duration: item.duration || null
               } as Asset;
             });

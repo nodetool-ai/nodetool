@@ -946,16 +946,16 @@ class SDXLTurbo(BaseNode):
         description="Seed for the random number generator.",
     )
     num_inference_steps: int = Field(
-        default=1, ge=1, le=50, description="Number of inference steps."
+        default=4, ge=1, le=50, description="Number of inference steps."
     )
     guidance_scale: float = Field(
         default=7.0, ge=0.0, le=20.0, description="Guidance scale for generation."
     )
     width: int = Field(
-        default=512, ge=64, le=2048, description="Width of the generated image."
+        default=1024, ge=64, le=2048, description="Width of the generated image."
     )
     height: int = Field(
-        default=512, ge=64, le=2048, description="Height of the generated image"
+        default=1024, ge=64, le=2048, description="Height of the generated image"
     )
     strength: float = Field(
         default=1.0,
