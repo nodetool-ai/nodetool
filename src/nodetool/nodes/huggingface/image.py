@@ -1,4 +1,6 @@
 from enum import Enum
+import numpy as np
+import PIL.Image
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import ColumnType, DataframeRef, ImageRef, ColumnDef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
@@ -18,6 +20,7 @@ from diffusers import (
     KandinskyV22Pipeline,  # type: ignore
     KandinskyV22PriorPipeline,  # type: ignore
     KandinskyV22Img2ImgPipeline,  # type: ignore
+    KandinskyV22ControlnetPipeline,  # type: ignore
 )
 from diffusers import StableCascadeDecoderPipeline, StableCascadePriorPipeline  # type: ignore
 from diffusers import StableDiffusion3ControlNetPipeline  # type: ignore
@@ -509,28 +512,16 @@ class DepthEstimation(HuggingFacePipelineNode):
         return await super().process(context)
 
 
-class ImageToImage(HuggingFacePipelineNode):
+class BaseImageToImage(HuggingFacePipelineNode):
     """
-    Performs image-to-image transformation tasks.
+    Base class for image-to-image transformation tasks.
     image, transformation, generation, huggingface
-
-    Use cases:
-    - Style transfer
-    - Image inpainting
-    - Image super-resolution
-    - Image colorization
     """
 
-    class ImageToImageModelId(str, Enum):
-        SWIN2SR = "caidas/swin2SR-classical-sr-x2-64"
-        REAL_ESRGAN_X4PLUS = "qualcomm/Real-ESRGAN-x4plus"
-        INSTRUCT_PIX2PIX = "timbrooks/instruct-pix2pix"
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls is not BaseImageToImage
 
-    model: ImageToImageModelId = Field(
-        default=ImageToImageModelId.SWIN2SR,
-        title="Model ID on Huggingface",
-        description="The model ID to use for the image-to-image transformation",
-    )
     inputs: ImageRef = Field(
         default=ImageRef(),
         title="Input Image",
@@ -542,20 +533,12 @@ class ImageToImage(HuggingFacePipelineNode):
         description="The text prompt to guide the image transformation (if applicable)",
     )
 
-    def get_model_id(self):
-        return self.model.value
-
     @property
     def pipeline_task(self) -> str:
         return "image-to-image"
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
-
-    def get_params(self):
-        return {
-            "prompt": self.prompt,
-        }
 
     async def process_remote_result(
         self, context: ProcessingContext, result: Any
@@ -567,8 +550,85 @@ class ImageToImage(HuggingFacePipelineNode):
     ) -> ImageRef:
         return await context.image_from_pil(result)
 
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        return await super().process(context)
+
+class Swin2SR(BaseImageToImage):
+    """
+    Performs image super-resolution using the Swin2SR model.
+    image, super-resolution, enhancement, huggingface
+
+    Use cases:
+    - Enhance low-resolution images
+    - Improve image quality for printing or display
+    - Upscale images for better detail
+    """
+
+    def get_model_id(self):
+        return "caidas/swin2SR-classical-sr-x2-64"
+
+    def get_params(self):
+        return {}
+
+
+class RealESRGAN(BaseImageToImage):
+    """
+    Performs image super-resolution using the Real-ESRGAN model.
+    image, super-resolution, enhancement, huggingface
+
+    Use cases:
+    - Enhance low-resolution images
+    - Restore details in blurry or pixelated images
+    - Improve visual quality of old or compressed images
+    """
+
+    def get_model_id(self):
+        return "qualcomm/Real-ESRGAN-x4plus"
+
+    def get_params(self):
+        return {}
+
+
+class InstructPix2Pix(BaseImageToImage):
+    """
+    Performs image editing based on text instructions using the InstructPix2Pix model.
+    image, editing, transformation, huggingface
+
+    Use cases:
+    - Apply specific edits to images based on text instructions
+    - Modify image content or style guided by text prompts
+    - Create variations of existing images with controlled changes
+    """
+
+    prompt: str = Field(
+        default="Remove the background.",
+        description="The text prompt to guide the image transformation.",
+    )
+    negative_prompt: str = Field(
+        default="",
+        description="The negative text prompt to avoid in the transformation.",
+    )
+    num_inference_steps: int = Field(
+        default=50, description="The number of denoising steps.", ge=1, le=100
+    )
+    guidance_scale: float = Field(
+        default=7.0, description="The guidance scale for the transformation.", ge=1.0
+    )
+    image_guidance_scale: float = Field(
+        default=7.0,
+        description="The image guidance scale for the transformation.",
+        ge=1.0,
+    )
+
+    def get_model_id(self):
+        return "timbrooks/instruct-pix2pix"
+
+    def get_params(self):
+        return {
+            "prompt": self.prompt,
+            "negative_prompt": self.negative_prompt,
+            "num_inference_steps": self.num_inference_steps,
+            "guidance_scale": self.guidance_scale,
+            "image_guidance_scale": self.image_guidance_scale,
+        }
 
 
 class AuraFlowNode(BaseNode):
@@ -586,8 +646,20 @@ class AuraFlowNode(BaseNode):
         default="A cat holding a sign that says hello world",
         description="A text prompt describing the desired image.",
     )
+    negative_prompt: str = Field(
+        default="", description="A text prompt describing what to avoid in the image."
+    )
+    guidance_scale: float = Field(
+        default=7.0, description="The guidance scale for the transformation.", ge=1.0
+    )
     num_inference_steps: int = Field(
         default=25, description="The number of denoising steps.", ge=1, le=100
+    )
+    width: int = Field(
+        default=768, description="The width of the generated image.", ge=128, le=1024
+    )
+    height: int = Field(
+        default=768, description="The height of the generated image.", ge=128, le=1024
     )
     seed: int = Field(
         default=-1,
@@ -603,8 +675,7 @@ class AuraFlowNode(BaseNode):
         )  # type: ignore
 
     async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        pass
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -617,9 +688,15 @@ class AuraFlowNode(BaseNode):
                 self.seed
             )
 
+        self._pipeline.enable_sequential_cpu_offload()
+
         output = self._pipeline(
             self.prompt,
+            negative_prompt=self.negative_prompt,
+            guidance_scale=self.guidance_scale,
             num_inference_steps=self.num_inference_steps,
+            width=self.width,
+            height=self.height,
             generator=generator,
         )
         image = output.images[0]  # type: ignore
@@ -627,17 +704,21 @@ class AuraFlowNode(BaseNode):
         return await context.image_from_pil(image)
 
 
-class Kandinsky2Node(BaseNode):
+class Kandinsky2(BaseNode):
     """
-    Generates images using the Kandinsky 2.2 model. Provide image for img2img mode.
-    image, generation, AI, text-to-image, image-to-image
+    Generates images using the Kandinsky 2.2 model from text prompts.
+    image, generation, AI, text-to-image
 
     Use cases:
     - Create high-quality images from text descriptions
-    - Transform existing images based on text prompts
     - Generate detailed illustrations for creative projects
     - Produce visual content for digital media and art
+    - Explore AI-generated imagery for concept development
     """
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Kandinsky 2.2"
 
     prompt: str = Field(
         default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
@@ -655,10 +736,90 @@ class Kandinsky2Node(BaseNode):
     height: int = Field(
         default=768, description="The height of the generated image.", ge=128, le=1024
     )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _prior_pipeline: KandinskyV22PriorPipeline | None = None
+    _pipeline: KandinskyV22Pipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = KandinskyV22Pipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
+        )
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._prior_pipeline is None or self._pipeline is None:
+            raise ValueError("Pipelines not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        # Enable sequential CPU offload for memory efficiency
+        self._pipeline.enable_sequential_cpu_offload()
+
+        # Generate image embeddings
+        prior_output = self._prior_pipeline(
+            self.prompt, negative_prompt=self.negative_prompt, generator=generator
+        )
+        image_emb, negative_image_emb = prior_output.to_tuple()
+
+        output = self._pipeline(
+            image_embeds=image_emb,
+            negative_image_embeds=negative_image_emb,
+            height=self.height,
+            width=self.width,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )
+
+        image = output.images[0]
+
+        return await context.image_from_pil(image)
+
+
+class Kandinsky2Img2Img(BaseNode):
+    """
+    Transforms existing images based on text prompts using the Kandinsky 2.2 model.
+    image, generation, AI, image-to-image
+
+    Use cases:
+    - Transform existing images based on text prompts
+    - Apply specific styles or concepts to existing images
+    - Modify photographs or artworks with AI-generated elements
+    - Create variations of existing visual content
+    """
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Kandinsky 2.2 Image-to-Image"
+
+    prompt: str = Field(
+        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+        description="A text prompt describing the desired image transformation.",
+    )
+    negative_prompt: str = Field(
+        default="", description="A text prompt describing what to avoid in the image."
+    )
+    num_inference_steps: int = Field(
+        default=50, description="The number of denoising steps.", ge=1, le=100
+    )
+    strength: float = Field(
+        default=0.5,
+        description="The strength of the transformation. Use a value between 0.0 and 1.0.",
+        ge=0.0,
+        le=1.0,
+    )
     image: ImageRef = Field(
         default=ImageRef(),
         title="Input Image",
-        description="The input image to transform (optional)",
+        description="The input image to transform",
     )
     seed: int = Field(
         default=-1,
@@ -667,27 +828,15 @@ class Kandinsky2Node(BaseNode):
     )
 
     _prior_pipeline: KandinskyV22PriorPipeline | None = None
-    _pipeline: KandinskyV22Pipeline | KandinskyV22Img2ImgPipeline | None = None
+    _pipeline: KandinskyV22Img2ImgPipeline | None = None
 
     async def initialize(self, context: ProcessingContext):
         self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
             "kandinsky-community/kandinsky-2-2-prior", torch_dtype=torch.float16
-        )  # type: ignore
-        if self.image.is_empty():
-            self._pipeline = KandinskyV22Pipeline.from_pretrained(
-                "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
-            )  # type: ignore
-        else:
-            self._pipeline = KandinskyV22Img2ImgPipeline.from_pretrained(
-                "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
-            )  # type: ignore
-
-    async def move_to_device(self, device: str):
-        # Commented out as in the example
-        # if self._prior_pipeline is not None and self._pipeline is not None:
-        #     self._prior_pipeline.to(device)
-        #     self._pipeline.to(device)
-        pass
+        )
+        self._pipeline = KandinskyV22Img2ImgPipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
+        )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._prior_pipeline is None or self._pipeline is None:
@@ -706,47 +855,152 @@ class Kandinsky2Node(BaseNode):
         prior_output = self._prior_pipeline(
             self.prompt, negative_prompt=self.negative_prompt, generator=generator
         )
-        image_emb, negative_image_emb = prior_output.to_tuple()  # type: ignore
+        image_emb, negative_image_emb = prior_output.to_tuple()
 
-        if self.image.is_empty():
-            output = self._pipeline(
-                image_embeds=image_emb,
-                negative_image_embeds=negative_image_emb,
-                height=self.height,
-                width=self.width,
-                num_inference_steps=self.num_inference_steps,
-                generator=generator,
-                callback=progress_callback(self.id, self.num_inference_steps, context),
-                callback_steps=1,
-            )  # type: ignore
-        else:
-            input_image = await context.image_to_pil(self.image)
-            output = self._pipeline(
-                image=input_image,
-                image_embeds=image_emb,
-                negative_image_embeds=negative_image_emb,
-                height=self.height,
-                width=self.width,
-                num_inference_steps=self.num_inference_steps,
-                generator=generator,
-                callback=progress_callback,
-                callback_steps=1,
-            )
+        input_image = await context.image_to_pil(self.image)
+        output = self._pipeline(
+            image=input_image,
+            image_embeds=image_emb,
+            negative_image_embeds=negative_image_emb,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )
 
-        image = output.images[0]  # type: ignore
+        image = output.images[0]
 
         return await context.image_from_pil(image)
 
 
-class Kandinsky3Node(BaseNode):
+def make_hint(image: PIL.Image.Image) -> torch.Tensor:
+    np_array = np.array(image)
+    detected_map = torch.from_numpy(np_array).float() / 255.0
+    hint = detected_map.permute(2, 0, 1)
+    return hint[:3, :, :].unsqueeze(0)
+
+
+class Kandinsky2ControlNet(BaseNode):
     """
-    Generates images using the Kandinsky-3 model. Provide image for img2img mode.
+    Transforms existing images based on text prompts and control images using the Kandinsky 2.2 model with ControlNet.
+    image, generation, AI, image-to-image, controlnet
+
+    Use cases:
+    - Transform existing images based on text prompts with precise control
+    - Apply specific styles or concepts to existing images guided by control images
+    - Modify photographs or artworks with AI-generated elements while maintaining specific structures
+    - Create variations of existing visual content with controlled transformations
+    """
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Kandinsky 2.2 with ControlNet"
+
+    prompt: str = Field(
+        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+        description="The prompt to guide the image generation.",
+    )
+    negative_prompt: str = Field(
+        default="", description="The prompt not to guide the image generation."
+    )
+    hint: ImageRef = Field(
+        default=ImageRef(),
+        title="Control Image",
+        description="The controlnet condition image.",
+    )
+    height: int = Field(
+        default=512,
+        description="The height in pixels of the generated image.",
+        ge=64,
+        le=2048,
+    )
+    width: int = Field(
+        default=512,
+        description="The width in pixels of the generated image.",
+        ge=64,
+        le=2048,
+    )
+    num_inference_steps: int = Field(
+        default=30, description="The number of denoising steps.", ge=1, le=100
+    )
+    guidance_scale: float = Field(
+        default=4.0,
+        description="Guidance scale as defined in Classifier-Free Diffusion Guidance.",
+        ge=1.0,
+        le=20.0,
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+    output_type: str = Field(
+        default="pil",
+        description="The output format of the generated image.",
+    )
+
+    _prior_pipeline: KandinskyV22PriorPipeline | None = None
+    _pipeline: KandinskyV22ControlnetPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-prior", torch_dtype=torch.float16
+        )
+        self._pipeline = KandinskyV22ControlnetPipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-controlnet-depth",
+            torch_dtype=torch.float16,
+        )
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._prior_pipeline is None or self._pipeline is None:
+            raise ValueError("Pipelines not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        # Enable sequential CPU offload for memory efficiency
+        self._prior_pipeline.enable_sequential_cpu_offload()
+        self._pipeline.enable_sequential_cpu_offload()
+
+        # Generate image embeddings
+        prior_output = self._prior_pipeline(
+            self.prompt, negative_prompt=self.negative_prompt, generator=generator
+        )
+        image_emb, negative_image_emb = prior_output.to_tuple()
+
+        # Prepare the control image (hint)
+        hint = await context.image_to_pil(self.hint)
+        hint = hint.resize((self.width, self.height))
+
+        output = self._pipeline(
+            hint=make_hint(hint),
+            image_embeds=image_emb,
+            negative_image_embeds=negative_image_emb,
+            height=self.height,
+            width=self.width,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=generator,
+            output_type="pil",
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )
+
+        return await context.image_from_pil(output.images[0])
+
+
+class Kandinsky3(BaseNode):
+    """
+    Generates images using the Kandinsky-3 model from text prompts.
     image, generation, AI, text-to-image
 
     Use cases:
     - Create detailed images from text descriptions
     - Generate unique illustrations for creative projects
     - Produce visual content for digital media and art
+    - Explore AI-generated imagery for concept development
     """
 
     prompt: str = Field(
@@ -762,11 +1016,6 @@ class Kandinsky3Node(BaseNode):
     height: int = Field(
         default=512, description="The height of the generated image.", ge=64, le=2048
     )
-    image: ImageRef = Field(
-        default=ImageRef(),
-        title="Input Image",
-        description="The input image to transform (optional)",
-    )
     seed: int = Field(
         default=0,
         description="Seed for the random number generator. Use -1 for a random seed.",
@@ -776,22 +1025,14 @@ class Kandinsky3Node(BaseNode):
     _pipeline: AutoPipelineForText2Image | None = None
 
     async def initialize(self, context: ProcessingContext):
-        if self.image.is_empty():
-            self._pipeline = AutoPipelineForText2Image.from_pretrained(
-                "kandinsky-community/kandinsky-3",
-                variant="fp16",
-                torch_dtype=torch.float16,
-            )
-        else:
-            self._pipeline = AutoPipelineForImage2Image.from_pretrained(
-                "kandinsky-community/kandinsky-3",
-                variant="fp16",
-                torch_dtype=torch.float16,
-            )
-
-        assert self._pipeline is not None
+        self._pipeline = AutoPipelineForText2Image.from_pretrained(
+            "kandinsky-community/kandinsky-3",
+            variant="fp16",
+            torch_dtype=torch.float16,
+        )
 
     async def move_to_device(self, device: str):
+        # Commented out as in the original class
         # if self._pipeline is not None:
         #     self._pipeline.to(device)
         pass
@@ -807,27 +1048,91 @@ class Kandinsky3Node(BaseNode):
 
         self._pipeline.enable_sequential_cpu_offload()
 
-        if self.image.is_empty():
-            output = self._pipeline(
-                prompt=self.prompt,
-                num_inference_steps=self.num_inference_steps,
-                generator=generator,
-                width=self.width,
-                height=self.height,
-                callback=progress_callback(self.id, self.num_inference_steps, context),
-                callback_steps=1,
-            )  # type: ignore
-        else:
-            input_image = await context.image_to_pil(self.image)
-            output = self._pipeline(
-                prompt=self.prompt,
-                num_inference_steps=self.num_inference_steps,
-                generator=generator,
-                image=input_image,
-                width=self.width,
-                height=self.height,
-                callback=progress_callback,
-            )  # type: ignore
+        output = self._pipeline(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            width=self.width,
+            height=self.height,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )
+
+        image = output.images[0]
+
+        return await context.image_from_pil(image)
+
+
+class Kandinsky3Img2Img(BaseNode):
+    """
+    Transforms existing images using the Kandinsky-3 model based on text prompts.
+    image, generation, AI, image-to-image
+
+    Use cases:
+    - Modify existing images based on text descriptions
+    - Apply specific styles or concepts to photographs or artwork
+    - Create variations of existing visual content
+    - Blend AI-generated elements with existing images
+    """
+
+    prompt: str = Field(
+        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+        description="A text prompt describing the desired image transformation.",
+    )
+    num_inference_steps: int = Field(
+        default=25, description="The number of denoising steps.", ge=1, le=100
+    )
+    strength: float = Field(
+        default=0.5,
+        description="The strength of the transformation. Use a value between 0.0 and 1.0.",
+        ge=0.0,
+        le=1.0,
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The input image to transform",
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: AutoPipelineForImage2Image | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = AutoPipelineForImage2Image.from_pretrained(
+            "kandinsky-community/kandinsky-3",
+            variant="fp16",
+            torch_dtype=torch.float16,
+        )
+
+    async def move_to_device(self, device: str):
+        pass
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        self._pipeline.enable_sequential_cpu_offload()
+
+        input_image = await context.image_to_pil(self.image)
+        output = self._pipeline(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            image=input_image,
+            width=self.width,
+            height=self.height,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )
 
         image = output.images[0]
 
