@@ -2,17 +2,16 @@
 import { css } from "@emotion/react";
 import { Asset } from "../../stores/ApiTypes";
 import FolderItem from "./FolderItem";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useAssets from "../../serverState/useAssets";
-// import { useAssetStore } from "../../hooks/AssetStore";
 
 const INITIAL_FOLDER_LIST_HEIGHT = 150;
 const MIN_FOLDER_LIST_HEIGHT = 100;
 const MAX_FOLDER_LIST_HEIGHT = 800;
-const RESIZE_HANDLE_HEIGHT = 20;
+const RESIZE_HANDLE_HEIGHT = 10;
 const LIST_MIN_WIDTH = "300px"; // used if isHorizontal
-const SCALE_OFFSET = 150; // should not be needed
+const SCALING_SPEED = 2; // hack
 
 const styles = (theme: any) =>
   css({
@@ -28,12 +27,12 @@ const styles = (theme: any) =>
       flexWrap: "nowrap",
       gap: ".25em",
       padding: "10px",
-      height: "100%",
+      height: "calc(100% - ${RESIZE_HANDLE_HEIGHT}px)",
       overflow: "hidden auto",
     },
     ".resize-handle": {
       position: "absolute",
-      // bottom: "-5px",
+      bottom: 0,
       left: 0,
       right: 0,
       height: `${RESIZE_HANDLE_HEIGHT}px`,
@@ -41,13 +40,19 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray2,
       transition: "background-color 0.2s ease",
       "&:hover, &.resizing": {
-        borderTop: "1px solid" + theme.palette.primary.main,
+        backgroundColor: theme.palette.primary.main,
       },
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: theme.palette.c_gray0,
-      paddingBottom: ".5em",
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        width: "2em",
+        height: "4px",
+        borderRadius: "2px",
+        backgroundColor: theme.palette.c_gray0,
+      },
     },
   });
 
@@ -63,15 +68,22 @@ const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  // const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
+  const initialMouseY = useRef<number>(0);
+  const initialHeight = useRef<number>(INITIAL_FOLDER_LIST_HEIGHT);
+
   const { sortedAssets } = useAssets();
   const { selectedAssetIds, handleSelectAsset } =
     useAssetSelection(sortedAssets);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsResizing(true);
+      initialMouseY.current = e.clientY;
+      initialHeight.current = folderListHeight;
+    },
+    [folderListHeight]
+  );
 
   const handleResizeEnd = useCallback(() => {
     setIsResizing(false);
@@ -80,8 +92,8 @@ const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
   const handleResize = useCallback(
     (e: MouseEvent) => {
       if (isResizing && containerRef.current) {
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const newHeight = e.clientY - containerRect.top + SCALE_OFFSET;
+        const deltaY = e.clientY - initialMouseY.current;
+        const newHeight = initialHeight.current + deltaY * SCALING_SPEED;
         const clampedHeight = Math.max(
           MIN_FOLDER_LIST_HEIGHT,
           Math.min(newHeight, MAX_FOLDER_LIST_HEIGHT)
@@ -122,7 +134,6 @@ const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
             folder={folder}
             isSelected={selectedAssetIds.includes(folder.id)}
             onSelect={() => handleSelectAsset(folder.id)}
-            // onDoubleClick={() => setCurrentFolderId(folder.id)}
           />
         ))}
       </div>
@@ -130,9 +141,7 @@ const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
         className={`resize-handle ${isResizing ? "resizing" : ""}`}
         onMouseDown={handleResizeStart}
         ref={resizeRef}
-      >
-        ...
-      </div>
+      />
     </div>
   );
 };
