@@ -281,13 +281,16 @@ class CombineImageGrid(BaseNode):
             self.tile_height,
             self.overlap,
         )
-        if len(pil_tiles) != len(flatten(tiles)):
-            raise ValueError(
-                "The number of tiles does not match the expected number of tiles."
-            )
+        # if len(pil_tiles) != len(flatten(tiles)):
+        #     raise ValueError(
+        #         "The number of tiles does not match the expected number of tiles."
+        #     )
 
         num_cols = math.ceil(self.original_width / self.tile_width)
-        tile_objs = [Tile(img, x, y) for img, (x, y) in zip(pil_tiles, flatten(tiles))]
+        tile_objs = [
+            Tile(img, x, y)
+            for img, (x, y) in zip(pil_tiles, flatten(tiles), strict=False)
+        ]
 
         num_cols = math.ceil(self.original_width / self.tile_width)
 
