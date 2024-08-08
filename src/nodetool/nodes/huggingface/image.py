@@ -10,16 +10,18 @@ from typing import Any
 import asyncio
 from nodetool.workflows.base_node import BaseNode
 from nodetool.metadata.types import ImageRef
-import torch
-from diffusers import AuraFlowPipeline
-from diffusers import AutoPipelineForText2Image, AutoPipelineForImage2Image
-from diffusers import (
-    KandinskyV22Pipeline,
-    KandinskyV22PriorPipeline,
-    KandinskyV22Img2ImgPipeline,
-)
-from diffusers import StableCascadeDecoderPipeline, StableCascadePriorPipeline
 from nodetool.workflows.types import NodeProgress
+import torch
+from diffusers import AuraFlowPipeline  # type: ignore
+from diffusers import AutoPipelineForText2Image, AutoPipelineForImage2Image  # type: ignore
+from diffusers import (
+    KandinskyV22Pipeline,  # type: ignore
+    KandinskyV22PriorPipeline,  # type: ignore
+    KandinskyV22Img2ImgPipeline,  # type: ignore
+)
+from diffusers import StableCascadeDecoderPipeline, StableCascadePriorPipeline  # type: ignore
+from diffusers import StableDiffusion3ControlNetPipeline  # type: ignore
+from diffusers.models import SD3ControlNetModel  # type: ignore
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -595,7 +597,7 @@ class AuraFlowNode(BaseNode):
     async def initialize(self, context: ProcessingContext):
         self._pipeline = AuraFlowPipeline.from_pretrained(
             "fal/AuraFlow", torch_dtype=torch.float16
-        )
+        )  # type: ignore
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -617,7 +619,7 @@ class AuraFlowNode(BaseNode):
             num_inference_steps=self.num_inference_steps,
             generator=generator,
         )
-        image = output.images[0]
+        image = output.images[0]  # type: ignore
 
         return await context.image_from_pil(image)
 
@@ -667,15 +669,15 @@ class Kandinsky2Node(BaseNode):
     async def initialize(self, context: ProcessingContext):
         self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
             "kandinsky-community/kandinsky-2-2-prior", torch_dtype=torch.float16
-        )
+        )  # type: ignore
         if self.image.is_empty():
             self._pipeline = KandinskyV22Pipeline.from_pretrained(
                 "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
-            )
+            )  # type: ignore
         else:
             self._pipeline = KandinskyV22Img2ImgPipeline.from_pretrained(
                 "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
-            )
+            )  # type: ignore
 
     async def move_to_device(self, device: str):
         # Commented out as in the example
@@ -701,7 +703,7 @@ class Kandinsky2Node(BaseNode):
         prior_output = self._prior_pipeline(
             self.prompt, negative_prompt=self.negative_prompt, generator=generator
         )
-        image_emb, negative_image_emb = prior_output.to_tuple()
+        image_emb, negative_image_emb = prior_output.to_tuple()  # type: ignore
 
         if self.image.is_empty():
             output = self._pipeline(
@@ -713,7 +715,7 @@ class Kandinsky2Node(BaseNode):
                 generator=generator,
                 callback=progress_callback(self.id, self.num_inference_steps, context),
                 callback_steps=1,
-            )
+            )  # type: ignore
         else:
             input_image = await context.image_to_pil(self.image)
             output = self._pipeline(
@@ -728,7 +730,7 @@ class Kandinsky2Node(BaseNode):
                 callback_steps=1,
             )
 
-        image = output.images[0]
+        image = output.images[0]  # type: ignore
 
         return await context.image_from_pil(image)
 
@@ -811,7 +813,7 @@ class Kandinsky3Node(BaseNode):
                 height=self.height,
                 callback=progress_callback(self.id, self.num_inference_steps, context),
                 callback_steps=1,
-            )
+            )  # type: ignore
         else:
             input_image = await context.image_to_pil(self.image)
             output = self._pipeline(
@@ -822,7 +824,7 @@ class Kandinsky3Node(BaseNode):
                 width=self.width,
                 height=self.height,
                 callback=progress_callback,
-            )
+            )  # type: ignore
 
         image = output.images[0]
 
@@ -885,10 +887,10 @@ class StableCascadeNode(BaseNode):
             "stabilityai/stable-cascade-prior",
             variant="bf16",
             torch_dtype=torch.bfloat16,
-        )
+        )  # type: ignore
         self._decoder_pipeline = StableCascadeDecoderPipeline.from_pretrained(
             "stabilityai/stable-cascade", variant="bf16", torch_dtype=torch.float16
-        )
+        )  # type: ignore
 
     async def move_to_device(self, device: str):
         # Commented out as we're using CPU offload
@@ -921,14 +923,16 @@ class StableCascadeNode(BaseNode):
 
         # Generate the final image with the decoder
         decoder_output = self._decoder_pipeline(
-            image_embeddings=prior_output.image_embeddings.to(torch.float16),
+            image_embeddings=prior_output.image_embeddings.to(torch.float16),  # type: ignore
             prompt=self.prompt,
             negative_prompt=self.negative_prompt,
             guidance_scale=self.decoder_guidance_scale,
             output_type="pil",
             num_inference_steps=self.decoder_num_inference_steps,
             generator=generator,
-        ).images[0]
+        ).images[  # type: ignore
+            0
+        ]
 
         return await context.image_from_pil(decoder_output)
 
@@ -1023,3 +1027,119 @@ class SDXLTurbo(BaseNode):
         # Convert PIL Image to ImageRef
         print(image)
         return await context.image_from_pil(image)
+
+
+class StableDiffusion3ControlNetNode(BaseNode):
+    """
+    Generates images using Stable Diffusion 3 with ControlNet.
+    image, generation, AI, text-to-image, controlnet
+
+    Use cases:
+    - Generate images with precise control over composition and structure
+    - Create variations of existing images while maintaining specific features
+    - Artistic image generation with guided outputs
+    """
+
+    class StableDiffusion3ControlNetModelId(str, Enum):
+        SD3_CONTROLNET_CANNY = "InstantX/SD3-Controlnet-Canny"
+        SD3_CONTROLNET_TILE = "InstantX/SD3-Controlnet-Tile"
+        SD3_CONTROLNET_POSE = "InstantX/SD3-Controlnet-Pose"
+
+    prompt: str = Field(
+        default="A girl holding a sign that says InstantX",
+        description="A text prompt describing the desired image.",
+    )
+    control_model: StableDiffusion3ControlNetModelId = Field(
+        default=StableDiffusion3ControlNetModelId.SD3_CONTROLNET_CANNY,
+        description="The ControlNet model to use for image generation.",
+    )
+    control_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The control image to guide the generation process.",
+    )
+    controlnet_conditioning_scale: float = Field(
+        default=0.7,
+        description="The scale of the ControlNet conditioning.",
+        ge=0.0,
+        le=1.0,
+    )
+    num_inference_steps: int = Field(
+        default=30,
+        description="The number of denoising steps.",
+        ge=1,
+        le=100,
+    )
+    width: int = Field(
+        default=512,
+        description="The width of the generated image.",
+        ge=64,
+        le=2048,
+    )
+    height: int = Field(
+        default=512,
+        description="The height of the generated image.",
+        ge=64,
+        le=2048,
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: StableDiffusion3ControlNetPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        controlnet = SD3ControlNetModel.from_pretrained(
+            self.control_model.value, torch_dtype=torch.float16
+        )
+        self._pipeline = StableDiffusion3ControlNetPipeline.from_pretrained(
+            "stabilityai/stable-diffusion-3-medium-diffusers",
+            controlnet=controlnet,
+            torch_dtype=torch.float16,
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = None
+        if self.seed != -1:
+            generator = torch.Generator(device=self._pipeline.device).manual_seed(
+                self.seed
+            )
+
+        # Load the control image
+        control_image = await context.image_to_pil(self.control_image)
+
+        def callback(pipe: Any, step: int, timestep: int, args: dict):
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+            return {}
+
+        # Generate the image
+        self._pipeline.enable_model_cpu_offload()
+
+        output = self._pipeline(
+            prompt=self.prompt,
+            control_image=control_image,
+            controlnet_conditioning_scale=self.controlnet_conditioning_scale,
+            num_inference_steps=self.num_inference_steps,
+            width=self.width,
+            height=self.height,
+            generator=generator,
+            callback_on_step_end=callback,  # type: ignore
+        )
+
+        # Convert the output image to ImageRef
+        return await context.image_from_pil(output.images[0])  # type: ignore
