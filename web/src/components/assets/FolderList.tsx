@@ -1,17 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
 import { Asset } from "../../stores/ApiTypes";
-// import { VariableSizeList as List } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
 import FolderItem from "./FolderItem";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import useAssets from "../../serverState/useAssets";
+// import { useAssetStore } from "../../hooks/AssetStore";
 
-// Constants for folder list
 const INITIAL_FOLDER_LIST_HEIGHT = 150;
-const MIN_FOLDER_LIST_HEIGHT = 50;
-const MAX_FOLDER_LIST_HEIGHT = 300;
-const FOLDER_SIZE = 100; // This can be easily changed
+const MIN_FOLDER_LIST_HEIGHT = 100;
+const MAX_FOLDER_LIST_HEIGHT = 800;
+const RESIZE_HANDLE_HEIGHT = 20;
+const LIST_MIN_WIDTH = "300px"; // used if isHorizontal
+const SCALE_OFFSET = 150; // should not be needed
 
 const styles = (theme: any) =>
   css({
@@ -19,7 +20,7 @@ const styles = (theme: any) =>
       position: "relative",
       height: "120px",
       overflow: "hidden",
-      borderBottom: `1px solid ${theme.palette.divider}`,
+      paddingBottom: "2em",
     },
     ".folder-list": {
       display: "flex",
@@ -32,50 +33,40 @@ const styles = (theme: any) =>
     },
     ".resize-handle": {
       position: "absolute",
-      bottom: "-5px",
+      // bottom: "-5px",
       left: 0,
       right: 0,
-      height: "10px",
+      height: `${RESIZE_HANDLE_HEIGHT}px`,
       cursor: "ns-resize",
-      backgroundColor: theme.palette.divider,
-      "&:hover": {
-        backgroundColor: theme.palette.primary.main,
+      backgroundColor: theme.palette.c_gray2,
+      transition: "background-color 0.2s ease",
+      "&:hover, &.resizing": {
+        borderTop: "1px solid" + theme.palette.primary.main,
       },
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: theme.palette.c_gray0,
+      paddingBottom: ".5em",
     },
-    // ".folder-item": {
-    //   display: "flex",
-    //   flexDirection: "column",
-    //   alignItems: "center",
-    //   width: `${FOLDER_SIZE}px`,
-    //   height: `${FOLDER_SIZE}px`,
-    // },
-    // ".folder-name": {
-    //   marginTop: "5px",
-    //   fontSize: "0.8rem",
-    //   textAlign: "center",
-    //   wordBreak: "break-word",
-    //   maxWidth: "100%",
-    // },
   });
 
 interface FolderListProps {
   folders: Asset[];
-  selectedAssetIds: string[];
-  handleSelectAsset: (id: string) => void;
-  setCurrentFolderId: (id: string) => void;
+  isHorizontal?: boolean;
 }
 
-const FolderList: React.FC<FolderListProps> = ({
-  folders,
-  selectedAssetIds,
-  handleSelectAsset,
-  setCurrentFolderId,
-}) => {
+const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
   const [folderListHeight, setFolderListHeight] = useState(
     INITIAL_FOLDER_LIST_HEIGHT
   );
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
+  const { sortedAssets } = useAssets();
+  const { selectedAssetIds, handleSelectAsset } =
+    useAssetSelection(sortedAssets);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -88,15 +79,14 @@ const FolderList: React.FC<FolderListProps> = ({
 
   const handleResize = useCallback(
     (e: MouseEvent) => {
-      if (isResizing && resizeRef.current) {
-        const newHeight =
-          e.clientY - resizeRef.current.getBoundingClientRect().top;
-        setFolderListHeight((prev) =>
-          Math.max(
-            MIN_FOLDER_LIST_HEIGHT,
-            Math.min(newHeight, MAX_FOLDER_LIST_HEIGHT)
-          )
+      if (isResizing && containerRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const newHeight = e.clientY - containerRect.top + SCALE_OFFSET;
+        const clampedHeight = Math.max(
+          MIN_FOLDER_LIST_HEIGHT,
+          Math.min(newHeight, MAX_FOLDER_LIST_HEIGHT)
         );
+        setFolderListHeight(clampedHeight);
       }
     },
     [isResizing]
@@ -117,25 +107,32 @@ const FolderList: React.FC<FolderListProps> = ({
     <div
       className="folder-list-container"
       css={styles}
-      style={{ height: folderListHeight }}
+      style={{
+        height: `${folderListHeight}px`,
+        minHeight: isHorizontal ? "100%" : "auto",
+        minWidth: isHorizontal ? LIST_MIN_WIDTH : "auto",
+        marginRight: isHorizontal ? "1em" : "0",
+      }}
+      ref={containerRef}
     >
       <div className="folder-list">
         {folders.map((folder) => (
-          <>
-            <FolderItem
-              folder={folder}
-              isSelected={selectedAssetIds.includes(folder.id)}
-              onSelect={() => handleSelectAsset(folder.id)}
-              onDoubleClick={() => setCurrentFolderId(folder.id)}
-            />
-          </>
+          <FolderItem
+            key={folder.id}
+            folder={folder}
+            isSelected={selectedAssetIds.includes(folder.id)}
+            onSelect={() => handleSelectAsset(folder.id)}
+            // onDoubleClick={() => setCurrentFolderId(folder.id)}
+          />
         ))}
       </div>
       <div
-        className="resize-handle"
+        className={`resize-handle ${isResizing ? "resizing" : ""}`}
         onMouseDown={handleResizeStart}
         ref={resizeRef}
-      />
+      >
+        ...
+      </div>
     </div>
   );
 };

@@ -13,13 +13,13 @@ const styles = (theme: any) =>
       width: "100%",
       height: "calc(-120px + 100vh)",
       padding: "2em",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.c_gray1,
     },
     ".asset-explorer": {
-      width: "100%"
+      width: "100%",
     },
     ".audio-controls-container": {
-      padding: "2em"
+      padding: "2em",
     },
     ".current-folder": {
       position: "absolute",
@@ -27,33 +27,33 @@ const styles = (theme: any) =>
       right: "2em",
       textAlign: "right",
       margin: "0",
-      padding: "0"
+      padding: "0",
     },
     ".selected-asset-info": {
       position: "absolute",
       top: "2em",
       right: "2em",
       maxWidth: "500px",
-      textAlign: "right"
+      textAlign: "right",
     },
     ".asset-size-slider": {
       width: "200px",
       maxWidth: "unset",
-      paddingLeft: "1em"
+      paddingLeft: "1em",
     },
     ".dropzone": {
-      outline: "none"
+      outline: "none",
     },
     ".infinite-scroll-component": {
-      border: 0
-    }
+      border: 0,
+    },
   });
 
 const AssetExplorer: React.FC = () => {
   return (
     <div css={styles}>
       <Box className="asset-explorer">
-        <AssetGrid maxItemSize={10} itemSpacing={2} />
+        <AssetGrid maxItemSize={10} itemSpacing={2} isHorizontal={true} />
       </Box>
     </div>
   );

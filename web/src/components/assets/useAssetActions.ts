@@ -4,10 +4,13 @@ import useSessionStateStore from "../../stores/SessionStateStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { devError } from "../../utils/DevLog";
+import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
+import useAssets from "../../serverState/useAssets";
+import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 
-export const useAssetActions = (asset: Asset, onMoveToFolder?: () => void) => {
+export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
-
+  const { refetch, isLoading } = useAssets();
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const selectedAssetIds = useSessionStateStore(
     (state) => state.selectedAssetIds
@@ -15,21 +18,16 @@ export const useAssetActions = (asset: Asset, onMoveToFolder?: () => void) => {
   const setSelectedAssetIds = useSessionStateStore(
     (state) => state.setSelectedAssetIds
   );
+  const { sortedAssets } = useAssets();
+  const { handleSelectAsset } = useAssetSelection(sortedAssets);
 
   const { mutation: updateAssetMutation } = useAssetUpdate();
 
   const handleClick = useCallback(
-    (
-      onSelect?: () => void,
-      onClickParent?: (id: string) => void,
-      isParent?: boolean
-    ) => {
-      if (isParent) {
-        onClickParent && onClickParent(asset.id);
-      }
-      onSelect && onSelect();
+    (asset: Asset) => {
+      handleSelectAsset(asset.id);
     },
-    [asset.id]
+    [handleSelectAsset]
   );
 
   const handleDoubleClick = useCallback(
@@ -40,6 +38,11 @@ export const useAssetActions = (asset: Asset, onMoveToFolder?: () => void) => {
     },
     [asset]
   );
+
+  const onMoveToFolder = useCallback(() => {
+    refetch();
+    setSelectedAssetIds([]);
+  }, [refetch, setSelectedAssetIds]);
 
   const handleDrag = useCallback(
     (e: React.DragEvent) => {
@@ -126,36 +129,40 @@ export const useAssetActions = (asset: Asset, onMoveToFolder?: () => void) => {
   );
 
   const handleContextMenu = useCallback(
-    (event: React.MouseEvent, enableContextMenu: boolean) => {
+    (event: React.MouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
-      if (enableContextMenu) {
-        if (!selectedAssetIds.includes(asset.id)) {
-          setSelectedAssetIds([asset.id]);
-        }
-
-        openContextMenu(
-          "asset-item-context-menu",
-          asset.id,
-          event.clientX,
-          event.clientY
-        );
+      if (!selectedAssetIds.includes(asset.id)) {
+        setSelectedAssetIds([asset.id]);
       }
+
+      openContextMenu(
+        "asset-item-context-menu",
+        asset.id,
+        event.clientX,
+        event.clientY
+      );
     },
     [selectedAssetIds, setSelectedAssetIds, openContextMenu, asset.id]
   );
 
-  const handleDelete = useCallback(
-    (openDeleteDialog?: () => void) => {
-      if (selectedAssetIds?.length === 0) {
-        setSelectedAssetIds([asset.id]);
-      }
-      if (openDeleteDialog) {
-        openDeleteDialog();
-      }
-    },
-    [selectedAssetIds?.length, setSelectedAssetIds, asset.id]
-  );
+  const { openDeleteDialog, openRenameDialog } = useAssetDialog();
+
+  const handleDelete = useCallback(() => {
+    console.log("Delete asset", selectedAssetIds);
+    if (selectedAssetIds?.length === 0) {
+      console.log("Setting selectedAssetIds to:", [asset.id]);
+      setSelectedAssetIds([asset.id]);
+    }
+    console.log("About to call openDeleteDialog");
+    console.log("openDeleteDialog type:", typeof openDeleteDialog);
+    try {
+      openDeleteDialog();
+      console.log("openDeleteDialog called successfully");
+    } catch (error) {
+      console.error("Error calling openDeleteDialog:", error);
+    }
+  }, [selectedAssetIds, setSelectedAssetIds, asset.id, openDeleteDialog]);
 
   return {
     isDragHovered,

@@ -48,17 +48,12 @@ export const useGetAssets = (
       totalCount: filteredAssets.length,
     };
     setFilteredAssets(newFilteredAssets);
-    console.log("New filtered assets:", newFilteredAssets);
   }, [
     filteredFolders,
     filteredOtherAssets,
     filteredAssets.length,
     setFilteredAssets,
   ]);
-
-  console.log("useGetAssets - folders:", filteredFolders);
-  console.log("useGetAssets - otherAssets:", filteredOtherAssets);
-  console.log("useGetAssets - allAssets:", filteredAssets);
 
   return {
     folders: filteredFolders,

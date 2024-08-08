@@ -4,6 +4,8 @@ import React from "react";
 import { AssetOrDivider, DIVIDER_HEIGHT } from "./assetGridUtils";
 import AssetItem from "./AssetItem";
 import { colorForType } from "../../config/data_types";
+import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import useAssets from "../../serverState/useAssets";
 
 interface AssetGridRowProps {
   index: number;
@@ -13,33 +15,20 @@ interface AssetGridRowProps {
     gridDimensions: { itemWidth: number; itemHeight: number; columns: number };
     footerHeight: number;
     itemSpacing: number;
-    selectedAssetIds: string[];
-    openDeleteDialog: () => void;
-    openRenameDialog: () => void;
-    handleSelectAsset: (id: string) => void;
-    refetch: () => void;
-    setSelectedAssetIds: (ids: string[]) => void;
-    onDragStart: (id: string) => string[];
+    // handleSelectAsset: (id: string) => void;
+    // refetch: () => void;
+    // setSelectedAssetIds: (ids: string[]) => void;
+    // onDragStart: (id: string) => string[];
   };
 }
 
 const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
-  const {
-    getItemsForRow,
-    gridDimensions,
-    footerHeight,
-    itemSpacing,
-    selectedAssetIds,
-    openDeleteDialog,
-    openRenameDialog,
-    handleSelectAsset,
-    refetch,
-    setSelectedAssetIds,
-    onDragStart,
-  } = data;
+  const { getItemsForRow, gridDimensions, footerHeight, itemSpacing } = data;
 
   const rowItems = getItemsForRow(index);
-
+  const { sortedAssets } = useAssets();
+  const { selectedAssetIds, handleSelectAsset } =
+    useAssetSelection(sortedAssets);
   if (rowItems.length === 0) {
     return null;
   }
@@ -105,18 +94,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
               asset={item}
               draggable={true}
               isSelected={isSelected}
-              openDeleteDialog={openDeleteDialog}
-              openRenameDialog={openRenameDialog}
               onSelect={() => handleSelectAsset(item.id)}
-              onMoveToFolder={() => {
-                refetch();
-                setSelectedAssetIds([]);
-              }}
-              onDeleteAssets={() => {
-                refetch();
-                setSelectedAssetIds([]);
-              }}
-              onDragStart={() => onDragStart(item.id)}
             />
           </div>
         );

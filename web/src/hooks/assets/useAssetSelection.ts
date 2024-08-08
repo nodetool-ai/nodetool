@@ -78,7 +78,7 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
       controlKeyPressed,
       metaKeyPressed,
       setSelectedAssetIds,
-      selectedAssetIds
+      selectedAssetIds,
     ]
   );
 
@@ -105,6 +105,6 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     currentAudioAsset,
     handleSelectAsset,
     handleSelectAllAssets,
-    handleDeselectAssets
+    handleDeselectAssets,
   };
 };

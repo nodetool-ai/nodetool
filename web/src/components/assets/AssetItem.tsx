@@ -1,21 +1,3 @@
-// import React, { useState, useCallback, useMemo } from "react";
-// import { ButtonGroup, Typography } from "@mui/material";
-// import FolderIcon from "@mui/icons-material/Folder";
-// import NorthWest from "@mui/icons-material/NorthWest";
-// import ImageIcon from "@mui/icons-material/Image";
-// import VideoFileIcon from "@mui/icons-material/VideoFile";
-// import AudioFileIcon from "@mui/icons-material/AudioFile";
-// import TextSnippetIcon from "@mui/icons-material/TextSnippet";
-// import useSessionStateStore from "../../stores/SessionStateStore";
-// import useContextMenuStore from "../../stores/ContextMenuStore";
-// import { Asset } from "../../stores/ApiTypes";
-// import AssetViewer from "./AssetViewer";
-// import DeleteButton from "../buttons/DeleteButton";
-// import { devError } from "../../utils/DevLog";
-// import { useAssetUpdate } from "../../serverState/useAssetUpdate";
-// import { secondsToHMS } from "../../utils/formatDateAndTime";
-// import { useSettingsStore } from "../../stores/SettingsStore";
-
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useState, useMemo } from "react";
@@ -234,14 +216,8 @@ export type AssetItemProps = {
   showInfo?: boolean;
   showFiletype?: boolean;
   showDuration?: boolean;
-  openDeleteDialog?: () => void;
-  openRenameDialog?: () => void;
   onSelect?: () => void;
-  // onDoubleClickFolder?: (id: string) => void;
   onClickParent?: (id: string) => void;
-  onDragStart?: (assetId: string) => string[];
-  onMoveToFolder?: () => void;
-  onDeleteAssets?: () => void;
   onSetCurrentAudioAsset?: (asset: Asset) => void;
 };
 
@@ -257,11 +233,8 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     showInfo = true,
     showFiletype = true,
     showDuration = true,
-    openDeleteDialog,
-    onSelect,
-    // onDoubleClickFolder,
-    onClickParent,
-    onMoveToFolder,
+    // onSelect,
+    // onClickParent,
     onSetCurrentAudioAsset,
   } = props;
 
@@ -281,7 +254,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     handleDrop,
     handleContextMenu,
     handleDelete,
-  } = useAssetActions(asset, onMoveToFolder);
+  } = useAssetActions(asset);
 
   const assetType = useMemo(() => {
     return asset?.content_type ? asset.content_type.split("/")[0] : "unknown";
@@ -316,7 +289,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
       } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
-      onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
+      onContextMenu={(e) => (enableContextMenu ? handleContextMenu(e) : null)}
       key={asset.id}
       draggable={draggable}
       onDragStart={handleDrag}
@@ -324,7 +297,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
         e.stopPropagation();
         handleDoubleClick(setOpenAsset);
       }}
-      onClick={() => handleClick(onSelect, onClickParent, isParent)}
+      onClick={() => handleClick(asset)}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
@@ -333,17 +306,11 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
           <DeleteButton<Asset>
             className="asset-delete"
             item={asset}
-            onClick={() => handleDelete(openDeleteDialog)}
+            onClick={handleDelete}
           />
         </ButtonGroup>
       )}
       <div className="asset">
-        {/* {isFolder && (
-          <div>
-            <FolderIcon className="folder-icon" />
-            {isParent && <NorthWest className="parent-icon" />}
-          </div>
-        )} */}
         {!asset.get_url && <div className="asset-missing" />}
         {isImage && (
           <>

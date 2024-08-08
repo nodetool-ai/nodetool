@@ -29,7 +29,7 @@ export const calculateGridDimensions = (
   const baseSize = 42; // multiplier for the asset size slider value
   const minItemSize = baseSize * assetItemSize;
   const maxItemSize = minItemSize * 1.1;
-  const maxColumns = 12;
+  const maxColumns = 100;
 
   // Calculate the number of columns based on the available width and minimum item size
   let columns = Math.min(
@@ -77,7 +77,7 @@ export const prepareItems = (
         { isDivider: true, type },
         ...assets.map(
           (asset): AssetOrDivider => ({ ...asset, isDivider: false, type })
-        )
+        ),
       ];
     }
   );

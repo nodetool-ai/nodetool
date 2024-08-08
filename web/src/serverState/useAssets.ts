@@ -17,7 +17,7 @@ const useAssets = () => {
     (state) => ({
       currentFolderId: state.currentFolderId,
       loadCurrentFolder: state.loadCurrentFolder,
-      loadFolderById: state.loadFolderById
+      loadFolderById: state.loadFolderById,
     })
   );
 
@@ -37,7 +37,7 @@ const useAssets = () => {
         audio: [],
         video: [],
         text: [],
-        other: []
+        other: [],
       };
       let totalCount = 0;
 
@@ -87,6 +87,11 @@ const useAssets = () => {
         ? flatSortedAssets
         : flatSortedAssets.filter((asset) => asset.content_type !== "folder");
 
+      console.log("filteredAssets", filteredAssets);
+      console.log("sortedByType", sortedByType);
+      console.log("flatSortedAssets", flatSortedAssets);
+      console.log("assets", assets);
+
       return filteredAssets;
     },
     [sortAssetsByType]
@@ -111,7 +116,7 @@ const useAssets = () => {
       ["assets", { parent_id: currentFolderId || currentUser?.id }],
       loadFolder,
       {
-        getNextPageParam: (lastPage, pages) => lastPage.next
+        getNextPageParam: (lastPage, pages) => lastPage.next,
       }
     );
 
@@ -163,7 +168,7 @@ const useAssets = () => {
     error,
     hasNextPage,
     fetchNextPage,
-    refetch
+    refetch,
   };
 };
 

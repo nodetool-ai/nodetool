@@ -61,22 +61,20 @@ interface AssetGridProps {
   maxItemSize?: number;
   itemSpacing?: number;
   assets?: Asset[];
+  isHorizontal?: boolean;
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
   maxItemSize = 100,
   itemSpacing = 5,
   assets,
+  isHorizontal,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const { folders, otherAssets, allAssets, error } = useGetAssets(
     searchTerm,
     assets
   );
-
-  console.log("AssetGrid - folders:", folders);
-  console.log("AssetGrid - otherAssets:", otherAssets);
-  console.log("AssetGrid - allAssets:", allAssets);
 
   const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
   const { mutation: deleteMutation } = useAssetDeletion();
@@ -85,7 +83,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
-  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
 
   const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
   const spaceKeyPressed = useKeyPressedStore((state) =>
@@ -102,7 +99,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     currentAudioAsset,
     handleSelectAllAssets,
     handleDeselectAssets,
-    handleSelectAsset,
   } = useAssetSelection(allAssets);
 
   const {
@@ -168,16 +164,12 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
 
   const handleSearchChange = (newSearchTerm: string) => {
-    console.log("Search term changed:", newSearchTerm);
     setSearchTerm(newSearchTerm);
   };
 
   const handleSearchClear = () => {
-    console.log("Search cleared");
     setSearchTerm("");
   };
-
-  console.log("Rendering AssetGrid");
 
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
@@ -195,12 +187,19 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         selectedAssets={selectedAssets}
       />
       <Dropzone onDrop={uploadFiles}>
-        <div style={{ height: "100%" }}>
+        <div
+          style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: isHorizontal ? "row" : "column",
+          }}
+        >
           <FolderList
             folders={folders}
-            selectedAssetIds={selectedAssetIds}
-            handleSelectAsset={handleSelectAsset}
-            setCurrentFolderId={setCurrentFolderId}
+            isHorizontal={isHorizontal}
+            // selectedAssetIds={selectedAssetIds}
+            // handleSelectAsset={handleSelectAsset}
+            // setCurrentFolderId={setCurrentFolderId}
           />
 
           <AssetGridContent itemSpacing={itemSpacing} assets={otherAssets} />
