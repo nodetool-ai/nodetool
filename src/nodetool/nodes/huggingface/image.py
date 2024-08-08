@@ -28,6 +28,7 @@ from diffusers.models import SD3ControlNetModel  # type: ignore
 from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, AutoencoderKL  # type: ignore
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline  # type: ignore
+from diffusers import PixArtAlphaPipeline  # type: ignore
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -704,6 +705,99 @@ class AuraFlowNode(BaseNode):
         return await context.image_from_pil(image)
 
 
+class PixArtAlphaNode(BaseNode):
+    """
+    Generates images from text prompts using the PixArt-Alpha model.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Create unique images from detailed text descriptions
+    - Generate concept art for creative projects
+    - Produce visual content for digital media and marketing
+    - Explore AI-generated imagery for artistic inspiration
+    """
+
+    prompt: str = Field(
+        default="An astronaut riding a green horse",
+        description="A text prompt describing the desired image.",
+    )
+    num_inference_steps: int = Field(
+        default=50,
+        description="The number of denoising steps.",
+        ge=1,
+        le=100,
+    )
+    guidance_scale: float = Field(
+        default=7.5,
+        description="The scale for classifier-free guidance.",
+        ge=1.0,
+        le=20.0,
+    )
+    width: int = Field(
+        default=768,
+        description="The width of the generated image.",
+        ge=128,
+        le=1024,
+    )
+    height: int = Field(
+        default=768,
+        description="The height of the generated image.",
+        ge=128,
+        le=1024,
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: PixArtAlphaPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = PixArtAlphaPipeline.from_pretrained(
+            "PixArt-alpha/PixArt-XL-2-1024-MS",
+            torch_dtype=torch.float16,
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = None
+        if self.seed != -1:
+            generator = torch.Generator(device=self._pipeline.device).manual_seed(
+                self.seed
+            )
+
+        def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        # Generate the image
+        output = self._pipeline(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=generator,
+            callback=callback,  # type: ignore
+            callback_steps=1,
+        )
+
+        image = output.images[0]  # type: ignore
+
+        return await context.image_from_pil(image)
+
+
 class Kandinsky2(BaseNode):
     """
     Generates images using the Kandinsky 2.2 model from text prompts.
@@ -748,7 +842,7 @@ class Kandinsky2(BaseNode):
     async def initialize(self, context: ProcessingContext):
         self._pipeline = KandinskyV22Pipeline.from_pretrained(
             "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
-        )
+        )  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._prior_pipeline is None or self._pipeline is None:
@@ -766,7 +860,7 @@ class Kandinsky2(BaseNode):
         prior_output = self._prior_pipeline(
             self.prompt, negative_prompt=self.negative_prompt, generator=generator
         )
-        image_emb, negative_image_emb = prior_output.to_tuple()
+        image_emb, negative_image_emb = prior_output.to_tuple()  # type: ignore
 
         output = self._pipeline(
             image_embeds=image_emb,
@@ -779,7 +873,7 @@ class Kandinsky2(BaseNode):
             callback_steps=1,
         )
 
-        image = output.images[0]
+        image = output.images[0]  # type: ignore
 
         return await context.image_from_pil(image)
 
@@ -833,10 +927,10 @@ class Kandinsky2Img2Img(BaseNode):
     async def initialize(self, context: ProcessingContext):
         self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
             "kandinsky-community/kandinsky-2-2-prior", torch_dtype=torch.float16
-        )
+        )  # type: ignore
         self._pipeline = KandinskyV22Img2ImgPipeline.from_pretrained(
             "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
-        )
+        )  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._prior_pipeline is None or self._pipeline is None:
@@ -855,7 +949,7 @@ class Kandinsky2Img2Img(BaseNode):
         prior_output = self._prior_pipeline(
             self.prompt, negative_prompt=self.negative_prompt, generator=generator
         )
-        image_emb, negative_image_emb = prior_output.to_tuple()
+        image_emb, negative_image_emb = prior_output.to_tuple()  # type: ignore
 
         input_image = await context.image_to_pil(self.image)
         output = self._pipeline(
@@ -868,7 +962,7 @@ class Kandinsky2Img2Img(BaseNode):
             callback_steps=1,
         )
 
-        image = output.images[0]
+        image = output.images[0]  # type: ignore
 
         return await context.image_from_pil(image)
 
@@ -945,11 +1039,11 @@ class Kandinsky2ControlNet(BaseNode):
     async def initialize(self, context: ProcessingContext):
         self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
             "kandinsky-community/kandinsky-2-2-prior", torch_dtype=torch.float16
-        )
+        )  # type: ignore
         self._pipeline = KandinskyV22ControlnetPipeline.from_pretrained(
             "kandinsky-community/kandinsky-2-2-controlnet-depth",
             torch_dtype=torch.float16,
-        )
+        )  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._prior_pipeline is None or self._pipeline is None:
@@ -968,7 +1062,7 @@ class Kandinsky2ControlNet(BaseNode):
         prior_output = self._prior_pipeline(
             self.prompt, negative_prompt=self.negative_prompt, generator=generator
         )
-        image_emb, negative_image_emb = prior_output.to_tuple()
+        image_emb, negative_image_emb = prior_output.to_tuple()  # type: ignore
 
         # Prepare the control image (hint)
         hint = await context.image_to_pil(self.hint)
@@ -984,11 +1078,11 @@ class Kandinsky2ControlNet(BaseNode):
             guidance_scale=self.guidance_scale,
             generator=generator,
             output_type="pil",
-            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback=progress_callback(self.id, self.num_inference_steps, context),  # type: ignore
             callback_steps=1,
         )
 
-        return await context.image_from_pil(output.images[0])
+        return await context.image_from_pil(output.images[0])  # type: ignore
 
 
 class Kandinsky3(BaseNode):
@@ -1056,7 +1150,7 @@ class Kandinsky3(BaseNode):
             height=self.height,
             callback=progress_callback(self.id, self.num_inference_steps, context),
             callback_steps=1,
-        )
+        )  # type: ignore
 
         image = output.images[0]
 
@@ -1128,11 +1222,11 @@ class Kandinsky3Img2Img(BaseNode):
             num_inference_steps=self.num_inference_steps,
             generator=generator,
             image=input_image,
-            width=self.width,
-            height=self.height,
+            width=input_image.width,
+            height=input_image.height,
             callback=progress_callback(self.id, self.num_inference_steps, context),
             callback_steps=1,
-        )
+        )  # type: ignore
 
         image = output.images[0]
 
@@ -1251,6 +1345,15 @@ class StableDiffusionModelId(str, Enum):
     DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
 
 
+class IPAdapter_SD15_Model(str, Enum):
+    NONE = ""
+    IP_ADAPTER = "ip-adapter_sd15.safetensors"
+    IP_ADAPTER_LIGHT = "ip-adapter_sd15_light.safetensors"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sd15.bin"
+    IP_ADAPTER_PLUS_FACE = "ip-adapter-plus-face_sd15.safetensors"
+    IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
+
+
 class StableDiffusion(BaseNode):
     """
     Generates images from text prompts using Stable Diffusion.
@@ -1291,6 +1394,20 @@ class StableDiffusion(BaseNode):
     height: int = Field(
         default=512, ge=256, le=1024, description="Height of the generated image"
     )
+    ip_adapter_model: IPAdapter_SD15_Model = Field(
+        default=IPAdapter_SD15_Model.NONE,
+        description="The IP adapter model to use for image processing",
+    )
+    ip_adapter_image: ImageRef = Field(
+        default=ImageRef(),
+        description="When provided the image will be fed into the IP adapter",
+    )
+    ip_adapter_scale: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Strength of the IP adapter image",
+    )
 
     _pipe: Any = None
 
@@ -1303,6 +1420,12 @@ class StableDiffusion(BaseNode):
             self._pipe = StableDiffusionPipeline.from_pretrained(
                 self.model.value, torch_dtype=torch.float16, safety_checker=None
             )
+            if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+                self._pipe.load_ip_adapter(
+                    "h94/IP-Adapter",
+                    subfolder="models",
+                    weight_name=self.ip_adapter_model,
+                )
 
     async def move_to_device(self, device: str):
         if self._pipe is not None:
@@ -1317,6 +1440,14 @@ class StableDiffusion(BaseNode):
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
+        self._pipe.set_ip_adapter_scale(self.ip_adapter_scale)
+
+        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+            assert not self.ip_adapter_image.is_empty()
+            ip_adapter_image = await context.image_to_pil(self.ip_adapter_image)
+        else:
+            ip_adapter_image = None
+
         image = self._pipe(
             prompt=self.prompt,
             negative_prompt=self.negative_prompt,
@@ -1325,6 +1456,7 @@ class StableDiffusion(BaseNode):
             width=self.width,
             height=self.height,
             generator=generator,
+            ip_adapter_image=ip_adapter_image,
             callback=progress_callback(self.id, self.num_inference_steps, context),
             callback_steps=1,
         ).images[0]
@@ -1830,8 +1962,7 @@ class StableDiffusion3ControlNetNode(BaseNode):
         )  # type: ignore
 
     async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        pass
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -1858,11 +1989,13 @@ class StableDiffusion3ControlNetNode(BaseNode):
             return {}
 
         # Generate the image
-        self._pipeline.enable_model_cpu_offload()
+        self._pipeline.enable_sequntial_cpu_offload()
 
         output = self._pipeline(
             prompt=self.prompt,
             control_image=control_image,
+            width=control_image.width,
+            height=control_image.height,
             controlnet_conditioning_scale=self.controlnet_conditioning_scale,
             num_inference_steps=self.num_inference_steps,
             generator=generator,
