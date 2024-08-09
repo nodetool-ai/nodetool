@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
   useMemo,
-  useCallback
+  useCallback,
 } from "react";
 import {
   TabulatorFull as Tabulator,
@@ -14,7 +14,7 @@ import {
   CellComponent,
   ColumnDefinitionAlign,
   Formatter,
-  StandardValidatorType
+  StandardValidatorType,
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -25,7 +25,7 @@ import {
   Button,
   ToggleButton,
   ToggleButtonGroup,
-  Tooltip
+  Tooltip,
 } from "@mui/material";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
@@ -102,20 +102,20 @@ const styles = (theme: any) =>
       height: "calc(100% - 20px)",
       maxHeight: "800px",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
     },
     ".datetime-picker": {
-      backgroundColor: theme.palette.c_hl1
+      backgroundColor: theme.palette.c_hl1,
     },
     ".tabulator": {
       fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily1,
-      height: "200px"
+      height: "200px",
     },
     ".tabulator-tableholder": {
       overflow: "auto",
       paddingBottom: "5em",
-      backgroundColor: theme.palette.c_gray2
+      backgroundColor: theme.palette.c_gray2,
     },
     ".tabulator .tabulator-col-resize-handle": {
       position: "relative",
@@ -124,18 +124,18 @@ const styles = (theme: any) =>
       marginLeft: "-3px",
       marginRight: "-3px",
       zIndex: 11,
-      verticalAlign: "middle"
+      verticalAlign: "middle",
     },
     ".tabulator .tabulator-cell.tabulator-editing input": {
       backgroundColor: theme.palette.c_white,
       color: theme.palette.c_black,
       fontSize: theme.fontSizeSmaller,
-      fontFamily: theme.fontFamily1
+      fontFamily: theme.fontFamily1,
     },
     // rows
     ".tabulator-row": {
       minHeight: "20px",
-      minWidth: "20px"
+      minWidth: "20px",
     },
     // header
     ".tabulator .tabulator-header": {
@@ -143,26 +143,26 @@ const styles = (theme: any) =>
       maxHeight: "30px",
       fontFamily: theme.fontFamily2,
       wordSpacing: "-.2em",
-      fontWeight: "normal"
+      fontWeight: "normal",
     },
     ".tabulator .tabulator-cell.tabulator-editing input::selection": {
-      backgroundColor: theme.palette.c_hl1
+      backgroundColor: theme.palette.c_hl1,
     },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        transition: "border 0.2s"
+        transition: "border 0.2s",
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderBottom: "6px solid" + theme.palette.c_hl1
+        borderBottom: "6px solid" + theme.palette.c_hl1,
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderTop: "6px solid" + theme.palette.c_hl1
+        borderTop: "6px solid" + theme.palette.c_hl1,
       },
     // frozen columns
     ".tabulator-row .tabulator-cell.tabulator-frozen": {
-      paddingLeft: "2px !important"
+      paddingLeft: "2px !important",
     },
     // actions
     ".table-actions": {
@@ -172,12 +172,13 @@ const styles = (theme: any) =>
       justifyContent: "flex-start",
       alignItems: "flex-start",
       height: "2.5em",
-      padding: "0.5em 0 0 0"
+      padding: "0.5em 0 0 0",
     },
     ".table-actions .disabled": {
-      opacity: 0.5
+      opacity: 0.5,
     },
     ".table-actions button": {
+      minHeight: "3em",
       lineHeight: "1em",
       textAlign: "left",
       padding: ".5em",
@@ -186,10 +187,10 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray6,
       margin: "0",
       borderRadius: "0",
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.c_gray0,
     },
     ".table-actions button:hover": {
-      color: theme.palette.c_hl1
+      color: theme.palette.c_hl1,
     },
     ".toggle": {
       height: "2em",
@@ -207,21 +208,21 @@ const styles = (theme: any) =>
         borderRadius: "0",
         lineHeight: "1em",
         textAlign: "left",
-        padding: ".5em"
+        padding: ".5em",
       },
       "& .MuiToggleButton-root:hover, & .MuiToggleButton-root.Mui-selected:hover":
         {
-          color: theme.palette.c_hl1
+          color: theme.palette.c_hl1,
         },
       "& .MuiToggleButton-root.Mui-selected": {
-        color: theme.palette.c_white
-      }
+        color: theme.palette.c_white,
+      },
     },
     // datetime
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
       borderRadius: "0",
-      backgroundColor: "white"
+      backgroundColor: "white",
     },
     ".datetime button": {
       position: "absolute",
@@ -231,18 +232,18 @@ const styles = (theme: any) =>
       top: "0",
       right: ".5em",
       borderRadius: "0",
-      backgroundColor: "white"
+      backgroundColor: "white",
     },
     ".datetime button:hover svg": {
-      color: theme.palette.c_hl1
+      color: theme.palette.c_hl1,
     },
     ".datetime button svg": {
       color: theme.palette.c_black,
       width: "100%",
-      height: "100%"
+      height: "100%",
     },
     ".datetime fieldset": {
-      border: 0
+      border: 0,
     },
     // row select
     ".tabulator-row .tabulator-cell.row-select, .tabulator .tabulator-header .tabulator-col.row-select .tabulator-col-content, .tabulator-header .tabulator-col.row-select":
@@ -250,8 +251,8 @@ const styles = (theme: any) =>
         width: "25px !important",
         minWidth: "25px !important",
         textAlign: "left",
-        padding: "0 !important"
-      }
+        padding: "0 !important",
+      },
   });
 
 interface DataTableProps {
@@ -263,7 +264,7 @@ interface DataTableProps {
 const DataTable: React.FC<DataTableProps> = ({
   dataframe,
   onChange,
-  editable
+  editable,
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
@@ -280,13 +281,13 @@ const DataTable: React.FC<DataTableProps> = ({
       return;
     }
     const response = await axios.get(asset?.get_url, {
-      responseType: "arraybuffer"
+      responseType: "arraybuffer",
     });
     const csv = new TextDecoder().decode(new Uint8Array(response.data));
     const res: ParseResult<string[]> = Papa.parse(csv);
     const columnDefs = res.data[0].map((col: string) => ({
       name: col,
-      data_type: "string"
+      data_type: "string",
     }));
     const data = res.data.slice(1);
   }, []);
@@ -305,7 +306,7 @@ const DataTable: React.FC<DataTableProps> = ({
           ...dataframe,
           data: newData.map(
             (row) => dataframe.columns?.map((col) => row[col.name]) || []
-          )
+          ),
         });
       }
     },
@@ -332,8 +333,8 @@ const DataTable: React.FC<DataTableProps> = ({
                 cell.getRow().toggleSelect();
               },
               editable: false,
-              cssClass: "row-select"
-            }
+              cssClass: "row-select",
+            },
           ]
         : []),
       ...(showRowNumbers
@@ -348,8 +349,8 @@ const DataTable: React.FC<DataTableProps> = ({
               frozen: true,
               rowHandle: true,
               editable: false,
-              cssClass: "row-numbers"
-            }
+              cssClass: "row-numbers",
+            },
           ]
         : []),
       ...dataframe.columns.map((col) => ({
@@ -375,8 +376,8 @@ const DataTable: React.FC<DataTableProps> = ({
             ? (["required", "numeric"] as StandardValidatorType[])
             : col.data_type === "datetime"
             ? (["required", "date"] as StandardValidatorType[])
-            : undefined
-      }))
+            : undefined,
+      })),
     ];
     return cols;
   }, [dataframe.columns, editable, showRowNumbers, showSelect]);
@@ -415,10 +416,10 @@ const DataTable: React.FC<DataTableProps> = ({
         editor: "input",
         resizable: true,
         editorParams: {
-          elementAttributes: { spellcheck: "false" }
-        }
+          elementAttributes: { spellcheck: "false" },
+        },
       },
-      movableRows: true
+      movableRows: true,
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
@@ -442,7 +443,7 @@ const DataTable: React.FC<DataTableProps> = ({
     addNotification({
       content: "Copied to clipboard",
       type: "success",
-      alert: true
+      alert: true,
     });
   }, [writeClipboard, data, addNotification]);
 

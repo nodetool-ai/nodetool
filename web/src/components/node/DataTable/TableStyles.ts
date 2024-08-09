@@ -7,20 +7,20 @@ export const styles = (theme: any) =>
       height: "calc(100% - 20px)",
       maxHeight: "800px",
       position: "relative",
-      overflow: "hidden"
+      overflow: "hidden",
     },
     // rows
     ".tabulator-row": {
       minHeight: "20px",
-      minWidth: "20px"
+      minWidth: "20px",
+      fontSize: theme.fontSizeSmaller,
     },
     // header
     ".tabulator .tabulator-header": {
-      minHeight: "20px",
-      maxHeight: "30px",
-      fontFamily: theme.fontFamily2,
-      wordSpacing: "-.2em",
-      fontWeight: "normal"
+      height: "2.5em",
+      fontSize: theme.fontSizeSmall,
+      color: theme.palette.c_gray5,
+      fontWeight: "normal",
     },
     // actions
     ".table-actions": {
@@ -29,10 +29,10 @@ export const styles = (theme: any) =>
       gap: ".5em",
       justifyContent: "flex-start",
       alignItems: "flex-start",
-      height: "2em"
+      height: "2em",
     },
     ".table-actions .disabled": {
-      opacity: 0.5
+      opacity: 0.5,
     },
     ".table-actions button": {
       lineHeight: "1em",
@@ -43,16 +43,16 @@ export const styles = (theme: any) =>
       color: theme.palette.c_gray6,
       margin: "0",
       borderRadius: "0",
-      backgroundColor: theme.palette.c_gray0
+      backgroundColor: theme.palette.c_gray0,
     },
     ".table-actions button:hover": {
-      color: theme.palette.c_hl1
+      color: theme.palette.c_hl1,
     },
     // columns
     ".tabulator-row .tabulator-cell.tabulator-frozen": {
-      paddingLeft: "2px !important"
+      paddingLeft: "2px !important",
     },
     ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
-      padding: "5px 0px 0px 2px"
-    }
+      padding: "5px 0px 0px 2px",
+    },
   });
