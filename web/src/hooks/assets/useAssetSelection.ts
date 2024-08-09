@@ -4,7 +4,6 @@ import { Asset } from "../../stores/ApiTypes";
 import useSessionStateStore from "../../stores/SessionStateStore";
 
 export const useAssetSelection = (sortedAssets: Asset[]) => {
-  // const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const selectedAssetIds = useSessionStateStore(
     (state) => state.selectedAssetIds
   );
@@ -66,6 +65,7 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
       setLastSelectedAssetId(assetId);
 
       if (isAudio) {
+        console.log("Setting current audio asset", selectedAsset);
         setCurrentAudioAsset(selectedAsset ? selectedAsset : null);
       } else {
         setCurrentAudioAsset(null);
@@ -91,7 +91,7 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
   const handleDeselectAssets = useCallback(() => {
     setSelectedAssetIds([]);
     setLastSelectedAssetId(null);
-  }, []);
+  }, [setSelectedAssetIds]);
 
   useEffect(() => {
     if (selectedAssetIds.length === 0) {

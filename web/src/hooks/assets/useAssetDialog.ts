@@ -6,14 +6,11 @@ export const useAssetDialog = () => {
   const [moveToFolderDialogOpen, setMoveToFolderDialogOpen] = useState(false);
 
   const openDeleteDialog = useCallback(() => {
-    console.log("openDeleteDialog called, setting deleteDialogOpen to true");
     setDeleteDialogOpen(true);
   }, []);
   const closeDeleteDialog = useCallback(() => {
-    console.log("CLOSE called, setting deleteDialogOpen to true");
     setDeleteDialogOpen(false);
   }, []);
-  // const closeDeleteDialog = useCallback(() => setDeleteDialogOpen(false), []);
 
   const openRenameDialog = useCallback(() => setRenameDialogOpen(true), []);
   const closeRenameDialog = useCallback(() => setRenameDialogOpen(false), []);

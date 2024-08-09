@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import useAssets from "../../serverState/useAssets";
-import { useSettingsStore } from "../../stores/SettingsStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
+// import { useSettingsStore } from "../../stores/SettingsStore";
 
 export const useGetAssets = (
   searchTerm: string = "",
@@ -10,7 +10,7 @@ export const useGetAssets = (
 ) => {
   const { sortedFolders, sortedFiles, sortedAssets, error } = useAssets();
 
-  const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
+  // const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
   const setFilteredAssets = useSessionStateStore(
     (state) => state.setFilteredAssets
   );

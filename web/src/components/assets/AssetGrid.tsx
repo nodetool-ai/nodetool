@@ -71,10 +71,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isHorizontal,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { folders, otherAssets, allAssets, error } = useGetAssets(
-    searchTerm,
-    assets
-  );
+  const { folders, otherAssets, error } = useGetAssets(searchTerm, assets);
 
   const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
   const { mutation: deleteMutation } = useAssetDeletion();
@@ -99,7 +96,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     currentAudioAsset,
     handleSelectAllAssets,
     handleDeselectAssets,
-  } = useAssetSelection(allAssets);
+  } = useAssetSelection(otherAssets);
 
   const {
     deleteDialogOpen,
@@ -170,6 +167,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const handleSearchClear = () => {
     setSearchTerm("");
   };
+
+  useEffect(() => {}, [currentAudioAsset]);
 
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>

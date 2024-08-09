@@ -18,12 +18,14 @@ const styles = (theme: any) =>
       flexDirection: "row",
       alignItems: "flex-start",
       justifyContent: "start",
+      padding: "0.5em 0",
       gap: "0.5em",
       width: "100%",
-      height: "25px",
+      height: "35px",
       cursor: "pointer",
       boxSizing: "border-box",
       backgroundColor: theme.palette.c_gray1,
+      transition: "background-color 0.3s ease",
     },
     ".folder-icon": {
       width: "25px",
@@ -53,20 +55,11 @@ const styles = (theme: any) =>
       color: theme.palette.c_hl1,
     },
     "&:hover": {
-      opacity: 0.6,
+      backgroundColor: theme.palette.c_gray2,
     },
     "&:hover .delete-button": {
       opacity: 1,
     },
-    // "&.selected:after": {
-    //   content: '""',
-    //   position: "absolute",
-    //   top: 0,
-    //   left: 0,
-    //   right: 0,
-    //   bottom: 0,
-    //   border: `1px solid ${theme.palette.c_hl1}`,
-    // },
     "&.drag-hover": {
       backgroundColor: theme.palette.c_gray3,
     },
@@ -83,6 +76,7 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray4,
     },
     ".delete-button:hover": {
+      border: "none",
       color: theme.palette.c_delete,
     },
   });
@@ -92,6 +86,7 @@ export interface FolderItemProps {
   isSelected: boolean;
   isParent?: boolean;
   onSelect: () => void;
+  onClickParent?: (id: string) => void;
   // onDoubleClick: (id: string) => void;
   // onMoveToFolder?: () => void;
   enableContextMenu?: boolean;
@@ -104,6 +99,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
   isSelected,
   isParent,
   onSelect,
+  onClickParent,
   // onDoubleClick,
   // onMoveToFolder,
   enableContextMenu = true,
@@ -141,16 +137,14 @@ const FolderItem: React.FC<FolderItemProps> = ({
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
-      onClick={() => handleClick(folder)}
+      onClick={() => handleClick(onSelect, onClickParent, isParent)}
       onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onContextMenu={(e) =>
-        enableContextMenu ? handleContextMenu(e) : e.preventDefault()
-      }
+      onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
       draggable
     >
       <FolderIcon className="folder-icon" />

@@ -87,11 +87,6 @@ const useAssets = () => {
         ? flatSortedAssets
         : flatSortedAssets.filter((asset) => asset.content_type !== "folder");
 
-      console.log("filteredAssets", filteredAssets);
-      console.log("sortedByType", sortedByType);
-      console.log("flatSortedAssets", flatSortedAssets);
-      console.log("assets", assets);
-
       return filteredAssets;
     },
     [sortAssetsByType]
