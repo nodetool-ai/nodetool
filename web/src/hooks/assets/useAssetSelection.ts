@@ -13,9 +13,8 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
   const [lastSelectedAssetId, setLastSelectedAssetId] = useState<string | null>(
     null
   );
-  const [currentAudioAsset, setCurrentAudioAsset] = useState<Asset | null>(
-    null
-  );
+
+  const { setCurrentAudioAsset } = useSessionStateStore();
 
   const shiftKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("shift")
@@ -65,7 +64,6 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
       setLastSelectedAssetId(assetId);
 
       if (isAudio) {
-        console.log("Setting current audio asset", selectedAsset);
         setCurrentAudioAsset(selectedAsset ? selectedAsset : null);
       } else {
         setCurrentAudioAsset(null);
@@ -77,8 +75,9 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
       shiftKeyPressed,
       controlKeyPressed,
       metaKeyPressed,
-      setSelectedAssetIds,
       selectedAssetIds,
+      setSelectedAssetIds,
+      setCurrentAudioAsset,
     ]
   );
 
@@ -97,12 +96,12 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     if (selectedAssetIds.length === 0) {
       setCurrentAudioAsset(null);
     }
-  }, [selectedAssetIds]);
+  }, [selectedAssetIds, setCurrentAudioAsset]);
 
   return {
     selectedAssetIds,
     setSelectedAssetIds,
-    currentAudioAsset,
+    setCurrentAudioAsset,
     handleSelectAsset,
     handleSelectAllAssets,
     handleDeselectAssets,

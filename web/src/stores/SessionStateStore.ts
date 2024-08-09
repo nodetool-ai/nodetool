@@ -21,6 +21,8 @@ type SessionStateStore = {
   setClipboardData: (data: string | null) => void;
   isClipboardValid: boolean;
   setIsClipboardValid: (isValid: boolean) => void;
+  currentAudioAsset: Asset | null;
+  setCurrentAudioAsset: (asset: Asset | null) => void;
 };
 
 const useSessionStateStore = create<SessionStateStore>((set) => ({
@@ -32,7 +34,7 @@ const useSessionStateStore = create<SessionStateStore>((set) => ({
   setSelectedNodes: (nodes: Node[]) => {
     set({
       selectedNodes: nodes,
-      selectedNodeIds: nodes.map((node) => node.id)
+      selectedNodeIds: nodes.map((node) => node.id),
     });
   },
 
@@ -53,17 +55,19 @@ const useSessionStateStore = create<SessionStateStore>((set) => ({
   },
   filteredAssets: {
     assetsByType: {},
-    totalCount: 0
+    totalCount: 0,
   },
   setFilteredAssets: (sortedAssetsByType) => {
     set({ filteredAssets: sortedAssetsByType });
   },
+  currentAudioAsset: null,
+  setCurrentAudioAsset: (asset) => set({ currentAudioAsset: asset }),
 
   // CLIPBOARD
   clipboardData: null,
   isClipboardValid: false,
   setClipboardData: (data) => set({ clipboardData: data }),
-  setIsClipboardValid: (isValid) => set({ isClipboardValid: isValid })
+  setIsClipboardValid: (isValid) => set({ isClipboardValid: isValid }),
 }));
 
 export default useSessionStateStore;

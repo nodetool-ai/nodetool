@@ -90,10 +90,13 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const { uploadAsset } = useAssetUpload();
 
+  const currentAudioAsset = useSessionStateStore(
+    (state) => state.currentAudioAsset
+  );
+
   const {
     selectedAssetIds,
     setSelectedAssetIds,
-    currentAudioAsset,
     handleSelectAllAssets,
     handleDeselectAssets,
   } = useAssetSelection(otherAssets);

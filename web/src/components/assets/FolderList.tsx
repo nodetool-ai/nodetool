@@ -11,7 +11,6 @@ const MIN_FOLDER_LIST_HEIGHT = 100;
 const MAX_FOLDER_LIST_HEIGHT = 800;
 const RESIZE_HANDLE_HEIGHT = 10;
 const LIST_MIN_WIDTH = "300px"; // used if isHorizontal
-const SCALING_SPEED = 2; // hack
 
 const styles = (theme: any) =>
   css({
@@ -96,11 +95,12 @@ const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
     (e: MouseEvent) => {
       if (isResizing && containerRef.current) {
         const deltaY = e.clientY - initialMouseY.current;
-        const newHeight = initialHeight.current + deltaY * SCALING_SPEED;
+        const newHeight = initialHeight.current + deltaY;
         const clampedHeight = Math.max(
           MIN_FOLDER_LIST_HEIGHT,
           Math.min(newHeight, MAX_FOLDER_LIST_HEIGHT)
         );
+
         setFolderListHeight(clampedHeight);
       }
     },
