@@ -285,6 +285,7 @@ class Segmentation(HuggingFacePipelineNode):
         NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512 = (
             "nvidia/segformer-b3-finetuned-ade-512-512"
         )
+        NVIDIA_SEGFORMER_B3_FINETUNED_COCO_512_512 = "mattmdjaga/segformer_b2_clothes"
 
     model: SegmentationModelId = Field(
         default=SegmentationModelId.NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512,

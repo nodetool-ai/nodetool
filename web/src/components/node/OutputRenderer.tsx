@@ -235,7 +235,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             });
 
             return (
-              <AssetGridContent assets={assets} onlyUseProvidedAssets={true} />
+              <AssetGridContent assets={assets} />
             );
           }
         }
