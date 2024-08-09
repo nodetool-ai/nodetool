@@ -1,0 +1,125 @@
+{
+    "id": "object_detection",
+    "access": "private",
+    "created_at": "2024-08-08T20:28:10.491364",
+    "updated_at": "2024-08-09T18:00:14.672164",
+    "name": "Object Detection",
+    "description": "Detect objects in an image and visualize the detections",
+    "thumbnail": "",
+    "thumbnail_url": "/examples/object_detection.png",
+    "graph": {
+        "edges": [
+            {
+                "id": "988815f2-b051-4e5a-aab4-e6b246a08207",
+                "source": "3",
+                "sourceHandle": "output",
+                "target": "4",
+                "targetHandle": "inputs",
+                "ui_properties": {
+                    "className": "image"
+                }
+            },
+            {
+                "id": "0473634a-947e-48eb-9764-9ef9d1dc05d9",
+                "source": "4",
+                "sourceHandle": "output",
+                "target": "5",
+                "targetHandle": "objects",
+                "ui_properties": {
+                    "className": "list"
+                }
+            },
+            {
+                "id": "1c469370-cef3-460c-85ad-d83a2cd103dd",
+                "source": "5",
+                "sourceHandle": "output",
+                "target": "2",
+                "targetHandle": "value",
+                "ui_properties": {
+                    "className": "image"
+                }
+            },
+            {
+                "id": "5ad3627a-3cb3-47ae-8bec-7c0d000b9dab",
+                "source": "3",
+                "sourceHandle": "output",
+                "target": "5",
+                "targetHandle": "image",
+                "ui_properties": {
+                    "className": "image"
+                }
+            }
+        ],
+        "nodes": [
+            {
+                "id": "2",
+                "type": "nodetool.workflows.base_node.Preview",
+                "data": {
+                    "name": "image_output_2024-08-09"
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 603,
+                        "y": 10
+                    },
+                    "zIndex": 0,
+                    "width": 240,
+                    "height": 262,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "3",
+                "type": "nodetool.constant.Image",
+                "data": {
+                    "value": {
+                        "uri": "https://app.nodetool.ai/examples/flux_schnell_example.png",
+                        "type": "image"
+                    }
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 20,
+                        "y": 10
+                    },
+                    "zIndex": 0,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "4",
+                "type": "huggingface.image.ObjectDetection",
+                "data": {
+                    "model": "facebook/detr-resnet-50",
+                    "threshold": 0.9,
+                    "top_k": 5
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 216,
+                        "y": 10
+                    },
+                    "zIndex": 0,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "5",
+                "type": "huggingface.image.VisualizeObjectDetection",
+                "data": {},
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 405,
+                        "y": 10
+                    },
+                    "zIndex": 0,
+                    "selectable": true
+                }
+            }
+        ]
+    }
+}

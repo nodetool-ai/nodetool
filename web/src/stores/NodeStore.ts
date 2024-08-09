@@ -170,7 +170,6 @@ export interface NodeStore {
     srcMetadata: NodeMetadata,
     targetMetadata: NodeMetadata
   ) => boolean;
-  exportWorkflow: () => Record<string, any>;
   workflowJSON: () => string;
   loadJSON: (json: string) => void;
   createNode: (metadata: NodeMetadata, position: XYPosition) => Node<NodeData>;
@@ -344,41 +343,6 @@ export const useNodeStore = create<NodeStore>()(
         set({ explicitSave: value });
       },
 
-      exportWorkflow: () => {
-        const json: Record<string, any> = {};
-        const nodes = get().nodes;
-        const edges = get().edges;
-
-        for (const node of nodes) {
-          json[node.id] = {
-            type: node.type,
-            inputs: node.data.properties,
-            parent_id: node.parentId,
-            position: node.position,
-            width: node.style?.width,
-            height: node.style?.height
-          };
-        }
-
-        const findNode = (id: string) => {
-          const node = nodes.find((node) => node.id === id);
-          if (!node) {
-            throw new Error(`Could not find node with id ${id}`);
-          }
-          return node;
-        };
-
-        for (const edge of edges) {
-          const sourceNode = findNode(edge.source);
-          json[edge.target].inputs[edge.targetHandle || ""] = [
-            edge.source,
-            edge.sourceHandle || ""
-          ];
-        }
-
-        return json;
-      },
-
       getWorkflowIsDirty: () => {
         return useWorkflowStore.getState().unsavedWorkflows.has(get().workflow.id);
       },
@@ -485,7 +449,30 @@ export const useNodeStore = create<NodeStore>()(
       getWorkflow: (): Workflow => {
         const workflow = get().workflow;
         const edges = get().edges;
-        const nodes = get().nodes;
+        const isHandleConnected = (nodeId: string, handle: string) => {
+          return edges.some(
+            (edge) =>
+              edge.target === nodeId && edge.targetHandle === handle
+          );
+        };
+        const unconnectedProperties = (node: Node<NodeData>) => {
+          const properties: Record<string, any> = {};
+          for (const name in node.data.properties) {
+            if (!isHandleConnected(node.id, name)) {
+              properties[name] = node.data.properties[name];
+            }
+          }
+          return properties;
+        };
+        const nodes = get().nodes.map((node) => {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              properties: unconnectedProperties(node)
+            }
+          };
+        });
         return {
           ...workflow,
           graph: {

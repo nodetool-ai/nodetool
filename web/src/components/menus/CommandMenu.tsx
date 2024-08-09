@@ -187,7 +187,7 @@ const CommandMenu = memo(function CommandMenu({
   const runWorkflow = useWorkflowRunnner((state) => state.run);
   const cancelWorkflow = useWorkflowRunnner((state) => state.cancel);
   const autoLayout = useNodeStore((state) => state.autoLayout);
-  const exportWorkflow = useNodeStore((state) => state.exportWorkflow);
+  const workflowJSON = useNodeStore((state) => state.workflowJSON);
   const workflow = useNodeStore((state) => state.workflow);
   const input = useRef<HTMLInputElement>(null);
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
@@ -228,14 +228,14 @@ const CommandMenu = memo(function CommandMenu({
   }, [setOpen]);
 
   const downloadWorkflow = useCallback(() => {
-    const json = JSON.stringify(exportWorkflow(), null, 2);
+    const json = workflowJSON();
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.download = `${workflow.name}.json`;
     link.href = url;
     link.click();
-  }, [exportWorkflow, workflow.name]);
+  }, [workflowJSON, workflow.name]);
 
   return (
     <Dialog css={styles} open={open} onClose={() => setOpen(false)}>

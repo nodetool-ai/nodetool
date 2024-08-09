@@ -3,7 +3,13 @@ import io
 import numpy as np
 import PIL.Image
 from nodetool.common.comfy_node import ComfyNode
-from nodetool.metadata.types import ColumnType, DataframeRef, ImageRef, ColumnDef
+from nodetool.metadata.types import (
+    BoundingBox,
+    DataframeRef,
+    ImageRef,
+    ImageSegmentationResult,
+    ObjectDetectionResult,
+)
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.providers.huggingface.huggingface_node import progress_callback
@@ -237,7 +243,7 @@ class VisualizeSegmentation(BaseNode):
         description="The input image to visualize",
     )
 
-    segments: list[dict] = Field(
+    segments: list[ImageSegmentationResult] = Field(
         default={},
         title="Segmentation Masks",
         description="The segmentation masks to visualize",
@@ -254,11 +260,7 @@ class VisualizeSegmentation(BaseNode):
 
         # Fill the mask with segmentation results
         for i, segment in enumerate(self.segments):
-            assert "mask" in segment, "Segmentation mask is missing"
-            assert "label" in segment, "Segmentation label is missing"
-            assert isinstance(segment["mask"], ImageRef), "Invalid segmentation mask"
-            assert isinstance(segment["label"], str), "Invalid segmentation label"
-            segment_mask = await context.image_to_numpy(segment["mask"])
+            segment_mask = await context.image_to_numpy(segment.mask)
             # reduce channel dimension if present
             if segment_mask.ndim == 3:
                 segment_mask = segment_mask[:, :, 0]
@@ -310,17 +312,17 @@ class Segmentation(HuggingFacePipelineNode):
 
     async def process_local_result(
         self, context: ProcessingContext, result: Any
-    ) -> list[dict]:
+    ) -> list[ImageSegmentationResult]:
         async def convert_output(item: dict[str, Any]):
             mask = await context.image_from_pil(item["mask"])
-            return {
-                "label": item["label"],
-                "mask": mask,
-            }
+            return ImageSegmentationResult(mask=mask, label=item["label"])
 
-        segments = await asyncio.gather(*[convert_output(item) for item in result])
+        return await asyncio.gather(*[convert_output(item) for item in result])
 
-        return segments
+    async def process(
+        self, context: ProcessingContext
+    ) -> list[ImageSegmentationResult]:
+        return await super().process(context)
 
 
 class ObjectDetection(HuggingFacePipelineNode):
@@ -376,21 +378,22 @@ class ObjectDetection(HuggingFacePipelineNode):
 
     async def process_local_result(
         self, context: ProcessingContext, result: Any
-    ) -> list[dict[str, Any]]:
-        data = [
-            {
-                "label": item["label"],
-                "score": item["score"],
-                "xmin": item["box"]["xmin"],
-                "ymin": item["box"]["ymin"],
-                "xmax": item["box"]["xmax"],
-                "ymax": item["box"]["ymax"],
-            }
+    ) -> list[ObjectDetectionResult]:
+        return [
+            ObjectDetectionResult(
+                label=item["label"],
+                score=item["score"],
+                box=BoundingBox(
+                    xmin=item["box"]["xmin"],
+                    ymin=item["box"]["ymin"],
+                    xmax=item["box"]["xmax"],
+                    ymax=item["box"]["ymax"],
+                ),
+            )
             for item in result
         ]
-        return data
 
-    async def process(self, context: ProcessingContext) -> list[dict[str, Any]]:
+    async def process(self, context: ProcessingContext) -> list[ObjectDetectionResult]:
         return await super().process(context)
 
 
@@ -405,7 +408,7 @@ class VisualizeObjectDetection(BaseNode):
         description="The input image to visualize",
     )
 
-    objects: list[dict[str, Any]] = Field(
+    objects: list[ObjectDetectionResult] = Field(
         default={},
         title="Detected Objects",
         description="The detected objects to visualize",
@@ -428,12 +431,10 @@ class VisualizeObjectDetection(BaseNode):
         ax.imshow(image)
 
         for obj in self.objects:
-            label = obj["label"]
-            score = obj["score"]
-            xmin = obj["xmin"]
-            ymin = obj["ymin"]
-            xmax = obj["xmax"]
-            ymax = obj["ymax"]
+            xmin = obj.box.xmin
+            ymin = obj.box.ymin
+            xmax = obj.box.xmax
+            ymax = obj.box.ymax
 
             rect = patches.Rectangle(
                 (xmin, ymin),
@@ -447,7 +448,7 @@ class VisualizeObjectDetection(BaseNode):
             ax.text(
                 xmin,
                 ymin,
-                f"{label} ({score:.2f})",
+                f"{obj.label} ({obj.score:.2f})",
                 color="r",
                 fontsize=8,
                 backgroundcolor="w",
@@ -538,29 +539,22 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
 
     async def process_local_result(
         self, context: ProcessingContext, result: Any
-    ) -> DataframeRef:
-        data = [
-            [
-                item["label"],
-                item["score"],
-                item["box"]["xmin"],
-                item["box"]["ymin"],
-                item["box"]["xmax"],
-                item["box"]["ymax"],
-            ]
+    ) -> list[ObjectDetectionResult]:
+        return [
+            ObjectDetectionResult(
+                label=item["label"],
+                score=item["score"],
+                box=BoundingBox(
+                    xmin=item["box"]["xmin"],
+                    ymin=item["box"]["ymin"],
+                    xmax=item["box"]["xmax"],
+                    ymax=item["box"]["ymax"],
+                ),
+            )
             for item in result
         ]
-        columns = [
-            ColumnDef(name="label", data_type="string"),
-            ColumnDef(name="score", data_type="float"),
-            ColumnDef(name="xmin", data_type="float"),
-            ColumnDef(name="ymin", data_type="float"),
-            ColumnDef(name="xmax", data_type="float"),
-            ColumnDef(name="ymax", data_type="float"),
-        ]
-        return DataframeRef(columns=columns, data=data)
 
-    async def process(self, context: ProcessingContext) -> list[dict]:
+    async def process(self, context: ProcessingContext) -> list[ObjectDetectionResult]:
         return await super().process(context)
 
 

@@ -61,7 +61,7 @@ class SelectColumn(BaseNode):
         return await context.dataframe_from_pandas(df[columns])  # type: ignore
 
 
-class ExtractColumnData(BaseNode):
+class ExtractColumn(BaseNode):
     """
     Convert dataframe column to list.
     dataframe, column, list
@@ -84,7 +84,7 @@ class ExtractColumnData(BaseNode):
         return df[self.column_name].tolist()
 
 
-class FormatRowsAsText(BaseNode):
+class FormatAsText(BaseNode):
     """
     Convert dataframe rows to formatted strings.
     dataframe, string, format
@@ -108,7 +108,7 @@ class FormatRowsAsText(BaseNode):
         return [self.template.format(**row) for _, row in df.iterrows()]
 
 
-class AddNewDataColumn(BaseNode):
+class AddColumn(BaseNode):
     """
     Add list of values as new column to dataframe.
     dataframe, column, list
@@ -140,7 +140,7 @@ class AddNewDataColumn(BaseNode):
 
 class FromList(BaseNode):
     """
-    Convert list of values to dataframe.
+    Convert list of dicts to dataframe.
     list, dataframe, convert
 
     Use cases:
@@ -154,43 +154,26 @@ class FromList(BaseNode):
         default=[],
         description="List of values to be converted, each value will be a row.",
     )
-    columns: str = Field(
-        title="Columns", default="", description="Comma separated list of column names"
-    )
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         rows = []
-        columns = self.columns.split(",")
         for value in self.values:
             if not isinstance(value, dict):
                 raise ValueError("List must contain dicts.")
-            if type(value) == dict:
-                row = {}
-                for k, v in value.items():
-                    if type(v) == dict:
-                        row[k] = v["value"]
-                    elif type(v) in [int, float, str, bool]:
-                        row[k] = v
-                    else:
-                        row[k] = str(v)
-            elif type(value) in [int, float, str, bool]:
-                col = columns[0] if len(columns) > 0 else "value"
-                row = {col: value}
-            elif type(value) in [list, tuple]:
-                row = {}
-                for i, v in enumerate(value):
-                    col = columns[i] if i < len(columns) else f"col{i}"
-                    row[col] = v
-            else:
-                col = columns[0] if len(columns) > 0 else "value"
-                row = {col: str(value)}
-
+            row = {}
+            for k, v in value.items():
+                if type(v) == dict:
+                    row[k] = v["value"]
+                elif type(v) in [int, float, str, bool]:
+                    row[k] = v
+                else:
+                    row[k] = str(v)
             rows.append(row)
         df = pd.DataFrame(rows)
         return await context.dataframe_from_pandas(df)
 
 
-class ImportCSVData(BaseNode):
+class ImportCSV(BaseNode):
     """
     Convert CSV string to dataframe.
     csv, dataframe, import
@@ -209,7 +192,7 @@ class ImportCSVData(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class MergeDataSideBySide(BaseNode):
+class MergeSideBySide(BaseNode):
     """
     Merge two dataframes along columns.
     merge, concat, columns
@@ -234,7 +217,7 @@ class MergeDataSideBySide(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class CombineDataVertically(BaseNode):
+class CombineVertically(BaseNode):
     """
     Append two dataframes along rows.
     append, concat, rows
@@ -263,7 +246,7 @@ class CombineDataVertically(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class JoinTables(BaseNode):
+class Join(BaseNode):
     """
     Join two dataframes on specified column.
     join, merge, column
@@ -296,7 +279,7 @@ class JoinTables(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class ConvertToTensorFormat(BaseNode):
+class ConvertToTensor(BaseNode):
     """
     Convert dataframe to tensor.
     dataframe, tensor, convert
@@ -316,7 +299,7 @@ class ConvertToTensorFormat(BaseNode):
         return Tensor.from_numpy(df.to_numpy())
 
 
-class ConvertTensorToTable(BaseNode):
+class FromTensor(BaseNode):
     """
     Convert tensor to dataframe.
     tensor, dataframe, convert
@@ -346,7 +329,7 @@ class ConvertTensorToTable(BaseNode):
         return await context.dataframe_from_pandas(df)
 
 
-class CreateChart(BaseNode):
+class Chart(BaseNode):
     """
     Create line, bar, or scatter plot from dataframe.
     plot, visualization, dataframe
@@ -401,7 +384,7 @@ class CreateChart(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class CreateHistogramVisualization(BaseNode):
+class Histogram(BaseNode):
     """
     Plot histogram of dataframe column.
     histogram, plot, distribution
@@ -430,7 +413,7 @@ class CreateHistogramVisualization(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class CreateHeatmapVisualization(BaseNode):
+class Heatmap(BaseNode):
     """
     Create heatmap visualization of dataframe.
     heatmap, plot, correlation
@@ -456,10 +439,18 @@ class CreateHeatmapVisualization(BaseNode):
         return await context.image_from_bytes(img_bytes.getvalue())
 
 
-class FilterDataRows(BaseNode):
+class Filter(BaseNode):
     """
     Filter dataframe based on condition.
     filter, query, condition
+
+    Example conditions:
+    age > 30
+    age > 30 and salary < 50000
+    name == 'John Doe'
+    100 <= price <= 200
+    status in ['Active', 'Pending']
+    not (age < 18)
 
     Use cases:
     - Extract subset of data meeting specific criteria
@@ -481,7 +472,40 @@ class FilterDataRows(BaseNode):
         return await context.dataframe_from_pandas(res)
 
 
-class SortDataByColumn(BaseNode):
+class FindOneRow(BaseNode):
+    """
+    Find the first row in a dataframe that matches a given condition.
+    filter, query, condition, single row
+
+    Example conditions:
+    age > 30
+    age > 30 and salary < 50000
+    name == 'John Doe'
+    100 <= price <= 200
+    status in ['Active', 'Pending']
+    not (age < 18)
+
+    Use cases:
+    - Retrieve specific record based on criteria
+    - Find first occurrence of a particular condition
+    - Extract single data point for further analysis
+    """
+
+    df: DataframeRef = Field(
+        default=DataframeRef(), description="The DataFrame to search."
+    )
+    condition: str = Field(
+        default="",
+        description="The condition to filter the DataFrame, e.g. 'column_name == value'.",
+    )
+
+    async def process(self, context: ProcessingContext) -> DataframeRef:
+        df = await context.dataframe_to_pandas(self.df)
+        result = df.query(self.condition).head(1)
+        return await context.dataframe_from_pandas(result)
+
+
+class SortByColumn(BaseNode):
     """
     Sort dataframe by specified column.
     sort, order, column
@@ -501,7 +525,7 @@ class SortDataByColumn(BaseNode):
         return await context.dataframe_from_pandas(res)
 
 
-class RemoveDuplicateEntries(BaseNode):
+class RemoveDuplicates(BaseNode):
     """
     Remove duplicate rows from dataframe.
     duplicates, unique, clean

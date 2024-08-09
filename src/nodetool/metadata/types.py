@@ -530,17 +530,31 @@ class DataframeRef(AssetRef):
     data: list[list[Any]] | None = None
 
 
-class TrainTestOutput(OutputType):
-    train_X: DataframeRef = DataframeRef()
-    train_y: DataframeRef = DataframeRef()
-    test_X: DataframeRef = DataframeRef()
-    test_y: DataframeRef = DataframeRef()
-
-
 class RankingResult(BaseType):
     type: Literal["ranking_result"] = "ranking_result"
     score: float
     text: str
+
+
+class ImageSegmentationResult(BaseType):
+    type: Literal["image_segmentation_result"] = "image_segmentation_result"
+    label: str
+    mask: ImageRef
+
+
+class BoundingBox(BaseType):
+    type: Literal["bounding_box"] = "bounding_box"
+    xmin: float
+    ymin: float
+    xmax: float
+    ymax: float
+
+
+class ObjectDetectionResult(BaseType):
+    type: Literal["object_detection_result"] = "object_detection_result"
+    label: str
+    score: float
+    box: BoundingBox
 
 
 class Dataset(OutputType):

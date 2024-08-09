@@ -1,9 +1,9 @@
+from enum import Enum
 import json
-from typing import Any, Literal
-import pandas as pd
+from typing import Any
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import DataframeRef
 from nodetool.workflows.base_node import BaseNode
+from pydantic import Field
 
 
 class GetValue(BaseNode):
@@ -149,21 +149,67 @@ class Filter(BaseNode):
         return {key: self.dictionary[key] for key in self.keys}
 
 
-class ConvertToDataframe(BaseNode):
+class ConflictResolution(str, Enum):
+    FIRST = "first"
+    LAST = "last"
+    ERROR = "error"
+
+
+class ReduceDictionaries(BaseNode):
     """
-    Transforms a single dictionary into a one-row pandas DataFrame.
-    dictionary, dataframe, convert
+    Reduces a list of dictionaries into one dictionary based on a specified key field.
+    dictionary, reduce, aggregate
 
     Use cases:
-    - Prepare dictionary data for tabular analysis
-    - Convert configuration to a data record
-    - Initiate a DataFrame from a single data point
+    - Aggregate data by a specific field
+    - Create summary dictionaries from list of records
+    - Combine multiple data points into a single structure
     """
 
-    _layout = "small"
+    dictionaries: list[dict[str, Any]] = Field(
+        default=[],
+        description="List of dictionaries to be reduced",
+    )
+    key_field: str = Field(
+        default="",
+        description="The field to use as the key in the resulting dictionary",
+    )
+    value_field: str | None = Field(
+        default=None,
+        description="Optional field to use as the value. If not specified, the entire dictionary (minus the key field) will be used as the value.",
+    )
+    conflict_resolution: ConflictResolution = Field(
+        default=ConflictResolution.FIRST,
+        description="How to handle conflicts when the same key appears multiple times",
+    )
 
-    dictionary: dict[(str, Any)] = {}
+    async def process(self, context: ProcessingContext) -> dict[Any, Any]:
+        result = {}
+        for d in self.dictionaries:
+            if self.key_field not in d:
+                raise ValueError(
+                    f"Key field '{self.key_field}' not found in dictionary"
+                )
 
-    async def process(self, context: ProcessingContext) -> DataframeRef:
-        df = pd.DataFrame([self.model_dump()])
-        return await context.dataframe_from_pandas(df)
+            key = d[self.key_field]
+
+            if self.value_field:
+                if self.value_field not in d:
+                    raise ValueError(
+                        f"Value field '{self.value_field}' not found in dictionary"
+                    )
+                value = d[self.value_field]
+            else:
+                value = {k: v for k, v in d.items() if k != self.key_field}
+
+            if key in result:
+                if self.conflict_resolution == ConflictResolution.FIRST:
+                    continue
+                elif self.conflict_resolution == ConflictResolution.LAST:
+                    result[key] = value
+                else:  # ConflictResolution.ERROR
+                    raise ValueError(f"Duplicate key found: {key}")
+            else:
+                result[key] = value
+
+        return result

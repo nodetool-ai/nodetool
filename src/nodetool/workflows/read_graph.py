@@ -304,8 +304,6 @@ def read_graph(json: Dict[str, Any]) -> Tuple[List[Edge], List[Node]]:
     if "last_node_id" in json:
         json = convert_graph(json)
 
-    print(json)
-
     nodes: List[Node] = []
     edges: List[Edge] = []
     node_by_id: Dict[str, Node] = {}
