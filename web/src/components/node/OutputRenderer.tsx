@@ -259,7 +259,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               return { name: i[0], data_type: columnType(i[1]) };
             })
           };
-          console.log(df);
           return <DataTable dataframe={df} editable={false} />;
         }
       }
