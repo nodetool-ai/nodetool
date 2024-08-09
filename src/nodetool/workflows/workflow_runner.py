@@ -17,7 +17,6 @@ from nodetool.workflows.base_node import GroupNode, BaseNode
 from nodetool.workflows.types import NodeProgress, NodeUpdate
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.workflows.base_node import requires_capabilities_from_request
 from nodetool.common.environment import Environment
 from nodetool.workflows.graph import Graph
 
@@ -46,7 +45,6 @@ class WorkflowRunner:
 
     Note:
         - This class does not handle the definition of the workflow graph. The graph must be provided externally.
-        - GPU-intensive workflows are automatically directed to workers with GPU capabilities when available.
         - The class relies on an external ProcessingContext for managing execution state and inter-node communication.
     """
 
@@ -159,19 +157,7 @@ class WorkflowRunner:
 
         with self.torch_context(context):
             try:
-                for node in graph.nodes:
-                    try:
-                        await node.initialize(context)
-                    except Exception as e:
-                        context.post_message(
-                            NodeUpdate(
-                                node_id=node.id,
-                                node_name=node.get_title(),
-                                status="error",
-                                error=str(e)[:1000],
-                            )
-                        )
-                        raise
+                await self.initialize_graph(context, graph)
                 await self.process_graph(context, graph)
             except Exception as e:
                 for node in graph.nodes:
@@ -193,6 +179,31 @@ class WorkflowRunner:
         )
 
         self.status = "completed"
+
+    async def initialize_graph(self, context: ProcessingContext, graph: Graph):
+        """
+        Initializes all nodes in the graph.
+
+        Args:
+            context (ProcessingContext): Manages the execution state and inter-node communication.
+            graph (Graph): The directed acyclic graph of nodes to be processed.
+
+        Raises:
+            Exception: Any exception raised during node initialization is caught and reported.
+        """
+        for node in graph.nodes:
+            try:
+                await node.initialize(context)
+            except Exception as e:
+                context.post_message(
+                    NodeUpdate(
+                        node_id=node.id,
+                        node_name=node.get_title(),
+                        status="error",
+                        error=str(e)[:1000],
+                    )
+                )
+                raise
 
     async def process_graph(
         self, context: ProcessingContext, graph: Graph, parent_id: str | None = None
@@ -388,8 +399,12 @@ class WorkflowRunner:
                 input.append(row)
         elif isinstance(input, list):
             pass
+        elif isinstance(input, dict):
+            input = list([{"key": k, "value": v} for k, v in input.items()])
         else:
-            raise ValueError("Input data must be a list or dataframe.")
+            raise ValueError(
+                f"Input data must be a list or dataframe but got: {type(input)}"
+            )
 
         # Run the subgraph for each item in the input data.
         results = {node._id: [] for node in output_nodes}
@@ -402,7 +417,6 @@ class WorkflowRunner:
                 auth_token=context.auth_token,
                 workflow_id=context.workflow_id,
                 queue=context.message_queue,
-                capabilities=context.capabilities,
             )
             # set the result of the input node
             for input_node in input_nodes:
@@ -442,10 +456,12 @@ class WorkflowRunner:
         """
         import comfy
         import comfy.utils
-        import comfy.model_management
 
         def hook(value, total, preview_image):
-            comfy.model_management.throw_exception_if_processing_interrupted()
+            if torch.cuda.is_available():
+                import comfy.model_management
+
+                comfy.model_management.throw_exception_if_processing_interrupted()
             context.post_message(
                 NodeProgress(
                     node_id=self.current_node or "",
@@ -462,11 +478,14 @@ class WorkflowRunner:
         )
         with torch.inference_mode():
             yield
-            comfy.model_management.cleanup_models()
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats()
-            summary = torch.cuda.memory_summary("cuda")
-            log.info(summary)
-            log.info(
-                f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
-            )
+            if torch.cuda.is_available():
+                import comfy.model_management
+
+                comfy.model_management.cleanup_models()
+                torch.cuda.empty_cache()
+                torch.cuda.reset_peak_memory_stats()
+                summary = torch.cuda.memory_summary("cuda")
+                log.info(summary)
+                log.info(
+                    f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+                )

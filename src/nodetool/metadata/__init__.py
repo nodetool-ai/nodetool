@@ -37,6 +37,8 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
         t = type_meta.type_args[0]
         return all(is_assignable(t, v) for v in value)
     if type_meta.type == "dict" and python_type == dict:
+        if len(type_meta.type_args) != 2:
+            return True
         t = type_meta.type_args[0]
         u = type_meta.type_args[1]
         return all(

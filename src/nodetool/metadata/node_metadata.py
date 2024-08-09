@@ -15,8 +15,6 @@ class NodeMetadata(BaseModel):
     description: str
     namespace: str
     node_type: str
-    primary_field: str | None
-    secondary_field: str | None
     layout: str
     properties: list[Property]
     outputs: list[OutputSlot]

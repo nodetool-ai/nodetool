@@ -63,7 +63,6 @@ async def create(req: TaskCreateRequest, user: User = Depends(current_user)) -> 
         name=req.name,
         instructions=req.instructions,
         dependencies=req.dependencies,
-        required_capabilities=req.required_capabilities,
         started_at=datetime.now(),
     )
     return Task.from_model(task)

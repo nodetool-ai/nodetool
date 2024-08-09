@@ -30,7 +30,6 @@ class TaskCreateRequest(BaseModel):
     name: str
     instructions: str
     dependencies: list[str] = []
-    required_capabilities: list[str] = []
 
 
 class TaskUpdateRequest(BaseModel):

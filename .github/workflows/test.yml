@@ -26,15 +26,7 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Install dependencies
-        run: poetry install
-      - name: Test
-        run: poetry run pytest tests/
-      - name: Trigger Staging Deployment
-        env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          curl -X POST \
-          -H "Accept: application/vnd.github.v3+json" \
-          -H "Authorization: token $PAT_TOKEN" \
-          https://api.github.com/repos/nodetool-ai/nodetool-infra/dispatches \
-          -d '{"event_type":"workflow-trigger"}'
+          poetry install
+      - name: Run Tests
+        run: poetry run pytest tests/

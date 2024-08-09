@@ -17,7 +17,6 @@ class Task(DBModel):
     name: str = DBField(default="")
     instructions: str = DBField(default="")
     dependencies: list[str] = DBField(default_factory=list)
-    required_capabilities: list[str] = DBField(default_factory=list)
     started_at: datetime = DBField(default_factory=datetime.now)
     finished_at: datetime | None = DBField(default=None)
     error: str | None = DBField(default=None)

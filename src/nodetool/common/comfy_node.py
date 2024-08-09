@@ -30,11 +30,9 @@ class ComfyNode(BaseNode):
 
     Attributes:
         _comfy_class (str): The comfy class wrapped by this node.
-        requires_capabilities (list[str]): List of capabilities required by this node.
     """
 
     _comfy_class: str = ""
-    _requires_capabilities = ["comfy"]
 
     @classmethod
     def is_visible(cls) -> bool:
