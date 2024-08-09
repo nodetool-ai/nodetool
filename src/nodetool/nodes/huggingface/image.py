@@ -53,6 +53,10 @@ from diffusers.schedulers import (
     DPMSolverSinglestepScheduler,  # type: ignore
     KDPM2AncestralDiscreteScheduler,  # type: ignore
 )
+from diffusers import AutoPipelineForInpainting  # type: ignore
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel  # type: ignore
+from diffusers import StableDiffusionControlNetInpaintPipeline  # type: ignore
+from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -323,6 +327,30 @@ class Segmentation(HuggingFacePipelineNode):
         self, context: ProcessingContext
     ) -> list[ImageSegmentationResult]:
         return await super().process(context)
+
+
+class FindSegment(BaseNode):
+    """
+    Extracts a specific segment from a list of segmentation masks.
+    """
+
+    segments: list[ImageSegmentationResult] = Field(
+        default={},
+        title="Segmentation Masks",
+        description="The segmentation masks to search",
+    )
+
+    label: str = Field(
+        default="",
+        title="Label",
+        description="The label of the segment to extract",
+    )
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        for segment in self.segments:
+            if segment.label == self.label:
+                return segment.mask
+        raise ValueError(f"Segment not found: {self.label}")
 
 
 class ObjectDetection(HuggingFacePipelineNode):
@@ -731,7 +759,7 @@ class InstructPix2Pix(BaseImageToImage):
         }
 
 
-class AuraFlowNode(BaseNode):
+class AuraFlow(BaseNode):
     """
     Generates images using the AuraFlow pipeline.
     image, generation, AI, text-to-image
@@ -804,7 +832,7 @@ class AuraFlowNode(BaseNode):
         return await context.image_from_pil(image)
 
 
-class PixArtAlphaNode(BaseNode):
+class PixArtAlpha(BaseNode):
     """
     Generates images from text prompts using the PixArt-Alpha model.
     image, generation, AI, text-to-image
@@ -1332,7 +1360,7 @@ class Kandinsky3Img2Img(BaseNode):
         return await context.image_from_pil(image)
 
 
-class StableCascadeNode(BaseNode):
+class StableCascade(BaseNode):
     """
     Generates images using the Stable Cascade model, which involves a two-stage process with a prior and a decoder.
     image, generation, AI, text-to-image
@@ -1454,23 +1482,17 @@ class IPAdapter_SD15_Model(str, Enum):
     IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
 
 
-class StableDiffusion(BaseNode):
-    """
-    Generates images from text prompts using Stable Diffusion.
-    image, generation, AI, text-to-image
+class StableDiffusionScheduler(str, Enum):
+    DDIMScheduler = "DDIMScheduler"
+    PNDMScheduler = "PNDMScheduler"
+    LMSDiscreteScheduler = "LMSDiscreteScheduler"
+    EulerDiscreteScheduler = "EulerDiscreteScheduler"
+    EulerAncestralDiscreteScheduler = "EulerAncestralDiscreteScheduler"
+    DPMSolverMultistepScheduler = "DPMSolverMultistepScheduler"
+    HeunDiscreteScheduler = "HeunDiscreteScheduler"
 
-    Use cases:
-    - Creating custom illustrations for various projects
-    - Generating concept art for creative endeavors
-    - Producing unique visual content for marketing materials
-    - Exploring AI-generated art for personal or professional use
-    """
 
-    model: StableDiffusionModelId = Field(
-        default=StableDiffusionModelId.SD_V1_5,
-        description="The Stable Diffusion model to use for generation.",
-    )
-
+class StableDiffusionBaseNode(BaseNode):
     prompt: str = Field(default="", description="The prompt for image generation.")
     negative_prompt: str = Field(
         default="",
@@ -1487,12 +1509,6 @@ class StableDiffusion(BaseNode):
     )
     guidance_scale: float = Field(
         default=7.5, ge=1.0, le=20.0, description="Guidance scale for generation."
-    )
-    width: int = Field(
-        default=512, ge=256, le=1024, description="Width of the generated image."
-    )
-    height: int = Field(
-        default=512, ge=256, le=1024, description="Height of the generated image"
     )
     scheduler: StableDiffusionScheduler = Field(
         default=StableDiffusionScheduler.HeunDiscreteScheduler,
@@ -1513,11 +1529,77 @@ class StableDiffusion(BaseNode):
         description="Strength of the IP adapter image",
     )
 
-    _pipe: Any = None
+    _pipeline: Any = None
+
+    async def initialize(self, context: ProcessingContext):
+        raise NotImplementedError("Subclasses must implement this method")
+
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        scheduler_class = get_scheduler_class(scheduler_type)
+        self._pipeline.scheduler = scheduler_class.from_config(
+            self._pipeline.scheduler.config
+        )
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    def _setup_generator(self):
+        generator = torch.Generator(device="cuda")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+        return generator
+
+    async def _setup_ip_adapter(self, context: ProcessingContext):
+        self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
+        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+            assert not self.ip_adapter_image.is_empty()
+            return await context.image_to_pil(self.ip_adapter_image)
+        return None
+
+    def progress_callback(self, context: ProcessingContext):
+        def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        return callback
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        raise NotImplementedError("Subclasses must implement this method")
+
+
+class StableDiffusion(StableDiffusionBaseNode):
+    """
+    Generates images from text prompts using Stable Diffusion.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Creating custom illustrations for various projects
+    - Generating concept art for creative endeavors
+    - Producing unique visual content for marketing materials
+    - Exploring AI-generated art for personal or professional use
+    """
+
+    model: StableDiffusionModelId = Field(
+        default=StableDiffusionModelId.SD_V1_5,
+        description="The Stable Diffusion model to use for generation.",
+    )
+
+    width: int = Field(
+        default=512, ge=256, le=1024, description="Width of the generated image."
+    )
+    height: int = Field(
+        default=512, ge=256, le=1024, description="Height of the generated image"
+    )
 
     @classmethod
     def get_title(cls):
-        return "Stable Diffusion (Text2Img)"
+        return "Stable Diffusion"
 
     async def initialize(self, context: ProcessingContext):
         if self._pipe is None:
@@ -1532,30 +1614,12 @@ class StableDiffusion(BaseNode):
                     weight_name=self.ip_adapter_model,
                 )
 
-    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
-        scheduler_class = get_scheduler_class(scheduler_type)
-        self._pipe.scheduler = scheduler_class.from_config(self._pipe.scheduler.config)
-
-    async def move_to_device(self, device: str):
-        if self._pipe is not None:
-            self._pipe.to(device)
-
-    async def process(self, context) -> ImageRef:
+    async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipe is None:
             raise ValueError("Pipeline not initialized")
 
-        # Set up the generator for reproducibility
-        generator = torch.Generator(device="cuda")
-        if self.seed != -1:
-            generator = generator.manual_seed(self.seed)
-
-        self._pipe.set_ip_adapter_scale(self.ip_adapter_scale)
-
-        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
-            assert not self.ip_adapter_image.is_empty()
-            ip_adapter_image = await context.image_to_pil(self.ip_adapter_image)
-        else:
-            ip_adapter_image = None
+        generator = self._setup_generator()
+        ip_adapter_image = await self._setup_ip_adapter(context)
 
         image = self._pipe(
             prompt=self.prompt,
@@ -1566,14 +1630,94 @@ class StableDiffusion(BaseNode):
             height=self.height,
             generator=generator,
             ip_adapter_image=ip_adapter_image,
-            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback=self.progress_callback(context),
             callback_steps=1,
         ).images[0]
 
         return await context.image_from_pil(image)
 
 
-class StableDiffusionImg2Img(BaseNode):
+class StableDiffusionControlNetModel(str, Enum):
+    CANNY = "lllyasviel/sd-controlnet-canny"
+    DEPTH = "lllyasviel/sd-controlnet-depth"
+    POSE = "lllyasviel/sd-controlnet-openpose"
+
+
+class StableDiffusionControlNetNode(StableDiffusionBaseNode):
+    """
+    Generates images using Stable Diffusion with ControlNet guidance.
+    image, generation, AI, text-to-image, controlnet
+
+    Use cases:
+    - Generate images with precise control over composition and structure
+    - Create variations of existing images while maintaining specific features
+    - Artistic image generation with guided outputs
+    """
+
+    model: StableDiffusionModelId = Field(
+        default=StableDiffusionModelId.SD_V1_5,
+        description="The Stable Diffusion model to use for generation.",
+    )
+
+    controlnet: StableDiffusionControlNetModel = Field(
+        default=StableDiffusionControlNetModel.CANNY,
+        description="The ControlNet model to use for guidance.",
+    )
+    control_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The control image to guide the generation process.",
+    )
+    controlnet_conditioning_scale: float = Field(
+        default=1.0,
+        description="The scale for ControlNet conditioning.",
+        ge=0.0,
+        le=2.0,
+    )
+
+    _pipeline: StableDiffusionControlNetPipeline | None = None
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion ControlNet"
+
+    async def initialize(self, context: ProcessingContext):
+        controlnet = ControlNetModel.from_pretrained(
+            self.controlnet.value, torch_dtype=torch.float16
+        )
+        self._pipeline = StableDiffusionControlNetPipeline.from_pretrained(
+            self.model.value, controlnet=controlnet, torch_dtype=torch.float16
+        )  # type: ignore
+        self._pipeline.enable_model_cpu_offload()  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        control_image = await context.image_to_pil(self.control_image)
+        ip_adapter_image = await self._setup_ip_adapter(context)
+        generator = self._setup_generator()
+
+        image = self._pipeline(
+            prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
+            image=control_image,
+            ip_adapter_image=ip_adapter_image,
+            width=control_image.width,
+            height=control_image.height,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            controlnet_conditioning_scale=self.controlnet_conditioning_scale,
+            generator=generator,
+            callback=self.progress_callback(context),
+            callback_steps=1,
+        ).images[  # type: ignore
+            0
+        ]  # type: ignore
+
+        return await context.image_from_pil(image)
+
+
+class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
     """
     Transforms existing images based on text prompts using Stable Diffusion.
     image, generation, AI, image-to-image
@@ -1585,39 +1729,14 @@ class StableDiffusionImg2Img(BaseNode):
     - Applying text-guided edits to images
     """
 
-    class ModelId(str, Enum):
-        SD_V1_5 = "runwayml/stable-diffusion-v1-5"
-        DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
-
     model: StableDiffusionModelId = Field(
         default=StableDiffusionModelId.SD_V1_5,
         description="The Stable Diffusion model to use for generation.",
     )
 
-    prompt: str = Field(default="", description="The prompt for image generation.")
-    negative_prompt: str = Field(
-        default="",
-        description="The negative prompt to guide what should not appear in the generated image.",
-    )
     init_image: ImageRef = Field(
         default=ImageRef(),
         description="The initial image for Image-to-Image generation.",
-    )
-    seed: int = Field(
-        default=-1,
-        ge=-1,
-        le=2**32 - 1,
-        description="Seed for the random number generator. Use -1 for a random seed.",
-    )
-    num_inference_steps: int = Field(
-        default=25, ge=1, le=100, description="Number of denoising steps."
-    )
-    guidance_scale: float = Field(
-        default=7.5, ge=1.0, le=20.0, description="Guidance scale for generation."
-    )
-    scheduler: StableDiffusionScheduler = Field(
-        default=StableDiffusionScheduler.HeunDiscreteScheduler,
-        description="The scheduler to use for the diffusion process.",
     )
     strength: float = Field(
         default=0.8,
@@ -1626,15 +1745,9 @@ class StableDiffusionImg2Img(BaseNode):
         description="Strength for Image-to-Image generation. Higher values allow for more deviation from the original image.",
     )
 
-    _pipe: Any = None
-
     @classmethod
     def get_title(cls):
         return "Stable Diffusion (Img2Img)"
-
-    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
-        scheduler_class = get_scheduler_class(scheduler_type)
-        self._pipe.scheduler = scheduler_class.from_config(self._pipe.scheduler.config)
 
     async def initialize(self, context: ProcessingContext):
         if self._pipe is None:
@@ -1643,120 +1756,260 @@ class StableDiffusionImg2Img(BaseNode):
             )
             self._set_scheduler(self.scheduler)
 
-    async def move_to_device(self, device: str):
-        if self._pipe is not None:
-            self._pipe.to(device)
-
-    async def process(self, context) -> ImageRef:
+    async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipe is None:
             raise ValueError("Pipeline not initialized")
 
-        # Set up the generator for reproducibility
-        generator = torch.Generator(device="cuda")
-        if self.seed != -1:
-            generator = generator.manual_seed(self.seed)
-
+        generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
+        ip_adapter_image = await self._setup_ip_adapter(context)
 
         image = self._pipe(
             prompt=self.prompt,
             image=init_image,
+            ip_adapter_image=ip_adapter_image,
             negative_prompt=self.negative_prompt,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
+            width=init_image.width,
+            height=init_image.height,
             strength=self.strength,
             generator=generator,
-            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback=self.progress_callback(context),
             callback_steps=1,
         ).images[0]
 
         return await context.image_from_pil(image)
 
 
-class StableDiffusionInpaint(BaseNode):
+class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
     """
-    Performs image inpainting using Stable Diffusion.
-    image, inpainting, generation, AI
+    Performs inpainting on images using Stable Diffusion with ControlNet guidance.
+    image, inpainting, AI, controlnet
 
     Use cases:
-    - Removing unwanted objects from images
-    - Filling in missing parts of images
-    - Creative image editing and manipulation
-    - Restoring damaged or incomplete images
+    - Remove unwanted objects from images with precise control
+    - Fill in missing parts of images guided by control images
+    - Modify specific areas of images while preserving the rest and maintaining structure
     """
 
-    model_id: StableDiffusionModelId = Field(
-        StableDiffusionModelId.INPAINTING,
-        description="The model ID to use for inpainting.",
+    model: StableDiffusionModelId = Field(
+        default=StableDiffusionModelId.SD_V1_5,
+        description="The Stable Diffusion model to use for generation.",
     )
-    prompt: str = Field(
-        default="",
-        description="The text prompt to guide the inpainting process.",
+
+    class StableDiffusionControlNetModel(str, Enum):
+        INPAINT = "lllyasviel/control_v11p_sd15_inpaint"
+
+    controlnet: StableDiffusionControlNetModel = Field(
+        default=StableDiffusionControlNetModel.INPAINT,
+        description="The ControlNet model to use for guidance.",
     )
-    image: ImageRef = Field(
+    init_image: ImageRef = Field(
         default=ImageRef(),
-        description="The original image to be inpainted.",
+        description="The initial image to be inpainted.",
     )
     mask_image: ImageRef = Field(
         default=ImageRef(),
-        description="The mask image indicating the area to be inpainted.",
+        description="The mask image indicating areas to be inpainted.",
     )
-    num_inference_steps: int = Field(
-        default=50,
-        description="The number of denoising steps.",
-        ge=1,
-        le=100,
+    control_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The control image to guide the inpainting process.",
     )
-    guidance_scale: float = Field(
-        default=7.5,
-        description="The scale for classifier-free guidance.",
-        ge=1.0,
-        le=20.0,
-    )
-    seed: int = Field(
-        default=-1,
-        description="Seed for the random number generator. Use -1 for a random seed.",
-        ge=-1,
+    controlnet_conditioning_scale: float = Field(
+        default=0.5,
+        description="The scale for ControlNet conditioning.",
+        ge=0.0,
+        le=2.0,
     )
 
-    _pipeline: Any = None
+    _pipeline: StableDiffusionControlNetInpaintPipeline | None = None
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion ControlNet Inpaint"
 
     async def initialize(self, context: ProcessingContext):
-        self._pipeline = StableDiffusionInpaintPipeline.from_pretrained(
-            self.model_id,
-            torch_dtype=torch.float16,
+        controlnet = ControlNetModel.from_pretrained(
+            self.controlnet.value, torch_dtype=torch.float16
         )
-        self._pipeline.to("cuda")
+        self._pipeline = StableDiffusionControlNetInpaintPipeline.from_pretrained(
+            self.model.value, controlnet=controlnet, torch_dtype=torch.float16
+        )  # type: ignore
+        self._pipeline.enable_model_cpu_offload()  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        # Set up the generator for reproducibility
-        generator = torch.Generator(device="cuda")
-        if self.seed != -1:
-            generator = generator.manual_seed(self.seed)
-
-        # Load the original image and the mask
-        image = await context.image_to_pil(self.image)
+        init_image = await context.image_to_pil(self.init_image)
         mask_image = await context.image_to_pil(self.mask_image)
+        control_image = await context.image_to_pil(self.control_image)
+        ip_adapter_image = await self._setup_ip_adapter(context)
+        generator = self._setup_generator()
 
-        # Perform inpainting
-        output = self._pipeline(
+        image = self._pipeline(
             prompt=self.prompt,
-            image=image,
+            negative_prompt=self.negative_prompt,
+            image=init_image,
             mask_image=mask_image,
-            width=image.width,
-            height=image.height,
+            control_image=control_image,
+            ip_adapter_image=ip_adapter_image,
+            width=init_image.width,
+            height=init_image.height,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
+            controlnet_conditioning_scale=self.controlnet_conditioning_scale,
             generator=generator,
+            callback=self.progress_callback(context),
+            callback_steps=1,
+        ).images[  # type: ignore
+            0
+        ]
+
+        return await context.image_from_pil(image)
+
+
+class StableDiffusionInpaintNode(StableDiffusionBaseNode):
+    """
+    Performs inpainting on images using Stable Diffusion.
+    image, inpainting, AI
+
+    Use cases:
+    - Remove unwanted objects from images
+    - Fill in missing parts of images
+    - Modify specific areas of images while preserving the rest
+    """
+
+    init_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The initial image to be inpainted.",
+    )
+    mask_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The mask image indicating areas to be inpainted.",
+    )
+    strength: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Strength for inpainting. Higher values allow for more deviation from the original image.",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion (Inpaint)"
+
+    async def initialize(self, context: ProcessingContext):
+        if self._pipe is None:
+            self._pipe = StableDiffusionInpaintPipeline.from_pretrained(
+                "runwayml/stable-diffusion-inpainting",
+                torch_dtype=torch.float16,
+                safety_checker=None,
+            )
+            self._set_scheduler(self.scheduler)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipe is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = self._setup_generator()
+        init_image = await context.image_to_pil(self.init_image)
+        mask_image = await context.image_to_pil(self.mask_image)
+        ip_adapter_image = await self._setup_ip_adapter(context)
+
+        image = self._pipe(
+            prompt=self.prompt,
+            image=init_image,
+            mask_image=mask_image,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            width=init_image.width,
+            height=init_image.height,
+            strength=self.strength,
+            generator=generator,
+            ip_adapter_image=ip_adapter_image,
+            callback=self.progress_callback(context),
+            callback_steps=1,
+        ).images[0]
+
+        return await context.image_from_pil(image)
+
+
+class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
+    """
+    Transforms existing images using Stable Diffusion with ControlNet guidance.
+    image, generation, AI, image-to-image, controlnet
+
+    Use cases:
+    - Modify existing images with precise control over composition and structure
+    - Apply specific styles or concepts to photographs or artwork with guided transformations
+    - Create variations of existing visual content while maintaining certain features
+    - Enhance image editing capabilities with AI-guided transformations
+    """
+
+    model: StableDiffusionModelId = Field(
+        default=StableDiffusionModelId.SD_V1_5,
+        description="The Stable Diffusion model to use for generation.",
+    )
+
+    controlnet: StableDiffusionControlNetModel = Field(
+        default=StableDiffusionControlNetModel.CANNY,
+        description="The ControlNet model to use for guidance.",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="The input image to be transformed.",
+    )
+    control_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The control image to guide the transformation.",
+    )
+
+    _pipeline: StableDiffusionControlNetImg2ImgPipeline | None = None
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion ControlNet (Img2Img)"
+
+    async def initialize(self, context: ProcessingContext):
+        controlnet = ControlNetModel.from_pretrained(
+            self.controlnet.value, torch_dtype=torch.float16
         )
+        self._pipeline = StableDiffusionControlNetImg2ImgPipeline.from_pretrained(
+            self.model.value, controlnet=controlnet, torch_dtype=torch.float16
+        )  # type: ignore
+        self._pipeline.enable_model_cpu_offload()  # type: ignore
+        self._set_scheduler(self.scheduler)
 
-        inpainted_image = output.images[0]
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
 
-        # Convert the output image to ImageRef
-        return await context.image_from_pil(inpainted_image)
+        input_image = await context.image_to_pil(self.image)
+        control_image = await context.image_to_pil(self.control_image)
+        ip_adapter_image = await self._setup_ip_adapter(context)
+
+        generator = torch.Generator(device="cuda").manual_seed(self.seed)
+
+        image = self._pipeline(
+            prompt=self.prompt,
+            image=input_image,
+            control_image=control_image,
+            ip_adapter_image=ip_adapter_image,
+            width=input_image.width,
+            height=input_image.height,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            callback=self.progress_callback(context),
+            callback_steps=1,
+        ).images[  # type: ignore
+            0
+        ]
+
+        return await context.image_from_pil(image)
 
 
 class StableDiffusionXLModelId(str, Enum):
@@ -1883,6 +2136,118 @@ class StableDiffusionXL(BaseNode):
         ).images[0]
 
         return await context.image_from_pil(image)
+
+
+class SDXLInpainting(BaseNode):
+    """
+    Performs inpainting on images using Stable Diffusion XL.
+    image, inpainting, AI, image-editing
+
+    Use cases:
+    - Removing unwanted objects from images
+    - Adding new elements to existing images
+    - Repairing damaged or incomplete images
+    - Creating creative image edits and modifications
+    """
+
+    prompt: str = Field(
+        default="",
+        description="The prompt describing what to paint in the masked area.",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="The input image to be inpainted.",
+    )
+    mask_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The mask image indicating the area to be inpainted.",
+    )
+    negative_prompt: str = Field(
+        default="",
+        description="The negative prompt to guide what should not appear in the inpainted area.",
+    )
+    num_inference_steps: int = Field(
+        default=30,
+        ge=1,
+        le=100,
+        description="Number of denoising steps. Values between 15 and 30 work well.",
+    )
+    guidance_scale: float = Field(
+        default=8.0,
+        ge=1.0,
+        le=20.0,
+        description="Guidance scale for generation.",
+    )
+    strength: float = Field(
+        default=0.99,
+        ge=0.0,
+        le=1.0,
+        description="Strength of the inpainting. Values below 1.0 work best.",
+    )
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        le=2**32 - 1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+    )
+
+    _pipe: Any = None
+
+    @classmethod
+    def get_title(cls):
+        return "SDXL Inpainting"
+
+    async def initialize(self, context: ProcessingContext):
+        if self._pipe is None:
+            self._pipe = AutoPipelineForInpainting.from_pretrained(
+                "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
+                torch_dtype=torch.float16,
+                variant="fp16",
+            )
+
+    async def move_to_device(self, device: str):
+        if self._pipe is not None:
+            self._pipe.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipe is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cuda")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        # Load and prepare the input and mask images
+        input_image = await context.image_to_pil(self.image)
+        mask_image = await context.image_to_pil(self.mask_image)
+
+        def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        output = self._pipe(
+            prompt=self.prompt,
+            image=input_image,
+            mask_image=mask_image,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            strength=self.strength,
+            generator=generator,
+            width=input_image.width,
+            height=input_image.height,
+            callback=callback,
+            callback_steps=1,
+        )
+
+        # Convert the output image to ImageRef
+        return await context.image_from_pil(output.images[0])
 
 
 class StableDiffusionXLImg2Img(BaseNode):
