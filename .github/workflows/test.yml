@@ -27,8 +27,6 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Install dependencies
         run: |
-          poetry source add --priority explicit pytorch_cpu https://download.pytorch.org/whl/cpu
-          poetry add --source pytorch_cpu torch torchvision
           poetry install
       - name: Run Tests
         run: poetry run pytest tests/

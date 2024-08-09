@@ -459,10 +459,12 @@ class WorkflowRunner:
         """
         import comfy
         import comfy.utils
-        import comfy.model_management
 
         def hook(value, total, preview_image):
-            comfy.model_management.throw_exception_if_processing_interrupted()
+            if torch.cuda.is_available():
+                import comfy.model_management
+
+                comfy.model_management.throw_exception_if_processing_interrupted()
             context.post_message(
                 NodeProgress(
                     node_id=self.current_node or "",
@@ -479,11 +481,14 @@ class WorkflowRunner:
         )
         with torch.inference_mode():
             yield
-            comfy.model_management.cleanup_models()
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats()
-            summary = torch.cuda.memory_summary("cuda")
-            log.info(summary)
-            log.info(
-                f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
-            )
+            if torch.cuda.is_available():
+                import comfy.model_management
+
+                comfy.model_management.cleanup_models()
+                torch.cuda.empty_cache()
+                torch.cuda.reset_peak_memory_stats()
+                summary = torch.cuda.memory_summary("cuda")
+                log.info(summary)
+                log.info(
+                    f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+                )
