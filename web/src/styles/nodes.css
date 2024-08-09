@@ -149,38 +149,3 @@
   display: none;
 }
 
-/* Placeholder node */
-.react-flow__node.react-flow__node-default {
-  background-color: var(--c_attention);
-  border: 0;
-  padding: 0;
-}
-
-.react-flow__node.react-flow__node-default .placeholder-node {
-  color: var(--c_white);
-  border: 0 !important;
-  padding: 0 !important;
-}
-
-.react-flow__node.react-flow__node-default
-  .placeholder-node
-  .react-flow__handle {
-  display: none;
-}
-
-.react-flow .react-flow__node.react-flow__node.selected {
-  outline: 1px solid var(--c_white);
-}
-
-.react-flow.zoomed-out .react-flow__node.react-flow__node.selected {
-  outline: 4px solid var(--c_white);
-}
-
-.react-flow__node-default .react-flow__handle-left {
-  left: -6px !important;
-}
-
-.react-flow__node-default .node-header {
-  border: 0;
-  background-color: #4444;
-}
