@@ -388,8 +388,12 @@ class WorkflowRunner:
                 input.append(row)
         elif isinstance(input, list):
             pass
+        elif isinstance(input, dict):
+            input = list([{"key": k, "value": v} for k, v in input.items()])
         else:
-            raise ValueError("Input data must be a list or dataframe.")
+            raise ValueError(
+                f"Input data must be a list or dataframe but got: {type(input)}"
+            )
 
         # Run the subgraph for each item in the input data.
         results = {node._id: [] for node in output_nodes}

@@ -740,6 +740,16 @@ class ProcessingContext:
         buffer = await self.asset_to_io(image_ref)
         return PIL.Image.open(buffer).convert("RGB")
 
+    async def image_to_numpy(self, image_ref: ImageRef) -> np.ndarray:
+        """
+        Converts the image to a numpy array.
+
+        Args:
+            context (ProcessingContext): The processing context.
+        """
+        image = await self.image_to_pil(image_ref)
+        return np.array(image)
+
     async def image_to_tensor(self, image_ref: ImageRef) -> torch.Tensor:
         """
         Converts the image to a tensor.

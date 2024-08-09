@@ -1,4 +1,5 @@
 from enum import Enum
+import io
 import numpy as np
 import PIL.Image
 from nodetool.common.comfy_node import ComfyNode
@@ -27,6 +28,7 @@ from diffusers import StableDiffusion3ControlNetPipeline  # type: ignore
 from diffusers.models import SD3ControlNetModel  # type: ignore
 from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, AutoencoderKL  # type: ignore
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline  # type: ignore
+from diffusers import StableDiffusionInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline  # type: ignore
 from diffusers import PixArtAlphaPipeline  # type: ignore
 from diffusers.schedulers import (
@@ -224,6 +226,51 @@ def get_scheduler_class(scheduler: StableDiffusionScheduler):
         raise ValueError(f"Invalid scheduler: {scheduler}")
 
 
+class VisualizeSegmentation(BaseNode):
+    """
+    Visualizes segmentation masks on images.
+    """
+
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Image",
+        description="The input image to visualize",
+    )
+
+    segments: list[dict] = Field(
+        default={},
+        title="Segmentation Masks",
+        description="The segmentation masks to visualize",
+    )
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        import matplotlib.pyplot as plt
+
+        image = await context.image_to_pil(self.image)
+
+        color_map = plt.cm.get_cmap("rainbow")(np.linspace(0, 1, len(self.segments)))
+        color_map = (color_map[:, :3] * 255).astype(np.uint8)
+        mask = np.zeros((image.size[1], image.size[0], 3), dtype=np.uint8)
+
+        # Fill the mask with segmentation results
+        for i, segment in enumerate(self.segments):
+            assert "mask" in segment, "Segmentation mask is missing"
+            assert "label" in segment, "Segmentation label is missing"
+            assert isinstance(segment["mask"], ImageRef), "Invalid segmentation mask"
+            assert isinstance(segment["label"], str), "Invalid segmentation label"
+            segment_mask = await context.image_to_numpy(segment["mask"])
+            # reduce channel dimension if present
+            if segment_mask.ndim == 3:
+                segment_mask = segment_mask[:, :, 0]
+            color = color_map[i % len(color_map)]
+            mask[segment_mask > 0] = color
+
+        mask_image = PIL.Image.fromarray(mask)
+        blended_image = PIL.Image.blend(image.convert("RGB"), mask_image, alpha=0.5)
+
+        return await context.image_from_pil(blended_image)
+
+
 class Segmentation(HuggingFacePipelineNode):
     """
     Performs semantic segmentation on images, identifying and labeling different regions.
@@ -260,25 +307,19 @@ class Segmentation(HuggingFacePipelineNode):
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.image)
 
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, ImageRef]:
-        async def convert_output(item: dict[str, Any]):
-            mask = await context.image_from_base64(item["mask"])
-            return item["label"], mask
-
-        items = await asyncio.gather(*[convert_output(item) for item in list(result)])
-        return {label: mask for label, mask in items}
-
     async def process_local_result(
         self, context: ProcessingContext, result: Any
-    ) -> dict[str, ImageRef]:
+    ) -> list[dict]:
         async def convert_output(item: dict[str, Any]):
             mask = await context.image_from_pil(item["mask"])
-            return item["label"], mask
+            return {
+                "label": item["label"],
+                "mask": mask,
+            }
 
-        items = await asyncio.gather(*[convert_output(item) for item in result])
-        return {label: mask for label, mask in items}
+        segments = await asyncio.gather(*[convert_output(item) for item in result])
+
+        return segments
 
 
 class ObjectDetection(HuggingFacePipelineNode):
@@ -332,37 +373,96 @@ class ObjectDetection(HuggingFacePipelineNode):
             "threshold": self.threshold,
         }
 
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> DataframeRef:
-        return await self.process_local_result(context, result)
-
     async def process_local_result(
         self, context: ProcessingContext, result: Any
-    ) -> DataframeRef:
+    ) -> list[dict[str, Any]]:
         data = [
-            [
-                item["label"],
-                item["score"],
-                item["box"]["xmin"],
-                item["box"]["ymin"],
-                item["box"]["xmax"],
-                item["box"]["ymax"],
-            ]
+            {
+                "label": item["label"],
+                "score": item["score"],
+                "xmin": item["box"]["xmin"],
+                "ymin": item["box"]["ymin"],
+                "xmax": item["box"]["xmax"],
+                "ymax": item["box"]["ymax"],
+            }
             for item in result
         ]
-        columns = [
-            ColumnDef(name="label", data_type="string"),
-            ColumnDef(name="score", data_type="float"),
-            ColumnDef(name="xmin", data_type="float"),
-            ColumnDef(name="ymin", data_type="float"),
-            ColumnDef(name="xmax", data_type="float"),
-            ColumnDef(name="ymax", data_type="float"),
-        ]
-        return DataframeRef(columns=columns, data=data)
+        return data
 
-    async def process(self, context: ProcessingContext) -> list[dict]:
+    async def process(self, context: ProcessingContext) -> list[dict[str, Any]]:
         return await super().process(context)
+
+
+class VisualizeObjectDetection(BaseNode):
+    """
+    Visualizes object detection results on images.
+    """
+
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Image",
+        description="The input image to visualize",
+    )
+
+    objects: list[dict[str, Any]] = Field(
+        default={},
+        title="Detected Objects",
+        description="The detected objects to visualize",
+    )
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as patches
+        import io
+
+        image = await context.image_to_pil(self.image)
+
+        # Get the size of the input image
+        width, height = image.size
+
+        # Create figure with the same size as the input image
+        fig, ax = plt.subplots(
+            figsize=(width / 100, height / 100)
+        )  # Convert pixels to inches
+        ax.imshow(image)
+
+        for obj in self.objects:
+            label = obj["label"]
+            score = obj["score"]
+            xmin = obj["xmin"]
+            ymin = obj["ymin"]
+            xmax = obj["xmax"]
+            ymax = obj["ymax"]
+
+            rect = patches.Rectangle(
+                (xmin, ymin),
+                xmax - xmin,
+                ymax - ymin,
+                linewidth=1,
+                edgecolor="r",
+                facecolor="none",
+            )
+            ax.add_patch(rect)
+            ax.text(
+                xmin,
+                ymin,
+                f"{label} ({score:.2f})",
+                color="r",
+                fontsize=8,
+                backgroundcolor="w",
+            )
+
+        ax.axis("off")
+
+        # Remove padding around the image
+        plt.tight_layout(pad=0)
+
+        if fig is None:
+            raise ValueError("Invalid plot")
+        img_bytes = io.BytesIO()
+        fig.savefig(img_bytes, format="png", dpi=100, bbox_inches="tight", pad_inches=0)
+        plt.close(fig)
+        return await context.image_from_bytes(img_bytes.getvalue())
 
 
 class ZeroShotObjectDetection(HuggingFacePipelineNode):
@@ -1347,6 +1447,7 @@ class StableDiffusionModelId(str, Enum):
     SD_V1_5 = "runwayml/stable-diffusion-v1-5"
     REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
     DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
+    INPAINTING = "runwayml/stable-diffusion-inpainting"
 
 
 class IPAdapter_SD15_Model(str, Enum):
@@ -1577,6 +1678,92 @@ class StableDiffusionImg2Img(BaseNode):
         return await context.image_from_pil(image)
 
 
+class StableDiffusionInpaint(BaseNode):
+    """
+    Performs image inpainting using Stable Diffusion.
+    image, inpainting, generation, AI
+
+    Use cases:
+    - Removing unwanted objects from images
+    - Filling in missing parts of images
+    - Creative image editing and manipulation
+    - Restoring damaged or incomplete images
+    """
+
+    model_id: StableDiffusionModelId = Field(
+        StableDiffusionModelId.INPAINTING,
+        description="The model ID to use for inpainting.",
+    )
+    prompt: str = Field(
+        default="",
+        description="The text prompt to guide the inpainting process.",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="The original image to be inpainted.",
+    )
+    mask_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The mask image indicating the area to be inpainted.",
+    )
+    num_inference_steps: int = Field(
+        default=50,
+        description="The number of denoising steps.",
+        ge=1,
+        le=100,
+    )
+    guidance_scale: float = Field(
+        default=7.5,
+        description="The scale for classifier-free guidance.",
+        ge=1.0,
+        le=20.0,
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: Any = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = StableDiffusionInpaintPipeline.from_pretrained(
+            self.model_id,
+            torch_dtype=torch.float16,
+        )
+        self._pipeline.to("cuda")
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cuda")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        # Load the original image and the mask
+        image = await context.image_to_pil(self.image)
+        mask_image = await context.image_to_pil(self.mask_image)
+
+        # Perform inpainting
+        output = self._pipeline(
+            prompt=self.prompt,
+            image=image,
+            mask_image=mask_image,
+            width=image.width,
+            height=image.height,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=generator,
+        )
+
+        inpainted_image = output.images[0]
+
+        # Convert the output image to ImageRef
+        return await context.image_from_pil(inpainted_image)
+
+
 class StableDiffusionXLModelId(str, Enum):
     SDXL_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
     JUGGERNAUT_XL = "RunDiffusion/Juggernaut-XL-v9"
@@ -1649,6 +1836,10 @@ class StableDiffusionXL(BaseNode):
     @classmethod
     def get_title(cls):
         return "Stable Diffusion XL (Text2Img)"
+
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        scheduler_class = get_scheduler_class(scheduler_type)
+        self._pipe.scheduler = scheduler_class.from_config(self._pipe.scheduler.config)
 
     async def initialize(self, context: ProcessingContext):
         if self._pipe is None:
