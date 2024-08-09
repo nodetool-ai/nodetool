@@ -17,7 +17,6 @@ from nodetool.workflows.base_node import GroupNode, BaseNode
 from nodetool.workflows.types import NodeProgress, NodeUpdate
 from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.workflows.base_node import requires_capabilities_from_request
 from nodetool.common.environment import Environment
 from nodetool.workflows.graph import Graph
 
@@ -46,7 +45,6 @@ class WorkflowRunner:
 
     Note:
         - This class does not handle the definition of the workflow graph. The graph must be provided externally.
-        - GPU-intensive workflows are automatically directed to workers with GPU capabilities when available.
         - The class relies on an external ProcessingContext for managing execution state and inter-node communication.
     """
 
@@ -419,7 +417,6 @@ class WorkflowRunner:
                 auth_token=context.auth_token,
                 workflow_id=context.workflow_id,
                 queue=context.message_queue,
-                capabilities=context.capabilities,
             )
             # set the result of the input node
             for input_node in input_nodes:

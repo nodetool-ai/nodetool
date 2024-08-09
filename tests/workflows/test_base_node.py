@@ -17,8 +17,6 @@ from nodetool.workflows.base_node import (
     add_node_type,
     get_node_class,
     get_comfy_class_by_name,
-    requires_capabilities,
-    requires_capabilities_from_request,
     type_metadata,
 )
 from nodetool.metadata.types import OutputSlot
@@ -247,27 +245,3 @@ def test_base_node_get_json_schema():
     assert schema["type"] == "object"
     assert "properties" in schema
     assert "prop" in schema["properties"]
-
-
-def test_requires_capabilities():
-    class CapabilityNode(BaseNode):
-        _requires_capabilities = ["test_capability"]
-
-    nodes = [CapabilityNode(), DummyClass()]
-    assert requires_capabilities(nodes) == ["test_capability"]
-
-
-def test_requires_capabilities_from_request():
-    class CapabilityNode(BaseNode):
-        _requires_capabilities = ["test_capability"]
-
-    req = RunJobRequest(
-        graph=Graph(
-            edges=[],
-            nodes=[
-                Node(id="1", type=CapabilityNode.get_node_type()),
-                Node(id="2", type=DummyClass.get_node_type()),
-            ],
-        )
-    )
-    assert requires_capabilities_from_request(req) == ["test_capability"]

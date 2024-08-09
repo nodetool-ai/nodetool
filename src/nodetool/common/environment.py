@@ -202,18 +202,6 @@ class Environment(object):
         return cls.settings
 
     @classmethod
-    def get_capabilities(cls):
-        """
-        Returns a list of capabilities.
-        """
-        capabilities = []
-
-        if cls.get_comfy_folder():
-            capabilities.append("comfy")
-
-        return capabilities
-
-    @classmethod
     def get_secrets(cls):
         """
         Returns a dictionary of secrets.

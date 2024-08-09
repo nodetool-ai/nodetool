@@ -74,7 +74,7 @@ class ProcessingContext:
     It maintains the state of the workflow and provides methods for interacting with the environment.
 
     Initialization and State Management:
-    - Initializes the context with user ID, authentication token, workflow ID, graph edges, nodes, capabilities, and a message queue.
+    - Initializes the context with user ID, authentication token, workflow ID, graph edges, nodes and a message queue.
     - Manages the results of processed nodes and keeps track of processed nodes.
     - Provides methods for popping and posting messages to the message queue.
 
@@ -106,7 +106,6 @@ class ProcessingContext:
         variables: dict[str, Any] | None = None,
         results: dict[str, Any] | None = None,
         queue: Queue | asyncio.Queue | None = None,
-        capabilities: list[str] | None = None,
         http_client: httpx.AsyncClient | None = None,
         api_client: NodetoolAPIClient | None = None,
         device: str = "cpu",
@@ -122,9 +121,6 @@ class ProcessingContext:
         self.is_cancelled = False
         self.device = device
         self.models = models if models else {}
-        self.capabilities = (
-            capabilities if capabilities else Environment.get_capabilities()
-        )
         self.variables = (
             variables if variables else {"seed": random.randint(0, 2**32 - 1)}
         )

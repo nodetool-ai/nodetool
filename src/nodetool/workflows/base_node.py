@@ -153,10 +153,7 @@ class BaseNode(BaseModel):
         _id (str): Unique identifier for the node.
         _parent_id (str | None): Identifier of the parent node, if any.
         _ui_properties (dict[str, Any]): UI-specific properties for the node.
-        _requires_capabilities (list[str]): Capabilities required by the node.
         _visible (bool): Whether the node is visible in the UI.
-        _primary_field (str | None): The primary field for the node, if any.
-        _secondary_field (str | None): The secondary field for the node, if any.
         _layout (str): The layout style for the node in the UI.
 
     Methods:
@@ -167,10 +164,7 @@ class BaseNode(BaseModel):
     _id: str = ""
     _parent_id: str | None = ""
     _ui_properties: dict[str, Any] = {}
-    _requires_capabilities: list[str] = []
     _visible: bool = True
-    _primary_field: str | None = None
-    _secondary_field: str | None = None
     _layout: str = "default"
 
     def __init__(
@@ -188,18 +182,6 @@ class BaseNode(BaseModel):
     @classmethod
     def is_visible(cls):
         return cls._visible.default  # type: ignore
-
-    @classmethod
-    def requires_capabilities(cls):
-        return cls._requires_capabilities.default  # type: ignore
-
-    @classmethod
-    def primary_field(cls):
-        return cls._primary_field.default  # type: ignore
-
-    @classmethod
-    def secondary_field(cls):
-        return cls._secondary_field.default  # type: ignore
 
     @classmethod
     def layout(cls):
@@ -330,8 +312,6 @@ class BaseNode(BaseModel):
             properties=cls.properties(),  # type: ignore
             outputs=cls.outputs(),
             model_info=cls.model_info(),
-            primary_field=cls.primary_field(),
-            secondary_field=cls.secondary_field(),
             layout=cls.layout(),
         )
 
@@ -879,47 +859,6 @@ def get_registered_node_classes() -> list[type[BaseNode]]:
         list[type[BaseNode]]: A list of all registered node classes that are marked as visible.
     """
     return [c for c in NODE_BY_TYPE.values() if c.is_visible()]
-
-
-def requires_capabilities(nodes: list[BaseNode]):
-    """
-    Determine the set of capabilities required by a list of nodes.
-
-    Args:
-        nodes (list[BaseNode]): A list of nodes to check for required capabilities.
-
-    Returns:
-        list[str]: A list of unique capability strings required by the input nodes.
-    """
-    capabilities = set()
-    for node in nodes:
-        for cap in node.requires_capabilities():
-            capabilities.add(cap)
-    return list(capabilities)
-
-
-def requires_capabilities_from_request(req: RunJobRequest):
-    """
-    Determine the set of capabilities required by nodes in a RunJobRequest.
-
-    Args:
-        req (RunJobRequest): The job request containing a graph of nodes.
-
-    Returns:
-        list[str]: A list of unique capability strings required by the nodes in the request.
-
-    Raises:
-        ValueError: If a node type in the request is not registered.
-    """
-    assert req.graph is not None, "Graph is required"
-    capabilities = set()
-    for node in req.graph.nodes:
-        node_class = get_node_class(node.type)
-        if node_class is None:
-            raise ValueError(f"Node class not found: {node.type}")
-        for cap in node_class.requires_capabilities():
-            capabilities.add(cap)
-    return list(capabilities)
 
 
 class GroupNode(BaseNode):

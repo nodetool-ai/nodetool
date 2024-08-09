@@ -372,7 +372,6 @@ class Task(BaseType):
     name: str = ""
     instructions: str = ""
     dependencies: list[str] = []
-    required_capabilities: list[str] = []
     started_at: str = ""
     finished_at: str | None = None
     error: str | None = None
@@ -390,7 +389,6 @@ class Task(BaseType):
             name=task.name,
             instructions=task.instructions,
             dependencies=task.dependencies,
-            required_capabilities=task.required_capabilities,
             started_at=task.started_at.isoformat(),
             finished_at=task.finished_at.isoformat() if task.finished_at else None,
             error=task.error,

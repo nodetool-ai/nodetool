@@ -689,10 +689,6 @@ export interface components {
       namespace: string;
       /** Node Type */
       node_type: string;
-      /** Primary Field */
-      primary_field: string | null;
-      /** Secondary Field */
-      secondary_field: string | null;
       /** Layout */
       layout: string;
       /** Properties */
@@ -994,11 +990,6 @@ export interface components {
        */
       dependencies?: string[];
       /**
-       * Required Capabilities
-       * @default []
-       */
-      required_capabilities?: string[];
-      /**
        * Started At
        * @default
        */
@@ -1027,11 +1018,6 @@ export interface components {
        * @default []
        */
       dependencies?: string[];
-      /**
-       * Required Capabilities
-       * @default []
-       */
-      required_capabilities?: string[];
     };
     /** TaskList */
     TaskList: {

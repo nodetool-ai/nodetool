@@ -18,7 +18,6 @@ class GetValue(BaseNode):
     """
 
     _layout = "small"
-    _primary_field = "key"
 
     dictionary: dict[(str, Any)] = {}
     key: str = ""
@@ -39,7 +38,7 @@ class Update(BaseNode):
     """
 
     _layout = "small"
-    _primary_field = "new_pairs"
+    _ = "new_pairs"
 
     dictionary: dict[(str, Any)] = {}
     new_pairs: dict[(str, Any)] = {}
@@ -61,7 +60,6 @@ class Remove(BaseNode):
     """
 
     _layout = "small"
-    _primary_field = "key"
 
     dictionary: dict[(str, Any)] = {}
     key: str = ""
