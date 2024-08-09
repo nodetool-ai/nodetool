@@ -21,7 +21,7 @@ import {
   Tooltip,
   Toolbar,
   Typography,
-  Box
+  Box,
 } from "@mui/material";
 import WorkflowsIcon from "@mui/icons-material/ListAlt";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
@@ -46,7 +46,7 @@ import Welcome from "../content/Welcome/Welcome";
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
     ".nodetool-logo": {
-      marginLeft: "-0.5em"
+      marginLeft: "-0.5em",
     },
     button: {
       fontSize:
@@ -56,8 +56,8 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       margin: "0 0 0 0.4em",
       color: theme.palette.c_white,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
-      }
+        backgroundColor: theme.palette.c_gray2,
+      },
     },
     ".icon-container svg": {
       display:
@@ -69,31 +69,31 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       fontSize:
         buttonAppearance === "icon" || buttonAppearance === "both"
           ? theme.fontSizeSmall
-          : "0"
+          : "0",
     },
     "button svg": {
       display:
         buttonAppearance === "icon" || buttonAppearance === "both"
           ? "block"
           : "none",
-      marginRight: "0.1em"
+      marginRight: "0.1em",
     },
     "button.logo:hover": {
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
     },
     ".nav-buttons": {
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-start",
       alignItems: "center",
-      gap: "0.5em"
+      gap: "0.5em",
     },
     "nav-button": {
       flexShrink: 0,
       minWidth: "5em",
       "&.active": {
-        color: theme.palette.c_hl1
-      }
+        color: theme.palette.c_hl1,
+      },
     },
     ".action-button": {
       flexShrink: 0,
@@ -104,20 +104,20 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
           : "0",
       color: theme.palette.c_gray6,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2
-      }
+        backgroundColor: theme.palette.c_gray2,
+      },
     },
     ".action-button:hover": {
-      color: theme.palette.c_hl1
+      color: theme.palette.c_hl1,
     },
     ".action-button.disabled": {
-      color: theme.palette.c_gray4
+      color: theme.palette.c_gray4,
     },
     ".divider": {
       display: "inline-block",
       width: ".2em",
       color: theme.palette.c_gray4,
-      padding: "0 .1em"
+      padding: "0 .1em",
     },
     ".last-workflow": {
       fontSize: theme.fontSizeSmaller,
@@ -132,16 +132,16 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       marginLeft: "0.5em",
       fontWeight: "normal",
       "&:hover": {
-        color: theme.palette.c_hl1
-      }
+        color: theme.palette.c_hl1,
+      },
     },
     ".last-workflow.disabled": {
-      color: theme.palette.c_gray5
+      color: theme.palette.c_gray5,
     },
     ".last-workflow span": {
       color: theme.palette.c_attention,
       fontSize: "1.2em",
-      marginLeft: "0.2em"
+      marginLeft: "0.2em",
     },
     ".status-message": {
       margin: "auto",
@@ -152,15 +152,15 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       textAlign: "right",
       color: theme.palette.c_gray5,
       backgroundColor: "transparent",
-      transform: "translateX(0%)"
+      transform: "translateX(0%)",
     },
     ".buttons-right": {
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-end",
       alignItems: "center",
-      gap: "0"
-    }
+      gap: "0",
+    },
   });
 
 function AppHeader() {
@@ -186,7 +186,7 @@ function AppHeader() {
       addNotification({
         content: `Workflow ${workflow.name} saved`,
         type: "success",
-        alert: true
+        alert: true,
       });
     },
     [addNotification]
@@ -268,15 +268,16 @@ function AppHeader() {
               sx={{
                 lineHeight: "1em",
                 margin: 0,
-                display: { xs: "none", sm: "block" }
+                display: { xs: "none", sm: "block" },
               }}
             >
               <Logo
-                width="40px"
-                height="40px"
+                width="80px"
+                height="20px"
                 fontSize="14px"
                 borderRadius="20px"
                 small={true}
+                singleLine={true}
               />
             </Button>
           </Tooltip>
@@ -288,7 +289,7 @@ function AppHeader() {
               position: "fixed",
               width: "100%",
               height: "100%",
-              top: "50%"
+              top: "50%",
               // left: "50%"
               // transform: "translate(-50%, -50%)"
             }}
@@ -298,18 +299,18 @@ function AppHeader() {
                   top: "60px !important", // Set the whole Popover 60px from the top
                   "& .MuiBackdrop-root": {
                     top: "60px !important", // Set the backdrop 60px from the top
-                    position: "fixed"
-                  }
-                }
+                    position: "fixed",
+                  },
+                },
               },
               paper: {
                 sx: {
                   position: "absolute",
                   top: "60px", // This will apply the top offset to the paper content inside the popover
                   left: "50%",
-                  transform: "translate(-50%, 0)" // Adjust the transform if necessary
-                }
-              }
+                  transform: "translate(-50%, 0)", // Adjust the transform if necessary
+                },
+              },
             }}
           >
             <Welcome handleClose={handleCloseWelcome} />
@@ -324,8 +325,9 @@ function AppHeader() {
               <Button
                 aria-controls="simple-menu"
                 aria-haspopup="true"
-                className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
-                  }`}
+                className={`nav-button ${
+                  path.startsWith("/workflows") ? "active" : ""
+                }`}
                 onClick={() => navigate("/workflows")}
               >
                 <WorkflowsIcon />
@@ -341,14 +343,14 @@ function AppHeader() {
                 {iconForType("asset", {
                   fill: "white",
                   containerStyle: {
-                    margin: "0 .25em 0 0"
+                    margin: "0 .25em 0 0",
                   },
                   bgStyle: {
                     width: "1.7em",
-                    height: "1.7em"
+                    height: "1.7em",
                   },
                   width: "1.7em",
-                  height: "1.7em"
+                  height: "1.7em",
                 })}
                 Assets
               </Button>
@@ -363,7 +365,7 @@ function AppHeader() {
                         fontSize: "1.2em",
                         color: "white",
                         textAlign: "center",
-                        display: "block"
+                        display: "block",
                       }}
                     >
                       Open NodeMenu
@@ -373,7 +375,7 @@ function AppHeader() {
                         fontSize: "1em",
                         color: "white",
                         textAlign: "center",
-                        display: "block"
+                        display: "block",
                       }}
                     >
                       Ctrl+Space
@@ -417,8 +419,9 @@ function AppHeader() {
           <Button
             onClick={handleNavigateToLastWorkflow}
             disabled={path.startsWith("/editor")}
-            className={`last-workflow ${path.startsWith("/editor") ? "disabled" : ""
-              }`}
+            className={`last-workflow ${
+              path.startsWith("/editor") ? "disabled" : ""
+            }`}
           >
             {lastWorkflow?.name}
             {workflowIsDirty && <span>*</span>}
@@ -451,7 +454,7 @@ function AppHeader() {
                 height: "100%",
                 top: "50%",
                 left: "50%",
-                transform: "translate(-50%, -50%)"
+                transform: "translate(-50%, -50%)",
               }}
             >
               <Help handleClose={handleCloseHelp} />
