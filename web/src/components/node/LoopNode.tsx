@@ -24,7 +24,7 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY,
-  TOOLTIP_LEAVE_DELAY
+  TOOLTIP_LEAVE_DELAY,
 } from "./BaseNode";
 
 const styles = (theme: any) =>
@@ -32,10 +32,10 @@ const styles = (theme: any) =>
     "&": {
       boxShadow: "none",
       minWidth: "400px",
-      minHeight: "250px"
+      minHeight: "250px",
     },
     "&.hovered.space-pressed": {
-      border: "2px dashed black !important"
+      border: "2px dashed black !important",
     },
     height: "100%",
     display: "flex",
@@ -47,7 +47,7 @@ const styles = (theme: any) =>
       position: "absolute",
       marginTop: "10px",
       left: "10px",
-      top: "0px"
+      top: "0px",
     },
     ".tools .react-flow__resize-control.handle.bottom.right": {
       opacity: 1,
@@ -57,11 +57,11 @@ const styles = (theme: any) =>
       borderRadius: "0 0 5px 0",
       width: "1.5em",
       height: "1.5em",
-      background: "#222 !important"
+      background: "#222 !important",
     },
     ".node-header": {
       height: "3em",
-      backgroundColor: "rgba(0,0,0,0.1)"
+      backgroundColor: "rgba(0,0,0,0.1)",
     },
     ".inputs": {
       // center child vertically
@@ -70,7 +70,7 @@ const styles = (theme: any) =>
       justifyContent: "center",
       position: "absolute",
       top: "3.4em",
-      left: "0"
+      left: "0",
     },
     ".input-label, .output-label": {
       position: "absolute",
@@ -82,17 +82,17 @@ const styles = (theme: any) =>
       display: "block",
       backgroundColor: theme.palette.c_input,
       color: theme.palette.c_white,
-      fontSize: theme.fontSizeSmall
+      fontSize: theme.fontSizeSmall,
     },
     ".output-label": {
       backgroundColor: theme.palette.c_output,
       position: "absolute",
       top: "4.2em",
       left: "unset",
-      right: "0"
+      right: "0",
     },
     "& .react-flow__handle-right": {
-      top: "4.5em"
+      top: "4.5em",
       // bottom: "3em"
     },
     ".info": {
@@ -106,15 +106,15 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       color: theme.palette.c_black,
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal
-    }
+      fontSize: theme.fontSizeNormal,
+    },
   });
 
 const LoopNode = (props: NodeProps<NodeData>) => {
   const {
     data: metadata,
     isLoading: metadataLoading,
-    error: metadataError
+    error: metadataError,
   } = useMetadata();
 
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -134,7 +134,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
     const newHeight = event.y;
     updateNodeData(props.id, {
       ...props.data,
-      size: { width: newWidth, height: newHeight }
+      size: { width: newWidth, height: newHeight },
     });
   };
 
@@ -168,7 +168,7 @@ const LoopNode = (props: NodeProps<NodeData>) => {
       if (parent) {
         observer.observe(parent, {
           attributes: true,
-          attributeFilter: ["class"]
+          attributeFilter: ["class"],
         });
       }
     }

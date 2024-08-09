@@ -6,23 +6,30 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { TextField } from "@mui/material";
+import ThemeNodes from "../themes/ThemeNodes";
 
-// Constants
 const DRAG_THRESHOLD = 5;
 const PIXELS_PER_STEP = 10;
 const SHIFT_PIXELS_PER_STEP = 20;
+const SLIDER_HEIGHT_DRAGGING = "3px";
+const SLIDER_HEIGHT = "1px";
+const SLIDER_OPACITY = 0.2;
+const SLIDER_COLOR = ThemeNodes.palette.c_gray3;
+const SLIDER_COLOR_DRAGGING = ThemeNodes.palette.c_hl1;
+const SLIDER_BG_COLOR = "transparent";
+const SLIDER_BG_COLOR_DRAGGING = ThemeNodes.palette.c_gray2;
 
 const styles = (theme: any) =>
   css({
     "&, label": {
-      cursor: "ew-resize !important"
+      cursor: "ew-resize !important",
     },
     ".slider-value": {
       position: "relative",
       fontFamily: theme.font_family1,
       width: "auto",
       top: "-1px",
-      left: "0"
+      left: "0",
     },
     ".slider-value .name": {
       position: "relative",
@@ -38,7 +45,7 @@ const styles = (theme: any) =>
       marginRight: "45px",
       whiteSpace: "normal",
       paddingBottom: "3px",
-      lineHeight: "0.86em"
+      lineHeight: "0.86em",
     },
     ".slider-value .value": {
       position: "absolute",
@@ -52,7 +59,7 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       padding: "0px",
       overflow: "hidden",
-      textOverflow: "ellipsis"
+      textOverflow: "ellipsis",
     },
     ".edit-value": {
       position: "absolute",
@@ -65,7 +72,7 @@ const styles = (theme: any) =>
       overflow: "hidden",
       resize: "none",
       WebkitAppearance: "none",
-      appearance: "none"
+      appearance: "none",
     },
     ".edit-value input": {
       position: "absolute",
@@ -80,25 +87,25 @@ const styles = (theme: any) =>
       textAlign: "right",
       color: theme.palette.c_white,
       backgroundColor: "#3d3f41",
-      maxWidth: "100px "
+      maxWidth: "100px ",
     },
     "edit-value input::selection": {
-      backgroundColor: theme.c_hl1
+      backgroundColor: theme.c_hl1,
     },
     ".MuiSlider-root .MuiSlider-thumb, .MuiSlider-root .MuiSlider-thumb": {
-      opacity: "0"
+      opacity: "0",
     },
     "&:hover .MuiSlider-root .MuiSlider-thumb": {
-      opacity: "1"
+      opacity: "1",
     },
     ".MuiSlider-root .MuiSlider-track": {
       backgroundColor: "transparent",
-      transition: "background-color 0.3s 0.3s"
+      transition: "background-color 0.2s 0.2s",
     },
     ".MuiSlider-root:hover .MuiSlider-track, .MuiSlider-root:active .MuiSlider-track, .MuiSlider-root:focus .MuiSlider-track":
       {
         backgroundColor: "#8eaca733",
-        transition: "background-color 0.2s 0s"
+        transition: "background-color 0.2s 0s",
       },
     ".range-container": {
       transition: "opacity 0.2s",
@@ -108,15 +115,16 @@ const styles = (theme: any) =>
       height: "2px",
       backgroundColor: theme.palette.c_gray2,
       borderRadius: "2px",
-      fontSize: ".5em"
+      fontSize: ".5em",
+      overflow: "hidden",
     },
     ".range-indicator": {
       position: "absolute",
       left: "0",
       backgroundColor: theme.palette.c_hl1,
       height: "2px",
-      minWidth: "1px"
-    }
+      minWidth: "1px",
+    },
   });
 
 interface InputProps {
@@ -194,7 +202,7 @@ const useDragHandling = (
         if (Math.abs(moveX) > DRAG_THRESHOLD) {
           setState((prevState) => ({
             ...prevState,
-            hasExceededDragThreshold: true
+            hasExceededDragThreshold: true,
           }));
         }
 
@@ -232,7 +240,7 @@ const useDragHandling = (
           if (newDecimalPlaces !== state.decimalPlaces) {
             setState((prevState) => ({
               ...prevState,
-              decimalPlaces: newDecimalPlaces
+              decimalPlaces: newDecimalPlaces,
             }));
           }
           newValue = parseFloat(newValue.toFixed(newDecimalPlaces));
@@ -248,7 +256,7 @@ const useDragHandling = (
         if (newValue !== state.currentDragValue) {
           setState((prevState) => ({
             ...prevState,
-            currentDragValue: newValue
+            currentDragValue: newValue,
           }));
           props.onChange(null, newValue);
         }
@@ -261,7 +269,7 @@ const useDragHandling = (
       shiftKeyPressed,
       setState,
       calculateStep,
-      calculateDecimalPlaces
+      calculateDecimalPlaces,
     ]
   );
 
@@ -273,7 +281,7 @@ const useDragHandling = (
         isEditable: !prevState.hasExceededDragThreshold,
         originalValue: !prevState.hasExceededDragThreshold
           ? Number(prevState.localValue)
-          : prevState.originalValue
+          : prevState.originalValue,
       }));
     }
   }, [state, setState]);
@@ -294,7 +302,7 @@ const EditableInput: React.FC<{
     className={`edit-value nodrag${isDefault ? " default" : ""}`}
     inputProps={{
       className: "edit-value-input",
-      style: { width: Math.max(value.length * 9, 12) }
+      style: { width: Math.max(value.length * 9, 12) },
     }}
     variant="standard"
     value={value}
@@ -335,12 +343,20 @@ const RangeIndicator: React.FC<{
 }> = ({ value, min, max, isDragging, isEditable }) => (
   <div
     className="range-container"
-    style={{ opacity: isDragging || isEditable ? 1 : 0 }}
+    style={{
+      opacity: isDragging || isEditable ? 1 : SLIDER_OPACITY,
+      backgroundColor:
+        isDragging || isEditable ? SLIDER_BG_COLOR_DRAGGING : SLIDER_BG_COLOR,
+    }}
   >
     <div
       className="range-indicator"
       style={{
-        width: `${((value - min) / (max - min)) * 100}%`
+        backgroundColor:
+          isDragging || isEditable ? SLIDER_COLOR_DRAGGING : SLIDER_COLOR,
+        width: `${((value - min) / (max - min)) * 100}%`,
+        height:
+          isDragging || isEditable ? SLIDER_HEIGHT_DRAGGING : SLIDER_HEIGHT,
       }}
     />
   </div>
@@ -357,7 +373,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
     isDragging: false,
     hasExceededDragThreshold: false,
     dragInitialValue: props.value ?? 0,
-    currentDragValue: props.value ?? 0
+    currentDragValue: props.value ?? 0,
   });
 
   const { handleMouseMove, handleMouseUp } = useDragHandling(
@@ -382,7 +398,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       localValue: (props.value ?? 0).toString(),
-      isEditable: false
+      isEditable: false,
     }));
   });
 
@@ -390,7 +406,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
     if (!state.isEditable) {
       setState((prevState) => ({
         ...prevState,
-        localValue: (props.value ?? 0).toString()
+        localValue: (props.value ?? 0).toString(),
       }));
     }
   }, [props.value, state.isEditable]);
@@ -428,14 +444,14 @@ const NumberInput: React.FC<InputProps> = (props) => {
       setState((prevState) => ({
         ...prevState,
         isDefault: finalValue === props.value,
-        localValue: finalValue.toString()
+        localValue: finalValue.toString(),
       }));
 
       props.onChange(null, finalValue);
     } else {
       setState((prevState) => ({
         ...prevState,
-        localValue: (props.value ?? 0).toString()
+        localValue: (props.value ?? 0).toString(),
       }));
     }
 
@@ -449,7 +465,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
         dragStartX: e.clientX,
         isDragging: true,
         hasExceededDragThreshold: false,
-        dragInitialValue: props.value
+        dragInitialValue: props.value,
       }));
     } else {
       setState((prevState) => ({ ...prevState, isEditable: false }));
@@ -462,7 +478,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       setState((prevState) => ({
         ...prevState,
         originalValue: Number(prevState.localValue),
-        isEditable: true
+        isEditable: true,
       }));
     }
   };

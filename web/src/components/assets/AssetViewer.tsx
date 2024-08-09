@@ -24,8 +24,6 @@ import { Asset } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import useAssets from "../../serverState/useAssets";
 import { useHotkeys } from "react-hotkeys-hook";
-//css
-import "../../styles/node_editor.css";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
 const containerStyles = css({
@@ -34,7 +32,7 @@ const containerStyles = css({
   overflow: "hidden",
   margin: 0,
   position: "relative",
-  pointerEvents: "none"
+  pointerEvents: "none",
 });
 
 const styles = (theme: any) =>
@@ -44,10 +42,10 @@ const styles = (theme: any) =>
       height: "100%",
       width: "100%",
       top: 0,
-      display: "block"
+      display: "block",
     },
     ".MuiModal-root": {
-      zIndex: 15000
+      zIndex: 15000,
     },
     ".MuiPaper-root": {
       overflow: "hidden",
@@ -57,7 +55,7 @@ const styles = (theme: any) =>
       maxWidth: "100%",
       maxHeight: "100%",
       zIndex: 11000,
-      margin: 0
+      margin: 0,
     },
     ".asset-info": {
       position: "relative",
@@ -71,16 +69,16 @@ const styles = (theme: any) =>
       right: "1em",
       zIndex: "2000",
       overflowWrap: "break-word",
-      marginLeft: "auto"
+      marginLeft: "auto",
     },
     ".asset-info p": {
       fontSize: "0.9em",
       textAlign: "right",
       margin: "0",
-      padding: "0"
+      padding: "0",
     },
     ".current-folder": {
-      top: "20px"
+      top: "20px",
     },
     ".actions": {
       zIndex: 10000,
@@ -89,7 +87,7 @@ const styles = (theme: any) =>
       flexDirection: "row",
       gap: "1.5em",
       top: "1em",
-      right: "2em"
+      right: "2em",
     },
     ".actions .button": {
       width: "1.75em",
@@ -97,13 +95,13 @@ const styles = (theme: any) =>
       backgroundColor: "#999999aa",
       color: theme.palette.c_gray0,
       borderRadius: "0.2em",
-      padding: "0.3em"
+      padding: "0.3em",
     },
     ".actions button svg": {
-      fontSize: "1.5em"
+      fontSize: "1.5em",
     },
     ".actions .button:hover": {
-      backgroundColor: theme.palette.c_gray3
+      backgroundColor: theme.palette.c_gray3,
     },
     // -------------------
     ".asset-navigation": {
@@ -118,13 +116,13 @@ const styles = (theme: any) =>
       padding: "0 0 .5em 0",
       backgroundColor: theme.palette.c_gray1,
       bottom: 0,
-      zIndex: 200
+      zIndex: 200,
     },
     ".folder-name": {
       fontWeight: "bold",
       bottom: "3em",
       textAlign: "right",
-      color: theme.palette.c_hl1
+      color: theme.palette.c_hl1,
     },
     ".prev-next-button": {
       position: "absolute",
@@ -135,30 +133,30 @@ const styles = (theme: any) =>
       cursor: "pointer",
       color: theme.palette.c_gray5,
       backgroundColor: "#44444499",
-      border: "2px solid #aaaaaa33"
+      border: "2px solid #aaaaaa33",
     },
     ".prev-next-button img": {
       cursor: "pointer !important",
-      pointerEvents: "none"
+      pointerEvents: "none",
     },
     ".prev-next-button:hover": {
-      backgroundColor: "#222222ee"
+      backgroundColor: "#222222ee",
     },
     ".prev-next-button.Mui-disabled": {
       color: "#444",
       backgroundColor: "#66666644",
       cursor: "default",
       border: "1px solid #cccccc33",
-      pointerEvents: "none"
+      pointerEvents: "none",
     },
     ".prev-next-button svg": {
-      fontSize: "2em"
+      fontSize: "2em",
     },
     ".prev-next-button.left": {
-      left: "1em"
+      left: "1em",
     },
     ".prev-next-button.right": {
-      right: "1em"
+      right: "1em",
     },
     ".prev-next-items": {
       display: "flex",
@@ -167,14 +165,14 @@ const styles = (theme: any) =>
       gap: ".5em",
       alignItems: "center",
       width: "430px",
-      maxWidth: "30vw"
+      maxWidth: "30vw",
     },
     ".prev-next-items.left": {
       justifyContent: "flex-end",
-      marginLeft: "auto"
+      marginLeft: "auto",
     },
     ".prev-next-items.right": {
-      justifyContent: "flex-start"
+      justifyContent: "flex-start",
     },
     ".prev-next-items.current": {
       boxSizing: "border-box",
@@ -182,7 +180,7 @@ const styles = (theme: any) =>
       width: "100px",
       height: "100px",
       overflow: "hidden",
-      border: `1px solid ${theme.palette.c_white}`
+      border: `1px solid ${theme.palette.c_white}`,
     },
     ".prev-next-items .item": {
       backgroundColor: "#44444466",
@@ -190,11 +188,11 @@ const styles = (theme: any) =>
       width: "120px",
       height: "80px",
       overflow: "hidden",
-      cursor: "pointer !important"
+      cursor: "pointer !important",
     },
     ".prev-next-items .item .asset-item": {
-      cursor: "pointer"
-    }
+      cursor: "pointer",
+    },
   });
 
 type AssetViewerProps = {
@@ -245,7 +243,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         addNotification({
           type: "warning",
           alert: true,
-          content: "File download failed"
+          content: "File download failed",
         });
       }
     } else if (url) {

@@ -1,0 +1,147 @@
+/* NODE PROPERTIES STYLES */
+
+/**
+ * Styles for node properties in the node editor
+ */
+
+/* General property */
+.node-property,
+.node-output {
+  position: relative;
+  width: auto;
+  max-width: 250px;
+  min-height: 15px;
+  border: 0;
+  padding: 0.25em 0.75em;
+  margin: 1px 0 0;
+}
+
+.node-output {
+  padding: 0 1em;
+  margin: 1px 0 0;
+}
+
+/* Code display */
+.node-property code {
+  display: block;
+  margin: 0.6em 0 0;
+  font-size: var(--font-size-smaller);
+  background-color: var(--c_gray1);
+  padding: 0.1em 0.2em;
+  user-select: text;
+  cursor: text;
+  line-height: 1.2em;
+  word-spacing: -2px;
+}
+
+/* Boolean property */
+.node-property.bool {
+  min-width: 35px;
+}
+
+/* Default and changed value */
+.value-default label {
+  color: var(--c_gray5) !important;
+}
+
+.value-changed .value {
+  color: var(--c_hl1);
+}
+
+.value-changed textarea,
+.value-changed .MuiSwitch-track,
+.value-changed .MuiInput-root {
+  border-right: 2px solid var(--c_hl1) !important;
+}
+
+.value-changed .MuiSwitch-track {
+  background-color: var(--c_hl1) !important;
+  opacity: 0.4;
+}
+
+/* Property tooltip */
+.property-tooltip {
+  background-color: var(--c_gray1) !important;
+  border: 1px solid var(--c_gray2);
+}
+
+.property-tooltip span {
+  font-family: var(--font_family);
+  font-size: var(--font-size-normal);
+  color: var(--c_white) !important;
+  display: inline-block;
+  white-space: pre-wrap;
+  text-align: left;
+  line-height: 1.2em;
+}
+
+/* Textarea */
+.node-property .MuiTextField-root textarea {
+  font-size: var(--font-size-smaller);
+}
+
+.node-property textarea {
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  overflow-y: auto !important;
+  margin-top: 0.2em;
+  padding: 0.2em .5em;
+  font-family: var(--font_family);
+  font-size: var(--font-size-tiny);
+  line-height: 1.1em;
+  color: var(--c_white);
+  background-color: var(--c_gray2);
+  border: 0;
+  font-weight: 300;
+}
+
+/* Enum property */
+.node-property.enum .react-flow__handle {
+  display: none;
+}
+
+/* List view */
+.node-property.list ul {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0 0 2px 0;
+}
+
+/* Dropzone */
+.dropzone {
+  position: relative;
+  outline: 1px dashed #55555599;
+  margin: 0;
+}
+
+.node-property .dropzone:hover {
+  outline: 1px dashed #77777799;
+}
+
+.dropzone p.centered {
+  margin: auto;
+  text-align: left;
+  padding: 2px 4px;
+  min-width: 60px;
+  min-height: 14px;
+  line-height: 1.1em;
+  word-spacing: -2px;
+  font-size: var(--font-size-tiny);
+  color: var(--c_gray4);
+}
+
+.dropzone img {
+  height: auto;
+  max-width: 100%;
+  max-height: 160px;
+  margin: 0 auto;
+  display: block;
+  width: auto !important;
+}
+
+.node-property .dropzone.dropped {
+  outline: 0 none;
+  border: 0;
+}

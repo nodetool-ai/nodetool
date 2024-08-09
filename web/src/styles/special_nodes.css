@@ -1,0 +1,120 @@
+/* SPECIAL NODE STYLES */
+
+/**
+ * Styles for special node types in the node editor
+ */
+
+/* Loop node */
+.react-flow__node-nodetool\.group\.Loop {
+  z-index: -1 !important;
+  background-color: transparent;
+  box-shadow: none;
+  min-width: 100px;
+  min-height: 100px;
+}
+
+/* Group Input/Output node */
+.react-flow__node-nodetool\.input\.GroupInput {  padding: 0;}
+.react-flow__node-nodetool\.output\.GroupOutput { padding: 0;}
+
+.react-flow__node-nodetool\.input\.GroupInput .node-body,
+.react-flow__node-nodetool\.output\.GroupOutput .node-body {
+  min-height: unset !important;
+}
+
+.react-flow__node-nodetool\.input\.GroupInput .node-header {
+  background-color: var(--c_input) !important;
+}
+
+.react-flow__node-nodetool\.output\.GroupOutput .node-header {
+  background-color: var(--c_output) !important;
+}
+
+.react-flow__node-nodetool\.input\.GroupInput .node-footer,
+.react-flow__node-nodetool\.output\.GroupOutput .node-footer,
+.react-flow__node-nodetool\.input\.GroupInput .process-timer,
+.react-flow__node-nodetool\.output\.GroupOutput .process-timer,
+.react-flow__node-nodetool\.output\.GroupOutput label {
+  display: none !important;
+}
+
+.react-flow__node-nodetool\.input\.GroupInput .node-inputs,
+.react-flow__node-nodetool\.output\.GroupOutput .node-inputs {
+  margin: 0;
+  position: absolute;
+  left: -1px;
+  top: 2px;
+}
+
+/* Comment node */
+.react-flow__node-nodetool\.workflows\.base_node\.Comment {
+  width: auto;
+  min-width: 100px;
+  min-height: 50px;
+  max-width: 5000px;
+  max-height: 5000px;
+  padding: 0;
+  border-radius: 4px;
+  background-color: #0002;
+  box-shadow: none;
+  overflow: hidden;
+  z-index: -1 !important;
+}
+
+.react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Comment,
+.react-flow.zoomed-out .react-flow__node-nodetool\.group\.Loop {
+  background-color: #0002;
+}
+
+.react-flow__node-nodetool\.workflows\.base_node\.Comment.selected {
+  box-shadow: none !important;
+  border: 0;
+  outline: 1px solid #555 !important;
+}
+
+.comment-node label {
+  display: none;
+}
+
+.react-flow__node-comment .node-header {
+  height: 20px;
+  min-height: unset;
+  margin: 0;
+  padding: 0;
+  left: 0px;
+  background-color: transparent !important;
+  border: 0;
+  position: absolute;
+  top: 0;
+}
+
+.comment-node textarea {
+  background-color: transparent;
+  border: 0;
+  outline: none;
+}
+
+/* Input & Output node */
+.react-flow .input-node .node-header,
+.react-flow .output-node .node-header {
+  background-color: var(--c_gray3);
+  margin: 0;
+}
+
+/* Constant node */
+.react-flow__node-nodetool\.constant\.Audio .node-property .property-label,
+.react-flow__node-nodetool\.constant\.Image .node-property .property-label,
+.react-flow__node-nodetool\.constant\.Video .node-property .property-label,
+.react-flow__node-nodetool\.constant\.Bool .node-property .property-label {
+  display: none;
+}
+
+/* Collapsed Loop node */
+.react-flow__node-nodetool\.group\.Loop .loop-node.collapsed {
+  min-height: 7em;
+  height: 7em;
+}
+
+.react-flow__node-nodetool\.group\.Loop .loop-node.collapsed .tools {
+  display: none;
+}
