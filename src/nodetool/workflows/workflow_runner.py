@@ -159,19 +159,7 @@ class WorkflowRunner:
 
         with self.torch_context(context):
             try:
-                for node in graph.nodes:
-                    try:
-                        await node.initialize(context)
-                    except Exception as e:
-                        context.post_message(
-                            NodeUpdate(
-                                node_id=node.id,
-                                node_name=node.get_title(),
-                                status="error",
-                                error=str(e)[:1000],
-                            )
-                        )
-                        raise
+                await self.initialize_graph(context, graph)
                 await self.process_graph(context, graph)
             except Exception as e:
                 for node in graph.nodes:
@@ -193,6 +181,31 @@ class WorkflowRunner:
         )
 
         self.status = "completed"
+
+    async def initialize_graph(self, context: ProcessingContext, graph: Graph):
+        """
+        Initializes all nodes in the graph.
+
+        Args:
+            context (ProcessingContext): Manages the execution state and inter-node communication.
+            graph (Graph): The directed acyclic graph of nodes to be processed.
+
+        Raises:
+            Exception: Any exception raised during node initialization is caught and reported.
+        """
+        for node in graph.nodes:
+            try:
+                await node.initialize(context)
+            except Exception as e:
+                context.post_message(
+                    NodeUpdate(
+                        node_id=node.id,
+                        node_name=node.get_title(),
+                        status="error",
+                        error=str(e)[:1000],
+                    )
+                )
+                raise
 
     async def process_graph(
         self, context: ProcessingContext, graph: Graph, parent_id: str | None = None
