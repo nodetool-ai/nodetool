@@ -1,4 +1,6 @@
 from enum import Enum
+import numpy as np
+import PIL.Image
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import ColumnType, DataframeRef, ImageRef, ColumnDef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
@@ -18,11 +20,31 @@ from diffusers import (
     KandinskyV22Pipeline,  # type: ignore
     KandinskyV22PriorPipeline,  # type: ignore
     KandinskyV22Img2ImgPipeline,  # type: ignore
+    KandinskyV22ControlnetPipeline,  # type: ignore
 )
 from diffusers import StableCascadeDecoderPipeline, StableCascadePriorPipeline  # type: ignore
 from diffusers import StableDiffusion3ControlNetPipeline  # type: ignore
 from diffusers.models import SD3ControlNetModel  # type: ignore
 from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, AutoencoderKL  # type: ignore
+from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline  # type: ignore
+from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline  # type: ignore
+from diffusers import PixArtAlphaPipeline  # type: ignore
+from diffusers.schedulers import (
+    DPMSolverSDEScheduler,  # type: ignore
+    EulerDiscreteScheduler,  # type: ignore
+    LMSDiscreteScheduler,  # type: ignore
+    DDIMScheduler,  # type: ignore
+    DDPMScheduler,  # type: ignore
+    HeunDiscreteScheduler,  # type: ignore
+    DPMSolverMultistepScheduler,  # type: ignore
+    DEISMultistepScheduler,  # type: ignore
+    PNDMScheduler,  # type: ignore
+    EulerAncestralDiscreteScheduler,  # type: ignore
+    UniPCMultistepScheduler,  # type: ignore
+    KDPM2DiscreteScheduler,  # type: ignore
+    DPMSolverSinglestepScheduler,  # type: ignore
+    KDPM2AncestralDiscreteScheduler,  # type: ignore
+)
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -152,66 +174,54 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
         return await super().process(context)
 
 
-# This has too much overlap with other SD nodes
-# class StableDiffusionXL(HuggingfaceNode):
-#     """
-#     Generates images from text prompts using advanced diffusion models.
-#     image, text, generation, synthesis, text-to-image
+class StableDiffusionScheduler(str, Enum):
+    DPMSolverSDEScheduler = "DPMSolverSDEScheduler"
+    EulerDiscreteScheduler = "EulerDiscreteScheduler"
+    LMSDiscreteScheduler = "LMSDiscreteScheduler"
+    DDIMScheduler = "DDIMScheduler"
+    DDPMScheduler = "DDPMScheduler"
+    HeunDiscreteScheduler = "HeunDiscreteScheduler"
+    DPMSolverMultistepScheduler = "DPMSolverMultistepScheduler"
+    DEISMultistepScheduler = "DEISMultistepScheduler"
+    PNDMScheduler = "PNDMScheduler"
+    EulerAncestralDiscreteScheduler = "EulerAncestralDiscreteScheduler"
+    UniPCMultistepScheduler = "UniPCMultistepScheduler"
+    KDPM2DiscreteScheduler = "KDPM2DiscreteScheduler"
+    DPMSolverSinglestepScheduler = "DPMSolverSinglestepScheduler"
+    KDPM2AncestralDiscreteScheduler = "KDPM2AncestralDiscreteScheduler"
 
-#     Use cases:
-#     - Creating custom illustrations for marketing materials
-#     - Generating concept art for game and film development
-#     - Producing unique stock imagery for websites and publications
-#     - Visualizing interior design concepts for clients
-#     """
 
-#     class Scheduler(str, Enum):
-#         DPMSolverSDEScheduler = "DPMSolverSDEScheduler"
-#         EulerDiscreteScheduler = "EulerDiscreteScheduler"
-#         LMSDiscreteScheduler = "LMSDiscreteScheduler"
-#         DDIMScheduler = "DDIMScheduler"
-#         DDPMScheduler = "DDPMScheduler"
-#         HeunDiscreteScheduler = "HeunDiscreteScheduler"
-#         DPMSolverMultistepScheduler = "DPMSolverMultistepScheduler"
-#         DEISMultistepScheduler = "DEISMultistepScheduler"
-#         PNDMScheduler = "PNDMScheduler"
-#         EulerAncestralDiscreteScheduler = "EulerAncestralDiscreteScheduler"
-#         UniPCMultistepScheduler = "UniPCMultistepScheduler"
-#         KDPM2DiscreteScheduler = "KDPM2DiscreteScheduler"
-#         DPMSolverSinglestepScheduler = "DPMSolverSinglestepScheduler"
-#         KDPM2AncestralDiscreteScheduler = "KDPM2AncestralDiscreteScheduler"
-
-#     class ModelId(str, Enum):
-#         STABLE_DIFFUSION_XL_BASE_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
-#         CAGLIOSTRO_ANIMAGINE_XL_3_0 = "cagliostrolab/animagine-xl-3.0"
-#         NERIJS_PIXEL_ART_XL = "nerijs/pixel-art-xl"
-#         STABLE_DIFFUSION_XL_V8 = "stablediffusionapi/juggernaut-xl-v8"
-
-#     model: ModelId = Field(
-#         default=ModelId.STABLE_DIFFUSION_XL_BASE_1_0,
-#         title="Model ID on Huggingface",
-#         description="The model ID to use for the image generation",
-#     )
-#     inputs: str = Field(
-#         default="A photo of a cat.",
-#         title="Inputs",
-#         description="The input text to the model",
-#     )
-
-#     negative_prompt: str = Field(default="", description="The negative prompt to use.")
-#     seed: int = Field(default=0, ge=0, le=1000000)
-#     guidance_scale: float = Field(default=7.0, ge=1.0, le=30.0)
-#     num_inference_steps: int = Field(default=30, ge=1, le=100)
-#     width: int = Field(default=768, ge=64, le=2048, multiple_of=64)
-#     height: int = Field(default=768, ge=64, le=2048, multiple_of=64)
-#     scheduler: Scheduler = Scheduler.EulerDiscreteScheduler
-
-#     async def process(self, context: ProcessingContext) -> ImageRef:
-#         result = await self.run_huggingface(
-#             model_id=self.model.value, context=context, params={"inputs": self.inputs}
-#         )
-#         img = await context.image_from_bytes(result)  # type: ignore
-#         return img
+def get_scheduler_class(scheduler: StableDiffusionScheduler):
+    if scheduler == StableDiffusionScheduler.DPMSolverSDEScheduler:
+        return DPMSolverSDEScheduler
+    elif scheduler == StableDiffusionScheduler.EulerDiscreteScheduler:
+        return EulerDiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.LMSDiscreteScheduler:
+        return LMSDiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.DDIMScheduler:
+        return DDIMScheduler
+    elif scheduler == StableDiffusionScheduler.DDPMScheduler:
+        return DDPMScheduler
+    elif scheduler == StableDiffusionScheduler.HeunDiscreteScheduler:
+        return HeunDiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.DPMSolverMultistepScheduler:
+        return DPMSolverMultistepScheduler
+    elif scheduler == StableDiffusionScheduler.DEISMultistepScheduler:
+        return DEISMultistepScheduler
+    elif scheduler == StableDiffusionScheduler.PNDMScheduler:
+        return PNDMScheduler
+    elif scheduler == StableDiffusionScheduler.EulerAncestralDiscreteScheduler:
+        return EulerAncestralDiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.UniPCMultistepScheduler:
+        return UniPCMultistepScheduler
+    elif scheduler == StableDiffusionScheduler.KDPM2DiscreteScheduler:
+        return KDPM2DiscreteScheduler
+    elif scheduler == StableDiffusionScheduler.DPMSolverSinglestepScheduler:
+        return DPMSolverSinglestepScheduler
+    elif scheduler == StableDiffusionScheduler.KDPM2AncestralDiscreteScheduler:
+        return KDPM2AncestralDiscreteScheduler
+    else:
+        raise ValueError(f"Invalid scheduler: {scheduler}")
 
 
 class Segmentation(HuggingFacePipelineNode):
@@ -507,28 +517,16 @@ class DepthEstimation(HuggingFacePipelineNode):
         return await super().process(context)
 
 
-class ImageToImage(HuggingFacePipelineNode):
+class BaseImageToImage(HuggingFacePipelineNode):
     """
-    Performs image-to-image transformation tasks.
+    Base class for image-to-image transformation tasks.
     image, transformation, generation, huggingface
-
-    Use cases:
-    - Style transfer
-    - Image inpainting
-    - Image super-resolution
-    - Image colorization
     """
 
-    class ImageToImageModelId(str, Enum):
-        SWIN2SR = "caidas/swin2SR-classical-sr-x2-64"
-        REAL_ESRGAN_X4PLUS = "qualcomm/Real-ESRGAN-x4plus"
-        INSTRUCT_PIX2PIX = "timbrooks/instruct-pix2pix"
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls is not BaseImageToImage
 
-    model: ImageToImageModelId = Field(
-        default=ImageToImageModelId.SWIN2SR,
-        title="Model ID on Huggingface",
-        description="The model ID to use for the image-to-image transformation",
-    )
     inputs: ImageRef = Field(
         default=ImageRef(),
         title="Input Image",
@@ -540,20 +538,12 @@ class ImageToImage(HuggingFacePipelineNode):
         description="The text prompt to guide the image transformation (if applicable)",
     )
 
-    def get_model_id(self):
-        return self.model.value
-
     @property
     def pipeline_task(self) -> str:
         return "image-to-image"
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
-
-    def get_params(self):
-        return {
-            "prompt": self.prompt,
-        }
 
     async def process_remote_result(
         self, context: ProcessingContext, result: Any
@@ -565,8 +555,85 @@ class ImageToImage(HuggingFacePipelineNode):
     ) -> ImageRef:
         return await context.image_from_pil(result)
 
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        return await super().process(context)
+
+class Swin2SR(BaseImageToImage):
+    """
+    Performs image super-resolution using the Swin2SR model.
+    image, super-resolution, enhancement, huggingface
+
+    Use cases:
+    - Enhance low-resolution images
+    - Improve image quality for printing or display
+    - Upscale images for better detail
+    """
+
+    def get_model_id(self):
+        return "caidas/swin2SR-classical-sr-x2-64"
+
+    def get_params(self):
+        return {}
+
+
+class RealESRGAN(BaseImageToImage):
+    """
+    Performs image super-resolution using the Real-ESRGAN model.
+    image, super-resolution, enhancement, huggingface
+
+    Use cases:
+    - Enhance low-resolution images
+    - Restore details in blurry or pixelated images
+    - Improve visual quality of old or compressed images
+    """
+
+    def get_model_id(self):
+        return "qualcomm/Real-ESRGAN-x4plus"
+
+    def get_params(self):
+        return {}
+
+
+class InstructPix2Pix(BaseImageToImage):
+    """
+    Performs image editing based on text instructions using the InstructPix2Pix model.
+    image, editing, transformation, huggingface
+
+    Use cases:
+    - Apply specific edits to images based on text instructions
+    - Modify image content or style guided by text prompts
+    - Create variations of existing images with controlled changes
+    """
+
+    prompt: str = Field(
+        default="Remove the background.",
+        description="The text prompt to guide the image transformation.",
+    )
+    negative_prompt: str = Field(
+        default="",
+        description="The negative text prompt to avoid in the transformation.",
+    )
+    num_inference_steps: int = Field(
+        default=50, description="The number of denoising steps.", ge=1, le=100
+    )
+    guidance_scale: float = Field(
+        default=7.0, description="The guidance scale for the transformation.", ge=1.0
+    )
+    image_guidance_scale: float = Field(
+        default=7.0,
+        description="The image guidance scale for the transformation.",
+        ge=1.0,
+    )
+
+    def get_model_id(self):
+        return "timbrooks/instruct-pix2pix"
+
+    def get_params(self):
+        return {
+            "prompt": self.prompt,
+            "negative_prompt": self.negative_prompt,
+            "num_inference_steps": self.num_inference_steps,
+            "guidance_scale": self.guidance_scale,
+            "image_guidance_scale": self.image_guidance_scale,
+        }
 
 
 class AuraFlowNode(BaseNode):
@@ -584,8 +651,20 @@ class AuraFlowNode(BaseNode):
         default="A cat holding a sign that says hello world",
         description="A text prompt describing the desired image.",
     )
+    negative_prompt: str = Field(
+        default="", description="A text prompt describing what to avoid in the image."
+    )
+    guidance_scale: float = Field(
+        default=7.0, description="The guidance scale for the transformation.", ge=1.0
+    )
     num_inference_steps: int = Field(
         default=25, description="The number of denoising steps.", ge=1, le=100
+    )
+    width: int = Field(
+        default=768, description="The width of the generated image.", ge=128, le=1024
+    )
+    height: int = Field(
+        default=768, description="The height of the generated image.", ge=128, le=1024
     )
     seed: int = Field(
         default=-1,
@@ -601,8 +680,7 @@ class AuraFlowNode(BaseNode):
         )  # type: ignore
 
     async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        pass
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -615,9 +693,15 @@ class AuraFlowNode(BaseNode):
                 self.seed
             )
 
+        self._pipeline.enable_sequential_cpu_offload()
+
         output = self._pipeline(
             self.prompt,
+            negative_prompt=self.negative_prompt,
+            guidance_scale=self.guidance_scale,
             num_inference_steps=self.num_inference_steps,
+            width=self.width,
+            height=self.height,
             generator=generator,
         )
         image = output.images[0]  # type: ignore
@@ -625,17 +709,114 @@ class AuraFlowNode(BaseNode):
         return await context.image_from_pil(image)
 
 
-class Kandinsky2Node(BaseNode):
+class PixArtAlphaNode(BaseNode):
     """
-    Generates images using the Kandinsky 2.2 model. Provide image for img2img mode.
-    image, generation, AI, text-to-image, image-to-image
+    Generates images from text prompts using the PixArt-Alpha model.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Create unique images from detailed text descriptions
+    - Generate concept art for creative projects
+    - Produce visual content for digital media and marketing
+    - Explore AI-generated imagery for artistic inspiration
+    """
+
+    prompt: str = Field(
+        default="An astronaut riding a green horse",
+        description="A text prompt describing the desired image.",
+    )
+    num_inference_steps: int = Field(
+        default=50,
+        description="The number of denoising steps.",
+        ge=1,
+        le=100,
+    )
+    guidance_scale: float = Field(
+        default=7.5,
+        description="The scale for classifier-free guidance.",
+        ge=1.0,
+        le=20.0,
+    )
+    width: int = Field(
+        default=768,
+        description="The width of the generated image.",
+        ge=128,
+        le=1024,
+    )
+    height: int = Field(
+        default=768,
+        description="The height of the generated image.",
+        ge=128,
+        le=1024,
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: PixArtAlphaPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = PixArtAlphaPipeline.from_pretrained(
+            "PixArt-alpha/PixArt-XL-2-1024-MS",
+            torch_dtype=torch.float16,
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = None
+        if self.seed != -1:
+            generator = torch.Generator(device=self._pipeline.device).manual_seed(
+                self.seed
+            )
+
+        def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        # Generate the image
+        output = self._pipeline(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=generator,
+            callback=callback,  # type: ignore
+            callback_steps=1,
+        )
+
+        image = output.images[0]  # type: ignore
+
+        return await context.image_from_pil(image)
+
+
+class Kandinsky2(BaseNode):
+    """
+    Generates images using the Kandinsky 2.2 model from text prompts.
+    image, generation, AI, text-to-image
 
     Use cases:
     - Create high-quality images from text descriptions
-    - Transform existing images based on text prompts
     - Generate detailed illustrations for creative projects
     - Produce visual content for digital media and art
+    - Explore AI-generated imagery for concept development
     """
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Kandinsky 2.2"
 
     prompt: str = Field(
         default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
@@ -653,10 +834,90 @@ class Kandinsky2Node(BaseNode):
     height: int = Field(
         default=768, description="The height of the generated image.", ge=128, le=1024
     )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _prior_pipeline: KandinskyV22PriorPipeline | None = None
+    _pipeline: KandinskyV22Pipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = KandinskyV22Pipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
+        )  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._prior_pipeline is None or self._pipeline is None:
+            raise ValueError("Pipelines not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        # Enable sequential CPU offload for memory efficiency
+        self._pipeline.enable_sequential_cpu_offload()
+
+        # Generate image embeddings
+        prior_output = self._prior_pipeline(
+            self.prompt, negative_prompt=self.negative_prompt, generator=generator
+        )
+        image_emb, negative_image_emb = prior_output.to_tuple()  # type: ignore
+
+        output = self._pipeline(
+            image_embeds=image_emb,
+            negative_image_embeds=negative_image_emb,
+            height=self.height,
+            width=self.width,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )
+
+        image = output.images[0]  # type: ignore
+
+        return await context.image_from_pil(image)
+
+
+class Kandinsky2Img2Img(BaseNode):
+    """
+    Transforms existing images based on text prompts using the Kandinsky 2.2 model.
+    image, generation, AI, image-to-image
+
+    Use cases:
+    - Transform existing images based on text prompts
+    - Apply specific styles or concepts to existing images
+    - Modify photographs or artworks with AI-generated elements
+    - Create variations of existing visual content
+    """
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Kandinsky 2.2 Image-to-Image"
+
+    prompt: str = Field(
+        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+        description="A text prompt describing the desired image transformation.",
+    )
+    negative_prompt: str = Field(
+        default="", description="A text prompt describing what to avoid in the image."
+    )
+    num_inference_steps: int = Field(
+        default=50, description="The number of denoising steps.", ge=1, le=100
+    )
+    strength: float = Field(
+        default=0.5,
+        description="The strength of the transformation. Use a value between 0.0 and 1.0.",
+        ge=0.0,
+        le=1.0,
+    )
     image: ImageRef = Field(
         default=ImageRef(),
         title="Input Image",
-        description="The input image to transform (optional)",
+        description="The input image to transform",
     )
     seed: int = Field(
         default=-1,
@@ -665,27 +926,15 @@ class Kandinsky2Node(BaseNode):
     )
 
     _prior_pipeline: KandinskyV22PriorPipeline | None = None
-    _pipeline: KandinskyV22Pipeline | KandinskyV22Img2ImgPipeline | None = None
+    _pipeline: KandinskyV22Img2ImgPipeline | None = None
 
     async def initialize(self, context: ProcessingContext):
         self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
             "kandinsky-community/kandinsky-2-2-prior", torch_dtype=torch.float16
         )  # type: ignore
-        if self.image.is_empty():
-            self._pipeline = KandinskyV22Pipeline.from_pretrained(
-                "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
-            )  # type: ignore
-        else:
-            self._pipeline = KandinskyV22Img2ImgPipeline.from_pretrained(
-                "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
-            )  # type: ignore
-
-    async def move_to_device(self, device: str):
-        # Commented out as in the example
-        # if self._prior_pipeline is not None and self._pipeline is not None:
-        #     self._prior_pipeline.to(device)
-        #     self._pipeline.to(device)
-        pass
+        self._pipeline = KandinskyV22Img2ImgPipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
+        )  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._prior_pipeline is None or self._pipeline is None:
@@ -706,45 +955,150 @@ class Kandinsky2Node(BaseNode):
         )
         image_emb, negative_image_emb = prior_output.to_tuple()  # type: ignore
 
-        if self.image.is_empty():
-            output = self._pipeline(
-                image_embeds=image_emb,
-                negative_image_embeds=negative_image_emb,
-                height=self.height,
-                width=self.width,
-                num_inference_steps=self.num_inference_steps,
-                generator=generator,
-                callback=progress_callback(self.id, self.num_inference_steps, context),
-                callback_steps=1,
-            )  # type: ignore
-        else:
-            input_image = await context.image_to_pil(self.image)
-            output = self._pipeline(
-                image=input_image,
-                image_embeds=image_emb,
-                negative_image_embeds=negative_image_emb,
-                height=self.height,
-                width=self.width,
-                num_inference_steps=self.num_inference_steps,
-                generator=generator,
-                callback=progress_callback,
-                callback_steps=1,
-            )
+        input_image = await context.image_to_pil(self.image)
+        output = self._pipeline(
+            image=input_image,
+            image_embeds=image_emb,
+            negative_image_embeds=negative_image_emb,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )
 
         image = output.images[0]  # type: ignore
 
         return await context.image_from_pil(image)
 
 
-class Kandinsky3Node(BaseNode):
+def make_hint(image: PIL.Image.Image) -> torch.Tensor:
+    np_array = np.array(image)
+    detected_map = torch.from_numpy(np_array).float() / 255.0
+    hint = detected_map.permute(2, 0, 1)
+    return hint[:3, :, :].unsqueeze(0)
+
+
+class Kandinsky2ControlNet(BaseNode):
     """
-    Generates images using the Kandinsky-3 model. Provide image for img2img mode.
+    Transforms existing images based on text prompts and control images using the Kandinsky 2.2 model with ControlNet.
+    image, generation, AI, image-to-image, controlnet
+
+    Use cases:
+    - Transform existing images based on text prompts with precise control
+    - Apply specific styles or concepts to existing images guided by control images
+    - Modify photographs or artworks with AI-generated elements while maintaining specific structures
+    - Create variations of existing visual content with controlled transformations
+    """
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Kandinsky 2.2 with ControlNet"
+
+    prompt: str = Field(
+        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+        description="The prompt to guide the image generation.",
+    )
+    negative_prompt: str = Field(
+        default="", description="The prompt not to guide the image generation."
+    )
+    hint: ImageRef = Field(
+        default=ImageRef(),
+        title="Control Image",
+        description="The controlnet condition image.",
+    )
+    height: int = Field(
+        default=512,
+        description="The height in pixels of the generated image.",
+        ge=64,
+        le=2048,
+    )
+    width: int = Field(
+        default=512,
+        description="The width in pixels of the generated image.",
+        ge=64,
+        le=2048,
+    )
+    num_inference_steps: int = Field(
+        default=30, description="The number of denoising steps.", ge=1, le=100
+    )
+    guidance_scale: float = Field(
+        default=4.0,
+        description="Guidance scale as defined in Classifier-Free Diffusion Guidance.",
+        ge=1.0,
+        le=20.0,
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+    output_type: str = Field(
+        default="pil",
+        description="The output format of the generated image.",
+    )
+
+    _prior_pipeline: KandinskyV22PriorPipeline | None = None
+    _pipeline: KandinskyV22ControlnetPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-prior", torch_dtype=torch.float16
+        )  # type: ignore
+        self._pipeline = KandinskyV22ControlnetPipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-controlnet-depth",
+            torch_dtype=torch.float16,
+        )  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._prior_pipeline is None or self._pipeline is None:
+            raise ValueError("Pipelines not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        # Enable sequential CPU offload for memory efficiency
+        self._prior_pipeline.enable_sequential_cpu_offload()
+        self._pipeline.enable_sequential_cpu_offload()
+
+        # Generate image embeddings
+        prior_output = self._prior_pipeline(
+            self.prompt, negative_prompt=self.negative_prompt, generator=generator
+        )
+        image_emb, negative_image_emb = prior_output.to_tuple()  # type: ignore
+
+        # Prepare the control image (hint)
+        hint = await context.image_to_pil(self.hint)
+        hint = hint.resize((self.width, self.height))
+
+        output = self._pipeline(
+            hint=make_hint(hint),
+            image_embeds=image_emb,
+            negative_image_embeds=negative_image_emb,
+            height=self.height,
+            width=self.width,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=generator,
+            output_type="pil",
+            callback=progress_callback(self.id, self.num_inference_steps, context),  # type: ignore
+            callback_steps=1,
+        )
+
+        return await context.image_from_pil(output.images[0])  # type: ignore
+
+
+class Kandinsky3(BaseNode):
+    """
+    Generates images using the Kandinsky-3 model from text prompts.
     image, generation, AI, text-to-image
 
     Use cases:
     - Create detailed images from text descriptions
     - Generate unique illustrations for creative projects
     - Produce visual content for digital media and art
+    - Explore AI-generated imagery for concept development
     """
 
     prompt: str = Field(
@@ -760,11 +1114,6 @@ class Kandinsky3Node(BaseNode):
     height: int = Field(
         default=512, description="The height of the generated image.", ge=64, le=2048
     )
-    image: ImageRef = Field(
-        default=ImageRef(),
-        title="Input Image",
-        description="The input image to transform (optional)",
-    )
     seed: int = Field(
         default=0,
         description="Seed for the random number generator. Use -1 for a random seed.",
@@ -774,22 +1123,14 @@ class Kandinsky3Node(BaseNode):
     _pipeline: AutoPipelineForText2Image | None = None
 
     async def initialize(self, context: ProcessingContext):
-        if self.image.is_empty():
-            self._pipeline = AutoPipelineForText2Image.from_pretrained(
-                "kandinsky-community/kandinsky-3",
-                variant="fp16",
-                torch_dtype=torch.float16,
-            )
-        else:
-            self._pipeline = AutoPipelineForImage2Image.from_pretrained(
-                "kandinsky-community/kandinsky-3",
-                variant="fp16",
-                torch_dtype=torch.float16,
-            )
-
-        assert self._pipeline is not None
+        self._pipeline = AutoPipelineForText2Image.from_pretrained(
+            "kandinsky-community/kandinsky-3",
+            variant="fp16",
+            torch_dtype=torch.float16,
+        )
 
     async def move_to_device(self, device: str):
+        # Commented out as in the original class
         # if self._pipeline is not None:
         #     self._pipeline.to(device)
         pass
@@ -805,27 +1146,91 @@ class Kandinsky3Node(BaseNode):
 
         self._pipeline.enable_sequential_cpu_offload()
 
-        if self.image.is_empty():
-            output = self._pipeline(
-                prompt=self.prompt,
-                num_inference_steps=self.num_inference_steps,
-                generator=generator,
-                width=self.width,
-                height=self.height,
-                callback=progress_callback(self.id, self.num_inference_steps, context),
-                callback_steps=1,
-            )  # type: ignore
-        else:
-            input_image = await context.image_to_pil(self.image)
-            output = self._pipeline(
-                prompt=self.prompt,
-                num_inference_steps=self.num_inference_steps,
-                generator=generator,
-                image=input_image,
-                width=self.width,
-                height=self.height,
-                callback=progress_callback,
-            )  # type: ignore
+        output = self._pipeline(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            width=self.width,
+            height=self.height,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )  # type: ignore
+
+        image = output.images[0]
+
+        return await context.image_from_pil(image)
+
+
+class Kandinsky3Img2Img(BaseNode):
+    """
+    Transforms existing images using the Kandinsky-3 model based on text prompts.
+    image, generation, AI, image-to-image
+
+    Use cases:
+    - Modify existing images based on text descriptions
+    - Apply specific styles or concepts to photographs or artwork
+    - Create variations of existing visual content
+    - Blend AI-generated elements with existing images
+    """
+
+    prompt: str = Field(
+        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+        description="A text prompt describing the desired image transformation.",
+    )
+    num_inference_steps: int = Field(
+        default=25, description="The number of denoising steps.", ge=1, le=100
+    )
+    strength: float = Field(
+        default=0.5,
+        description="The strength of the transformation. Use a value between 0.0 and 1.0.",
+        ge=0.0,
+        le=1.0,
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The input image to transform",
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: AutoPipelineForImage2Image | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = AutoPipelineForImage2Image.from_pretrained(
+            "kandinsky-community/kandinsky-3",
+            variant="fp16",
+            torch_dtype=torch.float16,
+        )
+
+    async def move_to_device(self, device: str):
+        pass
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        self._pipeline.enable_sequential_cpu_offload()
+
+        input_image = await context.image_to_pil(self.image)
+        output = self._pipeline(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            image=input_image,
+            width=input_image.width,
+            height=input_image.height,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )  # type: ignore
 
         image = output.images[0]
 
@@ -938,11 +1343,561 @@ class StableCascadeNode(BaseNode):
         return await context.image_from_pil(decoder_output)
 
 
-class SDXLTurbo(BaseNode):
+class StableDiffusionModelId(str, Enum):
+    SD_V1_5 = "runwayml/stable-diffusion-v1-5"
+    REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
+    DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
+
+
+class IPAdapter_SD15_Model(str, Enum):
+    NONE = ""
+    IP_ADAPTER = "ip-adapter_sd15.safetensors"
+    IP_ADAPTER_LIGHT = "ip-adapter_sd15_light.safetensors"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sd15.bin"
+    IP_ADAPTER_PLUS_FACE = "ip-adapter-plus-face_sd15.safetensors"
+    IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
+
+
+class StableDiffusion(BaseNode):
+    """
+    Generates images from text prompts using Stable Diffusion.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Creating custom illustrations for various projects
+    - Generating concept art for creative endeavors
+    - Producing unique visual content for marketing materials
+    - Exploring AI-generated art for personal or professional use
+    """
+
+    model: StableDiffusionModelId = Field(
+        default=StableDiffusionModelId.SD_V1_5,
+        description="The Stable Diffusion model to use for generation.",
+    )
+
+    prompt: str = Field(default="", description="The prompt for image generation.")
+    negative_prompt: str = Field(
+        default="",
+        description="The negative prompt to guide what should not appear in the generated image.",
+    )
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        le=2**32 - 1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+    )
+    num_inference_steps: int = Field(
+        default=25, ge=1, le=100, description="Number of denoising steps."
+    )
+    guidance_scale: float = Field(
+        default=7.5, ge=1.0, le=20.0, description="Guidance scale for generation."
+    )
+    width: int = Field(
+        default=512, ge=256, le=1024, description="Width of the generated image."
+    )
+    height: int = Field(
+        default=512, ge=256, le=1024, description="Height of the generated image"
+    )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.HeunDiscreteScheduler,
+        description="The scheduler to use for the diffusion process.",
+    )
+    ip_adapter_model: IPAdapter_SD15_Model = Field(
+        default=IPAdapter_SD15_Model.NONE,
+        description="The IP adapter model to use for image processing",
+    )
+    ip_adapter_image: ImageRef = Field(
+        default=ImageRef(),
+        description="When provided the image will be fed into the IP adapter",
+    )
+    ip_adapter_scale: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Strength of the IP adapter image",
+    )
+
+    _pipe: Any = None
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion (Text2Img)"
+
+    async def initialize(self, context: ProcessingContext):
+        if self._pipe is None:
+            self._pipe = StableDiffusionPipeline.from_pretrained(
+                self.model.value, torch_dtype=torch.float16, safety_checker=None
+            )
+            self._set_scheduler(self.scheduler)
+            if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+                self._pipe.load_ip_adapter(
+                    "h94/IP-Adapter",
+                    subfolder="models",
+                    weight_name=self.ip_adapter_model,
+                )
+
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        scheduler_class = get_scheduler_class(scheduler_type)
+        self._pipe.scheduler = scheduler_class.from_config(self._pipe.scheduler.config)
+
+    async def move_to_device(self, device: str):
+        if self._pipe is not None:
+            self._pipe.to(device)
+
+    async def process(self, context) -> ImageRef:
+        if self._pipe is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cuda")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        self._pipe.set_ip_adapter_scale(self.ip_adapter_scale)
+
+        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+            assert not self.ip_adapter_image.is_empty()
+            ip_adapter_image = await context.image_to_pil(self.ip_adapter_image)
+        else:
+            ip_adapter_image = None
+
+        image = self._pipe(
+            prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            width=self.width,
+            height=self.height,
+            generator=generator,
+            ip_adapter_image=ip_adapter_image,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        ).images[0]
+
+        return await context.image_from_pil(image)
+
+
+class StableDiffusionImg2Img(BaseNode):
+    """
+    Transforms existing images based on text prompts using Stable Diffusion.
+    image, generation, AI, image-to-image
+
+    Use cases:
+    - Modifying existing images to fit a specific style or theme
+    - Enhancing or altering photographs
+    - Creating variations of existing artwork
+    - Applying text-guided edits to images
+    """
+
+    class ModelId(str, Enum):
+        SD_V1_5 = "runwayml/stable-diffusion-v1-5"
+        DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
+
+    model: StableDiffusionModelId = Field(
+        default=StableDiffusionModelId.SD_V1_5,
+        description="The Stable Diffusion model to use for generation.",
+    )
+
+    prompt: str = Field(default="", description="The prompt for image generation.")
+    negative_prompt: str = Field(
+        default="",
+        description="The negative prompt to guide what should not appear in the generated image.",
+    )
+    init_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The initial image for Image-to-Image generation.",
+    )
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        le=2**32 - 1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+    )
+    num_inference_steps: int = Field(
+        default=25, ge=1, le=100, description="Number of denoising steps."
+    )
+    guidance_scale: float = Field(
+        default=7.5, ge=1.0, le=20.0, description="Guidance scale for generation."
+    )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.HeunDiscreteScheduler,
+        description="The scheduler to use for the diffusion process.",
+    )
+    strength: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Strength for Image-to-Image generation. Higher values allow for more deviation from the original image.",
+    )
+
+    _pipe: Any = None
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion (Img2Img)"
+
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        scheduler_class = get_scheduler_class(scheduler_type)
+        self._pipe.scheduler = scheduler_class.from_config(self._pipe.scheduler.config)
+
+    async def initialize(self, context: ProcessingContext):
+        if self._pipe is None:
+            self._pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+                self.model.value, torch_dtype=torch.float16, safety_checker=None
+            )
+            self._set_scheduler(self.scheduler)
+
+    async def move_to_device(self, device: str):
+        if self._pipe is not None:
+            self._pipe.to(device)
+
+    async def process(self, context) -> ImageRef:
+        if self._pipe is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cuda")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        init_image = await context.image_to_pil(self.init_image)
+
+        image = self._pipe(
+            prompt=self.prompt,
+            image=init_image,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            strength=self.strength,
+            generator=generator,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        ).images[0]
+
+        return await context.image_from_pil(image)
+
+
+class StableDiffusionXLModelId(str, Enum):
+    SDXL_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
+    JUGGERNAUT_XL = "RunDiffusion/Juggernaut-XL-v9"
+    REALVISXL = "SG161222/RealVisXL_V4.0"
+
+
+class IPAdapter_SDXL_Model(str, Enum):
+    NONE = ""
+    IP_ADAPTER = "ip-adapter_sdxl.safetensors"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sdxl_vit-h.safetensors"
+
+
+class StableDiffusionXL(BaseNode):
+    """
+    Generates images from text prompts using Stable Diffusion XL.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Creating custom illustrations for marketing materials
+    - Generating concept art for game and film development
+    - Producing unique stock imagery for websites and publications
+    - Visualizing interior design concepts for clients
+    """
+
+    model: StableDiffusionXLModelId = Field(
+        default=StableDiffusionXLModelId.SDXL_1_0,
+        description="The Stable Diffusion XL model to use for generation.",
+    )
+
+    prompt: str = Field(default="", description="The prompt for image generation.")
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        le=1000000,
+        description="Seed for the random number generator.",
+    )
+    num_inference_steps: int = Field(
+        default=25, ge=1, le=100, description="Number of inference steps."
+    )
+    guidance_scale: float = Field(
+        default=7.0, ge=0.0, le=20.0, description="Guidance scale for generation."
+    )
+    width: int = Field(
+        default=1024, ge=64, le=2048, description="Width of the generated image."
+    )
+    height: int = Field(
+        default=1024, ge=64, le=2048, description="Height of the generated image"
+    )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.DDIMScheduler,
+        description="The scheduler to use for the diffusion process.",
+    )
+    ip_adapter_model: IPAdapter_SDXL_Model = Field(
+        default=IPAdapter_SDXL_Model.NONE,
+        description="The IP adapter model to use for image processing",
+    )
+    ip_adapter_image: ImageRef = Field(
+        default=ImageRef(),
+        description="When provided the image will be fed into the IP adapter",
+    )
+    ip_adapter_scale: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Strength of the IP adapter image",
+    )
+
+    _pipe: Any = None
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion XL (Text2Img)"
+
+    async def initialize(self, context: ProcessingContext):
+        if self._pipe is None:
+            self._pipe = StableDiffusionXLPipeline.from_pretrained(
+                self.model.value,
+                torch_dtype=torch.float16,
+                variant="fp16",
+            )
+            self._set_scheduler(self.scheduler)
+            if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+                self._pipe.load_ip_adapter(
+                    "h94/IP-Adapter",
+                    subfolder="sdxl_models",
+                    weight_name=self.ip_adapter_model,
+                )
+
+    async def move_to_device(self, device: str):
+        if self._pipe is not None:
+            self._pipe.to(device)
+
+    async def process(self, context) -> ImageRef:
+        if self._pipe is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+            assert not self.ip_adapter_image.is_empty()
+            ip_adapter_image = await context.image_to_pil(self.ip_adapter_image)
+        else:
+            ip_adapter_image = None
+
+        image = self._pipe(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            width=self.width,
+            height=self.height,
+            ip_adapter_image=ip_adapter_image,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+            generator=generator,
+        ).images[0]
+
+        return await context.image_from_pil(image)
+
+
+class StableDiffusionXLImg2Img(BaseNode):
+    """
+    Transforms existing images based on text prompts using Stable Diffusion XL.
+    image, generation, AI, image-to-image
+
+    Use cases:
+    - Modifying existing images to fit a specific style or theme
+    - Enhancing or altering stock photos for unique marketing materials
+    - Transforming rough sketches into detailed illustrations
+    - Creating variations of existing artwork or designs
+    """
+
+    model: StableDiffusionXLModelId = Field(
+        default=StableDiffusionXLModelId.SDXL_1_0,
+        description="The Stable Diffusion XL model to use for generation.",
+    )
     prompt: str = Field(default="", description="The prompt for image generation.")
     init_image: ImageRef = Field(
         default=ImageRef(),
-        description="The initial image for Image-to-Image generation (optional).",
+        description="The initial image for Image-to-Image generation.",
+    )
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        le=1000000,
+        description="Seed for the random number generator.",
+    )
+    num_inference_steps: int = Field(
+        default=25, ge=1, le=100, description="Number of inference steps."
+    )
+    guidance_scale: float = Field(
+        default=7.0, ge=0.0, le=20.0, description="Guidance scale for generation."
+    )
+    width: int = Field(
+        default=1024, ge=64, le=2048, description="Width of the generated image."
+    )
+    height: int = Field(
+        default=1024, ge=64, le=2048, description="Height of the generated image"
+    )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.DDIMScheduler,
+        description="The scheduler to use for the diffusion process.",
+    )
+    strength: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Strength for Image-to-Image generation.",
+    )
+
+    _pipe: Any = None
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion XL (Img2Img)"
+
+    async def initialize(self, context: ProcessingContext):
+        if self._pipe is None:
+            self._pipe = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+                self.model.value,
+                torch_dtype=torch.float16,
+                variant="fp16",
+            )
+            self._set_scheduler(self.scheduler)
+
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        scheduler_class = globals()[scheduler_type.value]
+        self._pipe.scheduler = scheduler_class.from_config(self._pipe.scheduler.config)
+
+    async def move_to_device(self, device: str):
+        if self._pipe is not None:
+            self._pipe.to(device)
+
+    async def process(self, context) -> ImageRef:
+        if self._pipe is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        init_image = await context.image_to_pil(self.init_image)
+        init_image = init_image.resize((self.width, self.height))
+
+        image = self._pipe(
+            prompt=self.prompt,
+            image=init_image,
+            num_inference_steps=self.num_inference_steps,
+            strength=self.strength,
+            guidance_scale=self.guidance_scale,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+            generator=generator,
+        ).images[0]
+
+        return await context.image_from_pil(image)
+
+
+class SDXLTurboModelId(str, Enum):
+    SDXL_TURBO = "stabilityai/sdxl-turbo"
+    DREAMSHAPER_XL_V2_TURBO = "Lykon/dreamshaper-xl-v2-turbo"
+
+
+class SDXLTurbo(BaseNode):
+    """
+    Generates images from text prompts using SDXL Turbo.
+    image, generation, AI, text-to-image, fast
+
+    Use cases:
+    - Rapid prototyping of visual concepts
+    - Real-time image generation for interactive applications
+    - Quick visualization of ideas for brainstorming sessions
+    - Creating multiple variations of an image concept quickly
+    """
+
+    model: SDXLTurboModelId = Field(
+        default=SDXLTurboModelId.SDXL_TURBO,
+        description="The SDXL Turbo model to use for generation.",
+    )
+    prompt: str = Field(default="", description="The prompt for image generation.")
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        le=1000000,
+        description="Seed for the random number generator.",
+    )
+    num_inference_steps: int = Field(
+        default=1, ge=1, le=50, description="Number of inference steps."
+    )
+    guidance_scale: float = Field(
+        default=0.0, ge=0.0, le=20.0, description="Guidance scale for generation."
+    )
+    width: int = Field(
+        default=512, ge=64, le=2048, description="Width of the generated image."
+    )
+    height: int = Field(
+        default=512, ge=64, le=2048, description="Height of the generated image"
+    )
+
+    _pipe: Any = None
+
+    @classmethod
+    def get_title(cls):
+        return "SDXL Turbo (Text2Img)"
+
+    async def initialize(self, context: ProcessingContext):
+        if self._pipe is None:
+            self._pipe = AutoPipelineForText2Image.from_pretrained(
+                self.model.value, torch_dtype=torch.float16, variant="fp16"
+            )
+
+    async def move_to_device(self, device: str):
+        if self._pipe is not None:
+            self._pipe.to(device)
+
+    async def process(self, context) -> ImageRef:
+        if self._pipe is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        image = self._pipe(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            width=self.width,
+            height=self.height,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+            generator=generator,
+        ).images[0]
+
+        return await context.image_from_pil(image)
+
+
+class SDXLTurboImg2Img(BaseNode):
+    """
+    Transforms existing images based on text prompts using SDXL Turbo.
+    image, generation, AI, image-to-image
+
+    Use cases:
+    - Modifying existing images to fit a specific style or theme
+    - Enhancing or altering stock photos for unique marketing materials
+    - Transforming rough sketches into detailed illustrations
+    - Creating variations of existing artwork or designs
+    """
+
+    model: SDXLTurboModelId = Field(
+        default=SDXLTurboModelId.SDXL_TURBO,
+        description="The SDXL Turbo model to use for generation.",
+    )
+    prompt: str = Field(default="", description="The prompt for image generation.")
+    init_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The initial image for Image-to-Image generation.",
     )
     seed: int = Field(
         default=-1,
@@ -963,7 +1918,7 @@ class SDXLTurbo(BaseNode):
         default=1024, ge=64, le=2048, description="Height of the generated image"
     )
     strength: float = Field(
-        default=1.0,
+        default=0.8,
         ge=0.0,
         le=1.0,
         description="Strength for Image-to-Image generation.",
@@ -973,60 +1928,43 @@ class SDXLTurbo(BaseNode):
 
     @classmethod
     def get_title(cls):
-        return "SDXL Turbo"
+        return "SD XL Turbo (Img2Img)"
 
     async def initialize(self, context: ProcessingContext):
         if self._pipe is None:
-            if self.init_image.is_empty():
-                self._pipe = AutoPipelineForText2Image.from_pretrained(
-                    "stabilityai/sdxl-turbo", torch_dtype=torch.float16, variant="fp16"
-                )
-            else:
-                self._pipe = AutoPipelineForImage2Image.from_pretrained(
-                    "stabilityai/sdxl-turbo", torch_dtype=torch.float16, variant="fp16"
-                )
+            self._pipe = AutoPipelineForImage2Image.from_pretrained(
+                self.model.value,
+                torch_dtype=torch.float16,
+                variant="fp16",
+            )
 
     async def move_to_device(self, device: str):
         if self._pipe is not None:
             self._pipe.to(device)
 
     async def process(self, context) -> ImageRef:
+        if self._pipe is None:
+            raise ValueError("Pipeline not initialized")
+
         # Set up the generator for reproducibility
         generator = torch.Generator(device="cpu")
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
-        if self.init_image.is_empty():
-            # Text-to-Image generation
-            image = self._pipe(
-                prompt=self.prompt,
-                num_inference_steps=self.num_inference_steps,
-                guidance_scale=self.guidance_scale,
-                width=self.width,
-                height=self.height,
-                callback=progress_callback(self.id, self.num_inference_steps, context),
-                callback_steps=1,
-                generator=generator,
-            ).images[0]
-        else:
-            # Image-to-Image generation
-            init_image = await context.image_to_pil(self.init_image)
-            init_image = init_image.resize((self.width, self.height))
-            image = self._pipe(
-                prompt=self.prompt,
-                image=init_image,
-                width=self.width,
-                height=self.height,
-                num_inference_steps=self.num_inference_steps,
-                strength=self.strength,
-                guidance_scale=self.guidance_scale,
-                callback=progress_callback(self.id, self.num_inference_steps, context),
-                callback_steps=1,
-                generator=generator,
-            ).images[0]
+        init_image = await context.image_to_pil(self.init_image)
+        init_image = init_image.resize((self.width, self.height))
 
-        # Convert PIL Image to ImageRef
-        print(image)
+        image = self._pipe(
+            prompt=self.prompt,
+            image=init_image,
+            num_inference_steps=self.num_inference_steps,
+            strength=self.strength,
+            guidance_scale=self.guidance_scale,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+            generator=generator,
+        ).images[0]
+
         return await context.image_from_pil(image)
 
 
@@ -1089,8 +2027,7 @@ class StableDiffusion3ControlNetNode(BaseNode):
         )  # type: ignore
 
     async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        pass
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -1117,11 +2054,13 @@ class StableDiffusion3ControlNetNode(BaseNode):
             return {}
 
         # Generate the image
-        self._pipeline.enable_model_cpu_offload()
+        self._pipeline.enable_sequntial_cpu_offload()
 
         output = self._pipeline(
             prompt=self.prompt,
             control_image=control_image,
+            width=control_image.width,
+            height=control_image.height,
             controlnet_conditioning_scale=self.controlnet_conditioning_scale,
             num_inference_steps=self.num_inference_steps,
             generator=generator,

@@ -1,5 +1,6 @@
 from typing import Optional
 import PIL.Image
+import torch
 from comfy.model_patcher import ModelPatcher
 from comfy.sd import CLIP, VAE
 from nodetool.metadata.types import CheckpointFile, ImageRef
@@ -36,8 +37,8 @@ class StableDiffusion(BaseNode):
     height: int = Field(default=768, ge=64, le=2048, multiple_of=64)
     scheduler: Scheduler = Field(default=Scheduler.exponential)
     sampler: Sampler = Field(default=Sampler.euler_ancestral)
-    input_image: Optional[ImageRef] = Field(
-        default=None, description="Input image for img2img (optional)"
+    input_image: ImageRef = Field(
+        default=ImageRef(), description="Input image for img2img (optional)"
     )
     denoise: float = Field(default=1.0, ge=0.0, le=1.0)
 
@@ -69,7 +70,11 @@ class StableDiffusion(BaseNode):
             self._clip, self.negative_prompt
         )[0]
 
-        if self.input_image:
+        if self.input_image.is_empty():
+            # If no input image, create an empty latent
+            empty_latent = EmptyLatentImage()
+            latent = empty_latent.generate(self.width, self.height, 1)[0]
+        else:
             # Load and preprocess the input image
             input_pil = await context.image_to_pil(self.input_image)
             input_pil = input_pil.resize(
@@ -82,10 +87,6 @@ class StableDiffusion(BaseNode):
             # Encode the input image to latent space
             vae_encode = VAEEncode()
             latent = vae_encode.encode(self._vae, input_tensor)[0]
-        else:
-            # If no input image, create an empty latent
-            empty_latent = EmptyLatentImage()
-            latent = empty_latent.generate(self.width, self.height, 1)[0]
 
         k_sampler = KSampler()
         sampled_latent = k_sampler.sample(
@@ -162,7 +163,11 @@ class HiResStableDiffusion(StableDiffusion):
             self._clip, self.negative_prompt
         )[0]
 
-        if self.input_image:
+        if self.input_image.is_empty():
+            # If no input image, create an empty latent
+            empty_latent = EmptyLatentImage()
+            latent = empty_latent.generate(self.width, self.height, 1)[0]
+        else:
             # Load and preprocess the input image
             input_pil = await context.image_to_pil(self.input_image)
             input_pil = input_pil.resize(
@@ -175,10 +180,6 @@ class HiResStableDiffusion(StableDiffusion):
             # Encode the input image to latent space
             vae_encode = VAEEncode()
             latent = vae_encode.encode(self._vae, input_tensor)[0]
-        else:
-            # If no input image, create an empty latent
-            empty_latent = EmptyLatentImage()
-            latent = empty_latent.generate(self.width, self.height, 1)[0]
 
         if self.num_hires_steps > 0:
             width = self.width // 2
@@ -286,7 +287,7 @@ class ControlNet(BaseNode):
         from nodes import CheckpointLoaderSimple, ControlNetLoader
 
         checkpoint_loader = CheckpointLoaderSimple()
-        self._model, self._clip, self._vae, _ = checkpoint_loader.load_checkpoint(  # type: ignore
+        self._model, self._clip, self._vae = checkpoint_loader.load_checkpoint(  # type: ignore
             self.model.name
         )
 

@@ -190,8 +190,8 @@ export const useDropHandler = (): DropHandler => {
     [addNode, createNode]
   );
 
-  const isWorkflowJson = (json: any): boolean => {
-    const comfyProperties = ["inputs", "class_type", "type", "_meta"];
+  const isComfyWorkflowJson = (json: any): boolean => {
+    const comfyProperties = ["inputs", "class_type", "_meta"];
 
     for (const key in json) {
       if (Object.prototype.hasOwnProperty.call(json, key)) {
@@ -207,6 +207,10 @@ export const useDropHandler = (): DropHandler => {
     }
     return false;
   };
+
+  const isNodetoolWorkflowJson = (json: any): boolean => {
+    return json.graph && json.name && json.description;
+  }
 
   const processComfyFiles = useCallback(
     (files: File[]) => {
@@ -238,13 +242,26 @@ export const useDropHandler = (): DropHandler => {
           reader.onload = (event) => {
             if (event.target) {
               try {
-                const comfyWorkflow = JSON.parse(event.target.result as string);
-                if (isWorkflowJson(comfyWorkflow)) {
+                const jsonWorkflow = JSON.parse(event.target.result as string);
+                if (isComfyWorkflowJson(jsonWorkflow)) {
                   createWorkflow({
                     name: file.name,
                     description: "created from comfy",
                     access: "private",
-                    comfy_workflow: comfyWorkflow
+                    comfy_workflow: jsonWorkflow
+                  })
+                    .then((workflow) => {
+                      setWorkflow(workflow);
+                    })
+                    .catch((error) => {
+                      alert(error.detail);
+                    });
+                } else if (isNodetoolWorkflowJson(jsonWorkflow)) {
+                  createWorkflow({
+                    name: jsonWorkflow.name,
+                    description: "created from json",
+                    access: "private",
+                    graph: jsonWorkflow.graph
                   })
                     .then((workflow) => {
                       setWorkflow(workflow);

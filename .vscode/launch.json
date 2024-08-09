@@ -9,6 +9,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "nodetool.cli",
+            "justMyCode": false,
             "args": [
                 "serve",
                 "--host",
