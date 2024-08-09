@@ -28,6 +28,53 @@ export type OutputRendererProps = {
   value: any;
 };
 
+function generateAssetGridContent(value: any) {
+  const assets: Asset[] = value.map((item: any, index: number) => {
+    let contentType: string;
+    let name: string;
+    switch (item.type) {
+      case "image":
+        contentType = "image/png";
+        name = item.name || `Image ${index + 1}.png`;
+        break;
+      case "audio":
+        contentType = "audio/mp3";
+        name = item.name || `Audio ${index + 1}.mp3`;
+        break;
+      case "video":
+        contentType = "video/mp4";
+        name = item.name || `Video ${index + 1}.mp4`;
+        break;
+      default:
+        contentType = "application/octet-stream";
+        name = item.name || `File ${index + 1}`;
+    }
+
+    const get_url = item.uri || uint8ArrayToDataUri(item.data, contentType);
+    const thumb_url = item.thumb_url || get_url;
+
+    return {
+      id: item.id || `output-${item.type}-${index}`,
+      user_id: "",
+      workflow_id: null,
+      parent_id: "",
+      name: name,
+      content_type: contentType,
+      metadata: {},
+      created_at: new Date().toISOString(),
+      get_url: get_url,
+      thumb_url: thumb_url,
+      duration: item.duration || null
+    } as Asset;
+  });
+
+  return (
+    <AssetGridContent assets={assets} />
+  );
+}
+
+
+
 const styles = (theme: any) =>
   css({
     "&": {
@@ -195,49 +242,25 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             return <TaskTable data={value} />;
           }
           if (["image", "audio", "video"].includes(value[0].type)) {
-            const assets: Asset[] = value.map((item: any, index: number) => {
-              let contentType: string;
-              let name: string;
-              switch (item.type) {
-                case "image":
-                  contentType = "image/png";
-                  name = item.name || `Image ${index + 1}.png`;
-                  break;
-                case "audio":
-                  contentType = "audio/mp3";
-                  name = item.name || `Audio ${index + 1}.mp3`;
-                  break;
-                case "video":
-                  contentType = "video/mp4";
-                  name = item.name || `Video ${index + 1}.mp4`;
-                  break;
-                default:
-                  contentType = "application/octet-stream";
-                  name = item.name || `File ${index + 1}`;
-              }
-
-              const get_url = item.uri || uint8ArrayToDataUri(item.data, contentType);
-              const thumb_url = item.thumb_url || get_url;
-
-              return {
-                id: item.id || `output-${item.type}-${index}`,
-                user_id: "",
-                workflow_id: null,
-                parent_id: "",
-                name: name,
-                content_type: contentType,
-                metadata: {},
-                created_at: new Date().toISOString(),
-                get_url: get_url,
-                thumb_url: thumb_url,
-                duration: item.duration || null
-              } as Asset;
-            });
-
-            return (
-              <AssetGridContent assets={assets} />
-            );
+            return generateAssetGridContent(value);
           }
+          const columnType = (v: any): "string" | "float" | "object" => {
+            if (typeof v === "string") {
+              return "string";
+            }
+            if (typeof v === "number") {
+              return "float";
+            }
+            return "object";
+          }
+          const df = {
+            data: value.map((v: any) => Object.values(v)),
+            columns: Object.entries(value[0]).map(i => {
+              return { name: i[0], data_type: columnType(i[1]) };
+            })
+          };
+          console.log(df);
+          return <DataTable dataframe={df} editable={false} />;
         }
       }
 
