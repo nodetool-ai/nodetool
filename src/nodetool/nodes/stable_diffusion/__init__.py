@@ -40,6 +40,10 @@ class StableDiffusion(BaseNode):
     input_image: ImageRef = Field(
         default=ImageRef(), description="Input image for img2img (optional)"
     )
+    mask_image: ImageRef = Field(
+        default=ImageRef(), description="Mask image for img2img (optional)"
+    )
+    grow_mask_by: int = Field(default=6, ge=0, le=100)
     denoise: float = Field(default=1.0, ge=0.0, le=1.0)
 
     _model: ModelPatcher | None = None
@@ -61,21 +65,18 @@ class StableDiffusion(BaseNode):
             KSampler,
             VAEDecode,
             VAEEncode,
+            VAEEncodeForInpaint,
         )
         import PIL.Image
 
-        clip_text_encode = CLIPTextEncode()
-        positive_conditioning = clip_text_encode.encode(self._clip, self.prompt)[0]
-        negative_conditioning = clip_text_encode.encode(
+        positive_conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
+        negative_conditioning = CLIPTextEncode().encode(
             self._clip, self.negative_prompt
         )[0]
 
         if self.input_image.is_empty():
-            # If no input image, create an empty latent
-            empty_latent = EmptyLatentImage()
-            latent = empty_latent.generate(self.width, self.height, 1)[0]
+            latent = EmptyLatentImage().generate(self.width, self.height, 1)[0]
         else:
-            # Load and preprocess the input image
             input_pil = await context.image_to_pil(self.input_image)
             input_pil = input_pil.resize(
                 (self.width, self.height), PIL.Image.Resampling.LANCZOS
@@ -84,12 +85,21 @@ class StableDiffusion(BaseNode):
             image = np.array(image).astype(np.float32) / 255.0
             input_tensor = torch.from_numpy(image)[None,]
 
-            # Encode the input image to latent space
-            vae_encode = VAEEncode()
-            latent = vae_encode.encode(self._vae, input_tensor)[0]
+            if not self.mask_image.is_empty():
+                mask_pil = await context.image_to_pil(self.mask_image)
+                mask_pil = mask_pil.resize(
+                    (self.width, self.height), PIL.Image.Resampling.LANCZOS
+                )
+                mask = mask_pil.convert("L")
+                mask = np.array(mask).astype(np.float32) / 255.0
+                mask_tensor = torch.from_numpy(mask)[None,]
+                latent = VAEEncodeForInpaint().encode(
+                    self._vae, input_tensor, mask_tensor, self.grow_mask_by
+                )[0]
+            else:
+                latent = VAEEncode().encode(self._vae, input_tensor)[0]
 
-        k_sampler = KSampler()
-        sampled_latent = k_sampler.sample(
+        sampled_latent = KSampler().sample(
             model=self._model,
             seed=self.seed,
             steps=self.num_inference_steps,
@@ -101,8 +111,7 @@ class StableDiffusion(BaseNode):
             latent_image=latent,
         )[0]
 
-        vae_decode = VAEDecode()
-        decoded_image = vae_decode.decode(self._vae, sampled_latent)[0]
+        decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
         img = PIL.Image.fromarray(
             np.clip(decoded_image.squeeze(0).cpu().numpy() * 255, 0, 255).astype(
                 np.uint8

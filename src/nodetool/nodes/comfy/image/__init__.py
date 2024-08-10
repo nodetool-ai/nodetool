@@ -2,7 +2,10 @@ from enum import Enum
 import random
 from typing import Any
 import numpy as np
+from PIL import ImageSequence, ImageOps
 from pydantic import Field
+import torch
+import node_helpers
 from nodetool.metadata.types import ImageRef, Mask
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.nodetool import constant
@@ -42,7 +45,7 @@ class LoadImage(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"image": ImageRef}
+        return {"image": ImageRef, "mask": Mask}
 
     def assign_property(self, name: str, value: Any):
         if name == "image" and isinstance(value, str):
@@ -51,7 +54,47 @@ class LoadImage(ComfyNode):
             super().assign_property(name, value)
 
     async def process(self, context: ProcessingContext):
-        return {"image": self.image}
+        output_images = []
+        output_masks = []
+        w, h = None, None
+
+        excluded_formats = ["MPO"]
+        img = await context.image_to_pil(self.image)
+
+        for i in ImageSequence.Iterator(img):
+            i = node_helpers.pillow(ImageOps.exif_transpose, i)
+
+            if i.mode == "I":
+                i = i.point(lambda i: i * (1 / 255))
+            image = i.convert("RGB")
+
+            if len(output_images) == 0:
+                w = image.size[0]
+                h = image.size[1]
+
+            if image.size[0] != w or image.size[1] != h:
+                continue
+
+            image = np.array(image).astype(np.float32) / 255.0
+            image = torch.from_numpy(image)[None,]
+            if "A" in i.getbands():
+                mask = np.array(i.getchannel("A")).astype(np.float32) / 255.0
+                mask = 1.0 - torch.from_numpy(mask)
+            else:
+                mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu")
+            output_images.append(image)
+            output_masks.append(mask.unsqueeze(0))
+
+        if len(output_images) > 1 and img.format not in excluded_formats:
+            output_image = torch.cat(output_images, dim=0)
+            output_mask = torch.cat(output_masks, dim=0)
+        else:
+            output_image = output_images[0]
+            output_mask = output_masks[0]
+
+        output_image_ref = await context.image_from_tensor(output_image)
+
+        return {"image": output_image_ref, "mask": Mask(data=output_mask)}
 
 
 class LoadImageMask(ComfyNode):

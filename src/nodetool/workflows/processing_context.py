@@ -210,7 +210,8 @@ class ProcessingContext:
         key = self.generate_node_cache_key(node)
         val = Environment.get_node_cache().get(key)
         # TODO: remove once caching works for all comfy nodes
-        print("Getting cached node", node.get_node_type(), key)
+        if val is not None:
+            print("Using cached node", node.get_node_type(), key)
         return val
 
     def cache_result(self, node: BaseNode, result: Any, ttl: int = 3600):

@@ -57,6 +57,10 @@ from diffusers import AutoPipelineForInpainting  # type: ignore
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel  # type: ignore
 from diffusers import StableDiffusionControlNetInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
+from diffusers import StableDiffusionLatentUpscalePipeline  # type: ignore
+import PIL.Image
+import PIL.ImageDraw
+import PIL.ImageFont
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -238,7 +242,13 @@ def get_scheduler_class(scheduler: StableDiffusionScheduler):
 
 class VisualizeSegmentation(BaseNode):
     """
-    Visualizes segmentation masks on images.
+    Visualizes segmentation masks on images with labels.
+    image, segmentation, visualization
+
+    Use cases:
+    - Visualize results of image segmentation models
+    - Analyze and compare different segmentation techniques
+    - Create labeled images for presentations or reports
     """
 
     image: ImageRef = Field(
@@ -248,33 +258,60 @@ class VisualizeSegmentation(BaseNode):
     )
 
     segments: list[ImageSegmentationResult] = Field(
-        default={},
+        default=[],
         title="Segmentation Masks",
         description="The segmentation masks to visualize",
     )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        import matplotlib.pyplot as plt
-
         image = await context.image_to_pil(self.image)
+        image = image.convert("RGB")
+        draw = PIL.ImageDraw.Draw(image)
 
-        color_map = plt.cm.get_cmap("rainbow")(np.linspace(0, 1, len(self.segments)))
-        color_map = (color_map[:, :3] * 255).astype(np.uint8)
-        mask = np.zeros((image.size[1], image.size[0], 3), dtype=np.uint8)
+        # Create a color map
+        color_map = self.generate_color_map(len(self.segments))
 
-        # Fill the mask with segmentation results
         for i, segment in enumerate(self.segments):
-            segment_mask = await context.image_to_numpy(segment.mask)
-            # reduce channel dimension if present
-            if segment_mask.ndim == 3:
-                segment_mask = segment_mask[:, :, 0]
+            segment_mask = await context.image_to_pil(segment.mask)
+            segment_mask = segment_mask.convert("L")
             color = color_map[i % len(color_map)]
-            mask[segment_mask > 0] = color
 
-        mask_image = PIL.Image.fromarray(mask)
-        blended_image = PIL.Image.blend(image.convert("RGB"), mask_image, alpha=0.5)
+            # Create a colored mask
+            colored_mask = PIL.Image.new("RGBA", image.size, (0, 0, 0, 0))
+            colored_mask_draw = PIL.ImageDraw.Draw(colored_mask)
+            colored_mask_draw.bitmap((0, 0), segment_mask, fill=(*color, 128))
 
-        return await context.image_from_pil(blended_image)
+            # Blend the colored mask with the original image
+            image = PIL.Image.alpha_composite(
+                image.convert("RGBA"), colored_mask
+            ).convert("RGB")
+
+            # Find the centroid of the mask to place the label
+            mask_array = np.array(segment_mask)
+            y_indices, x_indices = np.where(mask_array > 0)
+            if len(x_indices) > 0 and len(y_indices) > 0:
+                centroid_x = int(np.mean(x_indices))
+                centroid_y = int(np.mean(y_indices))
+
+                # Draw the label
+                draw = PIL.ImageDraw.Draw(image)
+                font = PIL.ImageFont.load_default(16)
+                label = segment.label
+                text_bbox = draw.textbbox((centroid_x, centroid_y), label, font=font)
+                draw.rectangle(text_bbox, fill="white")
+                draw.text((centroid_x, centroid_y), label, fill=tuple(color), font=font)
+
+        return await context.image_from_pil(image)
+
+    def generate_color_map(self, num_colors):
+        """Generate a list of distinct colors."""
+        colors = []
+        for i in range(num_colors):
+            r = int((i * 67) % 256)
+            g = int((i * 111) % 256)
+            b = int((i * 193) % 256)
+            colors.append((r, g, b))
+        return colors
 
 
 class Segmentation(HuggingFacePipelineNode):
@@ -327,6 +364,33 @@ class Segmentation(HuggingFacePipelineNode):
         self, context: ProcessingContext
     ) -> list[ImageSegmentationResult]:
         return await super().process(context)
+
+
+class SegmentOneObject(Segmentation):
+    """
+    Run image segmentation and extract a specific object.
+
+    Use cases:
+    - Extract a specific object from an image
+    - Isolate an object for further processing
+    - Remove the background from an image
+
+    Args:
+        label: The label of the object to extract.
+    """
+
+    label: str = Field(
+        default="",
+        title="Label",
+        description="The label of the object to extract",
+    )
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        results = await super().process(context)
+        for result in results:
+            if result.label == self.label:
+                return result.mask
+        raise ValueError(f"Object not found: {self.label}")
 
 
 class FindSegment(BaseNode):
@@ -559,11 +623,6 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> DataframeRef:
-        return await self.process_local_result(context, result)
 
     async def process_local_result(
         self, context: ProcessingContext, result: Any
@@ -1482,16 +1541,6 @@ class IPAdapter_SD15_Model(str, Enum):
     IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
 
 
-class StableDiffusionScheduler(str, Enum):
-    DDIMScheduler = "DDIMScheduler"
-    PNDMScheduler = "PNDMScheduler"
-    LMSDiscreteScheduler = "LMSDiscreteScheduler"
-    EulerDiscreteScheduler = "EulerDiscreteScheduler"
-    EulerAncestralDiscreteScheduler = "EulerAncestralDiscreteScheduler"
-    DPMSolverMultistepScheduler = "DPMSolverMultistepScheduler"
-    HeunDiscreteScheduler = "HeunDiscreteScheduler"
-
-
 class StableDiffusionBaseNode(BaseNode):
     prompt: str = Field(default="", description="The prompt for image generation.")
     negative_prompt: str = Field(
@@ -1596,32 +1645,34 @@ class StableDiffusion(StableDiffusionBaseNode):
     height: int = Field(
         default=512, ge=256, le=1024, description="Height of the generated image"
     )
+    _pipeline: StableDiffusionPipeline | None = None
 
     @classmethod
     def get_title(cls):
         return "Stable Diffusion"
 
     async def initialize(self, context: ProcessingContext):
-        if self._pipe is None:
-            self._pipe = StableDiffusionPipeline.from_pretrained(
+        if self._pipeline is None:
+            self._pipeline = StableDiffusionPipeline.from_pretrained(
                 self.model.value, torch_dtype=torch.float16, safety_checker=None
-            )
+            )  # type: ignore
+            assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
             if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
-                self._pipe.load_ip_adapter(
+                self._pipeline.load_ip_adapter(
                     "h94/IP-Adapter",
                     subfolder="models",
                     weight_name=self.ip_adapter_model,
                 )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipe is None:
+        if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
         generator = self._setup_generator()
         ip_adapter_image = await self._setup_ip_adapter(context)
 
-        image = self._pipe(
+        image = self._pipeline(
             prompt=self.prompt,
             negative_prompt=self.negative_prompt,
             num_inference_steps=self.num_inference_steps,
@@ -1632,7 +1683,9 @@ class StableDiffusion(StableDiffusionBaseNode):
             ip_adapter_image=ip_adapter_image,
             callback=self.progress_callback(context),
             callback_steps=1,
-        ).images[0]
+        ).images[  # type: ignore
+            0
+        ]
 
         return await context.image_from_pil(image)
 
@@ -1744,27 +1797,28 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
         le=1.0,
         description="Strength for Image-to-Image generation. Higher values allow for more deviation from the original image.",
     )
+    _pipeline: StableDiffusionImg2ImgPipeline | None = None
 
     @classmethod
     def get_title(cls):
         return "Stable Diffusion (Img2Img)"
 
     async def initialize(self, context: ProcessingContext):
-        if self._pipe is None:
-            self._pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
+        if self._pipeline is None:
+            self._pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(
                 self.model.value, torch_dtype=torch.float16, safety_checker=None
-            )
+            )  # type: ignore
             self._set_scheduler(self.scheduler)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipe is None:
+        if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
         generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
 
-        image = self._pipe(
+        image = self._pipeline(
             prompt=self.prompt,
             image=init_image,
             ip_adapter_image=ip_adapter_image,
@@ -1777,7 +1831,9 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
             generator=generator,
             callback=self.progress_callback(context),
             callback_steps=1,
-        ).images[0]
+        ).images[  # type: ignore
+            0
+        ]
 
         return await context.image_from_pil(image)
 
@@ -1896,22 +1952,23 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
         le=1.0,
         description="Strength for inpainting. Higher values allow for more deviation from the original image.",
     )
+    _pipeline: StableDiffusionInpaintPipeline | None = None
 
     @classmethod
     def get_title(cls):
         return "Stable Diffusion (Inpaint)"
 
     async def initialize(self, context: ProcessingContext):
-        if self._pipe is None:
-            self._pipe = StableDiffusionInpaintPipeline.from_pretrained(
+        if self._pipeline is None:
+            self._pipeline = StableDiffusionInpaintPipeline.from_pretrained(
                 "runwayml/stable-diffusion-inpainting",
                 torch_dtype=torch.float16,
                 safety_checker=None,
-            )
+            )  # type: ignore
             self._set_scheduler(self.scheduler)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipe is None:
+        if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
         generator = self._setup_generator()
@@ -1919,7 +1976,7 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
         mask_image = await context.image_to_pil(self.mask_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
 
-        image = self._pipe(
+        image = self._pipeline(
             prompt=self.prompt,
             image=init_image,
             mask_image=mask_image,
@@ -1933,7 +1990,9 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
             ip_adapter_image=ip_adapter_image,
             callback=self.progress_callback(context),
             callback_steps=1,
-        ).images[0]
+        ).images[  # type: ignore
+            0
+        ]
 
         return await context.image_from_pil(image)
 
@@ -2010,6 +2069,90 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         ]
 
         return await context.image_from_pil(image)
+
+
+class StableDiffusionLatentUpscale(StableDiffusionBaseNode):
+    """
+    Upscales an image using Stable Diffusion upscaler model.
+    image, upscaling, AI, stable-diffusion
+
+    Use cases:
+    - Enhance low-resolution images
+    - Improve image quality for printing or display
+    - Create high-resolution versions of small images
+    """
+
+    model: StableDiffusionModelId = Field(
+        default=StableDiffusionModelId.SD_V1_5,
+        description="The Stable Diffusion model to use for generation.",
+    )
+    init_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The initial image for Image-to-Image generation.",
+    )
+    num_upscale_steps: int = Field(
+        default=25,
+        ge=1,
+        le=100,
+        description="Number of upscaling steps.",
+    )
+    strength: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Strength for Image-to-Image generation. Higher values allow for more deviation from the original image.",
+    )
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        le=2**32 - 1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+    )
+
+    _pipeline: StableDiffusionImg2ImgPipeline | None = None
+    _upscaler: StableDiffusionLatentUpscalePipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(
+            self.model.value, torch_dtype=torch.float16, safety_checker=None
+        )  # type: ignore
+        self._upscaler = StableDiffusionLatentUpscalePipeline.from_pretrained(
+            "stabilityai/sd-x2-latent-upscaler",
+            torch_dtype=torch.float16,
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+        if self._upscaler is not None:
+            self._upscaler.to(device)
+        self._set_scheduler(self.scheduler)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        input_image = await context.image_to_tensor(self.init_image)
+
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        low_res_latents = self._pipeline.vae.encode(input_image).latents[0]
+        upscaled_image = self._upscaler(
+            prompt=self.prompt,
+            image=low_res_latents,
+            num_inference_steps=self.num_upscale_steps,
+            guidance_scale=self.guidance_scale,
+        ).images[  # type: ignore
+            0
+        ]
+
+        return await context.image_from_pil(upscaled_image)
+
+
+class StableDiffusionUpscale(StableDiffusionLatentUpscale):
+    pass
 
 
 class StableDiffusionXLModelId(str, Enum):
