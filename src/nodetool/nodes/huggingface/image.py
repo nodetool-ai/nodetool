@@ -366,33 +366,6 @@ class Segmentation(HuggingFacePipelineNode):
         return await super().process(context)
 
 
-class SegmentOneObject(Segmentation):
-    """
-    Run image segmentation and extract a specific object.
-
-    Use cases:
-    - Extract a specific object from an image
-    - Isolate an object for further processing
-    - Remove the background from an image
-
-    Args:
-        label: The label of the object to extract.
-    """
-
-    label: str = Field(
-        default="",
-        title="Label",
-        description="The label of the object to extract",
-    )
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        results = await super().process(context)
-        for result in results:
-            if result.label == self.label:
-                return result.mask
-        raise ValueError(f"Object not found: {self.label}")
-
-
 class FindSegment(BaseNode):
     """
     Extracts a specific segment from a list of segmentation masks.
@@ -404,7 +377,7 @@ class FindSegment(BaseNode):
         description="The segmentation masks to search",
     )
 
-    label: str = Field(
+    segment_label: str = Field(
         default="",
         title="Label",
         description="The label of the segment to extract",
@@ -412,9 +385,9 @@ class FindSegment(BaseNode):
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         for segment in self.segments:
-            if segment.label == self.label:
+            if segment.label == self.segment_label:
                 return segment.mask
-        raise ValueError(f"Segment not found: {self.label}")
+        raise ValueError(f"Segment not found: {self.segment_label}")
 
 
 class ObjectDetection(HuggingFacePipelineNode):

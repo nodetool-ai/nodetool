@@ -203,7 +203,7 @@ class ProcessingContext:
         node: BaseNode,
     ) -> str:
         """Generate a cache key for a node based on current user, node type and properties."""
-        return f"{self.user_id}:{node.get_node_type()}:{hash(repr(node.node_properties()))}"
+        return f"{self.user_id}:{node.get_node_type()}:{hash(repr(node.model_dump()))}"
 
     def get_cached_result(self, node: BaseNode) -> Any:
         """Get the cached result for a node."""

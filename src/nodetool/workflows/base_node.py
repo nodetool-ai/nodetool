@@ -669,7 +669,7 @@ class BaseNode(BaseModel):
         return cls.__props__
 
     def node_properties(self):
-        return {prop.name: getattr(self, prop.name) for prop in self.properties()}
+        return {name: getattr(self, name) for name in self.inherited_fields().keys()}
 
     async def convert_output(self, context: Any, output: Any) -> Any:
         if type(self.return_type()) is dict:
@@ -711,9 +711,9 @@ class BaseNode(BaseModel):
         This will be called before cache key is computed.
         Default implementation generates a seed for any field named seed.
         """
-        for prop in self.properties():
-            if "seed" in prop.name:
-                setattr(self, prop.name, context.get("seed", 0))
+        for name in self.inherited_fields().keys():
+            if "seed" in name:
+                setattr(self, name, context.get("seed", 0))
 
     async def process(self, context: Any) -> Any:
         """

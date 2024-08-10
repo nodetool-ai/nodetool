@@ -2,37 +2,13 @@
     "id": "inpainting",
     "access": "private",
     "created_at": "2024-08-10T21:40:43.442888",
-    "updated_at": "2024-08-10T21:46:13.235990",
+    "updated_at": "2024-08-10T23:17:03.584031",
     "name": "Inpainting",
-    "description": "Replace the face via inpainting",
+    "description": "Replace the face of an image with a new face",
     "thumbnail": "",
     "thumbnail_url": "/examples/inpainting.png",
     "graph": {
         "edges": [
-            {
-                "id": "2",
-                "source": "29",
-                "sourceHandle": "clip",
-                "target": "7",
-                "targetHandle": "clip"
-            },
-            {
-                "id": "3",
-                "source": "20",
-                "sourceHandle": "image",
-                "target": "26",
-                "targetHandle": "pixels"
-            },
-            {
-                "id": "ee8347d6-30f4-4ae1-b800-0ba7db0749cc",
-                "source": "20",
-                "sourceHandle": "image",
-                "target": "32",
-                "targetHandle": "image",
-                "ui_properties": {
-                    "className": "image"
-                }
-            },
             {
                 "id": "10",
                 "source": "6",
@@ -41,14 +17,11 @@
                 "targetHandle": "positive"
             },
             {
-                "id": "ee227a39-6d70-41b1-833c-0c9bf728753c",
-                "source": "32",
-                "sourceHandle": "output",
-                "target": "31",
-                "targetHandle": "image",
-                "ui_properties": {
-                    "className": "image"
-                }
+                "id": "2",
+                "source": "29",
+                "sourceHandle": "clip",
+                "target": "7",
+                "targetHandle": "clip"
             },
             {
                 "id": "9",
@@ -58,18 +31,34 @@
                 "targetHandle": "model"
             },
             {
-                "id": "4",
-                "source": "29",
-                "sourceHandle": "vae",
+                "id": "720eb177-8f79-45e8-a19a-b8a1aed0f309",
+                "source": "31",
+                "sourceHandle": "mask",
                 "target": "26",
-                "targetHandle": "vae"
+                "targetHandle": "mask",
+                "ui_properties": {
+                    "className": "comfy_mask"
+                }
             },
             {
-                "id": "17",
-                "source": "7",
-                "sourceHandle": "conditioning",
-                "target": "3",
-                "targetHandle": "negative"
+                "id": "f5b03d6b-b98b-42db-8b9d-67e00c975a03",
+                "source": "36",
+                "sourceHandle": "output",
+                "target": "37",
+                "targetHandle": "segments",
+                "ui_properties": {
+                    "className": "list"
+                }
+            },
+            {
+                "id": "94ad5417-91d3-4e11-9ba7-9beaf3660aa5",
+                "source": "37",
+                "sourceHandle": "output",
+                "target": "34",
+                "targetHandle": "image",
+                "ui_properties": {
+                    "className": "image"
+                }
             },
             {
                 "id": "7",
@@ -79,11 +68,14 @@
                 "targetHandle": "vae"
             },
             {
-                "id": "6",
-                "source": "3",
-                "sourceHandle": "latent",
-                "target": "8",
-                "targetHandle": "samples"
+                "id": "ad00fa5a-1a94-4785-8d2c-fe662d7e93f0",
+                "source": "34",
+                "sourceHandle": "output",
+                "target": "31",
+                "targetHandle": "image",
+                "ui_properties": {
+                    "className": "image"
+                }
             },
             {
                 "id": "721",
@@ -96,6 +88,37 @@
                 }
             },
             {
+                "id": "6",
+                "source": "3",
+                "sourceHandle": "latent",
+                "target": "8",
+                "targetHandle": "samples"
+            },
+            {
+                "id": "4",
+                "source": "29",
+                "sourceHandle": "vae",
+                "target": "26",
+                "targetHandle": "vae"
+            },
+            {
+                "id": "1515",
+                "source": "34",
+                "sourceHandle": "output",
+                "target": "35",
+                "targetHandle": "value",
+                "ui_properties": {
+                    "className": "image"
+                }
+            },
+            {
+                "id": "17",
+                "source": "7",
+                "sourceHandle": "conditioning",
+                "target": "3",
+                "targetHandle": "negative"
+            },
+            {
                 "id": "1",
                 "source": "29",
                 "sourceHandle": "clip",
@@ -103,20 +126,30 @@
                 "targetHandle": "clip"
             },
             {
-                "id": "24",
+                "id": "cf1bed87-6747-40a8-a503-8fb7e13cf9a4",
                 "source": "26",
                 "sourceHandle": "latent",
                 "target": "3",
-                "targetHandle": "latent_image"
+                "targetHandle": "latent_image",
+                "ui_properties": {
+                    "className": "comfy_latent"
+                }
             },
             {
-                "id": "720eb177-8f79-45e8-a19a-b8a1aed0f309",
-                "source": "31",
-                "sourceHandle": "mask",
+                "id": "3",
+                "source": "20",
+                "sourceHandle": "image",
                 "target": "26",
-                "targetHandle": "mask",
+                "targetHandle": "pixels"
+            },
+            {
+                "id": "da0a62d1-62f0-4643-9d31-7b0fc5620933",
+                "source": "20",
+                "sourceHandle": "image",
+                "target": "36",
+                "targetHandle": "image",
                 "ui_properties": {
-                    "className": "comfy_mask"
+                    "className": "image"
                 }
             }
         ],
@@ -125,13 +158,13 @@
                 "id": "6",
                 "type": "comfy.conditioning.CLIPTextEncode",
                 "data": {
-                    "text": "a girl in front of mountains"
+                    "text": "face of taylor swift"
                 },
                 "ui_properties": {
                     "selected": false,
                     "position": {
-                        "x": 613,
-                        "y": 417
+                        "x": 1190.5,
+                        "y": 396.25
                     },
                     "zIndex": 0,
                     "selectable": true
@@ -146,8 +179,8 @@
                 "ui_properties": {
                     "selected": false,
                     "position": {
-                        "x": 635.5,
-                        "y": 241.75
+                        "x": 1190.5,
+                        "y": 234.25
                     },
                     "zIndex": 0,
                     "selectable": true
@@ -162,8 +195,8 @@
                 "ui_properties": {
                     "selected": false,
                     "position": {
-                        "x": 635.5,
-                        "y": 79.25
+                        "x": 1190.5,
+                        "y": 575
                     },
                     "zIndex": 0,
                     "selectable": true
@@ -176,8 +209,8 @@
                 "ui_properties": {
                     "selected": false,
                     "position": {
-                        "x": 958,
-                        "y": 491.25
+                        "x": 1529,
+                        "y": 354
                     },
                     "zIndex": 0,
                     "selectable": true
@@ -189,14 +222,14 @@
                 "data": {
                     "ckpt_name": {
                         "type": "comfy.checkpoint_file",
-                        "name": "Realistic_Vision_V5.safetensors"
+                        "name": "Realistic_Vision_V6.0_NV_B1_fp16.safetensors"
                     }
                 },
                 "ui_properties": {
                     "selected": false,
                     "position": {
-                        "x": 416.5,
-                        "y": 325
+                        "x": 941.5,
+                        "y": 123.5
                     },
                     "zIndex": 0,
                     "selectable": true
@@ -207,15 +240,15 @@
                 "type": "comfy.image.LoadImage",
                 "data": {
                     "image": {
-                        "uri": "https://assets.nodetool.ai/8bcb903853f811ef875700006aa640e3.png",
+                        "uri": "http://app.nodetool.ai/examples/inpainting_input.png",
                         "type": "image"
                     }
                 },
                 "ui_properties": {
                     "selected": false,
                     "position": {
-                        "x": 8,
-                        "y": 86
+                        "x": 92,
+                        "y": 553.5
                     },
                     "zIndex": 0,
                     "selectable": true
@@ -225,19 +258,19 @@
                 "id": "3",
                 "type": "comfy.sampling.KSampler",
                 "data": {
-                    "seed": 2770233285,
-                    "seed_control_mode": 2770233285,
-                    "steps": 15,
+                    "seed": 3486928081,
+                    "seed_control_mode": 3486928081,
+                    "steps": 16,
                     "cfg": 8,
-                    "sampler_name": "heun",
+                    "sampler_name": "dpmpp_sde",
                     "scheduler": "normal",
                     "denoise": 0.5
                 },
                 "ui_properties": {
                     "selected": false,
                     "position": {
-                        "x": 812.5,
-                        "y": 329.5
+                        "x": 1390.5,
+                        "y": 272
                     },
                     "zIndex": 0,
                     "selectable": true
@@ -252,25 +285,8 @@
                 "ui_properties": {
                     "selected": false,
                     "position": {
-                        "x": 416.5,
-                        "y": 169.25
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "32",
-                "type": "huggingface.image.SegmentOneObject",
-                "data": {
-                    "model": "mattmdjaga/segformer_b2_clothes",
-                    "label": "Face"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 208,
-                        "y": 200.25
+                        "x": 941.5,
+                        "y": 530.5
                     },
                     "zIndex": 0,
                     "selectable": true
@@ -285,12 +301,78 @@
                 "ui_properties": {
                     "selected": false,
                     "position": {
-                        "x": 976,
-                        "y": 161
+                        "x": 1660,
+                        "y": 259
                     },
                     "zIndex": 0,
                     "width": 243,
                     "height": 257,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "34",
+                "type": "nodetool.image.transform.Blur",
+                "data": {
+                    "radius": 16
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 704,
+                        "y": 464.5
+                    },
+                    "zIndex": 0,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "35",
+                "type": "nodetool.workflows.base_node.Preview",
+                "data": {
+                    "name": "image_output_2024-08-10"
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 941.5,
+                        "y": 358.5
+                    },
+                    "zIndex": 0,
+                    "width": 150,
+                    "height": 150,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "36",
+                "type": "huggingface.image.Segmentation",
+                "data": {
+                    "model": "mattmdjaga/segformer_b2_clothes"
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 316.5,
+                        "y": 464.5
+                    },
+                    "zIndex": 0,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "37",
+                "type": "huggingface.image.FindSegment",
+                "data": {
+                    "segment_label": "Face"
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 524,
+                        "y": 464.5
+                    },
+                    "zIndex": 0,
                     "selectable": true
                 }
             }

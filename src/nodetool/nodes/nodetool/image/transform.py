@@ -129,7 +129,7 @@ class Blur(BaseNode):
     """
 
     image: ImageRef = Field(default=ImageRef(), description="The image to blur.")
-    radius: int = Field(default=2, ge=0, le=10, description="Blur radius.")
+    radius: int = Field(default=2, ge=0, le=128, description="Blur radius.")
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
