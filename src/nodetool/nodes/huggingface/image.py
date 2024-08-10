@@ -1501,7 +1501,9 @@ class StableCascade(BaseNode):
 class StableDiffusionModelId(str, Enum):
     SD_V1_5 = "runwayml/stable-diffusion-v1-5"
     REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
+    DREAMSHAPER = "Lykon/DreamShaper"
     DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
+    EPIC_PHOTOGASM = "Yntec/epiCPhotoGasm"
     INPAINTING = "runwayml/stable-diffusion-inpainting"
 
 
