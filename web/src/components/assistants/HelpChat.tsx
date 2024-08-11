@@ -5,6 +5,7 @@ import ChatView from './ChatView'; // Assuming ChatView is in the same directory
 import { Message, MessageCreateRequest } from '../../stores/ApiTypes';
 
 import { client } from '../../stores/ApiClient';
+import { Button } from '@mui/material';
 
 // API functions
 const fetchMessages = async (threadId: string): Promise<Message[]> => {
@@ -57,8 +58,7 @@ const HelpChat: React.FC = () => {
 
     return (
         <div className="help-chat">
-            <h2>Software Help Chat</h2>
-            <button onClick={resetThread}>Start New Chat</button>
+            <Button onClick={resetThread}>Start New Chat</Button>
             <ChatView
                 messages={messages}
                 showMessages={showMessages}

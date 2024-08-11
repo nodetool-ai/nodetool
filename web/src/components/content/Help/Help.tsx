@@ -307,9 +307,6 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
             <DataTypesList />
           </TabPanel>
           <TabPanel value={value} index={4}>
-            <Typography variant="h5" color="#999">
-              Chat
-            </Typography>
             <HelpChat />
           </TabPanel>
         </div>
