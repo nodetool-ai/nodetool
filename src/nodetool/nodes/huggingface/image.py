@@ -1517,6 +1517,11 @@ class IPAdapter_SD15_Model(str, Enum):
 
 
 class StableDiffusionBaseNode(BaseNode):
+    model: StableDiffusionModelId = Field(
+        default=StableDiffusionModelId.SD_V1_5,
+        description="The Stable Diffusion model to use for generation.",
+    )
+
     prompt: str = Field(default="", description="The prompt for image generation.")
     negative_prompt: str = Field(
         default="",
@@ -1609,11 +1614,6 @@ class StableDiffusion(StableDiffusionBaseNode):
     - Exploring AI-generated art for personal or professional use
     """
 
-    model: StableDiffusionModelId = Field(
-        default=StableDiffusionModelId.SD_V1_5,
-        description="The Stable Diffusion model to use for generation.",
-    )
-
     width: int = Field(
         default=512, ge=256, le=1024, description="Width of the generated image."
     )
@@ -1681,11 +1681,6 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
     - Create variations of existing images while maintaining specific features
     - Artistic image generation with guided outputs
     """
-
-    model: StableDiffusionModelId = Field(
-        default=StableDiffusionModelId.SD_V1_5,
-        description="The Stable Diffusion model to use for generation.",
-    )
 
     controlnet: StableDiffusionControlNetModel = Field(
         default=StableDiffusionControlNetModel.CANNY,
@@ -1757,11 +1752,6 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
     - Applying text-guided edits to images
     """
 
-    model: StableDiffusionModelId = Field(
-        default=StableDiffusionModelId.SD_V1_5,
-        description="The Stable Diffusion model to use for generation.",
-    )
-
     init_image: ImageRef = Field(
         default=ImageRef(),
         description="The initial image for Image-to-Image generation.",
@@ -1823,11 +1813,6 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
     - Fill in missing parts of images guided by control images
     - Modify specific areas of images while preserving the rest and maintaining structure
     """
-
-    model: StableDiffusionModelId = Field(
-        default=StableDiffusionModelId.SD_V1_5,
-        description="The Stable Diffusion model to use for generation.",
-    )
 
     class StableDiffusionControlNetModel(str, Enum):
         INPAINT = "lllyasviel/control_v11p_sd15_inpaint"
@@ -1984,11 +1969,6 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
     - Enhance image editing capabilities with AI-guided transformations
     """
 
-    model: StableDiffusionModelId = Field(
-        default=StableDiffusionModelId.SD_V1_5,
-        description="The Stable Diffusion model to use for generation.",
-    )
-
     controlnet: StableDiffusionControlNetModel = Field(
         default=StableDiffusionControlNetModel.CANNY,
         description="The ControlNet model to use for guidance.",
@@ -2057,10 +2037,6 @@ class StableDiffusionLatentUpscale(StableDiffusionBaseNode):
     - Create high-resolution versions of small images
     """
 
-    model: StableDiffusionModelId = Field(
-        default=StableDiffusionModelId.SD_V1_5,
-        description="The Stable Diffusion model to use for generation.",
-    )
     init_image: ImageRef = Field(
         default=ImageRef(),
         description="The initial image for Image-to-Image generation.",

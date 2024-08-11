@@ -242,6 +242,7 @@ const ChatView = ({
 
       {isLoading && <CircularProgress size={24} />}
 
+
       <div className="chat-controls">
         <div className="compose-message">
           <TextareaAutosize
