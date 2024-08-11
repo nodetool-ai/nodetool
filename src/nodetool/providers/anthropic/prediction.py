@@ -7,10 +7,16 @@ async def run_anthropic(
 ):
     assert prediction.model is not None, "Model is not set"
     client = Environment.get_anthropic_client()
+
+    params = prediction.params
+    if not "max_tokens" in params:
+        params["max_tokens"] = 4000
+
     message = await client.messages.create(
         model=prediction.model,
-        **prediction.params,
+        **params,
     )
+    print(params)
     yield PredictionResult(
         prediction=prediction,
         content=message.model_dump(),

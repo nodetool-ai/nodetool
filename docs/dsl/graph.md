@@ -19,6 +19,9 @@ Create a graph representation based on the given nodes.
 **Returns:**
 
 - **Graph**: A graph object containing the nodes and edges.
+**Args:**
+- **nodes**
+
 ### run
 
 Run the workflow with the given graph.
@@ -32,3 +35,8 @@ Run the workflow with the given graph.
 **Returns:**
 
 - **Any**: The result of the workflow execution.
+**Args:**
+- **graph (Graph)**
+- **user_id (str) (default: 1)**
+- **auth_token (str) (default: token)**
+

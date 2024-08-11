@@ -141,3 +141,8 @@ Translates a condition string with custom syntax into an SQLite-compatible SQL c
 
 
 - str: The translated SQL condition string compatible with SQLite.
+**Args:**
+- **condition (str)**
+
+**Returns:** str
+

@@ -6,7 +6,6 @@ A comfy node wraps around a comfy class and delegates processing to the actual
 
 Attributes:
 _comfy_class (str): The comfy class wrapped by this node.
-requires_capabilities (list[str]): List of capabilities required by this node.
 
 **Tags:** implementation. The comfy class is looed up in the NODE_CLASS_MAPPINGS.
 
@@ -25,6 +24,9 @@ Values will be converted for model files and enums.
 **Returns:**
 
 - **Any**: The result of the processing.
+**Args:**
+- **context (ProcessingContext)**
+
 ### convert_output
 
 Converts the output value.
@@ -41,6 +43,10 @@ Comfy data types are wrapped with their respective classes.
 **Returns:**
 
 - **Any**: The converted output value.
+**Args:**
+- **context (ProcessingContext)**
+- **value (typing.Any)**
+
 ## DensePoseModel
 
 An enumeration.

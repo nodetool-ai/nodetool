@@ -83,6 +83,8 @@ Use cases:
 - **scheduler** (Scheduler)
 - **sampler** (Sampler)
 - **input_image**: Input image for img2img (optional) (ImageRef)
+- **mask_image**: Mask image for img2img (optional) (ImageRef)
+- **grow_mask_by** (int)
 - **denoise** (float)
 - **hires_model**: Hires model checkpoint to load. (CheckpointFile)
 - **num_hires_steps** (int)
@@ -117,6 +119,8 @@ Use cases:
 - **scheduler** (Scheduler)
 - **sampler** (Sampler)
 - **input_image**: Input image for img2img (optional) (ImageRef)
+- **mask_image**: Mask image for img2img (optional) (ImageRef)
+- **grow_mask_by** (int)
 - **denoise** (float)
 
 ### initialize

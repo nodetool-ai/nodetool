@@ -81,6 +81,10 @@ export interface paths {
     /** Create */
     post: operations["create_api_messages__post"];
   };
+  "/api/messages/help": {
+    /** Create */
+    post: operations["create_api_messages_help_post"];
+  };
   "/api/messages/{message_id}": {
     /** Get */
     get: operations["get_api_messages__message_id__get"];
@@ -1717,6 +1721,36 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["Message"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Create */
+  create_api_messages_help_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MessageCreateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["Message"][];
         };
       };
       /** @description Validation Error */

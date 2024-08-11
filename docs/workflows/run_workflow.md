@@ -26,3 +26,11 @@ Runs a workflow asynchronously, with the option to run in a separate thread.
 **Returns:**
 
 - **AsyncGenerator[Any, None]**: An asynchronous generator that yields job updates and messages from the workflow.
+**Args:**
+- **req (RunJobRequest)**
+- **runner (nodetool.workflows.workflow_runner.WorkflowRunner | None) (default: None)**
+- **context (nodetool.workflows.processing_context.ProcessingContext | None) (default: None)**
+- **use_thread (bool) (default: False)**
+
+**Returns:** typing.AsyncGenerator[typing.Any, NoneType]
+

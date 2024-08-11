@@ -13,6 +13,11 @@ Convert OpenAI-style message list to Llama chat format.
 **Returns:**
 
 - **str**: The Llama chat format.
+**Args:**
+- **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
+
+**Returns:** str
+
 ### convert_to_openai_message
 
 Convert a message to an OpenAI message.
@@ -26,6 +31,11 @@ Convert a message to an OpenAI message.
 **Returns:**
 
 - **dict**: The OpenAI message.
+**Args:**
+- **message (ChatMessageParam)**
+
+**Returns:** typing.Union[openai.types.chat.chat_completion_system_message_param.ChatCompletionSystemMessageParam, openai.types.chat.chat_completion_user_message_param.ChatCompletionUserMessageParam, openai.types.chat.chat_completion_assistant_message_param.ChatCompletionAssistantMessageParam, openai.types.chat.chat_completion_tool_message_param.ChatCompletionToolMessageParam, openai.types.chat.chat_completion_function_message_param.ChatCompletionFunctionMessageParam]
+
 ### create_anthropic_completion
 
 Creates an anthropic completion by sending messages to the anthropic client.
@@ -50,6 +60,17 @@ Creates an anthropic completion by sending messages to the anthropic client.
 **Raises:**
 
 - **ValueError**: If no completion content is returned.
+**Args:**
+- **context (ProcessingContext)**
+- **model (FunctionModel)**
+- **node_id (str)**
+- **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
+- **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
+- **tool_choice (dict) (default: {})**
+- **kwargs**
+
+**Returns:** Message
+
 ### create_completion
 
 **Args:**
@@ -88,6 +109,17 @@ Creates an Ollama completion by sending messages to the Ollama client.
 **Raises:**
 
 - **ValueError**: If no completion content is returned.
+**Args:**
+- **context (ProcessingContext)**
+- **model (FunctionModel)**
+- **node_id (str)**
+- **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
+- **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
+- **tool_choice (dict) (default: {})**
+- **kwargs**
+
+**Returns:** Message
+
 ### create_openai_completion
 
 Creates an OpenAI completion using the provided messages.
@@ -107,6 +139,17 @@ Creates an OpenAI completion using the provided messages.
 **Returns:**
 
 - **Message**: The message returned by the OpenAI API.
+**Args:**
+- **context (ProcessingContext)**
+- **model (FunctionModel)**
+- **node_id (str)**
+- **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
+- **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
+- **tool_choice (dict) (default: {})**
+- **kwargs**
+
+**Returns:** Message
+
 ### default_serializer
 
 **Args:**
@@ -127,6 +170,11 @@ Create a JSON schema for a column.
 **Returns:**
 
 - **dict**: The JSON schema for the column.
+**Args:**
+- **column (ColumnDef)**
+
+**Returns:** dict
+
 ### message_content_to_openai_content_part
 
 Convert a message content to an OpenAI content part.
@@ -140,6 +188,11 @@ Convert a message content to an OpenAI content part.
 **Returns:**
 
 - **OpenAIChatCompletionContentPartParam**: The OpenAI content part.
+**Args:**
+- **content (nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent)**
+
+**Returns:** typing.Union[openai.types.chat.chat_completion_content_part_text_param.ChatCompletionContentPartTextParam, openai.types.chat.chat_completion_content_part_image_param.ChatCompletionContentPartImageParam]
+
 ### message_param
 
 Converts a given message object to the corresponding ChatMessageParam object based on the message role.
@@ -159,6 +212,11 @@ Converts a given message object to the corresponding ChatMessageParam object bas
 
 - **ValueError**: If the message role is unknown.
 - **AssertionError**: If the message content or tool call ID is not of the expected type.
+**Args:**
+- **message (Message)**
+
+**Returns:** ChatMessageParam
+
 ### parse_tool_calls
 
 Parse a tool call from a string.
@@ -195,6 +253,18 @@ Use process_tool_calls to execute the tool calls if needed.
 **Returns:**
 
 - **tuple[Message, list[ToolCall]]**: The assistant message and the tool calls.
+**Args:**
+- **context (ProcessingContext)**
+- **messages (typing.Sequence[nodetool.metadata.types.Message])**
+- **model (FunctionModel)**
+- **thread_id (str)**
+- **node_id (str)**
+- **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
+- **tool_choice (dict) (default: {})**
+- **kwargs**
+
+**Returns:** Message
+
 ### process_tool_calls
 
 Process tool calls in parallel.
@@ -213,6 +283,14 @@ It is required to call process_tool_responses if you want the chat model to resp
 **Returns:**
 
 - **Message**: The assistant message.
+**Args:**
+- **context (ProcessingContext)**
+- **thread_id (str)**
+- **tool_calls (typing.Sequence[nodetool.models.message.ToolCall])**
+- **tools (typing.Sequence[nodetool.chat.tools.Tool])**
+
+**Returns:** list
+
 ### process_tool_responses
 
 Process tool responses by the given chat model.
@@ -233,6 +311,15 @@ This is used to let the chat model use the result from the tool calls to generat
 **Returns:**
 
 The completion created.
+**Args:**
+- **context (ProcessingContext)**
+- **model (FunctionModel)**
+- **node_id (str)**
+- **thread_id (str)**
+- **messages (list)**
+- **tool_responses (typing.Sequence[nodetool.models.message.ToolCall])**
+- **kwargs**
+
 ### run_tool
 
 Executes a tool call requested by the chat model.
@@ -249,3 +336,11 @@ Executes a tool call requested by the chat model.
 **Returns:**
 
 - **ToolCall**: The tool call object containing the function name, arguments, and response.
+**Args:**
+- **context (ProcessingContext)**
+- **thread_id (str)**
+- **tool_call (ToolCall)**
+- **tools (typing.Sequence[nodetool.chat.tools.Tool])**
+
+**Returns:** ToolCall
+

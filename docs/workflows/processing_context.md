@@ -5,7 +5,7 @@
 The processing context is the workflow's interface to the outside world.
 
 Initialization and State Management:
-- Initializes the context with user ID, authentication token, workflow ID, graph edges, nodes, capabilities, and a message queue.
+- Initializes the context with user ID, authentication token, workflow ID, graph edges, nodes and a message queue.
 - Manages the results of processed nodes and keeps track of processed nodes.
 - Provides methods for popping and posting messages to the message queue.
 
@@ -39,6 +39,11 @@ Adds a model to the context.
 - **type (str)**: The type of the model.
 - **name (str)**: The name of the model.
 - **model (Any)**: The model to add.
+**Args:**
+- **type (str)**
+- **name (str)**
+- **model (typing.Any)**
+
 ### asset_storage_url
 
 Returns the URL of an asset in the asset storage.
@@ -47,6 +52,9 @@ Returns the URL of an asset in the asset storage.
 **Args:**
 
 - **key (str)**: The key of the asset.
+**Args:**
+- **key (str)**
+
 **Returns:** str
 
 ### asset_to_io
@@ -67,6 +75,11 @@ Converts an AssetRef object to an IO object.
 **Raises:**
 
 - **ValueError**: If the AssetRef is empty.
+**Args:**
+- **asset_ref (AssetRef)**
+
+**Returns:** IO
+
 ### audio_from_bytes
 
 Creates an AudioRef from a bytes object.
@@ -82,6 +95,13 @@ Creates an AudioRef from a bytes object.
 **Returns:**
 
 - **AudioRef**: The AudioRef object.
+**Args:**
+- **b (bytes)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** AudioRef
+
 ### audio_from_io
 
 Creates an AudioRef from an IO object.
@@ -97,6 +117,13 @@ Creates an AudioRef from an IO object.
 **Returns:**
 
 - **AudioRef**: The AudioRef object.
+**Args:**
+- **buffer (IO)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** AudioRef
+
 ### audio_from_numpy
 
 Creates an AudioRef from a numpy array.
@@ -110,6 +137,13 @@ Creates an AudioRef from a numpy array.
 - **num_channels (int, optional)**: The number of channels. Defaults to 1.
 - **name (Optional[str], optional)**: The name of the asset. Defaults to None.
 - **parent_id (Optional[str], optional)**: The parent ID of the asset. Defaults to None.
+**Args:**
+- **data (ndarray)**
+- **sample_rate (int)**
+- **num_channels (int) (default: 1)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
 **Returns:** AudioRef
 
 ### audio_from_segment
@@ -128,6 +162,14 @@ Converts an audio segment to an AudioRef object.
 **Returns:**
 
 - **AudioRef**: The converted AudioRef object.
+**Args:**
+- **audio_segment (AudioSegment)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+- **kwargs**
+
+**Returns:** AudioRef
+
 ### audio_to_audio_segment
 
 Converts the audio to an AudioSegment object.
@@ -136,6 +178,9 @@ Converts the audio to an AudioSegment object.
 **Args:**
 
 - **context (ProcessingContext)**: The processing context.
+**Args:**
+- **audio_ref (AudioRef)**
+
 **Returns:** AudioSegment
 
 ### audio_to_numpy
@@ -146,6 +191,9 @@ Converts the audio to a np.float32 array.
 **Args:**
 
 - **context (ProcessingContext)**: The processing context.
+**Args:**
+- **audio_ref (AudioRef)**
+
 **Returns:** tuple
 
 ### cache_result
@@ -171,6 +219,10 @@ Converts the property value for a remote api prediction on replicate or huggingf
 
 - **NotImplementedError**: If the self type is 'tensor' and not implemented.
 - **ValueError**: If the self value is an invalid enum value.
+**Args:**
+- **property (Property)**
+- **value (typing.Any)**
+
 ### create_asset
 
 Creates an asset with the given name, content type, content, and optional parent ID.
@@ -187,6 +239,14 @@ Creates an asset with the given name, content type, content, and optional parent
 **Returns:**
 
 - **Asset**: The created asset.
+**Args:**
+- **name (str)**
+- **content_type (str)**
+- **content (IO)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** Asset
+
 ### create_job
 
 Creates a job to run a workflow but does not execute it.
@@ -200,6 +260,11 @@ Creates a job to run a workflow but does not execute it.
 **Returns:**
 
 - **Job**: The created job.
+**Args:**
+- **req (RunJobRequest)**
+
+**Returns:** Job
+
 ### create_message
 
 Creates a message for a thread.
@@ -213,6 +278,9 @@ Creates a message for a thread.
 **Returns:**
 
 - **Message**: The created message.
+**Args:**
+- **req (MessageCreateRequest)**
+
 ### create_task
 
 Creates a task.
@@ -226,6 +294,9 @@ Creates a task.
 **Returns:**
 
 - **Task**: The created task.
+**Args:**
+- **task (TaskCreateRequest)**
+
 ### dataframe_from_pandas
 
 Converts a pandas DataFrame to a DataframeRef object.
@@ -240,6 +311,12 @@ Converts a pandas DataFrame to a DataframeRef object.
 **Returns:**
 
 - **DataframeRef**: The converted DataframeRef object.
+**Args:**
+- **data (DataFrame)**
+- **name (str | None) (default: None)**
+
+**Returns:** DataframeRef
+
 ### dataframe_to_pandas
 
 Converts a DataframeRef object to a pandas DataFrame.
@@ -253,6 +330,11 @@ Converts a DataframeRef object to a pandas DataFrame.
 **Returns:**
 
 - **pandas.DataFrame**: The converted pandas DataFrame.
+**Args:**
+- **df (DataframeRef)**
+
+**Returns:** DataFrame
+
 ### download_asset
 
 Downloads an asset from the asset storage api.
@@ -266,6 +348,11 @@ Downloads an asset from the asset storage api.
 **Returns:**
 
 - **IO**: The downloaded asset.
+**Args:**
+- **asset_id (str)**
+
+**Returns:** IO
+
 ### download_file
 
 Download a file from URL.
@@ -279,6 +366,11 @@ Download a file from URL.
 **Returns:**
 
 - **IO**: The downloaded file.
+**Args:**
+- **url (str)**
+
+**Returns:** IO
+
 ### find_asset
 
 Finds an asset by id.
@@ -292,6 +384,9 @@ Finds an asset by id.
 **Returns:**
 
 - **Asset**: The asset with the given ID.
+**Args:**
+- **asset_id (str)**
+
 ### find_node
 
 Finds a node by its ID.
@@ -310,6 +405,11 @@ Finds a node by its ID.
 **Raises:**
 
 - **ValueError**: If the node with the given ID does not exist.
+**Args:**
+- **node_id (str)**
+
+**Returns:** BaseNode
+
 ### from_estimator
 
 Create a model asset from an estimator.
@@ -324,6 +424,10 @@ Create a model asset from an estimator.
 **Returns:**
 
 - **ModelRef**: A reference to the created model asset.
+**Args:**
+- **est (BaseEstimator)**
+- **kwargs**
+
 ### generate_node_cache_key
 
 Generate a cache key for a node based on current user, node type and properties.
@@ -346,6 +450,12 @@ Gets the value of a variable from the context.
 **Returns:**
 
 - **Any**: The value of the variable.
+**Args:**
+- **key (str)**
+- **default (typing.Any) (default: None)**
+
+**Returns:** typing.Any
+
 ### get_asset_url
 
 Returns the asset url.
@@ -359,6 +469,9 @@ Returns the asset url.
 **Returns:**
 
 - **str**: The URL of the asset.
+**Args:**
+- **asset_id (str)**
+
 ### get_cached_result
 
 Get the cached result for a node.
@@ -384,6 +497,11 @@ Gets the status of a job.
 **Returns:**
 
 - **Job**: The job status.
+**Args:**
+- **job_id (str)**
+
+**Returns:** Job
+
 ### get_messages
 
 Gets messages for a thread.
@@ -400,6 +518,12 @@ Gets messages for a thread.
 **Returns:**
 
 - **MessageList**: The list of messages.
+**Args:**
+- **thread_id (str)**
+- **limit (int) (default: 10)**
+- **start_key (str | None) (default: None)**
+- **reverse (bool) (default: False)**
+
 ### get_model
 
 Gets a model from the context.
@@ -414,6 +538,12 @@ Gets a model from the context.
 **Returns:**
 
 - **Any**: The model.
+**Args:**
+- **type (str)**
+- **name (str)**
+
+**Returns:** typing.Any
+
 ### get_node_input_types
 
 Retrieves the input types for a given node, inferred from the output types of the source nodes.
@@ -428,6 +558,11 @@ Retrieves the input types for a given node, inferred from the output types of th
 
 - **dict[str, str]**: A dictionary containing the input types for the node, where the keys are the input slot names
 and the values are the types of the corresponding source nodes.
+**Args:**
+- **node_id (str)**
+
+**Returns:** dict
+
 ### get_node_inputs
 
 Retrieves the inputs for a given node.
@@ -442,6 +577,11 @@ Retrieves the inputs for a given node.
 
 - **dict[str, Any]**: A dictionary containing the inputs for the node, where the keys are the input slot names
 and the values are the results from the corresponding source nodes.
+**Args:**
+- **node_id (str)**
+
+**Returns:** dict
+
 ### get_result
 
 Get the result of a node.
@@ -458,6 +598,12 @@ Results are stored in the context's results dictionary after a node is processed
 **Returns:**
 
 - **Any**: The result of the node.
+**Args:**
+- **node_id (str)**
+- **slot (str)**
+
+**Returns:** typing.Any
+
 ### get_tasks
 
 Gets tasks for a thread.
@@ -471,6 +617,9 @@ Gets tasks for a thread.
 **Returns:**
 
 - **TaskList**: The list of tasks.
+**Args:**
+- **thread_id (str)**
+
 ### get_workflow
 
 Gets the workflow by ID.
@@ -487,6 +636,8 @@ Checks if the processing context has any messages in the message queue.
 - **bool**: True if the message queue is not empty, False otherwise.
 **Args:**
 
+**Returns:** bool
+
 ### http_get
 
 Sends an HTTP GET request to the specified URL.
@@ -500,6 +651,11 @@ Sends an HTTP GET request to the specified URL.
 **Returns:**
 
 - **bytes**: The response content.
+**Args:**
+- **url (str)**
+
+**Returns:** bytes
+
 ### http_post
 
 Sends an HTTP POST request to the specified URL.
@@ -514,6 +670,12 @@ Sends an HTTP POST request to the specified URL.
 **Returns:**
 
 - **bytes**: The response content.
+**Args:**
+- **url (str)**
+- **data (dict)**
+
+**Returns:** typing.Any
+
 ### image_from_base64
 
 Creates an ImageRef from a base64-encoded string.
@@ -529,6 +691,13 @@ Creates an ImageRef from a base64-encoded string.
 **Returns:**
 
 - **ImageRef**: The ImageRef object.
+**Args:**
+- **b64 (str)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** ImageRef
+
 ### image_from_bytes
 
 Creates an ImageRef from a bytes object.
@@ -544,6 +713,13 @@ Creates an ImageRef from a bytes object.
 **Returns:**
 
 - **ImageRef**: The ImageRef object.
+**Args:**
+- **b (bytes)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** ImageRef
+
 ### image_from_io
 
 Creates an ImageRef from an IO object.
@@ -559,6 +735,13 @@ Creates an ImageRef from an IO object.
 **Returns:**
 
 - **ImageRef**: The ImageRef object.
+**Args:**
+- **buffer (IO)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** ImageRef
+
 ### image_from_numpy
 
 Creates an ImageRef from a numpy array.
@@ -574,6 +757,13 @@ Creates an ImageRef from a numpy array.
 **Returns:**
 
 - **ImageRef**: The ImageRef object.
+**Args:**
+- **image (ndarray)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** ImageRef
+
 ### image_from_openai
 
 Creates an ImageRef from an OpenAI ImageFile object.
@@ -587,6 +777,11 @@ Creates an ImageRef from an OpenAI ImageFile object.
 **Returns:**
 
 - **ImageRef**: The ImageRef object.
+**Args:**
+- **file_id (str)**
+
+**Returns:** ImageRef
+
 ### image_from_pil
 
 Creates an ImageRef from a PIL Image object.
@@ -602,6 +797,13 @@ Creates an ImageRef from a PIL Image object.
 **Returns:**
 
 - **ImageRef**: The ImageRef object.
+**Args:**
+- **image (Image)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** ImageRef
+
 ### image_from_tensor
 
 Creates an ImageRef from a tensor.
@@ -615,6 +817,9 @@ Creates an ImageRef from a tensor.
 **Returns:**
 
 - **ImageRef**: The ImageRef object.
+**Args:**
+- **image_tensor (Tensor)**
+
 ### image_from_url
 
 Creates an ImageRef from a URL.
@@ -630,6 +835,13 @@ Creates an ImageRef from a URL.
 **Returns:**
 
 - **ImageRef**: The ImageRef object.
+**Args:**
+- **url (str)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** ImageRef
+
 ### image_to_base64
 
 Converts the image to a PNG base64-encoded string.
@@ -638,7 +850,23 @@ Converts the image to a PNG base64-encoded string.
 **Args:**
 
 - **context (ProcessingContext)**: The processing context.
+**Args:**
+- **image_ref (ImageRef)**
+
 **Returns:** str
+
+### image_to_numpy
+
+Converts the image to a numpy array.
+
+
+**Args:**
+
+- **context (ProcessingContext)**: The processing context.
+**Args:**
+- **image_ref (ImageRef)**
+
+**Returns:** ndarray
 
 ### image_to_pil
 
@@ -648,6 +876,9 @@ Converts the image to a PIL Image object.
 **Args:**
 
 - **context (ProcessingContext)**: The processing context.
+**Args:**
+- **image_ref (ImageRef)**
+
 **Returns:** Image
 
 ### image_to_tensor
@@ -658,6 +889,9 @@ Converts the image to a tensor.
 **Args:**
 
 - **context (ProcessingContext)**: The processing context.
+**Args:**
+- **image_ref (ImageRef)**
+
 **Returns:** Tensor
 
 ### paginate_assets
@@ -676,6 +910,13 @@ Lists top level assets if parent_id is None.
 **Returns:**
 
 - **AssetList**: The list of assets.
+**Args:**
+- **parent_id (str | None) (default: None)**
+- **page_size (int) (default: 100)**
+- **cursor (str | None) (default: None)**
+
+**Returns:** AssetList
+
 ### pop_message
 
 Removes and returns the next message from the message queue.
@@ -685,6 +926,8 @@ Removes and returns the next message from the message queue.
 
 The next message from the message queue.
 **Args:**
+
+**Returns:** nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.BinaryUpdate | nodetool.workflows.types.NodeProgress | nodetool.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.types.prediction.Prediction
 
 ### pop_message_async
 
@@ -698,6 +941,8 @@ processing.
 The retrieved message from the message queue.
 **Args:**
 
+**Returns:** nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.BinaryUpdate | nodetool.workflows.types.NodeProgress | nodetool.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.types.prediction.Prediction
+
 ### post_message
 
 Posts a message to the message queue.
@@ -706,6 +951,9 @@ Posts a message to the message queue.
 **Args:**
 
 - **message (ProcessingMessage)**: The message to be posted.
+**Args:**
+- **message (nodetool.workflows.types.NodeUpdate | nodetool.workflows.types.BinaryUpdate | nodetool.workflows.types.NodeProgress | nodetool.types.job.JobUpdate | nodetool.workflows.types.Error | nodetool.types.prediction.Prediction)**
+
 ### refresh_uri
 
 Refreshes the URI of the asset.
@@ -714,6 +962,9 @@ Refreshes the URI of the asset.
 **Args:**
 
 - **asset (AssetRef)**: The asset to refresh.
+**Args:**
+- **asset (AssetRef)**
+
 ### run_prediction
 
 Run a prediction on a third-party provider.
@@ -731,6 +982,15 @@ Run a prediction on a third-party provider.
 **Returns:**
 
 - **Any**: The result of the prediction.
+**Args:**
+- **node_id (str)**
+- **provider (Provider)**
+- **model (str)**
+- **params (dict[str, typing.Any] | None) (default: None)**
+- **data (typing.Any) (default: None)**
+
+**Returns:** typing.Any
+
 ### run_worker
 
 Runs the workflow using the provided graph and parameters.
@@ -745,6 +1005,11 @@ Runs the workflow using the provided graph and parameters.
 **Returns:**
 
 - **dict[str, Any]**: The result of running the workflow.
+**Args:**
+- **req (RunJobRequest)**
+
+**Returns:** dict
+
 ### set_result
 
 Set the result of a node.
@@ -756,6 +1021,10 @@ Results are stored in the context's results dictionary after a node is processed
 
 - **node_id (str)**: The ID of the node.
 - **res (dict[str, Any])**: The result of the node.
+**Args:**
+- **node_id (str)**
+- **res (dict)**
+
 ### text_from_str
 
 **Args:**
@@ -784,6 +1053,9 @@ The loaded estimator object.
 **Raises:**
 
 - **ValueError**: If the model reference is empty.
+**Args:**
+- **model_ref (ModelRef)**
+
 ### to_str
 
 Converts a TextRef to a string.
@@ -797,6 +1069,11 @@ Converts a TextRef to a string.
 **Returns:**
 
 - **str**: The string.
+**Args:**
+- **text_ref (nodetool.metadata.types.TextRef | str)**
+
+**Returns:** str
+
 ### update_job
 
 Updates the status of a job.
@@ -811,6 +1088,12 @@ Updates the status of a job.
 **Returns:**
 
 - **Job**: The updated job.
+**Args:**
+- **job_id (str)**
+- **req (JobUpdate)**
+
+**Returns:** Job
+
 ### update_task
 
 Updates a task.
@@ -825,6 +1108,10 @@ Updates a task.
 **Returns:**
 
 - **Task**: The updated task.
+**Args:**
+- **task_id (str)**
+- **task (TaskUpdateRequest)**
+
 ### video_from_io
 
 Creates an VideoRef from an IO object.
@@ -840,6 +1127,11 @@ Creates an VideoRef from an IO object.
 **Returns:**
 
 - **VideoRef**: The VideoRef object.
+**Args:**
+- **buffer (IO)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
 ### video_from_numpy
 
 Creates a VideoRef from a numpy array.
@@ -855,3 +1147,10 @@ Creates a VideoRef from a numpy array.
 **Returns:**
 
 - **VideoRef**: The VideoRef object.
+**Args:**
+- **video (ndarray)**
+- **name (str | None) (default: None)**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** VideoRef
+

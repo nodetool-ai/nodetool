@@ -29,6 +29,10 @@ Create a function tool from a workflow.
 **Raises:**
 
 - **ValueError**: If the workflow does not exist.
+**Args:**
+- **context (ProcessingContext)**
+- **workflow_id (str)**
+
 ### process_workflow_function
 
 Process a workflow with the given parameters.
@@ -40,6 +44,11 @@ If the node returns a prediction, wait for the prediction to complete.
 - **context (ProcessingContext)**: The processing context.
 - **name (str)**: The workflow_id
 - **params (dict)**: The parameters passed to the workflow.
+**Args:**
+- **context (ProcessingContext)**
+- **workflow_id (str)**
+- **params (dict)**
+
 **Returns:** typing.Any
 
 ### sanitize_node_name
@@ -55,3 +64,8 @@ Sanitize a node name.
 **Returns:**
 
 - **str**: The sanitized node name.
+**Args:**
+- **node_name (str)**
+
+**Returns:** str
+

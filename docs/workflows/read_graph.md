@@ -17,6 +17,11 @@ Convert a graph from the ComfyUI format to the ComfyUI API format.
 **Returns:**
 
 - **dict[str, Any]**: The graph in ComfyUI API format.
+**Args:**
+- **input_graph (dict)**
+
+**Returns:** dict
+
 ### create_edges
 
 Create Edge objects for a node's inputs.
@@ -33,6 +38,12 @@ Create Edge objects for a node's inputs.
 **Raises:**
 
 - **GraphParsingError**: If a referenced source node cannot be found.
+**Args:**
+- **edges (typing.List[nodetool.types.graph.Edge])**
+- **node_id (str)**
+- **node_data (typing.Dict[str, typing.Any])**
+- **node_by_id (typing.Dict[str, nodetool.types.graph.Node])**
+
 ### create_node
 
 Create a Node object from node data.
@@ -52,6 +63,12 @@ Create a Node object from node data.
 **Raises:**
 
 - **GraphParsingError**: If the node type cannot be determined or found.
+**Args:**
+- **node_id (str)**
+- **node_data (typing.Dict[str, typing.Any])**
+
+**Returns:** Node
+
 ### generate_edge_id
 
 Finds the highest ID in the list of edges and returns a new ID that is one higher.
@@ -73,6 +90,11 @@ Get the names of the widgets for a given node class.
 **Returns:**
 
 - **List[str]**: A list of widget names for the node class.
+**Args:**
+- **class_name (str)**
+
+**Returns:** typing.List[str]
+
 ### is_comfy_widget
 
 Check if the widget type is a Comfy widget.
@@ -86,6 +108,11 @@ Check if the widget type is a Comfy widget.
 **Returns:**
 
 - **bool**: True if the widget is a Comfy widget, False otherwise.
+**Args:**
+- **type (str | list)**
+
+**Returns:** bool
+
 ### read_graph
 
 This function reads a graph from a dictionary representation.
@@ -164,4 +191,6 @@ edges, nodes = read_graph(graph_json)
 ```
 **Args:**
 - **json (typing.Dict[str, typing.Any])**
+
+**Returns:** typing.Tuple[typing.List[nodetool.types.graph.Edge], typing.List[nodetool.types.graph.Node]]
 

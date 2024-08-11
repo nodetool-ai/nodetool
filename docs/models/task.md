@@ -10,7 +10,6 @@
 - **name** (str)
 - **instructions** (str)
 - **dependencies** (list)
-- **required_capabilities** (list)
 - **started_at** (datetime)
 - **finished_at** (datetime.datetime | None)
 - **error** (str | None)

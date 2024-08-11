@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Body
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException
 from nodetool.api.utils import current_user, User
-from nodetool.types.chat import MessageCreateRequest, MessageList
+from nodetool.chat.help import create_help_answer
 from nodetool.metadata.types import Message
 from nodetool.models.message import Message as MessageModel
 from nodetool.common.environment import Environment
-from typing import Optional
 
 from nodetool.models.thread import Thread
+from nodetool.types.chat import MessageCreateRequest, MessageList
+import os
 
 
 log = Environment.get_logger()
@@ -36,6 +38,41 @@ async def create(
             created_at=datetime.now(),
         )
     )
+
+
+@router.post("/help")
+async def help(
+    req: MessageCreateRequest, user: User = Depends(current_user)
+) -> list[Message]:
+    if req.thread_id is None:
+        thread_id = Thread.create(user_id=user.id).id
+    else:
+        thread_id = req.thread_id
+
+    history, _ = MessageModel.paginate(thread_id=thread_id)
+    user_message = MessageModel.create(
+        user_id=user.id,
+        thread_id=thread_id,
+        tool_call_id=req.tool_call_id,
+        role=req.role,
+        name=req.name,
+        content=req.content,
+        tool_calls=req.tool_calls,
+        created_at=datetime.now(),
+    )
+    history.append(user_message)
+    messages = [Message.from_model(message) for message in history]
+    answer = await create_help_answer(user, thread_id, messages)
+    MessageModel.create(
+        user_id=user.id,
+        thread_id=thread_id,
+        role=answer.role,
+        content=answer.content,
+        tool_calls=answer.tool_calls,
+        created_at=datetime.now(),
+    )
+
+    return messages + [answer]
 
 
 @router.get("/{message_id}")

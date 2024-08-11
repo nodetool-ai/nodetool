@@ -131,6 +131,7 @@ const styles = (theme: any) =>
   });
 
 type ChatViewProps = {
+  isLoading?: boolean;
   messages: Array<Message>;
   showMessages?: boolean;
   setShowMessages?: (show: boolean) => void;
@@ -151,7 +152,7 @@ const MessageView = (msg: Message) => {
   return (
     <li className={messageClass} key={msg.id}>
       {typeof msg.content === "string" && (
-        <Typography>{msg.content}</Typography>
+        <MarkdownRenderer key={msg.id} content={msg.content || ""} />
       )}
       {Array.isArray(content) &&
         content.map((c: MessageContent, i: number) => {
@@ -168,6 +169,7 @@ const MessageView = (msg: Message) => {
 };
 
 const ChatView = ({
+  isLoading,
   messages,
   showMessages,
   setShowMessages,
@@ -237,6 +239,8 @@ const ChatView = ({
           {loading && <CircularProgress size={24} />}
         </ul>
       )}
+
+      {isLoading && <CircularProgress size={24} />}
 
       <div className="chat-controls">
         <div className="compose-message">

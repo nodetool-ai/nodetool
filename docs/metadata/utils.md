@@ -13,6 +13,9 @@ Check if a type is an async generator.
 **Returns:**
 
 True if the type is an async generator, False otherwise.
+**Args:**
+- **t**
+
 ### is_class
 
 **Args:**
@@ -33,6 +36,9 @@ Check if a type is a dictionary.
 **Returns:**
 
 True if the type is a dictionary, False otherwise.
+**Args:**
+- **t**
+
 ### is_enum_type
 
 Check if a type is an enum.
@@ -46,6 +52,9 @@ Check if a type is an enum.
 **Returns:**
 
 True if the type is an enum, False otherwise.
+**Args:**
+- **t**
+
 ### is_generator_type
 
 Check if a type is a generator.
@@ -59,6 +68,9 @@ Check if a type is a generator.
 **Returns:**
 
 True if the type is a generator, False otherwise.
+**Args:**
+- **t**
+
 ### is_list_type
 
 Check if a type is a list.
@@ -72,6 +84,9 @@ Check if a type is a list.
 **Returns:**
 
 True if the type is a list, False otherwise.
+**Args:**
+- **t**
+
 ### is_number_type
 
 Check if a type is a number.
@@ -85,6 +100,9 @@ Check if a type is a number.
 **Returns:**
 
 True if the type is a number, False otherwise.
+**Args:**
+- **t**
+
 ### is_optional_type
 
 Check if a type is an optional type.
@@ -98,6 +116,9 @@ Check if a type is an optional type.
 **Returns:**
 
 True if the type is an optional type, False otherwise.
+**Args:**
+- **t**
+
 ### is_union_type
 
 Check if a type is a union.
@@ -111,3 +132,6 @@ Check if a type is a union.
 **Returns:**
 
 True if the type is a union, False otherwise.
+**Args:**
+- **t**
+
