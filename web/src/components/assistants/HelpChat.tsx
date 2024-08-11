@@ -27,7 +27,8 @@ const HelpChat: React.FC = () => {
     const [showMessages, setShowMessages] = useState(true);
     const [threadId, setThreadId] = useState<string>(uuidv4());
     const queryClient = useQueryClient();
-    const { data: messages = [] } = useQuery(['chatMessages', threadId], () => fetchMessages(threadId));
+    const { data: messages = [] } = useQuery(['chatMessages', threadId], () => fetchMessages(threadId),
+        { staleTime: 60000 * 60 * 24, cacheTime: 60000 * 60 * 24 });
 
     const mutation = useMutation(sendMessage, {
         onSuccess: (messages) => {
