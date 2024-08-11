@@ -5,6 +5,8 @@ import { Typography, Button, Tabs, Tab, Box } from "@mui/material";
 import { useState } from "react";
 import DataTypesList from "./DataTypesList";
 import CloseButton from "../../buttons/CloseButton";
+import ChatView from "../../assistants/ChatView";
+import HelpChat from "../../assistants/HelpChat";
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -113,6 +115,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
             <Tab label="Values" />
             <Tab label="Shortcuts" />
             <Tab label="DataTypes" />
+            <Tab label="Chat" />
           </Tabs>
         </div>
         <div className="content">
@@ -302,6 +305,12 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
           </TabPanel>
           <TabPanel value={value} index={3}>
             <DataTypesList />
+          </TabPanel>
+          <TabPanel value={value} index={4}>
+            <Typography variant="h5" color="#999">
+              Chat
+            </Typography>
+            <HelpChat />
           </TabPanel>
         </div>
       </div>

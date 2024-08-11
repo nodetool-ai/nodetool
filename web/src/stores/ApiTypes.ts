@@ -25,6 +25,7 @@ export type NodeMetadata = components["schemas"]["NodeMetadata"];
 export type TypeMetadata = components["schemas"]["TypeMetadata"];
 export type Message = components["schemas"]["Message"];
 export type Prediction = components["schemas"]["Prediction"];
+export type MessageCreateRequest = components["schemas"]["MessageCreateRequest"];
 export type MessageList = components["schemas"]["MessageList"];
 export type MessageTextContent = components["schemas"]["MessageTextContent"];
 export type MessageImageContent = components["schemas"]["MessageImageContent"];

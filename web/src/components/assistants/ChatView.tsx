@@ -134,7 +134,7 @@ type ChatViewProps = {
   messages: Array<Message>;
   showMessages?: boolean;
   setShowMessages?: (show: boolean) => void;
-  sendMessage: (prompt: string, token: string) => Promise<void>;
+  sendMessage: (prompt: string) => Promise<void>;
 };
 
 const MessageView = (msg: Message) => {
@@ -170,7 +170,8 @@ const MessageView = (msg: Message) => {
 const ChatView = ({
   messages,
   showMessages,
-  setShowMessages
+  setShowMessages,
+  sendMessage
 }: ChatViewProps) => {
   const { isKeyPressed } = useKeyPressedStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -206,7 +207,7 @@ const ChatView = ({
     if (!loading && prompt.length > 0) {
       try {
         setPrompt("");
-        // sendMessage(prompt, user?.auth_token || "");
+        sendMessage(prompt);
       } catch (error) {
         console.error("Error sending help message:", error);
       }
