@@ -45,15 +45,8 @@ const HelpChat: React.FC = () => {
         await mutation.mutateAsync(messageRequest);
     }, [threadId, mutation]);
 
-    const resetThread = () => {
-        const newThreadId = uuidv4();
-        setThreadId(newThreadId);
-        queryClient.setQueryData(['chatMessages', newThreadId], []);
-    };
-
     return (
         <div className="help-chat">
-            <Button onClick={resetThread}>Start New Chat</Button>
             <ChatView
                 isLoading={mutation.isLoading}
                 messages={messages}

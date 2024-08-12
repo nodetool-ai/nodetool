@@ -2,11 +2,10 @@
 import { css } from "@emotion/react";
 
 import { Typography, Button, Tabs, Tab, Box } from "@mui/material";
-import { useState } from "react";
-import DataTypesList from "./DataTypesList";
 import CloseButton from "../../buttons/CloseButton";
-import ChatView from "../../assistants/ChatView";
 import HelpChat from "../../assistants/HelpChat";
+import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
+import DataTypesList from "./DataTypesList";
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -72,15 +71,14 @@ const helpStyles = (theme: any) =>
       p: {
         minWidth: "240px",
         borderRight: `1px solid ${theme.palette.c_gray3}`,
-        fontFamily: theme.fontFamily1
+        fontFamily: theme.fontFamily
       },
       button: {
         marginTop: "2px",
         border: `1px solid ${theme.palette.c_gray3}`,
         padding: "1px 6px",
         textAlign: "left",
-        lineHeight: "1.2em",
-        wordSpacing: "-0.2em",
+        lineHeight: "1.3em",
         "&.no-border": {
           border: "0"
         }
@@ -98,10 +96,9 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const Help = ({ handleClose }: { handleClose: () => void }) => {
-  const [value, setValue] = useState(0);
-
+  const { helpIndex, setHelpIndex } = useAppHeaderStore();
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue);
+    setHelpIndex(newValue);
   };
 
   return (
@@ -110,7 +107,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
       <div className="help">
         <div className="top">
           <Typography variant="h4">Help</Typography>
-          <Tabs className="help-tabs" value={value} onChange={handleChange}>
+          <Tabs className="help-tabs" value={helpIndex} onChange={handleChange}>
             <Tab label="Nodes" />
             <Tab label="Values" />
             <Tab label="Shortcuts" />
@@ -119,7 +116,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
           </Tabs>
         </div>
         <div className="content">
-          <TabPanel value={value} index={0}>
+          <TabPanel value={helpIndex} index={0}>
             <Typography variant="h5" color="#999">
               Create Nodes
             </Typography>
@@ -186,7 +183,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <Button className="no-border">Right click on empty canvas</Button>
             </div>
           </TabPanel>
-          <TabPanel value={value} index={1}>
+          <TabPanel value={helpIndex} index={1}>
             <Typography variant="h5" color="#999">
               Edit Values
             </Typography>
@@ -230,7 +227,7 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
             </div>
           </TabPanel>
 
-          <TabPanel value={value} index={2}>
+          <TabPanel value={helpIndex} index={2}>
             <Typography variant="h5" color="#999">
               Menu
             </Typography>
@@ -303,10 +300,10 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <Button>ESC</Button>
             </div>
           </TabPanel>
-          <TabPanel value={value} index={3}>
+          <TabPanel value={helpIndex} index={3}>
             <DataTypesList />
           </TabPanel>
-          <TabPanel value={value} index={4}>
+          <TabPanel value={helpIndex} index={4}>
             <HelpChat />
           </TabPanel>
         </div>

@@ -23,6 +23,7 @@ import { useNodeStore } from "../../stores/NodeStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { VERSION } from "../../config/constants";
+import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 
 const styles = (theme: any) =>
   css({
@@ -221,6 +222,8 @@ const OpenOrCreateDialog = () => {
     }
   };
 
+  const { handleOpenWelcome, handleOpenHelp, handleOpenChat } = useAppHeaderStore();
+
   const sortedWorkflows = data?.workflows.sort((a, b) => {
     if (settings.workflowOrder === "name") {
       return a.name.localeCompare(b.name);
@@ -295,6 +298,15 @@ const OpenOrCreateDialog = () => {
           </Button>
           <Button color="primary" onClick={handleNavigateExampleWorkflows}>
             Examples
+          </Button>
+          <Button color="primary" onClick={handleOpenWelcome}>
+            Getting Started
+          </Button>
+          <Button color="primary" onClick={handleOpenHelp}>
+            Shortcuts
+          </Button>
+          <Button color="primary" onClick={handleOpenChat}>
+            Chat
           </Button>
         </div>
 

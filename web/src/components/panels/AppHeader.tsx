@@ -42,6 +42,7 @@ import useWorkflowRunnner from "../../stores/WorkflowRunner";
 // components
 import Logo from "../Logo";
 import Welcome from "../content/Welcome/Welcome";
+import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -207,28 +208,15 @@ function AppHeader() {
   //   });
   // };
 
-  const [helpOpen, setHelpOpen] = useState(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(false);
 
-  // open help popover
-  const handleOpenHelp = () => {
-    setHelpOpen(true);
-  };
-
-  // close help popover
-  const handleCloseHelp = () => {
-    setHelpOpen(false);
-  };
-
-  // open welcome popover
-  const handleOpenWelcome = () => {
-    setWelcomeOpen(true);
-  };
-
-  // close welcome popover
-  const handleCloseWelcome = () => {
-    setWelcomeOpen(false);
-  };
+  const {
+    helpOpen,
+    welcomeOpen,
+    handleOpenHelp,
+    handleCloseHelp,
+    handleOpenWelcome,
+    handleCloseWelcome,
+  } = useAppHeaderStore();
 
   // node menu
   const handleOpenNodeMenu = () => {
@@ -325,9 +313,8 @@ function AppHeader() {
               <Button
                 aria-controls="simple-menu"
                 aria-haspopup="true"
-                className={`nav-button ${
-                  path.startsWith("/workflows") ? "active" : ""
-                }`}
+                className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
+                  }`}
                 onClick={() => navigate("/workflows")}
               >
                 <WorkflowsIcon />
@@ -419,9 +406,8 @@ function AppHeader() {
           <Button
             onClick={handleNavigateToLastWorkflow}
             disabled={path.startsWith("/editor")}
-            className={`last-workflow ${
-              path.startsWith("/editor") ? "disabled" : ""
-            }`}
+            className={`last-workflow ${path.startsWith("/editor") ? "disabled" : ""
+              }`}
           >
             {lastWorkflow?.name}
             {workflowIsDirty && <span>*</span>}
