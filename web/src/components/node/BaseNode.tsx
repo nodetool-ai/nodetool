@@ -150,11 +150,11 @@ export default memo(
       nodeMetadata.outputs.length > 0
         ? nodeMetadata.outputs[0]
         : {
-            name: "output",
-            type: {
-              type: "string",
-            },
-          };
+          name: "output",
+          type: {
+            type: "string",
+          },
+        };
 
     return (
       <Container
@@ -195,8 +195,6 @@ export default memo(
           onlyFields={isConstantNode}
           onlyHandles={false}
           edges={edges}
-          primaryField={nodeMetadata.primary_field || ""}
-          secondaryField={nodeMetadata.secondary_field || ""}
         />
         {renderedResult}
         {nodeMetadata.layout === "default" && (

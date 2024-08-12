@@ -12,8 +12,6 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     namespace: "default",
     node_type: "nodetool.workflows.base_node.Preview",
     layout: "default",
-    primary_field: "value",
-    secondary_field: "",
     properties: [
       {
         name: "value",
