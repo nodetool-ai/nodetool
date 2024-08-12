@@ -1,7 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
 import { Box, Divider, Typography } from "@mui/material";
-import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import AudioPlayer from "../audio/AudioPlayer";
 import AssetActionsMenu from "./AssetActionsMenu";
@@ -163,15 +170,16 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     [currentFolderId, uploadAsset]
   );
 
-  const handleSearchChange = (newSearchTerm: string) => {
+  const handleSearchChange = useCallback((newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
-  };
+  }, []);
 
-  const handleSearchClear = () => {
+  const handleSearchClear = useCallback(() => {
     setSearchTerm("");
-  };
+  }, []);
 
-  useEffect(() => {}, [currentAudioAsset]);
+  const memoizedFolders = useMemo(() => folders, [folders]);
+  const memoizedOtherAssets = useMemo(() => otherAssets, [otherAssets]);
 
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
@@ -196,15 +204,11 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             flexDirection: isHorizontal ? "row" : "column",
           }}
         >
-          <FolderList
-            folders={folders}
-            isHorizontal={isHorizontal}
-            // selectedAssetIds={selectedAssetIds}
-            // handleSelectAsset={handleSelectAsset}
-            // setCurrentFolderId={setCurrentFolderId}
+          <FolderList folders={memoizedFolders} isHorizontal={isHorizontal} />
+          <AssetGridContent
+            itemSpacing={itemSpacing}
+            assets={memoizedOtherAssets}
           />
-
-          <AssetGridContent itemSpacing={itemSpacing} assets={otherAssets} />
         </div>
       </Dropzone>
       <Divider />

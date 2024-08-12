@@ -123,10 +123,11 @@
 .dropzone p.centered {
   margin: auto;
   text-align: left;
-  padding: 2px 4px;
+  padding: .4em .5em 0;
   min-width: 60px;
   min-height: 14px;
   line-height: 1.1em;
+  font-family: var(--font_family2);
   word-spacing: -2px;
   font-size: var(--font-size-tiny);
   color: var(--c_gray4);

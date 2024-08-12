@@ -9,6 +9,8 @@ import { useAssetActions } from "./useAssetActions";
 import DeleteButton from "../buttons/DeleteButton";
 import { useAssetStore } from "../../hooks/AssetStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
+import useAssets from "../../serverState/useAssets";
+import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 
 const styles = (theme: any) =>
   css({
@@ -83,12 +85,10 @@ const styles = (theme: any) =>
 
 export interface FolderItemProps {
   folder: Asset;
-  isSelected: boolean;
+  // isSelected: boolean;
   isParent?: boolean;
   onSelect: () => void;
   onClickParent?: (id: string) => void;
-  // onDoubleClick: (id: string) => void;
-  // onMoveToFolder?: () => void;
   enableContextMenu?: boolean;
   showDeleteButton?: boolean;
   openDeleteDialog?: () => void;
@@ -96,15 +96,12 @@ export interface FolderItemProps {
 
 const FolderItem: React.FC<FolderItemProps> = ({
   folder,
-  isSelected,
   isParent,
   onSelect,
   onClickParent,
-  // onDoubleClick,
-  // onMoveToFolder,
   enableContextMenu = true,
   showDeleteButton = true,
-  openDeleteDialog,
+  // openDeleteDialog,
 }) => {
   const {
     isDragHovered,
@@ -130,6 +127,10 @@ const FolderItem: React.FC<FolderItemProps> = ({
     },
     [setCurrentFolderId, setSelectedAssetIds]
   );
+
+  const { sortedAssets } = useAssets();
+  const { selectedAssetIds } = useAssetSelection(sortedAssets);
+  const isSelected = selectedAssetIds.includes(folder.id);
 
   return (
     <div

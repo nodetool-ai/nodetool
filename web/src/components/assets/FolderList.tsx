@@ -9,7 +9,7 @@ import useAssets from "../../serverState/useAssets";
 const INITIAL_FOLDER_LIST_HEIGHT = 150;
 const MIN_FOLDER_LIST_HEIGHT = 100;
 const MAX_FOLDER_LIST_HEIGHT = 800;
-const RESIZE_HANDLE_HEIGHT = 10;
+const RESIZE_HANDLE_HEIGHT = 20;
 const LIST_MIN_WIDTH = "300px"; // used if isHorizontal
 
 const styles = (theme: any) =>
@@ -33,7 +33,6 @@ const styles = (theme: any) =>
     ".resize-handle": {
       position: "absolute",
       borderBottom: "5px solid" + theme.palette.c_gray1,
-      paddingBottom: "15px",
       bottom: 0,
       left: 0,
       right: 0,
@@ -42,7 +41,7 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray2,
       transition: "background-color 0.2s ease",
       "&:hover, &.resizing": {
-        backgroundColor: theme.palette.primary.main,
+        backgroundColor: "#4c4c4c",
       },
       "&::after": {
         content: '""',
@@ -55,6 +54,9 @@ const styles = (theme: any) =>
         borderRadius: "2px",
         backgroundColor: theme.palette.c_gray0,
       },
+    },
+    ".resize-handle:hover::after, .resize-handle.resizing::after": {
+      backgroundColor: theme.palette.c_hl1,
     },
   });
 
@@ -135,7 +137,6 @@ const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
           <FolderItem
             key={folder.id}
             folder={folder}
-            isSelected={selectedAssetIds.includes(folder.id)}
             onSelect={() => handleSelectAsset(folder.id)}
           />
         ))}
