@@ -8,11 +8,13 @@ from comfy_extras.nodes_custom_sampler import (
     KSamplerSelect,
     RandomNoise,
     SamplerCustomAdvanced,
+    SplitSigmasDenoise,
 )
 from comfy_extras.nodes_flux import FluxGuidance
 from nodes import (
     CLIPTextEncode,
     CheckpointLoaderSimple,
+    ControlNetApply,
     ControlNetLoader,
     DualCLIPLoader,
     EmptyLatentImage,
@@ -274,15 +276,15 @@ class ControlNet(BaseNode):
     height: int = Field(default=768, ge=64, le=2048, multiple_of=64)
     scheduler: Scheduler = Field(default=Scheduler.exponential)
     sampler: Sampler = Field(default=Sampler.euler_ancestral)
-    input_image: Optional[ImageRef] = Field(
-        default=None, description="Input image for img2img (optional)"
+    input_image: ImageRef = Field(
+        default=ImageRef(), description="Input image for img2img (optional)"
     )
     denoise: float = Field(default=0.0, ge=0.0, le=1.0)
-    canny_image: Optional[ImageRef] = Field(
-        default=None, description="Canny edge detection image for ControlNet"
+    canny_image: ImageRef = Field(
+        default=ImageRef(), description="Canny edge detection image for ControlNet"
     )
-    depth_image: Optional[ImageRef] = Field(
-        default=None, description="Depth map image for ControlNet"
+    depth_image: ImageRef = Field(
+        default=ImageRef(), description="Depth map image for ControlNet"
     )
     canny_strength: float = Field(
         default=1.0, ge=0.0, le=1.0, description="Strength of Canny ControlNet"
@@ -312,25 +314,16 @@ class ControlNet(BaseNode):
         )[0]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        from nodes import (
-            CLIPTextEncode,
-            EmptyLatentImage,
-            KSampler,
-            VAEDecode,
-            VAEEncode,
-            ControlNetApply,
-        )
-        import PIL.Image
-        import numpy as np
-        import torch
-
         clip_text_encode = CLIPTextEncode()
         positive_conditioning = clip_text_encode.encode(self._clip, self.prompt)[0]
         negative_conditioning = clip_text_encode.encode(
             self._clip, self.negative_prompt
         )[0]
 
-        if self.input_image:
+        if self.input_image.is_empty():
+            empty_latent = EmptyLatentImage()
+            latent = empty_latent.generate(self.width, self.height, 1)[0]
+        else:
             input_pil = await context.image_to_pil(self.input_image)
             input_pil = input_pil.resize(
                 (self.width, self.height), PIL.Image.Resampling.LANCZOS
@@ -341,9 +334,6 @@ class ControlNet(BaseNode):
 
             vae_encode = VAEEncode()
             latent = vae_encode.encode(self._vae, input_tensor)[0]
-        else:
-            empty_latent = EmptyLatentImage()
-            latent = empty_latent.generate(self.width, self.height, 1)[0]
 
         control_nets = []
         control_hints = []
@@ -433,6 +423,10 @@ class Flux(BaseNode):
     realism_strength: float = Field(default=0.0, ge=0.0, le=1.0)
     scheduler: Scheduler = Field(default=Scheduler.simple)
     sampler: Sampler = Field(default=Sampler.euler)
+    denoise: float = Field(default=0.0, ge=0.0, le=1.0)
+    input_image: ImageRef = Field(
+        default=ImageRef(), description="Input image for img2img (optional)"
+    )
     noise_seed: int = Field(default=689015878, ge=0, le=1000000000)
 
     _vae: Optional[VAE] = None
@@ -454,20 +448,29 @@ class Flux(BaseNode):
         )[0]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        empty_latent = EmptyLatentImage().generate(
-            self.width, self.height, self.batch_size
-        )[0]
+        if self.input_image.is_empty():
+            latent = EmptyLatentImage().generate(
+                self.width, self.height, self.batch_size
+            )[0]
+        else:
+            input_pil = await context.image_to_pil(self.input_image)
+            input_pil = input_pil.resize(
+                (self.width, self.height), PIL.Image.Resampling.LANCZOS
+            )
+            image = input_pil.convert("RGB")
+            image = np.array(image).astype(np.float32) / 255.0
+            input_tensor = torch.from_numpy(image)[None,]
+            latent = VAEEncode().encode(self._vae, input_tensor)[0]
 
         conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
         conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
 
-        # Set up sampler and scheduler
         sampler = KSamplerSelect().get_sampler(self.sampler.value)[0]
         sigmas = BasicScheduler().get_sigmas(
-            self._unet,
-            self.scheduler.value,
-            self.steps,
-            1,
+            model=self._unet,
+            scheduler=self.scheduler.value,
+            steps=self.steps,
+            denoise=self.denoise,
         )[0]
         model = LoraLoaderModelOnly().load_lora_model_only(
             self._unet,
@@ -479,7 +482,7 @@ class Flux(BaseNode):
         noise = RandomNoise().get_noise(self.noise_seed)[0]
 
         sampled_latent = SamplerCustomAdvanced().sample(
-            noise, guider, sampler, sigmas, empty_latent
+            noise, guider, sampler, sigmas, latent
         )[0]
 
         decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]

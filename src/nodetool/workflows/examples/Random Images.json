@@ -1,17 +1,118 @@
 {
-  "id": "da2359e53cbb11ef83a600002266c162",
+  "id": "",
   "access": "private",
-  "created_at": "2024-07-08T01:51:38.807549",
-  "updated_at": "2024-07-08T01:59:03.247039",
+  "created_at": "2024-08-12T13:06:42.598142",
+  "updated_at": "2024-08-12T13:14:12.761526",
   "name": "Random Images",
   "description": "Use DataframeAgent and Loop node to create random images.",
   "thumbnail": "",
-  "thumbnail_url": "/examples/random_images.png",
+  "thumbnail_url": null,
   "graph": {
+    "edges": [
+      {
+        "id": "3bdcdad5-765e-4b9b-a5f9-340cbdf337d1",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "539a0612-65c5-4403-9fd6-8946dc513b46",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "443825a1-8f0a-4bad-96c4-5b3780f0709b",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "b22d16c6-5dc8-4fb6-9c46-5086794f038a",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "9e99780f-dc31-4ba4-900a-541440735f04",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "eaf3a657-beff-4385-8bde-b9ce6af01de6",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "name",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "540",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "any"
+        }
+      },
+      {
+        "id": "542",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "877f7182-1b80-435e-8d99-a41389caf5c1",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "11aef931-37bb-48fe-a454-a93de35a9dc0",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      }
+    ],
     "nodes": [
       {
         "id": "1",
-        "parent_id": null,
         "type": "nodetool.agents.DataframeAgent",
         "data": {
           "model": {
@@ -22,7 +123,7 @@
             "filename": "",
             "local_path": null
           },
-          "prompt": "create 4 image prompts",
+          "prompt": "create 3 image prompts, similar in structure but with entirely different subjects and details:\n\nA charismatic speaker is captured mid-speech. He has short, tousled brown hair that's slightly messy on top. He has a round circle face, clean shaven, adorned with rounded rectangular-framed glasses with dark rims, is animated as he gestures with his left hand. He is holding a black microphone in his right hand, speaking passionately.  The man is wearing a light grey sweater over a white t-shirt. He's also wearing a simple black lanyard hanging around his neck. The lanyard badge has the text \"Anakin AI\".  Behind him, there is a blurred background with a white banner containing logos and text (including Anakin AI), a professional conference setting.\n\nA close-up portrait of a seasoned female journalist in her late 50s. She has short salt-and-pepper hair, keen hazel eyes behind rectangular glasses, and subtle laugh lines. Her expression is one of intense focus as she interviews someone off-camera. Soft, natural lighting from a nearby window illuminates her face, highlighting her determined demeanor. She's wearing a crisp white blouse and a navy blazer.\n\nA middle-aged male woodworker in his sunlit workshop. He has weathered hands and a focused expression as he carefully carves intricate details into a piece of rich mahogany. His salt-and-pepper beard is neatly trimmed, and he's wearing a well-worn leather apron over a flannel shirt. Dust motes dance in the warm afternoon light streaming through the windows, creating a cozy atmosphere.\n\nA lively street performer in her early 30s captivates a small crowd in a bustling city square. She has vibrant teal hair styled in a messy updo, bright green eyes, and a contagious smile. Her face is adorned with intricate, shimmering face paint in swirling patterns. She's wearing a colorful, patchwork dress and is mid-motion, juggling three flaming torches. The background is slightly blurred, showing the impressed onlookers and the warm glow of street lamps at dusk.\nA close-up of a female marathon runner in her late 20s as she approaches the finish line. Sweat glistens on her forehead, and her expression is one of intense determination. Her hair is pulled back in a tight ponytail, with a few stray strands clinging to her flushed cheeks. She's wearing a bright yellow running singlet with a race number pinned to it. The background is slightly blurred, showing cheering spectators and the finish line banner.",
           "image": {
             "type": "image",
             "uri": "",
@@ -42,14 +143,20 @@
                 "name": "prompt",
                 "data_type": "string",
                 "description": "visual properties"
+              },
+              {
+                "name": "filename",
+                "data_type": "string",
+                "description": "short filename"
               }
             ]
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 134,
-            "y": 204
+            "x": 146,
+            "y": 101
           },
           "zIndex": 0,
           "selectable": true
@@ -57,27 +164,25 @@
       },
       {
         "id": "2",
-        "parent_id": null,
         "type": "nodetool.group.Loop",
-        "data": {
-          "input": null
-        },
+        "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 444,
             "y": 94
           },
           "zIndex": -10,
-          "width": 634,
-          "height": 674,
+          "width": 647,
+          "height": 446,
           "selectable": false
         }
       },
       {
         "id": "3",
-        "parent_id": "2",
         "type": "nodetool.input.GroupInput",
         "data": {},
+        "parent_id": "2",
         "ui_properties": {
           "selected": false,
           "position": {
@@ -90,21 +195,14 @@
       },
       {
         "id": "4",
-        "parent_id": "2",
         "type": "nodetool.output.GroupOutput",
-        "data": {
-          "input": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          }
-        },
+        "data": {},
+        "parent_id": "2",
         "ui_properties": {
-          "selected": true,
+          "selected": false,
           "position": {
-            "x": 497,
-            "y": 306
+            "x": 511,
+            "y": 78
           },
           "zIndex": 0,
           "selectable": true
@@ -112,7 +210,6 @@
       },
       {
         "id": "5",
-        "parent_id": "2",
         "type": "stable_diffusion.Flux",
         "data": {
           "model": "flux1-schnell",
@@ -121,15 +218,17 @@
           "batch_size": 1,
           "steps": 4,
           "guidance_scale": 3.5,
-          "realism_strength": 1.0,
+          "realism_strength": 1,
           "scheduler": "karras",
           "sampler": "dpmpp_2m_sde",
-          "noise_seed": 2147019938
+          "noise_seed": 3563216976
         },
+        "parent_id": "2",
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 308,
-            "y": 83
+            "x": 305,
+            "y": 95
           },
           "zIndex": 0,
           "selectable": true
@@ -137,20 +236,16 @@
       },
       {
         "id": "6",
-        "parent_id": "2",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "{prompt}, 4k, masterpiece",
-          "values": {
-            "prompt": "",
-            "index": 3
-          }
+          "string": "{prompt}, RAW photo, 8k, perfect lighting, realistic"
         },
+        "parent_id": "2",
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 156,
-            "y": 178
+            "x": 152,
+            "y": 103
           },
           "zIndex": 0,
           "selectable": true
@@ -158,75 +253,33 @@
       },
       {
         "id": "7",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": [
-            {
-              "type": "image",
-              "uri": "",
-              "asset_id": null,
-              "temp_id": null
-            },
-            {
-              "type": "image",
-              "uri": "",
-              "asset_id": null,
-              "temp_id": null
-            },
-            {
-              "type": "image",
-              "uri": "",
-              "asset_id": null,
-              "temp_id": null
-            },
-            {
-              "type": "image",
-              "uri": "",
-              "asset_id": null,
-              "temp_id": null
-            }
-          ],
           "name": "any_output_2024-07-07"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1131,
-            "y": 129
+            "x": 1115,
+            "y": 103
           },
           "zIndex": 0,
-          "width": 497,
-          "height": 601,
+          "width": 338,
+          "height": 399,
           "selectable": true
         }
       },
       {
         "id": "8",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null,
-            "columns": [
-              {
-                "name": "prompt",
-                "data_type": "string",
-                "description": "visual properties"
-              }
-            ],
-            "data": []
-          },
           "name": "dataframe_output_2024-07-08"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 445,
-            "y": 795
+            "x": 453,
+            "y": 566
           },
           "zIndex": 0,
           "width": 635,
@@ -236,109 +289,62 @@
       },
       {
         "id": "9",
-        "parent_id": "2",
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          },
           "name": "image_output_2024-07-08"
         },
+        "parent_id": "2",
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 464,
-            "y": 441
+            "x": 467,
+            "y": 255
           },
           "zIndex": 0,
           "width": 151,
           "height": 154,
           "selectable": true
         }
-      }
-    ],
-    "edges": [
+      },
       {
-        "id": "3bdcdad5-765e-4b9b-a5f9-340cbdf337d1",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "5",
-        "targetHandle": "prompt",
+        "id": "11",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{filename}.png"
+        },
+        "parent_id": "2",
         "ui_properties": {
-          "className": "union"
+          "selected": false,
+          "position": {
+            "x": 141,
+            "y": 258
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
-        "id": "540",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "value",
+        "id": "12",
+        "type": "nodetool.image.SaveImage",
+        "data": {
+          "folder": {
+            "type": "folder",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          }
+        },
+        "parent_id": "2",
         "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "b22d16c6-5dc8-4fb6-9c46-5086794f038a",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "539a0612-65c5-4403-9fd6-8946dc513b46",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "92f47b09-419f-4b11-b956-20f9caa3ce37",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "dataframe"
-        }
-      },
-      {
-        "id": "542",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "9",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "541",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "8",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "dataframe"
+          "selected": false,
+          "position": {
+            "x": 520,
+            "y": 120
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       }
     ]
-  },
-  "input_schema": {
-    "type": "object",
-    "properties": {}
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {}
   }
 }

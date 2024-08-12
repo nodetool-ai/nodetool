@@ -117,8 +117,8 @@
           "steps": 4,
           "guidance_scale": 3.5,
           "realism_strength": 1.0,
-          "scheduler": "karras",
-          "sampler": "dpmpp_2m_sde",
+          "scheduler": "simple",
+          "sampler": "euler",
           "noise_seed": 2147019938
         },
         "ui_properties": {

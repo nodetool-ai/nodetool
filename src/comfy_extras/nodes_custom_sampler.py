@@ -1133,12 +1133,6 @@ class SamplerCustomAdvanced:
     CATEGORY = "sampling/custom_sampling"
 
     def sample(self, noise, guider, sampler, sigmas, latent_image):
-        print("SamplerCustomAdvanced")
-        print(noise)
-        print(guider)
-        print(sampler)
-        print(sigmas)
-        print(latent_image)
         latent = latent_image
         latent_image = latent["samples"]
         latent = latent.copy()
