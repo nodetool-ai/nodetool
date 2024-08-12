@@ -113,37 +113,18 @@
       {
         "id": "5",
         "parent_id": "2",
-        "type": "replicate.image.generate.StableDiffusionXL",
+        "type": "stable_diffusion.Flux",
         "data": {
-          "mask": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          },
-          "seed": 3148531181,
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          },
+          "model": "flux1-schnell",
           "width": 1024,
           "height": 1024,
-          "refine": "no_refiner",
-          "scheduler": "HeunDiscrete",
-          "lora_scale": 0.6,
-          "num_outputs": 1,
-          "refine_steps": null,
-          "guidance_scale": 4,
-          "apply_watermark": false,
-          "high_noise_frac": 0.8,
-          "negative_prompt": "",
-          "prompt_strength": 0.8,
-          "replicate_weights": null,
-          "num_inference_steps": 15,
-          "disable_safety_checker": false,
-          "prompt": ""
+          "batch_size": 1,
+          "steps": 4,
+          "guidance_scale": 3.5,
+          "realism_strength": 1.0,
+          "scheduler": "karras",
+          "sampler": "dpmpp_2m_sde",
+          "noise_seed": 2147019938
         },
         "ui_properties": {
           "position": {

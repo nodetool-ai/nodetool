@@ -87,7 +87,9 @@
                 "Cooper",
                 "A former NASA pilot who leads a mission to find a new habitable planet for humanity."
               ],
-              [""]
+              [
+                ""
+              ]
             ]
           }
         },
@@ -171,19 +173,18 @@
       {
         "id": "8",
         "parent_id": "2",
-        "type": "replicate.image.generate.Juggernaut_XL_V9",
+        "type": "stable_diffusion.Flux",
         "data": {
-          "seed": 2221571892,
+          "model": "flux1-schnell",
           "width": 1024,
           "height": 1024,
-          "scheduler": "DPM++SDE",
-          "num_outputs": 1,
-          "guidance_scale": 2,
-          "apply_watermark": true,
-          "negative_prompt": "CGI, Unreal, Airbrushed, Digital",
-          "num_inference_steps": 5,
-          "disable_safety_checker": false,
-          "prompt": "Movie Poste from the motion picture Fight Club, Close up of The Narrator: A disillusioned white-collar worker who forms an underground fight club."
+          "batch_size": 1,
+          "steps": 4,
+          "guidance_scale": 3.5,
+          "realism_strength": 1.0,
+          "scheduler": "karras",
+          "sampler": "dpmpp_2m_sde",
+          "noise_seed": 2147019938
         },
         "ui_properties": {
           "selected": false,

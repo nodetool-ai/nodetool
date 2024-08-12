@@ -1,8 +1,36 @@
+from enum import Enum
 from typing import Optional
 import PIL.Image
 import torch
+from comfy_extras.nodes_custom_sampler import (
+    BasicGuider,
+    BasicScheduler,
+    KSamplerSelect,
+    RandomNoise,
+    SamplerCustomAdvanced,
+)
+from comfy_extras.nodes_flux import FluxGuidance
+from nodes import (
+    CLIPTextEncode,
+    CheckpointLoaderSimple,
+    ControlNetLoader,
+    DualCLIPLoader,
+    EmptyLatentImage,
+    KSampler,
+    LoraLoaderModelOnly,
+    UNETLoader,
+    VAEDecode,
+    VAEEncode,
+    LatentUpscale,
+    VAEEncodeForInpaint,
+    VAELoader,
+)
+import PIL.Image
+import torch
+
 from comfy.model_patcher import ModelPatcher
 from comfy.sd import CLIP, VAE
+from comfy_extras.nodes_sd3 import EmptySD3LatentImage
 from nodetool.metadata.types import CheckpointFile, ImageRef
 from nodetool.nodes.stable_diffusion.enums import Sampler, Scheduler
 from nodetool.workflows.base_node import BaseNode
@@ -59,16 +87,6 @@ class StableDiffusion(BaseNode):
         )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        from nodes import (
-            CLIPTextEncode,
-            EmptyLatentImage,
-            KSampler,
-            VAEDecode,
-            VAEEncode,
-            VAEEncodeForInpaint,
-        )
-        import PIL.Image
-
         positive_conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
         negative_conditioning = CLIPTextEncode().encode(
             self._clip, self.negative_prompt
@@ -143,8 +161,6 @@ class HiResStableDiffusion(StableDiffusion):
     _hires_model: ModelPatcher | None = None
 
     async def initialize(self, context: ProcessingContext):
-        from nodes import CheckpointLoaderSimple
-
         checkpoint_loader = CheckpointLoaderSimple()
         self._model, self._clip, self._vae = checkpoint_loader.load_checkpoint(
             self.model.name
@@ -155,17 +171,6 @@ class HiResStableDiffusion(StableDiffusion):
         )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        from nodes import (
-            CLIPTextEncode,
-            EmptyLatentImage,
-            KSampler,
-            VAEDecode,
-            VAEEncode,
-            LatentUpscale,
-        )
-        import PIL.Image
-        import torch
-
         clip_text_encode = CLIPTextEncode()
         positive_conditioning = clip_text_encode.encode(self._clip, self.prompt)[0]
         negative_conditioning = clip_text_encode.encode(
@@ -293,8 +298,6 @@ class ControlNet(BaseNode):
     _depth_controlnet: ModelPatcher | None = None
 
     async def initialize(self, context: ProcessingContext):
-        from nodes import CheckpointLoaderSimple, ControlNetLoader
-
         checkpoint_loader = CheckpointLoaderSimple()
         self._model, self._clip, self._vae = checkpoint_loader.load_checkpoint(  # type: ignore
             self.model.name
@@ -401,6 +404,11 @@ class ControlNet(BaseNode):
         return await context.image_from_pil(img)
 
 
+class FluxModel(str, Enum):
+    flux1_schnell = "flux1-schnell"
+    flux1_dev = "flux1-dev"
+
+
 class Flux(BaseNode):
     """
     Generates images from text prompts using a custom Stable Diffusion workflow.
@@ -412,11 +420,17 @@ class Flux(BaseNode):
     - Experimenting with different VAE, CLIP, and UNET combinations
     """
 
+    model: FluxModel = Field(
+        default=FluxModel.flux1_schnell, description="The Flux model to use."
+    )
+
     prompt: str = Field(default="", description="The prompt to use.")
     width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
     height: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
     batch_size: int = Field(default=1, ge=1, le=16)
     steps: int = Field(default=4, ge=1, le=100, description="Number of sampling steps.")
+    guidance_scale: float = Field(default=3.5, ge=1.0, le=30.0)
+    realism_strength: float = Field(default=0.0, ge=0.0, le=1.0)
     scheduler: Scheduler = Field(default=Scheduler.simple)
     sampler: Sampler = Field(default=Sampler.euler)
     noise_seed: int = Field(default=689015878, ge=0, le=1000000000)
@@ -426,39 +440,26 @@ class Flux(BaseNode):
     _unet: Optional[ModelPatcher] = None
 
     async def initialize(self, context: ProcessingContext):
-        from nodes import (
-            DualCLIPLoader,
-            VAELoader,
-            UNETLoader,
-        )
-
-        self._unet = UNETLoader().load_unet("flux1-schnell.sft", "fp16")[0]
+        if self.model == FluxModel.flux1_schnell:
+            self._unet = UNETLoader().load_unet("flux1-schnell.sft", "fp16")[0]
+        elif self.model == FluxModel.flux1_dev:
+            self._unet = UNETLoader().load_unet(
+                "flux1-dev-fp8.safetensors", "fp8_e4m3fn"
+            )[0]
+        else:
+            raise ValueError("No model selected")
         self._vae = VAELoader().load_vae("ae.sft")[0]
         self._clip = DualCLIPLoader().load_clip(
             "clip_l.safetensors", "t5xxl_fp8_e4m3fn.safetensors", "flux"
         )[0]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        from nodes import (
-            EmptyLatentImage,
-            CLIPTextEncode,
-            VAEDecode,
-        )
-        from comfy_extras.nodes_custom_sampler import (
-            BasicGuider,
-            BasicScheduler,
-            KSamplerSelect,
-            RandomNoise,
-            SamplerCustomAdvanced,
-        )
-
-        # Create empty latent image
         empty_latent = EmptyLatentImage().generate(
             self.width, self.height, self.batch_size
         )[0]
 
-        # Encode text prompt
         conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
+        conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
 
         # Set up sampler and scheduler
         sampler = KSamplerSelect().get_sampler(self.sampler.value)[0]
@@ -468,8 +469,13 @@ class Flux(BaseNode):
             self.steps,
             1,
         )[0]
+        model = LoraLoaderModelOnly().load_lora_model_only(
+            self._unet,
+            "xlabs_flux_realism_lora_comfui.safetensors",
+            self.realism_strength,
+        )[0]
 
-        guider = BasicGuider().get_guider(self._unet, conditioning)[0]
+        guider = BasicGuider().get_guider(model, conditioning)[0]
         noise = RandomNoise().get_noise(self.noise_seed)[0]
 
         sampled_latent = SamplerCustomAdvanced().sample(
