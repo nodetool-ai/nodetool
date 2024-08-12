@@ -6,7 +6,7 @@
   "name": "Porcelain Sculpture",
   "description": "Generate a seriese of images showing sculptures with different emotional and mental states.\n",
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/porcelain_sculpture.png",
   "graph": {
     "edges": [
       {

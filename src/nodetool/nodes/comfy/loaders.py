@@ -21,6 +21,8 @@ from nodetool.metadata.types import (
 )
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.workflows.processing_context import ProcessingContext
+from pydantic import Field
+from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
 
 
 class CheckpointLoaderSimple(ComfyNode):
@@ -392,3 +394,17 @@ class UNETLoader(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"unet": UNet}
+
+
+class ImageOnlyCheckpointLoader(ComfyNode):
+    ckpt_name: str = Field(
+        default="", description="The name of the checkpoint to load."
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"model": UNet, "clip_vision": CLIPVision, "vae": VAE}
+
+    @classmethod
+    def get_title(cls):
+        return "Image Only Checkpoint Loader (img2vid model)"

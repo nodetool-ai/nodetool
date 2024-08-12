@@ -1079,9 +1079,19 @@ class ProcessingContext:
         Returns:
             ImageRef: The ImageRef object.
         """
-        i = 255.0 * image_tensor[0].cpu().detach().numpy()
-        img = np.clip(i, 0, 255).astype(np.uint8)
-        return await self.image_from_numpy(img)
+        img = np.clip(255.0 * image_tensor.cpu().detach().numpy(), 0, 255).astype(
+            np.uint8
+        )
+        if img.shape[0] == 1:
+            return await self.image_from_numpy(img[0])
+
+        batch = []
+        for i in range(img.shape[0]):
+            buffer = BytesIO()
+            PIL.Image.fromarray(img[i]).save(buffer, format="png")
+            batch.append(buffer.getvalue())
+
+        return ImageRef(data=batch)
 
     async def to_str(self, text_ref: TextRef | str) -> str:
         """

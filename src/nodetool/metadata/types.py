@@ -97,7 +97,7 @@ class AssetRef(BaseType):
     type: str = "asset"
     uri: str = ""
     asset_id: str | None = None
-    data: bytes | None = None
+    data: bytes | list[bytes] | None = None
 
     def to_dict(self):
         res = {

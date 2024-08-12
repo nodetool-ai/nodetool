@@ -20,7 +20,7 @@ class TypeMetadata(BaseModel):
         from nodetool.metadata.types import asset_types
 
         return self.type in asset_types
-    
+
     def is_cacheable_type(self):
         if self.is_list_type() or self.is_union_type() or self.is_dict_type():
             return all(t.is_cacheable_type() for t in self.type_args)
@@ -29,7 +29,7 @@ class TypeMetadata(BaseModel):
         if self.is_comfy_type():
             return False
         return True
-    
+
     def is_serializable_type(self):
         if self.is_list_type() or self.is_union_type() or self.is_dict_type():
             return all(t.is_serializable_type() for t in self.type_args)
@@ -38,22 +38,25 @@ class TypeMetadata(BaseModel):
         if self.is_comfy_type():
             return False
         return True
-    
+
     def is_comfy_type(self):
         return self.type.startswith("comfy.")
-    
+
     def is_comfy_model(self):
         from nodetool.metadata.types import comfy_model_types
+
         return self.type in comfy_model_types
 
     def is_model_file_type(self):
         from nodetool.metadata.types import model_file_types
+
         return self.type in model_file_types
-    
+
     def is_comfy_data_type(self):
         from nodetool.metadata.types import comfy_data_types
+
         return self.type in comfy_data_types
-    
+
     def is_primitive_type(self):
         return self.type in ["int", "float", "bool", "str", "text"]
 
@@ -62,7 +65,7 @@ class TypeMetadata(BaseModel):
 
     def is_list_type(self):
         return self.type == "list"
-    
+
     def is_dict_type(self):
         return self.type == "dict"
 
@@ -73,8 +76,12 @@ class TypeMetadata(BaseModel):
         from nodetool.metadata.types import NameToType
 
         if self.is_enum_type():
+            if not self.type_name in NameToType:
+                raise ValueError(f"Unknown enum type: {self.type_name}")
             return NameToType[self.type_name]
         else:
+            if not self.type in NameToType:
+                raise ValueError(f"Unknown type: {self.type}")
             return NameToType[self.type]
 
     def get_json_schema(self) -> dict[str, Any]:

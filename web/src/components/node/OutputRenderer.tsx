@@ -187,12 +187,19 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   `;
     return preview;
   }
-
   switch (type) {
     case "image":
-      return (
-        <ImageView source={value?.uri === "" ? value?.data : value?.uri} />
-      );
+      if (Array.isArray(value.data)) {
+        console.log("value", value.data);
+
+        return value.data.map((v: any, i: number) => (
+          <ImageView key={i} source={v} />
+        ));
+      } else {
+        return (
+          <ImageView source={value?.uri === "" ? value?.data : value?.uri} />
+        );
+      }
     case "audio":
       return (
         <div className="audio" style={{ padding: "1em" }}>

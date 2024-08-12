@@ -191,21 +191,7 @@ export const useDropHandler = (): DropHandler => {
   );
 
   const isComfyWorkflowJson = (json: any): boolean => {
-    const comfyProperties = ["inputs", "class_type", "_meta"];
-
-    for (const key in json) {
-      if (Object.prototype.hasOwnProperty.call(json, key)) {
-        const node = json[key];
-        if (
-          comfyProperties.some((prop) =>
-            Object.prototype.hasOwnProperty.call(node, prop)
-          )
-        ) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return json.last_node_id && json.last_link_id && json.nodes;
   };
 
   const isNodetoolWorkflowJson = (json: any): boolean => {

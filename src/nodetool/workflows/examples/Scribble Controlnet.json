@@ -3,7 +3,7 @@
     "access": "private",
     "created_at": "2024-07-06T20:13:38.331865",
     "updated_at": "2024-07-06T20:23:13.098945",
-    "name": "Scribble Controlnet",
+    "name": "Scribble Controlnet in Comfy",
     "description": "",
     "thumbnail": "",
     "thumbnail_url": "/examples/input_scribble_example.png",

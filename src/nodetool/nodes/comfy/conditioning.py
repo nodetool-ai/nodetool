@@ -11,6 +11,7 @@ from nodetool.metadata.types import (
     ControlNet,
     ImageRef,
     LORAFile,
+    Latent,
     Mask,
     UNet,
     VAEFile,
@@ -453,3 +454,41 @@ class GLIGENTextBoxApply(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"conditioning": Conditioning}
+
+
+class SVD_img2vid_Conditioning(ComfyNode):
+    clip_vision: CLIPVision = Field(
+        default=CLIPVision(), description="The CLIP vision model to use."
+    )
+    init_image: ImageRef = Field(
+        default=ImageRef(), description="The initial image to condition on."
+    )
+    vae: VAE = Field(default=VAE(), description="The VAE model to use.")
+    width: int = Field(
+        default=1024,
+        description="The width of the output.",
+        ge=16,
+        le=MAX_RESOLUTION,
+        multiple_of=8,
+    )
+    height: int = Field(
+        default=576,
+        description="The height of the output.",
+        ge=16,
+        le=MAX_RESOLUTION,
+        multiple_of=8,
+    )
+    video_frames: int = Field(
+        default=14, description="The number of video frames to generate.", ge=1, le=4096
+    )
+    motion_bucket_id: int = Field(
+        default=127, description="The motion bucket ID.", ge=1, le=1023
+    )
+    fps: int = Field(default=6, description="Frames per second.", ge=1, le=1024)
+    augmentation_level: float = Field(
+        default=0.0, description="The level of augmentation to apply.", ge=0.0, le=10.0
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"positive": Conditioning, "negative": Conditioning, "latent": Latent}

@@ -6,7 +6,7 @@
   "name": "Inpainting a face",
   "description": "Replace the face of an image with a new face",
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/inpainting.png",
   "graph": {
     "edges": [
       {
