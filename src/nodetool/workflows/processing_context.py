@@ -714,7 +714,14 @@ class ProcessingContext:
         # Date takes precedence over anything else as it is the most up-to-date
         # and already in memory
         if asset_ref.data:
-            return BytesIO(asset_ref.data)
+            if isinstance(asset_ref.data, bytes):
+                return BytesIO(asset_ref.data)
+            elif isinstance(asset_ref.data, list):
+                raise ValueError(
+                    "Batched data must be converted to list using BatchToList node"
+                )
+            else:
+                raise ValueError(f"Unsupported data type {type(asset_ref.data)}")
         # Asset ID takes precedence over URI as the URI could be expired
         elif asset_ref.asset_id is not None:
             return await self.download_asset(asset_ref.asset_id)

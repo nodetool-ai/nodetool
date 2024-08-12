@@ -395,19 +395,16 @@ class BaseNode(BaseModel):
         Properties to send to the client for updating the node.
         Comfy types and tensors are excluded.
         """
+        return {}
 
-        def should_include(prop: Property, value: Any):
-            return (
-                not isinstance(value, torch.Tensor)
-                and not prop.type.is_comfy_type()
-                and not isinstance(value, ComfyData)
-                and not isinstance(value, AssetRef)
-            )
-
+    def get_properties_for_update(self, names: list[str]):
+        """
+        Includes all properties in the update message.
+        """
         return {
             prop.name: getattr(self, prop.name)
             for prop in self.properties()
-            if should_include(prop, getattr(self, prop.name))
+            if prop.name in names
         }
 
     def result_for_update(self, result: dict[str, Any]) -> dict[str, Any]:
@@ -423,6 +420,14 @@ class BaseNode(BaseModel):
         Note:
             - Converts Pydantic models to dictionaries.
             - Serializes binary data to base64.
+        """
+        return {}
+
+    def result_for_all_outputs(self, result: dict[str, Any]) -> dict[str, Any]:
+        """
+        Prepares the node result for inclusion in a NodeUpdate message.
+
+        This method is used when the node is sending updates for all outputs.
         """
         res_for_update = {}
 
@@ -806,6 +811,9 @@ class Preview(BaseNode):
 
     async def process(self, context: Any) -> Any:
         return self.value
+
+    def result_for_update(self, result: dict[str, Any]) -> dict[str, Any]:
+        return self.result_for_all_outputs(result)
 
 
 def get_comfy_class_by_name(class_name: str) -> type[BaseNode]:

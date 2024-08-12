@@ -87,6 +87,30 @@ class GetMetadata(BaseNode):
         }
 
 
+class BatchToList(BaseNode):
+    """
+    Convert an image batch to a list of image references.
+    batch, list, images, processing
+
+    Use cases:
+    - Convert comfy batch outputs to list format
+    """
+
+    batch: ImageRef = Field(
+        default=ImageRef(), description="The batch of images to convert."
+    )
+
+    async def process(self, context: ProcessingContext) -> list[ImageRef]:
+        if self.batch.is_empty():
+            raise ValueError("The input batch is not connected.")
+        if self.batch.data is None:
+            raise ValueError("The input batch is empty.")
+        if not isinstance(self.batch.data, list):
+            raise ValueError("The input batch is not a list.")
+
+        return [ImageRef(data=data) for data in self.batch.data]
+
+
 class ConvertToTensor(BaseNode):
     """
     Convert PIL Image to normalized tensor representation.

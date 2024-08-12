@@ -119,7 +119,8 @@
           "realism_strength": 1.0,
           "scheduler": "simple",
           "sampler": "euler",
-          "noise_seed": 2147019938
+          "noise_seed": 2147019938,
+          "denoise": 1.0
         },
         "ui_properties": {
           "position": {

@@ -170,24 +170,19 @@
       {
         "id": "11",
         "parent_id": "2",
-        "type": "huggingface.image.StableDiffusion",
+        "type": "stable_diffusion.Flux",
         "data": {
-          "model": "runwayml/stable-diffusion-v1-5",
-          "negative_prompt": "",
-          "seed": 2855914129,
-          "num_inference_steps": 25,
-          "guidance_scale": 7.5,
-          "width": 512,
-          "height": 512,
-          "scheduler": "HeunDiscreteScheduler",
-          "ip_adapter_model": "",
-          "ip_adapter_image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null
-          },
-          "ip_adapter_scale": 0.5
+          "model": "flux1-schnell",
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1,
+          "steps": 4,
+          "guidance_scale": 3.5,
+          "realism_strength": 1.0,
+          "scheduler": "karras",
+          "sampler": "dpmpp_2m_sde",
+          "noise_seed": 2147019938,
+          "denoise": 1.0
         },
         "ui_properties": {
           "selected": false,

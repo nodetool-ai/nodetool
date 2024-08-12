@@ -221,7 +221,8 @@
           "realism_strength": 1,
           "scheduler": "karras",
           "sampler": "dpmpp_2m_sde",
-          "noise_seed": 3563216976
+          "noise_seed": 3563216976,
+          "denoise": 1
         },
         "parent_id": "2",
         "ui_properties": {

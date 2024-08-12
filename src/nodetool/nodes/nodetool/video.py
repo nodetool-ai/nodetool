@@ -1,5 +1,6 @@
 import enum
 import os
+from typing import Any
 import PIL.ImageFilter
 import PIL.ImageOps
 import PIL.Image
@@ -71,6 +72,9 @@ class ExtractFrames(BaseNode):
                     img_ref = await context.image_from_pil(img)
                     images.append(img_ref)
         return images
+
+    def result_for_update(self, result: dict[str, Any]) -> dict[str, Any]:
+        return {}
 
 
 class Fps(BaseNode):

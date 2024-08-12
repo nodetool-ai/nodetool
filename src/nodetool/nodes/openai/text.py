@@ -95,7 +95,7 @@ class GPT(BaseNode):
 
     async def process(self, context: ProcessingContext) -> str:
         content = []
-        if self.image.uri != "":
+        if not self.image.is_empty():
             base64_image = await context.image_to_base64(self.image)
             content.append(
                 {
