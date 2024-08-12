@@ -17,6 +17,13 @@ Create a video file with empty frames.
 **Returns:**
 
 None
+**Args:**
+- **fps (int)**
+- **width (int)**
+- **height (int)**
+- **duration (int)**
+- **filename (str)**
+
 ### create_image_thumbnail
 
 Generate a thumbnail image from an image using PIL.
@@ -50,6 +57,11 @@ Get the duration of an audio file using pydub.
 **Returns:**
 
 - **float**: The duration of the audio file in seconds.
+**Args:**
+- **source_io (BytesIO)**
+
+**Returns:** float
+
 ### get_video_duration
 
 Get the duration of a media file using ffprobe.
@@ -63,3 +75,8 @@ Get the duration of a media file using ffprobe.
 **Returns:**
 
 - **float**: The duration of the media file in seconds.
+**Args:**
+- **input_io (BytesIO)**
+
+**Returns:** typing.Optional[float]
+

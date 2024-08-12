@@ -99,3 +99,8 @@ in the topological order. Nodes in the same list can be processed in parallel.
 - The method does not modify the original graph structure.
 - Nodes are only included in the output if their parent_id matches the given parent_id.
 - If a cycle exists, some nodes may be omitted from the result.
+**Args:**
+- **parent_id (str | None) (default: None)**
+
+**Returns:** typing.List[typing.List[str]]
+

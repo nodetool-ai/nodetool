@@ -7,10 +7,7 @@ Attributes:
 _id (str): Unique identifier for the node.
 _parent_id (str | None): Identifier of the parent node, if any.
 _ui_properties (dict[str, Any]): UI-specific properties for the node.
-_requires_capabilities (list[str]): Capabilities required by the node.
 _visible (bool): Whether the node is visible in the UI.
-_primary_field (str | None): The primary field for the node, if any.
-_secondary_field (str | None): The secondary field for the node, if any.
 _layout (str): The layout style for the node in the UI.
 
 Methods:
@@ -39,6 +36,10 @@ Assign a value to a node property, performing type checking and conversion.
 **Note:**
 
 This method handles type conversion for enums, lists, and objects with 'model_validate' method.
+**Args:**
+- **name (str)**
+- **value (typing.Any)**
+
 ### convert_output
 
 **Args:**
@@ -69,6 +70,12 @@ Create a Node object from a dictionary representation.
 **Returns:**
 
 - **Node**: The created Node object.
+**Args:**
+- **node (dict)**
+- **skip_errors (bool) (default: False)**
+
+**Returns:** BaseNode
+
 ### has_parent
 
 **Args:**
@@ -89,6 +96,9 @@ Move the node to a specific device, "cpu", "cuda" or "mps".
 **Args:**
 
 - **device (str)**: The device to move the node to.
+**Args:**
+- **device (str)**
+
 ### node_properties
 
 **Args:**
@@ -129,6 +139,11 @@ Prepares the node result for inclusion in a NodeUpdate message.
 
 - Converts Pydantic models to dictionaries.
 - Serializes binary data to base64.
+**Args:**
+- **result (dict)**
+
+**Returns:** dict
+
 ### send_update
 
 Send a status update for the node to the client.
@@ -139,6 +154,11 @@ Send a status update for the node to the client.
 - **context (Any)**: The context in which the node is being processed.
 - **status (str)**: The status of the node.
 - **result (dict[str, Any], optional)**: The result of the node's processing. Defaults to {}.
+**Args:**
+- **context (typing.Any)**
+- **status (str)**
+- **result (dict[str, typing.Any] | None) (default: None)**
+
 ### set_node_properties
 
 Set multiple node properties at once.
@@ -158,6 +178,10 @@ Set multiple node properties at once.
 **Note:**
 
 Errors during property assignment are printed regardless of the skip_errors flag.
+**Args:**
+- **properties (dict)**
+- **skip_errors (bool) (default: False)**
+
 ### to_dict
 
 **Args:**
@@ -238,6 +262,9 @@ To avoid name conflicts, we store comfy classes in a separate dictionary.
 
 If the node class has a 'comfy_class' attribute, it uses that as the class name.
 Otherwise, it uses the actual class name.
+**Args:**
+- **node_class (type)**
+
 **Returns:** None
 
 ### add_node_type
@@ -249,6 +276,9 @@ Add a node type to the registry.
 
 - **node_type (str)**: The node_type of the node.
 - **node_class (type[Node])**: The class of the node.
+**Args:**
+- **node_class (type)**
+
 **Returns:** None
 
 ### find_node_class_by_name
@@ -276,6 +306,11 @@ Retrieve node classes based on their class name.
 **Note:**
 
 If no exact match is found, it attempts to find a match by removing hyphens from the class name.
+**Args:**
+- **class_name (str)**
+
+**Returns:** type
+
 ### get_node_class
 
 Retrieve a node class based on its unique node type identifier.
@@ -289,6 +324,11 @@ Retrieve a node class based on its unique node type identifier.
 **Returns:**
 
 - **type[BaseNode] | None**: The node class if found, None otherwise.
+**Args:**
+- **node_type (str)**
+
+**Returns:** type[nodetool.workflows.base_node.BaseNode] | None
+
 ### get_registered_node_classes
 
 Retrieve all registered and visible node classes.
@@ -297,37 +337,8 @@ Retrieve all registered and visible node classes.
 **Returns:**
 
 - **list[type[BaseNode]]**: A list of all registered node classes that are marked as visible.
-### requires_capabilities
+**Returns:** list
 
-Determine the set of capabilities required by a list of nodes.
-
-
-**Args:**
-
-- **nodes (list[BaseNode])**: A list of nodes to check for required capabilities.
-
-
-**Returns:**
-
-- **list[str]**: A list of unique capability strings required by the input nodes.
-### requires_capabilities_from_request
-
-Determine the set of capabilities required by nodes in a RunJobRequest.
-
-
-**Args:**
-
-- **req (RunJobRequest)**: The job request containing a graph of nodes.
-
-
-**Returns:**
-
-- **list[str]**: A list of unique capability strings required by the nodes in the request.
-
-
-**Raises:**
-
-- **ValueError**: If a node type in the request is not registered.
 ### type_metadata
 
 Generate TypeMetadata for a given Python type.
@@ -351,3 +362,8 @@ Generate TypeMetadata for a given Python type.
 **Note:**
 
 Supports basic types, lists, dicts, optional types, unions, and enums.
+**Args:**
+- **python_type (typing.Union[typing.Type, types.UnionType])**
+
+**Returns:** TypeMetadata
+

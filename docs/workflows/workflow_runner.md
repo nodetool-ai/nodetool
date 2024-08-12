@@ -21,7 +21,6 @@ current_node (Optional[str]): Identifier of the node currently being processed, 
 
 Note:
 - This class does not handle the definition of the workflow graph. The graph must be provided externally.
-- GPU-intensive workflows are automatically directed to workers with GPU capabilities when available.
 - The class relies on an external ProcessingContext for managing execution state and inter-node communication.
 
 **Tags:** 
@@ -46,6 +45,24 @@ and acted upon at specific points during the workflow execution.
 
 **Returns:** None
 
+### initialize_graph
+
+Initializes all nodes in the graph.
+
+
+**Args:**
+
+- **context (ProcessingContext)**: Manages the execution state and inter-node communication.
+- **graph (Graph)**: The directed acyclic graph of nodes to be processed.
+
+
+**Raises:**
+
+- **Exception**: Any exception raised during node initialization is caught and reported.
+**Args:**
+- **context (ProcessingContext)**
+- **graph (Graph)**
+
 ### is_running
 
 Checks if the workflow is currently in the running state.
@@ -55,6 +72,8 @@ Checks if the workflow is currently in the running state.
 
 - **bool**: True if the workflow status is "running", False otherwise.
 **Args:**
+
+**Returns:** bool
 
 ### process_graph
 
@@ -74,6 +93,11 @@ Processes the graph by executing nodes in topological order with parallel execut
 - Uses topological sorting to determine the execution order.
 - Executes nodes at each level in parallel using asyncio.gather.
 - Checks for cancellation before processing each level.
+**Args:**
+- **context (ProcessingContext)**
+- **graph (Graph)**
+- **parent_id (str | None) (default: None)**
+
 ### process_node
 
 Processes a single node in the workflow graph.
@@ -96,6 +120,10 @@ Processes a single node in the workflow graph.
 - Skips nodes that have already been processed in a subgraph.
 - Handles special processing for GroupNodes.
 - Posts node status updates (running, completed, error) to the context.
+**Args:**
+- **context (ProcessingContext)**
+- **node (BaseNode)**
+
 ### process_regular_node
 
 Processes a regular (non-GroupNode) node in the workflow.
@@ -129,6 +157,10 @@ Processes a regular (non-GroupNode) node in the workflow.
 - Handles result caching and retrieval.
 - Manages timing information for node execution.
 - Prepares and posts detailed node updates including properties and results.
+**Args:**
+- **context (ProcessingContext)**
+- **node (BaseNode)**
+
 ### process_subgraph
 
 Processes a subgraph contained within a GroupNode.
@@ -158,6 +190,13 @@ Processes a subgraph contained within a GroupNode.
 - Executes the subgraph for each item in the input data.
 - Collects and returns results from output nodes.
 - Marks all nodes in the subgraph as processed.
+**Args:**
+- **context (ProcessingContext)**
+- **group_node (GroupNode)**
+- **inputs (dict)**
+
+**Returns:** typing.Any
+
 ### run
 
 Executes the entire workflow based on the provided request and context.
@@ -187,6 +226,10 @@ Executes the entire workflow based on the provided request and context.
 
 - Handles input validation, graph processing, and output collection.
 - Manages GPU resources if required by the workflow.
+**Args:**
+- **req (RunJobRequest)**
+- **context (ProcessingContext)**
+
 **Returns:** None
 
 ### run_group_node
@@ -213,6 +256,10 @@ Executes a GroupNode, which represents a subgraph within the main workflow.
 
 - Retrieves inputs for the GroupNode from the context.
 - Calls process_subgraph to handle the execution of the subgraph.
+**Args:**
+- **group_node (GroupNode)**
+- **context (ProcessingContext)**
+
 ### torch_context
 
 Context manager for handling GPU tasks.
@@ -229,3 +276,6 @@ Context manager for handling GPU tasks.
 - Sets up progress tracking hooks for ComfyUI operations.
 - Manages CUDA memory and PyTorch inference mode.
 - Cleans up models and CUDA cache after execution.
+**Args:**
+- **context (ProcessingContext)**
+

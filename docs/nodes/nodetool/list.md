@@ -40,19 +40,6 @@ Use cases:
 - **values** (list)
 - **other_values** (list)
 
-## Filter
-
-Filters a list based on a custom Python condition.
-
-Use cases:
-- Remove elements that don't meet a condition
-- Select elements based on complex criteria
-
-**Tags:** list, filter, condition, select
-
-- **values**: The list to filter. (list)
-- **condition**: The Python code to use as the filtering condition. (str)
-
 ## GenerateSequence
 
 Generates a list of integers within a specified range.
@@ -94,26 +81,6 @@ Use cases:
 **Tags:** list, count, size
 
 - **values** (list)
-
-## Reduce
-
-Performs a custom reduction operation on a list using Python code.
-
-Use cases:
-- Calculate a sum or product of list elements
-- Find the maximum or minimum value
-- Implement custom aggregation logic
-
-Example reduction code:
-```python
-{acc} + {value}
-```
-
-**Tags:** list, reduce, aggregate, accumulate
-
-- **values**: The list to reduce. (list)
-- **initial_value**: The initial value for the reduction. If not provided, the first value in the list is used. (typing.Any)
-- **reduction_code**: The Python code to use for the reduction. (str)
 
 ## Reverse
 
@@ -169,21 +136,4 @@ Use cases:
 - **start** (int)
 - **stop** (int)
 - **step** (int)
-
-## TransformElements
-
-Transforms each element in a list based on custom Python code.
-
-Use cases:
-- Apply a function to every list element
-- Convert data types within a list
-- Perform calculations on each element
-
-Example mapping code:
-{value} * 100
-
-**Tags:** list, transform, modify, apply
-
-- **values**: The list to map. (list)
-- **code**: Python code to use for mapping. (str)
 

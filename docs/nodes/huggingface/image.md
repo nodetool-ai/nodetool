@@ -1,6 +1,6 @@
 # nodetool.nodes.huggingface.image
 
-## AuraFlowNode
+## AuraFlow
 
 Generates images using the AuraFlow pipeline.
 
@@ -98,6 +98,13 @@ Use cases:
 - **result (typing.Any)**
 
 **Returns:** ImageRef
+
+## FindSegment
+
+Extracts a specific segment from a list of segmentation masks.
+
+- **segments**: The segmentation masks to search (list)
+- **segment_label**: The label of the segment to extract (str)
 
 ## IPAdapter_SD15_Model
 
@@ -340,17 +347,9 @@ Use cases:
 - **context (ProcessingContext)**
 - **result (typing.Any)**
 
-**Returns:** DataframeRef
+**Returns:** list
 
-### process_remote_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (typing.Any)**
-
-**Returns:** DataframeRef
-
-## PixArtAlphaNode
+## PixArtAlpha
 
 Generates images from text prompts using the PixArt-Alpha model.
 
@@ -400,6 +399,37 @@ Use cases:
 ### get_params
 
 **Args:**
+
+## SDXLInpainting
+
+Performs inpainting on images using Stable Diffusion XL.
+
+Use cases:
+- Removing unwanted objects from images
+- Adding new elements to existing images
+- Repairing damaged or incomplete images
+- Creating creative image edits and modifications
+
+**Tags:** image, inpainting, AI, image-editing
+
+- **prompt**: The prompt describing what to paint in the masked area. (str)
+- **image**: The input image to be inpainted. (ImageRef)
+- **mask_image**: The mask image indicating the area to be inpainted. (ImageRef)
+- **negative_prompt**: The negative prompt to guide what should not appear in the inpainted area. (str)
+- **num_inference_steps**: Number of denoising steps. Values between 15 and 30 work well. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **strength**: Strength of the inpainting. Values below 1.0 work best. (float)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
 
 ## SDXLTurbo
 
@@ -495,17 +525,9 @@ Use cases:
 - **context (ProcessingContext)**
 - **result (typing.Any)**
 
-**Returns:** dict
+**Returns:** list
 
-### process_remote_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (typing.Any)**
-
-**Returns:** dict
-
-## StableCascadeNode
+## StableCascade
 
 Generates images using the Stable Cascade model, which involves a two-stage process with a prior and a decoder.
 
@@ -548,18 +570,18 @@ Use cases:
 
 **Tags:** image, generation, AI, text-to-image
 
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
-- **width**: Width of the generated image. (int)
-- **height**: Height of the generated image (int)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
 - **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: Strength of the IP adapter image (float)
+- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **width**: Width of the generated image. (int)
+- **height**: Height of the generated image (int)
 
 ### initialize
 
@@ -570,6 +592,11 @@ Use cases:
 
 **Args:**
 - **device (str)**
+
+### progress_callback
+
+**Args:**
+- **context (ProcessingContext)**
 
 ## StableDiffusion3ControlNetNode
 
@@ -599,7 +626,131 @@ Use cases:
 **Args:**
 - **device (str)**
 
-## StableDiffusionImg2Img
+## StableDiffusionBaseNode
+
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **num_inference_steps**: Number of denoising steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+### progress_callback
+
+**Args:**
+- **context (ProcessingContext)**
+
+## StableDiffusionControlNetImg2ImgNode
+
+Transforms existing images using Stable Diffusion with ControlNet guidance.
+
+Use cases:
+- Modify existing images with precise control over composition and structure
+- Apply specific styles or concepts to photographs or artwork with guided transformations
+- Create variations of existing visual content while maintaining certain features
+- Enhance image editing capabilities with AI-guided transformations
+
+**Tags:** image, generation, AI, image-to-image, controlnet
+
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **num_inference_steps**: Number of denoising steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **controlnet**: The ControlNet model to use for guidance. (StableDiffusionControlNetModel)
+- **image**: The input image to be transformed. (ImageRef)
+- **control_image**: The control image to guide the transformation. (ImageRef)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+## StableDiffusionControlNetInpaintNode
+
+Performs inpainting on images using Stable Diffusion with ControlNet guidance.
+
+Use cases:
+- Remove unwanted objects from images with precise control
+- Fill in missing parts of images guided by control images
+- Modify specific areas of images while preserving the rest and maintaining structure
+
+**Tags:** image, inpainting, AI, controlnet
+
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **num_inference_steps**: Number of denoising steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **controlnet**: The ControlNet model to use for guidance. (StableDiffusionControlNetModel)
+- **init_image**: The initial image to be inpainted. (ImageRef)
+- **mask_image**: The mask image indicating areas to be inpainted. (ImageRef)
+- **control_image**: The control image to guide the inpainting process. (ImageRef)
+- **controlnet_conditioning_scale**: The scale for ControlNet conditioning. (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+## StableDiffusionControlNetModel
+
+An enumeration.
+
+## StableDiffusionControlNetNode
+
+Generates images using Stable Diffusion with ControlNet guidance.
+
+Use cases:
+- Generate images with precise control over composition and structure
+- Create variations of existing images while maintaining specific features
+- Artistic image generation with guided outputs
+
+**Tags:** image, generation, AI, text-to-image, controlnet
+
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **num_inference_steps**: Number of denoising steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **controlnet**: The ControlNet model to use for guidance. (StableDiffusionControlNetModel)
+- **control_image**: The control image to guide the generation process. (ImageRef)
+- **controlnet_conditioning_scale**: The scale for ControlNet conditioning. (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+## StableDiffusionImg2ImgNode
 
 Transforms existing images based on text prompts using Stable Diffusion.
 
@@ -611,14 +762,76 @@ Use cases:
 
 **Tags:** image, generation, AI, image-to-image
 
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
-- **init_image**: The initial image for Image-to-Image generation. (ImageRef)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **init_image**: The initial image for Image-to-Image generation. (ImageRef)
+- **strength**: Strength for Image-to-Image generation. Higher values allow for more deviation from the original image. (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+## StableDiffusionInpaintNode
+
+Performs inpainting on images using Stable Diffusion.
+
+Use cases:
+- Remove unwanted objects from images
+- Fill in missing parts of images
+- Modify specific areas of images while preserving the rest
+
+**Tags:** image, inpainting, AI
+
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **num_inference_steps**: Number of denoising steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+- **init_image**: The initial image to be inpainted. (ImageRef)
+- **mask_image**: The mask image indicating areas to be inpainted. (ImageRef)
+- **strength**: Strength for inpainting. Higher values allow for more deviation from the original image. (float)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+## StableDiffusionLatentUpscale
+
+Upscales an image using Stable Diffusion upscaler model.
+
+Use cases:
+- Enhance low-resolution images
+- Improve image quality for printing or display
+- Create high-resolution versions of small images
+
+**Tags:** image, upscaling, AI, stable-diffusion
+
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **num_inference_steps**: Number of denoising steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **init_image**: The initial image for Image-to-Image generation. (ImageRef)
+- **num_upscale_steps**: Number of upscaling steps. (int)
 - **strength**: Strength for Image-to-Image generation. Higher values allow for more deviation from the original image. (float)
 
 ### initialize
@@ -638,6 +851,22 @@ An enumeration.
 ## StableDiffusionScheduler
 
 An enumeration.
+
+## StableDiffusionUpscale
+
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+- **num_inference_steps**: Number of denoising steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **init_image**: The initial image for Image-to-Image generation. (ImageRef)
+- **num_upscale_steps**: Number of upscaling steps. (int)
+- **strength**: Strength for Image-to-Image generation. Higher values allow for more deviation from the original image. (float)
 
 ## StableDiffusionXL
 
@@ -761,6 +990,33 @@ Use cases:
 
 **Args:**
 
+## VisualizeObjectDetection
+
+Visualizes object detection results on images.
+
+- **image**: The input image to visualize (ImageRef)
+- **objects**: The detected objects to visualize (list)
+
+## VisualizeSegmentation
+
+Visualizes segmentation masks on images with labels.
+
+Use cases:
+- Visualize results of image segmentation models
+- Analyze and compare different segmentation techniques
+- Create labeled images for presentations or reports
+
+**Tags:** image, segmentation, visualization
+
+- **image**: The input image to visualize (ImageRef)
+- **segments**: The segmentation masks to visualize (list)
+
+### generate_color_map
+
+Generate a list of distinct colors.
+**Args:**
+- **num_colors**
+
 ## ZeroShotImageClassifier
 
 Classifies images into categories without the need for training data.
@@ -841,15 +1097,7 @@ Use cases:
 - **context (ProcessingContext)**
 - **result (typing.Any)**
 
-**Returns:** DataframeRef
-
-### process_remote_result
-
-**Args:**
-- **context (ProcessingContext)**
-- **result (typing.Any)**
-
-**Returns:** DataframeRef
+**Returns:** list
 
 ### get_scheduler_class
 

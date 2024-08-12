@@ -12,6 +12,10 @@ Get or create a collection with the given name.
 
 - **context**: The processing context.
 - **name**: The name of the collection to get or create.
+**Args:**
+- **context (ProcessingContext)**
+- **name (str)**
+
 ### load_results
 
 **Args:**

@@ -14,18 +14,9 @@ Use cases:
 - **dict_a** (dict)
 - **dict_b** (dict)
 
-## ConvertToDataframe
+## ConflictResolution
 
-Transforms a single dictionary into a one-row pandas DataFrame.
-
-Use cases:
-- Prepare dictionary data for tabular analysis
-- Convert configuration to a data record
-- Initiate a DataFrame from a single data point
-
-**Tags:** dictionary, dataframe, convert
-
-- **dictionary** (dict)
+An enumeration.
 
 ## Filter
 
@@ -67,6 +58,22 @@ Use cases:
 **Tags:** json, parse, dictionary
 
 - **json_string** (str)
+
+## ReduceDictionaries
+
+Reduces a list of dictionaries into one dictionary based on a specified key field.
+
+Use cases:
+- Aggregate data by a specific field
+- Create summary dictionaries from list of records
+- Combine multiple data points into a single structure
+
+**Tags:** dictionary, reduce, aggregate
+
+- **dictionaries**: List of dictionaries to be reduced (list)
+- **key_field**: The field to use as the key in the resulting dictionary (str)
+- **value_field**: Optional field to use as the value. If not specified, the entire dictionary (minus the key field) will be used as the value. (str | None)
+- **conflict_resolution**: How to handle conflicts when the same key appears multiple times (ConflictResolution)
 
 ## Remove
 

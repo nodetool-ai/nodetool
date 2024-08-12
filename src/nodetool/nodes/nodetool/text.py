@@ -99,14 +99,26 @@ class Template(BaseNode):
     - Generating personalized messages with dynamic content
     - Creating parameterized queries or commands
     - Formatting text output based on variable inputs
+
+    Examples:
+    - text: "Hello, {name}!" values: {"name": "Alice"} -> "Hello, Alice!"
+    - text: "Hello, {0} {1}!" values: ["Alice", "Meyer"] -> "Hello, Alice Meyer!"
+    - text: "Hello, {0}!" values: "Alice" -> "Hello, Alice!"
     """
 
     string: str | TextRef = Field(title="String", default="")
-    values: dict[str, Any] = Field(title="Values", default={})
+    values: str | list | dict[str, Any] = Field(title="Values", default={})
 
     async def process(self, context: ProcessingContext) -> str | TextRef:
         string = await to_string(context, self.string)
-        res = string.format(**self.values)
+        if isinstance(self.values, str):
+            res = string.format(self.values)
+        elif isinstance(self.values, list):
+            res = string.format(*self.values)
+        elif isinstance(self.values, dict):
+            res = string.format(**self.values)
+        else:
+            raise ValueError("Invalid values type")
         return await convert_result(context, [self.string], res)
 
 

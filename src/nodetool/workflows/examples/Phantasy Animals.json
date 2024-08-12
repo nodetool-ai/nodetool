@@ -108,18 +108,18 @@
       {
         "id": "8",
         "parent_id": "3",
-        "type": "replicate.image.generate.Juggernaut_XL_V9",
+        "type": "stable_diffusion.Flux",
         "data": {
-          "seed": 1021897844,
+          "model": "flux1-schnell",
           "width": 1024,
           "height": 1024,
-          "scheduler": "DPM++SDE",
-          "num_outputs": 1,
-          "guidance_scale": 2,
-          "apply_watermark": true,
-          "negative_prompt": "CGI, Unreal, Airbrushed, Digital",
-          "num_inference_steps": 5,
-          "disable_safety_checker": false
+          "batch_size": 1,
+          "steps": 4,
+          "guidance_scale": 3.5,
+          "realism_strength": 1.0,
+          "scheduler": "karras",
+          "sampler": "dpmpp_2m_sde",
+          "noise_seed": 2147019938
         },
         "ui_properties": {
           "position": {

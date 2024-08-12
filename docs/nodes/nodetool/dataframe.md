@@ -1,6 +1,6 @@
 # nodetool.nodes.nodetool.dataframe
 
-## AddNewDataColumn
+## AddColumn
 
 Add list of values as new column to dataframe.
 
@@ -15,48 +15,7 @@ Use cases:
 - **column_name**: The name of the new column to be added to the dataframe. (str)
 - **values**: A list of any type of elements which will be the new column's values. (list)
 
-## CombineDataVertically
-
-Append two dataframes along rows.
-
-Use cases:
-- Combine data from multiple time periods
-- Merge datasets with same structure
-- Aggregate data from different sources
-
-**Tags:** append, concat, rows
-
-- **dataframe_a**: First DataFrame to be appended. (DataframeRef)
-- **dataframe_b**: Second DataFrame to be appended. (DataframeRef)
-
-## ConvertTensorToTable
-
-Convert tensor to dataframe.
-
-Use cases:
-- Analyze tensor data using pandas functions
-- Visualize tensor data in tabular format
-- Export tensor results to dataframe structure
-
-**Tags:** tensor, dataframe, convert
-
-- **tensor**: A tensor object to be converted into a dataframe. (Tensor)
-- **columns**: A list of strings specifying the column names for the resulting dataframe. (list)
-
-## ConvertToTensorFormat
-
-Convert dataframe to tensor.
-
-Use cases:
-- Prepare data for deep learning models
-- Enable tensor operations on dataframe data
-- Convert tabular data to multidimensional format
-
-**Tags:** dataframe, tensor, convert
-
-- **dataframe**: The input dataframe. (DataframeRef)
-
-## CreateChart
+## Chart
 
 Create line, bar, or scatter plot from dataframe.
 
@@ -72,34 +31,34 @@ Use cases:
 - **y_column**: The name of the y column to be used in the plot. (str)
 - **plot_type**: The type of plot to be created. Can be 'line', 'bar', or 'scatter'. (PlotType)
 
-## CreateHeatmapVisualization
+## CombineVertically
 
-Create heatmap visualization of dataframe.
+Append two dataframes along rows.
 
 Use cases:
-- Visualize correlation between variables
-- Identify patterns in multi-dimensional data
-- Display intensity of values across categories
+- Combine data from multiple time periods
+- Merge datasets with same structure
+- Aggregate data from different sources
 
-**Tags:** heatmap, plot, correlation
+**Tags:** append, concat, rows
+
+- **dataframe_a**: First DataFrame to be appended. (DataframeRef)
+- **dataframe_b**: Second DataFrame to be appended. (DataframeRef)
+
+## ConvertToTensor
+
+Convert dataframe to tensor.
+
+Use cases:
+- Prepare data for deep learning models
+- Enable tensor operations on dataframe data
+- Convert tabular data to multidimensional format
+
+**Tags:** dataframe, tensor, convert
 
 - **dataframe**: The input dataframe. (DataframeRef)
 
-## CreateHistogramVisualization
-
-Plot histogram of dataframe column.
-
-Use cases:
-- Visualize distribution of continuous data
-- Identify outliers and data patterns
-- Compare data distributions across categories
-
-**Tags:** histogram, plot, distribution
-
-- **dataframe**: The input dataframe. (DataframeRef)
-- **column**: The column to plot. (str)
-
-## ExtractColumnData
+## ExtractColumn
 
 Convert dataframe column to list.
 
@@ -113,9 +72,17 @@ Use cases:
 - **dataframe**: The input dataframe. (DataframeRef)
 - **column_name**: The name of the column to be converted to a list. (str)
 
-## FilterDataRows
+## Filter
 
 Filter dataframe based on condition.
+
+Example conditions:
+age > 30
+age > 30 and salary < 50000
+name == 'John Doe'
+100 <= price <= 200
+status in ['Active', 'Pending']
+not (age < 18)
 
 Use cases:
 - Extract subset of data meeting specific criteria
@@ -127,7 +94,29 @@ Use cases:
 - **df**: The DataFrame to filter. (DataframeRef)
 - **condition**: The filtering condition to be applied to the DataFrame, e.g. column_name > 5. (str)
 
-## FormatRowsAsText
+## FindOneRow
+
+Find the first row in a dataframe that matches a given condition.
+
+Example conditions:
+age > 30
+age > 30 and salary < 50000
+name == 'John Doe'
+100 <= price <= 200
+status in ['Active', 'Pending']
+not (age < 18)
+
+Use cases:
+- Retrieve specific record based on criteria
+- Find first occurrence of a particular condition
+- Extract single data point for further analysis
+
+**Tags:** filter, query, condition, single row
+
+- **df**: The DataFrame to search. (DataframeRef)
+- **condition**: The condition to filter the DataFrame, e.g. 'column_name == value'. (str)
+
+## FormatAsText
 
 Convert dataframe rows to formatted strings.
 
@@ -143,7 +132,7 @@ Use cases:
 
 ## FromList
 
-Convert list of values to dataframe.
+Convert list of dicts to dataframe.
 
 Use cases:
 - Transform list data into structured dataframe
@@ -153,9 +142,49 @@ Use cases:
 **Tags:** list, dataframe, convert
 
 - **values**: List of values to be converted, each value will be a row. (list)
-- **columns**: Comma separated list of column names (str)
 
-## ImportCSVData
+## FromTensor
+
+Convert tensor to dataframe.
+
+Use cases:
+- Analyze tensor data using pandas functions
+- Visualize tensor data in tabular format
+- Export tensor results to dataframe structure
+
+**Tags:** tensor, dataframe, convert
+
+- **tensor**: A tensor object to be converted into a dataframe. (Tensor)
+- **columns**: A list of strings specifying the column names for the resulting dataframe. (list)
+
+## Heatmap
+
+Create heatmap visualization of dataframe.
+
+Use cases:
+- Visualize correlation between variables
+- Identify patterns in multi-dimensional data
+- Display intensity of values across categories
+
+**Tags:** heatmap, plot, correlation
+
+- **dataframe**: The input dataframe. (DataframeRef)
+
+## Histogram
+
+Plot histogram of dataframe column.
+
+Use cases:
+- Visualize distribution of continuous data
+- Identify outliers and data patterns
+- Compare data distributions across categories
+
+**Tags:** histogram, plot, distribution
+
+- **dataframe**: The input dataframe. (DataframeRef)
+- **column**: The column to plot. (str)
+
+## ImportCSV
 
 Convert CSV string to dataframe.
 
@@ -167,7 +196,7 @@ Use cases:
 
 - **csv_data**: String input of CSV formatted text. (str)
 
-## JoinTables
+## Join
 
 Join two dataframes on specified column.
 
@@ -194,7 +223,7 @@ Use cases:
 **Tags:** iris, dataset, machine learning
 
 
-## MergeDataSideBySide
+## MergeSideBySide
 
 Merge two dataframes along columns.
 
@@ -208,7 +237,7 @@ Use cases:
 - **dataframe_a**: First DataFrame to be merged. (DataframeRef)
 - **dataframe_b**: Second DataFrame to be merged. (DataframeRef)
 
-## RemoveDuplicateEntries
+## RemoveDuplicates
 
 Remove duplicate rows from dataframe.
 
@@ -262,7 +291,7 @@ Use cases:
 - **dataframe**: a dataframe from which columns are to be selected (DataframeRef)
 - **columns**: comma separated list of column names (str)
 
-## SortDataByColumn
+## SortByColumn
 
 Sort dataframe by specified column.
 

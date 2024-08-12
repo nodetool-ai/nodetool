@@ -35,6 +35,14 @@ It is used to create a mapping of type names to their corresponding classes.
 
 - **type** (str)
 
+## BoundingBox
+
+- **type** (typing.Literal['bounding_box'])
+- **xmin** (float)
+- **ymin** (float)
+- **xmax** (float)
+- **ymax** (float)
+
 ## CLIP
 
 - **type** (typing.Literal['comfy.clip'])
@@ -220,6 +228,12 @@ A reference to an image asset.
 - **asset_id** (str | None)
 - **data** (bytes | None)
 
+## ImageSegmentationResult
+
+- **type** (typing.Literal['image_segmentation_result'])
+- **label** (str)
+- **mask** (ImageRef)
+
 ## ImageTensor
 
 - **type** (typing.Literal['comfy.image_tensor'])
@@ -290,6 +304,9 @@ Convert a Model object to a Message object.
 **Returns:**
 
 - **Message**: The abstract Message object.
+**Args:**
+- **message (Message)**
+
 ## ModelFile
 
 - **type** (str)
@@ -311,6 +328,13 @@ Convert a Model object to a Message object.
 
 - **type** (typing.Literal['comfy.noise'])
 - **data** (typing.Any)
+
+## ObjectDetectionResult
+
+- **type** (typing.Literal['object_detection_result'])
+- **label** (str)
+- **score** (float)
+- **box** (BoundingBox)
 
 ## OutputSlot
 
@@ -363,7 +387,6 @@ An enumeration.
 - **name** (str)
 - **instructions** (str)
 - **dependencies** (list)
-- **required_capabilities** (list)
 - **started_at** (str)
 - **finished_at** (str | None)
 - **error** (str | None)
@@ -410,13 +433,6 @@ An enumeration.
 - **uri** (str)
 - **asset_id** (str | None)
 - **data** (bytes | None)
-
-## TrainTestOutput
-
-- **train_X** (DataframeRef)
-- **train_y** (DataframeRef)
-- **test_X** (DataframeRef)
-- **test_y** (DataframeRef)
 
 ## UNet
 

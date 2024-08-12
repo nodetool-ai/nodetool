@@ -22,6 +22,11 @@ Retrieve a value from the cache.
 **Returns:**
 
 - **Any**: The value associated with the key, or None if not found.
+**Args:**
+- **key (str)**
+
+**Returns:** typing.Any
+
 ### set
 
 Set a value in the cache with an optional TTL.
@@ -32,3 +37,8 @@ Set a value in the cache with an optional TTL.
 - **key (str)**: The key to set.
 - **value (Any)**: The value to store.
 - **ttl (int, optional)**: Time-to-live in seconds. If None, the entry won't expire.
+**Args:**
+- **key (str)**
+- **value (typing.Any)**
+- **ttl (int) (default: 3600)**
+

@@ -28,6 +28,12 @@ Convert the output to the specified type.
 **Returns:**
 
 The converted output.
+**Args:**
+- **context (ProcessingContext)**
+- **output (typing.Any)**
+
+**Returns:** typing.Any
+
 ### get_output_index
 
 **Args:**
@@ -54,6 +60,10 @@ Run prediction on Replicate.
 **Returns:**
 
 Result of the prediction.
+**Args:**
+- **context (ProcessingContext)**
+- **params (dict[str, typing.Any] | None) (default: None)**
+
 ### add_replicate_model
 
 **Args:**
@@ -73,6 +83,11 @@ Capitalizes the first letter of a string.
 **Returns:**
 
 - **str**: The capitalized string.
+**Args:**
+- **name (str)**
+
+**Returns:** str
+
 ### convert_enum_value
 
 Converts an enum value to its corresponding value.
@@ -86,6 +101,9 @@ Converts an enum value to its corresponding value.
 **Returns:**
 
 - **Any**: The converted value.
+**Args:**
+- **value (typing.Any)**
+
 ### convert_output_value
 
 Converts the output value to the specified type.
@@ -107,6 +125,12 @@ Performs automatic conversions using heuristics.
 **Raises:**
 
 - **TypeError**: If the value is not of the expected type.
+**Args:**
+- **value (typing.Any)**
+- **t (typing.Type[typing.Any])**
+- **output_index (int) (default: 0)**
+- **output_key (str) (default: output)**
+
 ### parse_model_info
 
 Parses the replicate model information from the given URL.
@@ -120,6 +144,9 @@ Parses the replicate model information from the given URL.
 **Returns:**
 
 - **dict**: A dictionary containing the parsed model information.
+**Args:**
+- **url (str)**
+
 ### sanitize_enum
 
 Sanitizes an enum string by replacing hyphens, dots, and spaces with underscores.
@@ -133,3 +160,8 @@ Sanitizes an enum string by replacing hyphens, dots, and spaces with underscores
 **Returns:**
 
 - **str**: The sanitized enum string.
+**Args:**
+- **name (str)**
+
+**Returns:** str
+

@@ -13,6 +13,11 @@ Concatenate a list of audio segments
 **Returns:**
 
 - **AudioSegment**: The concatenated audio segment.
+**Args:**
+- **audios (typing.List[pydub.audio_segment.AudioSegment])**
+
+**Returns:** AudioSegment
+
 ### convert_audio_format
 
 Convert the audio to the given format.
@@ -27,6 +32,12 @@ Convert the audio to the given format.
 **Returns:**
 
 - **AudioSegment**: The converted audio segment.
+**Args:**
+- **audio (AudioSegment)**
+- **format (str)**
+
+**Returns:** AudioSegment
+
 ### convert_audio_to_bytes
 
 Convert the audio to bytes.
@@ -40,6 +51,11 @@ Convert the audio to bytes.
 **Returns:**
 
 - **bytes**: The audio as bytes.
+**Args:**
+- **audio (AudioSegment)**
+
+**Returns:** bytes
+
 ### convert_to_float
 
 Converts audio data from integer format to float format.
@@ -53,6 +69,9 @@ Converts audio data from integer format to float format.
 **Returns:**
 
 - **np.ndarray**: Audio data in float format.
+**Args:**
+- **audio_data (ndarray)**
+
 ### export_audio
 
 Export the audio to a file.
@@ -65,6 +84,13 @@ Export the audio to a file.
 - **format (str)**: The format to export the audio in.
 - **codec (str)**: The codec to use for the exported audio.
 - **bitrate (str)**: The bitrate to use for the exported audio.
+**Args:**
+- **audio (AudioSegment)**
+- **file_path (str)**
+- **format (str)**
+- **codec (str)**
+- **bitrate (str)**
+
 **Returns:** None
 
 ### get_audio_metadata
@@ -80,6 +106,11 @@ Get metadata for an audio segment.
 **Returns:**
 
 - **dict**: A dictionary containing the audio metadata.
+**Args:**
+- **audio (AudioSegment)**
+
+**Returns:** dict
+
 ### normalize_audio
 
 Normalize the audio.
@@ -93,6 +124,11 @@ Normalize the audio.
 **Returns:**
 
 - **AudioSegment**: The normalized audio segment.
+**Args:**
+- **audio (AudioSegment)**
+
+**Returns:** AudioSegment
+
 ### numpy_to_audio_segment
 
 Convert a numpy array to an audio segment.
@@ -107,6 +143,12 @@ Convert a numpy array to an audio segment.
 **Returns:**
 
 - **AudioSegment**: The audio segment.
+**Args:**
+- **arr (ndarray)**
+- **sample_rate (default: 44100)**
+
+**Returns:** AudioSegment
+
 ### remove_silence
 
 Remove or shorten silence from an audio segment with crossfade to avoid clipping.
@@ -126,6 +168,16 @@ Remove or shorten silence from an audio segment with crossfade to avoid clipping
 **Returns:**
 
 - **AudioSegment**: The processed audio.
+**Args:**
+- **audio (AudioSegment)**
+- **min_length (int) (default: 100)**
+- **threshold (int) (default: -32)**
+- **reduction_factor (float) (default: 1.0)**
+- **crossfade (int) (default: 10)**
+- **min_silence_between_parts (int) (default: 100)**
+
+**Returns:** AudioSegment
+
 ### resample_audio
 
 Resample the audio to the given sample rate.
@@ -140,6 +192,12 @@ Resample the audio to the given sample rate.
 **Returns:**
 
 - **AudioSegment**: The resampled audio segment.
+**Args:**
+- **audio (AudioSegment)**
+- **sample_rate (int)**
+
+**Returns:** AudioSegment
+
 ### resize_audio
 
 Resize the audio to the given duration.
@@ -154,6 +212,12 @@ Resize the audio to the given duration.
 **Returns:**
 
 - **AudioSegment**: The resized audio segment.
+**Args:**
+- **audio (AudioSegment)**
+- **duration (float)**
+
+**Returns:** AudioSegment
+
 ### scale_audios_to_shortest_duration
 
 Scales a list of audios to the shortest duration, meaning that
@@ -168,6 +232,9 @@ all audios will have the same duration.
 **Returns:**
 
 - **List[AudioSegment]**: A list of scaled audio segments.
+**Args:**
+- **audios (typing.List[pydub.audio_segment.AudioSegment])**
+
 ### segment_audio
 
 Segment an audio into multiple audio segments.
@@ -181,3 +248,8 @@ Segment an audio into multiple audio segments.
 **Returns:**
 
 - **List[AudioSegment]**: A list of segmented audio segments.
+**Args:**
+- **audio (AudioSegment)**
+
+**Returns:** typing.List[pydub.audio_segment.AudioSegment]
+

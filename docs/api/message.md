@@ -16,6 +16,14 @@
 
 **Returns:** Message
 
+### help
+
+**Args:**
+- **req (MessageCreateRequest)**
+- **user (User) (default: Depends(current_user))**
+
+**Returns:** list
+
 ### index
 
 **Args:**

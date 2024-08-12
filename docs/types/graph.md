@@ -35,3 +35,8 @@ Clears specific slots in the data field of nodes based on connected target handl
 **Returns:**
 
 - **Graph**: The updated graph object with cleared slots.
+**Args:**
+- **graph (Graph)**
+
+**Returns:** Graph
+

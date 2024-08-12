@@ -23,7 +23,6 @@
 - **name** (str)
 - **instructions** (str)
 - **dependencies** (list)
-- **required_capabilities** (list)
 
 ## TaskList
 

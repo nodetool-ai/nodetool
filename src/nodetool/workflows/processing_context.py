@@ -209,9 +209,6 @@ class ProcessingContext:
         """Get the cached result for a node."""
         key = self.generate_node_cache_key(node)
         val = Environment.get_node_cache().get(key)
-        # TODO: remove once caching works for all comfy nodes
-        if val is not None:
-            print("Using cached node", node.get_node_type(), key)
         return val
 
     def cache_result(self, node: BaseNode, result: Any, ttl: int = 3600):
@@ -223,8 +220,6 @@ class ProcessingContext:
 
         if all_cacheable:
             key = self.generate_node_cache_key(node)
-            # TODO: remove once caching works for all comfy nodes
-            print("Caching node", node.get_node_type(), key)
             Environment.get_node_cache().set(key, result, ttl)
 
     def add_model(self, type: str, name: str, model: Any):
