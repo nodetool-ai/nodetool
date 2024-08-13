@@ -3,7 +3,7 @@
     "access": "private",
     "created_at": "2024-08-10T21:40:43.442888",
     "updated_at": "2024-08-10T23:17:03.584031",
-    "name": "Comfy Inpainting",
+    "name": "Inpainting in Comfy",
     "description": "Replace the face of an image with a new face",
     "thumbnail": "",
     "thumbnail_url": "/examples/inpainting.png",

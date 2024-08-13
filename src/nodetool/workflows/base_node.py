@@ -1,10 +1,12 @@
 from enum import EnumMeta
+import functools
 import sys
 from types import UnionType
+from weakref import WeakKeyDictionary
 from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 
-from typing import Any, Type
+from typing import Any, Callable, Type, TypeVar
 
 import torch
 from nodetool.types.graph import Edge
@@ -143,6 +145,27 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
     else:
         print()
         raise ValueError(f"Unknown type: {python_type}")
+
+
+T = TypeVar("T")
+
+
+def memoized_class_method(func: Callable[..., T]):
+    """
+    A decorator that implements memoization for class methods using a functional approach.
+    """
+    cache: WeakKeyDictionary[type, dict[tuple, Any]] = WeakKeyDictionary()
+
+    @functools.wraps(func)
+    def wrapper(cls: type, *args: Any, **kwargs: Any) -> T:
+        if cls not in cache:
+            cache[cls] = {}
+        key = (args, frozenset(kwargs.items()))
+        if key not in cache[cls]:
+            cache[cls][key] = func(cls, *args, **kwargs)
+        return cache[cls][key]
+
+    return classmethod(wrapper)
 
 
 class BaseNode(BaseModel):
@@ -395,19 +418,16 @@ class BaseNode(BaseModel):
         Properties to send to the client for updating the node.
         Comfy types and tensors are excluded.
         """
+        return {}
 
-        def should_include(prop: Property, value: Any):
-            return (
-                not isinstance(value, torch.Tensor)
-                and not prop.type.is_comfy_type()
-                and not isinstance(value, ComfyData)
-                and not isinstance(value, AssetRef)
-            )
-
+    def get_properties_for_update(self, names: list[str]):
+        """
+        Includes all properties in the update message.
+        """
         return {
             prop.name: getattr(self, prop.name)
             for prop in self.properties()
-            if should_include(prop, getattr(self, prop.name))
+            if prop.name in names
         }
 
     def result_for_update(self, result: dict[str, Any]) -> dict[str, Any]:
@@ -423,6 +443,14 @@ class BaseNode(BaseModel):
         Note:
             - Converts Pydantic models to dictionaries.
             - Serializes binary data to base64.
+        """
+        return {}
+
+    def result_for_all_outputs(self, result: dict[str, Any]) -> dict[str, Any]:
+        """
+        Prepares the node result for inclusion in a NodeUpdate message.
+
+        This method is used when the node is sending updates for all outputs.
         """
         res_for_update = {}
 
@@ -659,14 +687,19 @@ class BaseNode(BaseModel):
             for name, field in fields.items()
         ]
 
-    @classmethod
-    def properties_dict(cls):
-        """
-        Returns the input slots of the node.
-        """
-        if not hasattr(cls, "__props__"):
-            cls.__props__ = {prop.name: prop for prop in cls.properties()}
-        return cls.__props__
+    @memoized_class_method
+    def properties_dict(cls) -> dict[str, Any]:
+        """Returns the input slots of the node, memoized for each class."""
+        # Get properties from parent classes
+        parent_properties = {}
+        for base in cls.__bases__:
+            if hasattr(base, "properties_dict"):
+                parent_properties.update(base.properties_dict())
+
+        # Add or override with current class properties
+        current_properties = {prop.name: prop for prop in cls.properties()}
+
+        return {**parent_properties, **current_properties}
 
     def node_properties(self):
         return {name: getattr(self, name) for name in self.inherited_fields().keys()}
@@ -807,6 +840,9 @@ class Preview(BaseNode):
     async def process(self, context: Any) -> Any:
         return self.value
 
+    def result_for_update(self, result: dict[str, Any]) -> dict[str, Any]:
+        return self.result_for_all_outputs(result)
+
 
 def get_comfy_class_by_name(class_name: str) -> type[BaseNode]:
     """
@@ -821,6 +857,8 @@ def get_comfy_class_by_name(class_name: str) -> type[BaseNode]:
     Note:
         If no exact match is found, it attempts to find a match by removing hyphens from the class name.
     """
+    if class_name == "Note":
+        return Comment
     if not class_name in COMFY_NODE_CLASSES:
         class_name = class_name.replace("-", "")
     if not class_name in COMFY_NODE_CLASSES:

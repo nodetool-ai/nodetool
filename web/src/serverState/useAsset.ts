@@ -1,6 +1,6 @@
 import { Asset, Video, Audio, Image } from "../stores/ApiTypes";
 import { useAssetStore } from "../hooks/AssetStore";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 
 type UseAssetProps = {
   audio?: Audio;
@@ -35,7 +35,9 @@ export function useAsset(props: UseAssetProps): {
     }
   };
 
-  const { data: asset } = useQuery(["asset", assetResource?.asset_id], load, {
+  const { data: asset } = useQuery({
+    queryKey: ["asset", assetResource?.asset_id],
+    queryFn: load,
     enabled: !!assetResource?.asset_id
   });
 

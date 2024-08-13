@@ -317,7 +317,10 @@ class WorkflowRunner:
             inputs = context.get_node_inputs(node.id)
 
             for name, value in inputs.items():
-                node.assign_property(name, value)
+                try:
+                    node.assign_property(name, value)
+                except Exception as e:
+                    log.warn(f"Error assigning property {name} to node {node.id}: {e}")
 
             await node.pre_process(context)
 

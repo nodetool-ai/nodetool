@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../stores/useAuth";
 
@@ -20,9 +20,11 @@ const OAuthCallback: React.FC = () => {
     navigate("/editor/start");
   }, [location.search, navigate, oauthCallback, setUser]);
 
-  useQuery(["oauth", state], async () => {
-    if (state) {
-      await fetchUser(state);
+  useQuery({
+    queryKey: ["oauth", state], queryFn: async () => {
+      if (state) {
+        await fetchUser(state);
+      }
     }
   });
 

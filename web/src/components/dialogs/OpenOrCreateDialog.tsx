@@ -5,7 +5,7 @@ import { useCallback } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Button from "@mui/material/Button";
-import { useQuery, useQueryClient } from "react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import {
@@ -19,10 +19,10 @@ import { ErrorOutlineRounded } from "@mui/icons-material";
 import { prettyDate } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
 import { useNavigate } from "react-router";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { VERSION } from "../../config/constants";
+import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 
 const styles = (theme: any) =>
   css({
@@ -172,28 +172,22 @@ const OpenOrCreateDialog = () => {
   const navigate = useNavigate();
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
-  const setShouldAutoLayout = useNodeStore(
-    (state) => state.setShouldAutoLayout
-  );
 
   function addBreaks(text: string) {
     return text.replace(/([-_.])/g, "$1<wbr>");
   }
   // LOAD WORKFLOWS
-  const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>(
-    ["workflows"],
-    async () => {
+  const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>({
+    queryKey: ["workflows"],
+    queryFn: async () => {
       return loadWorkflows("");
     },
-    {
-      useErrorBoundary: true
-    }
-  );
+  });
 
   // CREATE NEW WORKFLOW
   const handleCreateNewWorkflow = async () => {
     const workflow = await createNewWorkflow();
-    queryClient.invalidateQueries(["workflows"]);
+    queryClient.invalidateQueries({ queryKey: ["workflows"] });
     navigate(`/editor/${workflow.id}`);
   };
 
@@ -220,6 +214,8 @@ const OpenOrCreateDialog = () => {
       setWorkflowOrder(newOrder);
     }
   };
+
+  const { handleOpenWelcome, handleOpenHelp } = useAppHeaderStore();
 
   const sortedWorkflows = data?.workflows.sort((a, b) => {
     if (settings.workflowOrder === "name") {
@@ -295,6 +291,12 @@ const OpenOrCreateDialog = () => {
           </Button>
           <Button color="primary" onClick={handleNavigateExampleWorkflows}>
             Examples
+          </Button>
+          <Button color="primary" onClick={handleOpenWelcome}>
+            Getting Started
+          </Button>
+          <Button color="primary" onClick={handleOpenHelp}>
+            Shortcuts
           </Button>
         </div>
 

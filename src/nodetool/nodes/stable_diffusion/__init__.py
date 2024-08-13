@@ -13,6 +13,7 @@ from comfy_extras.nodes_flux import FluxGuidance
 from nodes import (
     CLIPTextEncode,
     CheckpointLoaderSimple,
+    ControlNetApply,
     ControlNetLoader,
     DualCLIPLoader,
     EmptyLatentImage,
@@ -30,7 +31,6 @@ import torch
 
 from comfy.model_patcher import ModelPatcher
 from comfy.sd import CLIP, VAE
-from comfy_extras.nodes_sd3 import EmptySD3LatentImage
 from nodetool.metadata.types import CheckpointFile, ImageRef
 from nodetool.nodes.stable_diffusion.enums import Sampler, Scheduler
 from nodetool.workflows.base_node import BaseNode
@@ -43,14 +43,15 @@ from nodetool.workflows.processing_context import ProcessingContext
 class StableDiffusion(BaseNode):
     """
     Generates images based on an input image and text prompts using Stable Diffusion.
-    Works with 1.5 and XL models.
-    image, image-to-image, generative AI, stable diffusion
+    Works with 1.5 and XL models. Supports optional high-resolution upscaling.
+    image, image-to-image, generative AI, stable diffusion, high-resolution
 
     Use cases:
     - Modifying existing images based on text descriptions
     - Applying artistic styles to photographs
     - Generating variations of existing artwork or designs
     - Enhancing or altering stock images for specific needs
+    - Creating high-resolution images from lower resolution inputs
     """
 
     model: CheckpointFile = Field(
@@ -77,6 +78,7 @@ class StableDiffusion(BaseNode):
     _model: ModelPatcher | None = None
     _clip: CLIP | None = None
     _vae: VAE | None = None
+    _hires_model: ModelPatcher | None = None
 
     async def initialize(self, context: ProcessingContext):
         from nodes import CheckpointLoaderSimple
@@ -86,19 +88,12 @@ class StableDiffusion(BaseNode):
             self.model.name
         )
 
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        positive_conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
-        negative_conditioning = CLIPTextEncode().encode(
-            self._clip, self.negative_prompt
-        )[0]
-
+    async def get_latent(self, context: ProcessingContext, width: int, height: int):
         if self.input_image.is_empty():
-            latent = EmptyLatentImage().generate(self.width, self.height, 1)[0]
+            return EmptyLatentImage().generate(width, height, 1)[0]
         else:
             input_pil = await context.image_to_pil(self.input_image)
-            input_pil = input_pil.resize(
-                (self.width, self.height), PIL.Image.Resampling.LANCZOS
-            )
+            input_pil = input_pil.resize((width, height), PIL.Image.Resampling.LANCZOS)
             image = input_pil.convert("RGB")
             image = np.array(image).astype(np.float32) / 255.0
             input_tensor = torch.from_numpy(image)[None,]
@@ -106,302 +101,204 @@ class StableDiffusion(BaseNode):
             if not self.mask_image.is_empty():
                 mask_pil = await context.image_to_pil(self.mask_image)
                 mask_pil = mask_pil.resize(
-                    (self.width, self.height), PIL.Image.Resampling.LANCZOS
+                    (width, height), PIL.Image.Resampling.LANCZOS
                 )
                 mask = mask_pil.convert("L")
                 mask = np.array(mask).astype(np.float32) / 255.0
                 mask_tensor = torch.from_numpy(mask)[None,]
-                latent = VAEEncodeForInpaint().encode(
+                return VAEEncodeForInpaint().encode(
                     self._vae, input_tensor, mask_tensor, self.grow_mask_by
                 )[0]
             else:
-                latent = VAEEncode().encode(self._vae, input_tensor)[0]
+                return VAEEncode().encode(self._vae, input_tensor)[0]
 
-        sampled_latent = KSampler().sample(
-            model=self._model,
-            seed=self.seed,
-            steps=self.num_inference_steps,
-            cfg=self.guidance_scale,
-            sampler_name=self.sampler.value,
-            scheduler=self.scheduler.value,
-            positive=positive_conditioning,
-            negative=negative_conditioning,
-            latent_image=latent,
-        )[0]
-
-        decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
-        img = PIL.Image.fromarray(
-            np.clip(decoded_image.squeeze(0).cpu().numpy() * 255, 0, 255).astype(
-                np.uint8
-            )
-        )
-
-        return await context.image_from_pil(img)
-
-
-class HiResStableDiffusion(StableDiffusion):
-    """
-    Generates high-resolution images based on an input image and text prompts using Stable Diffusion.
-    Works with 1.5 and XL models.
-    image, image-to-image, generative AI, stable diffusion
-
-    Use cases:
-    - Modifying existing images based on text descriptions
-    - Applying artistic styles to photographs
-    - Generating variations of existing artwork or designs
-    - Enhancing or altering stock images for specific needs
-    """
-
-    hires_model: CheckpointFile = Field(
-        default=CheckpointFile(), description="Hires model checkpoint to load."
-    )
-    num_hires_steps: int = Field(default=0, ge=0, le=100)
-    hires_denoise: float = Field(default=0.7, ge=0.0, le=1.0)
-
-    _hires_model: ModelPatcher | None = None
-
-    async def initialize(self, context: ProcessingContext):
-        checkpoint_loader = CheckpointLoaderSimple()
-        self._model, self._clip, self._vae = checkpoint_loader.load_checkpoint(
-            self.model.name
-        )
-
-        self._hires_model, _, _ = checkpoint_loader.load_checkpoint(
-            self.hires_model.name
-        )
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        clip_text_encode = CLIPTextEncode()
-        positive_conditioning = clip_text_encode.encode(self._clip, self.prompt)[0]
-        negative_conditioning = clip_text_encode.encode(
+    def get_conditioning(self):
+        positive_conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
+        negative_conditioning = CLIPTextEncode().encode(
             self._clip, self.negative_prompt
         )[0]
+        return positive_conditioning, negative_conditioning
 
-        if self.input_image.is_empty():
-            # If no input image, create an empty latent
-            empty_latent = EmptyLatentImage()
-            latent = empty_latent.generate(self.width, self.height, 1)[0]
-        else:
-            # Load and preprocess the input image
-            input_pil = await context.image_to_pil(self.input_image)
-            input_pil = input_pil.resize(
-                (self.width, self.height), PIL.Image.Resampling.LANCZOS
-            )
-            image = input_pil.convert("RGB")
-            image = np.array(image).astype(np.float32) / 255.0
-            input_tensor = torch.from_numpy(image)[None,]
-
-            # Encode the input image to latent space
-            vae_encode = VAEEncode()
-            latent = vae_encode.encode(self._vae, input_tensor)[0]
-
-        if self.num_hires_steps > 0:
-            width = self.width // 2
-            height = self.height // 2
-        else:
-            width = self.width
-            height = self.height
-
-        latent = empty_latent.generate(width, height, 1)[0]
-
-        k_sampler = KSampler()
-        sampled_latent = k_sampler.sample(
-            model=self._model,
+    def sample(self, model, latent, positive, negative, num_steps):
+        return KSampler().sample(
+            model=model,
             seed=self.seed,
-            steps=self.num_inference_steps,
+            steps=num_steps,
             cfg=self.guidance_scale,
             sampler_name=self.sampler.value,
             scheduler=self.scheduler.value,
-            positive=positive_conditioning,
-            negative=negative_conditioning,
+            positive=positive,
+            negative=negative,
             latent_image=latent,
+            denoise=self.denoise,
         )[0]
 
-        if self.num_hires_steps > 0:
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        positive_conditioning, negative_conditioning = self.get_conditioning()
+
+        if self.width >= 1024 and self.height >= 1024:
+            num_hires_steps = self.num_inference_steps // 2
+            num_lowres_steps = self.num_inference_steps - num_hires_steps
+            initial_width, initial_height = self.width // 2, self.height // 2
+        else:
+            num_hires_steps = 0
+            num_lowres_steps = self.num_inference_steps
+            initial_width, initial_height = self.width, self.height
+
+        latent = await self.get_latent(context, initial_width, initial_height)
+
+        sampled_latent = self.sample(
+            self._model,
+            latent,
+            positive_conditioning,
+            negative_conditioning,
+            num_lowres_steps,
+        )
+
+        if num_hires_steps > 0:
             hires_latent = LatentUpscale().upscale(
                 samples=sampled_latent,
                 upscale_method="bilinear",
-                width=self.width * 2,
-                height=self.height * 2,
+                width=self.width,
+                height=self.height,
                 crop=False,
             )[0]
 
-            sampled_latent = k_sampler.sample(
-                model=self._hires_model if self._hires_model else self._model,
-                seed=self.seed,
-                steps=self.num_hires_steps,
-                cfg=self.guidance_scale,
-                sampler_name=self.sampler.value,
-                scheduler=self.scheduler.value,
-                positive=positive_conditioning,
-                negative=negative_conditioning,
-                latent_image=hires_latent,
-                denoise=self.hires_denoise,
-            )[0]
-
-        vae_decode = VAEDecode()
-        decoded_image = vae_decode.decode(self._vae, sampled_latent)[0]
-        img = PIL.Image.fromarray(
-            np.clip(decoded_image.squeeze(0).cpu().numpy() * 255, 0, 255).astype(
-                np.uint8
+            sampled_latent = self.sample(
+                self._hires_model if self._hires_model else self._model,
+                hires_latent,
+                positive_conditioning,
+                negative_conditioning,
+                num_hires_steps,
             )
-        )
 
-        return await context.image_from_pil(img)
+        decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
+        return await context.image_from_tensor(decoded_image)
 
 
-class ControlNet(BaseNode):
+class ControlNet(StableDiffusion):
     """
     Generates images using Stable Diffusion with ControlNet for additional image control.
-    image, controlnet, generative AI, stable diffusion
+    Supports optional high-resolution upscaling while maintaining the same ControlNet strength.
+    image, controlnet, generative AI, stable diffusion, high-resolution
 
     Use cases:
     - Generating images with specific structural guidance
     - Creating images that follow edge maps or depth information
     - Producing variations of images while maintaining certain features
     - Enhancing image generation with additional control signals
+    - Creating high-resolution images with consistent controlled features
     """
 
-    model: CheckpointFile = Field(
-        default=CheckpointFile(), description="Stable Diffusion checkpoint to load."
+    canny_image: ImageRef = Field(
+        default=ImageRef(), description="Canny edge detection image for ControlNet"
     )
-    prompt: str = Field(default="", description="The prompt to use.")
-    negative_prompt: str = Field(default="", description="The negative prompt to use.")
-    seed: int = Field(default=0, ge=0, le=1000000)
-    guidance_scale: float = Field(default=7.0, ge=1.0, le=30.0)
-    num_inference_steps: int = Field(default=30, ge=1, le=100)
-    width: int = Field(default=768, ge=64, le=2048, multiple_of=64)
-    height: int = Field(default=768, ge=64, le=2048, multiple_of=64)
-    scheduler: Scheduler = Field(default=Scheduler.exponential)
-    sampler: Sampler = Field(default=Sampler.euler_ancestral)
-    input_image: Optional[ImageRef] = Field(
-        default=None, description="Input image for img2img (optional)"
-    )
-    denoise: float = Field(default=0.0, ge=0.0, le=1.0)
-    canny_image: Optional[ImageRef] = Field(
-        default=None, description="Canny edge detection image for ControlNet"
-    )
-    depth_image: Optional[ImageRef] = Field(
-        default=None, description="Depth map image for ControlNet"
+    depth_image: ImageRef = Field(
+        default=ImageRef(), description="Depth map image for ControlNet"
     )
     canny_strength: float = Field(
-        default=1.0, ge=0.0, le=1.0, description="Strength of Canny ControlNet"
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Strength of Canny ControlNet (used for both low and high resolution)",
     )
     depth_strength: float = Field(
-        default=1.0, ge=0.0, le=1.0, description="Strength of Depth ControlNet"
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Strength of Depth ControlNet (used for both low and high resolution)",
     )
 
-    _model: ModelPatcher | None = None
-    _clip: CLIP | None = None
-    _vae: VAE | None = None
     _canny_controlnet: ModelPatcher | None = None
     _depth_controlnet: ModelPatcher | None = None
 
     async def initialize(self, context: ProcessingContext):
-        checkpoint_loader = CheckpointLoaderSimple()
-        self._model, self._clip, self._vae = checkpoint_loader.load_checkpoint(  # type: ignore
-            self.model.name
-        )
-
-        controlnet_loader = ControlNetLoader()
-        self._canny_controlnet = controlnet_loader.load_controlnet(
+        await super().initialize(context)
+        self._canny_controlnet = ControlNetLoader().load_controlnet(
             "coadapter-canny-sd15v1.pth"
         )[0]
-        self._depth_controlnet = controlnet_loader.load_controlnet(
+        self._depth_controlnet = ControlNetLoader().load_controlnet(
             "coadapter-depth-sd15v1.pth"
         )[0]
 
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        from nodes import (
-            CLIPTextEncode,
-            EmptyLatentImage,
-            KSampler,
-            VAEDecode,
-            VAEEncode,
-            ControlNetApply,
-        )
-        import PIL.Image
-        import numpy as np
-        import torch
-
-        clip_text_encode = CLIPTextEncode()
-        positive_conditioning = clip_text_encode.encode(self._clip, self.prompt)[0]
-        negative_conditioning = clip_text_encode.encode(
-            self._clip, self.negative_prompt
-        )[0]
-
-        if self.input_image:
-            input_pil = await context.image_to_pil(self.input_image)
-            input_pil = input_pil.resize(
-                (self.width, self.height), PIL.Image.Resampling.LANCZOS
-            )
-            image = input_pil.convert("RGB")
-            image = np.array(image).astype(np.float32) / 255.0
-            input_tensor = torch.from_numpy(image)[None,]
-
-            vae_encode = VAEEncode()
-            latent = vae_encode.encode(self._vae, input_tensor)[0]
-        else:
-            empty_latent = EmptyLatentImage()
-            latent = empty_latent.generate(self.width, self.height, 1)[0]
-
-        control_nets = []
-        control_hints = []
-        control_strengths = []
-
-        if self.canny_image:
+    async def apply_controlnet(
+        self, context: ProcessingContext, width: int, height: int, conditioning: list
+    ):
+        if not self.canny_image.is_empty():
             canny_pil = await context.image_to_pil(self.canny_image)
-            canny_pil = canny_pil.resize(
-                (self.width, self.height), PIL.Image.Resampling.LANCZOS
-            )
+            canny_pil = canny_pil.resize((width, height), PIL.Image.Resampling.LANCZOS)
             canny_image = np.array(canny_pil.convert("RGB")).astype(np.float32) / 255.0
             canny_tensor = torch.from_numpy(canny_image)[None,]
-            control_nets.append(self._canny_controlnet)
-            control_hints.append(canny_tensor)
-            control_strengths.append(self.canny_strength)
-
-        if self.depth_image:
-            depth_pil = await context.image_to_pil(self.depth_image)
-            depth_pil = depth_pil.resize(
-                (self.width, self.height), PIL.Image.Resampling.LANCZOS
-            )
-            depth_image = np.array(depth_pil.convert("RGB")).astype(np.float32) / 255.0
-            depth_tensor = torch.from_numpy(depth_image)[None,]
-            control_nets.append(self._depth_controlnet)
-            control_hints.append(depth_tensor)
-            control_strengths.append(self.depth_strength)
-
-        controlnet_apply = ControlNetApply()
-        for controlnet, hint, strength in zip(
-            control_nets, control_hints, control_strengths
-        ):
-            positive_conditioning = controlnet_apply.apply_controlnet(
-                positive_conditioning, controlnet, hint, strength
+            conditioning = ControlNetApply().apply_controlnet(
+                conditioning,
+                self._canny_controlnet,
+                canny_tensor,
+                self.canny_strength,
             )[0]
 
-        k_sampler = KSampler()
-        sampled_latent = k_sampler.sample(
-            model=self._model,
-            seed=self.seed,
-            steps=self.num_inference_steps,
-            cfg=self.guidance_scale,
-            sampler_name=self.sampler.value,
-            scheduler=self.scheduler.value,
-            positive=positive_conditioning,
-            negative=negative_conditioning,
-            latent_image=latent,
-            denoise=self.denoise,
-        )[0]
+        if not self.depth_image.is_empty():
+            depth_pil = await context.image_to_pil(self.depth_image)
+            depth_pil = depth_pil.resize((width, height), PIL.Image.Resampling.LANCZOS)
+            depth_image = np.array(depth_pil.convert("RGB")).astype(np.float32) / 255.0
+            depth_tensor = torch.from_numpy(depth_image)[None,]
+            conditioning = ControlNetApply().apply_controlnet(
+                conditioning,
+                self._depth_controlnet,
+                depth_tensor,
+                self.depth_strength,
+            )[0]
 
-        vae_decode = VAEDecode()
-        decoded_image = vae_decode.decode(self._vae, sampled_latent)[0]
-        img = PIL.Image.fromarray(
-            np.clip(decoded_image.squeeze(0).cpu().numpy() * 255, 0, 255).astype(
-                np.uint8
-            )
+        return conditioning
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        positive_conditioning, negative_conditioning = self.get_conditioning()
+
+        if self.width >= 1024 and self.height >= 1024:
+            num_hires_steps = self.num_inference_steps // 2
+            num_lowres_steps = self.num_inference_steps - num_hires_steps
+            initial_width, initial_height = self.width // 2, self.height // 2
+        else:
+            num_hires_steps = 0
+            num_lowres_steps = self.num_inference_steps
+            initial_width, initial_height = self.width, self.height
+
+        latent = await self.get_latent(context, initial_width, initial_height)
+
+        positive_conditioning_with_controlnet = await self.apply_controlnet(
+            context, initial_width, initial_height, positive_conditioning
         )
 
-        return await context.image_from_pil(img)
+        sampled_latent = self.sample(
+            self._model,
+            latent,
+            positive_conditioning_with_controlnet,
+            negative_conditioning,
+            num_lowres_steps,
+        )
+
+        if num_hires_steps > 0:
+            hires_latent = LatentUpscale().upscale(
+                samples=sampled_latent,
+                upscale_method="bilinear",
+                width=self.width,
+                height=self.height,
+                crop=False,
+            )[0]
+
+            hires_positive_conditioning = await self.apply_controlnet(
+                context, self.width, self.height, positive_conditioning
+            )
+
+            sampled_latent = self.sample(
+                self._hires_model if self._hires_model else self._model,
+                hires_latent,
+                hires_positive_conditioning,
+                negative_conditioning,
+                num_hires_steps,
+            )
+
+        decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
+        return await context.image_from_tensor(decoded_image)
 
 
 class FluxModel(str, Enum):
@@ -433,6 +330,10 @@ class Flux(BaseNode):
     realism_strength: float = Field(default=0.0, ge=0.0, le=1.0)
     scheduler: Scheduler = Field(default=Scheduler.simple)
     sampler: Sampler = Field(default=Sampler.euler)
+    denoise: float = Field(default=1.0, ge=0.0, le=1.0)
+    input_image: ImageRef = Field(
+        default=ImageRef(), description="Input image for img2img (optional)"
+    )
     noise_seed: int = Field(default=689015878, ge=0, le=1000000000)
 
     _vae: Optional[VAE] = None
@@ -454,20 +355,29 @@ class Flux(BaseNode):
         )[0]
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        empty_latent = EmptyLatentImage().generate(
-            self.width, self.height, self.batch_size
-        )[0]
+        if self.input_image.is_empty():
+            latent = EmptyLatentImage().generate(
+                self.width, self.height, self.batch_size
+            )[0]
+        else:
+            input_pil = await context.image_to_pil(self.input_image)
+            input_pil = input_pil.resize(
+                (self.width, self.height), PIL.Image.Resampling.LANCZOS
+            )
+            image = input_pil.convert("RGB")
+            image = np.array(image).astype(np.float32) / 255.0
+            input_tensor = torch.from_numpy(image)[None,]
+            latent = VAEEncode().encode(self._vae, input_tensor)[0]
 
         conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
         conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
 
-        # Set up sampler and scheduler
         sampler = KSamplerSelect().get_sampler(self.sampler.value)[0]
         sigmas = BasicScheduler().get_sigmas(
-            self._unet,
-            self.scheduler.value,
-            self.steps,
-            1,
+            model=self._unet,
+            scheduler=self.scheduler.value,
+            steps=self.steps,
+            denoise=self.denoise,
         )[0]
         model = LoraLoaderModelOnly().load_lora_model_only(
             self._unet,
@@ -479,15 +389,8 @@ class Flux(BaseNode):
         noise = RandomNoise().get_noise(self.noise_seed)[0]
 
         sampled_latent = SamplerCustomAdvanced().sample(
-            noise, guider, sampler, sigmas, empty_latent
+            noise, guider, sampler, sigmas, latent
         )[0]
 
         decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
-
-        img = PIL.Image.fromarray(
-            np.clip(decoded_image.squeeze(0).cpu().numpy() * 255, 0, 255).astype(  # type: ignore
-                np.uint8
-            )
-        )
-
-        return await context.image_from_pil(img)
+        return await context.image_from_tensor(decoded_image)

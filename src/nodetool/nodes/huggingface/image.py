@@ -729,24 +729,6 @@ class Swin2SR(BaseImageToImage):
         return {}
 
 
-class RealESRGAN(BaseImageToImage):
-    """
-    Performs image super-resolution using the Real-ESRGAN model.
-    image, super-resolution, enhancement, huggingface
-
-    Use cases:
-    - Enhance low-resolution images
-    - Restore details in blurry or pixelated images
-    - Improve visual quality of old or compressed images
-    """
-
-    def get_model_id(self):
-        return "qualcomm/Real-ESRGAN-x4plus"
-
-    def get_params(self):
-        return {}
-
-
 class InstructPix2Pix(BaseImageToImage):
     """
     Performs image editing based on text instructions using the InstructPix2Pix model.

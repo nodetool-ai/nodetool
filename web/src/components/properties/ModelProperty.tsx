@@ -5,7 +5,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import useModelStore from "../../stores/ModelStore";
 import { PropertyProps } from "../node/PropertyInput";
 import { FunctionModel, LlamaModel, TypeName } from "../../stores/ApiTypes";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 
 export function modelFolder(type: TypeName) {
   switch (type) {
@@ -48,11 +48,14 @@ export default function ModelProperty(props: PropertyProps) {
   const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
   const folder = modelFolder(props.property.type.type);
 
-  const { data, isError } = useQuery(["models", folder], async () => {
-    if (folder === undefined) return [];
-    if (folder === "function_model") return loadFunctionModels();
-    if (folder === "llama_model") return loadLlamaModels();
-    return loadModelFiles(folder);
+  const { data, isError } = useQuery({
+    queryKey: ["models", folder],
+    queryFn: async () => {
+      if (folder === undefined) return [];
+      if (folder === "function_model") return loadFunctionModels();
+      if (folder === "llama_model") return loadLlamaModels();
+      return loadModelFiles(folder);
+    }
   });
 
   const modelNames =

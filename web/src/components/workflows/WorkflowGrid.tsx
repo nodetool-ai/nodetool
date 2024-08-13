@@ -21,7 +21,7 @@ import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCallback, useEffect, useState } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -166,9 +166,9 @@ const WorkflowGrid = () => {
 
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
 
-  const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>(
-    ["workflows", workflowCategory],
-    async () => {
+  const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>({
+    queryKey: ["workflows", workflowCategory],
+    queryFn: async () => {
       if (workflowCategory === "user") {
         return loadMyWorkflows("", 200);
       } else if (workflowCategory === "examples") {
@@ -177,7 +177,7 @@ const WorkflowGrid = () => {
         throw new Error("Invalid workflow category");
       }
     }
-  );
+  });
 
   const deleteWorkflow = useWorkflowStore((state) => state.delete);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
@@ -320,7 +320,7 @@ const WorkflowGrid = () => {
   // CREATE NEW WORKFLOW
   const handleCreateWorkflow = async () => {
     const workflow = await createNewWorkflow();
-    queryClient.invalidateQueries(["workflows"]);
+    queryClient.invalidateQueries({ queryKey: ["workflows"] });
     navigate(`/editor/${workflow.id}`);
   };
 
@@ -353,7 +353,7 @@ const WorkflowGrid = () => {
 
     setWorkflowCategory("user");
     await updateWorkflow(newWorkflow);
-    queryClient.invalidateQueries(["workflows"]);
+    queryClient.invalidateQueries({ queryKey: ["workflows"] });
   };
 
   // DELETE WORKFLOW

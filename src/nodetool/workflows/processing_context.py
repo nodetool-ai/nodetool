@@ -714,7 +714,14 @@ class ProcessingContext:
         # Date takes precedence over anything else as it is the most up-to-date
         # and already in memory
         if asset_ref.data:
-            return BytesIO(asset_ref.data)
+            if isinstance(asset_ref.data, bytes):
+                return BytesIO(asset_ref.data)
+            elif isinstance(asset_ref.data, list):
+                raise ValueError(
+                    "Batched data must be converted to list using BatchToList node"
+                )
+            else:
+                raise ValueError(f"Unsupported data type {type(asset_ref.data)}")
         # Asset ID takes precedence over URI as the URI could be expired
         elif asset_ref.asset_id is not None:
             return await self.download_asset(asset_ref.asset_id)
@@ -1079,9 +1086,19 @@ class ProcessingContext:
         Returns:
             ImageRef: The ImageRef object.
         """
-        i = 255.0 * image_tensor[0].cpu().detach().numpy()
-        img = np.clip(i, 0, 255).astype(np.uint8)
-        return await self.image_from_numpy(img)
+        img = np.clip(255.0 * image_tensor.cpu().detach().numpy(), 0, 255).astype(
+            np.uint8
+        )
+        if img.shape[0] == 1:
+            return await self.image_from_numpy(img[0])
+
+        batch = []
+        for i in range(img.shape[0]):
+            buffer = BytesIO()
+            PIL.Image.fromarray(img[i]).save(buffer, format="png")
+            batch.append(buffer.getvalue())
+
+        return ImageRef(data=batch)
 
     async def to_str(self, text_ref: TextRef | str) -> str:
         """

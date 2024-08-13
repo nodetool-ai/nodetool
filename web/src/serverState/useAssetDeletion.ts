@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useAssetStore } from "../hooks/AssetStore";
 import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
@@ -13,7 +13,8 @@ export const useAssetDeletion = () => {
     setAssets(assets);
     await Promise.all(assets.map((id) => deleteAsset(id)));
   };
-  const mutation = useMutation(performMutation, {
+  const mutation = useMutation({
+    mutationFn: performMutation,
     onSuccess: () => {
       mutation.reset();
       addNotification({

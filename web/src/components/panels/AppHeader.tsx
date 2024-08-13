@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 import { useCallback, useState } from "react";
-import { useReactFlow } from "reactflow";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -12,7 +11,13 @@ import SettingsMenu from "../menus/SettingsMenu";
 import Help from "../content/Help/Help";
 import Alert from "../node_editor/Alert";
 // icons
-import AdjustIcon from "@mui/icons-material/Adjust";
+import NodesIcon from "@mui/icons-material/CircleOutlined";
+import AssetIcon from "@mui/icons-material/ImageSharp";
+import WorkflowsIcon from "@mui/icons-material/ListAlt";
+import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
+import SaveIcon from "@mui/icons-material/Save";
+import LayoutIcon from "@mui/icons-material/ViewModule";
+import ChatIcon from "@mui/icons-material/Chat";
 // mui
 import {
   AppBar,
@@ -23,13 +28,8 @@ import {
   Typography,
   Box,
 } from "@mui/material";
-import WorkflowsIcon from "@mui/icons-material/ListAlt";
-import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
-import SaveIcon from "@mui/icons-material/Save";
-import LayoutIcon from "@mui/icons-material/ViewModule";
 
 //utils
-import { iconForType } from "../../config/data_types";
 import { useLocation, useNavigate } from "react-router-dom";
 //constants
 import { TOOLTIP_DELAY } from "../../config/constants";
@@ -42,6 +42,7 @@ import useWorkflowRunnner from "../../stores/WorkflowRunner";
 // components
 import Logo from "../Logo";
 import Welcome from "../content/Welcome/Welcome";
+import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -53,7 +54,6 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         buttonAppearance === "text" || buttonAppearance === "both"
           ? theme.fontSizeSmall
           : "0",
-      margin: "0 0 0 0.4em",
       color: theme.palette.c_white,
       "&:hover": {
         backgroundColor: theme.palette.c_gray2,
@@ -76,7 +76,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         buttonAppearance === "icon" || buttonAppearance === "both"
           ? "block"
           : "none",
-      marginRight: "0.1em",
+      marginRight: "0.4em",
     },
     "button.logo:hover": {
       backgroundColor: "transparent",
@@ -106,6 +106,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       "&:hover": {
         backgroundColor: theme.palette.c_gray2,
       },
+      margin: "0 0.5em",
     },
     ".action-button:hover": {
       color: theme.palette.c_hl1,
@@ -207,28 +208,16 @@ function AppHeader() {
   //   });
   // };
 
-  const [helpOpen, setHelpOpen] = useState(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(false);
 
-  // open help popover
-  const handleOpenHelp = () => {
-    setHelpOpen(true);
-  };
-
-  // close help popover
-  const handleCloseHelp = () => {
-    setHelpOpen(false);
-  };
-
-  // open welcome popover
-  const handleOpenWelcome = () => {
-    setWelcomeOpen(true);
-  };
-
-  // close welcome popover
-  const handleCloseWelcome = () => {
-    setWelcomeOpen(false);
-  };
+  const {
+    helpOpen,
+    welcomeOpen,
+    handleOpenChat,
+    handleOpenHelp,
+    handleCloseHelp,
+    handleOpenWelcome,
+    handleCloseWelcome,
+  } = useAppHeaderStore();
 
   // node menu
   const handleOpenNodeMenu = () => {
@@ -325,9 +314,8 @@ function AppHeader() {
               <Button
                 aria-controls="simple-menu"
                 aria-haspopup="true"
-                className={`nav-button ${
-                  path.startsWith("/workflows") ? "active" : ""
-                }`}
+                className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
+                  }`}
                 onClick={() => navigate("/workflows")}
               >
                 <WorkflowsIcon />
@@ -340,18 +328,7 @@ function AppHeader() {
                 className={`nav-button ${path === "/assets" ? "active" : ""}`}
                 onClick={() => navigate("/assets")}
               >
-                {iconForType("asset", {
-                  fill: "white",
-                  containerStyle: {
-                    margin: "0 .25em 0 0",
-                  },
-                  bgStyle: {
-                    width: "1.7em",
-                    height: "1.7em",
-                  },
-                  width: "1.7em",
-                  height: "1.7em",
-                })}
+                <AssetIcon />
                 Assets
               </Button>
             </Tooltip>
@@ -386,7 +363,7 @@ function AppHeader() {
                 enterDelay={TOOLTIP_DELAY}
               >
                 <Button className="action-button" onClick={handleOpenNodeMenu}>
-                  <AdjustIcon />
+                  <NodesIcon />
                   Nodes
                 </Button>
               </Tooltip>
@@ -415,13 +392,21 @@ function AppHeader() {
               </Tooltip>
             </>
           )}
+          <Tooltip title="Open Nodetool Chat Assistant" enterDelay={TOOLTIP_DELAY}>
+            <Button
+              className="action-button"
+              onClick={handleOpenChat}
+            >
+              <ChatIcon />
+              Chat
+            </Button>
+          </Tooltip>
 
           <Button
             onClick={handleNavigateToLastWorkflow}
             disabled={path.startsWith("/editor")}
-            className={`last-workflow ${
-              path.startsWith("/editor") ? "disabled" : ""
-            }`}
+            className={`last-workflow ${path.startsWith("/editor") ? "disabled" : ""
+              }`}
           >
             {lastWorkflow?.name}
             {workflowIsDirty && <span>*</span>}

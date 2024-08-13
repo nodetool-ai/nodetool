@@ -82,8 +82,8 @@ export interface paths {
     post: operations["create_api_messages__post"];
   };
   "/api/messages/help": {
-    /** Create */
-    post: operations["create_api_messages_help_post"];
+    /** Help */
+    post: operations["help_api_messages_help_post"];
   };
   "/api/messages/{message_id}": {
     /** Get */
@@ -271,7 +271,7 @@ export interface components {
       /** Asset Id */
       asset_id?: string | null;
       /** Data */
-      data?: string | null;
+      data?: string | string[] | null;
     };
     /** AssetUpdateRequest */
     AssetUpdateRequest: {
@@ -305,7 +305,7 @@ export interface components {
       /** Asset Id */
       asset_id?: string | null;
       /** Data */
-      data?: string | null;
+      data?: string | string[] | null;
     };
     /** AuthRequest */
     AuthRequest: {
@@ -386,7 +386,7 @@ export interface components {
       /** Asset Id */
       asset_id?: string | null;
       /** Data */
-      data?: string | null;
+      data?: string | string[] | null;
     };
     /** FunctionModel */
     FunctionModel: {
@@ -449,7 +449,7 @@ export interface components {
       /** Asset Id */
       asset_id?: string | null;
       /** Data */
-      data?: string | null;
+      data?: string | string[] | null;
     };
     /** ImageUrl */
     ImageUrl: {
@@ -656,7 +656,7 @@ export interface components {
       /** Asset Id */
       asset_id?: string | null;
       /** Data */
-      data?: string | null;
+      data?: string | string[] | null;
     };
     /** Node */
     Node: {
@@ -1079,7 +1079,7 @@ export interface components {
       /** Asset Id */
       asset_id?: string | null;
       /** Data */
-      data?: string | null;
+      data?: string | string[] | null;
     };
     /** TokenResponse */
     TokenResponse: {
@@ -1194,7 +1194,7 @@ export interface components {
       /** Asset Id */
       asset_id?: string | null;
       /** Data */
-      data?: string | null;
+      data?: string | string[] | null;
       /** Duration */
       duration?: number | null;
       /** Format */
@@ -1731,8 +1731,8 @@ export interface operations {
       };
     };
   };
-  /** Create */
-  create_api_messages_help_post: {
+  /** Help */
+  help_api_messages_help_post: {
     parameters: {
       header?: {
         authorization?: string | null;
