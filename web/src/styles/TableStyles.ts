@@ -1,9 +1,9 @@
 import { css } from "@emotion/react";
 
-export const styles = (theme: any) =>
+export const tableStyles = (theme: any) =>
   css({
     // Main container
-    "&.dicttable, &.datatable": {
+    ".dicttable, .datatable": {
       width: "100%",
       height: "calc(100% - 20px)",
       maxHeight: "800px",
@@ -13,7 +13,7 @@ export const styles = (theme: any) =>
 
     // Tabulator base
     ".tabulator": {
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeSmall,
       fontFamily: theme.fontFamily1,
       height: "200px",
     },
@@ -25,8 +25,9 @@ export const styles = (theme: any) =>
 
     // Column resize handle
     ".tabulator .tabulator-col-resize-handle": {
-      position: "relative",
-      display: "inline-block",
+      position: "absolute",
+      // display: "inline-block",
+      right: "5em",
       width: "6px",
       margin: "0 -3px",
       zIndex: 11,
@@ -35,9 +36,9 @@ export const styles = (theme: any) =>
 
     // Row
     ".tabulator-row": {
-      minHeight: "20px",
+      minHeight: "15px",
       minWidth: "20px",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeSmall,
     },
 
     // Header
@@ -49,7 +50,9 @@ export const styles = (theme: any) =>
       color: theme.palette.c_gray5,
       fontWeight: "normal",
     },
-
+    ".tabulator .tabulator-header .tabulator-col": {
+      minHeight: "2em",
+    },
     // Sorting arrow
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
@@ -76,17 +79,19 @@ export const styles = (theme: any) =>
     ".table-actions": {
       display: "flex",
       width: "100%",
-      gap: "1px",
+      gap: ".25em",
+      marginBottom: ".5em",
       justifyContent: "flex-start",
       alignItems: "flex-start",
-      height: "2.5em",
+      height: "2em",
       "& .disabled": {
         opacity: 0.5,
       },
       "& button": {
-        minHeight: "3em",
-        lineHeight: "1em",
-        textAlign: "left",
+        height: "3em",
+        maxWidth: "6em",
+        lineHeight: "1.1em",
+        textAlign: "center",
         display: "flex",
         alignItems: "center",
         border: 0,
@@ -111,12 +116,12 @@ export const styles = (theme: any) =>
       margin: "0",
       "& .MuiToggleButton-root": {
         fontSize: theme.fontSizeTinyer,
-        color: theme.palette.c_gray5,
+        lineHeight: "1.1em",
+        color: theme.palette.c_gray4,
         backgroundColor: theme.palette.c_gray0,
         margin: "0",
         border: 0,
         borderRadius: "0",
-        lineHeight: "1em",
         textAlign: "left",
         padding: ".5em",
         "&:hover, &.Mui-selected:hover": {
@@ -165,8 +170,7 @@ export const styles = (theme: any) =>
     ".tabulator .tabulator-cell.tabulator-editing input": {
       backgroundColor: theme.palette.c_white,
       color: theme.palette.c_black,
-      fontSize: theme.fontSizeSmaller,
-      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmall,
       "&::selection": {
         backgroundColor: theme.palette.c_hl1,
       },

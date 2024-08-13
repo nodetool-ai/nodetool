@@ -11,94 +11,85 @@ import { NodeHeader } from "../node/NodeHeader";
 import OutputRenderer from "./OutputRenderer";
 import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "reactflow";
+import { tableStyles } from "../../styles/TableStyles";
 
 const styles = (theme: any) =>
-  css({
-    "&": {
-      display: "flex",
-      flexDirection: "column",
-      padding: 0,
-      backgroundColor: theme.palette.c_gray2,
-      width: "100%",
-      height: "100%",
-      minWidth: "150px",
-      maxWidth: "1000px",
-      minHeight: "150px",
-      borderRadius: "2px"
-    },
-    "&.preview-node": {
-      padding: 0,
-      backgroundColor: "transparent",
-      margin: 0,
-      "&.collapsed": {
-        maxHeight: "60px"
+  css([
+    {
+      "&": {
+        display: "flex",
+        flexDirection: "column",
+        padding: 0,
+        backgroundColor: theme.palette.c_gray2,
+        width: "100%",
+        height: "100%",
+        minWidth: "150px",
+        maxWidth: "1000px",
+        minHeight: "150px",
+        borderRadius: "2px",
       },
-      label: {
-        display: "none"
-      }
+      "&.preview-node": {
+        padding: 0,
+        backgroundColor: "transparent",
+        margin: 0,
+        "&.collapsed": {
+          maxHeight: "60px",
+        },
+        label: {
+          display: "none",
+        },
+      },
+      ".node-header": {
+        width: "100%",
+        height: "20px",
+        minHeight: "unset",
+        top: 0,
+        left: 0,
+        margin: 0,
+        padding: 0,
+        backgroundColor: theme.palette.c_gray1,
+        border: 0,
+      },
+      "& .react-flow__resize-control.handle.bottom.right": {
+        opacity: 0,
+        position: "absolute",
+        right: "-8px",
+        bottom: "-9px",
+        transition: "opacity 0.2s",
+      },
+      "&:hover .react-flow__resize-control.handle.bottom.right": {
+        opacity: 1,
+      },
+      ".description": {
+        position: "absolute",
+        textAlign: "center",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        zIndex: 0,
+        fontFamily: theme.fontFamily2,
+        width: "100%",
+        color: theme.palette.c_gray5,
+      },
+      // tensor
+      "& .tensor": {
+        width: "100%",
+        maxHeight: "500px",
+        overflowY: "auto",
+        padding: "1em",
+      },
     },
-    ".node-header": {
-      width: "100%",
-      height: "20px",
-      minHeight: "unset",
-      top: 0,
-      left: 0,
-      margin: 0,
-      padding: 0,
-      backgroundColor: theme.palette.c_gray1,
-      border: 0
-    },
-    "& .react-flow__resize-control.handle.bottom.right": {
-      opacity: 0,
-      position: "absolute",
-      right: "-8px",
-      bottom: "-9px",
-      transition: "opacity 0.2s"
-    },
-    "&:hover .react-flow__resize-control.handle.bottom.right": {
-      opacity: 1
-    },
-    ".description": {
-      position: "absolute",
-      textAlign: "center",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      zIndex: 0,
-      fontFamily: theme.fontFamily2,
-      width: "100%",
-      color: theme.palette.c_gray5
-    },
-    // tabulator
-    ".datatable.tabulator": {
-      height: "calc(100% - 10px) !important",
-      // height: "100%",
-      maxHeight: "800px",
-      overflowX: "scroll"
-    },
-    ".tabulator-editable": {
-      cursor: "text",
-      userSelect: "text"
-    },
-    ".table-actions": {
-      padding: ".5em 0 0 .5em"
-    },
-    // tensor
-    "& .tensor": {
-      width: "100%",
-      maxHeight: "500px",
-      overflowY: "auto",
-      padding: "1em"
-    }
-  });
+    tableStyles(theme),
+  ]);
 
-interface PreviewNodeProps extends NodeProps<NodeData> { }
+interface PreviewNodeProps extends NodeProps<NodeData> {}
 
 const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
-  const result = useResultsStore((state) => state.getResult(props.data.workflow_id, props.id));
+  const result = useResultsStore((state) =>
+    state.getResult(props.data.workflow_id, props.id)
+  );
 
   return (
-    // <Container css={styles} style={{ position: "absolute" }}>
     <Container css={styles}>
       <Handle
         style={{ top: "50%" }}

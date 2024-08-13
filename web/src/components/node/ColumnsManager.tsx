@@ -7,7 +7,7 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  Button
+  Button,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { devWarn } from "../../utils/DevLog";
@@ -20,7 +20,8 @@ const styles = (theme: any) =>
       flexDirection: "row",
       gap: ".25em",
       padding: "0",
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
+      fontFamily: theme.fontFamily,
     },
     ".labels": {
       display: "flex",
@@ -29,19 +30,19 @@ const styles = (theme: any) =>
       width: "100%",
       justifyContent: "space-between",
       padding: "0",
-      margin: "0"
+      margin: "0",
     },
     ".label-name": {
       flexGrow: 1,
-      width: "35%"
+      width: "35%",
     },
     ".label-description": {
       flexGrow: 1,
-      width: "35%"
+      width: "35%",
     },
     ".label-datatype": {
       width: "30%",
-      flexGrow: 0
+      flexGrow: 0,
     },
     ".column": {
       display: "flex",
@@ -50,15 +51,15 @@ const styles = (theme: any) =>
       gap: "0.5em",
       padding: "0",
       margin: "0",
-      width: "100%"
+      width: "100%",
     },
     ".item-name": {
       flexGrow: 1,
-      width: "35%"
+      width: "35%",
     },
     ".item-description": {
       flexGrow: 1,
-      width: "35%"
+      width: "35%",
     },
     ".item-datatype": {
       flexGrow: 0,
@@ -66,38 +67,38 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "row",
       gap: "0.5em",
-      alignItems: "center"
+      alignItems: "center",
     },
     ".textfield": {
       margin: "0",
       padding: ".5em 0",
-      height: "2em"
+      height: "2em",
     },
     ".textfield .MuiInputBase-root": {
-      borderRadius: "0"
+      borderRadius: "0",
     },
     ".textfield input": {
       margin: "0",
       padding: "0 .5em .25em .5em",
       height: "1em",
-      fontSize: theme.fontSizeSmaller
+      fontSize: theme.fontSizeSmaller,
     },
     ".select": {
       margin: "0",
       padding: "0",
       border: 0,
-      borderRadius: "0"
+      borderRadius: "0",
     },
     ".select .MuiSelect-select": {
       borderRadius: "0",
       height: "2em",
-      margin: "0"
+      margin: "0",
     },
     ".select svg": {
-      right: "0"
+      right: "0",
     },
     ".select fieldset": {
-      border: "0"
+      border: "0",
     },
     ".delete": {
       margin: "0",
@@ -110,11 +111,14 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray4,
       "&:hover": {
         backgroundColor: theme.palette.c_gray2,
-        color: theme.palette.c_delete
-      }
-    }
+        color: theme.palette.c_delete,
+      },
+      "& svg": {
+        width: ".7em",
+        height: ".7em",
+      },
+    },
   });
-
 
 interface ColumnsManagerProps {
   columns: ColumnDef[];
@@ -134,7 +138,7 @@ const Column = memo(
     handleDataTypeChange,
     handleDescriptionChange,
     removeColumn,
-    validDataTypes
+    validDataTypes,
   }: {
     index: number;
     field: ColumnDef;
@@ -157,8 +161,11 @@ const Column = memo(
       </div>
       <div className="item-description">
         <TextField
-          className="textfield" margin="dense" value={field.description}
-          onChange={(e) => handleDescriptionChange(index, e.target.value)} />
+          className="textfield"
+          margin="dense"
+          value={field.description}
+          onChange={(e) => handleDescriptionChange(index, e.target.value)}
+        />
       </div>
 
       <div className="item-datatype">
@@ -172,12 +179,12 @@ const Column = memo(
           MenuProps={{
             anchorOrigin: {
               vertical: "bottom",
-              horizontal: "left"
+              horizontal: "left",
             },
             transformOrigin: {
               vertical: "top",
-              horizontal: "left"
-            }
+              horizontal: "left",
+            },
           }}
         >
           {validDataTypes.map((type) => (
@@ -187,7 +194,7 @@ const Column = memo(
           ))}
         </Select>
 
-        < Button className="delete" onClick={() => removeColumn(index)}>
+        <Button className="delete" onClick={() => removeColumn(index)}>
           <CloseIcon />
         </Button>
       </div>
@@ -199,7 +206,7 @@ Column.displayName = "Column";
 const ColumnsManager = ({
   columns,
   allData,
-  onChange
+  onChange,
 }: ColumnsManagerProps) => {
   const [localColumns, setLocalColumns] = useState(columns);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -248,7 +255,7 @@ const ColumnsManager = ({
 
     setLocalColumns(newColumns);
     onChange(newColumns, allData);
-  }
+  };
 
   const handleDataTypeChange = (index: number, newType: string) => {
     if (!validDataTypes.includes(newType)) {

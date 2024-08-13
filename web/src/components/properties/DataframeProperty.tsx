@@ -10,45 +10,50 @@ import ColumnsManager from "../node/ColumnsManager";
 import { Button, ButtonGroup } from "@mui/material";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
-import Papa, { ParseResult } from "papaparse";
+import { tableStyles } from "../../styles/TableStyles";
 
 const styles = (theme: any) =>
-  css({
-    "&": {
+  css([
+    {
       display: "flex",
       flexDirection: "column",
       gap: "0.5em",
       padding: "0",
-      backgroundColor: "transparent"
+      marginBottom: "0.5em",
+      backgroundColor: "transparent",
+      ".button-group": {
+        display: "flex",
+        marginBottom: "0.5em",
+      },
+      ".button-group button": {
+        fontSize: theme.fontSizeSmall,
+        fontFamily: theme.fontFamily2,
+        wordSpacing: "-0.1em",
+        color: theme.palette.c_gray6 + " !important",
+        display: "flex",
+        alignItems: "center",
+        margin: 0,
+        gap: "0.25em",
+        padding: ".1em 1em 0 .5em",
+        borderRadius: "0",
+      },
+      "button.add-column:hover": {
+        color: theme.palette.c_white + " !important",
+      },
+      "button.add-column svg": {
+        fontSize: theme.fontSizeSmall,
+        marginRight: "0.5em",
+      },
     },
-    ".button-group": {
-      display: "flex",
-      marginBottom: "0.5em"
-    },
-    button: {
-      fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray6,
-      display: "flex",
-      alignItems: "center",
-      margin: 0,
-      gap: "0.25em",
-      padding: ".1em 1em 0 .5em",
-      borderRadius: "0"
-    },
-    "button:hover": {
-      color: theme.palette.c_white
-    },
-    "button svg": {
-      fontSize: theme.fontSizeSmall
-    }
-  });
+    tableStyles(theme),
+  ]);
 
 export default function DataframeProperty({
   value,
   onChange,
   nodeType,
   property,
-  propertyIndex
+  propertyIndex,
 }: PropertyProps) {
   const id = `${property.name}-${propertyIndex}`;
 
@@ -63,7 +68,7 @@ export default function DataframeProperty({
     (columns: ColumnDef[]) => {
       onChange({
         ...value,
-        columns
+        columns,
       });
     },
     [value, onChange]
@@ -79,11 +84,11 @@ export default function DataframeProperty({
     }
     const newColumn: ColumnDef = {
       name: newColumnName,
-      data_type: "string"
+      data_type: "string",
     };
     onChange({
       ...value,
-      columns: [...columns, newColumn]
+      columns: [...columns, newColumn],
     });
   }, [onChange, value]);
 
@@ -91,7 +96,7 @@ export default function DataframeProperty({
     return (
       <div className="dataframe-editor" css={styles}>
         <ButtonGroup className="button-group">
-          <Button onClick={addColumn}>
+          <Button className="add-column" onClick={addColumn}>
             <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column
           </Button>
         </ButtonGroup>

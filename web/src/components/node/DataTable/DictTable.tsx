@@ -1,20 +1,19 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   TabulatorFull as Tabulator,
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
-  StandardValidatorType
+  StandardValidatorType,
+  RowComponent,
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
-import { useClipboard } from "../../../hooks/browser/useClipboard";
-import { useNotificationStore } from "../../../stores/NotificationStore";
-import { Button, Tooltip } from "@mui/material";
 import { datetimeEditor, floatEditor, integerEditor } from "./DataTableEditors";
-import { styles } from "./TableStyles";
+import TableActions from "./TableActions";
+import { tableStyles } from "../../../styles/TableStyles";
 
 export type DictDataType = "int" | "string" | "datetime" | "float";
 export type DictTableProps = {
@@ -28,46 +27,42 @@ const DictTable: React.FC<DictTableProps> = ({
   data,
   data_type,
   editable,
-  onDataChange
+  onDataChange,
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
-  const { writeClipboard } = useClipboard();
   const [showSelect, setShowSelect] = useState(false);
-  const [selectedRows, setSelectedRows] = useState<any[]>([]);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
+  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
 
   const columns = useMemo(
     () => [
       ...(showSelect
         ? [
-          {
-            title: "",
-            field: "select",
-            formatter: "rowSelection" as Formatter,
-            titleFormatter: "rowSelection" as Formatter,
-            hozAlign: "left" as ColumnDefinitionAlign,
-            headerSort: false,
-            width: 25,
-            minWidth: 25,
-            resizable: false,
-            frozen: true,
-            cellClick: function (e: any, cell: CellComponent) {
-              cell.getRow().toggleSelect();
+            {
+              title: "",
+              field: "select",
+              formatter: "rowSelection" as Formatter,
+              titleFormatter: "rowSelection" as Formatter,
+              hozAlign: "left" as ColumnDefinitionAlign,
+              headerSort: false,
+              width: 25,
+              minWidth: 25,
+              resizable: false,
+              frozen: true,
+              cellClick: function (e: any, cell: CellComponent) {
+                cell.getRow().toggleSelect();
+              },
+              editable: false,
+              cssClass: "row-select",
             },
-            editable: false,
-            cssClass: "row-select"
-          }
-        ]
+          ]
         : []),
       {
         title: "Key",
         field: "key",
         editable: true,
         headerHozAlign: "left" as ColumnDefinitionAlign,
-        cssClass: "key"
+        cssClass: "key",
       },
       {
         title: "Value",
@@ -78,21 +73,21 @@ const DictTable: React.FC<DictTableProps> = ({
           data_type === "int"
             ? integerEditor
             : data_type === "float"
-              ? floatEditor
-              : data_type === "datetime"
-                ? datetimeEditor
-                : "input",
+            ? floatEditor
+            : data_type === "datetime"
+            ? datetimeEditor
+            : "input",
         headerHozAlign: "left" as ColumnDefinitionAlign,
         cssClass: data_type,
         validator:
           data_type === "int"
             ? (["required", "integer"] as StandardValidatorType[])
             : data_type === "float"
-              ? (["required", "numeric"] as StandardValidatorType[])
-              : data_type === "datetime"
-                ? (["required", "date"] as StandardValidatorType[])
-                : undefined
-      }
+            ? (["required", "numeric"] as StandardValidatorType[])
+            : data_type === "datetime"
+            ? (["required", "date"] as StandardValidatorType[])
+            : undefined,
+      },
     ],
     [data_type, editable, showSelect]
   );
@@ -115,22 +110,22 @@ const DictTable: React.FC<DictTableProps> = ({
     [data, onDataChange]
   );
 
-  const addRow = useCallback(() => {
-    if (!onDataChange) return;
-    const newData = { ...data, "": "" };
-    onDataChange(newData);
-  }, [data, onDataChange]);
-
-  const removeSelectedRows = useCallback(() => {
-    if (!onDataChange) return;
-    const newData = Object.keys(data).reduce((acc, key) => {
-      if (!selectedRows.some((row) => row.key === key)) {
-        acc[key] = data[key];
+  const onChangeRows = useCallback(
+    (newData: any[] | Record<string, any>) => {
+      if (onDataChange) {
+        if (Array.isArray(newData)) {
+          const updatedData = newData.reduce((acc, row) => {
+            acc[row.key] = row.value;
+            return acc;
+          }, {} as Record<string, any>);
+          onDataChange(updatedData);
+        } else {
+          onDataChange(newData);
+        }
       }
-      return acc;
-    }, {} as Record<string, any>);
-    onDataChange(newData);
-  }, [data, onDataChange, selectedRows]);
+    },
+    [onDataChange]
+  );
 
   useEffect(() => {
     if (!tableRef.current) return;
@@ -139,7 +134,7 @@ const DictTable: React.FC<DictTableProps> = ({
       height: "300px",
       data: Object.keys(data).map((key) => ({
         key,
-        value: data[key]
+        value: data[key],
       })),
       columns: columns,
       columnDefaults: {
@@ -149,14 +144,15 @@ const DictTable: React.FC<DictTableProps> = ({
         editor: "input",
         resizable: true,
         editorParams: {
-          elementAttributes: { spellcheck: "false" }
-        }
+          elementAttributes: { spellcheck: "false" },
+        },
       },
-      movableRows: true
+      movableRows: true,
+      selectable: true,
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
-    tabulatorInstance.on("rowSelectionChanged", (rows: any) => {
+    tabulatorInstance.on("rowSelectionChanged", (data, rows) => {
       setSelectedRows(rows);
     });
     setTabulator(tabulatorInstance);
@@ -166,49 +162,20 @@ const DictTable: React.FC<DictTableProps> = ({
     };
   }, [data, columns, onCellEdited]);
 
-  const copyData = useCallback(() => {
-    if (tabulator) {
-      const data = tabulator.getData().reduce((acc, row) => {
-        acc[row.key] = row.value;
-        return acc;
-      }, {} as Record<string, any>);
-      writeClipboard(JSON.stringify(data), true);
-      addNotification({
-        content: "Copied to clipboard",
-        type: "success",
-        alert: true
-      });
-    }
-  }, [tabulator, writeClipboard, addNotification]);
-
   return (
-    <div className="dicttable nowheel nodrag" css={styles}>
-      <div className="table-actions">
-        <Tooltip title="Copy table data to clipboard">
-          <Button variant="outlined" onClick={copyData}>
-            Copy Data
-          </Button>
-        </Tooltip>
-        <Tooltip title="Show Select column">
-          <Button variant="outlined" onClick={() => setShowSelect(!showSelect)}>
-            Show Select
-          </Button>
-        </Tooltip>
-        {editable && (
-          <>
-            <Tooltip title="Add a new row">
-              <Button variant="outlined" onClick={addRow}>
-                Add Row
-              </Button>
-            </Tooltip>
-            <Tooltip title="Delete selected rows">
-              <Button variant="outlined" onClick={removeSelectedRows}>
-                Delete Row
-              </Button>
-            </Tooltip>
-          </>
-        )}
-      </div>
+    <div className="dicttable nowheel nodrag" css={tableStyles}>
+      <TableActions
+        tabulator={tabulator}
+        data={data}
+        selectedRows={selectedRows}
+        showSelect={showSelect}
+        setShowSelect={setShowSelect}
+        showRowNumbers={false}
+        setShowRowNumbers={() => {}}
+        editable={editable}
+        dataframeColumns={[]}
+        onChangeRows={onChangeRows}
+      />
       <div ref={tableRef} className="dicttable" />
     </div>
   );

@@ -1,17 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import {
-  TabulatorFull as Tabulator,
-} from "tabulator-tables";
+import { useRef, useCallback, useEffect } from "react";
+import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import {
-  Button,
-  Tooltip
-} from "@mui/material";
-import { styles } from "./TableStyles";
+import { Button, Tooltip } from "@mui/material";
+import { tableStyles } from "../../../styles/TableStyles";
 import { Task } from "../../../stores/ApiTypes";
 
 export type ListDataType = "int" | "string" | "datetime" | "float";
@@ -49,12 +44,10 @@ const columns = [
     title: "Result",
     field: "result",
     editable: false,
-  }
+  },
 ];
 
-const TaskTable: React.FC<TaskTableProps> = ({
-  data,
-}) => {
+const TaskTable: React.FC<TaskTableProps> = ({ data }) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
@@ -88,12 +81,12 @@ const TaskTable: React.FC<TaskTableProps> = ({
     addNotification({
       content: "Copied to clipboard",
       type: "success",
-      alert: true
+      alert: true,
     });
   }, [data, writeClipboard, addNotification]);
 
   return (
-    <div ref={ref} className="listtable nowheel nodrag" css={styles}>
+    <div ref={ref} className="listtable nowheel nodrag" css={tableStyles}>
       <div className="table-actions">
         <Tooltip title="Copy table data to clipboard">
           <Button variant="outlined" onClick={copyData}>

@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 
 import React, {
   useEffect,
@@ -18,20 +17,13 @@ import {
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
-import { DataframeRef, ColumnDef, Asset } from "../../../stores/ApiTypes";
-import { useClipboard } from "../../../hooks/browser/useClipboard";
-import { useNotificationStore } from "../../../stores/NotificationStore";
-import {
-  Button,
-  ToggleButton,
-  ToggleButtonGroup,
-  Tooltip,
-} from "@mui/material";
+import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
+
+import TableActions from "./TableActions";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
-import Papa, { ParseResult } from "papaparse";
-import axios from "axios";
-import { styles } from "./TableStyles";
+import { tableStyles } from "../../../styles/TableStyles";
+
 /**
  * Formatter for datetime columns
  */
@@ -71,30 +63,6 @@ const coerceRow = (rownum: number, row: any[], columns: ColumnDef[]) => {
   );
 };
 
-/**
- * Default value for a column
- */
-const defaultValue = (column: ColumnDef) => {
-  if (column.data_type === "int") {
-    return 0;
-  } else if (column.data_type === "float") {
-    return 0.0;
-  } else if (column.data_type === "datetime") {
-    return "";
-  }
-  return "";
-};
-
-/**
- * Default row for a set of columns
- */
-const defaultRow = (columns: ColumnDef[]) => {
-  return columns.reduce((acc, col) => {
-    acc[col.name] = defaultValue(col);
-    return acc;
-  }, {} as Record<string, any>);
-};
-
 interface DataTableProps {
   dataframe: DataframeRef;
   editable?: boolean;
@@ -108,29 +76,9 @@ const DataTable: React.FC<DataTableProps> = ({
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
-  const { writeClipboard } = useClipboard();
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-
-  const downloadAssetContent = useCallback(async (asset: Asset) => {
-    if (!asset?.get_url) {
-      return;
-    }
-    const response = await axios.get(asset?.get_url, {
-      responseType: "arraybuffer",
-    });
-    const csv = new TextDecoder().decode(new Uint8Array(response.data));
-    const res: ParseResult<string[]> = Papa.parse(csv);
-    const columnDefs = res.data[0].map((col: string) => ({
-      name: col,
-      data_type: "string",
-    }));
-    const data = res.data.slice(1);
-  }, []);
 
   const data = useMemo(() => {
     if (!dataframe.data) return [];
@@ -140,8 +88,8 @@ const DataTable: React.FC<DataTableProps> = ({
   }, [dataframe.columns, dataframe.data]);
 
   const onChangeRows = useCallback(
-    (newData: any[]) => {
-      if (onChange) {
+    (newData: any[] | Record<string, any>) => {
+      if (onChange && Array.isArray(newData)) {
         onChange({
           ...dataframe,
           data: newData.map(
@@ -273,103 +221,21 @@ const DataTable: React.FC<DataTableProps> = ({
     };
   }, [data, columns, onCellEdited, dataframe.columns]);
 
-  const handleClick = useCallback(() => {
-    const dataWithoutRowNum = data.map((row) => {
-      const newRow = { ...row };
-      delete newRow.rownum;
-      return newRow;
-    });
-    writeClipboard(JSON.stringify(dataWithoutRowNum), true);
-    addNotification({
-      content: "Copied to clipboard",
-      type: "success",
-      alert: true,
-    });
-  }, [writeClipboard, data, addNotification]);
-
-  const handleAddRow = useCallback(() => {
-    const newRow = defaultRow(dataframe.columns || []);
-    onChangeRows([...data, newRow]);
-  }, [data, dataframe, onChangeRows]);
-
-  const handleDeleteRows = useCallback(() => {
-    onChangeRows(
-      data.filter((row, index) => {
-        return !selectedRows.some(
-          (selectedRow) => selectedRow.getData().rownum === index
-        );
-      })
-    );
-    setSelectedRows([]);
-  }, [onChangeRows, data, selectedRows]);
-
-  const handleResetSorting = useCallback(() => {
-    if (tabulator) {
-      tabulator.clearSort();
-    }
-  }, [tabulator]);
-
   return (
-    <div className="datatable nowheel nodrag" css={styles}>
-      <div className="table-actions">
-        <Tooltip title="Copy table data to clipboard">
-          <Button variant="outlined" onClick={handleClick}>
-            Copy Data
-          </Button>
-        </Tooltip>
+    <div className="datatable nowheel nodrag" css={tableStyles}>
+      <TableActions
+        tabulator={tabulator}
+        data={data}
+        selectedRows={selectedRows}
+        showSelect={showSelect}
+        setShowSelect={setShowSelect}
+        showRowNumbers={showRowNumbers}
+        setShowRowNumbers={setShowRowNumbers}
+        editable={editable}
+        dataframeColumns={dataframe.columns || []}
+        onChangeRows={onChangeRows}
+      />
 
-        <Tooltip title="Reset table sorting">
-          <Button variant="outlined" onClick={handleResetSorting}>
-            Reset Sorting
-          </Button>
-        </Tooltip>
-
-        {editable && (
-          <>
-            <Tooltip title="Add new row">
-              <Button variant="outlined" onClick={handleAddRow}>
-                Add Row
-              </Button>
-            </Tooltip>
-
-            <Tooltip title="Delete selected rows">
-              <Button
-                className={selectedRows.length > 0 ? "" : " disabled"}
-                variant="outlined"
-                onClick={() => {
-                  if (tabulator?.getSelectedRows().length) {
-                    handleDeleteRows();
-                  }
-                }}
-              >
-                Delete Rows
-              </Button>
-            </Tooltip>
-          </>
-        )}
-
-        <Tooltip title="Show Select column">
-          <ToggleButtonGroup
-            className="toggle select-row"
-            value={showSelect ? "selected" : null}
-            exclusive
-            onChange={() => setShowSelect(!showSelect)}
-          >
-            <ToggleButton value="selected">Show Select</ToggleButton>
-          </ToggleButtonGroup>
-        </Tooltip>
-
-        <Tooltip title="Show Row Numbers">
-          <ToggleButtonGroup
-            className="toggle row-numbers"
-            value={showRowNumbers ? "selected" : null}
-            exclusive
-            onChange={() => setShowRowNumbers(!showRowNumbers)}
-          >
-            <ToggleButton value="selected">Show Row Numbers</ToggleButton>
-          </ToggleButtonGroup>
-        </Tooltip>
-      </div>
       <div ref={tableRef} className="datatable" />
     </div>
   );

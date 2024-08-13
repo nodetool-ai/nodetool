@@ -1,25 +1,18 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   TabulatorFull as Tabulator,
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
-  StandardValidatorType
+  StandardValidatorType,
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
-import { useClipboard } from "../../../hooks/browser/useClipboard";
-import { useNotificationStore } from "../../../stores/NotificationStore";
-import {
-  Button,
-  ToggleButton,
-  ToggleButtonGroup,
-  Tooltip
-} from "@mui/material";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
-import { styles } from "./TableStyles";
+import { tableStyles } from "../../../styles/TableStyles";
+import TableActions from "./TableActions";
 
 export type ListDataType = "int" | "string" | "datetime" | "float";
 export type ListTableProps = {
@@ -27,19 +20,6 @@ export type ListTableProps = {
   editable: boolean;
   onDataChange?: (newData: any[]) => void;
   data_type: ListDataType;
-};
-
-const defaultValueForType = (type: ListDataType) => {
-  switch (type) {
-    case "int":
-      return 0;
-    case "float":
-      return 0.0;
-    case "datetime":
-      return new Date();
-    default:
-      return "";
-  }
 };
 
 const coerceValue = (value: any, type: ListDataType) => {
@@ -59,13 +39,11 @@ const ListTable: React.FC<ListTableProps> = ({
   data,
   editable,
   data_type,
-  onDataChange
+  onDataChange,
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
-  const { writeClipboard } = useClipboard();
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
+  const [tabulator, setTabulator] = useState<Tabulator>();
+
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [showSelect, setShowSelect] = useState(true);
 
@@ -73,24 +51,24 @@ const ListTable: React.FC<ListTableProps> = ({
     () => [
       ...(showSelect
         ? [
-          {
-            title: "",
-            field: "select",
-            formatter: "rowSelection" as Formatter,
-            titleFormatter: "rowSelection" as Formatter,
-            hozAlign: "left" as ColumnDefinitionAlign,
-            headerSort: false,
-            width: 25,
-            minWidth: 25,
-            resizable: false,
-            frozen: true,
-            cellClick: function (e: any, cell: CellComponent) {
-              cell.getRow().toggleSelect();
+            {
+              title: "",
+              field: "select",
+              formatter: "rowSelection" as Formatter,
+              titleFormatter: "rowSelection" as Formatter,
+              hozAlign: "left" as ColumnDefinitionAlign,
+              headerSort: false,
+              width: 25,
+              minWidth: 25,
+              resizable: false,
+              frozen: true,
+              cellClick: function (e: any, cell: CellComponent) {
+                cell.getRow().toggleSelect();
+              },
+              editable: false,
+              cssClass: "row-select",
             },
-            editable: false,
-            cssClass: "row-select"
-          }
-        ]
+          ]
         : []),
       {
         title: "Index",
@@ -102,7 +80,7 @@ const ListTable: React.FC<ListTableProps> = ({
         frozen: true,
         rowHandle: true,
         editable: false,
-        cssClass: "row-numbers"
+        cssClass: "row-numbers",
       },
       {
         title: "Value",
@@ -113,21 +91,21 @@ const ListTable: React.FC<ListTableProps> = ({
           data_type === "int"
             ? integerEditor
             : data_type === "float"
-              ? floatEditor
-              : data_type === "datetime"
-                ? datetimeEditor
-                : "input",
+            ? floatEditor
+            : data_type === "datetime"
+            ? datetimeEditor
+            : "input",
         headerHozAlign: "left" as ColumnDefinitionAlign,
         cssClass: data_type,
         validator:
           data_type === "int"
             ? (["required", "integer"] as StandardValidatorType[])
             : data_type === "float"
-              ? (["required", "numeric"] as StandardValidatorType[])
-              : data_type === "datetime"
-                ? (["required", "date"] as StandardValidatorType[])
-                : undefined
-      }
+            ? (["required", "numeric"] as StandardValidatorType[])
+            : data_type === "datetime"
+            ? (["required", "date"] as StandardValidatorType[])
+            : undefined,
+      },
     ],
     [data_type, editable, showSelect]
   );
@@ -149,18 +127,14 @@ const ListTable: React.FC<ListTableProps> = ({
     [data, onDataChange]
   );
 
-  const addRow = useCallback(() => {
-    if (!onDataChange) return;
-    onDataChange([...data, defaultValueForType(data_type)]);
-  }, [data, data_type, onDataChange]);
-
-  const removeSelectedRows = useCallback(() => {
-    if (!onDataChange) return;
-    const newData = data.filter((_, index) => {
-      return !selectedRows.some((row) => row.getData().rownum === index);
-    });
-    onDataChange(newData);
-  }, [data, onDataChange, selectedRows]);
+  const onChangeRows = useCallback(
+    (newData: any[] | Record<string, any>) => {
+      if (onDataChange) {
+        onDataChange(Array.isArray(newData) ? newData : Object.values(newData));
+      }
+    },
+    [onDataChange]
+  );
 
   useEffect(() => {
     if (!tableRef.current) return;
@@ -169,7 +143,7 @@ const ListTable: React.FC<ListTableProps> = ({
       height: "300px",
       data: data.map((value, index) => ({
         rownum: index,
-        value: coerceValue(value, data_type)
+        value: coerceValue(value, data_type),
       })),
       columns: columns,
       columnDefaults: {
@@ -179,10 +153,10 @@ const ListTable: React.FC<ListTableProps> = ({
         editor: "input",
         resizable: true,
         editorParams: {
-          elementAttributes: { spellcheck: "false" }
-        }
+          elementAttributes: { spellcheck: "false" },
+        },
       },
-      movableRows: true
+      movableRows: true,
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
@@ -190,61 +164,24 @@ const ListTable: React.FC<ListTableProps> = ({
       setSelectedRows(rows);
     });
 
+    setTabulator(tabulatorInstance);
+
     return () => {
       tabulatorInstance.destroy();
     };
   }, [data, columns, onCellEdited, data_type]);
 
-  const copyData = useCallback(() => {
-    const dataToCopy = data.map((row) => row.value);
-    writeClipboard(JSON.stringify(dataToCopy), true);
-    addNotification({
-      content: "Copied to clipboard",
-      type: "success",
-      alert: true
-    });
-  }, [data, writeClipboard, addNotification]);
-
   return (
-    <div className="listtable nowheel nodrag" css={styles}>
-      <div className="table-actions">
-        <Tooltip title="Copy table data to clipboard">
-          <Button variant="outlined" onClick={copyData}>
-            Copy Data
-          </Button>
-        </Tooltip>
-        <Tooltip title="Show Select column">
-          <ToggleButtonGroup
-            className="toggle select-row"
-            value={showSelect ? "selected" : null}
-            exclusive
-            onChange={() => setShowSelect(!showSelect)}
-          >
-            <ToggleButton value="selected">Show Select</ToggleButton>
-          </ToggleButtonGroup>
-        </Tooltip>
-
-        {editable && (
-          <>
-            <Tooltip title="Add a new row">
-              <Button variant="outlined" onClick={addRow}>
-                Add Row
-              </Button>
-            </Tooltip>
-            <Tooltip title="Remove selected rows">
-              <>
-                <Button
-                  variant="outlined"
-                  onClick={removeSelectedRows}
-                  disabled={selectedRows.length === 0}
-                >
-                  Remove Selected
-                </Button>
-              </>
-            </Tooltip>
-          </>
-        )}
-      </div>
+    <div className="listtable nowheel nodrag" css={tableStyles}>
+      <TableActions
+        tabulator={tabulator}
+        data={data}
+        selectedRows={selectedRows}
+        onChangeRows={onChangeRows}
+        showSelect={showSelect}
+        setShowSelect={setShowSelect}
+        editable={editable}
+      />
       <div ref={tableRef} className="listtable" />
     </div>
   );
