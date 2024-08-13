@@ -6,7 +6,7 @@ import { useCallback } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate } from "react-router-dom";
 import ThemeNodetool from "../themes/ThemeNodetool";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -44,10 +44,10 @@ const ExampleGrid = () => {
     (state) => state.setShouldAutoLayout
   );
 
-  const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>(
-    ["examples"],
-    loadWorkflows
-  );
+  const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>({
+    queryKey: ["examples"],
+    queryFn: loadWorkflows
+  });
 
   const onClickWorkflow = useCallback(
     (workflow: Workflow) => {

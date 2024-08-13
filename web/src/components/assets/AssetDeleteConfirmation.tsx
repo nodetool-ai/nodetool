@@ -10,7 +10,7 @@ import {
   Typography
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
-import { UseMutationResult } from "react-query";
+import { UseMutationResult } from "@tanstack/react-query";
 import dialogStyles from "../../styles/DialogStyles";
 import { Asset } from "../../stores/ApiTypes";
 import useAssets from "../../serverState/useAssets";
@@ -19,7 +19,7 @@ interface AssetDeleteConfirmationProps {
   dialogOpen: boolean;
   assets: string[];
   setDialogOpen: (open: boolean) => void;
-  mutation: UseMutationResult<any, unknown, string[], unknown>;
+  mutation: UseMutationResult<void, Error, string[], unknown>;
 }
 
 const AssetDeleteConfirmation = ({
@@ -98,7 +98,7 @@ const AssetDeleteConfirmation = ({
       }}
     >
       <DialogTitle className="dialog-title" id="alert-dialog-title">
-        {mutation.isLoading && (
+        {mutation.isPending && (
           <>
             <Typography variant="h5" color="error">
               {"deleting assets..."}

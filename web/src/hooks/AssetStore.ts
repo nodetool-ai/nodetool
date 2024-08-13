@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { client, BASE_URL, authHeader } from "../stores/ApiClient";
 import { Asset, AssetList } from "../stores/ApiTypes";
 import { devLog } from "../utils/DevLog";
-import { QueryClient, QueryKey } from "react-query";
+import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 
 const createAsset = (
@@ -153,7 +153,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * Clear the cache for a given query.
    */
   invalidateQueries: (queryKey: QueryKey) => {
-    get().queryClient?.invalidateQueries(queryKey);
+    get().queryClient?.invalidateQueries({ queryKey: queryKey });
   },
 
   /**
@@ -258,7 +258,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         name: name
       },
       undefined,
-      (_) => {}
+      (_) => { }
     );
     get().add(folder);
     get().invalidateQueries(["assets", { parent_id: parent_id }]);
@@ -404,7 +404,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         name: file.name
       },
       file,
-      onUploadProgress || ((_) => {})
+      onUploadProgress || ((_) => { })
     );
     get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
     get().add(asset);

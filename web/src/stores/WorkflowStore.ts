@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { client } from "./ApiClient";
 import { Workflow, WorkflowList, WorkflowRequest } from "./ApiTypes";
-import { QueryClient, QueryKey } from "react-query";
+import { QueryClient, QueryKey } from "@tanstack/react-query";
 
 export interface WorkflowStore {
   shouldFitToScreen: boolean;
@@ -54,7 +54,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
    * Clear the cache for a given query.
    */
   invalidateQueries: (queryKey: QueryKey) => {
-    get().queryClient?.invalidateQueries(queryKey);
+    get().queryClient?.invalidateQueries({ queryKey: queryKey });
   },
 
   /**

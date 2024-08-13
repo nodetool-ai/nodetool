@@ -3,7 +3,7 @@ import MenuItem from "@mui/material/MenuItem";
 import { AssetList } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../hooks/AssetStore";
 import PropertyLabel from "../node/PropertyLabel";
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
 
 export default function FolderProperty(props: PropertyProps) {
@@ -12,10 +12,10 @@ export default function FolderProperty(props: PropertyProps) {
   const fetchFolders = async () => {
     return await load({ content_type: "folder" });
   };
-  const { data, error, isLoading } = useQuery<AssetList, Error>(
-    ["assets", { content_type: "folder" }],
-    fetchFolders
-  );
+  const { data, error, isLoading } = useQuery<AssetList, Error>({
+    queryKey: ["assets", { content_type: "folder" }],
+    queryFn: fetchFolders
+  });
   const selectValue = props.value?.asset_id || "";
 
   return (

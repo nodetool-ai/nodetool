@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useInfiniteQuery } from "react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Asset, AssetList } from "../stores/ApiTypes";
 import { useAssetStore } from "../hooks/AssetStore";
 import { useSettingsStore } from "../stores/SettingsStore";
@@ -84,19 +84,12 @@ const useAssets = () => {
       const filteredAssets = onlyFolders
         ? flatSortedAssets.filter((asset) => asset.content_type === "folder")
         : includeFolders
-        ? flatSortedAssets
-        : flatSortedAssets.filter((asset) => asset.content_type !== "folder");
+          ? flatSortedAssets
+          : flatSortedAssets.filter((asset) => asset.content_type !== "folder");
 
       return filteredAssets;
     },
     [sortAssetsByType]
-  );
-
-  const loadFolder = useCallback(
-    async ({ pageParam }: AssetLoadParams) => {
-      return await loadCurrentFolder(pageParam);
-    },
-    [loadCurrentFolder]
   );
 
   const loadFolderId = useCallback(
@@ -106,17 +99,14 @@ const useAssets = () => {
     [loadFolderById]
   );
 
-  const { data, error, isLoading, hasNextPage, fetchNextPage, refetch } =
-    useInfiniteQuery<AssetList, Error>(
-      ["assets", { parent_id: currentFolderId || currentUser?.id }],
-      loadFolder,
-      {
-        getNextPageParam: (lastPage, pages) => lastPage.next,
-      }
-    );
+  const { data, error, isLoading, refetch } =
+    useQuery<AssetList, Error>({
+      queryKey: ["assets", { parent_id: currentFolderId || currentUser?.id }],
+      queryFn: () => loadCurrentFolder()
+    });
 
   const currentAssets = useMemo(() => {
-    return data ? data.pages.flatMap((page) => page.assets) : [];
+    return data ? data.assets : [];
   }, [data]);
 
   const getAssetById = useCallback(
@@ -155,14 +145,11 @@ const useAssets = () => {
     sortedFolders,
     sortedFiles,
     currentAssets,
-    loadFolder,
     loadFolderId,
     getAssetById,
     getAssetsById,
     isLoading,
     error,
-    hasNextPage,
-    fetchNextPage,
     refetch,
   };
 };

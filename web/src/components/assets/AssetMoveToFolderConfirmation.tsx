@@ -10,7 +10,7 @@ import {
   Alert
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
-import { UseMutationResult } from "react-query";
+import { UseMutationResult } from "@tanstack/react-query";
 import { AssetUpdate } from "../../hooks/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 import FolderTree from "./FolderTree";

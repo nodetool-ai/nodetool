@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
 import { AssetUpdate, useAssetStore } from "../hooks/AssetStore";
 import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
@@ -13,15 +13,15 @@ export const useAssetUpdate = () => {
     setAssets(assets);
     await Promise.all(assets.map((asset) => updateAsset(asset)));
   };
-  const mutation = useMutation(performMutation, {
+  const mutation = useMutation({
+    mutationFn: performMutation,
     onSuccess: () => {
       mutation.reset();
       addNotification({
         type: "info",
         alert: true,
-        content: `${
-          Object.keys(assets).length > 1 ? "Assets" : "Asset"
-        } updated!`,
+        content: `${Object.keys(assets).length > 1 ? "Assets" : "Asset"
+          } updated!`,
         dismissable: false
       });
     },

@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useQuery } from "@tanstack/react-query";
 import { NodeTypes } from "reactflow";
 import { NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
@@ -51,7 +51,7 @@ export const metadataQuery = async () => {
 
 export const useMetadata = () =>
   useQuery({
-    queryKey: "metadata",
+    queryKey: ["metadata"],
     queryFn: metadataQuery,
     staleTime: 1000 * 60 * 60 * 24
   });

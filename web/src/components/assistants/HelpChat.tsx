@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { v4 as uuidv4 } from 'uuid';
 import ChatView from './ChatView'; // Assuming ChatView is in the same directory
 import { Message, MessageCreateRequest } from '../../stores/ApiTypes';
@@ -27,10 +27,13 @@ const HelpChat: React.FC = () => {
     const [showMessages, setShowMessages] = useState(true);
     const [threadId, setThreadId] = useState<string>(uuidv4());
     const queryClient = useQueryClient();
-    const { data: messages = [] } = useQuery(['chatMessages', threadId], () => fetchMessages(threadId),
-        { staleTime: 60000 * 60 * 24, cacheTime: 60000 * 60 * 24 });
+    const { data: messages = [] } = useQuery({
+        queryKey: ['chatMessages', threadId],
+        queryFn: () => fetchMessages(threadId),
+    });
 
-    const mutation = useMutation(sendMessage, {
+    const mutation = useMutation({
+        mutationFn: sendMessage,
         onSuccess: (messages) => {
             queryClient.setQueryData(['chatMessages', threadId], messages);
         },
@@ -48,7 +51,7 @@ const HelpChat: React.FC = () => {
     return (
         <div className="help-chat">
             <ChatView
-                isLoading={mutation.isLoading}
+                isLoading={mutation.isPending}
                 messages={messages}
                 showMessages={showMessages}
                 setShowMessages={setShowMessages}

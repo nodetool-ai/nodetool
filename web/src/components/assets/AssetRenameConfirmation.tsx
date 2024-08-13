@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import { devLog } from "../../utils/DevLog";
-import { UseMutationResult } from "react-query";
+import { UseMutationResult } from "@tanstack/react-query";
 import { AssetUpdate, useAssetStore } from "../../hooks/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 
