@@ -10,11 +10,6 @@ export const useGetAssets = (
 ) => {
   const { sortedFolders, sortedFiles, sortedAssets, error } = useAssets();
 
-  // const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
-  const setFilteredAssets = useSessionStateStore(
-    (state) => state.setFilteredAssets
-  );
-
   const filteredAssets = useMemo(() => {
     const assets = providedAssets || sortedAssets;
     return assets.filter((asset) =>
@@ -37,23 +32,6 @@ export const useGetAssets = (
       ),
     [sortedFiles, searchTerm]
   );
-
-  // Update filtered assets in session state
-  useMemo(() => {
-    const newFilteredAssets = {
-      assetsByType: {
-        folder: filteredFolders,
-        other: filteredOtherAssets,
-      },
-      totalCount: filteredAssets.length,
-    };
-    setFilteredAssets(newFilteredAssets);
-  }, [
-    filteredFolders,
-    filteredOtherAssets,
-    filteredAssets.length,
-    setFilteredAssets,
-  ]);
 
   return {
     folders: filteredFolders,

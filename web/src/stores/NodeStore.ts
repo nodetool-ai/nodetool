@@ -344,17 +344,15 @@ export const useNodeStore = create<NodeStore>()(
       },
 
       getWorkflowIsDirty: () => {
-        return useWorkflowStore.getState().unsavedWorkflows.has(get().workflow.id);
+        return useWorkflowStore.getState().isWorkflowUnsaved(get().workflow.id);
       },
 
       setWorkflowDirty: (dirty: boolean) => {
-        const unsavedWorkflows = useWorkflowStore.getState().unsavedWorkflows;
         if (dirty) {
-          unsavedWorkflows.add(get().workflow.id);
+          useWorkflowStore.getState().addUnsavedWorkflow(get().getWorkflow());
         } else if (!dirty) {
-          unsavedWorkflows.delete(get().workflow.id);
+          useWorkflowStore.getState().removeUnsavedWorkflow(get().workflow.id);
         }
-        useWorkflowStore.getState().setUnsavedWorkflows(unsavedWorkflows);
       },
 
       /**
