@@ -1,10 +1,12 @@
 from enum import EnumMeta
+import functools
 import sys
 from types import UnionType
+from weakref import WeakKeyDictionary
 from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 
-from typing import Any, Type
+from typing import Any, Callable, Type, TypeVar
 
 import torch
 from nodetool.types.graph import Edge
@@ -143,6 +145,27 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
     else:
         print()
         raise ValueError(f"Unknown type: {python_type}")
+
+
+T = TypeVar("T")
+
+
+def memoized_class_method(func: Callable[..., T]):
+    """
+    A decorator that implements memoization for class methods using a functional approach.
+    """
+    cache: WeakKeyDictionary[type, dict[tuple, Any]] = WeakKeyDictionary()
+
+    @functools.wraps(func)
+    def wrapper(cls: type, *args: Any, **kwargs: Any) -> T:
+        if cls not in cache:
+            cache[cls] = {}
+        key = (args, frozenset(kwargs.items()))
+        if key not in cache[cls]:
+            cache[cls][key] = func(cls, *args, **kwargs)
+        return cache[cls][key]
+
+    return classmethod(wrapper)
 
 
 class BaseNode(BaseModel):
@@ -664,14 +687,19 @@ class BaseNode(BaseModel):
             for name, field in fields.items()
         ]
 
-    @classmethod
-    def properties_dict(cls):
-        """
-        Returns the input slots of the node.
-        """
-        if not hasattr(cls, "__props__"):
-            cls.__props__ = {prop.name: prop for prop in cls.properties()}
-        return cls.__props__
+    @memoized_class_method
+    def properties_dict(cls) -> dict[str, Any]:
+        """Returns the input slots of the node, memoized for each class."""
+        # Get properties from parent classes
+        parent_properties = {}
+        for base in cls.__bases__:
+            if hasattr(base, "properties_dict"):
+                parent_properties.update(base.properties_dict())
+
+        # Add or override with current class properties
+        current_properties = {prop.name: prop for prop in cls.properties()}
+
+        return {**parent_properties, **current_properties}
 
     def node_properties(self):
         return {name: getattr(self, name) for name in self.inherited_fields().keys()}
