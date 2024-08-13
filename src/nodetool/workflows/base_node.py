@@ -857,6 +857,8 @@ def get_comfy_class_by_name(class_name: str) -> type[BaseNode]:
     Note:
         If no exact match is found, it attempts to find a match by removing hyphens from the class name.
     """
+    if class_name == "Note":
+        return Comment
     if not class_name in COMFY_NODE_CLASSES:
         class_name = class_name.replace("-", "")
     if not class_name in COMFY_NODE_CLASSES:

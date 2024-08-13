@@ -217,9 +217,17 @@ def convert_graph(input_graph: dict[str, Any]) -> dict[str, Any]:
 
         # Add widget values if present
         if "widgets_values" in node:
-            names = get_widget_names(node["type"])
-            for name, value in zip(names, node["widgets_values"]):
-                output_graph[node_id]["data"][name] = value
+            if node["type"] == "Note":
+                output_graph[node_id]["data"]["comment"] = [
+                    {"text": node["widgets_values"][0]}
+                ]
+                if "size" in node and isinstance(node["size"], dict):
+                    output_graph[node_id][WIDTH_KEY] = node["size"]["0"]
+                    output_graph[node_id][HEIGHT_KEY] = node["size"]["1"]
+            else:
+                names = get_widget_names(node["type"])
+                for name, value in zip(names, node["widgets_values"]):
+                    output_graph[node_id]["data"][name] = value
 
         # Process inputs
         if "inputs" in node:

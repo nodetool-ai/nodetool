@@ -19,7 +19,6 @@ import { ErrorOutlineRounded } from "@mui/icons-material";
 import { prettyDate } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
 import { useNavigate } from "react-router";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { VERSION } from "../../config/constants";
@@ -173,9 +172,6 @@ const OpenOrCreateDialog = () => {
   const navigate = useNavigate();
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
-  const setShouldAutoLayout = useNodeStore(
-    (state) => state.setShouldAutoLayout
-  );
 
   function addBreaks(text: string) {
     return text.replace(/([-_.])/g, "$1<wbr>");
@@ -219,7 +215,7 @@ const OpenOrCreateDialog = () => {
     }
   };
 
-  const { handleOpenWelcome, handleOpenHelp, handleOpenChat } = useAppHeaderStore();
+  const { handleOpenWelcome, handleOpenHelp } = useAppHeaderStore();
 
   const sortedWorkflows = data?.workflows.sort((a, b) => {
     if (settings.workflowOrder === "name") {
@@ -301,9 +297,6 @@ const OpenOrCreateDialog = () => {
           </Button>
           <Button color="primary" onClick={handleOpenHelp}>
             Shortcuts
-          </Button>
-          <Button color="primary" onClick={handleOpenChat}>
-            Chat
           </Button>
         </div>
 
