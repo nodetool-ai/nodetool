@@ -480,15 +480,14 @@ class WorkflowRunner:
             f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
         )
         with torch.inference_mode():
-            yield
-            if torch.cuda.is_available():
-                import comfy.model_management
+            try:
+                yield
+            finally:
+                if torch.cuda.is_available():
+                    import comfy.model_management
 
-                comfy.model_management.cleanup_models()
-                torch.cuda.empty_cache()
-                torch.cuda.reset_peak_memory_stats()
-                summary = torch.cuda.memory_summary("cuda")
-                log.info(summary)
-                log.info(
-                    f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
-                )
+                    comfy.model_management.cleanup_models()
+                    torch.cuda.empty_cache()
+                    log.info(
+                        f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+                    )
