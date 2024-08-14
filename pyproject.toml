@@ -30,6 +30,7 @@ bs4 = "*"
 chromadb = "*"
 click = "*"
 cryptography = "*"
+datasets = "*"
 diffusers = {extras = ["torch"], version = "*"}
 einops = "*"
 fastapi = ">=0.109.0"

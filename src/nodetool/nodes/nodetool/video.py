@@ -73,7 +73,7 @@ class ExtractFrames(BaseNode):
                     images.append(img_ref)
         return images
 
-    def result_for_update(self, result: dict[str, Any]) -> dict[str, Any]:
+    def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
         return {}
 
 

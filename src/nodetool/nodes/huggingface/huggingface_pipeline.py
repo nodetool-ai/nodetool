@@ -19,6 +19,9 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     # )
     _pipeline: Pipeline | None = None
 
+    def get_torch_dtype(self):
+        return torch.float16
+
     async def initialize(self, context: ProcessingContext):
         # if not self.run_on_huggingface:
         from transformers import pipeline
@@ -27,7 +30,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             self.pipeline_task,
             model=self.get_model_id(),
             device=context.device,
-            torch_dtype=torch.float16,
+            torch_dtype=self.get_torch_dtype(),
         )
 
     async def move_to_device(self, device: str):
@@ -51,6 +54,9 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     async def process_local(self, context: ProcessingContext) -> Any:
         assert self._pipeline is not None
         inputs = await self.get_inputs(context)
+        if isinstance(inputs, torch.Tensor):
+            # convert to half precision
+            inputs = inputs.to(torch.float16)
         result = self._pipeline(inputs, **self.get_params())
         return await self.process_local_result(context, result)
 
