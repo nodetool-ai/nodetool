@@ -419,7 +419,7 @@ class WorkflowRunner:
                 user_id=context.user_id,
                 auth_token=context.auth_token,
                 workflow_id=context.workflow_id,
-                queue=context.message_queue,
+                message_queue=context.message_queue,
             )
             # set the result of the input node
             for input_node in input_nodes:

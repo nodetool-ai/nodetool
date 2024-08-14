@@ -2,7 +2,8 @@ import asyncio
 from enum import Enum
 import io
 import json
-from queue import Queue
+import multiprocessing
+import queue
 import random
 import urllib.parse
 import uuid
@@ -31,7 +32,6 @@ from nodetool.types.prediction import (
     PredictionResult,
 )
 from nodetool.types.workflow import Workflow
-from nodetool.common.async_iterators import AsyncByteStream
 from nodetool.common.nodetool_api_client import NodetoolAPIClient, Response
 from nodetool.metadata.types import Message, Provider, Task
 from nodetool.workflows.graph import Graph
@@ -61,7 +61,7 @@ from nodetool.common.environment import Environment
 
 
 from io import BytesIO
-from typing import IO, Any, Literal
+from typing import IO, Any, Literal, Union
 from pickle import dumps, loads
 
 
@@ -105,7 +105,9 @@ class ProcessingContext:
         graph: Graph = Graph(),
         variables: dict[str, Any] | None = None,
         results: dict[str, Any] | None = None,
-        queue: Queue | asyncio.Queue | None = None,
+        message_queue: Union[
+            queue.Queue, asyncio.Queue, multiprocessing.Queue, None
+        ] = None,
         http_client: httpx.AsyncClient | None = None,
         api_client: NodetoolAPIClient | None = None,
         device: str = "cpu",
@@ -117,7 +119,7 @@ class ProcessingContext:
         self.graph = graph
         self.results = results if results else {}
         self.processed_nodes = set()
-        self.message_queue = queue if queue else asyncio.Queue()
+        self.message_queue = message_queue if message_queue else asyncio.Queue()
         self.is_cancelled = False
         self.device = device
         self.models = models if models else {}
@@ -161,15 +163,15 @@ class ProcessingContext:
         assert isinstance(self.message_queue, asyncio.Queue)
         return await self.message_queue.get()
 
-    def pop_message(self) -> ProcessingMessage:
-        """
-        Removes and returns the next message from the message queue.
+    # def pop_message(self) -> ProcessingMessage:
+    #     """
+    #     Removes and returns the next message from the message queue.
 
-        Returns:
-            The next message from the message queue.
-        """
-        assert isinstance(self.message_queue, Queue)
-        return self.message_queue.get()
+    #     Returns:
+    #         The next message from the message queue.
+    #     """
+    #     assert isinstance(self.message_queue, Queue)
+    #     return self.message_queue.get()
 
     def post_message(self, message: ProcessingMessage):
         """

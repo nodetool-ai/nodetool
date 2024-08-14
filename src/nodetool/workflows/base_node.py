@@ -35,9 +35,7 @@ from nodetool.metadata.utils import (
     is_union_type,
 )
 
-from nodetool.workflows.property import Property
-from nodetool.workflows.run_job_request import RunJobRequest
-from nodetool.workflows.types import BinaryUpdate, NodeUpdate
+from nodetool.workflows.types import NodeUpdate
 
 """
 This module defines the core components and functionality for nodes in a workflow graph system.

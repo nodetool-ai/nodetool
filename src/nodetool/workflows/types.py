@@ -50,6 +50,4 @@ class Error(BaseModel):
     error: str
 
 
-ProcessingMessage = (
-    NodeUpdate | BinaryUpdate | NodeProgress | JobUpdate | Error | Prediction
-)
+ProcessingMessage = NodeUpdate | NodeProgress | JobUpdate | Error | Prediction
