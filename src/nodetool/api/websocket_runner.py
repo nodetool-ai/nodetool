@@ -149,17 +149,17 @@ class WebSocketRunner:
                 self.pre_run_hook()
 
             async for msg in run_workflow(
-            req, self.runner, self.context, use_thread=True
+                req, self.runner, self.context, use_thread=True
             ):
                 try:
                     msg_dict = msg.model_dump()
-                    
+
                     # Only wrap the result if explicit_types is True
                     if req.explicit_types and "result" in msg_dict:
                         msg_dict["result"] = wrap_primitive_types(msg_dict["result"])
-                    
+
                     packed_message = msgpack.packb(msg_dict, use_bin_type=True)
-                
+
                     await self.websocket.send_bytes(packed_message)  # type: ignore
                 except Exception as e:
                     log.exception(f"Error processing message in job {self.job_id}: {e}")
@@ -178,7 +178,6 @@ class WebSocketRunner:
         # TODO: Implement bookkeeping for credits used
         self.active_job = None
         self.job_id = None
-
 
     async def cancel_job(self):
         """
