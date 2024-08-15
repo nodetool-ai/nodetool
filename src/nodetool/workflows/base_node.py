@@ -411,7 +411,7 @@ class BaseNode(BaseModel):
                 if not skip_errors:
                     raise e
 
-    def properties_for_update(self):
+    def properties_for_client(self):
         """
         Properties to send to the client for updating the node.
         Comfy types and tensors are excluded.
@@ -428,7 +428,7 @@ class BaseNode(BaseModel):
             if prop.name in names
         }
 
-    def result_for_update(self, result: dict[str, Any]) -> dict[str, Any]:
+    def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
         """
         Prepares the node result for inclusion in a NodeUpdate message.
 
@@ -483,8 +483,8 @@ class BaseNode(BaseModel):
             node_id=self.id,
             node_name=self.get_title(),
             status=status,
-            result=self.result_for_update(result) if result is not None else None,
-            properties=self.properties_for_update(),
+            result=self.result_for_client(result) if result is not None else None,
+            properties=self.properties_for_client(),
         )
         context.post_message(update)
 
@@ -838,7 +838,7 @@ class Preview(BaseNode):
     async def process(self, context: Any) -> Any:
         return self.value
 
-    def result_for_update(self, result: dict[str, Any]) -> dict[str, Any]:
+    def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
         return self.result_for_all_outputs(result)
 
 

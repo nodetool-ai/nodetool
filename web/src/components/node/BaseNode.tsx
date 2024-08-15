@@ -120,7 +120,7 @@ export default memo(
       state.getResult(props.data.workflow_id, props.id)
     );
     const renderedResult = useMemo(() => {
-      if (isOutputNode && typeof result === "object") {
+      if (typeof result === "object") {
         return Object.entries(result).map(([key, value]) => (
           <OutputRenderer key={key} value={value} />
         ));

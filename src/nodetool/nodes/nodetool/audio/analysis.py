@@ -11,7 +11,7 @@ from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import ImageRef
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 
 class AmplitudeToDB(BaseNode):
@@ -249,6 +249,9 @@ class PlotSpectrogram(BaseNode):
         plt.savefig(buf, format="png")
         buf.seek(0)
         return await context.image_from_bytes(buf.getvalue())
+
+    def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
+        return self.result_for_all_outputs(result)
 
 
 class PowertToDB(BaseNode):

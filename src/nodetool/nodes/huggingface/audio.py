@@ -12,8 +12,14 @@ from nodetool.metadata.types import AudioRef
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 import torch
-from diffusers import StableAudioPipeline
+from diffusers import StableAudioPipeline  # type: ignore
 from nodetool.workflows.types import NodeProgress
+from pydantic import Field
+from nodetool.workflows.base_node import BaseNode
+from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.metadata.types import AudioRef, TextRef, ModelRef, Tensor
+from transformers import SpeechT5Processor, SpeechT5ForTextToSpeech, SpeechT5HifiGan
+import torch
 
 
 class AudioClassifier(HuggingFacePipelineNode):
@@ -46,6 +52,9 @@ class AudioClassifier(HuggingFacePipelineNode):
         title="Audio",
         description="The input audio to classify",
     )
+
+    def get_torch_dtype(self):
+        return torch.float32
 
     def get_model_id(self):
         return self.model.value
@@ -84,8 +93,8 @@ class TextToSpeech(HuggingFacePipelineNode):
     """
 
     class TTSModelId(str, Enum):
-        FASTSPEECH2_EN_LJSPEECH = "facebook/fastspeech2-en-ljspeech"
         SUNO_BARK = "suno/bark"
+        SUNO_BARK_SMALL = "suno/bark-small"
 
     model: TTSModelId = Field(
         default=TTSModelId.SUNO_BARK,
@@ -210,7 +219,7 @@ class StableAudioNode(BaseNode):
         self._pipeline = StableAudioPipeline.from_pretrained(
             "stabilityai/stable-audio-open-1.0",
             torch_dtype=torch.float16,
-        )
+        )  # type: ignore
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -240,8 +249,10 @@ class StableAudioNode(BaseNode):
             audio_end_in_s=self.duration,
             num_waveforms_per_prompt=1,
             generator=generator,
-            callback=progress_callback,
-        ).audios[0]
+            callback=progress_callback,  # type: ignore
+        ).audios[  # type: ignore
+            0
+        ]
 
         output = audio.T.float().cpu().numpy()
         sampling_rate = self._pipeline.vae.sampling_rate
@@ -355,3 +366,64 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)
+
+
+# class LoadSpeakerEmbedding(BaseNode):
+#     """
+#     Loads a speaker embedding from a dataset.
+#     """
+
+#     dataset_name: str = Field(
+#         default="Matthijs/cmu-arctic-xvectors",
+#         description="The name of the dataset containing speaker embeddings",
+#     )
+#     embedding_index: int = Field(
+#         default=0, description="The index of the embedding to use"
+#     )
+
+#     async def process(self, context: ProcessingContext) -> Tensor:
+#         from datasets import load_dataset
+
+#         embeddings_dataset = load_dataset(self.dataset_name, split="validation")
+#         speaker_embeddings = torch.tensor(
+#             embeddings_dataset[self.embedding_index]["xvector"]  # type: ignore
+#         ).unsqueeze(0)
+#         return Tensor(value=speaker_embeddings.tolist(), dtype="float32")
+
+
+# class SpeechT5(BaseNode):
+#     """
+#     A complete pipeline for text-to-speech using SpeechT5.
+#     """
+
+#     text: str = Field(default=str, description="The input text to convert to speech")
+#     # speaker_embedding: Tensor = Field(
+#     #     default=Tensor(), description="The index of the embedding to use"
+#     # )
+
+#     _processor: SpeechT5Processor | None = None
+#     _model: SpeechT5ForTextToSpeech | None = None
+#     # _vododer: SpeechT5HifiGan | None = None
+
+#     async def initialize(self, context: ProcessingContext):
+#         model_name = "microsoft/speecht5_tts"
+#         self._processor = SpeechT5Processor.from_pretrained(model_name)  # type: ignore
+#         self._model = SpeechT5ForTextToSpeech.from_pretrained(model_name)  # type: ignore
+#         # self._vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan")
+
+#     async def process(self, context: ProcessingContext) -> AudioRef:
+#         # inputs = self._processor(text=self.text, return_tensors="pt")
+#         assert self._processor is not None
+#         assert self._model is not None
+
+#         # speaker_embedding = self.speaker_embedding.value
+#         inputs = self._processor(self.text)
+
+#         assert inputs is not None
+
+#         speech = self._model.generate_speech(
+#             inputs["input_ids"],
+#             speaker_embedding=speaker_embedding,  # type: ignore
+#         )
+
+#         return await context.audio_from_numpy(speech.numpy(), sample_rate=16000)
