@@ -1,5 +1,6 @@
 from enum import EnumMeta
 import functools
+import re
 import sys
 from types import UnionType
 from weakref import WeakKeyDictionary
@@ -304,9 +305,19 @@ class BaseNode(BaseModel):
         """
         class_name = cls.__name__
         if class_name.endswith("Node"):
-            return class_name[:-4]
+            title = class_name[:-4]
         else:
-            return class_name
+            title = class_name
+
+        # split on camel case and add spaces
+        title = " ".join(
+            [
+                x.capitalize()
+                for x in re.findall(r"[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))", title)
+            ]
+        )
+
+        return title
 
     @classmethod
     def get_description(cls) -> str:

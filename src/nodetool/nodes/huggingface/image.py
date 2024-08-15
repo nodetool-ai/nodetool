@@ -106,6 +106,10 @@ class ImageClassifier(HuggingFacePipelineNode):
     def get_model_id(self):
         return self.model.value
 
+    @classmethod
+    def get_title(cls) -> str:
+        return "Image Classifier"
+
     @property
     def pipeline_task(self) -> str:
         return "image-classification"
@@ -161,6 +165,10 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
         title="Candidate Labels",
         description="The candidate labels to classify the image against, separated by commas",
     )
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Zero-Shot Image Classifier"
 
     def get_model_id(self):
         return self.model.value
@@ -263,6 +271,10 @@ class VisualizeSegmentation(BaseNode):
         title="Segmentation Masks",
         description="The segmentation masks to visualize",
     )
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Visualize Segmentation"
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
@@ -384,6 +396,10 @@ class FindSegment(BaseNode):
         description="The label of the segment to extract",
     )
 
+    @classmethod
+    def get_title(cls) -> str:
+        return "Find Segment"
+
     async def process(self, context: ProcessingContext) -> ImageRef:
         for segment in self.segments:
             if segment.label == self.segment_label:
@@ -426,6 +442,10 @@ class ObjectDetection(HuggingFacePipelineNode):
         title="Top K",
         description="The number of top predictions to return",
     )
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Object Detection"
 
     def get_model_id(self):
         return self.model.value
@@ -479,6 +499,10 @@ class VisualizeObjectDetection(BaseNode):
         title="Detected Objects",
         description="The detected objects to visualize",
     )
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Visualize Object Detection"
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         import matplotlib.pyplot as plt
@@ -582,6 +606,10 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
         description="The candidate labels to detect in the image, separated by commas",
     )
 
+    @classmethod
+    def get_title(cls) -> str:
+        return "Zero-Shot Object Detection"
+
     def get_model_id(self):
         return self.model.value
 
@@ -646,6 +674,10 @@ class DepthEstimation(HuggingFacePipelineNode):
         title="Image",
         description="The input image for depth estimation",
     )
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Depth Estimation"
 
     def get_model_id(self):
         return self.model.value
@@ -723,6 +755,10 @@ class Swin2SR(BaseImageToImage):
     - Upscale images for better detail
     """
 
+    @classmethod
+    def get_title(cls) -> str:
+        return "Swin2SR"
+
     def get_model_id(self):
         return "caidas/swin2SR-classical-sr-x2-64"
 
@@ -760,6 +796,10 @@ class InstructPix2Pix(BaseImageToImage):
         description="The image guidance scale for the transformation.",
         ge=1.0,
     )
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Instruct Pix2Pix"
 
     def get_model_id(self):
         return "timbrooks/instruct-pix2pix"
@@ -1260,6 +1300,10 @@ class Kandinsky3(BaseNode):
 
     _pipeline: AutoPipelineForText2Image | None = None
 
+    @classmethod
+    def get_title(cls) -> str:
+        return "Kandinsky 3"
+
     async def initialize(self, context: ProcessingContext):
         self._pipeline = AutoPipelineForText2Image.from_pretrained(
             "kandinsky-community/kandinsky-3",
@@ -1336,6 +1380,10 @@ class Kandinsky3Img2Img(BaseNode):
     )
 
     _pipeline: AutoPipelineForImage2Image | None = None
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Kandinsky 3 Image-to-Image"
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = AutoPipelineForImage2Image.from_pretrained(
@@ -1425,6 +1473,10 @@ class StableCascade(BaseNode):
 
     _prior_pipeline: StableCascadePriorPipeline | None = None
     _decoder_pipeline: StableCascadeDecoderPipeline | None = None
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Stable Cascade"
 
     async def initialize(self, context: ProcessingContext):
         self._prior_pipeline = StableCascadePriorPipeline.from_pretrained(
@@ -2049,6 +2101,10 @@ class StableDiffusionUpscale(StableDiffusionBaseNode):
         description="Seed for the random number generator. Use -1 for a random seed.",
     )
 
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion Upscale"
+
     _pipeline: StableDiffusionUpscalePipeline | None = None
 
     async def initialize(self, context: ProcessingContext):
@@ -2487,7 +2543,7 @@ class SDXLTurbo(BaseNode):
 
     @classmethod
     def get_title(cls):
-        return "SDXL Turbo (Text2Img)"
+        return "SDXL Turbo"
 
     async def initialize(self, context: ProcessingContext):
         if self._pipe is None:
@@ -2660,6 +2716,10 @@ class StableDiffusion3ControlNetNode(BaseNode):
 
     _pipeline: StableDiffusion3ControlNetPipeline | None = None
 
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion 3 ControlNet"
+
     async def initialize(self, context: ProcessingContext):
         controlnet = SD3ControlNetModel.from_pretrained(
             self.control_model.value, torch_dtype=torch.float16
@@ -2746,6 +2806,10 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLBase):
         ge=0.0,
         le=2.0,
     )
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion XL ControlNet"
 
     _pipeline: StableDiffusionXLControlNetPipeline | None = None
 
