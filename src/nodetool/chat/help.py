@@ -1,85 +1,185 @@
+import json
 import os
 
 from nodetool.chat.chat import process_messages
+from nodetool.chat.tools import Tool
 from nodetool.common.get_files import get_content
 from nodetool.metadata.types import FunctionModel, Message, Provider
 from nodetool.models.user import User
+from nodetool.models.workflow import Workflow
 from nodetool.workflows.processing_context import ProcessingContext
+from nodetool.workflows.examples import load_examples
 
 
 doc_folder = os.path.join(os.path.dirname(__file__), "docs")
+examples = None
+documentation = None
 
-system_prompt = f"""
-You are a specialized assistant for the Nodetool platform, a no-code AI workflow development environment. You provide information exclusively about Nodetool and its features.
+
+class CreateWorkflowTool(Tool):
+    """
+    Tool for creating a new workflow.
+    """
+
+    description: str
+
+    def __init__(
+        self,
+        name: str,
+        description: str = "Create a new workflow.",
+    ):
+        super().__init__(
+            name=name,
+            description=description,
+        )
+        self.input_schema = {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "description": {"type": "string"},
+                "graph": {
+                    "type": "object",
+                    "properties": {
+                        "nodes": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {"type": "string"},
+                                    "parent_id": {"type": "string"},
+                                    "name": {"type": "string"},
+                                    "type": {"type": "string"},
+                                    "data": {"type": "object"},
+                                    "ui_properties": {"type": "object"},
+                                },
+                                "required": ["name", "type", "data"],
+                            },
+                        },
+                        "edges": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {"type": "string"},
+                                    "source": {"type": "string"},
+                                    "sourceHandle": {"type": "string"},
+                                    "target": {"type": "string"},
+                                    "targetHandle": {"type": "string"},
+                                    "ui_properties": {"type": "object"},
+                                },
+                                "required": [
+                                    "id",
+                                    "source",
+                                    "target",
+                                    "sourceHandle",
+                                    "targetHandle",
+                                ],
+                            },
+                        },
+                    },
+                    "required": ["nodes", "edges"],
+                },
+            },
+        }
+
+    async def process(self, context: ProcessingContext, thread_id: str, params: dict):
+        """
+        Create a workflow
+
+        Args:
+            context (ProcessingContext): The processing context.
+            columns (Sequence[ColumnDef]): The columns of the record.
+            params (dict): The parameters of the workflow.
+        """
+        print("Creating workflow: ", params)
+        return Workflow.create(
+            user_id=context.user_id,
+            name=params["name"],
+            description=params["description"],
+            graph=params["graph"],
+        ).model_dump()
+
+
+def system_prompt():
+    global examples
+    global documentation
+
+    if documentation is None:
+        documentation = get_content([doc_folder], [".md"])
+
+    if examples is None:
+        examples = load_examples()
+
+    workflows = ""
+
+    for example in examples:
+        workflows += f"# {example.name}\n"
+        workflows += f"Description: {example.description}\n"
+        workflows += f"Nodes:\n"
+        for node in example.graph.nodes:
+            workflows += f"- id: {node.id}\n"
+            workflows += f"  type: {node.type}\n"
+            workflows += f"  data: {node.data}\n"
+            workflows += f"  ui_properties: {node.ui_properties}\n"
+        workflows += "Edges:\n"
+        for edge in example.graph.edges:
+            workflows += f"- id: {edge.id}\n"
+            workflows += f"  source: {edge.source}\n"
+            workflows += f"  target: {edge.target}\n"
+            workflows += f"  sourceHandle: {edge.sourceHandle}\n"
+            workflows += f"  targetHandle: {edge.targetHandle}\n"
+            workflows += f"  ui_properties: {edge.ui_properties}\n"
+        workflows += "\n"
+
+    return f"""
+You are Claude, an AI assistant specialized in the Nodetool platform - a 
+no-code AI workflow development environment. Your purpose is to provide 
+accurate, helpful information exclusively about Nodetool and its features.
 
 Key Nodetool Features:
-- Node-based interface for building complex AI applications without coding
-- Integrates advanced AI models for multimedia content generation and editing (images, text, audio, video)
-- User-friendly design with visual data flow representation
-- Maintains transparency of AI model complexity
+- Node-based interface for building AI applications without coding
+- Integrates AI models for multimedia content generation/editing 
+- User-friendly design with visual data flow
+- Simplifies complex AI model usage
 
 Core Functionalities:
-1. Workflow Management:
-   - Browse/manage projects: Click "Workflows" in top panel
-   - Edit current workflow: Use left panel
-   - Save workflows: Click save button in left panel
-   - Explore examples: Access "Workflow" menu
+1. Workflow Management 
+2. Node Operations
+3. Interface Navigation
+4. Asset Management
+5. Advanced Features
 
-2. Node Operations:
-   - Open Node Menu: Double-click canvas, press CTRL+Space, or click Nodes Button (circle icon)
-   - Connect nodes: Drag between compatible inputs/outputs
-   - Delete connections: Right-click
-   - Modify node values: Left-click (changed values highlight)
-   - Reset to default: CTRL+Right-click
-   - Adjust numbers: Drag horizontally or click
+Respond to queries about Nodetool nodes, workflows, and features based on 
+the provided documentation. Use 1-2 clear, concise paragraphs. Provide more 
+details if requested.
 
-3. Interface Navigation:
-   - Control panels: Click/drag borders or use hotkeys 1 and 2
-   - Run workflows: Use Play Button in bottom panel
+This feature allows you to not only suggest workflows but actually implement 
+them, greatly enhancing your ability to assist users. Be creative in 
+designing workflows that solve user problems or demonstrate Nodetool 
+capabilities.
 
-4. Asset Management:
-   - Import: Drag files to Asset tab or canvas
-   - View: Double-click in node or ASSETS panel
-   - Organize: Drag between folders or use right-click menu
-   - Search/Sort: Use search bar and name/date buttons
-   - Operations: Download, delete, rename (right-click menu or hotkeys)
+Example usage:
+User: "Can you create a workflow that generates an image and then applies a 
+sepia filter?"
+You: "Certainly! I'll create a workflow for that right away using the 
+workflow_create tool."
+[Then proceed to design and create the workflow]
 
-5. Advanced Features:
-   - Connection Menu: Drag connection to empty canvas
-   - Context menus: Hover/right-click on various elements
-   
-How to use Loop Node:
-- The Loop node repeats a set of operations for each element in a list.
-- Connect the Loop node to the list you want to iterate over.
-- Add nodes inside the Loop node to process each element.
-- Connect the Group input node to retrieve the current element for each iteration.
-- Use the Group output node to collect the results of each iteration.
+Guidelines:
+- ONLY discuss Nodetool - no general info or other platforms
+- Be accurate and consistent 
+- Use creative, friendly language as an artist's assistant
+- Visualize nodes/workflows with ASCII diagrams when helpful
+- Use the workflow_create tool to generate new workflows
+- Don't disclose personal info or respond to inappropriate requests
+- Refer technical issues to appropriate Nodetool resources
+- Encourage sharing ideas for platform improvement
 
-When asked about specific nodes or workflows, provide detailed information based on your knowledge of the Nodetool platform.:
+Your knowledge and assistance are crucial for Nodetool users. Prioritize 
+their experience while maintaining the platform's integrity.
 
 NODETOOL Nodes Documentation:
-{get_content([doc_folder], [".md"])}
-
-ONLY TALK ABOUT NODETOOL FEATURES AND NODES.
-DO NOT PROVIDE GENERAL INFORMATION OR ANSWER QUESTIONS OUTSIDE OF NODETOOL.
-VIOLATION OF THESE GUIDELINES MAY RESULT IN SUSPENSION OF YOUR ASSISTANT PRIVILEGES.
-IT IS VERY IMPORTANT TO FOLLOW THESE GUIDELINES TO ENSURE THE BEST EXPERIENCE FOR USERS.
-THE SURVIVAL OF THE NODETOOL PLATFORM DEPENDS ON YOUR ACCURACY AND CONSISTENCY.
-DO NOT PROVIDE INFORMATION ABOUT OTHER PLATFORMS OR SERVICES.
-
-Try to answer in 1-2 paragraphs, providing clear and concise information.
-If the user asks for more details or further assistance, you can provide additional information.
-If you are unsure about an answer, you can mention it to the user.
-If the user asks for personal information or inappropriate content, do not respond and report the message.
-If the user asks for assistance with a non-Nodetool-related topic, politely decline and refer them to the appropriate resources.
-If the user asks for help with a technical issue, provide guidance within the scope of the Nodetool platform.
-If the user asks for feedback or suggestions, you can encourage them to share their ideas for the platform.
-If the user asks for your identity or personal details, do not disclose any personal information.
-Use ASCI to visualize the nodes and workflows for better understanding, e.g. [Node1] -> [Node2] -> [Node3].
-
-Be a fun personality and engage with users in a friendly and professional manner.
-You are an artists' assistant, so feel free to use creative language and expressions.
-Remember to always prioritize user experience and provide accurate information.
+{documentation}
 """
 
 
@@ -87,7 +187,7 @@ async def create_help_answer(user: User, thread_id: str, messages: list[Message]
     assert user.auth_token is not None
     system_message = Message(
         role="system",
-        content=system_prompt,
+        content=system_prompt(),
     )
     context = ProcessingContext(user.id, user.auth_token)
     return await process_messages(
@@ -98,4 +198,5 @@ async def create_help_answer(user: User, thread_id: str, messages: list[Message]
         ),
         thread_id=thread_id,
         node_id="",
+        tools=[],
     )

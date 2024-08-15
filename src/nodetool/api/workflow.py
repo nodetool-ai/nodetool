@@ -8,7 +8,7 @@ from nodetool.types.workflow import WorkflowList, Workflow, WorkflowRequest
 from nodetool.api.utils import current_user, User
 from nodetool.common.environment import Environment
 from typing import Optional
-from nodetool.workflows.examples import get_examples
+from nodetool.workflows.examples import load_examples
 from nodetool.workflows.read_graph import read_graph
 from nodetool.models.workflow import Workflow as WorkflowModel
 
@@ -109,7 +109,7 @@ async def user_workflows(
 
 @router.get("/examples")
 async def examples() -> WorkflowList:
-    return WorkflowList(workflows=get_examples(), next=None)
+    return WorkflowList(workflows=load_examples(), next=None)
 
 
 @router.get("/{id}")

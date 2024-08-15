@@ -421,7 +421,6 @@ class BaseNode(BaseModel):
             try:
                 self.assign_property(name, value)
             except ValueError as e:
-                print(f"{self.__class__} Error setting property {name}: {e}")
                 if not skip_errors:
                     raise e
 

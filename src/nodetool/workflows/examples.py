@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 examples_folder = os.path.join(os.path.dirname(__file__), "examples")
 examples = None
 
+
 def load_example(name: str) -> Workflow:
     example_path = os.path.join(examples_folder, name)
     with open(example_path, "r") as f:
@@ -36,10 +37,11 @@ def load_example(name: str) -> Workflow:
                 access="",
                 created_at=now_str,
                 updated_at=now_str,
-                description="Error loading this workflow"
+                description="Error loading this workflow",
             )
 
-def get_examples() -> List[Workflow]:
+
+def load_examples() -> List[Workflow]:
     global examples
     if examples is None:
         examples = [
