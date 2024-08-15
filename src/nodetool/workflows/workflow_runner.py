@@ -157,6 +157,7 @@ class WorkflowRunner:
 
         with self.torch_context(context):
             try:
+                await self.validate_graph(context, graph)
                 await self.initialize_graph(context, graph)
                 await self.process_graph(context, graph)
             except Exception as e:
@@ -179,6 +180,36 @@ class WorkflowRunner:
         )
 
         self.status = "completed"
+
+    async def validate_graph(self, context: ProcessingContext, graph: Graph):
+        """
+        Validates the graph by checking nodes for missing input values.
+
+        Args:
+            context (ProcessingContext): Manages the execution state and inter-node communication.
+            graph (Graph): The directed acyclic graph of nodes to be processed.
+
+        Raises:
+            ValueError: If the graph has missing input values or contains circular dependencies.
+        """
+        is_valid = True
+
+        for node in graph.nodes:
+            input_edges = [edge for edge in graph.edges if edge.target == node.id]
+            errors = node.validate(input_edges)
+            if len(errors) > 0:
+                is_valid = False
+                for e in errors:
+                    context.post_message(
+                        NodeUpdate(
+                            node_id=node.id,
+                            node_name=node.get_title(),
+                            status="error",
+                            error=str(e),
+                        )
+                    )
+        if not is_valid:
+            raise ValueError("Graph contains errors")
 
     async def initialize_graph(self, context: ProcessingContext, graph: Graph):
         """

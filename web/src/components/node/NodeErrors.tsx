@@ -18,7 +18,6 @@ export const errorStyles = (theme: any) =>
 
     ".error-text": {
       maxHeight: "4em",
-      wordSpacing: "-0.3em",
       fontSize: theme.fontSizeTiny,
       color: theme.palette.c_black,
       cursor: "auto",

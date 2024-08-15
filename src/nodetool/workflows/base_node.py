@@ -200,6 +200,9 @@ class BaseNode(BaseModel):
         self._parent_id = parent_id
         self._ui_properties = ui_properties
 
+    def required_inputs(self):
+        return []
+
     @classmethod
     def is_visible(cls):
         return cls._visible.default  # type: ignore
@@ -709,6 +712,25 @@ class BaseNode(BaseModel):
             return output.model_dump()
         else:
             return {"output": output}
+
+    def validate(self, input_edges: list[Edge]):
+        """
+        Validate the node's inputs before processing.
+
+        Args:
+            input_edges (list[Edge]): The edges connected to the node's inputs.
+
+        Raises:
+            ValueError: If any input is missing or invalid.
+        """
+        missing_inputs = []
+        for i in self.required_inputs():
+            if i not in [e.targetHandle for e in input_edges]:
+                missing_inputs.append(i)
+        if len(missing_inputs) > 0:
+            return [f"Missing inputs: {', '.join(missing_inputs)}"]
+        else:
+            return []
 
     async def initialize(self, context: Any):
         """

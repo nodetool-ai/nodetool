@@ -1,18 +1,15 @@
 from enum import Enum
-from nodetool.metadata import is_assignable
 from nodetool.metadata.types import (
-    CheckpointFile,
     ComfyData,
-    ComfyModel,
     ImageRef,
     ModelFile,
     OutputSlot,
 )
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from pydantic import Field
 import enum
 from typing import Any
+
 
 MAX_RESOLUTION = 8192 * 2
 
@@ -38,6 +35,14 @@ class ComfyNode(BaseNode):
     def is_visible(cls) -> bool:
         return cls is not ComfyNode
 
+    def get_comfy_class_name(self) -> str:
+        return self._comfy_class if self._comfy_class != "" else self.__class__.__name__
+
+    def required_inputs(self):
+        from nodetool.workflows.read_graph import get_edge_names
+
+        return get_edge_names(self.get_comfy_class_name())
+
     async def call_comfy_node(self, context: ProcessingContext):
         """
         Delegate the processing to the comfy class.
@@ -49,7 +54,7 @@ class ComfyNode(BaseNode):
         Returns:
             Any: The result of the processing.
         """
-        name = self._comfy_class if self._comfy_class != "" else self.__class__.__name__
+        name = self.get_comfy_class_name()
 
         node_class = resolve_comfy_class(name)
         if node_class is None:
