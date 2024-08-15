@@ -343,3 +343,49 @@ class STFT(BaseNode):
             center=self.center,
         )
         return Tensor.from_numpy(np.abs(stft_matrix))
+
+
+class SpectralCentroid(BaseNode):
+    """
+    Computes the spectral centroid of an audio file.
+    audio, analysis, spectral
+
+    The spectral centroid indicates where the "center of mass" of the spectrum is located.
+    Perceptually, it has a connection with the impression of "brightness" of a sound.
+
+    Use cases:
+    - Analyze the timbral characteristics of audio
+    - Track changes in sound brightness over time
+    - Feature extraction for music genre classification
+    - Audio effect design and sound manipulation
+    """
+
+    audio: AudioRef = Field(
+        default=AudioRef(), description="The audio file to analyze."
+    )
+    n_fft: int = Field(
+        default=2048, ge=128, le=8192, description="The length of the FFT window."
+    )
+    hop_length: int = Field(
+        default=512,
+        ge=64,
+        le=2048,
+        description="Number of samples between successive frames.",
+    )
+
+    async def process(self, context: ProcessingContext) -> Tensor:
+        import librosa
+        import numpy as np
+
+        # Load the audio file
+        samples, sample_rate, _ = await context.audio_to_numpy(self.audio)
+
+        # Compute the spectral centroid
+        centroids = librosa.feature.spectral_centroid(
+            y=samples, sr=sample_rate, n_fft=self.n_fft, hop_length=self.hop_length
+        )
+
+        # Convert to Hz and flatten
+        centroids_hz = centroids[0]
+
+        return Tensor.from_numpy(centroids_hz)
