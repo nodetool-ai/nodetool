@@ -835,6 +835,9 @@ class OutputNode(BaseNode):
     def is_visible(cls):
         return cls is not OutputNode
 
+    def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
+        return self.result_for_all_outputs(result)
+
 
 class Comment(BaseNode):
     """

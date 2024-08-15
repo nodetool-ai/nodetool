@@ -7,7 +7,6 @@ import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
 import { useState } from "react";
 import ThreadMessageList from "./ThreadMessageList";
-// import ImageList from "./ImageList";
 import { Button, ButtonGroup, Container } from "@mui/material";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";

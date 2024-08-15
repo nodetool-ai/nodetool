@@ -1,3 +1,4 @@
+from typing import Any
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageEnhance
@@ -41,6 +42,9 @@ class SaveImage(BaseNode):
         return await context.image_from_pil(
             image=image, name=name, parent_id=self.folder.asset_id
         )
+
+    def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
+        return self.result_for_all_outputs(result)
 
 
 class GetMetadata(BaseNode):

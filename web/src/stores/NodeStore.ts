@@ -30,6 +30,8 @@ import { autoLayout, subgraph } from "../core/graph";
 import { Slugify, isConnectable } from "../utils/TypeHandler";
 import { WorkflowAttributes } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
+import useErrorStore from "./ErrorStore";
+import useResultsStore from "./ResultsStore";
 
 type NodeUIProperties = {
   selected: boolean | undefined;
@@ -313,6 +315,9 @@ export const useNodeStore = create<NodeStore>()(
               parentId: node.parentId === id ? undefined : node.parentId
             };
           });
+
+        useErrorStore.getState().clearErrors(id);
+        useResultsStore.getState().clearResults(id);
 
         set({
           nodes: nodes,

@@ -1,3 +1,4 @@
+import asyncio
 from enum import Enum
 import random
 from typing import Any
@@ -134,16 +135,24 @@ class SaveImage(ComfyNode):
         description="The prefix for the filename where the image will be saved.",
     )
 
-    async def process(self, context: ProcessingContext):
+    async def _save_image(self, context: ProcessingContext, image: bytes) -> ImageRef:
         rand = "".join(random.choice("abcdefghijklmnopqrstupvxyz") for x in range(5))
         name = f"{self.filename_prefix}_{rand}.png"
-        img = await context.image_to_pil(self.images)
-        ref = await context.image_from_pil(img, name=name)
-        return {"image": ref}
+        return await context.image_from_bytes(image, name)
 
-    @classmethod
-    def return_type(cls):
-        return {"image": ImageRef}
+    async def process(self, context: ProcessingContext):
+        if self.images.is_empty():
+            raise ValueError("The input image is not connected.")
+        if isinstance(self.images.data, list):
+            images = await asyncio.gather(
+                *[self._save_image(context, image) for image in self.images.data]
+            )
+        elif isinstance(self.images.data, bytes):
+            images = await self._save_image(context, self.images.data)
+        else:
+            raise ValueError("Input image is not from a Comfy node")
+
+        return images
 
 
 class PreviewImage(SaveImage):
