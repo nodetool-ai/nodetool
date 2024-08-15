@@ -2826,12 +2826,12 @@ dev = ["absl-py", "pyink", "pylint (>=2.6.0)", "pytest", "pytest-xdist"]
 
 [[package]]
 name = "modal"
-version = "0.64.25"
+version = "0.64.28"
 description = "Python client library for Modal"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "modal-0.64.25-py3-none-any.whl", hash = "sha256:f15cffc95b2f6096cabdf8b479823558d986ce570c96ea98570afb1fc3b9d9eb"},
+    {file = "modal-0.64.28-py3-none-any.whl", hash = "sha256:d20749e801da0fb57cd15e30b70535e3cedd716860ca2e4063c1f756fce27af2"},
 ]
 
 [package.dependencies]
@@ -3867,6 +3867,35 @@ files = [
 
 [package.dependencies]
 numpy = "*"
+
+[[package]]
+name = "peft"
+version = "0.12.0"
+description = "Parameter-Efficient Fine-Tuning (PEFT)"
+optional = false
+python-versions = ">=3.8.0"
+files = [
+    {file = "peft-0.12.0-py3-none-any.whl", hash = "sha256:a47915efb08af50e9fda267b7bf1b5b6eff33ccbb08791bdb544dccb8788f674"},
+    {file = "peft-0.12.0.tar.gz", hash = "sha256:253205bd478e985ccdc7f04804aab9c95f479130c517bf6e474b8d509db5f4a4"},
+]
+
+[package.dependencies]
+accelerate = ">=0.21.0"
+huggingface-hub = ">=0.17.0"
+numpy = ">=1.17"
+packaging = ">=20.0"
+psutil = "*"
+pyyaml = "*"
+safetensors = "*"
+torch = ">=1.13.0"
+tqdm = "*"
+transformers = "*"
+
+[package.extras]
+dev = ["black", "hf-doc-builder", "ruff (>=0.4.8,<0.5.0)"]
+docs-specific = ["black", "hf-doc-builder"]
+quality = ["black", "hf-doc-builder", "ruff (>=0.4.8,<0.5.0)"]
+test = ["black", "datasets", "diffusers (<0.21.0)", "hf-doc-builder", "parameterized", "pytest", "pytest-cov", "pytest-xdist", "ruff (>=0.4.8,<0.5.0)", "scipy"]
 
 [[package]]
 name = "pillow"
@@ -7029,4 +7058,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "51bb09b66f3f79f479231b2a0e955bc02256ab3bcfa4aaeb5202aea22fd9b6f9"
+content-hash = "622f893ba2158e79666b0b3b1cb6eb35d74e12199e96591032e68841eeb85582"
