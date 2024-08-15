@@ -5,10 +5,10 @@ import {
   Edge,
   TypeName,
   Node,
-  NodeMetadata
+  NodeMetadata,
 } from "../../stores/ApiTypes";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { useAssetStore } from "../AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { constantForType } from "./useConnectionHandlers";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -33,7 +33,7 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, {
       width: 200,
-      height: 300
+      height: 300,
     });
   });
 
@@ -54,9 +54,9 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
       ui_properties: {
         position: {
           x: dnode.x,
-          y: dnode.y
-        }
-      }
+          y: dnode.y,
+        },
+      },
     };
   });
 };
@@ -100,7 +100,9 @@ export function nodeTypeFor(content_type: string): TypeName | null {
   }
 }
 
-function extractWorkflowFromPng(file: File): Promise<Record<string, never> | null> {
+function extractWorkflowFromPng(
+  file: File
+): Promise<Record<string, never> | null> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -113,28 +115,44 @@ function extractWorkflowFromPng(file: File): Promise<Record<string, never> | nul
       let offset = pngSignature.length;
 
       while (offset < uint8Array.length) {
-        const chunkLength = uint8Array[offset] * 16777216 + uint8Array[offset + 1] * 65536 + uint8Array[offset + 2] * 256 + uint8Array[offset + 3];
+        const chunkLength =
+          uint8Array[offset] * 16777216 +
+          uint8Array[offset + 1] * 65536 +
+          uint8Array[offset + 2] * 256 +
+          uint8Array[offset + 3];
         offset += 4;
 
-        const chunkType = String.fromCharCode(uint8Array[offset], uint8Array[offset + 1], uint8Array[offset + 2], uint8Array[offset + 3]);
+        const chunkType = String.fromCharCode(
+          uint8Array[offset],
+          uint8Array[offset + 1],
+          uint8Array[offset + 2],
+          uint8Array[offset + 3]
+        );
         offset += 4;
 
-        if (chunkType === 'tEXt') {
+        if (chunkType === "tEXt") {
           let keywordEnd = offset;
-          while (uint8Array[keywordEnd] !== 0 && keywordEnd < offset + chunkLength) {
+          while (
+            uint8Array[keywordEnd] !== 0 &&
+            keywordEnd < offset + chunkLength
+          ) {
             keywordEnd++;
           }
 
-          const keyword = String.fromCharCode(...uint8Array.slice(offset, keywordEnd));
+          const keyword = String.fromCharCode(
+            ...uint8Array.slice(offset, keywordEnd)
+          );
 
-          if (keyword === 'workflow') {
-            const textContent = new TextDecoder().decode(uint8Array.slice(keywordEnd + 1, offset + chunkLength));
+          if (keyword === "workflow") {
+            const textContent = new TextDecoder().decode(
+              uint8Array.slice(keywordEnd + 1, offset + chunkLength)
+            );
             try {
               const workflow = JSON.parse(textContent);
               resolve(workflow);
               return;
             } catch (error) {
-              reject(new Error('Failed to parse workflow JSON'));
+              reject(new Error("Failed to parse workflow JSON"));
               return;
             }
           }
@@ -147,7 +165,7 @@ function extractWorkflowFromPng(file: File): Promise<Record<string, never> | nul
     };
 
     reader.onerror = function () {
-      reject(new Error('Error reading file'));
+      reject(new Error("Error reading file"));
     };
 
     reader.readAsArrayBuffer(file);
@@ -177,13 +195,13 @@ export const useDropHandler = (): DropHandler => {
       const res: ParseResult<string[]> = Papa.parse(csv);
       const columnDefs = res.data[0].map((col: string) => ({
         name: col,
-        data_type: "string"
+        data_type: "string",
       }));
       const data = res.data.slice(1);
       newNode.data.properties.value = {
         type: "dataframe",
         columns: columnDefs,
-        data: data
+        data: data,
       };
       addNode(newNode);
     },
@@ -196,7 +214,7 @@ export const useDropHandler = (): DropHandler => {
 
   const isNodetoolWorkflowJson = (json: any): boolean => {
     return json.graph && json.name && json.description;
-  }
+  };
 
   const processComfyFiles = useCallback(
     (files: File[]) => {
@@ -210,7 +228,7 @@ export const useDropHandler = (): DropHandler => {
                 name: file.name,
                 description: "created from comfy",
                 access: "private",
-                comfy_workflow: workflow
+                comfy_workflow: workflow,
               })
                 .then((workflow) => {
                   console.log("workflow", workflow);
@@ -234,7 +252,7 @@ export const useDropHandler = (): DropHandler => {
                     name: file.name,
                     description: "created from comfy",
                     access: "private",
-                    comfy_workflow: jsonWorkflow
+                    comfy_workflow: jsonWorkflow,
                   })
                     .then((workflow) => {
                       setWorkflow(workflow);
@@ -247,7 +265,7 @@ export const useDropHandler = (): DropHandler => {
                     name: jsonWorkflow.name,
                     description: "created from json",
                     access: "private",
-                    graph: jsonWorkflow.graph
+                    graph: jsonWorkflow.graph,
                   })
                     .then((workflow) => {
                       setWorkflow(workflow);
@@ -286,7 +304,7 @@ export const useDropHandler = (): DropHandler => {
         return;
       }
       const response = await axios.get(asset?.get_url, {
-        responseType: "arraybuffer"
+        responseType: "arraybuffer",
       });
       const data = new TextDecoder().decode(new Uint8Array(response.data));
       const newNode = createNode(nodeMetadata, position);
@@ -294,7 +312,7 @@ export const useDropHandler = (): DropHandler => {
         type: assetType,
         value: data,
         asset_id: asset.id,
-        uri: asset.get_url
+        uri: asset.get_url,
       };
       addNode(newNode);
       devLog("Downloaded asset content", asset, nodeMetadata);
@@ -341,7 +359,7 @@ export const useDropHandler = (): DropHandler => {
         addNotification({
           type: "warning",
           alert: true,
-          content: "Unsupported file type: " + asset.content_type
+          content: "Unsupported file type: " + asset.content_type,
         });
         return;
       }
@@ -365,7 +383,7 @@ export const useDropHandler = (): DropHandler => {
           newNode.data.properties.value = {
             type: assetType,
             asset_id: asset.id,
-            uri: asset.get_url
+            uri: asset.get_url,
           };
           addNode(newNode);
         }
@@ -382,7 +400,7 @@ export const useDropHandler = (): DropHandler => {
       target.classList.contains("loop-node");
     const position = reactFlow.screenToFlowPosition({
       x: event.clientX,
-      y: event.clientY
+      y: event.clientY,
     });
 
     // Create nodes from node menu drop
@@ -419,10 +437,10 @@ export const useDropHandler = (): DropHandler => {
               if (targetIsPane) {
                 addNodeFromAsset(asset, {
                   x: position.x + index * 300,
-                  y: position.y
+                  y: position.y,
                 });
               }
-            }
+            },
           });
         });
       }
