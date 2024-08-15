@@ -1,0 +1,146 @@
+{
+    "id": "",
+    "access": "private",
+    "created_at": "2024-08-15T10:28:09.059392",
+    "updated_at": "2024-08-15T10:28:09.059403",
+    "name": "Summarize Audio",
+    "description": "Transcribe an audio file and summarize the text.",
+    "thumbnail": "",
+    "thumbnail_url": "/examples/summarize_audio.png",
+    "graph": {
+        "edges": [
+            {
+                "id": "3c1a1df6-6081-4854-b269-c75e795c2f52",
+                "source": "6",
+                "sourceHandle": "output",
+                "target": "3",
+                "targetHandle": "audio",
+                "ui_properties": {
+                    "className": "audio"
+                }
+            },
+            {
+                "id": "e3",
+                "source": "3",
+                "sourceHandle": "output",
+                "target": "4",
+                "targetHandle": "prompt",
+                "ui_properties": {
+                    "className": "str"
+                }
+            },
+            {
+                "id": "e4",
+                "source": "4",
+                "sourceHandle": "output",
+                "target": "5",
+                "targetHandle": "input",
+                "ui_properties": {
+                    "className": "str"
+                }
+            },
+            {
+                "id": "4",
+                "source": "5",
+                "sourceHandle": "output",
+                "target": "7",
+                "targetHandle": "value",
+                "ui_properties": {
+                    "className": "audio"
+                }
+            }
+        ],
+        "nodes": [
+            {
+                "id": "3",
+                "type": "openai.audio.Transcribe",
+                "data": {
+                    "temperature": 0
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 581,
+                        "y": 149
+                    },
+                    "zIndex": 0,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "4",
+                "type": "openai.text.GPT",
+                "data": {
+                    "model": "gpt-4",
+                    "system": "You are a helpful assistant that summarizes text.",
+                    "temperature": 0.7,
+                    "max_tokens": 150
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 700,
+                        "y": 100
+                    },
+                    "zIndex": 0,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "5",
+                "type": "openai.audio.TextToSpeech",
+                "data": {
+                    "model": "tts-1",
+                    "voice": "alloy"
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 851,
+                        "y": 125
+                    },
+                    "zIndex": 0,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "6",
+                "type": "nodetool.constant.Audio",
+                "data": {
+                    "value": {
+                        "asset_id": "3ef98e755af111ef9506000042e46680",
+                        "uri": "https://assets.nodetool.ai/3ef98e755af111ef9506000042e46680.webm",
+                        "type": "audio"
+                    }
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 428,
+                        "y": 89
+                    },
+                    "zIndex": 0,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "7",
+                "type": "nodetool.workflows.base_node.Preview",
+                "data": {
+                    "name": "audio_output_2024-08-15"
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 986,
+                        "y": 123
+                    },
+                    "zIndex": 0,
+                    "width": 150,
+                    "height": 150,
+                    "selectable": true
+                }
+            }
+        ]
+    }
+}
