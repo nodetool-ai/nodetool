@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Box, Button } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
-import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 import { devError } from "../../utils/DevLog";
 
 interface FolderNode {
@@ -30,25 +30,25 @@ const styles = (theme: any) =>
       height: "100%",
       padding: ".5em 0 0",
       backgroundColor: theme.palette.c_gray2,
-      fontFamily: theme.fontFamily1
+      fontFamily: theme.fontFamily1,
     },
     ".tree-view": {
       height: "100%",
-      overflowY: "auto"
+      overflowY: "auto",
     },
     ".tree-item": {
       "& .MuiTreeItem-content": {
         display: "flex",
         alignItems: "flex-start",
-        padding: ".25em"
+        padding: ".25em",
       },
       "& svg": {
         color: theme.palette.c_hl1,
-        marginTop: ".25em"
+        marginTop: ".25em",
       },
       "& .MuiTreeItem-label": {
-        fontFamily: theme.fontFamily1
-      }
+        fontFamily: theme.fontFamily1,
+      },
     },
     button: {
       position: "absolute",
@@ -56,13 +56,13 @@ const styles = (theme: any) =>
       color: theme.palette.c_hl1,
       backgroundColor: theme.palette.c_gray2,
       padding: ".25em",
-      height: "1.5em"
-    }
+      height: "1.5em",
+    },
   });
 
 const FolderTree: React.FC<FolderTreeProps> = ({
   onSelect,
-  sortBy = "name"
+  sortBy = "name",
 }) => {
   const loadFolderTree = useAssetStore((state) => state.loadFolderTree);
   const [folderTree, setFolderTree] = useState<Record<string, FolderNode>>({});

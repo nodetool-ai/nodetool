@@ -9,11 +9,11 @@ import {
   Paper,
   Button,
   Box,
-  CircularProgress
+  CircularProgress,
 } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 
 export type AssetTableProps = {
   assetIds: string[];
@@ -48,7 +48,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
       setAssets(newAssets);
       onChange(newAssets.map((a) => a.id));
     },
-    type: "all"
+    type: "all",
   });
 
   return (
@@ -90,7 +90,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
                     height: 60,
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center"
+                    justifyContent: "center",
                   }}
                 >
                   Drop file here

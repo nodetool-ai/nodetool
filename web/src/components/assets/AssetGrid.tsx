@@ -23,7 +23,7 @@ import FolderList from "./FolderList";
 
 import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
-import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { useAssetUpload } from "../../serverState/useAssetUpload";

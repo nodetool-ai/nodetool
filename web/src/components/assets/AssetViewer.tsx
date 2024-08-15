@@ -18,7 +18,7 @@ import AudioViewer from "../asset_viewer/AudioViewer";
 import TextViewer from "../asset_viewer/TextViewer";
 import VideoViewer from "../asset_viewer/VideoViewer";
 //store
-import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
 //utils
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";

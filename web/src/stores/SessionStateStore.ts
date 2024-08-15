@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Asset } from "./ApiTypes";
-import { useAssetStore } from "../hooks/AssetStore";
+import { useAssetStore } from "../stores/AssetStore";
 import { Node } from "reactflow";
 
 interface SortedAssetsByType {

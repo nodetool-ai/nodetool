@@ -1,7 +1,7 @@
 import { Select } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import { AssetList } from "../../stores/ApiTypes";
-import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
@@ -14,7 +14,7 @@ export default function FolderProperty(props: PropertyProps) {
   };
   const { data, error, isLoading } = useQuery<AssetList, Error>({
     queryKey: ["assets", { content_type: "folder" }],
-    queryFn: fetchFolders
+    queryFn: fetchFolders,
   });
   const selectValue = props.value?.asset_id || "";
 
@@ -23,7 +23,8 @@ export default function FolderProperty(props: PropertyProps) {
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
-        id={id} />
+        id={id}
+      />
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
       <Select
@@ -32,18 +33,20 @@ export default function FolderProperty(props: PropertyProps) {
         name=""
         value={selectValue}
         variant="standard"
-        onChange={(e) => props.onChange({ type: "folder", asset_id: e.target.value })}
+        onChange={(e) =>
+          props.onChange({ type: "folder", asset_id: e.target.value })
+        }
         className="mui-select nodrag"
         disableUnderline={true}
         MenuProps={{
           anchorOrigin: {
             vertical: "bottom",
-            horizontal: "left"
+            horizontal: "left",
           },
           transformOrigin: {
             vertical: "top",
-            horizontal: "left"
-          }
+            horizontal: "left",
+          },
         }}
       >
         {data?.assets.map((folder) => (

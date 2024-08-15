@@ -13,7 +13,7 @@ import {
   DialogContentText,
   DialogTitle,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
 } from "@mui/material";
 
 import {
@@ -22,11 +22,11 @@ import {
   CircularProgress,
   Tooltip,
   Popover,
-  TextField
+  TextField,
 } from "@mui/material";
 
 import useAssets from "../../serverState/useAssets";
-import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
@@ -48,10 +48,10 @@ const styles = (theme: any) =>
       flexWrap: "wrap",
       gap: ".5em",
       minHeight: "30px",
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.c_gray1,
     },
     "& p": {
-      display: "inline-block"
+      display: "inline-block",
     },
     ".asset-button-group": {
       width: "auto",
@@ -59,40 +59,40 @@ const styles = (theme: any) =>
       alignItems: "center",
       gap: "0.5em",
       border: 0,
-      padding: 0
+      padding: 0,
     },
     ".asset-button-group.MuiButtonGroup-root button": {
       minWidth: "20px",
       border: 0,
       margin: "0",
-      padding: 0
+      padding: 0,
     },
     ".asset-button-group .MuiButton-root:hover": {
       border: 0,
       color: theme.palette.c_white,
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
     },
     ".asset-size-slider": {
       flexGrow: 0.5,
       flexShrink: 1,
       minWidth: "60px",
-      maxWidth: "150px"
+      maxWidth: "150px",
     },
     ".asset-size-slider .MuiSlider-root": {
       height: "25px",
       margin: "0",
       padding: "0",
-      top: "0.2em"
+      top: "0.2em",
     },
     ".asset-size-slider .MuiSlider-track": {
       backgroundColor: "transparent",
-      border: "none"
+      border: "none",
     },
     ".sort-assets": {
       marginTop: "0.5em",
       height: "20px",
       display: "flex",
-      gap: ".5em"
+      gap: ".5em",
     },
     ".sort-assets button": {
       color: theme.palette.c_gray4,
@@ -100,18 +100,18 @@ const styles = (theme: any) =>
       border: 0,
       padding: 0,
 
-      fontSize: theme.fontSizeSmaller
+      fontSize: theme.fontSizeSmaller,
     },
     ".sort-assets button.Mui-selected": {
-      color: theme.palette.c_hl1
-    }
+      color: theme.palette.c_hl1,
+    },
   });
 
 const AssetActions = ({
   setSelectedAssetIds,
   handleSelectAllAssets,
   handleDeselectAssets,
-  maxItemSize = 10
+  maxItemSize = 10,
 }: AssetActionsProps) => {
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
@@ -201,7 +201,7 @@ const AssetActions = ({
               right: "5px",
               top: "10px",
               left: "unset",
-              width: "50px"
+              width: "50px",
             }}
           >
             <CircularProgress />
@@ -280,7 +280,7 @@ const AssetActions = ({
                 () => {
                   addNotification({
                     type: "success",
-                    content: `CREATE FOLDER: ${createFolderName}`
+                    content: `CREATE FOLDER: ${createFolderName}`,
                   });
                   refetch();
                 }

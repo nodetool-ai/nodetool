@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { AssetUpdate, useAssetStore } from "../hooks/AssetStore";
+import { AssetUpdate, useAssetStore } from "../stores/AssetStore";
 import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
 
@@ -20,9 +20,10 @@ export const useAssetUpdate = () => {
       addNotification({
         type: "info",
         alert: true,
-        content: `${Object.keys(assets).length > 1 ? "Assets" : "Asset"
-          } updated!`,
-        dismissable: false
+        content: `${
+          Object.keys(assets).length > 1 ? "Assets" : "Asset"
+        } updated!`,
+        dismissable: false,
       });
     },
     onError: () => {
@@ -30,15 +31,15 @@ export const useAssetUpdate = () => {
         type: "error",
         alert: true,
         content: "Error updating asset.",
-        dismissable: false
+        dismissable: false,
       });
     },
     onSettled: () => {
       setAssets([]);
-    }
+    },
   });
 
   return {
-    mutation
+    mutation,
   };
 };

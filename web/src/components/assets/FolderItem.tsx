@@ -7,7 +7,7 @@ import { ButtonGroup, Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";
 import DeleteButton from "../buttons/DeleteButton";
-import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import useAssets from "../../serverState/useAssets";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";

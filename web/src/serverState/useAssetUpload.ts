@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Asset } from "../stores/ApiTypes";
-import { useAssetStore } from "../hooks/AssetStore";
+import { useAssetStore } from "../stores/AssetStore";
 
 type UploadFile = {
   file: File;
@@ -39,7 +39,7 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
   uploadAsset: (file: UploadFile) => {
     const { handleUpload, files } = get();
     set({
-      files: [...files, file]
+      files: [...files, file],
     });
     handleUpload();
   },
@@ -62,7 +62,7 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
           updatedFiles.reduce((acc, file) => acc + (file.progress || 0), 0) /
           updatedFiles.length,
         completed: updatedFiles.filter((file) => file.status === "completed")
-          .length
+          .length,
       };
     }),
 
@@ -76,7 +76,7 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
         files: [],
         isUploading: false,
         completed: 0,
-        overallProgress: 0
+        overallProgress: 0,
       });
       return;
     }
@@ -106,7 +106,7 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
       .finally(() => {
         get().handleUpload();
       });
-  }
+  },
 }));
 
 export default useAssetUpload;

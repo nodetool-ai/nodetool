@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useAssetStore } from "../hooks/AssetStore";
+import { useAssetStore } from "../stores/AssetStore";
 import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
 
@@ -21,7 +21,7 @@ export const useAssetDeletion = () => {
         type: "info",
         alert: true,
         content: `${assets.length > 1 ? "Assets" : "Asset"} deleted!`,
-        dismissable: false
+        dismissable: false,
       });
     },
     onError: () => {
@@ -29,15 +29,15 @@ export const useAssetDeletion = () => {
         type: "error",
         alert: true,
         content: "Error deleting assets.",
-        dismissable: false
+        dismissable: false,
       });
     },
     onSettled: () => {
       setAssets([]);
-    }
+    },
   });
 
   return {
-    mutation
+    mutation,
   };
 };

@@ -9,12 +9,12 @@ import {
   Button,
   TextField,
   Typography,
-  Alert
+  Alert,
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import { devLog } from "../../utils/DevLog";
 import { UseMutationResult } from "@tanstack/react-query";
-import { AssetUpdate, useAssetStore } from "../../hooks/AssetStore";
+import { AssetUpdate, useAssetStore } from "../../stores/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 
 interface AssetRenameConfirmationProps {
@@ -103,7 +103,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       name:
         assets.length === 1
           ? cleanedName
-          : `${cleanedName}_${String(index + 1).padStart(maxIndexLength, "0")}`
+          : `${cleanedName}_${String(index + 1).padStart(maxIndexLength, "0")}`,
     }));
 
     await mutation.mutateAsync(updatedAssetsToRename);
@@ -130,13 +130,13 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       componentsProps={{
         backdrop: {
           style: {
-            backgroundColor: "transparent"
-          }
-        }
+            backgroundColor: "transparent",
+          },
+        },
       }}
       style={{
         left: `${safeLeft}px`,
-        top: `${dialogPosition.y - 300}px`
+        top: `${dialogPosition.y - 300}px`,
       }}
     >
       <DialogTitle className="dialog-title" id="alert-dialog-title">

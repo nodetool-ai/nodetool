@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Asset, AssetList } from "../stores/ApiTypes";
-import { useAssetStore } from "../hooks/AssetStore";
+import { useAssetStore } from "../stores/AssetStore";
 import { useSettingsStore } from "../stores/SettingsStore";
 import useAuth from "../stores/useAuth";
 
@@ -84,8 +84,8 @@ const useAssets = () => {
       const filteredAssets = onlyFolders
         ? flatSortedAssets.filter((asset) => asset.content_type === "folder")
         : includeFolders
-          ? flatSortedAssets
-          : flatSortedAssets.filter((asset) => asset.content_type !== "folder");
+        ? flatSortedAssets
+        : flatSortedAssets.filter((asset) => asset.content_type !== "folder");
 
       return filteredAssets;
     },
@@ -99,11 +99,10 @@ const useAssets = () => {
     [loadFolderById]
   );
 
-  const { data, error, isLoading, refetch } =
-    useQuery<AssetList, Error>({
-      queryKey: ["assets", { parent_id: currentFolderId || currentUser?.id }],
-      queryFn: () => loadCurrentFolder()
-    });
+  const { data, error, isLoading, refetch } = useQuery<AssetList, Error>({
+    queryKey: ["assets", { parent_id: currentFolderId || currentUser?.id }],
+    queryFn: () => loadCurrentFolder(),
+  });
 
   const currentAssets = useMemo(() => {
     return data ? data.assets : [];

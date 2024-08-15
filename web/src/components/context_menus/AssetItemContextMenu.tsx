@@ -8,7 +8,7 @@ import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
-import { useAssetStore } from "../../hooks/AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 import { devLog } from "../../utils/DevLog";
 
 interface AssetItemContextMenuProps {
@@ -20,7 +20,7 @@ interface AssetItemContextMenuProps {
 const AssetItemContextMenu = ({
   openDeleteDialog,
   openRenameDialog,
-  openMoveToFolderDialog
+  openMoveToFolderDialog,
 }: AssetItemContextMenuProps) => {
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
