@@ -27,8 +27,10 @@ import {
   Toolbar,
   Typography,
   Box,
+  CircularProgress,
 } from "@mui/material";
-
+import PlayArrow from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
 //utils
 import { useLocation, useNavigate } from "react-router-dom";
 //constants
@@ -43,11 +45,27 @@ import useWorkflowRunnner from "../../stores/WorkflowRunner";
 import Logo from "../Logo";
 import Welcome from "../content/Welcome/Welcome";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
-
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
+    "&": {
+      width: "100%",
+      backgroundColor: theme.palette.c_gray0,
+      overflow: "visible",
+    },
+    ".app-bar": {
+      overflow: "visible",
+      // display: "flex",
+      // flexDirection: "row",
+      // justifyContent: "flex-start",
+      // alignItems: "center",
+      // height: "50px",
+      // padding: "0 1em",
+    },
+    ".toolbar": {
+      overflow: "visible",
+    },
     ".nodetool-logo": {
-      marginLeft: "-0.5em",
+      margin: "0 2em 0 0em",
     },
     button: {
       fontSize:
@@ -76,7 +94,8 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         buttonAppearance === "icon" || buttonAppearance === "both"
           ? "block"
           : "none",
-      marginRight: "0.4em",
+      padding: "0.1em",
+      // marginRight: "0.4em",
     },
     "button.logo:hover": {
       backgroundColor: "transparent",
@@ -95,18 +114,37 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         color: theme.palette.c_hl1,
       },
     },
+    ".actions": {
+      position: "fixed",
+      zIndex: 1000,
+      height: "40px",
+      top: "50px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "flex-start",
+      alignItems: "center",
+      gap: "0.5em",
+      backgroundColor: theme.palette.c_gray1,
+      borderRadius: "0 0 .5em 0.5em",
+      margin: "-.25em 0 0",
+      padding: "0 .5em .2em .5em",
+    },
     ".action-button": {
       flexShrink: 0,
       minWidth: "6em",
+      height: "2em",
+      padding: "0 1em",
+      backgroundColor: theme.palette.c_gray2,
       fontSize:
         buttonAppearance === "text" || buttonAppearance === "both"
-          ? theme.fontSizeSmall
+          ? theme.fontSizeSmaller
           : "0",
       color: theme.palette.c_gray6,
       "&:hover": {
         backgroundColor: theme.palette.c_gray2,
       },
-      margin: "0 0.5em",
     },
     ".action-button:hover": {
       color: theme.palette.c_hl1,
@@ -120,40 +158,73 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       color: theme.palette.c_gray4,
       padding: "0 .1em",
     },
-    ".last-workflow": {
+    ".run-stop-button": {
+      backgroundColor: theme.palette.c_gray2,
+      color: theme.palette.c_hl1,
+      padding: "0.1em 1em",
+      minWidth: "5em",
+    },
+    ".run-stop-button svg": {
+      padding: "0",
+      fontSize: "2rem",
+      display: "block",
+    },
+    ".actions .MuiCircularProgress-root": {
+      width: "20px !important",
+      height: "20px !important",
+    },
+    ".run-status": {
+      position: "absolute",
+      top: "-20px",
       fontSize: theme.fontSizeSmaller,
-      fontFamily: theme.fontFamily,
-      lineHeight: "1.1em",
-      textTransform: "none",
+      padding: "0 .5em",
+      borderRadius: ".5em",
+      color: theme.palette.c_gray6,
+      backgroundColor: theme.palette.c_gray1,
+    },
+    ".last-workflow": {
+      fontSize: theme.fontSizeBig,
       color: theme.palette.c_white,
-      padding: ".2em .3em",
-      minHeight: "unset",
-      height: "1.5em",
-      textDecoration: "none !important",
-      marginLeft: "0.5em",
+      backgroundColor: theme.palette.c_gray1,
+      position: "absolute",
+      zIndex: 1000,
+      left: "50%",
+      textAlign: "center",
+      transform: "translateX(-50%)",
       fontWeight: "normal",
       "&:hover": {
         color: theme.palette.c_hl1,
       },
     },
     ".last-workflow.disabled": {
+      color: theme.palette.c_gray6,
+    },
+    ".last-workflow button": {
+      textTransform: "none",
+      fontSize: "1em",
+    },
+    ".last-workflow button.disabled": {
       color: theme.palette.c_gray5,
     },
     ".last-workflow span": {
       color: theme.palette.c_attention,
-      fontSize: "1.2em",
       marginLeft: "0.2em",
     },
     ".status-message": {
       margin: "auto",
-      padding: "0 .5em",
       flexGrow: 0,
       flexShrink: 1,
       lineHeight: "1.1em",
-      textAlign: "right",
-      color: theme.palette.c_gray5,
-      backgroundColor: "transparent",
-      transform: "translateX(0%)",
+      textAlign: "center",
+      transform: "translateX(-50%)",
+      left: "50%",
+      position: "absolute",
+      top: "91px",
+      zIndex: 1000,
+      backgroundColor: "#6f6f6fb5",
+      padding: ".2em 1em",
+      color: "black",
+      fontSize: theme.fontSizeSmall,
     },
     ".buttons-right": {
       display: "flex",
@@ -201,13 +272,18 @@ function AppHeader() {
   useHotkeys("Meta+w", () => handleOpenWelcome());
   useHotkeys("Ctrl+Space", () => handleOpenNodeMenu());
 
+  // ACTIONS
+  useHotkeys("Control+Enter", () => runWorkflow());
+  const runWorkflow = useWorkflowRunnner((state) => state.run);
+  const cancelWorkflow = useWorkflowRunnner((state) => state.cancel);
+  const state = useWorkflowRunnner((state) => state.state);
+  const isWorkflowRunning = state === "running";
   // cmd menu
   // const fitScreen = () => {
   //   reactFlowInstance.fitView({
   //     padding: 0.6
   //   });
   // };
-
 
   const {
     helpOpen,
@@ -237,8 +313,8 @@ function AppHeader() {
 
   return (
     <div css={styles(ThemeNodetool, buttonAppearance)} className="app-header">
-      <AppBar position="static" className="app-header">
-        <Toolbar variant="dense">
+      <AppBar position="static" className="app-bar">
+        <Toolbar variant="dense" className="toolbar">
           <Tooltip
             enterDelay={TOOLTIP_DELAY}
             title={
@@ -256,7 +332,6 @@ function AppHeader() {
               }}
               sx={{
                 lineHeight: "1em",
-                margin: 0,
                 display: { xs: "none", sm: "block" },
               }}
             >
@@ -305,34 +380,45 @@ function AppHeader() {
             <Welcome handleClose={handleCloseWelcome} />
           </Popover>
 
-          <Box sx={{ flexGrow: 0.02 }} />
-          <Box className="nav-buttons">
-            <Tooltip
-              title="Load and create workflows"
-              enterDelay={TOOLTIP_DELAY}
-            >
-              <Button
-                aria-controls="simple-menu"
-                aria-haspopup="true"
-                className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
+          {/* NAVIGATE */}
+          <div className="navigate">
+            <Box sx={{ flexGrow: 0.02 }} />
+            <Box className="nav-buttons">
+              <Tooltip
+                title="Load and create workflows"
+                enterDelay={TOOLTIP_DELAY}
+              >
+                <Button
+                  aria-controls="simple-menu"
+                  aria-haspopup="true"
+                  className={`nav-button ${
+                    path.startsWith("/workflows") ? "active" : ""
                   }`}
-                onClick={() => navigate("/workflows")}
-              >
-                <WorkflowsIcon />
-                Workflows
-              </Button>
-            </Tooltip>
+                  onClick={() => navigate("/workflows")}
+                >
+                  <WorkflowsIcon />
+                  Workflows
+                </Button>
+              </Tooltip>
 
-            <Tooltip title="View and manage Assets" enterDelay={TOOLTIP_DELAY}>
-              <Button
-                className={`nav-button ${path === "/assets" ? "active" : ""}`}
-                onClick={() => navigate("/assets")}
+              <Tooltip
+                title="View and manage Assets"
+                enterDelay={TOOLTIP_DELAY}
               >
-                <AssetIcon />
-                Assets
-              </Button>
-            </Tooltip>
-            <div className="divider">|</div>
+                <Button
+                  className={`nav-button ${path === "/assets" ? "active" : ""}`}
+                  onClick={() => navigate("/assets")}
+                >
+                  <AssetIcon />
+                  Assets
+                </Button>
+              </Tooltip>
+              {/* <div className="divider">|</div> */}
+            </Box>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="actions">
             {path.startsWith("/editor") && (
               <Tooltip
                 title={
@@ -368,52 +454,128 @@ function AppHeader() {
                 </Button>
               </Tooltip>
             )}
-          </Box>
 
-          {path.startsWith("/editor") && (
-            <>
-              <Tooltip
-                title="Arranges all nodes or selected nodes"
-                enterDelay={TOOLTIP_DELAY}
-              >
-                <Button className="action-button" onClick={handleAutoLayout}>
-                  <LayoutIcon />
-                  AutoLayout
-                </Button>
-              </Tooltip>
-              <Tooltip title="Save workflow" enterDelay={TOOLTIP_DELAY}>
-                <Button
-                  className="action-button"
-                  onClick={() => saveWorkflow().then(onWorkflowSaved)}
+            {path.startsWith("/editor") && (
+              <>
+                <Tooltip
+                  title="Arranges all nodes or selected nodes"
+                  enterDelay={TOOLTIP_DELAY}
                 >
-                  <SaveIcon />
-                  Save
-                </Button>
-              </Tooltip>
-            </>
-          )}
-          <Tooltip title="Open Nodetool Chat Assistant" enterDelay={TOOLTIP_DELAY}>
-            <Button
-              className="action-button"
-              onClick={handleOpenChat}
+                  <Button className="action-button" onClick={handleAutoLayout}>
+                    <LayoutIcon />
+                    AutoLayout
+                  </Button>
+                </Tooltip>
+
+                <Tooltip title="Save workflow" enterDelay={TOOLTIP_DELAY}>
+                  <Button
+                    className="action-button"
+                    onClick={() => saveWorkflow().then(onWorkflowSaved)}
+                  >
+                    <SaveIcon />
+                    Save
+                  </Button>
+                </Tooltip>
+              </>
+            )}
+
+            <Tooltip
+              title="Open Nodetool Chat Assistant"
+              enterDelay={TOOLTIP_DELAY}
             >
-              <ChatIcon />
-              Chat
+              <Button className="action-button" onClick={handleOpenChat}>
+                <ChatIcon />
+                Chat
+              </Button>
+            </Tooltip>
+
+            <Tooltip
+              title={
+                <div
+                  className="tooltip-span"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "0.1em",
+                  }}
+                >
+                  <span style={{ fontSize: "1.2em", color: "white" }}>
+                    Run Workflow
+                  </span>
+                  <span style={{ fontSize: ".9em", color: "white" }}>
+                    CTRL+Enter
+                  </span>
+                </div>
+              }
+              enterDelay={TOOLTIP_DELAY}
+            >
+              <Button
+                size="large"
+                className={`action-button run-stop-button run-workflow ${
+                  isWorkflowRunning ? "disabled" : ""
+                }`}
+                onClick={() => !isWorkflowRunning && runWorkflow()}
+              >
+                {state === "connecting" || state === "connected" ? (
+                  <>
+                    <span className="run-status"> Connecting </span>
+                    <PlayArrow />
+                  </>
+                ) : state === "running" ? (
+                  <CircularProgress />
+                ) : (
+                  <PlayArrow />
+                )}
+              </Button>
+            </Tooltip>
+
+            <Tooltip
+              title={
+                <div
+                  className="tooltip-span"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "0.1em",
+                  }}
+                >
+                  <span style={{ fontSize: "1.2em", color: "white" }}>
+                    Stop Workflow
+                  </span>
+                  <span style={{ fontSize: "1em", color: "white" }}>ESC</span>
+                </div>
+              }
+              enterDelay={TOOLTIP_DELAY}
+            >
+              <Button
+                size="large"
+                className={`action-button run-stop-button stop-workflow ${
+                  !isWorkflowRunning ? "disabled" : ""
+                }`}
+                onClick={() => cancelWorkflow()}
+              >
+                <StopIcon />
+              </Button>
+            </Tooltip>
+          </div>
+
+          {/* LAST WORKFLOW */}
+          <div className="last-workflow">
+            <Button
+              onClick={handleNavigateToLastWorkflow}
+              disabled={path.startsWith("/editor")}
+              className={`${path.startsWith("/editor") ? "disabled" : ""}`}
+            >
+              {lastWorkflow?.name}
+              {workflowIsDirty && <span>*</span>}
             </Button>
-          </Tooltip>
+          </div>
 
-          <Button
-            onClick={handleNavigateToLastWorkflow}
-            disabled={path.startsWith("/editor")}
-            className={`last-workflow ${path.startsWith("/editor") ? "disabled" : ""
-              }`}
-          >
-            {lastWorkflow?.name}
-            {workflowIsDirty && <span>*</span>}
-          </Button>
-
+          {/* STATUS */}
           <Box sx={{ flexGrow: 1 }} />
-          {areMessagesVisible && (
+          {areMessagesVisible && isWorkflowRunning && (
             <Typography
               className="status-message"
               variant="caption"
