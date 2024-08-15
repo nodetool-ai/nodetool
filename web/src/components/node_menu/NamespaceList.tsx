@@ -28,6 +28,17 @@ interface NamespaceListProps {
   metadata: NodeMetadata[];
 }
 
+
+const parseDescription = (description: string) => {
+  // First line is description, second line tags, followed by list of use cases
+  const lines = description.split("\n");
+  return {
+    desc: lines[0],
+    tags: lines.length > 0 ? lines[1] : [],
+    useCases: lines.length > 1 ? lines.slice(2) : []
+  };
+};
+
 const namespaceStyles = (theme: any) =>
   css({
     "&": {
@@ -254,17 +265,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       });
   }, [metadata, selectedPathString, searchTerm]);
 
-  const parseDescription = (description: string) => {
-    // First line is description, second line tags, followed by list of use cases
-    const lines = description.split("\n");
-    return {
-      desc: lines[0],
-      tags: lines.length > 0 ? lines[1] : [],
-      useCases: lines.length > 1 ? lines.slice(2) : []
-    };
-  };
-
-  const description = parseDescription(hoveredNode?.description || "");
+  const description = useMemo(() => parseDescription(hoveredNode?.description || ""), [
+    hoveredNode
+  ]);
 
   return (
     <div css={namespaceStyles}>
