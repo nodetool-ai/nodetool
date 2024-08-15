@@ -88,7 +88,7 @@ const NodeItem: React.FC<NodeItemProps> = memo(({
         <ListItemText
           primary={
             <Typography fontSize="small">
-              {titleize(node.node_type.split(".").pop() || "")}
+              {node.title}
             </Typography>
           }
         />

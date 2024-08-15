@@ -47,7 +47,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         const fuseOptions = {
           keys: [
             { name: "title", weight: 0.5 },
-            { name: "node_type", weight: 0.3 },
+            { name: "namespace", weight: 0.3 },
             { name: "tags", weight: 0.2 }
           ],
           includeMatches: true,
