@@ -58,6 +58,7 @@ from diffusers import StableDiffusionControlNetPipeline, ControlNetModel  # type
 from diffusers import StableDiffusionControlNetInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionLatentUpscalePipeline  # type: ignore
+from diffusers import StableDiffusionUpscalePipeline  # type: ignore
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
@@ -2008,7 +2009,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         return await context.image_from_pil(image)
 
 
-class StableDiffusionLatentUpscale(StableDiffusionBaseNode):
+class StableDiffusionUpscale(StableDiffusionBaseNode):
     """
     Upscales an image using Stable Diffusion upscaler model.
     image, upscaling, AI, stable-diffusion
@@ -2019,21 +2020,15 @@ class StableDiffusionLatentUpscale(StableDiffusionBaseNode):
     - Create high-resolution versions of small images
     """
 
-    init_image: ImageRef = Field(
+    image: ImageRef = Field(
         default=ImageRef(),
         description="The initial image for Image-to-Image generation.",
     )
-    num_upscale_steps: int = Field(
+    num_inference_steps: int = Field(
         default=25,
         ge=1,
         le=100,
         description="Number of upscaling steps.",
-    )
-    strength: float = Field(
-        default=0.8,
-        ge=0.0,
-        le=1.0,
-        description="Strength for Image-to-Image generation. Higher values allow for more deviation from the original image.",
     )
     seed: int = Field(
         default=-1,
@@ -2042,50 +2037,42 @@ class StableDiffusionLatentUpscale(StableDiffusionBaseNode):
         description="Seed for the random number generator. Use -1 for a random seed.",
     )
 
-    _pipeline: StableDiffusionImg2ImgPipeline | None = None
-    _upscaler: StableDiffusionLatentUpscalePipeline | None = None
+    _pipeline: StableDiffusionUpscalePipeline | None = None
 
     async def initialize(self, context: ProcessingContext):
-        self._pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(
-            self.model.value, torch_dtype=torch.float16, safety_checker=None
-        )  # type: ignore
-        self._upscaler = StableDiffusionLatentUpscalePipeline.from_pretrained(
-            "stabilityai/sd-x2-latent-upscaler",
+        self._pipeline = StableDiffusionUpscalePipeline.from_pretrained(
+            "stabilityai/stable-diffusion-x4-upscaler",
             torch_dtype=torch.float16,
+            variant="fp16",
         )  # type: ignore
+        self._set_scheduler(self.scheduler)
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
             self._pipeline.to(device)
-        if self._upscaler is not None:
-            self._upscaler.to(device)
-        self._set_scheduler(self.scheduler)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        input_image = await context.image_to_tensor(self.init_image)
+        input_image = await context.image_to_pil(self.image)
 
         generator = torch.Generator(device="cpu")
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
-        low_res_latents = self._pipeline.vae.encode(input_image).latents[0]
-        upscaled_image = self._upscaler(
+        upscaled_image = self._pipeline(
             prompt=self.prompt,
-            image=low_res_latents,
-            num_inference_steps=self.num_upscale_steps,
+            negative_prompt=self.negative_prompt,
+            image=input_image,
+            num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
+            callback=self.progress_callback(context), # type: ignore
         ).images[  # type: ignore
             0
         ]
 
         return await context.image_from_pil(upscaled_image)
-
-
-class StableDiffusionUpscale(StableDiffusionLatentUpscale):
-    pass
 
 
 class StableDiffusionXLModelId(str, Enum):
