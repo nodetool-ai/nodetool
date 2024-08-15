@@ -40,6 +40,16 @@ async def create(
     )
 
 
+def ensure_alternating_roles(messages):
+    corrected_messages = []
+    last_role = None
+    for message in messages:
+        if message.role != last_role:
+            corrected_messages.append(message)
+            last_role = message.role
+    return corrected_messages
+
+
 @router.post("/help")
 async def help(
     req: MessageCreateRequest, user: User = Depends(current_user)
@@ -62,6 +72,7 @@ async def help(
     )
     history.append(user_message)
     messages = [Message.from_model(message) for message in history]
+    messages = ensure_alternating_roles(messages)
     answer = await create_help_answer(user, thread_id, messages)
     MessageModel.create(
         user_id=user.id,
@@ -72,7 +83,7 @@ async def help(
         created_at=datetime.now(),
     )
 
-    return messages + [answer]
+    return [Message.from_model(user_message), answer]
 
 
 @router.get("/{message_id}")
