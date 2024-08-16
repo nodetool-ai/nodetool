@@ -168,6 +168,7 @@ ThemeNodetool.components = {
         fontSize: "2em",
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
+        fontFamily: ThemeNodetool.fontFamily2,
         wordSpacing: "-3px",
       },
       h2: {
@@ -175,6 +176,7 @@ ThemeNodetool.components = {
         fontSize: "1.75em",
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
+        fontFamily: ThemeNodetool.fontFamily2,
         wordSpacing: "-3px",
       },
       h3: {
@@ -182,6 +184,7 @@ ThemeNodetool.components = {
         fontSize: "1.5em",
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
+        fontFamily: ThemeNodetool.fontFamily2,
         wordSpacing: "-3px",
       },
       h4: {
@@ -191,6 +194,7 @@ ThemeNodetool.components = {
         marginBottom: ThemeNodetool.spacing(1),
         textTransform: "uppercase",
         fontWeight: 300,
+        fontFamily: ThemeNodetool.fontFamily2,
         wordSpacing: "-3px",
         color: ThemeNodetool.palette.c_hl1,
         lineHeight: "1.1em",
@@ -203,6 +207,7 @@ ThemeNodetool.components = {
         marginBottom: ThemeNodetool.spacing(2),
         textTransform: "uppercase",
         fontWeight: 600,
+        fontFamily: ThemeNodetool.fontFamily2,
         wordSpacing: "-3px",
       },
       h6: {
@@ -211,7 +216,7 @@ ThemeNodetool.components = {
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
         textTransform: "uppercase",
-        wordSpacing: "-3px",
+        wordSpacing: "-.2em",
       },
       body1: {
         fontSize: "0.8em",
@@ -225,6 +230,7 @@ ThemeNodetool.components = {
       body2: {
         fontSize: "0.8em",
         lineHeight: 1.1,
+        fontFamily: ThemeNodetool.fontFamily2,
         wordSpacing: "-2px",
       },
     },
