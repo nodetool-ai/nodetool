@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 
 import { Typography, Button, Tabs, Tab, Box } from "@mui/material";
 import CloseButton from "../../buttons/CloseButton";
-import HelpChat from "../../assistants/HelpChat";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 
@@ -112,7 +111,6 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
             <Tab label="Values" />
             <Tab label="Shortcuts" />
             <Tab label="DataTypes" />
-            <Tab label="Chat" />
           </Tabs>
         </div>
         <div className="content">
@@ -302,9 +300,6 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
           </TabPanel>
           <TabPanel value={helpIndex} index={3}>
             <DataTypesList />
-          </TabPanel>
-          <TabPanel value={helpIndex} index={4}>
-            <HelpChat />
           </TabPanel>
         </div>
       </div>
