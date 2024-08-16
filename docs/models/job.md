@@ -2,6 +2,7 @@
 
 ## Job
 
+**Fields:**
 - **id** (str)
 - **user_id** (str)
 - **job_type** (str)
@@ -12,4 +13,5 @@
 - **graph** (dict)
 - **error** (str | None)
 - **cost** (float | None)
+
 

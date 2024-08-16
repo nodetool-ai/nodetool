@@ -9,6 +9,9 @@ Use cases:
 - Preprocess data for certain algorithms
 - Implement activation functions in neural networks
 
+**Fields:**
+input_tensor: Tensor
+
 ## ArgMax
 
 Find indices of maximum values along a specified axis of a tensor.
@@ -17,6 +20,10 @@ Use cases:
 - Determine winning classes in classification tasks
 - Find peaks in signal processing
 - Locate best-performing items in datasets
+
+**Fields:**
+a: Tensor
+axis: int | None
 
 ## ArgMin
 
@@ -27,6 +34,10 @@ Use cases:
 - Find troughs in signal processing
 - Determine least likely classes in classification tasks
 
+**Fields:**
+tensor: Tensor
+axis: int | None
+
 ## ConvertToAudio
 
 Converts a tensor object back to an audio file.
@@ -35,6 +46,10 @@ Use cases:
 - Save processed audio data as a playable file
 - Convert generated or modified audio tensors to audio format
 - Output results of audio processing pipelinesr
+
+**Fields:**
+tensor: Tensor
+sample_rate: int
 
 ## ConvertToImage
 
@@ -46,6 +61,9 @@ Use cases:
 - Save processed tensor results as images
 - Convert model outputs back to viewable format
 
+**Fields:**
+tensor: Tensor
+
 ## Exp
 
 Calculate the exponential of each element in a tensor.
@@ -54,6 +72,9 @@ Use cases:
 - Implement exponential activation functions
 - Calculate growth rates in scientific models
 - Transform data for certain statistical analyses
+
+**Fields:**
+x: int | float | nodetool.metadata.types.Tensor
 
 ## ListToTensor
 
@@ -64,6 +85,9 @@ Use cases:
 - Create tensors from Python data structures
 - Convert sequence data to tensor format
 
+**Fields:**
+values: list
+
 ## Log
 
 Calculate the natural logarithm of each element in a tensor.
@@ -72,6 +96,9 @@ Use cases:
 - Implement log transformations on data
 - Calculate entropy in information theory
 - Normalize data with large ranges
+
+**Fields:**
+x: int | float | nodetool.metadata.types.Tensor
 
 ## MatMul
 
@@ -82,6 +109,10 @@ Use cases:
 - Calculate dot products of vectors
 - Perform matrix operations in neural networks
 
+**Fields:**
+a: Tensor
+b: Tensor
+
 ## Max
 
 Compute the maximum value along a specified axis of a tensor.
@@ -90,6 +121,10 @@ Use cases:
 - Find peak values in time series data
 - Implement max pooling in neural networks
 - Determine highest scores across multiple categories
+
+**Fields:**
+tensor: Tensor
+axis: int | None
 
 ## Mean
 
@@ -100,6 +135,10 @@ Use cases:
 - Implement mean pooling in neural networks
 - Compute centroids in clustering algorithms
 
+**Fields:**
+tensor: Tensor
+axis: int | None
+
 ## Min
 
 Calculate the minimum value along a specified axis of a tensor.
@@ -108,6 +147,10 @@ Use cases:
 - Find lowest values in datasets
 - Implement min pooling in neural networks
 - Determine minimum thresholds across categories
+
+**Fields:**
+tensor: Tensor
+axis: int | None
 
 ## PlotTSNE
 
@@ -118,6 +161,11 @@ Use cases:
 - Explore relationships in complex datasets
 - Reduce dimensionality for data analysis
 
+**Fields:**
+tensor: Tensor
+color_indices: list
+perplexity: int
+
 ## PlotTensor
 
 Create a plot visualization of tensor data.
@@ -126,6 +174,10 @@ Use cases:
 - Visualize trends in tensor data
 - Create charts for reports or dashboards
 - Debug tensor outputs in workflows
+
+**Fields:**
+tensor: Tensor
+plot_type: PlotType
 
 ## SaveTensor
 
@@ -136,6 +188,11 @@ Use cases:
 - Export tensor results from a workflow
 - Save intermediate tensor outputs for debugging
 
+**Fields:**
+value: Tensor
+folder: FolderRef
+name: str
+
 ## ScalarToTensor
 
 Convert a scalar value to a single-element tensor.
@@ -144,6 +201,9 @@ Use cases:
 - Prepare scalar inputs for tensor operations
 - Create constant tensors for computations
 - Initialize tensor values in workflows
+
+**Fields:**
+value: float | int
 
 ## Stack
 
@@ -154,6 +214,10 @@ Use cases:
 - Stack time series data from multiple sources
 - Merge feature vectors for machine learning models
 
+**Fields:**
+tensors: list
+axis: int
+
 ## Sum
 
 Calculate the sum of values along a specified axis of a tensor.
@@ -162,6 +226,10 @@ Use cases:
 - Compute total values across categories
 - Implement sum pooling in neural networks
 - Calculate cumulative metrics in time series data
+
+**Fields:**
+tensor: Tensor
+axis: int | None
 
 ## TensorToList
 
@@ -172,6 +240,9 @@ Use cases:
 - Convert tensor outputs to Python data structures
 - Interface tensor data with non-tensor operations
 
+**Fields:**
+tensor: Tensor
+
 ## TensorToScalar
 
 Convert a single-element tensor to a scalar value.
@@ -181,6 +252,9 @@ Use cases:
 - Prepare values for non-tensor operations
 - Simplify output for human-readable results
 
+**Fields:**
+tensor: Tensor
+
 ## Transpose
 
 Transpose the dimensions of the input tensor.
@@ -189,4 +263,7 @@ Use cases:
 - Convert row vectors to column vectors
 - Rearrange data for compatibility with other operations
 - Implement certain linear algebra operations
+
+**Fields:**
+tensor: Tensor
 

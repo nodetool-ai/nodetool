@@ -11,7 +11,9 @@ Use cases:
 
 **Tags:** audio, conversion, tensor
 
+**Fields:**
 - **audio**: The audio file to convert to a tensor. (AudioRef)
+
 
 ## CreateSilence
 
@@ -24,7 +26,9 @@ Use cases:
 
 **Tags:** audio, silence, empty
 
+**Fields:**
 - **duration**: The duration of the silence in seconds. (float)
+
 
 ## Trim
 
@@ -37,7 +41,9 @@ Use cases:
 
 **Tags:** audio, trim, cut
 
+**Fields:**
 - **audio**: The audio file to trim. (AudioRef)
 - **start**: The start time of the trimmed audio in seconds. (float)
 - **end**: The end time of the trimmed audio in seconds. (float)
+
 

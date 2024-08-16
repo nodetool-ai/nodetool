@@ -4,6 +4,7 @@
 
 Demucs is an audio source separator created by Facebook Research.
 
+**Fields:**
 - **jobs**: Choose the number of parallel jobs to use for separation. (int)
 - **stem**: If you just want to isolate one stem, you can choose it here. (Stem)
 - **audio**: Upload the file to be processed here. (AudioRef)
@@ -17,4 +18,5 @@ Demucs is an audio source separator created by Facebook Research.
 - **wav_format**: Choose format for the WAV output. If WAV is not selected as the output type, this has no effect. (Wav_format)
 - **mp3_bitrate**: Choose the bitrate for the MP3 output. Higher is better quality but larger file size. If MP3 is not selected as the output type, this has no effect. (int)
 - **output_format**: Choose the audio format you would like the result to be returned in. (Output_format)
+
 

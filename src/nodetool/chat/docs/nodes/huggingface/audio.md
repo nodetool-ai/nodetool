@@ -10,6 +10,10 @@ Use cases:
 - Identify environmental sounds
 - Emotion recognition in speech
 
+**Fields:**
+model: AudioClassifierModelId
+inputs: AudioRef
+
 ## AutomaticSpeechRecognition
 
 Transcribes spoken audio to text.
@@ -18,6 +22,10 @@ Use cases:
 - Transcribe interviews or meetings
 - Create subtitles for videos
 - Implement voice commands in applications
+
+**Fields:**
+model: ASRModelId
+inputs: AudioRef
 
 ## StableAudioNode
 
@@ -28,6 +36,13 @@ Use cases:
 - Generating background audio for videos or games
 - Exploring AI-generated audio for creative projects
 
+**Fields:**
+prompt: str
+negative_prompt: str
+duration: float
+num_inference_steps: int
+seed: int
+
 ## TextToAudio
 
 Generates audio (music or sound effects) from text descriptions.
@@ -36,6 +51,10 @@ Use cases:
 - Create custom background music for videos or games
 - Generate sound effects based on textual descriptions
 - Prototype musical ideas quickly
+
+**Fields:**
+model: TextToAudioModelId
+inputs: str
 
 ## TextToSpeech
 
@@ -46,6 +65,10 @@ Use cases:
 - Develop voice assistants with natural-sounding speech
 - Generate automated announcements for public spaces
 
+**Fields:**
+model: TTSModelId
+inputs: str
+
 ## ZeroShotAudioClassifier
 
 Classifies audio into categories without the need for training data.
@@ -54,4 +77,9 @@ Use cases:
 - Quickly categorize audio without training data
 - Identify sounds or music genres without predefined labels
 - Automate audio tagging for large datasets
+
+**Fields:**
+model: ZeroShotAudioClassifierModelId
+inputs: AudioRef
+candidate_labels: str
 

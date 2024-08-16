@@ -2,6 +2,7 @@
 
 - [nodetool.nodes.nodetool.agents](nodetool/agents.md)
 - [nodetool.nodes.nodetool.audio](nodetool/audio.md)
+- [nodetool.nodes.nodetool.boolean](nodetool/boolean.md)
 - [nodetool.nodes.nodetool.constant](nodetool/constant.md)
 - [nodetool.nodes.nodetool.dataframe](nodetool/dataframe.md)
 - [nodetool.nodes.nodetool.dictionary](nodetool/dictionary.md)

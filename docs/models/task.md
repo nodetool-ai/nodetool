@@ -2,6 +2,7 @@
 
 ## Task
 
+**Fields:**
 - **id** (str)
 - **task_type** (str)
 - **user_id** (str)
@@ -15,4 +16,5 @@
 - **error** (str | None)
 - **result** (str | None)
 - **cost** (float | None)
+
 

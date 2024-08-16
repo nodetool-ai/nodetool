@@ -11,6 +11,7 @@ Use cases:
 
 **Tags:** image, animation, generation, AI
 
+**Fields:**
 - **prompt**: A text prompt describing the desired animation. (str)
 - **negative_prompt**: A text prompt describing what you don't want in the animation. (str)
 - **num_frames**: The number of frames in the animation. (int)
@@ -27,4 +28,5 @@ Use cases:
 
 **Args:**
 - **device (str)**
+
 

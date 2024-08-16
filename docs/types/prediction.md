@@ -4,6 +4,7 @@
 
 A prediction made by a remote model.
 
+**Fields:**
 - **type** (typing.Literal['prediction'])
 - **id** (str)
 - **user_id** (str)
@@ -24,10 +25,12 @@ A prediction made by a remote model.
 - **started_at** (str | None)
 - **completed_at** (str | None)
 
+
 ## PredictionCreateRequest
 
 The request body for creating a prediction.
 
+**Fields:**
 - **provider** (Provider)
 - **model** (str)
 - **node_id** (str)
@@ -35,13 +38,17 @@ The request body for creating a prediction.
 - **version** (str | None)
 - **workflow_id** (str | None)
 
+
 ## PredictionList
 
+**Fields:**
 - **next** (str | None)
 - **predictions** (typing.List[nodetool.types.prediction.Prediction])
 
+
 ## PredictionResult
 
+**Fields:**
 - **type** (typing.Literal['prediction_result'])
 - **prediction** (Prediction)
 - **encoding** (typing.Union[typing.Literal['json'], typing.Literal['base64']])
@@ -58,4 +65,5 @@ The request body for creating a prediction.
 **Args:**
 - **prediction (Prediction)**
 - **content (typing.Any)**
+
 

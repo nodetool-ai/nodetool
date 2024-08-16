@@ -4,6 +4,7 @@
 
 🔊 Text-Prompted Generative Audio Model
 
+**Fields:**
 - **prompt**: Input prompt (str)
 - **text_temp**: generation temperature (1.0 more diverse, 0.0 more conservative) (float)
 - **output_full**: return full generation as a .npz file to be used as a history prompt (bool)
@@ -15,10 +16,12 @@
 
 **Args:**
 
+
 ## MusicGen
 
 Generate music from a prompt or melody
 
+**Fields:**
 - **seed**: Seed for random number generator. If None or -1, a random seed will be used. (int | None)
 - **top_k**: Reduces sampling to the k most likely tokens. (int)
 - **top_p**: Reduces sampling to tokens with cumulative probability of p. When set to  `0` (default), top_k sampling is used. (float)
@@ -35,10 +38,12 @@ Generate music from a prompt or melody
 - **normalization_strategy**: Strategy for normalizing audio. (Normalization_strategy)
 - **classifier_free_guidance**: Increases the influence of inputs on the output. Higher values produce lower-varience outputs that adhere more closely to inputs. (int)
 
+
 ## RealisticVoiceCloning
 
 Create song covers with any RVC v2 trained AI voice from audio files.
 
+**Fields:**
 - **protect**: Control how much of the original vocals' breath and voiceless consonants to leave in the AI vocals. Set 0.5 to disable. (float)
 - **rvc_model**: RVC model for a specific voice. If using a custom model, this should match the name of the downloaded model. If a 'custom_rvc_model_download_url' is provided, this will be automatically set to the name of the downloaded model. (Rvc_model)
 - **index_rate**: Control how much of the AI's accent to leave in the vocals. (float)
@@ -59,10 +64,12 @@ Create song covers with any RVC v2 trained AI voice from audio files.
 - **backup_vocals_volume_change**: Control volume of backup AI vocals. (float)
 - **custom_rvc_model_download_url**: URL to download a custom RVC model. If provided, the model will be downloaded (if it doesn't already exist) and used for prediction, regardless of the 'rvc_model' value. (str | None)
 
+
 ## Riffusion
 
 Stable diffusion for real-time music generation
 
+**Fields:**
 - **alpha**: Interpolation alpha if using two prompts. A value of 0 uses prompt_a fully, a value of 1 uses prompt_b fully (float)
 - **prompt_a**: The prompt for your audio (str)
 - **prompt_b**: The second prompt to interpolate with the first, leave blank if no interpolation (str | None)
@@ -74,10 +81,12 @@ Stable diffusion for real-time music generation
 
 **Args:**
 
+
 ## StyleTTS2
 
 Generates speech from text
 
+**Fields:**
 - **beta**: Only used for long text inputs or in case of reference speaker,             determines the prosody of the speaker. Use lower values to sample style based             on previous or reference speech instead of text. (float)
 - **seed**: Seed for reproducibility (int)
 - **text**: Text to convert to speech (str | None)
@@ -87,10 +96,12 @@ Generates speech from text
 - **diffusion_steps**: Number of diffusion steps (int)
 - **embedding_scale**: Embedding scale, use higher values for pronounced emotion (float)
 
+
 ## TortoiseTTS
 
 Generate speech from text, clone voices from mp3 files. From James Betker AKA "neonbjb".
 
+**Fields:**
 - **seed**: Random seed which can be used to reproduce results. (int)
 - **text**: Text to speak. (str)
 - **preset**: Which voice preset to use. See the documentation for more information. (Preset)
@@ -99,4 +110,5 @@ Generate speech from text, clone voices from mp3 files. From James Betker AKA "n
 - **voice_c**: (Optional) Create new voice from averaging the latents for `voice_a`, `voice_b` and `voice_c`. Use `disabled` to disable voice mixing. (Voice_c)
 - **cvvp_amount**: How much the CVVP model should influence the output. Increasing this can in some cases reduce the likelyhood of multiple speakers. Defaults to 0 (disabled) (float)
 - **custom_voice**: (Optional) Create a custom voice based on an mp3 file of a speaker. Audio should be at least 15 seconds, only contain one speaker, and be in mp3 format. Overrides the `voice_a` input. (AudioRef)
+
 

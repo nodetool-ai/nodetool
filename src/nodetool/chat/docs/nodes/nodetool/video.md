@@ -9,6 +9,12 @@ Use cases:
 2. Replace original audio with a new soundtrack
 3. Mix new audio with existing video sound
 
+**Fields:**
+video: VideoRef
+audio: AudioRef
+volume: float
+mix: bool
+
 ## AddSubtitles
 
 Add subtitles to a video.
@@ -17,6 +23,14 @@ Use cases:
 1. Add translations or closed captions to videos
 2. Include explanatory text or commentary in educational videos
 3. Create lyric videos for music content
+
+**Fields:**
+video: VideoRef
+subtitles: TextRef
+font_size: int
+font_color: str
+outline_color: str
+outline_width: int
 
 ## Blur
 
@@ -27,6 +41,10 @@ Use cases:
 2. Obscure or censor specific areas of the video
 3. Reduce noise or grain in low-quality footage
 
+**Fields:**
+video: VideoRef
+strength: float
+
 ## ChromaKey
 
 Apply chroma key (green screen) effect to a video.
@@ -35,6 +53,12 @@ Use cases:
 1. Remove green or blue background from video footage
 2. Create special effects by compositing video onto new backgrounds
 3. Produce professional-looking videos for presentations or marketing
+
+**Fields:**
+video: VideoRef
+key_color: str
+similarity: float
+blend: float
 
 ## ColorBalance
 
@@ -45,6 +69,12 @@ Use cases:
 2. Enhance specific color tones for artistic effect
 3. Normalize color balance across multiple video clips
 
+**Fields:**
+video: VideoRef
+red_adjust: float
+green_adjust: float
+blue_adjust: float
+
 ## Concat
 
 Concatenate multiple video files into a single video.
@@ -53,6 +83,10 @@ Use cases:
 1. Merge multiple video clips into a single continuous video
 2. Create compilations from various video sources
 3. Combine processed video segments back into a full video
+
+**Fields:**
+video_a: VideoRef
+video_b: VideoRef
 
 ## CreateVideo
 
@@ -63,6 +97,10 @@ Use cases:
 2. Compile processed frames back into a video
 3. Generate animations from individual images
 
+**Fields:**
+frames: list
+fps: float
+
 ## Denoise
 
 Apply noise reduction to a video.
@@ -71,6 +109,10 @@ Use cases:
 1. Improve video quality by reducing unwanted noise
 2. Enhance low-light footage
 3. Prepare video for further processing or compression
+
+**Fields:**
+video: VideoRef
+strength: float
 
 ## ExtractFrames
 
@@ -81,6 +123,11 @@ Use cases:
 2. Extract specific frame ranges from a video
 3. Create thumbnails or previews from video content
 
+**Fields:**
+video: VideoRef
+start: int
+end: int
+
 ## Fps
 
 Get the frames per second (FPS) of a video file.
@@ -89,6 +136,9 @@ Use cases:
 1. Analyze video properties for quality assessment
 2. Determine appropriate playback speed for video editing
 3. Ensure compatibility with target display systems
+
+**Fields:**
+video: VideoRef
 
 ## Overlay
 
@@ -99,6 +149,13 @@ Use cases:
 2. Create picture-in-picture effects
 3. Combine multiple video streams into a single output
 
+**Fields:**
+main_video: VideoRef
+overlay_video: VideoRef
+x: int
+y: int
+scale: float
+
 ## Reverse
 
 Reverse the playback of a video.
@@ -107,6 +164,9 @@ Use cases:
 1. Create artistic effects by playing video in reverse
 2. Analyze motion or events in reverse order
 3. Generate unique transitions or intros for video projects
+
+**Fields:**
+video: VideoRef
 
 ## Rotate
 
@@ -117,6 +177,10 @@ Use cases:
 2. Create artistic effects by rotating video content
 3. Adjust video for different display orientations
 
+**Fields:**
+video: VideoRef
+angle: float
+
 ## Saturation
 
 Adjust the color saturation of a video.
@@ -125,6 +189,10 @@ Use cases:
 1. Enhance color vibrancy in dull or flat-looking footage
 2. Create stylistic effects by over-saturating or desaturating video
 3. Correct oversaturated footage from certain cameras
+
+**Fields:**
+video: VideoRef
+saturation: float
 
 ## SaveVideo
 
@@ -135,6 +203,11 @@ Use cases:
 2. Save video with a custom name
 3. Create a copy of a video in a different location
 
+**Fields:**
+value: VideoRef
+folder: FolderRef
+name: str
+
 ## SetSpeed
 
 Adjust the playback speed of a video.
@@ -143,6 +216,10 @@ Use cases:
 1. Create slow-motion effects by decreasing video speed
 2. Generate time-lapse videos by increasing playback speed
 3. Synchronize video duration with audio or other timing requirements
+
+**Fields:**
+video: VideoRef
+speed_factor: float
 
 ## Sharpness
 
@@ -153,6 +230,11 @@ Use cases:
 2. Correct softness introduced by video compression
 3. Create stylistic effects by over-sharpening
 
+**Fields:**
+video: VideoRef
+luma_amount: float
+chroma_amount: float
+
 ## Stabilize
 
 Apply video stabilization to reduce camera shake and jitter.
@@ -161,6 +243,11 @@ Use cases:
 1. Improve quality of handheld or action camera footage
 2. Smooth out panning and tracking shots
 3. Enhance viewer experience by reducing motion sickness
+
+**Fields:**
+video: VideoRef
+smoothing: float
+crop_black: bool
 
 ## Transition
 
@@ -171,6 +258,12 @@ Use cases:
 2. Add professional-looking effects to video projects
 3. Blend scenes together for creative storytelling
 
+**Fields:**
+video_a: VideoRef
+video_b: VideoRef
+transition_type: TransitionType
+duration: float
+
 ## Trim
 
 Trim a video to a specific start and end time.
@@ -180,6 +273,11 @@ Use cases:
 2. Remove unwanted parts from the beginning or end of a video
 3. Create shorter clips from a full-length video
 
+**Fields:**
+video: VideoRef
+start_time: float
+end_time: float
+
 ## VideoResizeNode
 
 Resize a video to a specific width and height.
@@ -188,4 +286,9 @@ Use cases:
 1. Adjust video resolution for different display requirements
 2. Reduce file size by downscaling video
 3. Prepare videos for specific platforms with size constraints
+
+**Fields:**
+video: VideoRef
+width: int
+height: int
 

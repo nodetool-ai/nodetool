@@ -9,3 +9,11 @@ Use cases:
 - Generate dynamic visual effects for creative projects
 - Produce animated illustrations for digital media
 
+**Fields:**
+prompt: str
+negative_prompt: str
+num_frames: int
+guidance_scale: float
+num_inference_steps: int
+seed: int
+

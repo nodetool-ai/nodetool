@@ -13,6 +13,7 @@ convert_output: Converts the output to the specified type.
 
 **Tags:** 
 
+**Fields:**
 
 ### convert_output
 
@@ -63,6 +64,7 @@ Result of the prediction.
 **Args:**
 - **context (ProcessingContext)**
 - **params (dict[str, typing.Any] | None) (default: None)**
+
 
 ### add_replicate_model
 

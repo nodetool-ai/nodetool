@@ -2,6 +2,12 @@
 
 ## HTTPBaseNode
 
+**Fields:**
+url: str
+headers: dict
+allow_redirects: bool
+auth: str | None
+
 ## HTTPDelete
 
 Remove a resource from a server using an HTTP DELETE request.
@@ -11,6 +17,12 @@ Use cases:
 - Remove API resources
 - Cancel subscriptions
 - Clear cache entries
+
+**Fields:**
+url: str
+headers: dict
+allow_redirects: bool
+auth: str | None
 
 ## HTTPGet
 
@@ -22,6 +34,12 @@ Use cases:
 - Download files
 - Check website availability
 
+**Fields:**
+url: str
+headers: dict
+allow_redirects: bool
+auth: str | None
+
 ## HTTPHead
 
 Retrieve headers from a resource using an HTTP HEAD request.
@@ -30,6 +48,12 @@ Use cases:
 - Check resource existence
 - Get metadata without downloading content
 - Verify authentication or permissions
+
+**Fields:**
+url: str
+headers: dict
+allow_redirects: bool
+auth: str | None
 
 ## HTTPPost
 
@@ -41,6 +65,13 @@ Use cases:
 - Upload files
 - Authenticate users
 
+**Fields:**
+url: str
+headers: dict
+allow_redirects: bool
+auth: str | None
+data: str
+
 ## HTTPPut
 
 Update existing resources on a server using an HTTP PUT request.
@@ -50,4 +81,11 @@ Use cases:
 - Modify existing API resources
 - Replace file contents
 - Set configuration values
+
+**Fields:**
+url: str
+headers: dict
+allow_redirects: bool
+auth: str | None
+data: str
 

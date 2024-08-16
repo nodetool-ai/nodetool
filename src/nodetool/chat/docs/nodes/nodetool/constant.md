@@ -9,6 +9,9 @@ Use cases:
 - Reference a specific audio file in the workflow
 - Set default audio for testing or demonstration purposes
 
+**Fields:**
+value: AudioRef
+
 ## Bool
 
 Represents a boolean constant in the workflow.
@@ -18,7 +21,12 @@ Use cases:
 - Toggle features or behaviors in the workflow
 - Set default boolean values for configuration
 
+**Fields:**
+value: bool
+
 ## Constant
+
+**Fields:**
 
 ## DataFrame
 
@@ -29,6 +37,9 @@ Use cases:
 - Define lookup tables or reference data
 - Set sample data for testing or demonstration
 
+**Fields:**
+value: DataframeRef
+
 ## Dict
 
 Represents a dictionary constant in the workflow.
@@ -37,6 +48,9 @@ Use cases:
 - Store configuration settings
 - Provide structured data inputs
 - Define parameter sets for other nodes
+
+**Fields:**
+value: dict
 
 ## Float
 
@@ -47,6 +61,9 @@ Use cases:
 - Define thresholds or limits
 - Provide fixed numerical inputs for processing
 
+**Fields:**
+value: float
+
 ## Image
 
 Represents an image file constant in the workflow.
@@ -55,6 +72,9 @@ Use cases:
 - Provide a fixed image input for image processing nodes
 - Reference a specific image file in the workflow
 - Set default image for testing or demonstration purposes
+
+**Fields:**
+value: ImageRef
 
 ## Integer
 
@@ -65,6 +85,9 @@ Use cases:
 - Define counts, indices, or sizes
 - Provide fixed numerical inputs for processing
 
+**Fields:**
+value: int
+
 ## List
 
 Represents a list constant in the workflow.
@@ -73,6 +96,9 @@ Use cases:
 - Store multiple values of the same type
 - Provide ordered data inputs
 - Define sequences for iteration in other nodes
+
+**Fields:**
+value: list
 
 ## String
 
@@ -83,6 +109,9 @@ Use cases:
 - Define labels, identifiers, or names
 - Set default text values for configuration
 
+**Fields:**
+value: str
+
 ## Text
 
 Represents a text document constant in the workflow.
@@ -92,6 +121,9 @@ Use cases:
 - Store formatted content or documentation
 - Set default text documents for analysis
 
+**Fields:**
+value: TextRef
+
 ## Video
 
 Represents a video file constant in the workflow.
@@ -100,4 +132,7 @@ Use cases:
 - Provide a fixed video input for video processing nodes
 - Reference a specific video file in the workflow
 - Set default video for testing or demonstration purposes
+
+**Fields:**
+value: VideoRef
 

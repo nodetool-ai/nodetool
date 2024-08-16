@@ -1,5 +1,18 @@
 # nodetool.nodes.nodetool.image
 
+## BatchToList
+
+Convert an image batch to a list of image references.
+
+Use cases:
+- Convert comfy batch outputs to list format
+
+**Tags:** batch, list, images, processing
+
+**Fields:**
+- **batch**: The batch of images to convert. (ImageRef)
+
+
 ## Blend
 
 Blend two images with adjustable alpha mixing.
@@ -11,9 +24,11 @@ Use cases:
 
 **Tags:** blend, mix, fade, transition
 
+**Fields:**
 - **image1**: The first image to blend. (ImageRef)
 - **image2**: The second image to blend. (ImageRef)
 - **alpha**: The mix ratio. (float)
+
 
 ## Composite
 
@@ -27,9 +42,11 @@ Use cases:
 
 **Tags:** 
 
+**Fields:**
 - **image1**: The first image to composite. (ImageRef)
 - **image2**: The second image to composite. (ImageRef)
 - **mask**: The mask to composite with. (ImageRef)
+
 
 ## ConvertToTensor
 
@@ -42,7 +59,9 @@ Use cases:
 
 **Tags:** image, tensor, conversion, normalization
 
+**Fields:**
 - **image**: The input image to convert to a tensor. The image should have either 1 (grayscale), 3 (RGB), or 4 (RGBA) channels. (ImageRef)
+
 
 ## GetMetadata
 
@@ -55,7 +74,9 @@ Use cases:
 
 **Tags:** metadata, properties, analysis, information
 
+**Fields:**
 - **image**: The input image. (ImageRef)
+
 
 ## Paste
 
@@ -68,10 +89,12 @@ Use cases:
 
 **Tags:** paste, composite, positioning, overlay
 
+**Fields:**
 - **image**: The image to paste into. (ImageRef)
 - **paste**: The image to paste. (ImageRef)
 - **left**: The left coordinate. (int)
 - **top**: The top coordinate. (int)
+
 
 ## SaveImage
 
@@ -84,9 +107,18 @@ Use cases:
 
 **Tags:** save, image, folder, naming
 
+**Fields:**
 - **image**: The image to save. (ImageRef)
 - **folder**: The folder to save the image in. (FolderRef)
 - **name** (str)
+
+### result_for_client
+
+**Args:**
+- **result (dict)**
+
+**Returns:** dict
+
 
 - [nodetool.nodes.nodetool.image.enhance](image/enhance.md)
 - [nodetool.nodes.nodetool.image.grid](image/grid.md)

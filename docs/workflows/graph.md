@@ -38,6 +38,7 @@ integration with APIs or databases.
 
 **Tags:** 
 
+**Fields:**
 - **nodes** (typing.Sequence[nodetool.workflows.base_node.BaseNode])
 - **edges** (typing.Sequence[nodetool.types.graph.Edge])
 
@@ -103,4 +104,5 @@ in the topological order. Nodes in the same list can be processed in parallel.
 - **parent_id (str | None) (default: None)**
 
 **Returns:** typing.List[typing.List[str]]
+
 

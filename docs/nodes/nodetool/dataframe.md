@@ -11,9 +11,11 @@ Use cases:
 
 **Tags:** dataframe, column, list
 
+**Fields:**
 - **dataframe**: Dataframe object to add a new column to. (DataframeRef)
 - **column_name**: The name of the new column to be added to the dataframe. (str)
 - **values**: A list of any type of elements which will be the new column's values. (list)
+
 
 ## Chart
 
@@ -26,10 +28,12 @@ Use cases:
 
 **Tags:** plot, visualization, dataframe
 
+**Fields:**
 - **dataframe**: The input dataframe. (DataframeRef)
 - **x_column**: The name of the x column to be used in the plot. (str)
 - **y_column**: The name of the y column to be used in the plot. (str)
 - **plot_type**: The type of plot to be created. Can be 'line', 'bar', or 'scatter'. (PlotType)
+
 
 ## CombineVertically
 
@@ -42,8 +46,10 @@ Use cases:
 
 **Tags:** append, concat, rows
 
+**Fields:**
 - **dataframe_a**: First DataFrame to be appended. (DataframeRef)
 - **dataframe_b**: Second DataFrame to be appended. (DataframeRef)
+
 
 ## ConvertToTensor
 
@@ -56,7 +62,9 @@ Use cases:
 
 **Tags:** dataframe, tensor, convert
 
+**Fields:**
 - **dataframe**: The input dataframe. (DataframeRef)
+
 
 ## ExtractColumn
 
@@ -69,8 +77,10 @@ Use cases:
 
 **Tags:** dataframe, column, list
 
+**Fields:**
 - **dataframe**: The input dataframe. (DataframeRef)
 - **column_name**: The name of the column to be converted to a list. (str)
+
 
 ## Filter
 
@@ -91,8 +101,10 @@ Use cases:
 
 **Tags:** filter, query, condition
 
+**Fields:**
 - **df**: The DataFrame to filter. (DataframeRef)
 - **condition**: The filtering condition to be applied to the DataFrame, e.g. column_name > 5. (str)
+
 
 ## FindOneRow
 
@@ -113,8 +125,10 @@ Use cases:
 
 **Tags:** filter, query, condition, single row
 
+**Fields:**
 - **df**: The DataFrame to search. (DataframeRef)
 - **condition**: The condition to filter the DataFrame, e.g. 'column_name == value'. (str)
+
 
 ## FormatAsText
 
@@ -127,8 +141,10 @@ Use cases:
 
 **Tags:** dataframe, string, format
 
+**Fields:**
 - **dataframe**: The input dataframe. (DataframeRef)
 - **template**: The template for the string representation. Each column can be referenced by {column_name}. (str)
+
 
 ## FromList
 
@@ -141,7 +157,9 @@ Use cases:
 
 **Tags:** list, dataframe, convert
 
+**Fields:**
 - **values**: List of values to be converted, each value will be a row. (list)
+
 
 ## FromTensor
 
@@ -154,8 +172,10 @@ Use cases:
 
 **Tags:** tensor, dataframe, convert
 
+**Fields:**
 - **tensor**: A tensor object to be converted into a dataframe. (Tensor)
 - **columns**: A list of strings specifying the column names for the resulting dataframe. (list)
+
 
 ## Heatmap
 
@@ -168,7 +188,9 @@ Use cases:
 
 **Tags:** heatmap, plot, correlation
 
+**Fields:**
 - **dataframe**: The input dataframe. (DataframeRef)
+
 
 ## Histogram
 
@@ -181,8 +203,10 @@ Use cases:
 
 **Tags:** histogram, plot, distribution
 
+**Fields:**
 - **dataframe**: The input dataframe. (DataframeRef)
 - **column**: The column to plot. (str)
+
 
 ## ImportCSV
 
@@ -194,7 +218,9 @@ Use cases:
 
 **Tags:** csv, dataframe, import
 
+**Fields:**
 - **csv_data**: String input of CSV formatted text. (str)
+
 
 ## Join
 
@@ -207,9 +233,11 @@ Use cases:
 
 **Tags:** join, merge, column
 
+**Fields:**
 - **dataframe_a**: First DataFrame to be merged. (DataframeRef)
 - **dataframe_b**: Second DataFrame to be merged. (DataframeRef)
 - **join_on**: The column name on which to join the two dataframes. (str)
+
 
 ## LoadIrisDataset
 
@@ -221,6 +249,8 @@ Use cases:
 - Demonstrate data analysis workflows
 
 **Tags:** iris, dataset, machine learning
+
+**Fields:**
 
 
 ## MergeSideBySide
@@ -234,8 +264,10 @@ Use cases:
 
 **Tags:** merge, concat, columns
 
+**Fields:**
 - **dataframe_a**: First DataFrame to be merged. (DataframeRef)
 - **dataframe_b**: Second DataFrame to be merged. (DataframeRef)
+
 
 ## RemoveDuplicates
 
@@ -248,7 +280,9 @@ Use cases:
 
 **Tags:** duplicates, unique, clean
 
+**Fields:**
 - **df**: The input DataFrame. (DataframeRef)
+
 
 ## RemoveIncompleteRows
 
@@ -261,7 +295,9 @@ Use cases:
 
 **Tags:** na, missing, clean
 
+**Fields:**
 - **df**: The input DataFrame. (DataframeRef)
+
 
 ## SaveDataframe
 
@@ -273,9 +309,11 @@ Use cases:
 
 **Tags:** csv, folder, save
 
+**Fields:**
 - **df** (DataframeRef)
 - **folder**: Name of the output folder. (FolderRef)
 - **name**: Name of the output file. (str)
+
 
 ## SelectColumn
 
@@ -288,8 +326,10 @@ Use cases:
 
 **Tags:** dataframe, columns, filter
 
+**Fields:**
 - **dataframe**: a dataframe from which columns are to be selected (DataframeRef)
 - **columns**: comma separated list of column names (str)
+
 
 ## SortByColumn
 
@@ -302,6 +342,8 @@ Use cases:
 
 **Tags:** sort, order, column
 
+**Fields:**
 - **df** (DataframeRef)
 - **column**: The column to sort the DataFrame by. (str)
+
 

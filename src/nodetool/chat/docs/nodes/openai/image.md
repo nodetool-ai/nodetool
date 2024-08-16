@@ -11,3 +11,9 @@ Use cases:
 4. Design unique marketing visuals or product mockups
 5. Explore artistic ideas and styles programmatically
 
+**Fields:**
+prompt: str
+size: Size
+quality: Quality
+style: Style
+

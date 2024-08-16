@@ -4,13 +4,16 @@
 
 Towards Photo-Realistic Image Colorization via Dual Decoders
 
+**Fields:**
 - **image**: Grayscale input image. (str | None)
 - **model_size**: Choose the model size. (Model_size)
+
 
 ## Magic_Style_Transfer
 
 Restyle an image with the style of another one. I strongly suggest to upscale the results with Clarity AI
 
+**Fields:**
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image (ImageRef)
 - **prompt**: Input prompt (str)
@@ -30,22 +33,29 @@ Restyle an image with the style of another one. I strongly suggest to upscale th
 - **condition_canny_scale**: The bigger this number is, the more ControlNet interferes (float)
 - **condition_depth_scale**: The bigger this number is, the more ControlNet interferes (float)
 
+
 ## ModNet
 
 A deep learning approach to remove background & adding new background image
 
+**Fields:**
 - **image**: input image (ImageRef)
+
 
 ## ObjectRemover
 
 None
 
+**Fields:**
 - **org_image**: Original input image (ImageRef)
 - **mask_image**: Mask image (ImageRef)
+
 
 ## RemoveBackground
 
 Remove images background
 
+**Fields:**
 - **image**: Input image (ImageRef)
+
 

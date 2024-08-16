@@ -11,7 +11,9 @@ Use cases:
 
 **Tags:** audio, file, mp3, wav
 
+**Fields:**
 - **value** (AudioRef)
+
 
 ## Bool
 
@@ -24,9 +26,13 @@ Use cases:
 
 **Tags:** boolean, logic, flag
 
+**Fields:**
 - **value** (bool)
 
+
 ## Constant
+
+**Fields:**
 
 
 ## DataFrame
@@ -40,7 +46,9 @@ Use cases:
 
 **Tags:** table, data, dataframe, pandas
 
+**Fields:**
 - **value** (DataframeRef)
+
 
 ## Dict
 
@@ -53,7 +61,9 @@ Use cases:
 
 **Tags:** dictionary, key-value, mapping
 
+**Fields:**
 - **value** (dict)
+
 
 ## Float
 
@@ -66,7 +76,9 @@ Use cases:
 
 **Tags:** number, decimal, float
 
+**Fields:**
 - **value** (float)
+
 
 ## Image
 
@@ -79,7 +91,9 @@ Use cases:
 
 **Tags:** picture, photo, image
 
+**Fields:**
 - **value** (ImageRef)
+
 
 ## Integer
 
@@ -92,7 +106,9 @@ Use cases:
 
 **Tags:** number, integer, whole
 
+**Fields:**
 - **value** (int)
+
 
 ## List
 
@@ -105,7 +121,9 @@ Use cases:
 
 **Tags:** array, squence, collection
 
+**Fields:**
 - **value** (list)
+
 
 ## String
 
@@ -118,7 +136,9 @@ Use cases:
 
 **Tags:** text, string, characters
 
+**Fields:**
 - **value** (str)
+
 
 ## Text
 
@@ -131,7 +151,9 @@ Use cases:
 
 **Tags:** document, markdown, content
 
+**Fields:**
 - **value** (TextRef)
+
 
 ## Video
 
@@ -144,5 +166,7 @@ Use cases:
 
 **Tags:** video, movie, mp4, file
 
+**Fields:**
 - **value** (VideoRef)
+
 

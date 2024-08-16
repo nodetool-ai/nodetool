@@ -78,34 +78,3 @@ By following these guidelines and using the provided methods, you can safely int
 
 **Tags:** 
 
-### run_coroutine
-
-Schedule a coroutine to run in this event loop.
-**Args:**
-- **coro (typing.Coroutine[typing.Any, typing.Any, ~T])**
-
-**Returns:** Future
-
-### run_in_executor
-
-Run a synchronous function in the default executor of this event loop.
-**Args:**
-- **func (typing.Callable[..., ~T])**
-- **args (typing.Any)**
-
-**Returns:** Future
-
-### start
-
-Start the event loop in a separate thread.
-**Args:**
-
-**Returns:** None
-
-### stop
-
-Stop the event loop and wait for the thread to finish.
-**Args:**
-
-**Returns:** None
-

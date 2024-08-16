@@ -2,6 +2,7 @@
 
 ## Asset
 
+**Fields:**
 - **id** (str)
 - **user_id** (str)
 - **workflow_id** (str | None)
@@ -14,8 +15,10 @@
 - **thumb_url** (str | None)
 - **duration** (float | None)
 
+
 ## AssetCreateRequest
 
+**Fields:**
 - **workflow_id** (str | None)
 - **parent_id** (str | None)
 - **name** (str)
@@ -23,17 +26,23 @@
 - **metadata** (dict | None)
 - **duration** (float | None)
 
+
 ## AssetDownloadRequest
 
+**Fields:**
 - **asset_ids** (list)
+
 
 ## AssetList
 
+**Fields:**
 - **next** (str | None)
 - **assets** (list)
 
+
 ## AssetUpdateRequest
 
+**Fields:**
 - **name** (str | None)
 - **parent_id** (str | None)
 - **content_type** (str | None)
@@ -41,8 +50,11 @@
 - **metadata** (dict | None)
 - **duration** (float | None)
 
+
 ## TempAsset
 
+**Fields:**
 - **get_url** (str)
 - **put_url** (str)
+
 

@@ -9,8 +9,14 @@ Use cases:
 - Organize outputs into specific folders
 - Create backups of generated audio
 
+**Fields:**
+value: AudioRef
+folder: FolderRef
+name: str
+
 - [nodetool.nodes.nodetool.audio.analysis](audio/analysis.md)
 - [nodetool.nodes.nodetool.audio.audio_helpers](audio/audio_helpers.md)
 - [nodetool.nodes.nodetool.audio.conversion](audio/conversion.md)
 - [nodetool.nodes.nodetool.audio.effects](audio/effects.md)
+- [nodetool.nodes.nodetool.audio.segmentation](audio/segmentation.md)
 - [nodetool.nodes.nodetool.audio.transform](audio/transform.md)

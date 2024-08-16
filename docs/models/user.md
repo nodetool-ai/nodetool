@@ -2,6 +2,7 @@
 
 ## User
 
+**Fields:**
 - **id** (str)
 - **permissions** (dict[str, typing.Any] | None)
 - **email** (str)
@@ -13,4 +14,5 @@
 - **created_at** (datetime)
 - **updated_at** (datetime)
 - **deleted_at** (datetime.datetime | None)
+
 

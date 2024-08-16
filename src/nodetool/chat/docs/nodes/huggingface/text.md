@@ -10,6 +10,11 @@ Use cases:
 - Language understanding tasks
 - Generating text options
 
+**Fields:**
+model: FillMaskModelId
+inputs: str
+top_k: int
+
 ## QuestionAnswering
 
 Answers questions based on a given context.
@@ -20,7 +25,18 @@ Use cases:
 - Reading comprehension tasks
 - Enhancing search functionality
 
+**Fields:**
+model: QuestionAnsweringModelId
+context: str
+question: str
+
 ## Summarize
+
+**Fields:**
+model: SummarizeModelId
+inputs: str
+max_length: int
+do_sample: bool
 
 ## TableQuestionAnswering
 
@@ -32,7 +48,16 @@ Use cases:
 - Extracting insights from tabular reports
 - Automated data exploration
 
+**Fields:**
+model: TableQuestionAnsweringModelId
+inputs: DataframeRef
+question: str
+
 ## TextClassifier
+
+**Fields:**
+model: TextClassifierModelId
+inputs: str
 
 ## TextGeneration
 
@@ -44,6 +69,14 @@ Use cases:
 - Chatbots and conversational AI
 - Code generation and completion
 
+**Fields:**
+model: TextGenerationModelId
+inputs: str
+max_new_tokens: int
+temperature: float
+top_p: float
+do_sample: bool
+
 ## TextToText
 
 Performs text-to-text generation tasks.
@@ -53,6 +86,13 @@ Use cases:
 - Text summarization
 - Paraphrasing
 - Text style transfer
+
+**Fields:**
+model: TextToTextModelId
+inputs: str
+prefix: str
+max_length: int
+num_return_sequences: int
 
 ## TokenClassification
 
@@ -64,6 +104,11 @@ Use cases:
 - Chunking and shallow parsing
 - Information extraction from unstructured text
 
+**Fields:**
+model: TokenClassificationModelId
+inputs: str
+aggregation_strategy: AggregationStrategy
+
 ## Translation
 
 Translates text from one language to another.
@@ -74,6 +119,11 @@ Use cases:
 - Localization of applications and websites
 - International market research
 
+**Fields:**
+inputs: str
+source_lang: LanguageCode
+target_lang: LanguageCode
+
 ## ZeroShotTextClassifier
 
 Performs zero-shot classification on text.
@@ -83,4 +133,10 @@ Use cases:
 - Topic detection in documents
 - Sentiment analysis with custom sentiment labels
 - Intent classification in conversational AI
+
+**Fields:**
+model: ZeroShotTextClassifierModelId
+inputs: str
+candidate_labels: str
+multi_label: bool
 

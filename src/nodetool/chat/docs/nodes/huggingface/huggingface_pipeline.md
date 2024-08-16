@@ -2,3 +2,5 @@
 
 ## HuggingFacePipelineNode
 
+**Fields:**
+

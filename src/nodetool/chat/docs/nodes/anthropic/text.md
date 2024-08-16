@@ -11,3 +11,13 @@ Use cases:
 4. Engage in multi-turn conversations with context retention
 5. Analyze and describe images when provided as input
 
+**Fields:**
+model: AnthropicModel
+system: str
+prompt: str
+image: ImageRef
+max_tokens: int
+temperature: float
+top_k: int
+top_p: float
+

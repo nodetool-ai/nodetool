@@ -1,5 +1,15 @@
 # nodetool.nodes.nodetool.image
 
+## BatchToList
+
+Convert an image batch to a list of image references.
+
+Use cases:
+- Convert comfy batch outputs to list format
+
+**Fields:**
+batch: ImageRef
+
 ## Blend
 
 Blend two images with adjustable alpha mixing.
@@ -8,6 +18,11 @@ Use cases:
 - Create smooth transitions between images
 - Adjust opacity of overlays
 - Combine multiple exposures or effects
+
+**Fields:**
+image1: ImageRef
+image2: ImageRef
+alpha: float
 
 ## Composite
 
@@ -19,6 +34,11 @@ Use cases:
 - Apply selective blending or effects
 - Implement advanced photo editing techniques
 
+**Fields:**
+image1: ImageRef
+image2: ImageRef
+mask: ImageRef
+
 ## ConvertToTensor
 
 Convert PIL Image to normalized tensor representation.
@@ -27,6 +47,9 @@ Use cases:
 - Prepare images for machine learning models
 - Convert between image formats for processing
 - Normalize image data for consistent calculations
+
+**Fields:**
+image: ImageRef
 
 ## GetMetadata
 
@@ -37,6 +60,9 @@ Use cases:
 - Analyze image properties for processing decisions
 - Gather information for image cataloging or organization
 
+**Fields:**
+image: ImageRef
+
 ## Paste
 
 Paste one image onto another at specified coordinates.
@@ -46,6 +72,12 @@ Use cases:
 - Combine multiple image elements
 - Create collages or montages
 
+**Fields:**
+image: ImageRef
+paste: ImageRef
+left: int
+top: int
+
 ## SaveImage
 
 Save an image to specified folder with customizable name format.
@@ -54,6 +86,11 @@ Use cases:
 - Save generated images with timestamps
 - Organize outputs into specific folders
 - Create backups of processed images
+
+**Fields:**
+image: ImageRef
+folder: FolderRef
+name: str
 
 - [nodetool.nodes.nodetool.image.enhance](image/enhance.md)
 - [nodetool.nodes.nodetool.image.grid](image/grid.md)

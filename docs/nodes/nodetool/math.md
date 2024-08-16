@@ -6,6 +6,7 @@ Performs addition on two inputs.
 
 **Tags:** math, plus, add, addition, sum, +
 
+**Fields:**
 - **a** (int | float | nodetool.metadata.types.Tensor)
 - **b** (int | float | nodetool.metadata.types.Tensor)
 
@@ -16,9 +17,11 @@ Performs addition on two inputs.
 - **b (ndarray)**
 
 **Returns:** ndarray
+
 
 ## BinaryOperation
 
+**Fields:**
 - **a** (int | float | nodetool.metadata.types.Tensor)
 - **b** (int | float | nodetool.metadata.types.Tensor)
 
@@ -29,6 +32,7 @@ Performs addition on two inputs.
 - **b (ndarray)**
 
 **Returns:** ndarray
+
 
 ## Cosine
 
@@ -41,7 +45,9 @@ Use cases:
 
 **Tags:** math, trigonometry, cosine, cos
 
+**Fields:**
 - **angle_rad** (float | int | nodetool.metadata.types.Tensor)
+
 
 ## Divide
 
@@ -49,6 +55,7 @@ Divides the first input by the second.
 
 **Tags:** math, division, arithmetic, quotient
 
+**Fields:**
 - **a** (int | float | nodetool.metadata.types.Tensor)
 - **b** (int | float | nodetool.metadata.types.Tensor)
 
@@ -59,6 +66,7 @@ Divides the first input by the second.
 - **b (ndarray)**
 
 **Returns:** ndarray
+
 
 ## Modulus
 
@@ -71,6 +79,7 @@ Use cases:
 
 **Tags:** math, modulo, remainder, mod, %
 
+**Fields:**
 - **a** (int | float | nodetool.metadata.types.Tensor)
 - **b** (int | float | nodetool.metadata.types.Tensor)
 
@@ -81,6 +90,7 @@ Use cases:
 - **b (ndarray)**
 
 **Returns:** ndarray
+
 
 ## Multiply
 
@@ -88,6 +98,7 @@ Multiplies two inputs.
 
 **Tags:** math, product, times, *
 
+**Fields:**
 - **a** (int | float | nodetool.metadata.types.Tensor)
 - **b** (int | float | nodetool.metadata.types.Tensor)
 
@@ -98,6 +109,7 @@ Multiplies two inputs.
 - **b (ndarray)**
 
 **Returns:** ndarray
+
 
 ## Power
 
@@ -110,8 +122,10 @@ Use cases:
 
 **Tags:** math, exponentiation, power, pow, **
 
+**Fields:**
 - **base** (float | int | nodetool.metadata.types.Tensor)
 - **exponent** (float | int | nodetool.metadata.types.Tensor)
+
 
 ## Sine
 
@@ -124,7 +138,9 @@ Use cases:
 
 **Tags:** math, trigonometry, sine, sin
 
+**Fields:**
 - **angle_rad** (float | int | nodetool.metadata.types.Tensor)
+
 
 ## Sqrt
 
@@ -137,7 +153,9 @@ Use cases:
 
 **Tags:** math, square root, sqrt, √
 
+**Fields:**
 - **x** (int | float | nodetool.metadata.types.Tensor)
+
 
 ## Subtract
 
@@ -145,6 +163,7 @@ Subtracts the second input from the first.
 
 **Tags:** math, minus, difference, -
 
+**Fields:**
 - **a** (int | float | nodetool.metadata.types.Tensor)
 - **b** (int | float | nodetool.metadata.types.Tensor)
 
@@ -155,6 +174,7 @@ Subtracts the second input from the first.
 - **b (ndarray)**
 
 **Returns:** ndarray
+
 
 ### convert_output
 

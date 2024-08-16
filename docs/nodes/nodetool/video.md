@@ -11,10 +11,12 @@ Use cases:
 
 **Tags:** video, audio, soundtrack, merge
 
+**Fields:**
 - **video**: The input video to add audio to. (VideoRef)
 - **audio**: The audio file to add to the video. (AudioRef)
 - **volume**: Volume adjustment for the added audio. 1.0 is original volume. (float)
 - **mix**: If True, mix new audio with existing. If False, replace existing audio. (bool)
+
 
 ## AddSubtitles
 
@@ -27,12 +29,14 @@ Use cases:
 
 **Tags:** video, subtitles, text, caption
 
+**Fields:**
 - **video**: The input video to add subtitles to. (VideoRef)
 - **subtitles**: SRT Subtitles. (TextRef)
 - **font_size**: Font size for the subtitles. (int)
 - **font_color**: Color of the subtitle text. (str)
 - **outline_color**: Color of the text outline. (str)
 - **outline_width**: Width of the text outline. (int)
+
 
 ## Blur
 
@@ -45,8 +49,10 @@ Use cases:
 
 **Tags:** video, blur, smooth, soften
 
+**Fields:**
 - **video**: The input video to apply blur effect. (VideoRef)
 - **strength**: The strength of the blur effect. Higher values create a stronger blur. (float)
+
 
 ## ChromaKey
 
@@ -59,10 +65,12 @@ Use cases:
 
 **Tags:** video, chroma key, green screen, compositing
 
+**Fields:**
 - **video**: The input video to apply chroma key effect. (VideoRef)
 - **key_color**: The color to key out (e.g., '0x00FF00' for green). (str)
 - **similarity**: Similarity threshold for the key color. (float)
 - **blend**: Blending of the keyed area edges. (float)
+
 
 ## ColorBalance
 
@@ -75,10 +83,12 @@ Use cases:
 
 **Tags:** video, color, balance, adjustment
 
+**Fields:**
 - **video**: The input video to adjust color balance. (VideoRef)
 - **red_adjust**: Red channel adjustment factor. (float)
 - **green_adjust**: Green channel adjustment factor. (float)
 - **blue_adjust**: Blue channel adjustment factor. (float)
+
 
 ## Concat
 
@@ -91,8 +101,10 @@ Use cases:
 
 **Tags:** video, concat, merge, combine
 
+**Fields:**
 - **video_a**: The first video to concatenate. (VideoRef)
 - **video_b**: The second video to concatenate. (VideoRef)
+
 
 ## CreateVideo
 
@@ -105,8 +117,10 @@ Use cases:
 
 **Tags:** video, frames, combine, sequence
 
+**Fields:**
 - **frames**: The frames to combine into a video. (list)
 - **fps**: The FPS of the output video. (float)
+
 
 ## Denoise
 
@@ -119,8 +133,10 @@ Use cases:
 
 **Tags:** video, denoise, clean, enhance
 
+**Fields:**
 - **video**: The input video to denoise. (VideoRef)
 - **strength**: Strength of the denoising effect. Higher values mean more denoising. (float)
+
 
 ## ExtractFrames
 
@@ -133,9 +149,18 @@ Use cases:
 
 **Tags:** video, frames, extract, sequence
 
+**Fields:**
 - **video**: The input video to adjust the brightness for. (VideoRef)
 - **start**: The frame to start extracting from. (int)
 - **end**: The frame to stop extracting from. (int)
+
+### result_for_client
+
+**Args:**
+- **result (dict)**
+
+**Returns:** dict
+
 
 ## Fps
 
@@ -148,7 +173,9 @@ Use cases:
 
 **Tags:** video, analysis, frames, fps
 
+**Fields:**
 - **video**: The input video to adjust the brightness for. (VideoRef)
+
 
 ## Overlay
 
@@ -161,11 +188,13 @@ Use cases:
 
 **Tags:** video, overlay, composite, picture-in-picture
 
+**Fields:**
 - **main_video**: The main (background) video. (VideoRef)
 - **overlay_video**: The video to overlay on top. (VideoRef)
 - **x**: X-coordinate for overlay placement. (int)
 - **y**: Y-coordinate for overlay placement. (int)
 - **scale**: Scale factor for the overlay video. (float)
+
 
 ## Reverse
 
@@ -178,7 +207,9 @@ Use cases:
 
 **Tags:** video, reverse, backwards, effect
 
+**Fields:**
 - **video**: The input video to reverse. (VideoRef)
+
 
 ## Rotate
 
@@ -191,8 +222,10 @@ Use cases:
 
 **Tags:** video, rotate, orientation, transform
 
+**Fields:**
 - **video**: The input video to rotate. (VideoRef)
 - **angle**: The angle of rotation in degrees. (float)
+
 
 ## Saturation
 
@@ -205,8 +238,10 @@ Use cases:
 
 **Tags:** video, saturation, color, enhance
 
+**Fields:**
 - **video**: The input video to adjust saturation. (VideoRef)
 - **saturation**: Saturation level. 1.0 is original, <1 decreases saturation, >1 increases saturation. (float)
+
 
 ## SaveVideo
 
@@ -219,9 +254,11 @@ Use cases:
 
 **Tags:** video, save, file, output
 
+**Fields:**
 - **value**: The video to save. (VideoRef)
 - **folder**: Name of the output folder. (FolderRef)
 - **name**: Name of the output video. (str)
+
 
 ## SetSpeed
 
@@ -234,8 +271,10 @@ Use cases:
 
 **Tags:** video, speed, tempo, time
 
+**Fields:**
 - **video**: The input video to adjust speed. (VideoRef)
 - **speed_factor**: The speed adjustment factor. Values > 1 speed up, < 1 slow down. (float)
+
 
 ## Sharpness
 
@@ -248,9 +287,11 @@ Use cases:
 
 **Tags:** video, sharpen, enhance, detail
 
+**Fields:**
 - **video**: The input video to sharpen. (VideoRef)
 - **luma_amount**: Amount of sharpening to apply to luma (brightness) channel. (float)
 - **chroma_amount**: Amount of sharpening to apply to chroma (color) channels. (float)
+
 
 ## Stabilize
 
@@ -263,9 +304,11 @@ Use cases:
 
 **Tags:** video, stabilize, smooth, shake-reduction
 
+**Fields:**
 - **video**: The input video to stabilize. (VideoRef)
 - **smoothing**: Smoothing strength. Higher values result in smoother but potentially more cropped video. (float)
 - **crop_black**: Whether to crop black borders that may appear after stabilization. (bool)
+
 
 ## Transition
 
@@ -278,10 +321,12 @@ Use cases:
 
 **Tags:** video, transition, effect, merge
 
+**Fields:**
 - **video_a**: The first video in the transition. (VideoRef)
 - **video_b**: The second video in the transition. (VideoRef)
 - **transition_type**: Type of transition effect (TransitionType)
 - **duration**: Duration of the transition effect in seconds. (float)
+
 
 ## Trim
 
@@ -294,9 +339,11 @@ Use cases:
 
 **Tags:** video, trim, cut, segment
 
+**Fields:**
 - **video**: The input video to trim. (VideoRef)
 - **start_time**: The start time in seconds for the trimmed video. (float)
 - **end_time**: The end time in seconds for the trimmed video. Use -1 for the end of the video. (float)
+
 
 ## VideoResizeNode
 
@@ -309,7 +356,9 @@ Use cases:
 
 **Tags:** video, resize, scale, dimensions
 
+**Fields:**
 - **video**: The input video to resize. (VideoRef)
 - **width**: The target width. Use -1 to maintain aspect ratio. (int)
 - **height**: The target height. Use -1 to maintain aspect ratio. (int)
+
 

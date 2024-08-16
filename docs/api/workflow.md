@@ -18,8 +18,6 @@
 
 ### examples
 
-**Returns:** WorkflowList
-
 ### get_public_workflow
 
 **Args:**

@@ -4,6 +4,7 @@
 
 High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnific alternative. Twitter/X: @philz1337x
 
+**Fields:**
 - **mask**: Mask image to mark areas that should be preserved during upscaling (str | None)
 - **seed**: Random seed. Leave blank to randomize the seed (int)
 - **image**: input image (ImageRef)
@@ -26,10 +27,12 @@ High resolution image Upscaler and Enhancer. Use at ClarityAI.co. A free Magnifi
 - **num_inference_steps**: Number of denoising steps (int)
 - **downscaling_resolution**: Downscaling resolution (int)
 
+
 ## HighResolutionControlNetTile
 
 Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for high-quality upscales. Increase the creativity to encourage hallucination.
 
+**Fields:**
 - **hdr**: HDR improvement over the original image (float)
 - **seed**: Seed (int | None)
 - **image**: Control image for scribble controlnet (ImageRef)
@@ -43,10 +46,12 @@ Fermat.app open-source implementation of an efficient ControlNet 1.1 tile for hi
 - **guidance_scale**: Scale for classifier-free guidance (float)
 - **negative_prompt**: Negative prompt (str)
 
+
 ## MagicImageRefiner
 
 A better alternative to SDXL refiners, providing a lot of quality and detail. Can also be used for inpainting or upscaling.
 
+**Fields:**
 - **hdr**: HDR improvement over the original image (float)
 - **mask**: When provided, refines some section of the image. Must be the same size as the image (ImageRef)
 - **seed**: Seed (int | None)
@@ -61,34 +66,42 @@ A better alternative to SDXL refiners, providing a lot of quality and detail. Ca
 - **guidance_scale**: Scale for classifier-free guidance (float)
 - **negative_prompt**: Negative prompt (str)
 
+
 ## RealEsrGan
 
 Real-ESRGAN for image upscaling on an A100
 
+**Fields:**
 - **image**: Input image (ImageRef)
 - **scale**: Factor to scale image by (float)
 - **face_enhance**: Run GFPGAN face enhancement along with upscaling (bool)
+
 
 ## Swin2SR
 
 3 Million Runs! AI Photorealistic Image Super-Resolution and Restoration
 
+**Fields:**
 - **task**: Choose a task (Task)
 - **image**: Input image (ImageRef)
+
 
 ## SwinIR
 
 Image Restoration Using Swin Transformer
 
+**Fields:**
 - **jpeg**: scale factor, activated for JPEG Compression Artifact Reduction. Leave it as default or arbitrary if other tasks are selected (int)
 - **image**: input image (ImageRef)
 - **noise**: noise level, activated for Grayscale Image Denoising and Color Image Denoising. Leave it as default or arbitrary if other tasks are selected (Noise)
 - **task_type**: Choose a task (Task_type)
 
+
 ## UltimateSDUpscale
 
 Ultimate SD Upscale with ControlNet Tile
 
+**Fields:**
 - **cfg**: CFG (float)
 - **seed**: Sampling seed, leave Empty for Random (int | None)
 - **image**: Input image (ImageRef)
@@ -114,10 +127,13 @@ Ultimate SD Upscale with ControlNet Tile
 - **force_uniform_tiles**: Force Uniform Tiles (bool)
 - **use_controlnet_tile**: Use ControlNet Tile (bool)
 
+
 ## ruDallE_SR
 
 Real-ESRGAN super-resolution model from ruDALL-E
 
+**Fields:**
 - **image**: Input image (ImageRef)
 - **scale**: Choose up-scaling factor (Scale)
+
 

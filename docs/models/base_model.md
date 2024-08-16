@@ -8,6 +8,7 @@
 
 ## DBModel
 
+**Fields:**
 
 ### before_save
 
@@ -40,8 +41,7 @@ Update the model instance and save it.
 **Args:**
 - **kwargs**
 
+
 ### create_time_ordered_uuid
 
 Create an uuid that is ordered by time.
-**Returns:** str
-

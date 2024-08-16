@@ -18,6 +18,14 @@ examples = None
 documentation = None
 
 
+class NodeTool(Tool):
+    """
+    Tool for creating a new node.
+    """
+
+    pass
+
+
 class WorkflowTool(Tool):
     """
     Tool for creating a new workflow.

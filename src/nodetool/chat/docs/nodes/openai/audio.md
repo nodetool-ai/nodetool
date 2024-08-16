@@ -10,6 +10,12 @@ Use cases:
 - Assist visually impaired users with text reading
 - Produce audio versions of written content
 
+**Fields:**
+model: TtsModel
+voice: Voice
+input: str
+speed: float
+
 ## Transcribe
 
 Transcribes speech from audio to text.
@@ -20,6 +26,10 @@ Use cases:
 - Create searchable archives of audio content
 - Assist hearing-impaired users with audio content
 
+**Fields:**
+audio: AudioRef
+temperature: float
+
 ## Translate
 
 Translates speech in audio to English text.
@@ -29,4 +39,8 @@ Use cases:
 - Create English transcripts of multilingual recordings
 - Assist non-English speakers in understanding audio content
 - Enable cross-language communication in audio formats
+
+**Fields:**
+audio: AudioRef
+temperature: float
 

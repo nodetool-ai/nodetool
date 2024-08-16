@@ -11,8 +11,10 @@ Use cases:
 
 **Tags:** list, add, insert, extend
 
+**Fields:**
 - **values** (list)
 - **value** (typing.Any)
+
 
 ## Dedupe
 
@@ -25,7 +27,9 @@ Use cases:
 
 **Tags:** list, unique, distinct, deduplicate
 
+**Fields:**
 - **values** (list)
+
 
 ## Extend
 
@@ -37,8 +41,10 @@ Use cases:
 
 **Tags:** list, merge, concatenate, combine
 
+**Fields:**
 - **values** (list)
 - **other_values** (list)
+
 
 ## GenerateSequence
 
@@ -51,9 +57,11 @@ Use cases:
 
 **Tags:** list, range, sequence, numbers
 
+**Fields:**
 - **start** (int)
 - **stop** (int)
 - **step** (int)
+
 
 ## GetElement
 
@@ -66,8 +74,10 @@ Use cases:
 
 **Tags:** list, get, extract, value
 
+**Fields:**
 - **values** (list)
 - **index** (int)
+
 
 ## Length
 
@@ -80,7 +90,24 @@ Use cases:
 
 **Tags:** list, count, size
 
+**Fields:**
 - **values** (list)
+
+
+## Randomize
+
+Randomly shuffles the elements of a list.
+
+Use cases:
+- Randomize the order of items in a playlist
+- Implement random sampling without replacement
+- Create randomized data sets for testing
+
+**Tags:** list, shuffle, random, order
+
+**Fields:**
+- **values** (list)
+
 
 ## Reverse
 
@@ -91,7 +118,9 @@ Use cases:
 
 **Tags:** list, reverse, invert, flip
 
+**Fields:**
 - **values** (list)
+
 
 ## SaveList
 
@@ -104,8 +133,10 @@ Use cases:
 
 **Tags:** list, save, file, serialize
 
+**Fields:**
 - **values**: The list to save. (list)
 - **name** (str)
+
 
 ## SelectElements
 
@@ -118,8 +149,10 @@ Use cases:
 
 **Tags:** list, select, index, extract
 
+**Fields:**
 - **values** (list)
 - **indices** (list)
+
 
 ## Slice
 
@@ -132,8 +165,26 @@ Use cases:
 
 **Tags:** list, slice, subset, extract
 
+**Fields:**
 - **values** (list)
 - **start** (int)
 - **stop** (int)
 - **step** (int)
+
+
+## Sort
+
+Sorts the elements of a list in ascending or descending order.
+
+Use cases:
+- Organize data in a specific order
+- Prepare data for binary search or other algorithms
+- Rank items based on their values
+
+**Tags:** list, sort, order, arrange
+
+**Fields:**
+- **values** (list)
+- **order** (SortOrder)
+
 

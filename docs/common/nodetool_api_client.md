@@ -2,54 +2,6 @@
 
 ## NodetoolAPIClient
 
-### check_status
-
-**Args:**
-- **response (Response)**
-
-### delete
-
-**Args:**
-- **path (str)**
-
-**Returns:** Response
-
-### get
-
-**Args:**
-- **path (str)**
-- **kwargs**
-
-**Returns:** Response
-
-### get_base_url
-
-**Args:**
-
-### head
-
-**Args:**
-- **path (str)**
-- **kwargs**
-
-**Returns:** Response
-
-### post
-
-**Args:**
-- **path (str)**
-- **kwargs**
-
-**Returns:** Response
-
-### put
-
-**Args:**
-- **path (str)**
-- **kwargs**
-
-**Returns:** Response
-
 ## Response
 
 Represents an HTTP response.
@@ -60,13 +12,4 @@ headers (Dict[str, str]): The headers of the response.
 media_type (str): The media type of the response.
 
 **Tags:** 
-
-### from_httpx
-
-**Args:**
-- **response (Response)**
-
-### json
-
-**Args:**
 

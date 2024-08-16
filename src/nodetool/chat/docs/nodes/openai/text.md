@@ -13,6 +13,11 @@ These vectors capture semantic meaning, enabling:
 - Anomaly detection
 - Measuring text similarity and diversity
 
+**Fields:**
+input: str | nodetool.metadata.types.TextRef
+model: EmbeddingModel
+chunk_size: int
+
 ## EmbeddingModel
 
 An enumeration.
@@ -28,6 +33,17 @@ Leverages OpenAI's GPT models to:
 - Engage in conversational interactions
 - Assist with writing and editing tasks
 - Perform text analysis and summarization
+
+**Fields:**
+model: GPTModel
+system: str
+prompt: str
+image: ImageRef
+presence_penalty: float
+frequency_penalty: float
+temperature: float
+max_tokens: int
+top_p: float
 
 ## ResponseFormat
 

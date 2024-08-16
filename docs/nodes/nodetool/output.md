@@ -11,10 +11,12 @@ Use cases:
 
 **Tags:** audio, sound, media
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
 - **value** (AudioRef)
+
 
 ## BooleanOutput
 
@@ -27,6 +29,7 @@ Use cases:
 
 **Tags:** boolean, true/false, flag
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
@@ -35,6 +38,7 @@ Use cases:
 ### get_json_schema
 
 **Args:**
+
 
 ## ChatOutput
 
@@ -47,6 +51,7 @@ Use cases:
 
 **Tags:** chat, messages, conversation
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
@@ -55,6 +60,7 @@ Use cases:
 ### get_json_schema
 
 **Args:**
+
 
 ## DataframeOutput
 
@@ -67,10 +73,12 @@ Use cases:
 
 **Tags:** dataframe, table, structured
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
 - **value** (DataframeRef)
+
 
 ## DictionaryOutput
 
@@ -83,10 +91,12 @@ Use cases:
 
 **Tags:** dictionary, key-value, mapping
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
 - **value** (dict)
+
 
 ## FloatOutput
 
@@ -99,6 +109,7 @@ Use cases:
 
 **Tags:** float, decimal, number
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
@@ -107,6 +118,7 @@ Use cases:
 ### get_json_schema
 
 **Args:**
+
 
 ## GroupOutput
 
@@ -119,7 +131,9 @@ Use cases:
 
 **Tags:** group, composite, multi-output
 
+**Fields:**
 - **input** (typing.Any)
+
 
 ## ImageListOutput
 
@@ -131,6 +145,7 @@ Use cases:
 
 **Tags:** images, list, gallery
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
@@ -139,6 +154,7 @@ Use cases:
 ### get_json_schema
 
 **Args:**
+
 
 ## ImageOutput
 
@@ -151,6 +167,7 @@ Use cases:
 
 **Tags:** image, picture, visual
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
@@ -159,6 +176,7 @@ Use cases:
 ### get_json_schema
 
 **Args:**
+
 
 ## IntegerOutput
 
@@ -171,6 +189,7 @@ Use cases:
 
 **Tags:** integer, number, count
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
@@ -179,6 +198,7 @@ Use cases:
 ### get_json_schema
 
 **Args:**
+
 
 ## ListOutput
 
@@ -190,6 +210,7 @@ Use cases:
 
 **Tags:** list, output, any
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
@@ -198,6 +219,7 @@ Use cases:
 ### get_json_schema
 
 **Args:**
+
 
 ## ModelOutput
 
@@ -210,10 +232,12 @@ Use cases:
 
 **Tags:** model, ml, ai
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
 - **value** (ModelRef)
+
 
 ## StringOutput
 
@@ -226,6 +250,7 @@ Use cases:
 
 **Tags:** string, text, output
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
@@ -234,6 +259,7 @@ Use cases:
 ### get_json_schema
 
 **Args:**
+
 
 ## TensorOutput
 
@@ -246,10 +272,12 @@ Use cases:
 
 **Tags:** tensor, array, numerical
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
 - **value** (Tensor)
+
 
 ## TextOutput
 
@@ -262,6 +290,7 @@ Use cases:
 
 **Tags:** text, content, document
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
@@ -270,6 +299,7 @@ Use cases:
 ### get_json_schema
 
 **Args:**
+
 
 ## VideoOutput
 
@@ -282,8 +312,10 @@ Use cases:
 
 **Tags:** video, media, clip
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
 - **value** (VideoRef)
+
 

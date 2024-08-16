@@ -12,6 +12,11 @@ Use cases:
 - Measure text diversity or similarity
 - Aid in text classification tasks
 
+**Fields:**
+input: str | nodetool.metadata.types.TextRef
+model: LlamaModel
+chunk_size: int
+
 ## Ollama
 
 Run Llama models to generate text responses.
@@ -21,4 +26,12 @@ Use cases:
 - Answer questions or provide explanations
 - Assist with tasks like coding, analysis, or problem-solving
 - Engage in open-ended dialogue on various topics
+
+**Fields:**
+model: LlamaModel
+prompt: str
+system_prompt: str
+temperature: float
+top_k: int
+top_p: float
 

@@ -13,6 +13,7 @@ Use cases:
 
 **Tags:** text, llm, chat, generation, anthropic
 
+**Fields:**
 - **model** (AnthropicModel)
 - **system** (str)
 - **prompt** (str)
@@ -21,4 +22,5 @@ Use cases:
 - **temperature** (float)
 - **top_k** (int)
 - **top_p** (float)
+
 

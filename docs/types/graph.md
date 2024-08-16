@@ -2,6 +2,7 @@
 
 ## Edge
 
+**Fields:**
 - **id** (str | None)
 - **source** (str)
 - **sourceHandle** (str)
@@ -9,18 +10,23 @@
 - **targetHandle** (str)
 - **ui_properties** (dict[str, str] | None)
 
+
 ## Graph
 
+**Fields:**
 - **nodes** (typing.List[nodetool.types.graph.Node])
 - **edges** (typing.List[nodetool.types.graph.Edge])
 
+
 ## Node
 
+**Fields:**
 - **id** (str)
 - **parent_id** (str | None)
 - **type** (str)
 - **data** (typing.Any)
 - **ui_properties** (typing.Any)
+
 
 ### remove_connected_slots
 

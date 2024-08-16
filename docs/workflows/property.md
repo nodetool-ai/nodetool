@@ -4,6 +4,7 @@
 
 Property of a node.
 
+**Fields:**
 - **name** (str)
 - **type** (TypeMetadata)
 - **default** (typing.Optional[typing.Any])
@@ -23,4 +24,5 @@ Property of a node.
 
 Returns a JSON schema for the self.
 **Args:**
+
 

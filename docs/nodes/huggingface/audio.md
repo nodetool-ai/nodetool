@@ -12,6 +12,7 @@ Use cases:
 
 **Tags:** audio, classification, labeling, categorization
 
+**Fields:**
 - **model**: The model ID to use for audio classification (AudioClassifierModelId)
 - **inputs**: The input audio to classify (AudioRef)
 
@@ -21,6 +22,10 @@ Use cases:
 - **context (ProcessingContext)**
 
 ### get_model_id
+
+**Args:**
+
+### get_torch_dtype
 
 **Args:**
 
@@ -40,6 +45,7 @@ Use cases:
 
 **Returns:** dict
 
+
 ## AutomaticSpeechRecognition
 
 Transcribes spoken audio to text.
@@ -51,6 +57,7 @@ Use cases:
 
 **Tags:** asr, speech-to-text, audio, huggingface
 
+**Fields:**
 - **model**: The model ID to use for the speech recognition (ASRModelId)
 - **inputs**: The input audio to transcribe (AudioRef)
 
@@ -79,6 +86,7 @@ Use cases:
 
 **Returns:** AudioRef
 
+
 ## StableAudioNode
 
 Generates audio using the Stable Audio Pipeline based on a text prompt.
@@ -90,6 +98,7 @@ Use cases:
 
 **Tags:** audio, generation, AI, text-to-audio
 
+**Fields:**
 - **prompt**: A text prompt describing the desired audio. (str)
 - **negative_prompt**: A text prompt describing what you don't want in the audio. (str)
 - **duration**: The desired duration of the generated audio in seconds. (float)
@@ -106,6 +115,7 @@ Use cases:
 **Args:**
 - **device (str)**
 
+
 ## TextToAudio
 
 Generates audio (music or sound effects) from text descriptions.
@@ -117,12 +127,14 @@ Use cases:
 
 **Tags:** audio, music, generation, huggingface
 
+**Fields:**
 - **model**: The model ID to use for the audio generation (TextToAudioModelId)
 - **inputs**: The input text to the model (str)
 
 ### get_model_id
 
 **Args:**
+
 
 ## TextToSpeech
 
@@ -135,6 +147,7 @@ Use cases:
 
 **Tags:** tts, audio, speech, huggingface
 
+**Fields:**
 - **model**: The model ID to use for the image generation (TTSModelId)
 - **inputs**: The input text to the model (str)
 
@@ -158,6 +171,7 @@ Use cases:
 
 **Returns:** AudioRef
 
+
 ## ZeroShotAudioClassifier
 
 Classifies audio into categories without the need for training data.
@@ -169,6 +183,7 @@ Use cases:
 
 **Tags:** audio, classification, labeling, categorization, zero-shot
 
+**Fields:**
 - **model**: The model ID to use for the classification (ZeroShotAudioClassifierModelId)
 - **inputs**: The input audio to classify (AudioRef)
 - **candidate_labels**: The candidate labels to classify the audio against, separated by commas (str)
@@ -201,4 +216,5 @@ Use cases:
 - **result (typing.Any)**
 
 **Returns:** dict
+
 

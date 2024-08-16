@@ -9,6 +9,12 @@ Use cases:
 - Creating manageable text segments for parallel processing
 - Generating summaries of text sections
 
+**Fields:**
+text: str | nodetool.metadata.types.TextRef
+length: int
+overlap: int
+separator: str | None
+
 ## Concat
 
 Concatenates two text inputs into a single output.
@@ -17,6 +23,10 @@ Use cases:
 - Joining outputs from multiple text processing nodes
 - Combining parts of sentences or paragraphs
 - Merging text data from different sources
+
+**Fields:**
+a: str | nodetool.metadata.types.TextRef
+b: str | nodetool.metadata.types.TextRef
 
 ## Extract
 
@@ -27,6 +37,11 @@ Use cases:
 - Trimming unwanted parts from text data
 - Focusing on relevant sections of longer documents
 
+**Fields:**
+text: str | nodetool.metadata.types.TextRef
+start: int
+end: int
+
 ## ExtractJSON
 
 Extracts data from JSON using JSONPath expressions.
@@ -35,6 +50,11 @@ Use cases:
 - Retrieving specific fields from complex JSON structures
 - Filtering and transforming JSON data for analysis
 - Extracting nested data from API responses or configurations
+
+**Fields:**
+text: str | nodetool.metadata.types.TextRef
+json_path: str
+find_all: bool
 
 ## ExtractRegex
 
@@ -45,6 +65,13 @@ Use cases:
 - Parsing specific patterns in log files or documents
 - Isolating relevant information from complex text formats
 
+**Fields:**
+text: str | nodetool.metadata.types.TextRef
+regex: str
+dotall: bool
+ignorecase: bool
+multiline: bool
+
 ## FindAllRegex
 
 Finds all regex matches in text as separate substrings.
@@ -53,6 +80,13 @@ Use cases:
 - Identifying all occurrences of a pattern in text
 - Extracting multiple instances of structured data
 - Analyzing frequency and distribution of specific text patterns
+
+**Fields:**
+text: str | nodetool.metadata.types.TextRef
+regex: str
+dotall: bool
+ignorecase: bool
+multiline: bool
 
 ## JSONToDataframe
 
@@ -63,6 +97,9 @@ Use cases:
 - Preparing JSON data for analysis or visualization
 - Structuring unstructured JSON data for further processing
 
+**Fields:**
+text: str | nodetool.metadata.types.TextRef
+
 ## Join
 
 Joins a list of strings into a single string using a specified separator.
@@ -71,6 +108,10 @@ Use cases:
 - Combining multiple text elements with a consistent delimiter
 - Creating comma-separated lists from individual items
 - Assembling formatted text from array elements
+
+**Fields:**
+strings: list
+separator: str
 
 ## ParseJSON
 
@@ -81,6 +122,9 @@ Use cases:
 - Preparing structured data for analysis or storage
 - Extracting configuration or settings from JSON files
 
+**Fields:**
+text: str | nodetool.metadata.types.TextRef
+
 ## Replace
 
 Replaces a substring in a text with another substring.
@@ -89,6 +133,11 @@ Use cases:
 - Correcting or updating specific text patterns
 - Sanitizing or normalizing text data
 - Implementing simple text transformations
+
+**Fields:**
+text: str | nodetool.metadata.types.TextRef
+old: str
+new: str
 
 ## SaveText
 
@@ -99,6 +148,10 @@ Use cases:
 - Creating text files for downstream nodes or external use
 - Archiving text data within the workflow
 
+**Fields:**
+value: str | nodetool.metadata.types.TextRef
+name: str
+
 ## Split
 
 Separates text into a list of strings based on a specified delimiter.
@@ -107,6 +160,10 @@ Use cases:
 - Parsing CSV or similar delimited data
 - Breaking down sentences into words or phrases
 - Extracting specific elements from structured text
+
+**Fields:**
+text: str | nodetool.metadata.types.TextRef
+delimiter: str
 
 ## Template
 
@@ -117,11 +174,36 @@ Use cases:
 - Creating parameterized queries or commands
 - Formatting text output based on variable inputs
 
+Examples:
+- text: "Hello, {name}!" values: {"name": "Alice"} -> "Hello, Alice!"
+- text: "Hello, {0} {1}!" values: ["Alice", "Meyer"] -> "Hello, Alice Meyer!"
+- text: "Hello, {0}!" values: "Alice" -> "Hello, Alice!"
+
+**Fields:**
+string: str | nodetool.metadata.types.TextRef
+values: str | list | dict[str, typing.Any]
+
 ## TextID
 
 Returns the asset id.
 
+**Fields:**
+text: TextRef
+
 ### convert_result
 
+**Args:**
+- **context (ProcessingContext)**
+- **input (list)**
+- **result (str)**
+
+**Returns:** nodetool.metadata.types.TextRef | str
+
 ### to_string
+
+**Args:**
+- **context (ProcessingContext)**
+- **text (nodetool.metadata.types.TextRef | str)**
+
+**Returns:** str
 

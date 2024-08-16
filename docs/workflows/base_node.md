@@ -16,6 +16,7 @@ type checking, and node processing.
 
 **Tags:** 
 
+**Fields:**
 
 ### assign_property
 
@@ -76,6 +77,12 @@ Create a Node object from a dictionary representation.
 
 **Returns:** BaseNode
 
+### get_properties_for_update
+
+Includes all properties in the update message.
+**Args:**
+- **names (list)**
+
 ### has_parent
 
 **Args:**
@@ -113,13 +120,27 @@ Default implementation generates a seed for any field named seed.
 
 **Returns:** typing.Any
 
-### properties_for_update
+### properties_for_client
 
 Properties to send to the client for updating the node.
 Comfy types and tensors are excluded.
 **Args:**
 
-### result_for_update
+### required_inputs
+
+**Args:**
+
+### result_for_all_outputs
+
+Prepares the node result for inclusion in a NodeUpdate message.
+
+This method is used when the node is sending updates for all outputs.
+**Args:**
+- **result (dict)**
+
+**Returns:** dict
+
+### result_for_client
 
 Prepares the node result for inclusion in a NodeUpdate message.
 
@@ -188,6 +209,23 @@ Errors during property assignment are printed regardless of the skip_errors flag
 
 **Returns:** dict
 
+### validate
+
+Validate the node's inputs before processing.
+
+
+**Args:**
+
+- **input_edges (list[Edge])**: The edges connected to the node's inputs.
+
+
+**Raises:**
+
+- **ValueError**: If any input is missing or invalid.
+**Args:**
+- **input_edges (list)**
+
+
 ## Comment
 
 A utility node for adding comments or annotations to the workflow graph.
@@ -196,9 +234,11 @@ comment (list[Any]): The content of the comment, stored as a list of elements.
 
 **Tags:** 
 
+**Fields:**
 - **headline**: The headline for this comment. (str)
 - **comment**: The comment for this node. (list)
 - **comment_color**: The color for the comment. (str)
+
 
 ## GroupNode
 
@@ -206,6 +246,8 @@ A special node type that can contain a subgraph of nodes.
 This node type allows for hierarchical structuring of workflows.
 
 **Tags:** 
+
+**Fields:**
 
 
 ## InputNode
@@ -218,9 +260,11 @@ description (str): A detailed description of the input.
 
 **Tags:** 
 
+**Fields:**
 - **label**: The label for this input node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this input node. (str)
+
 
 ## OutputNode
 
@@ -232,9 +276,18 @@ description (str): A detailed description of the output.
 
 **Tags:** 
 
+**Fields:**
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
+
+### result_for_client
+
+**Args:**
+- **result (dict)**
+
+**Returns:** dict
+
 
 ## Preview
 
@@ -244,8 +297,17 @@ value (Any): The value to be previewed.
 
 **Tags:** 
 
+**Fields:**
 - **value**: The value to preview. (typing.Any)
 - **name**: The name of the preview node. (str)
+
+### result_for_client
+
+**Args:**
+- **result (dict)**
+
+**Returns:** dict
+
 
 ### add_comfy_classname
 
@@ -337,7 +399,11 @@ Retrieve all registered and visible node classes.
 **Returns:**
 
 - **list[type[BaseNode]]**: A list of all registered node classes that are marked as visible.
-**Returns:** list
+### memoized_class_method
+
+A decorator that implements memoization for class methods using a functional approach.
+**Args:**
+- **func (typing.Callable[..., ~T])**
 
 ### type_metadata
 
