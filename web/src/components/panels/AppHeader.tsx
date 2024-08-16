@@ -33,6 +33,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { TOOLTIP_DELAY } from "../../config/constants";
+import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -174,8 +175,9 @@ function AppHeader() {
     handleOpenHelp,
     handleCloseWelcome,
     handleOpenWelcome,
-    handleOpenChat,
   } = useAppHeaderStore();
+
+  const { handlePanelToggle: toggleChat } = useResizePanel("left");
 
   const handleNavigateToLastWorkflow = () => {
     if (lastWorkflow) {
@@ -260,9 +262,8 @@ function AppHeader() {
                 <Button
                   aria-controls="simple-menu"
                   aria-haspopup="true"
-                  className={`nav-button ${
-                    path.startsWith("/workflows") ? "active" : ""
-                  }`}
+                  className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
+                    }`}
                   onClick={() => navigate("/workflows")}
                 >
                   <WorkflowsIcon />
@@ -282,6 +283,16 @@ function AppHeader() {
                   Assets
                 </Button>
               </Tooltip>
+              <Tooltip
+                title="Open Nodetool Chat Assistant"
+                enterDelay={TOOLTIP_DELAY}
+              >
+                <Button className="action-button" onClick={toggleChat}>
+                  <ChatIcon />
+                  Chat
+                </Button>
+              </Tooltip>
+
             </Box>
           </div>
 
@@ -301,16 +312,6 @@ function AppHeader() {
           <Alert />
 
           <Box className="buttons-right">
-            <Tooltip
-              title="Open Nodetool Chat Assistant"
-              enterDelay={TOOLTIP_DELAY}
-            >
-              <Button className="action-button" onClick={handleOpenChat}>
-                <ChatIcon />
-                Chat
-              </Button>
-            </Tooltip>
-
             <Popover
               open={helpOpen}
               onClose={handleCloseHelp}

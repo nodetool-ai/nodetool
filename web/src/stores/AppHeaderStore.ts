@@ -14,7 +14,6 @@ interface AppHeaderState {
     handleCloseHelp: () => void;
     handleOpenWelcome: () => void;
     handleCloseWelcome: () => void;
-    handleOpenChat: () => void;
 }
 
 export const useAppHeaderStore = create<AppHeaderState>((set, get) => ({
@@ -33,5 +32,4 @@ export const useAppHeaderStore = create<AppHeaderState>((set, get) => ({
     handleCloseHelp: () => set({ helpOpen: false }),
     handleOpenWelcome: () => set({ welcomeOpen: true }),
     handleCloseWelcome: () => set({ welcomeOpen: false }),
-    handleOpenChat: () => set({ helpIndex: 4, helpOpen: true }),
 }));

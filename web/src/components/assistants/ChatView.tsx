@@ -133,8 +133,6 @@ const styles = (theme: any) =>
 type ChatViewProps = {
   isLoading?: boolean;
   messages: Array<Message>;
-  showMessages?: boolean;
-  setShowMessages?: (show: boolean) => void;
   sendMessage: (prompt: string) => Promise<void>;
 };
 
@@ -171,8 +169,6 @@ const MessageView = (msg: Message) => {
 const ChatView = ({
   isLoading,
   messages,
-  showMessages,
-  setShowMessages,
   sendMessage
 }: ChatViewProps) => {
   const { isKeyPressed } = useKeyPressedStore();
@@ -203,7 +199,6 @@ const ChatView = ({
 
   // post message
   const chatPost = useCallback(() => {
-    setShowMessages?.(true);
     setSubmitted(true);
 
     if (!loading && prompt.length > 0) {
@@ -214,7 +209,7 @@ const ChatView = ({
         console.error("Error sending help message:", error);
       }
     }
-  }, [loading, prompt, setShowMessages]);
+  }, [loading, prompt]);
 
   // scroll to bottom
   const scrollToBottom = useCallback(() => {
@@ -233,12 +228,10 @@ const ChatView = ({
 
   return (
     <div css={styles}>
-      {showMessages && (
-        <ul className="messages" ref={messagesListRef}>
-          {messages.map(MessageView)}
-          {loading && <CircularProgress size={24} />}
-        </ul>
-      )}
+      <ul className="messages" ref={messagesListRef}>
+        {messages.map(MessageView)}
+        {loading && <CircularProgress size={24} />}
+      </ul>
 
       {isLoading && <CircularProgress size={24} />}
 
@@ -262,7 +255,6 @@ const ChatView = ({
                 chatPost();
               }
             }}
-            onFocus={() => setShowMessages?.(true)}
             disabled={submitted}
             minRows={1}
             maxRows={8}
