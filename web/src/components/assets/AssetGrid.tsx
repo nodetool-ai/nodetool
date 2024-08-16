@@ -30,8 +30,7 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
-import { Asset } from "../../stores/ApiTypes";
-import { useGetAssets } from "./useGetAssets";
+import useAssets from "../../serverState/useAssets";
 
 const styles = (theme: any) =>
   css({
@@ -67,26 +66,37 @@ const styles = (theme: any) =>
 interface AssetGridProps {
   maxItemSize?: number;
   itemSpacing?: number;
-  assets?: Asset[];
   isHorizontal?: boolean;
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
   maxItemSize = 100,
   itemSpacing = 5,
-  assets,
   isHorizontal,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { folders, otherAssets, error } = useGetAssets(searchTerm, assets);
+  const {
+    assets: { files },
+    currentFolderId,
+    isLoading,
+    error,
+    getFilteredAssets,
+    deleteAsset,
+    updateAsset,
+    navigateToFolder,
+  } = useAssets();
+
+  const { folders: filteredFolders, files: filteredFiles } = getFilteredAssets({
+    searchTerm,
+  });
 
   const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
+
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
   const { mutation: moveMutation } = useAssetUpdate();
 
   const currentFolder = useAssetStore((state) => state.currentFolder);
-  const currentFolderId = useAssetStore((state) => state.currentFolderId);
 
   const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
   const spaceKeyPressed = useKeyPressedStore((state) =>
@@ -106,7 +116,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     setSelectedAssetIds,
     handleSelectAllAssets,
     handleDeselectAssets,
-  } = useAssetSelection(otherAssets);
+  } = useAssetSelection(files);
 
   const {
     deleteDialogOpen,
@@ -178,8 +188,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     setSearchTerm("");
   }, []);
 
-  const memoizedFolders = useMemo(() => folders, [folders]);
-  const memoizedOtherAssets = useMemo(() => otherAssets, [otherAssets]);
+  if (isLoading) {
+    return <Typography>Loading...</Typography>;
+  }
 
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
@@ -204,11 +215,11 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             flexDirection: isHorizontal ? "row" : "column",
           }}
         >
-          <FolderList folders={memoizedFolders} isHorizontal={isHorizontal} />
-          <AssetGridContent
-            itemSpacing={itemSpacing}
-            assets={memoizedOtherAssets}
+          <FolderList
+            isHorizontal={isHorizontal}
+            // onNavigate={navigateToFolder}
           />
+          <AssetGridContent itemSpacing={itemSpacing} assets={filteredFiles} />
         </div>
       </Dropzone>
       <Divider />

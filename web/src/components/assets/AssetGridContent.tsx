@@ -65,18 +65,17 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   itemSpacing = 2,
   assets,
 }) => {
-  const { sortedAssets } = useAssets();
-  const { selectedAssetIds, setSelectedAssetIds, handleSelectAsset } =
-    useAssetSelection(sortedAssets);
+  const { refetchAssets } = useAssets(); // Get refetch function from useAssets
+  const selectedFolderId = useSessionStateStore(
+    (state) => state.selectedFolderId
+  ); // Get selectedFolderId from the session state store
+
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
-  const { sortedAssetsByType, refetch } = useAssets();
-  const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
+  const { selectedAssetIds, setSelectedAssetIds, handleSelectAsset } =
+    useAssetSelection(assets);
   const { openDeleteDialog, openRenameDialog } = useAssetDialog();
-  const setFilteredAssets = useSessionStateStore(
-    (state) => state.setFilteredAssets
-  );
 
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
@@ -158,9 +157,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       openDeleteDialog,
       openRenameDialog,
       handleSelectAsset,
-      refetch,
       setSelectedAssetIds,
       onDragStart,
+      refetch: refetchAssets, // Pass the refetch function
     }),
     [
       preparedItems,
@@ -171,9 +170,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       openDeleteDialog,
       openRenameDialog,
       handleSelectAsset,
-      refetch,
       setSelectedAssetIds,
       onDragStart,
+      refetchAssets,
     ]
   );
 
@@ -205,6 +204,28 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       listRef.current.resetAfterIndex(0);
     }
   }, [gridDimensions, assetItemSize, preparedItems]);
+
+  useEffect(() => {
+    if (selectedFolderId) {
+      refetchAssets().then(() => {
+        console.log("Current assets after refetch:", assets); // Debugging to check assets
+      });
+    }
+  }, [selectedFolderId, refetchAssets, assets]);
+
+  // Refetch assets whenever the selectedFolderId changes
+  useEffect(() => {
+    if (selectedFolderId) {
+      refetchAssets().then((fetchedAssets) => {
+        // Debugging to check which assets are fetched
+        console.log(
+          "Fetched assets for folder:",
+          selectedFolderId,
+          fetchedAssets
+        );
+      });
+    }
+  }, [selectedFolderId, refetchAssets]);
 
   return (
     <div

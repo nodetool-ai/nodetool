@@ -1,155 +1,178 @@
-import { useCallback, useMemo } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Asset, AssetList } from "../stores/ApiTypes";
+import { useState, useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAssetStore } from "../stores/AssetStore";
+import { Asset } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
-import useAuth from "../stores/useAuth";
 
-type AssetLoadParams = {
-  pageParam?: string;
+type SortOrder = "name" | "date";
+type FilterOptions = {
+  searchTerm: string;
+  contentType?: string | null;
 };
 
-const useAssets = () => {
-  const { user: currentUser } = useAuth();
-  const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
+type AssetUpdate = {
+  id: string;
+  status?: string;
+  name?: string;
+  parent_id?: string;
+  content_type?: string;
+  metadata?: Record<string, never>;
+  data?: string;
+  duration?: number;
+};
 
-  const { currentFolderId, loadCurrentFolder, loadFolderById } = useAssetStore(
-    (state) => ({
-      currentFolderId: state.currentFolderId,
-      loadCurrentFolder: state.loadCurrentFolder,
-      loadFolderById: state.loadFolderById,
-    })
+export const useAssets = (initialFolderId: string | null = null) => {
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(
+    initialFolderId
   );
+  const {
+    load,
+    loadFolderTree,
+    update,
+    delete: deleteAsset,
+    createFolder,
+  } = useAssetStore();
+  const { settings } = useSettingsStore();
+  const queryClient = useQueryClient();
 
-  interface SortedAssetsByType {
-    assetsByType: Record<string, Asset[]>;
-    totalCount: number;
-  }
+  // Fetch assets in the current folder
+  const fetchAssets = useCallback(async () => {
+    if (!currentFolderId) return [];
+    const result = await load({ parent_id: currentFolderId });
+    console.log("Fetched assets for folder:", currentFolderId, result.assets);
+    return result.assets;
+  }, [load, currentFolderId]);
 
-  const sortAssetsByType = useCallback(
-    (
-      assets: Asset[],
-      sortOrder: "asc" | "desc" = "asc"
-    ): SortedAssetsByType => {
-      const assetsByType: Record<string, Asset[]> = {
-        folder: [],
-        image: [],
-        audio: [],
-        video: [],
-        text: [],
-        other: [],
-      };
-      let totalCount = 0;
-
-      assets.forEach((asset) => {
-        const mainType = asset.content_type.split("/")[0];
-        if (Object.prototype.hasOwnProperty.call(assetsByType, mainType)) {
-          assetsByType[mainType].push(asset);
-        } else {
-          assetsByType.other.push(asset);
-        }
-        totalCount++;
-      });
-
-      Object.keys(assetsByType).forEach((type) => {
-        if (assetsOrder === "date" && assets[0]?.created_at) {
-          assetsByType[type].sort((a, b) => {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
-          });
-        } else {
-          assetsByType[type].sort((a, b) =>
-            sortOrder === "asc"
-              ? a.name.localeCompare(b.name)
-              : b.name.localeCompare(a.name)
-          );
-        }
-      });
-
-      return { assetsByType, totalCount };
-    },
-    [assetsOrder]
-  );
-
-  const sortAssetsByTypeFlat = useCallback(
-    (
-      assets: Asset[],
-      sortOrder: "asc" | "desc" = "asc",
-      includeFolders: boolean = false,
-      onlyFolders: boolean = false
-    ): Asset[] => {
-      const sortedByType = sortAssetsByType(assets, sortOrder);
-      const flatSortedAssets = Object.values(sortedByType.assetsByType).flat();
-      const filteredAssets = onlyFolders
-        ? flatSortedAssets.filter((asset) => asset.content_type === "folder")
-        : includeFolders
-        ? flatSortedAssets
-        : flatSortedAssets.filter((asset) => asset.content_type !== "folder");
-
-      return filteredAssets;
-    },
-    [sortAssetsByType]
-  );
-
-  const loadFolderId = useCallback(
-    async (id: string) => {
-      return await loadFolderById(id);
-    },
-    [loadFolderById]
-  );
-
-  const { data, error, isLoading, refetch } = useQuery<AssetList, Error>({
-    queryKey: ["assets", { parent_id: currentFolderId || currentUser?.id }],
-    queryFn: () => loadCurrentFolder(),
+  const {
+    data: currentFolderAssets,
+    error: currentFolderError,
+    isLoading: isLoadingCurrentFolder,
+  } = useQuery({
+    queryKey: ["assets", currentFolderId],
+    queryFn: fetchAssets,
+    enabled: !!currentFolderId, // Only fetch if folderId is available
   });
 
-  const currentAssets = useMemo(() => {
-    return data ? data.assets : [];
-  }, [data]);
+  // Fetch all folders
+  const fetchAllFolders = useCallback(async () => {
+    return await loadFolderTree(settings.assetsOrder);
+  }, [loadFolderTree, settings.assetsOrder]);
 
-  const getAssetById = useCallback(
-    (assetId: string): Asset | undefined => {
-      return currentAssets.find((asset) => asset.id === assetId);
+  const {
+    data: folderTree,
+    error: folderTreeError,
+    isLoading: isLoadingFolderTree,
+  } = useQuery({
+    queryKey: ["folderTree", settings.assetsOrder],
+    queryFn: fetchAllFolders,
+  });
+
+  // Sort assets
+  const sortAssets = useCallback((assetsToSort: Asset[], order: SortOrder) => {
+    return [...assetsToSort].sort((a, b) => {
+      if (order === "name") {
+        return a.name.localeCompare(b.name);
+      } else {
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+    });
+  }, []);
+
+  // Filter assets
+  const filterAssets = useCallback(
+    (assetsToFilter: Asset[], options: FilterOptions) => {
+      return assetsToFilter.filter((asset) => {
+        const nameMatch = asset.name
+          .toLowerCase()
+          .includes(options.searchTerm.toLowerCase());
+        const typeMatch = options.contentType
+          ? asset.content_type === options.contentType
+          : true;
+        return nameMatch && typeMatch;
+      });
     },
-    [currentAssets]
+    []
   );
 
-  const getAssetsById = useCallback(
-    (assetIds: string[]): Asset[] => {
-      return currentAssets.filter((asset) => assetIds.includes(asset.id));
+  // Process assets (sort and separate folders/files)
+  const processedAssets = useMemo(() => {
+    if (!currentFolderAssets) return { folders: [], files: [] };
+    const sortedAssets = sortAssets(currentFolderAssets, settings.assetsOrder);
+    const folders = sortedAssets.filter(
+      (asset) => asset.content_type === "folder"
+    );
+    const files = sortedAssets.filter(
+      (asset) => asset.content_type !== "folder"
+    );
+    return { folders, files };
+  }, [currentFolderAssets, sortAssets, settings.assetsOrder]);
+
+  // Get filtered assets
+  const getFilteredAssets = useCallback(
+    (options: FilterOptions) => {
+      const { folders, files } = processedAssets;
+      return {
+        folders: filterAssets(folders, options),
+        files: filterAssets(files, options),
+      };
     },
-    [currentAssets]
+    [processedAssets, filterAssets]
   );
 
-  const sortedAssetsByType = useMemo(() => {
-    return sortAssetsByType(currentAssets);
-  }, [currentAssets, sortAssetsByType]);
+  // Create folder mutation
+  const createFolderMutation = useMutation({
+    mutationFn: (name: string) => createFolder(currentFolderId, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
+      queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+    },
+  });
 
-  const sortedAssets = useMemo(() => {
-    return sortAssetsByTypeFlat(currentAssets);
-  }, [currentAssets, sortAssetsByTypeFlat]);
+  // Delete asset mutation
+  const deleteAssetMutation = useMutation({
+    mutationFn: (assetId: string) => deleteAsset(assetId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
+      queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+    },
+  });
 
-  const sortedFolders = useMemo(() => {
-    return sortAssetsByTypeFlat(currentAssets, "asc", true, true);
-  }, [currentAssets, sortAssetsByTypeFlat]);
+  // Update asset mutation
+  const updateAssetMutation = useMutation({
+    mutationFn: (updateData: AssetUpdate) => update(updateData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
+      queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+    },
+  });
 
-  const sortedFiles = useMemo(() => {
-    return sortAssetsByTypeFlat(currentAssets, "asc", false);
-  }, [currentAssets, sortAssetsByTypeFlat]);
+  // Navigate to folder
+  const navigateToFolder = useCallback((folderId: string | null) => {
+    setCurrentFolderId(folderId);
+  }, []);
+
+  const isLoading = isLoadingCurrentFolder || isLoadingFolderTree;
+  const error = currentFolderError || folderTreeError;
+  const refetchAssets = () =>
+    queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
+  const refetchFolderTree = () =>
+    queryClient.invalidateQueries({ queryKey: ["folderTree"] });
 
   return {
-    sortedAssets,
-    sortedAssetsByType,
-    sortedFolders,
-    sortedFiles,
-    currentAssets,
-    loadFolderId,
-    getAssetById,
-    getAssetsById,
+    assets: processedAssets,
+    folderTree,
+    currentFolderId,
     isLoading,
     error,
-    refetch,
+    getFilteredAssets,
+    createFolder: createFolderMutation.mutate,
+    deleteAsset: deleteAssetMutation.mutate,
+    updateAsset: updateAssetMutation.mutate,
+    navigateToFolder,
+    refetchAssets,
+    refetchFolderTree,
   };
 };
 

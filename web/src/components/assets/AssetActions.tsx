@@ -8,21 +8,18 @@ import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import { Refresh } from "@mui/icons-material";
 import {
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  ToggleButton,
-  ToggleButtonGroup,
-} from "@mui/material";
-
-import {
   Button,
   ButtonGroup,
   CircularProgress,
   Tooltip,
   Popover,
   TextField,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 
 import useAssets from "../../serverState/useAssets";
@@ -115,7 +112,7 @@ const AssetActions = ({
 }: AssetActionsProps) => {
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-  const { refetch, isLoading } = useAssets();
+  const { refetchAssets, isLoading } = useAssets(); // Use refetchAssets instead of refetch
   const [createFolderAnchor, setCreateFolderAnchor] =
     useState<HTMLButtonElement | null>(null);
   const [createFolderName, setCreateFolderName] =
@@ -188,7 +185,7 @@ const AssetActions = ({
           </Button>
         </Tooltip>
         <Tooltip enterDelay={TOOLTIP_DELAY} title="Refresh">
-          <Button onClick={() => refetch()}>
+          <Button onClick={() => refetchAssets()}>
             <Refresh />
           </Button>
         </Tooltip>
@@ -282,7 +279,7 @@ const AssetActions = ({
                     type: "success",
                     content: `CREATE FOLDER: ${createFolderName}`,
                   });
-                  refetch();
+                  refetchAssets(); // Refetch the assets after creating the folder
                 }
               );
             }}

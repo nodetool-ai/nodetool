@@ -419,7 +419,8 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
               role="tooltip"
               className="name info"
             >
-              {asset.name}
+              {/* {asset.name} */}
+              {asset.parent_id}
             </Typography>
           )}
         </>

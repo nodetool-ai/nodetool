@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
@@ -7,7 +6,7 @@ import {
   DialogTitle,
   Button,
   LinearProgress,
-  Typography
+  Typography,
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import { UseMutationResult } from "@tanstack/react-query";
@@ -26,32 +25,45 @@ const AssetDeleteConfirmation = ({
   dialogOpen,
   setDialogOpen,
   assets,
-  mutation
+  mutation,
 }: AssetDeleteConfirmationProps) => {
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [hasNonEmptyFolder, setHasNonEmptyFolder] = useState(false);
-  const { getAssetsById, loadFolderId } = useAssets();
+  const {
+    assets: { folders, files },
+    folderTree,
+  } = useAssets(); // Updated properties
+
   const assetItems = useMemo(
-    () => getAssetsById(assets),
-    [assets, getAssetsById]
+    () => folders.concat(files).filter((asset) => assets.includes(asset.id)),
+    [assets, folders, files]
   );
 
   const checkFolders = useCallback(async () => {
-    const folders = assetItems.filter(
-      (asset) => asset.content_type === "folder"
-    );
+    try {
+      const folders = assetItems.filter(
+        (asset: Asset) => asset.content_type === "folder"
+      );
 
-    let hasNonEmpty = false;
-    for (const folder of folders) {
-      const childAssets = await loadFolderId(folder.id);
-      if (childAssets.assets.length > 0) {
-        hasNonEmpty = true;
-        break;
+      let hasNonEmpty = false;
+      if (folderTree) {
+        // Check if folderTree is defined
+        for (const folder of folders) {
+          const childAssets =
+            folderTree.find((f: { id: string }) => f.id === folder.id)
+              ?.children || [];
+          if (childAssets.length > 0) {
+            hasNonEmpty = true;
+            break;
+          }
+        }
       }
-    }
 
-    setHasNonEmptyFolder(hasNonEmpty);
-  }, [assetItems, loadFolderId]);
+      setHasNonEmptyFolder(hasNonEmpty);
+    } catch (error) {
+      console.error("Error checking folders:", error);
+    }
+  }, [assetItems, folderTree]);
 
   useEffect(() => {
     if (dialogOpen) {
@@ -65,8 +77,12 @@ const AssetDeleteConfirmation = ({
   }, [dialogOpen, assetItems, checkFolders]);
 
   const executeDeletion = useCallback(async () => {
-    await mutation.mutateAsync(assets);
-    setDialogOpen(false);
+    try {
+      await mutation.mutateAsync(assets);
+      setDialogOpen(false);
+    } catch (error) {
+      console.error("Error deleting assets:", error);
+    }
   }, [mutation, assets, setDialogOpen]);
 
   const screenWidth = window.innerWidth;
@@ -88,30 +104,30 @@ const AssetDeleteConfirmation = ({
       componentsProps={{
         backdrop: {
           style: {
-            backgroundColor: "transparent"
-          }
-        }
+            backgroundColor: "transparent",
+          },
+        },
       }}
       sx={{
         left: `${safeLeft}px`,
-        top: `${dialogPosition.y - 300}px`
+        top: `${dialogPosition.y - 300}px`,
       }}
     >
       <DialogTitle className="dialog-title" id="alert-dialog-title">
-        {mutation.isPending && (
+        {mutation.status === "pending" && ( // Corrected status comparison
           <>
             <Typography variant="h5" color="error">
-              {"deleting assets..."}
+              {"Deleting assets..."}
             </Typography>
             <LinearProgress aria-label="deleting-assets" color="secondary" />
           </>
         )}
-        {mutation.isError && (
+        {mutation.status === "error" && (
           <Typography variant="h5" color="error">
             {"Error deleting assets."}
           </Typography>
         )}
-        {mutation.isIdle && !hasNonEmptyFolder && (
+        {mutation.status === "idle" && !hasNonEmptyFolder && (
           <>
             <span>
               {`${assets?.length} ${assets?.length === 1 ? "asset" : "assets"}`}

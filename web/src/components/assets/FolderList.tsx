@@ -1,16 +1,23 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Asset } from "../../stores/ApiTypes";
-import FolderItem from "./FolderItem";
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import FolderItem from "./FolderItem";
 import useAssets from "../../serverState/useAssets";
+import useSessionStateStore from "../../stores/SessionStateStore";
+import { useAssetStore } from "../../stores/AssetStore";
 
 const INITIAL_FOLDER_LIST_HEIGHT = 150;
 const MIN_FOLDER_LIST_HEIGHT = 100;
 const MAX_FOLDER_LIST_HEIGHT = 800;
 const RESIZE_HANDLE_HEIGHT = 20;
-const LIST_MIN_WIDTH = "300px"; // used if isHorizontal
+const LIST_MIN_WIDTH = "300px";
 
 const styles = (theme: any) =>
   css({
@@ -61,11 +68,10 @@ const styles = (theme: any) =>
   });
 
 interface FolderListProps {
-  folders: Asset[];
   isHorizontal?: boolean;
 }
 
-const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
+const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const [folderListHeight, setFolderListHeight] = useState(
     INITIAL_FOLDER_LIST_HEIGHT
   );
@@ -75,9 +81,15 @@ const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
   const initialMouseY = useRef<number>(0);
   const initialHeight = useRef<number>(INITIAL_FOLDER_LIST_HEIGHT);
 
-  const { sortedAssets } = useAssets();
-  const { selectedAssetIds, handleSelectAsset } =
-    useAssetSelection(sortedAssets);
+  const { folderTree } = useAssets();
+  const selectedFolderId = useSessionStateStore(
+    (state) => state.selectedFolderId
+  );
+  const setSelectedFolderId = useSessionStateStore(
+    (state) => state.setSelectedFolderId
+  );
+
+  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -120,6 +132,37 @@ const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
     };
   }, [isResizing, handleResize, handleResizeEnd]);
 
+  // Updated handleSelect function to work with selectedFolderId
+  const handleSelect = (folderId: string) => {
+    setSelectedFolderId(folderId);
+    setCurrentFolderId(folderId);
+  };
+
+  const renderFolder = (node: any) => {
+    if (!node || !node.id) return null;
+
+    const hasChildren = node.children && node.children.length > 0;
+
+    return (
+      <Accordion key={node.id}>
+        <AccordionSummary
+          expandIcon={hasChildren ? <ExpandMoreIcon /> : null}
+          aria-controls={`panel-${node.id}-content`}
+          id={`panel-${node.id}-header`}
+        >
+          <FolderItem folder={node} onSelect={() => handleSelect(node.id)} />
+        </AccordionSummary>
+        {hasChildren && (
+          <AccordionDetails>
+            <Box sx={{ paddingLeft: 2 }}>
+              {node.children.map((childNode: any) => renderFolder(childNode))}
+            </Box>
+          </AccordionDetails>
+        )}
+      </Accordion>
+    );
+  };
+
   return (
     <div
       className="folder-list-container"
@@ -132,14 +175,11 @@ const FolderList: React.FC<FolderListProps> = ({ folders, isHorizontal }) => {
       }}
       ref={containerRef}
     >
+      {selectedFolderId}
       <div className="folder-list">
-        {folders.map((folder) => (
-          <FolderItem
-            key={folder.id}
-            folder={folder}
-            onSelect={() => handleSelectAsset(folder.id)}
-          />
-        ))}
+        {Object.values(folderTree || {}).map((rootFolder: any) =>
+          renderFolder(rootFolder)
+        )}
       </div>
       <div
         className={`resize-handle ${isResizing ? "resizing" : ""}`}

@@ -1,3 +1,5 @@
+/** @jsxImportSource @emotion/react */
+
 import { create } from "zustand";
 import { Asset } from "./ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
@@ -15,6 +17,8 @@ type SessionStateStore = {
   selectedAssets: Asset[];
   selectedAssetIds: string[];
   setSelectedAssetIds: (ids: string[]) => void;
+  selectedFolderId: string | null; // New state for selected folder
+  setSelectedFolderId: (id: string | null) => void; // New setter for selected folder
   filteredAssets: SortedAssetsByType;
   setFilteredAssets: (sortedAssetsByType: SortedAssetsByType) => void;
   clipboardData: string | null;
@@ -27,8 +31,6 @@ type SessionStateStore = {
 
 const useSessionStateStore = create<SessionStateStore>((set) => ({
   // NODE SELECTION
-  // NodeEditor + useDragHandlers set the selected nodes.
-  // selectedNodeIds are kept in sync with selectedNodes.
   selectedNodeIds: [],
   selectedNodes: [],
   setSelectedNodes: (nodes: Node[]) => {
@@ -53,6 +55,12 @@ const useSessionStateStore = create<SessionStateStore>((set) => ({
     };
     fetchAndSetAssets();
   },
+
+  // FOLDER SELECTION (new)
+  selectedFolderId: null,
+  setSelectedFolderId: (id) => set({ selectedFolderId: id }),
+
+  // FILTERED ASSETS
   filteredAssets: {
     assetsByType: {},
     totalCount: 0,
@@ -60,6 +68,8 @@ const useSessionStateStore = create<SessionStateStore>((set) => ({
   setFilteredAssets: (sortedAssetsByType) => {
     set({ filteredAssets: sortedAssetsByType });
   },
+
+  // AUDIO ASSET
   currentAudioAsset: null,
   setCurrentAudioAsset: (asset) => set({ currentAudioAsset: asset }),
 
