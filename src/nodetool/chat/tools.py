@@ -23,7 +23,11 @@ def sanitize_node_name(node_name: str) -> str:
     Returns:
         str: The sanitized node name.
     """
-    return node_name.replace(".", "_")
+    segments = node_name.split(".")
+    if len(node_name) > 50:
+        return segments[0] + "__" + segments[-1]
+    else:
+        return "__".join(node_name.split("."))
 
 
 class Tool:
@@ -46,7 +50,7 @@ class Tool:
     async def process(
         self, context: ProcessingContext, thread_id: str, params: dict
     ) -> Any:
-        raise NotImplementedError()
+        return params
 
 
 class ProcessNodeTool(Tool):

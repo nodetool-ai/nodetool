@@ -1,5 +1,4 @@
 from datetime import datetime
-import uuid
 from typing import Any, Optional
 from nodetool.models.condition_builder import Field
 from nodetool.types.graph import Graph as APIGraph

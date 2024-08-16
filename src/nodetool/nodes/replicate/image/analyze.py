@@ -315,10 +315,10 @@ class Llava34B(ReplicateNode):
     prompt: str | None = Field(
         title="Prompt", description="Prompt to use for text generation", default=None
     )
-    history: list | None = Field(
+    history: list = Field(
         title="History",
         description="List of earlier chat messages, alternating roles, starting with user input. Include <image> to specify which message to attach the image to.",
-        default=None,
+        default_factory=list,
     )
     max_tokens: int = Field(
         title="Max Tokens",

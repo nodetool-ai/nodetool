@@ -160,12 +160,16 @@ def convert_to_openai_message(
                 type="function",
                 id=tool_call.id,
                 function=Function(
-                    name=tool_call.function_name,
-                    arguments=json.dumps(tool_call.function_args),
+                    name=tool_call.name,
+                    arguments=json.dumps(tool_call.args, default=default_serializer),
                 ),
             )
             for tool_call in message.tool_calls
         ]
+        if len(tool_calls) == 0:
+            return ChatCompletionAssistantMessageParam(
+                role=message.role, content=message.content
+            )
         return ChatCompletionAssistantMessageParam(
             role=message.role, content=message.content, tool_calls=tool_calls
         )
@@ -304,6 +308,7 @@ async def create_anthropic_completion(
         message
         for message in messages
         if not isinstance(message, ChatSystemMessageParam)
+        and not message.role == "tool"
     ]
     if len(tool_choice) > 0:
         kwargs["tool_choice"] = tool_choice

@@ -2,7 +2,7 @@
 
 ## NodeTool
 
-Tool for creating a new workflow.
+Tool for creating a new node.
 
 ## WorkflowTool
 

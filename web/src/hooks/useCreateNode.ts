@@ -18,7 +18,6 @@ export const useCreateNode = () => {
   const handleCreateNode = useCallback(
     (metadata: NodeMetadata) => {
       if (!menuPosition || !reactFlowInstance) return;
-
       const position = {
         x: menuPosition.x,
         y: menuPosition.y
@@ -27,10 +26,8 @@ export const useCreateNode = () => {
       if (metadata.node_type === LOOP_NODE_TYPE) {
         createLoopNode(metadata, position);
       } else {
-        const newNode = createNode(
-          metadata,
-          reactFlowInstance.screenToFlowPosition(position)
-        );
+        const rfPos = reactFlowInstance.screenToFlowPosition(position);
+        const newNode = createNode(metadata, rfPos);
         addNode(newNode);
       }
     },

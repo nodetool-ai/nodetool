@@ -1,9 +1,12 @@
 import inspect
+import json
 import os
 from typing import IO, Any, Type, Union
 import importlib
 from pydantic import BaseModel
 import dotenv
+
+from nodetool.workflows.base_node import BaseNode
 
 dotenv.load_dotenv()
 
@@ -236,14 +239,14 @@ def document_class(file: Any, cls: Type[Any], compact: bool = False) -> None:
             file.write(f"**Tags:** {', '.join(tags)}\n\n")
 
     if issubclass(cls, BaseModel):
-        file.write("**Fields:**\n")
         if compact:
-            for name, field in cls.model_fields.items():
-                if field.annotation:
-                    file.write(f"{name}: {type_to_str(field.annotation)}\n")
-                else:
-                    file.write(f"{name}: Any\n")
+            if issubclass(cls, BaseNode):
+                try:
+                    file.write(json.dumps(cls.get_json_schema()) + "\n")
+                except Exception as e:
+                    print(f"Error generating schema for {cls.__name__}: {e}")
         else:
+            file.write("**Fields:**\n")
             for name, field in cls.model_fields.items():
                 file.write(f"- **{name}**")
                 if field.description:
@@ -344,6 +347,3 @@ if __name__ == "__main__":
 
     # Generate full documentation
     generate_documentation(nodetool, "docs")
-
-    # Generate compact documentation
-    generate_documentation(nodetool.nodes, "src/nodetool/chat/docs", compact=True)
