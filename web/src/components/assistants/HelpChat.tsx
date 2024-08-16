@@ -1,43 +1,14 @@
-import React, { useCallback, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { v4 as uuidv4 } from 'uuid';
-import ChatView from './ChatView'; // Assuming ChatView is in the same directory
-import { Message, MessageCreateRequest } from '../../stores/ApiTypes';
-
-import { client } from '../../stores/ApiClient';
-import { Button } from '@mui/material';
-
-const fetchMessages = async (threadId: string): Promise<Message[]> => {
-    const { data, error } = await client.GET('/api/messages/', { params: { query: { thread_id: threadId } } });
-    if (error) {
-        throw error;
-    }
-    return data.messages;
-};
-
-const sendMessage = async (message: MessageCreateRequest): Promise<Message[]> => {
-    const { data, error } = await client.POST('/api/messages/help', { body: message });
-    if (error) {
-        throw error;
-    }
-    return data;
-};
+import React, { useCallback, useEffect } from 'react';
+import ChatView from './ChatView';
+import { MessageCreateRequest, Workflow } from '../../stores/ApiTypes';
+import { useChatStore } from '../../stores/ChatStore';
 
 const HelpChat: React.FC = () => {
-    const [showMessages, setShowMessages] = useState(true);
-    const [threadId, setThreadId] = useState<string>(uuidv4());
-    const queryClient = useQueryClient();
-    const { data: messages = [] } = useQuery({
-        queryKey: ['chatMessages', threadId],
-        queryFn: () => fetchMessages(threadId),
-    });
+    const { threadId, messages, isLoading, fetchMessages, sendMessage } = useChatStore();
 
-    const mutation = useMutation({
-        mutationFn: sendMessage,
-        onSuccess: useCallback((newMessages: Message[]) => {
-            queryClient.setQueryData(['chatMessages', threadId], messages.concat(newMessages));
-        }, [queryClient, messages, threadId]),
-    });
+    useEffect(() => {
+        fetchMessages(threadId);
+    }, [threadId, fetchMessages]);
 
     const handleSendMessage = useCallback(async (prompt: string) => {
         const messageRequest: MessageCreateRequest = {
@@ -45,16 +16,14 @@ const HelpChat: React.FC = () => {
             role: 'user',
             content: prompt,
         };
-        await mutation.mutateAsync(messageRequest);
-    }, [threadId, mutation]);
+        await sendMessage(messageRequest);
+    }, [threadId, sendMessage]);
 
     return (
         <div className="help-chat">
             <ChatView
-                isLoading={mutation.isPending}
+                isLoading={isLoading}
                 messages={messages}
-                showMessages={showMessages}
-                setShowMessages={setShowMessages}
                 sendMessage={handleSendMessage}
             />
         </div>

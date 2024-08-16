@@ -1,7 +1,8 @@
+from datetime import datetime
 import json
 import os
 
-from nodetool.chat.chat import process_messages
+from nodetool.chat.chat import process_messages, process_tool_calls
 from nodetool.chat.tools import Tool
 from nodetool.common.get_files import get_content
 from nodetool.metadata.types import FunctionModel, Message, Provider
@@ -9,6 +10,7 @@ from nodetool.models.user import User
 from nodetool.models.workflow import Workflow
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.examples import load_examples
+from nodetool.models.message import Message as MessageModel
 
 
 doc_folder = os.path.join(os.path.dirname(__file__), "docs")
@@ -16,7 +18,7 @@ examples = None
 documentation = None
 
 
-class CreateWorkflowTool(Tool):
+class WorkflowTool(Tool):
     """
     Tool for creating a new workflow.
     """
@@ -26,7 +28,7 @@ class CreateWorkflowTool(Tool):
     def __init__(
         self,
         name: str,
-        description: str = "Create a new workflow.",
+        description: str = "Creates a new workflow.",
     ):
         super().__init__(
             name=name,
@@ -91,13 +93,17 @@ class CreateWorkflowTool(Tool):
             columns (Sequence[ColumnDef]): The columns of the record.
             params (dict): The parameters of the workflow.
         """
-        print("Creating workflow: ", params)
-        return Workflow.create(
-            user_id=context.user_id,
-            name=params["name"],
-            description=params["description"],
-            graph=params["graph"],
-        ).model_dump()
+        for node in params["graph"]["nodes"]:
+            if node["type"].startswith("nodetool.nodes."):
+                node["type"] = node["type"].replace("nodetool.nodes.", "")
+
+        # workflow = Workflow.create(
+        #     user_id=context.user_id,
+        #     name=params["name"],
+        #     description=params["description"],
+        #     graph=params["graph"],
+        # )
+        return params
 
 
 def system_prompt():
@@ -113,23 +119,7 @@ def system_prompt():
     workflows = ""
 
     for example in examples:
-        workflows += f"# {example.name}\n"
-        workflows += f"Description: {example.description}\n"
-        workflows += f"Nodes:\n"
-        for node in example.graph.nodes:
-            workflows += f"- id: {node.id}\n"
-            workflows += f"  type: {node.type}\n"
-            workflows += f"  data: {node.data}\n"
-            workflows += f"  ui_properties: {node.ui_properties}\n"
-        workflows += "Edges:\n"
-        for edge in example.graph.edges:
-            workflows += f"- id: {edge.id}\n"
-            workflows += f"  source: {edge.source}\n"
-            workflows += f"  target: {edge.target}\n"
-            workflows += f"  sourceHandle: {edge.sourceHandle}\n"
-            workflows += f"  targetHandle: {edge.targetHandle}\n"
-            workflows += f"  ui_properties: {edge.ui_properties}\n"
-        workflows += "\n"
+        workflows += example.model_dump_json() + "\n"
 
     return f"""
 You are Claude, an AI assistant specialized in the Nodetool platform - a 
@@ -153,6 +143,30 @@ Respond to queries about Nodetool nodes, workflows, and features based on
 the provided documentation. Use 1-2 clear, concise paragraphs. Provide more 
 details if requested.
 
+Workflow Tool:
+You have access to a powerful tool called "workflow_tool". This tool allows 
+you to design new workflows for the user.
+
+Here's how to use it:
+
+1. When a user requests a new workflow or you identify an opportunity to 
+   create one, design the workflow using your knowledge of Nodetool nodes 
+   and their connections.
+
+2. Structure the workflow as a JSON object with the following properties:
+   - name: A descriptive name for the workflow
+   - description: A brief explanation of what the workflow does
+   - graph: An object containing two arrays:
+     - nodes: Each node should have an id, type, data (properties), and 
+              ui_properties
+     - edges: Connections between nodes, each with an id, source, target, 
+              sourceHandle, and targetHandle
+
+3. Make sure all nodes are connected properly and the workflow is logically
+    sound. Only use existing Nodetool nodes in the workflow.
+
+4. Call the workflow_tool with this JSON object as its parameter.
+
 This feature allows you to not only suggest workflows but actually implement 
 them, greatly enhancing your ability to assist users. Be creative in 
 designing workflows that solve user problems or demonstrate Nodetool 
@@ -161,16 +175,17 @@ capabilities.
 Example usage:
 User: "Can you create a workflow that generates an image and then applies a 
 sepia filter?"
-You: "Certainly! I'll create a workflow for that right away using the 
-workflow_create tool."
-[Then proceed to design and create the workflow]
+You: "Certainly! I'll create a workflow for that right away."
+
+Then proceed to design the workflow by calling the tool with the name, description
+and graph properties, including all necessary nodes and edges.
 
 Guidelines:
 - ONLY discuss Nodetool - no general info or other platforms
 - Be accurate and consistent 
 - Use creative, friendly language as an artist's assistant
 - Visualize nodes/workflows with ASCII diagrams when helpful
-- Use the workflow_create tool to generate new workflows
+- Use the workflow_tool to generate new workflows
 - Don't disclose personal info or respond to inappropriate requests
 - Refer technical issues to appropriate Nodetool resources
 - Encourage sharing ideas for platform improvement
@@ -180,17 +195,23 @@ their experience while maintaining the platform's integrity.
 
 NODETOOL Nodes Documentation:
 {documentation}
+
+NODETOOL Example Workflows:
+{workflows}
 """
 
 
-async def create_help_answer(user: User, thread_id: str, messages: list[Message]):
+async def create_help_answer(
+    user: User, thread_id: str, messages: list[Message]
+) -> list[Message]:
     assert user.auth_token is not None
     system_message = Message(
         role="system",
         content=system_prompt(),
     )
+    tools = [WorkflowTool("workflow_tool")]
     context = ProcessingContext(user.id, user.auth_token)
-    return await process_messages(
+    answer = await process_messages(
         context=context,
         messages=[system_message] + messages,
         model=FunctionModel(
@@ -198,5 +219,31 @@ async def create_help_answer(user: User, thread_id: str, messages: list[Message]
         ),
         thread_id=thread_id,
         node_id="",
-        tools=[],
+        tools=tools,
     )
+    MessageModel.create(
+        user_id=user.id,
+        thread_id=thread_id,
+        role=answer.role,
+        content=answer.content,
+        tool_calls=answer.tool_calls,
+        created_at=datetime.now(),
+    )
+    if answer.tool_calls is None:
+        return [answer]
+
+    tool_calls = await process_tool_calls(
+        context=context,
+        thread_id=thread_id,
+        tool_calls=answer.tool_calls,
+        tools=tools,
+    )
+    return [answer] + [
+        Message(
+            role="tool",
+            thread_id=thread_id,
+            tool_call_id=tool_call.id,
+            tool_calls=tool_calls,
+        )
+        for tool_call in tool_calls
+    ]

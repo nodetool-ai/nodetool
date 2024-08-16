@@ -6,6 +6,7 @@ import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import "../../styles/panel.css";
 // hooks
 import { useHotkeys } from "react-hotkeys-hook";
+import HelpChat from "../assistants/HelpChat";
 
 function PanelLeft() {
   const {
@@ -14,7 +15,7 @@ function PanelLeft() {
     isDragging,
     handleMouseDown,
     handlePanelToggle
-  } = useResizePanel(0, 800, 300, "horizontal", "left");
+  } = useResizePanel("left");
 
   useHotkeys("1", () => {
     if (
@@ -65,7 +66,7 @@ function PanelLeft() {
         anchor="left"
         open={true}
       >
-        <WorkflowForm />
+        <HelpChat />
       </Drawer>
     </div>
   );

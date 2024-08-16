@@ -77,17 +77,10 @@ async def help(
     history.append(user_message)
     messages = [Message.from_model(message) for message in history]
     messages = ensure_alternating_roles(messages)
+    messages = [message for message in messages if message.role != "tool"]
     answer = await create_help_answer(user, thread_id, messages)
-    MessageModel.create(
-        user_id=user.id,
-        thread_id=thread_id,
-        role=answer.role,
-        content=answer.content,
-        tool_calls=answer.tool_calls,
-        created_at=datetime.now(),
-    )
 
-    return [Message.from_model(user_message), answer]
+    return [Message.from_model(user_message)] + answer
 
 
 @router.get("/{message_id}")

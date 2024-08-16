@@ -12,6 +12,7 @@ import nodetool.nodes.nodetool.audio.conversion
 import nodetool.nodes.nodetool.audio.effects
 import nodetool.nodes.nodetool.audio.segmentation
 import nodetool.nodes.nodetool.audio.transform
+import nodetool.nodes.nodetool.boolean
 import nodetool.nodes.nodetool.constant
 import nodetool.nodes.nodetool.http
 

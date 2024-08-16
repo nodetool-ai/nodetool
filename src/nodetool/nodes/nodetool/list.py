@@ -2,6 +2,7 @@ import ast
 from enum import Enum
 from functools import reduce
 from io import BytesIO, StringIO
+import random
 from pydantic import Field
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.processing_context import ProcessingContext
@@ -190,3 +191,44 @@ class SaveList(BaseNode):
             name=self.name, content_type="text/plain", content=BytesIO(values.encode())
         )
         return TextRef(uri=asset.get_url or "", asset_id=asset.id)
+
+
+class Randomize(BaseNode):
+    """
+    Randomly shuffles the elements of a list.
+    list, shuffle, random, order
+
+    Use cases:
+    - Randomize the order of items in a playlist
+    - Implement random sampling without replacement
+    - Create randomized data sets for testing
+    """
+
+    values: list[Any] = []
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        shuffled = self.values.copy()
+        random.shuffle(shuffled)
+        return shuffled
+
+
+class Sort(BaseNode):
+    """
+    Sorts the elements of a list in ascending or descending order.
+    list, sort, order, arrange
+
+    Use cases:
+    - Organize data in a specific order
+    - Prepare data for binary search or other algorithms
+    - Rank items based on their values
+    """
+
+    class SortOrder(str, Enum):
+        ASCENDING = "ascending"
+        DESCENDING = "descending"
+
+    values: list[Any] = []
+    order: SortOrder = SortOrder.ASCENDING
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        return sorted(self.values, reverse=(self.order == self.SortOrder.DESCENDING))

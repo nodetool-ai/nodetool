@@ -10,6 +10,7 @@ import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import Inspector from "../Inspector";
 // hooks
 import { useHotkeys } from "react-hotkeys-hook";
+import WorkflowForm from "../workflows/WorkflowForm";
 // import AssetRenameConfirmation from "../assets/AssetRenameConfirmation";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
@@ -33,7 +34,7 @@ function PanelRight() {
     isDragging,
     handleMouseDown,
     handlePanelToggle
-  } = useResizePanel(10, 1200, 300, "horizontal", "right");
+  } = useResizePanel("right");
 
   useHotkeys("2", () => {
     if (
@@ -101,6 +102,7 @@ function PanelRight() {
         >
           <Tab label="Assets" />
           <Tab label="Inspector" />
+          <Tab label="Workflow" />
         </Tabs>
         {tabIndex === 0 && (
           <Box
@@ -111,6 +113,7 @@ function PanelRight() {
           </Box>
         )}
         {tabIndex === 1 && <Inspector />}
+        {tabIndex === 2 && <WorkflowForm />}
       </Drawer>
     </div>
   );
