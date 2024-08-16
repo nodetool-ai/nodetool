@@ -5,13 +5,17 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from nodetool.api.utils import current_user, User
 from nodetool.chat.help import create_help_answer
+from nodetool.chat.tools import Tool
 from nodetool.metadata.types import Message
 from nodetool.models.message import Message as MessageModel
 from nodetool.common.environment import Environment
 
 from nodetool.models.thread import Thread
+from nodetool.models.workflow import Workflow
 from nodetool.types.chat import MessageCreateRequest, MessageList
 import os
+
+from nodetool.workflows.processing_context import ProcessingContext
 
 
 log = Environment.get_logger()
@@ -40,6 +44,16 @@ async def create(
     )
 
 
+def ensure_alternating_roles(messages):
+    corrected_messages = []
+    last_role = None
+    for message in messages:
+        if message.role != last_role:
+            corrected_messages.append(message)
+            last_role = message.role
+    return corrected_messages
+
+
 @router.post("/help")
 async def help(
     req: MessageCreateRequest, user: User = Depends(current_user)
@@ -62,6 +76,7 @@ async def help(
     )
     history.append(user_message)
     messages = [Message.from_model(message) for message in history]
+    messages = ensure_alternating_roles(messages)
     answer = await create_help_answer(user, thread_id, messages)
     MessageModel.create(
         user_id=user.id,
@@ -72,7 +87,7 @@ async def help(
         created_at=datetime.now(),
     )
 
-    return messages + [answer]
+    return [Message.from_model(user_message), answer]
 
 
 @router.get("/{message_id}")

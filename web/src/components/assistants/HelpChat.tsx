@@ -34,9 +34,9 @@ const HelpChat: React.FC = () => {
 
     const mutation = useMutation({
         mutationFn: sendMessage,
-        onSuccess: (messages) => {
-            queryClient.setQueryData(['chatMessages', threadId], messages);
-        },
+        onSuccess: useCallback((newMessages: Message[]) => {
+            queryClient.setQueryData(['chatMessages', threadId], messages.concat(newMessages));
+        }, [queryClient, messages, threadId]),
     });
 
     const handleSendMessage = useCallback(async (prompt: string) => {

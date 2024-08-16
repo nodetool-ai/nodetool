@@ -30,13 +30,16 @@ export const ProcessTimer = memo(function ProcessTimer({
     };
   }, [status]);
 
+  if (status === "completed") {
+    return null;
+  }
+
   return (
     <div className={"process-timer"}>
       {status === "starting" && <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>}
       {status === "booting" && <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>}
       {status === "running" && <Box sx={{ color: "white" }}>{seconds} running...</Box>}
       {status === "failed" && <Box sx={{ color: "red" }}>failed</Box>}
-      {status === "completed" && <Box sx={{ color: "green" }}>{seconds} ●</Box>}
     </div>
   );
 });

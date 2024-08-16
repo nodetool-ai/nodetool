@@ -421,7 +421,6 @@ class BaseNode(BaseModel):
             try:
                 self.assign_property(name, value)
             except ValueError as e:
-                print(f"{self.__class__} Error setting property {name}: {e}")
                 if not skip_errors:
                     raise e
 
@@ -834,6 +833,9 @@ class OutputNode(BaseNode):
     @classmethod
     def is_visible(cls):
         return cls is not OutputNode
+
+    def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
+        return self.result_for_all_outputs(result)
 
 
 class Comment(BaseNode):
