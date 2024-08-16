@@ -570,7 +570,10 @@ class Environment(object):
     def get_anthropic_client(cls):
         from anthropic import AsyncAnthropic
 
-        return AsyncAnthropic(api_key=cls.get_anthropic_api_key())
+        return AsyncAnthropic(
+            api_key=cls.get_anthropic_api_key(),
+            default_headers={"anthropic-beta": "prompt-caching-2024-07-31"},
+        )
 
     @classmethod
     def get_ollama_api_url(cls):

@@ -270,8 +270,6 @@ async def create_anthropic_completion(
         ValueError: If no completion content is returned.
     """
 
-    client = Environment.get_anthropic_client()
-
     def convert_message(message: ChatMessageParam) -> MessageParam:
         if isinstance(message, ChatToolMessageParam):
             return {
@@ -283,6 +281,12 @@ async def create_anthropic_completion(
                     "is_error": False,
                 },  # type: ignore
             }
+        elif isinstance(message, ChatSystemMessageParam):
+            return {
+                "type": "text",
+                "text": message.content,
+                "cache_control": {"type": "ephemeral"},
+            }  # type: ignore
         else:
             return {"role": message.role, "content": message.content}  # type: ignore
 
@@ -309,7 +313,7 @@ async def create_anthropic_completion(
         provider=Provider.Anthropic,
         node_id=node_id,
         params={
-            "system": system_messages[0].content if len(system_messages) > 0 else "",
+            "system": [convert_message(message) for message in system_messages],
             "messages": [convert_message(message) for message in messages],
             "tools": [convert_tool(tool) for tool in tools],
             **kwargs,
