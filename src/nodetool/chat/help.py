@@ -10,6 +10,8 @@ from nodetool.common.environment import Environment
 from nodetool.common.get_files import get_content, get_files
 from nodetool.metadata.types import FunctionModel, Message, Provider
 from nodetool.models.user import User
+from nodetool.models.workflow import Workflow
+from nodetool.types.chat import MessageCreateRequest
 from nodetool.workflows.base_node import (
     BaseNode,
     get_node_class,
@@ -232,7 +234,9 @@ def search_examples(query: str, n_results: int = 3):
     return res["ids"][0], res["documents"][0]
 
 
-def system_prompt_for(docs: list[str], examples: list[str]) -> str:
+def system_prompt_for(
+    docs: list[str], examples: list[str], workflow: Workflow | None = None
+) -> str:
     return f"""
 You are an AI assistant specialized in the Nodetool platform - a 
 no-code AI workflow development environment. Your purpose is to provide 
@@ -377,16 +381,21 @@ their experience while maintaining the platform's integrity.
 Relevant Documentation:
 {docs}
 
+Current Workflow:
+{workflow.graph if workflow else "No workflow selected"}
+
 Example Workflows:
 {examples}
 """
 
 
 async def create_help_answer(
-    user: User, thread_id: str, messages: list[Message]
+    user: User, req: MessageCreateRequest, messages: list[Message]
 ) -> list[Message]:
     assert user.auth_token is not None
     assert len(messages) > 0
+
+    thread_id = req.thread_id or messages[-1].thread_id or ""
 
     prompt = str(messages[-1].content)
 
@@ -395,7 +404,7 @@ async def create_help_answer(
 
     system_message = Message(
         role="system",
-        content=system_prompt_for(docs, examples),
+        content=system_prompt_for(docs, examples, req.workflow),
     )
     tools: list[Tool] = [WorkflowTool("workflow_tool")]
     classes = [

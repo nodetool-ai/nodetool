@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from nodetool.metadata.types import Message, Task
 from nodetool.models.message import MessageContent, ToolCall
+from nodetool.models.workflow import Workflow
 
 
 class MessageCreateRequest(BaseModel):
@@ -12,6 +13,7 @@ class MessageCreateRequest(BaseModel):
     content: str | list[MessageContent] | None = None
     tool_calls: list[ToolCall] | None = None
     created_at: str | None = None
+    workflow: Workflow | None = None
 
 
 class MessageList(BaseModel):
