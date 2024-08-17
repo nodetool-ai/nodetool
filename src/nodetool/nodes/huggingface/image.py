@@ -2448,7 +2448,7 @@ class StableDiffusionXLLightning(StableDiffusionXLBase):
         return "Stable Diffusion XL Lightning"
 
     async def initialize(self, context: ProcessingContext):
-        base = "stabilityai/stable-diffusion-xl-base-1.0"
+        base = self.model.value
         self._unet = UNet2DConditionModel.from_config(base, subfolder="unet")  # type: ignore
         repo = "ByteDance/SDXL-Lightning"
         ckpt = "sdxl_lightning_4step_unet.safetensors"
