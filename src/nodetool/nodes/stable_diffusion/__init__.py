@@ -12,13 +12,12 @@ from comfy_extras.nodes_custom_sampler import (
 from comfy_extras.nodes_flux import FluxGuidance
 from nodes import (
     CLIPTextEncode,
-    CheckpointLoaderSimple,
     ControlNetApply,
     ControlNetLoader,
     DualCLIPLoader,
     EmptyLatentImage,
     KSampler,
-    LoraLoaderModelOnly,
+    LoraLoader,
     UNETLoader,
     VAEDecode,
     VAEEncode,
@@ -306,6 +305,17 @@ class FluxModel(str, Enum):
     flux1_dev = "flux1-dev"
 
 
+class LoraModel(str, Enum):
+    NONE = ""
+    ANIME = "anime_lora_comfy_converted.safetensors"
+    ART = "art_lora_comfy_converted.safetensors"
+    DETAILER = "flux_detailer.safetensors"
+    DISNEY = "disney_lora_comfy_converted.safetensors"
+    MJV6 = "mjv6_lora_comfy_converted.safetensors"
+    REALISM = "realism_lora_comfy_converted.safetensors"
+    SCENERY = "scenery_lora_comfy_converted.safetensors"
+
+
 class Flux(BaseNode):
     """
     Generates images from text prompts using a custom Stable Diffusion workflow.
@@ -327,7 +337,6 @@ class Flux(BaseNode):
     batch_size: int = Field(default=1, ge=1, le=16)
     steps: int = Field(default=4, ge=1, le=100, description="Number of sampling steps.")
     guidance_scale: float = Field(default=3.5, ge=1.0, le=30.0)
-    realism_strength: float = Field(default=0.0, ge=0.0, le=1.0)
     scheduler: Scheduler = Field(default=Scheduler.simple)
     sampler: Sampler = Field(default=Sampler.euler)
     denoise: float = Field(default=1.0, ge=0.0, le=1.0)
@@ -335,6 +344,19 @@ class Flux(BaseNode):
         default=ImageRef(), description="Input image for img2img (optional)"
     )
     noise_seed: int = Field(default=689015878, ge=0, le=1000000000)
+    lora1_model: LoraModel = Field(
+        default=LoraModel.NONE, description="The Lora model to use."
+    )
+    lora1_strength: float = Field(default=0.0, ge=-100, le=100)
+
+    lora2_model: LoraModel = Field(
+        default=LoraModel.NONE, description="The Lora model to use."
+    )
+    lora2_strength: float = Field(default=0.0, ge=-100, le=100)
+    lora3_model: LoraModel = Field(
+        default=LoraModel.NONE, description="The Lora model to use."
+    )
+    lora3_strength: float = Field(default=0.0, ge=-100, le=100)
 
     _vae: Optional[VAE] = None
     _clip: Optional[CLIP] = None
@@ -369,21 +391,46 @@ class Flux(BaseNode):
             input_tensor = torch.from_numpy(image)[None,]
             latent = VAEEncode().encode(self._vae, input_tensor)[0]
 
-        conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
-        conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
+        model = self._unet
+        clip = self._clip
+
+        if self.lora1_model != LoraModel.NONE:
+            model, clip = LoraLoader().load_lora(
+                model=model,
+                clip=clip,
+                lora_name=self.lora1_model.value,
+                strength_model=self.lora1_strength,
+                strength_clip=self.lora1_strength,
+            )
+
+        if self.lora2_model != LoraModel.NONE:
+            model, clip = LoraLoader().load_lora(
+                model=model,
+                clip=clip,
+                lora_name=self.lora2_model.value,
+                strength_model=self.lora2_strength,
+                strength_clip=self.lora2_strength,
+            )
+
+        if self.lora3_model != LoraModel.NONE:
+            model, clip = LoraLoader().load_lora(
+                model=model,
+                clip=clip,
+                lora_name=self.lora3_model.value,
+                strength_model=self.lora3_strength,
+                strength_clip=self.lora3_strength,
+            )
 
         sampler = KSamplerSelect().get_sampler(self.sampler.value)[0]
         sigmas = BasicScheduler().get_sigmas(
-            model=self._unet,
+            model=model,
             scheduler=self.scheduler.value,
             steps=self.steps,
             denoise=self.denoise,
         )[0]
-        model = LoraLoaderModelOnly().load_lora_model_only(
-            self._unet,
-            "xlabs_flux_realism_lora_comfui.safetensors",
-            self.realism_strength,
-        )[0]
+
+        conditioning = CLIPTextEncode().encode(clip, self.prompt)[0]
+        conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
 
         guider = BasicGuider().get_guider(model, conditioning)[0]
         noise = RandomNoise().get_noise(self.noise_seed)[0]

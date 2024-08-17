@@ -1544,7 +1544,7 @@ class PlaygroundV2(BaseNode):
         image = output.images[0]
 
         return await context.image_from_pil(image)
-    
+
 
 class OpenDalleV1_1(BaseNode):
     """
@@ -1609,7 +1609,7 @@ class OpenDalleV1_1(BaseNode):
             generator=generator,
             callback=progress_callback(self.id, self.num_inference_steps, context),
             callback_steps=1,
-        ) # type: ignore
+        )  # type: ignore
 
         image = output.images[0]
 
@@ -1729,7 +1729,6 @@ class StableCascade(BaseNode):
 class StableDiffusionModelId(str, Enum):
     SD_V1_5 = "runwayml/stable-diffusion-v1-5"
     REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
-    PROTEUS = "dataautogpt3/ProteusV0.5"
     DREAMSHAPER = "Lykon/DreamShaper"
     DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
     EPIC_PHOTOGASM = "Yntec/epiCPhotoGasm"
@@ -1823,8 +1822,8 @@ class StableDiffusionBaseNode(BaseNode):
     async def _setup_ip_adapter(self, context: ProcessingContext):
         self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
         if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
-            assert not self.ip_adapter_image.is_empty()
-            return await context.image_to_pil(self.ip_adapter_image)
+            if not self.ip_adapter_image.is_empty():
+                return await context.image_to_pil(self.ip_adapter_image)
         return None
 
     def progress_callback(self, context: ProcessingContext):
