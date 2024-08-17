@@ -1,21 +1,3 @@
-// import React, { useState, useCallback, useMemo } from "react";
-// import { ButtonGroup, Typography } from "@mui/material";
-// import FolderIcon from "@mui/icons-material/Folder";
-// import NorthWest from "@mui/icons-material/NorthWest";
-// import ImageIcon from "@mui/icons-material/Image";
-// import VideoFileIcon from "@mui/icons-material/VideoFile";
-// import AudioFileIcon from "@mui/icons-material/AudioFile";
-// import TextSnippetIcon from "@mui/icons-material/TextSnippet";
-// import useSessionStateStore from "../../stores/SessionStateStore";
-// import useContextMenuStore from "../../stores/ContextMenuStore";
-// import { Asset } from "../../stores/ApiTypes";
-// import AssetViewer from "./AssetViewer";
-// import DeleteButton from "../buttons/DeleteButton";
-// import { devError } from "../../utils/DevLog";
-// import { useAssetUpdate } from "../../serverState/useAssetUpdate";
-// import { secondsToHMS } from "../../utils/formatDateAndTime";
-// import { useSettingsStore } from "../../stores/SettingsStore";
-
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useState, useMemo } from "react";
@@ -419,7 +401,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
               role="tooltip"
               className="name info"
             >
-              {/* {asset.name} */}
+              {asset.name}
               {asset.parent_id}
             </Typography>
           )}

@@ -16,17 +16,22 @@ type SessionStateStore = {
   setSelectedNodes: (nodes: Node[]) => void;
   selectedAssets: Asset[];
   selectedAssetIds: string[];
+  selectedFolderIds: string[];
+  setSelectedFolderIds: (ids: string[]) => void;
+
   setSelectedAssetIds: (ids: string[]) => void;
   selectedFolderId: string | null; // New state for selected folder
   setSelectedFolderId: (id: string | null) => void; // New setter for selected folder
-  filteredAssets: SortedAssetsByType;
-  setFilteredAssets: (sortedAssetsByType: SortedAssetsByType) => void;
+  // filteredAssets: SortedAssetsByType;
+  // setFilteredAssets: (sortedAssetsByType: SortedAssetsByType) => void;
   clipboardData: string | null;
   setClipboardData: (data: string | null) => void;
   isClipboardValid: boolean;
   setIsClipboardValid: (isValid: boolean) => void;
   currentAudioAsset: Asset | null;
   setCurrentAudioAsset: (asset: Asset | null) => void;
+  assetSearchTerm: string | null;
+  setAssetSearchTerm: (term: string) => void;
 };
 
 const useSessionStateStore = create<SessionStateStore>((set) => ({
@@ -56,18 +61,22 @@ const useSessionStateStore = create<SessionStateStore>((set) => ({
     fetchAndSetAssets();
   },
 
-  // FOLDER SELECTION (new)
+  // FOLDER SELECTION
+  selectedFolderIds: [],
+  setSelectedFolderIds: (ids) => set({ selectedFolderIds: ids }),
   selectedFolderId: null,
   setSelectedFolderId: (id) => set({ selectedFolderId: id }),
 
-  // FILTERED ASSETS
-  filteredAssets: {
-    assetsByType: {},
-    totalCount: 0,
-  },
-  setFilteredAssets: (sortedAssetsByType) => {
-    set({ filteredAssets: sortedAssetsByType });
-  },
+  // // FILTERED ASSETS
+  // filteredAssets: {
+  //   assetsByType: {},
+  //   totalCount: 0,
+  // },
+  // setFilteredAssets: (sortedAssetsByType) => {
+  //   set({ filteredAssets: sortedAssetsByType });
+  // },
+  assetSearchTerm: null,
+  setAssetSearchTerm: (term: string) => set({ assetSearchTerm: term }),
 
   // AUDIO ASSET
   currentAudioAsset: null,

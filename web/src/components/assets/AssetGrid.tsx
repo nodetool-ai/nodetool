@@ -74,23 +74,17 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   itemSpacing = 5,
   isHorizontal,
 }) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const {
-    assets: { files },
-    currentFolderId,
-    isLoading,
-    error,
-    getFilteredAssets,
-    deleteAsset,
-    updateAsset,
-    navigateToFolder,
-  } = useAssets();
+  const currentFolderId = useAssetStore((state) => state.currentFolderId);
+  const { folderFiles, isLoading, error } = useAssets(currentFolderId);
 
-  const { folders: filteredFolders, files: filteredFiles } = getFilteredAssets({
-    searchTerm,
-  });
+  // const filteredAssets = useMemo(() => {
+  //   return filterAssets(assets, { searchTerm });
+  // }, [assets, filterAssets, searchTerm]);
 
   const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
+  const setAssetSearchTerm = useSessionStateStore(
+    (state) => state.setAssetSearchTerm
+  );
 
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
@@ -104,9 +98,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
-
   const { uploadAsset } = useAssetUpload();
-
   const currentAudioAsset = useSessionStateStore(
     (state) => state.currentAudioAsset
   );
@@ -116,7 +108,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     setSelectedAssetIds,
     handleSelectAllAssets,
     handleDeselectAssets,
-  } = useAssetSelection(files);
+  } = useAssetSelection(folderFiles);
 
   const {
     deleteDialogOpen,
@@ -181,11 +173,11 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
 
   const handleSearchChange = useCallback((newSearchTerm: string) => {
-    setSearchTerm(newSearchTerm);
+    setAssetSearchTerm(newSearchTerm);
   }, []);
 
   const handleSearchClear = useCallback(() => {
-    setSearchTerm("");
+    setAssetSearchTerm("");
   }, []);
 
   if (isLoading) {
@@ -219,7 +211,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             isHorizontal={isHorizontal}
             // onNavigate={navigateToFolder}
           />
-          <AssetGridContent itemSpacing={itemSpacing} assets={filteredFiles} />
+          {/* <AssetGridContent itemSpacing={itemSpacing} assets={filteredAssets} /> */}
+          <AssetGridContent itemSpacing={itemSpacing} />
         </div>
       </Dropzone>
       <Divider />

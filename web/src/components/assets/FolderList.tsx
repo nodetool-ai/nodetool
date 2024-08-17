@@ -15,9 +15,11 @@ import { useAssetStore } from "../../stores/AssetStore";
 
 const INITIAL_FOLDER_LIST_HEIGHT = 150;
 const MIN_FOLDER_LIST_HEIGHT = 100;
-const MAX_FOLDER_LIST_HEIGHT = 800;
+const MAX_FOLDER_LIST_HEIGHT = 1500;
 const RESIZE_HANDLE_HEIGHT = 20;
+const ROW_HEIGHT = 2;
 const LIST_MIN_WIDTH = "300px";
+const LEVEL_PADDING = 0.7;
 
 const styles = (theme: any) =>
   css({
@@ -34,9 +36,84 @@ const styles = (theme: any) =>
       gap: "0",
       padding: "10px",
       paddingBottom: "1em",
+      paddingLeft: "1em",
       height: `calc(100% - ${RESIZE_HANDLE_HEIGHT}px)`,
       overflow: "hidden auto",
+      backgroundColor: theme.palette.c_gray1,
     },
+    ".accordion": {
+      height: ROW_HEIGHT + "em",
+      background: "transparent",
+      boxShadow: "none",
+      color: theme.palette.c_gray6,
+      "&.Mui-expanded": {
+        backgroundColor: "transparent",
+      },
+    },
+    ".accordion::before": {
+      display: "none",
+    },
+    ".accordion.Mui-expanded": {
+      height: "auto",
+      background: "transparent",
+    },
+    ".accordion-summary": {
+      flexDirection: "row-reverse",
+      height: ROW_HEIGHT + "em",
+      minHeight: "unset",
+      "&.Mui-expanded": {
+        minHeight: "auto",
+      },
+    },
+    ".accordion-summary .MuiAccordionSummary-content": {
+      margin: "0",
+    },
+    ".accordion .MuiAccordionDetails-root": {
+      padding: "0",
+      marginTop: "-.25em !important",
+    },
+    ".accordion .MuiAccordionDetails-root .MuiBox-root": {
+      height: "1.5em",
+    },
+    ".MuiAccordionSummary-expandIconWrapper": {
+      position: "relative",
+      padding: "0",
+      width: "0px",
+      height: "0px",
+      overflow: "visible",
+      transform: "none",
+    },
+    ".MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
+      transform: "none",
+    },
+    ".MuiAccordionSummary-expandIconWrapper:hover": {
+      color: theme.palette.c_hl1,
+    },
+    ".MuiAccordionSummary-expandIconWrapper svg": {
+      width: "22px",
+      height: "22px",
+      position: "absolute",
+      top: "-10px",
+      bottom: "0",
+      left: "2px",
+      right: "0",
+      zIndex: 1000,
+      color: theme.palette.c_gray5,
+      filter: "none",
+      transform: "rotate(-90deg)",
+      transition: "transform 0.25s ease",
+    },
+    ".MuiAccordionSummary-expandIconWrapper.Mui-expanded svg": {
+      color: theme.palette.c_gray6,
+      transform: "rotate(0deg)",
+      // transform: "scaleY(-1)",
+    },
+    //
+    ".root-folder": {
+      paddingLeft: "0",
+      marginLeft: "-.5em",
+    },
+    // resize folder list
     ".resize-handle": {
       position: "absolute",
       borderBottom: "5px solid" + theme.palette.c_gray1,
@@ -72,6 +149,8 @@ interface FolderListProps {
 }
 
 const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
+  const currentFolderId = useAssetStore((state) => state.currentFolderId);
+  const { folderTree } = useAssets(currentFolderId);
   const [folderListHeight, setFolderListHeight] = useState(
     INITIAL_FOLDER_LIST_HEIGHT
   );
@@ -80,15 +159,14 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const initialMouseY = useRef<number>(0);
   const initialHeight = useRef<number>(INITIAL_FOLDER_LIST_HEIGHT);
-
-  const { folderTree } = useAssets();
-  const selectedFolderId = useSessionStateStore(
-    (state) => state.selectedFolderId
+  const navigateToFolder = useAssets(currentFolderId).navigateToFolder;
+  // const selectedFolderIds = useSessionStateStore(
+  //   (state) => state.selectedFolderIds
+  // );
+  const setSelectedFolderIds = useSessionStateStore(
+    (state) => state.setSelectedFolderIds
   );
-  const setSelectedFolderId = useSessionStateStore(
-    (state) => state.setSelectedFolderId
-  );
-
+  // const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
 
   const handleResizeStart = useCallback(
@@ -134,33 +212,57 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
 
   // Updated handleSelect function to work with selectedFolderId
   const handleSelect = (folderId: string) => {
-    setSelectedFolderId(folderId);
-    setCurrentFolderId(folderId);
+    navigateToFolder(folderId);
+    setSelectedFolderIds([folderId]);
+    setCurrentFolderId(folderId || "1");
   };
 
-  const renderFolder = (node: any) => {
+  const renderFolder = (node: any, level = 0, isRoot = false) => {
     if (!node || !node.id) return null;
-
     const hasChildren = node.children && node.children.length > 0;
 
-    return (
-      <Accordion key={node.id}>
+    return hasChildren ? (
+      <Accordion
+        className={"accordion " + (isRoot ? "root-folder" : "")}
+        key={node.id}
+      >
         <AccordionSummary
-          expandIcon={hasChildren ? <ExpandMoreIcon /> : null}
+          className="accordion-summary"
+          sx={{
+            // marginLeft: "-1.9em",
+            paddingLeft: `${level * LEVEL_PADDING}em !important`,
+          }}
+          expandIcon={<ExpandMoreIcon />}
           aria-controls={`panel-${node.id}-content`}
           id={`panel-${node.id}-header`}
         >
           <FolderItem folder={node} onSelect={() => handleSelect(node.id)} />
         </AccordionSummary>
-        {hasChildren && (
-          <AccordionDetails>
-            <Box sx={{ paddingLeft: 2 }}>
-              {node.children.map((childNode: any) => renderFolder(childNode))}
-            </Box>
-          </AccordionDetails>
-        )}
+        <AccordionDetails>
+          {node.children.map((childNode: any) =>
+            renderFolder(childNode, level + 1)
+          )}
+        </AccordionDetails>
       </Accordion>
+    ) : (
+      <Box
+        className={"childless " + (isRoot ? "root-folder" : "")}
+        sx={{
+          height: ROW_HEIGHT + "em",
+          paddingLeft: `${level * LEVEL_PADDING}em !important`,
+        }}
+        key={node.id}
+      >
+        <FolderItem folder={node} onSelect={() => handleSelect(node.id)} />
+      </Box>
     );
+  };
+
+  const rootFolder = {
+    id: "1",
+    name: "ASSETS",
+    content_type: "folder",
+    children: folderTree,
   };
 
   return (
@@ -175,8 +277,9 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       }}
       ref={containerRef}
     >
-      {selectedFolderId}
+      {/* {selectedFolderId} */}
       <div className="folder-list">
+        {renderFolder(rootFolder, 0, true)}
         {Object.values(folderTree || {}).map((rootFolder: any) =>
           renderFolder(rootFolder)
         )}

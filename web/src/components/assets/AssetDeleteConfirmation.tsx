@@ -13,6 +13,7 @@ import { UseMutationResult } from "@tanstack/react-query";
 import dialogStyles from "../../styles/DialogStyles";
 import { Asset } from "../../stores/ApiTypes";
 import useAssets from "../../serverState/useAssets";
+import { useAssetStore } from "../../stores/AssetStore";
 
 interface AssetDeleteConfirmationProps {
   dialogOpen: boolean;
@@ -29,14 +30,12 @@ const AssetDeleteConfirmation = ({
 }: AssetDeleteConfirmationProps) => {
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [hasNonEmptyFolder, setHasNonEmptyFolder] = useState(false);
-  const {
-    assets: { folders, files },
-    folderTree,
-  } = useAssets(); // Updated properties
+  const currentFolderId = useAssetStore((state) => state.currentFolderId);
+  const { folderFiles: allAssets, folderTree } = useAssets(currentFolderId);
 
   const assetItems = useMemo(
-    () => folders.concat(files).filter((asset) => assets.includes(asset.id)),
-    [assets, folders, files]
+    () => allAssets.filter((asset) => assets.includes(asset.id)),
+    [assets, allAssets]
   );
 
   const checkFolders = useCallback(async () => {

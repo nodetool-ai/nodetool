@@ -9,8 +9,9 @@ import { useAssetActions } from "./useAssetActions";
 import DeleteButton from "../buttons/DeleteButton";
 import { useAssetStore } from "../../stores/AssetStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
-import useAssets from "../../serverState/useAssets";
-import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+// import useAssets from "../../serverState/useAssets";
+// import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+// import { colorForType } from "../../config/data_types";
 
 const styles = (theme: any) =>
   css({
@@ -20,47 +21,52 @@ const styles = (theme: any) =>
       flexDirection: "row",
       alignItems: "flex-start",
       justifyContent: "start",
-      padding: "0.5em 0",
-      gap: "0.5em",
+      // padding: "0.5em 0",
+      gap: ".5em",
       width: "100%",
-      height: "35px",
+      height: "auto",
       cursor: "pointer",
       boxSizing: "border-box",
-      backgroundColor: theme.palette.c_gray1,
+      // backgroundColor: theme.palette.c_gray1,
+      backgroundColor: "transparent",
       transition: "background-color 0.3s ease",
     },
     ".folder-icon": {
       width: "25px",
       height: "100%",
       left: "0",
-      color: theme.palette.c_gray5,
+      color: theme.palette.c_gray2,
     },
     "&.selected .folder-icon": {
-      color: theme.palette.c_hl1,
+      color: theme.palette.c_hl2,
     },
     ".parent-icon": {
       position: "absolute",
-      color: theme.palette.c_gray6,
+      color: theme.palette.c_folder,
       width: "30%",
       height: "30%",
       bottom: "10%",
       right: "10%",
     },
     ".name": {
-      marginTop: "0.5em",
-      fontSize: theme.fontSizeSmaller,
-      textAlign: "center",
+      marginTop: "0.4em",
+      fontSize: theme.fontSizeSmall,
+      textAlign: "left",
+      verticalAlign: "middle",
       wordBreak: "break-word",
       maxWidth: "100%",
+      maxHeight: "2.5em",
+      overflow: "hidden",
+      color: theme.palette.c_white,
     },
     "&.selected .name": {
       color: theme.palette.c_hl1,
     },
     "&:hover": {
-      backgroundColor: theme.palette.c_gray2,
+      color: theme.palette.c_gray5,
     },
     "&:hover .delete-button": {
-      opacity: 1,
+      opacity: 0,
     },
     "&.drag-hover": {
       backgroundColor: theme.palette.c_gray3,
@@ -72,7 +78,7 @@ const styles = (theme: any) =>
       width: "20px",
       minWidth: "20px",
       height: "20px",
-      right: "1em",
+      right: "0",
       top: "0",
       border: "none",
       color: theme.palette.c_gray4,
@@ -97,16 +103,13 @@ export interface FolderItemProps {
 const FolderItem: React.FC<FolderItemProps> = ({
   folder,
   isParent,
-  onSelect,
-  onClickParent,
   enableContextMenu = true,
   showDeleteButton = true,
+  // onSelect,
   // openDeleteDialog,
 }) => {
   const {
     isDragHovered,
-    handleClick,
-
     handleDrag,
     handleDragOver,
     handleDragEnter,
@@ -116,21 +119,31 @@ const FolderItem: React.FC<FolderItemProps> = ({
     handleDelete,
   } = useAssetActions(folder);
 
-  const setSelectedAssetIds = useSessionStateStore(
-    (state) => state.setSelectedAssetIds
+  const selectedFolderIds = useSessionStateStore(
+    (state) => state.selectedFolderIds
   );
-  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-  const handleDoubleClick = useCallback(
-    (asset: Asset) => {
-      setCurrentFolderId(asset.id);
-      setSelectedAssetIds([]);
-    },
-    [setCurrentFolderId, setSelectedAssetIds]
+  const setSelectedFolderIds = useSessionStateStore(
+    (state) => state.setSelectedFolderIds
   );
 
-  const { sortedAssets } = useAssets();
-  const { selectedAssetIds } = useAssetSelection(sortedAssets);
-  const isSelected = selectedAssetIds.includes(folder.id);
+  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
+
+  const handleClick = useCallback(() => {
+    setCurrentFolderId(folder.id || "1");
+    setSelectedFolderIds([folder.id]);
+  }, [folder.id, setCurrentFolderId, setSelectedFolderIds]);
+
+  // const handleDoubleClick = useCallback(
+  //   (asset: Asset) => {
+  //     // setCurrentFolderId(asset.id);
+  //     // setSelectedFolderIds([]);
+  //   },
+  //   [setCurrentFolderId]
+  // );
+
+  // const { sortedAssets } = useAssets();
+  // const { selectedAssetIds } = useAssetSelection(sortedAssets);
+  const isSelected = selectedFolderIds.includes(folder.id);
 
   return (
     <div
@@ -138,8 +151,8 @@ const FolderItem: React.FC<FolderItemProps> = ({
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
-      onClick={() => handleClick(onSelect, onClickParent, isParent)}
-      onDoubleClick={() => handleDoubleClick(folder)}
+      onClick={handleClick}
+      // onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}

@@ -24,6 +24,7 @@ import {
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
+import { useAssetStore } from "../../stores/AssetStore";
 
 const styles = (theme: any) =>
   css({
@@ -58,21 +59,29 @@ const styles = (theme: any) =>
 
 interface AssetGridContentProps {
   itemSpacing?: number;
-  assets: Asset[];
+  assets?: Asset[];
 }
 
 const AssetGridContent: React.FC<AssetGridContentProps> = ({
   itemSpacing = 2,
-  assets,
+  assets: propAssets,
 }) => {
-  const { refetchAssets } = useAssets(); // Get refetch function from useAssets
+  const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const selectedFolderId = useSessionStateStore(
     (state) => state.selectedFolderId
-  ); // Get selectedFolderId from the session state store
+  );
+  const { folderFilesFiltered } = useAssets(currentFolderId || "1");
+  // const fetchAssets = useAssets(currentFolderId || "1").fetchAssets;
 
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
+
+  const assets = useMemo(() => {
+    if (propAssets) return propAssets;
+    return folderFilesFiltered || [];
+  }, [propAssets, folderFilesFiltered]);
+
   const { selectedAssetIds, setSelectedAssetIds, handleSelectAsset } =
     useAssetSelection(assets);
   const { openDeleteDialog, openRenameDialog } = useAssetDialog();
@@ -93,10 +102,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     [assetItemSize]
   );
 
-  const preparedItems = useMemo(
-    () => prepareItems({ other: assets }),
-    [assets]
-  );
+  const preparedItems = useMemo(() => {
+    return prepareItems({ other: assets || [] });
+  }, [assets]);
 
   const updateGridDimensions = useCallback(
     (width: number) => {
@@ -159,7 +167,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
-      refetch: refetchAssets, // Pass the refetch function
+      // refetch: refetchAssets,
     }),
     [
       preparedItems,
@@ -172,9 +180,15 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
-      refetchAssets,
+      // refetchAssets,
     ]
   );
+
+  // useEffect(() => {
+  //   if (!propAssets) {
+  //     fetchAssets().then(() => {});
+  //   }
+  // }, [selectedFolderId, fetchAssets, propAssets, assets]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -204,28 +218,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       listRef.current.resetAfterIndex(0);
     }
   }, [gridDimensions, assetItemSize, preparedItems]);
-
-  useEffect(() => {
-    if (selectedFolderId) {
-      refetchAssets().then(() => {
-        console.log("Current assets after refetch:", assets); // Debugging to check assets
-      });
-    }
-  }, [selectedFolderId, refetchAssets, assets]);
-
-  // Refetch assets whenever the selectedFolderId changes
-  useEffect(() => {
-    if (selectedFolderId) {
-      refetchAssets().then((fetchedAssets) => {
-        // Debugging to check which assets are fetched
-        console.log(
-          "Fetched assets for folder:",
-          selectedFolderId,
-          fetchedAssets
-        );
-      });
-    }
-  }, [selectedFolderId, refetchAssets]);
 
   return (
     <div

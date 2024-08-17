@@ -17,7 +17,7 @@ interface AssetGridRowProps {
     openDeleteDialog: () => void;
     openRenameDialog: () => void;
     handleSelectAsset: (id: string) => void;
-    refetch: () => void;
+    // refetch: () => void;
     setSelectedAssetIds: (ids: string[]) => void;
     onDragStart: (id: string) => string[];
   };

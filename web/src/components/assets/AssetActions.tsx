@@ -112,7 +112,9 @@ const AssetActions = ({
 }: AssetActionsProps) => {
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-  const { refetchAssets, isLoading } = useAssets(); // Use refetchAssets instead of refetch
+  const currentFolderId = useAssetStore((state) => state.currentFolderId);
+  const { refetchAssetsAndFolders, isLoading } = useAssets(currentFolderId);
+
   const [createFolderAnchor, setCreateFolderAnchor] =
     useState<HTMLButtonElement | null>(null);
   const [createFolderName, setCreateFolderName] =
@@ -143,6 +145,11 @@ const AssetActions = ({
     }
   }, [createFolderAnchor]);
 
+  // const { currentFolderId } = useAssets();
+  // useEffect(() => {
+  //   console.log("AssetActions currentFolderId", currentFolderId);
+  // }, [currentFolderId]);
+
   const handleChange = (event: Event, value: number | number[]) => {
     if (Array.isArray(value)) {
       setAssetItemSize(value[0] as number);
@@ -153,13 +160,15 @@ const AssetActions = ({
 
   return (
     <div className="asset-actions" css={styles}>
+      {currentFolder?.name || ":"}
       <ButtonGroup className="asset-button-group">
         <span>
           {/* // span is needed for disabled buttons*/}
+
           <Button
             disabled={!currentFolder?.parent_id}
             onClick={() => {
-              setCurrentFolderId(currentFolder?.parent_id || "");
+              setCurrentFolderId(currentFolder?.parent_id || "1");
               setSelectedAssetIds([]);
             }}
             className={`folder-up-button ${
@@ -185,7 +194,7 @@ const AssetActions = ({
           </Button>
         </Tooltip>
         <Tooltip enterDelay={TOOLTIP_DELAY} title="Refresh">
-          <Button onClick={() => refetchAssets()}>
+          <Button onClick={() => refetchAssetsAndFolders()}>
             <Refresh />
           </Button>
         </Tooltip>
@@ -205,7 +214,6 @@ const AssetActions = ({
           </div>
         )}
       </ButtonGroup>
-
       <ToggleButtonGroup
         className="sort-assets"
         value={settings.assetsOrder}
@@ -220,7 +228,6 @@ const AssetActions = ({
           Date
         </ToggleButton>
       </ToggleButtonGroup>
-
       <div className="asset-size-slider">
         <SliderBasic
           defaultValue={settings.assetItemSize}
@@ -279,7 +286,7 @@ const AssetActions = ({
                     type: "success",
                     content: `CREATE FOLDER: ${createFolderName}`,
                   });
-                  refetchAssets(); // Refetch the assets after creating the folder
+                  refetchAssetsAndFolders();
                 }
               );
             }}

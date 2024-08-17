@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAssetStore } from "../stores/AssetStore";
 import { Asset } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
+import useSessionStateStore from "../stores/SessionStateStore";
 
 type SortOrder = "name" | "date";
 type FilterOptions = {
@@ -22,9 +23,9 @@ type AssetUpdate = {
 };
 
 export const useAssets = (initialFolderId: string | null = null) => {
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(
-    initialFolderId
-  );
+  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
+  const currentFolderId = useAssetStore((state) => state.currentFolderId);
+
   const {
     load,
     loadFolderTree,
@@ -34,15 +35,18 @@ export const useAssets = (initialFolderId: string | null = null) => {
   } = useAssetStore();
   const { settings } = useSettingsStore();
   const queryClient = useQueryClient();
+  const setSelectedFolderId = useSessionStateStore(
+    (state) => state.setSelectedFolderId
+  );
+  const assetSearchTerm = useSessionStateStore(
+    (state) => state.assetSearchTerm
+  );
 
   // Fetch assets in the current folder
   const fetchAssets = useCallback(async () => {
-    if (!currentFolderId) return [];
-    const result = await load({ parent_id: currentFolderId });
-    console.log("Fetched assets for folder:", currentFolderId, result.assets);
-    return result.assets;
+    const result = await load({ parent_id: currentFolderId || "1" });
+    return result;
   }, [load, currentFolderId]);
-
   const {
     data: currentFolderAssets,
     error: currentFolderError,
@@ -50,8 +54,14 @@ export const useAssets = (initialFolderId: string | null = null) => {
   } = useQuery({
     queryKey: ["assets", currentFolderId],
     queryFn: fetchAssets,
-    enabled: !!currentFolderId, // Only fetch if folderId is available
+    enabled: !!currentFolderId,
   });
+
+  const refetchAssets = useCallback(() => {
+    return queryClient.invalidateQueries({
+      queryKey: ["assets", currentFolderId],
+    });
+  }, [queryClient, currentFolderId]);
 
   // Fetch all folders
   const fetchAllFolders = useCallback(async () => {
@@ -67,10 +77,32 @@ export const useAssets = (initialFolderId: string | null = null) => {
     queryFn: fetchAllFolders,
   });
 
-  // Sort assets
-  const sortAssets = useCallback((assetsToSort: Asset[], order: SortOrder) => {
-    return [...assetsToSort].sort((a, b) => {
-      if (order === "name") {
+  const refetchFolders = useCallback(() => {
+    return queryClient.invalidateQueries({ queryKey: ["folderTree"] });
+  }, [queryClient]);
+
+  const refetchAssetsAndFolders = useCallback(() => {
+    refetchAssets();
+    refetchFolders();
+  }, [refetchAssets, refetchFolders]);
+
+  // Process assets (sort by type and exclude folders)
+  const processedAssets = useMemo(() => {
+    if (!currentFolderAssets || !currentFolderAssets.assets) return [];
+
+    const assetsArray = currentFolderAssets.assets;
+
+    // Filter out folders
+    const nonFolderAssets = assetsArray.filter(
+      (asset) => asset.content_type !== "folder"
+    );
+
+    // Sort by content_type and then by the user's preferred order
+    return nonFolderAssets.sort((a, b) => {
+      if (a.content_type !== b.content_type) {
+        return a.content_type.localeCompare(b.content_type);
+      }
+      if (settings.assetsOrder === "name") {
         return a.name.localeCompare(b.name);
       } else {
         return (
@@ -78,7 +110,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
         );
       }
     });
-  }, []);
+  }, [currentFolderAssets, settings.assetsOrder]);
 
   // Filter assets
   const filterAssets = useCallback(
@@ -95,31 +127,12 @@ export const useAssets = (initialFolderId: string | null = null) => {
     },
     []
   );
-
-  // Process assets (sort and separate folders/files)
-  const processedAssets = useMemo(() => {
-    if (!currentFolderAssets) return { folders: [], files: [] };
-    const sortedAssets = sortAssets(currentFolderAssets, settings.assetsOrder);
-    const folders = sortedAssets.filter(
-      (asset) => asset.content_type === "folder"
-    );
-    const files = sortedAssets.filter(
-      (asset) => asset.content_type !== "folder"
-    );
-    return { folders, files };
-  }, [currentFolderAssets, sortAssets, settings.assetsOrder]);
-
-  // Get filtered assets
-  const getFilteredAssets = useCallback(
-    (options: FilterOptions) => {
-      const { folders, files } = processedAssets;
-      return {
-        folders: filterAssets(folders, options),
-        files: filterAssets(files, options),
-      };
-    },
-    [processedAssets, filterAssets]
-  );
+  const folderFilesFiltered = useMemo(() => {
+    return filterAssets(processedAssets, {
+      searchTerm: assetSearchTerm || "",
+      contentType: null,
+    });
+  }, [filterAssets, processedAssets, assetSearchTerm]);
 
   // Create folder mutation
   const createFolderMutation = useMutation({
@@ -149,30 +162,34 @@ export const useAssets = (initialFolderId: string | null = null) => {
   });
 
   // Navigate to folder
-  const navigateToFolder = useCallback((folderId: string | null) => {
-    setCurrentFolderId(folderId);
-  }, []);
+  const navigateToFolder = useCallback(
+    (folderId: string | null) => {
+      setCurrentFolderId(folderId || "1");
+      setSelectedFolderId(folderId);
+    },
+    [setCurrentFolderId, setSelectedFolderId]
+  );
 
   const isLoading = isLoadingCurrentFolder || isLoadingFolderTree;
   const error = currentFolderError || folderTreeError;
-  const refetchAssets = () =>
-    queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
-  const refetchFolderTree = () =>
-    queryClient.invalidateQueries({ queryKey: ["folderTree"] });
 
   return {
-    assets: processedAssets,
-    folderTree,
-    currentFolderId,
-    isLoading,
-    error,
-    getFilteredAssets,
-    createFolder: createFolderMutation.mutate,
-    deleteAsset: deleteAssetMutation.mutate,
-    updateAsset: updateAssetMutation.mutate,
-    navigateToFolder,
-    refetchAssets,
-    refetchFolderTree,
+    folderFiles: processedAssets, // Processed and sorted non-folder assets from the current folder
+    folderFilesFiltered, // Filtered assets based on search term and content type
+    folderAssets: currentFolderAssets, // Raw data returned from the API for the current folder, including both files and folders
+    folderTree, // Tree structure of all folders in the system
+    currentFolderId, // ID of the currently selected folder
+    isLoading, // if assets are currently being loaded
+    error, // error during asset fetching
+    filterAssets, // filter assets based on search term and content type
+    createFolder: createFolderMutation.mutate, // create a new folder
+    deleteAsset: deleteAssetMutation.mutate, // delete an asset
+    updateAsset: updateAssetMutation.mutate, // update an asset's properties
+    navigateToFolder, // change the current folder
+    fetchAssets, // fetch assets for the current folder
+    refetchAssets, // invalidate and refetch assets for the current folder
+    refetchFolders, // invalidate and refetch all folders
+    refetchAssetsAndFolders, // invalidate and refetch assets and folders
   };
 };
 

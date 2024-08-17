@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 //mui
 import { Typography, Dialog, Tooltip, Button } from "@mui/material";
 //icons
@@ -207,12 +207,19 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const { asset, url, open, contentType, onClose: handleClose } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentAsset, setCurrentAsset] = useState<Asset | undefined>(asset);
+  const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const [currentUrl, setCurrentUrl] = useState<string | undefined>(url);
+  const { refetchAssetsAndFolders, isLoading } = useAssets(currentFolderId);
+
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
   const getAsset = useAssetStore((state) => state.get);
-  const sortedAssets = useAssets().sortedAssets;
+  const folderAssets = useAssets(currentFolderId).folderAssets;
+  const sortedAssets = useMemo(() => {
+    return folderAssets?.assets || [];
+  }, [folderAssets]);
+
   const [currentFolderName, setCurrentFolderName] = useState<string | null>();
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const prevNextAmount = 5;
