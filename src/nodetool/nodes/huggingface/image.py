@@ -103,6 +103,9 @@ class ImageClassifier(HuggingFacePipelineNode):
         description="The input image to classify",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_model_id(self):
         return self.model.value
 
@@ -165,6 +168,9 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
         title="Candidate Labels",
         description="The candidate labels to classify the image against, separated by commas",
     )
+
+    def required_inputs(self):
+        return ["inputs"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -272,6 +278,9 @@ class VisualizeSegmentation(BaseNode):
         description="The segmentation masks to visualize",
     )
 
+    def required_inputs(self):
+        return ["image"]
+
     @classmethod
     def get_title(cls) -> str:
         return "Visualize Segmentation"
@@ -354,6 +363,9 @@ class Segmentation(HuggingFacePipelineNode):
         description="The input image to segment",
     )
 
+    def required_inputs(self):
+        return ["image"]
+
     def get_model_id(self):
         return self.model.value
 
@@ -395,6 +407,9 @@ class FindSegment(BaseNode):
         title="Label",
         description="The label of the segment to extract",
     )
+
+    def required_inputs(self):
+        return ["segments"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -442,6 +457,9 @@ class ObjectDetection(HuggingFacePipelineNode):
         title="Top K",
         description="The number of top predictions to return",
     )
+
+    def required_inputs(self):
+        return ["inputs"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -499,6 +517,9 @@ class VisualizeObjectDetection(BaseNode):
         title="Detected Objects",
         description="The detected objects to visualize",
     )
+
+    def required_inputs(self):
+        return ["inputs", "objects"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -606,6 +627,9 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
         description="The candidate labels to detect in the image, separated by commas",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     @classmethod
     def get_title(cls) -> str:
         return "Zero-Shot Object Detection"
@@ -675,6 +699,9 @@ class DepthEstimation(HuggingFacePipelineNode):
         description="The input image for depth estimation",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     @classmethod
     def get_title(cls) -> str:
         return "Depth Estimation"
@@ -726,6 +753,9 @@ class BaseImageToImage(HuggingFacePipelineNode):
         description="The text prompt to guide the image transformation (if applicable)",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     @property
     def pipeline_task(self) -> str:
         return "image-to-image"
@@ -766,52 +796,52 @@ class Swin2SR(BaseImageToImage):
         return {}
 
 
-class InstructPix2Pix(BaseImageToImage):
-    """
-    Performs image editing based on text instructions using the InstructPix2Pix model.
-    image, editing, transformation, huggingface
+# class InstructPix2Pix(BaseImageToImage):
+#     """
+#     Performs image editing based on text instructions using the InstructPix2Pix model.
+#     image, editing, transformation, huggingface
 
-    Use cases:
-    - Apply specific edits to images based on text instructions
-    - Modify image content or style guided by text prompts
-    - Create variations of existing images with controlled changes
-    """
+#     Use cases:
+#     - Apply specific edits to images based on text instructions
+#     - Modify image content or style guided by text prompts
+#     - Create variations of existing images with controlled changes
+#     """
 
-    prompt: str = Field(
-        default="Remove the background.",
-        description="The text prompt to guide the image transformation.",
-    )
-    negative_prompt: str = Field(
-        default="",
-        description="The negative text prompt to avoid in the transformation.",
-    )
-    num_inference_steps: int = Field(
-        default=50, description="The number of denoising steps.", ge=1, le=100
-    )
-    guidance_scale: float = Field(
-        default=7.0, description="The guidance scale for the transformation.", ge=1.0
-    )
-    image_guidance_scale: float = Field(
-        default=7.0,
-        description="The image guidance scale for the transformation.",
-        ge=1.0,
-    )
+#     prompt: str = Field(
+#         default="Remove the background.",
+#         description="The text prompt to guide the image transformation.",
+#     )
+#     negative_prompt: str = Field(
+#         default="",
+#         description="The negative text prompt to avoid in the transformation.",
+#     )
+#     num_inference_steps: int = Field(
+#         default=50, description="The number of denoising steps.", ge=1, le=100
+#     )
+#     guidance_scale: float = Field(
+#         default=7.0, description="The guidance scale for the transformation.", ge=1.0
+#     )
+#     image_guidance_scale: float = Field(
+#         default=7.0,
+#         description="The image guidance scale for the transformation.",
+#         ge=1.0,
+#     )
 
-    @classmethod
-    def get_title(cls) -> str:
-        return "Instruct Pix2Pix"
+#     @classmethod
+#     def get_title(cls) -> str:
+#         return "Instruct Pix2Pix"
 
-    def get_model_id(self):
-        return "timbrooks/instruct-pix2pix"
+#     def get_model_id(self):
+#         return "timbrooks/instruct-pix2pix"
 
-    def get_params(self):
-        return {
-            "prompt": self.prompt,
-            "negative_prompt": self.negative_prompt,
-            "num_inference_steps": self.num_inference_steps,
-            "guidance_scale": self.guidance_scale,
-            "image_guidance_scale": self.image_guidance_scale,
-        }
+#     def get_params(self):
+#         return {
+#             "prompt": self.prompt,
+#             "negative_prompt": self.negative_prompt,
+#             "num_inference_steps": self.num_inference_steps,
+#             "guidance_scale": self.guidance_scale,
+#             "image_guidance_scale": self.image_guidance_scale,
+#         }
 
 
 class AuraFlow(BaseNode):
@@ -1022,6 +1052,9 @@ class Kandinsky2(BaseNode):
     _pipeline: KandinskyV22Pipeline | None = None
 
     async def initialize(self, context: ProcessingContext):
+        self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
+            "kandinsky-community/kandinsky-2-2-prior", torch_dtype=torch.float16
+        )  # type: ignore
         self._pipeline = KandinskyV22Pipeline.from_pretrained(
             "kandinsky-community/kandinsky-2-2-decoder", torch_dtype=torch.float16
         )  # type: ignore
@@ -1105,6 +1138,9 @@ class Kandinsky2Img2Img(BaseNode):
 
     _prior_pipeline: KandinskyV22PriorPipeline | None = None
     _pipeline: KandinskyV22Img2ImgPipeline | None = None
+
+    def required_inputs(self):
+        return ["image"]
 
     async def initialize(self, context: ProcessingContext):
         self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
@@ -1217,6 +1253,9 @@ class Kandinsky2ControlNet(BaseNode):
 
     _prior_pipeline: KandinskyV22PriorPipeline | None = None
     _pipeline: KandinskyV22ControlnetPipeline | None = None
+
+    def required_inputs(self):
+        return ["hint"]
 
     async def initialize(self, context: ProcessingContext):
         self._prior_pipeline = KandinskyV22PriorPipeline.from_pretrained(
@@ -1380,6 +1419,9 @@ class Kandinsky3Img2Img(BaseNode):
     )
 
     _pipeline: AutoPipelineForImage2Image | None = None
+
+    def required_inputs(self):
+        return ["image"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -1741,6 +1783,9 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
 
     _pipeline: StableDiffusionControlNetPipeline | None = None
 
+    def required_inputs(self):
+        return ["control_image"]
+
     @classmethod
     def get_title(cls):
         return "Stable Diffusion ControlNet"
@@ -1806,6 +1851,9 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
         description="Strength for Image-to-Image generation. Higher values allow for more deviation from the original image.",
     )
     _pipeline: StableDiffusionImg2ImgPipeline | None = None
+
+    def required_inputs(self):
+        return ["init_image"]
 
     @classmethod
     def get_title(cls):
@@ -1886,6 +1934,9 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
 
     _pipeline: StableDiffusionControlNetInpaintPipeline | None = None
 
+    def required_inputs(self):
+        return ["init_image", "mask_image", "control_image"]
+
     @classmethod
     def get_title(cls):
         return "Stable Diffusion ControlNet Inpaint"
@@ -1959,6 +2010,9 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
     )
     _pipeline: StableDiffusionInpaintPipeline | None = None
 
+    def required_inputs(self):
+        return ["init_image", "mask_image"]
+
     @classmethod
     def get_title(cls):
         return "Stable Diffusion (Inpaint)"
@@ -2030,6 +2084,9 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
 
     _pipeline: StableDiffusionControlNetImg2ImgPipeline | None = None
 
+    def required_inputs(self):
+        return ["image", "control_image"]
+
     @classmethod
     def get_title(cls):
         return "Stable Diffusion ControlNet (Img2Img)"
@@ -2100,6 +2157,9 @@ class StableDiffusionUpscale(StableDiffusionBaseNode):
         le=2**32 - 1,
         description="Seed for the random number generator. Use -1 for a random seed.",
     )
+
+    def required_inputs(self):
+        return ["image"]
 
     @classmethod
     def get_title(cls):
@@ -2386,6 +2446,9 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
         description="Strength for Image-to-Image generation.",
     )
 
+    def required_inputs(self):
+        return ["init_image"]
+
     @classmethod
     def get_title(cls):
         return "Stable Diffusion XL (Img2Img)"
@@ -2453,6 +2516,9 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
         le=1.0,
         description="Strength of the inpainting. Values below 1.0 work best.",
     )
+
+    def required_inputs(self):
+        return ["image", "mask_image"]
 
     @classmethod
     def get_title(cls):
@@ -2626,6 +2692,9 @@ class SDXLTurboImg2Img(BaseNode):
 
     _pipe: Any = None
 
+    def required_inputs(self):
+        return ["init_image"]
+
     @classmethod
     def get_title(cls):
         return "SD XL Turbo (Img2Img)"
@@ -2715,6 +2784,9 @@ class StableDiffusion3ControlNetNode(BaseNode):
     )
 
     _pipeline: StableDiffusion3ControlNetPipeline | None = None
+
+    def required_inputs(self):
+        return ["control_image"]
 
     @classmethod
     def get_title(cls):
@@ -2806,6 +2878,9 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLBase):
         ge=0.0,
         le=2.0,
     )
+
+    def required_inputs(self):
+        return ["control_image"]
 
     @classmethod
     def get_title(cls):

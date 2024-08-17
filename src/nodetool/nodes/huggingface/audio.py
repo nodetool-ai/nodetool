@@ -53,6 +53,9 @@ class AudioClassifier(HuggingFacePipelineNode):
         description="The input audio to classify",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_torch_dtype(self):
         return torch.float32
 
@@ -107,6 +110,9 @@ class TextToSpeech(HuggingFacePipelineNode):
         description="The input text to the model",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_model_id(self):
         return self.model.value
 
@@ -159,6 +165,9 @@ class TextToAudio(HuggingfaceNode):
         title="Inputs",
         description="The input text to the model",
     )
+
+    def required_inputs(self):
+        return ["inputs"]
 
     def get_model_id(self):
         return self.model.value
@@ -214,6 +223,9 @@ class StableAudioNode(BaseNode):
     )
 
     _pipeline: StableAudioPipeline | None = None
+
+    def required_inputs(self):
+        return ["inputs"]
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = StableAudioPipeline.from_pretrained(
@@ -287,6 +299,9 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         description="The input audio to transcribe",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_model_id(self):
         return self.model.value
 
@@ -337,6 +352,9 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
         title="Candidate Labels",
         description="The candidate labels to classify the audio against, separated by commas",
     )
+
+    def required_inputs(self):
+        return ["inputs"]
 
     def get_model_id(self):
         return self.model.value

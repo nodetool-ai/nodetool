@@ -5,6 +5,7 @@ from nodetool.metadata.types import ColumnDef, DataframeRef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
 
+
 class TextGeneration(HuggingFacePipelineNode):
     """
     Generates text based on a given prompt.
@@ -63,7 +64,7 @@ class TextGeneration(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'text-generation'
+        return "text-generation"
 
     def get_params(self):
         return {
@@ -72,15 +73,19 @@ class TextGeneration(HuggingFacePipelineNode):
             "top_p": self.top_p,
             "do_sample": self.do_sample,
         }
-        
+
     async def get_inputs(self, context: ProcessingContext):
         return self.inputs
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
         return result[0]["generated_text"]
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]['generated_text']
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
+        return result[0]["generated_text"]
 
     async def process(self, context: ProcessingContext) -> str:
         return await super().process(context)
@@ -88,11 +93,17 @@ class TextGeneration(HuggingFacePipelineNode):
 
 class TextClassifier(HuggingFacePipelineNode):
     class TextClassifierModelId(str, Enum):
-        CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-        J_HARTMANN_EMOTION_ENGLISH_DISTILROBERTA_BASE = "j-hartmann/emotion-english-distilroberta-base"
+        CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST = (
+            "cardiffnlp/twitter-roberta-base-sentiment-latest"
+        )
+        J_HARTMANN_EMOTION_ENGLISH_DISTILROBERTA_BASE = (
+            "j-hartmann/emotion-english-distilroberta-base"
+        )
         SAMLOWE_ROBERTA_BASE_GO_EMOTIONS = "SamLowe/roberta-base-go_emotions"
         PROSUSAI_FINBERT = "ProsusAI/finbert"
-        DISTILBERT_BASE_UNCASED_FINETUNED_SST_2_ENGLISH = "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
+        DISTILBERT_BASE_UNCASED_FINETUNED_SST_2_ENGLISH = (
+            "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
+        )
 
     model: TextClassifierModelId = Field(
         default=TextClassifierModelId.CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST,
@@ -110,14 +121,18 @@ class TextClassifier(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'text-classification'
+        return "text-classification"
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
         return result[0]
 
-    async def process_local_result(self, contex: ProcessingContext, result: Any) -> dict[str, float]:
-        return {i['label']: i['score'] for i in list(result)}
-    
+    async def process_local_result(
+        self, contex: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return {i["label"]: i["score"] for i in list(result)}
+
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)
 
@@ -154,7 +169,7 @@ class Summarize(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'summarization'
+        return "summarization"
 
     def get_params(self):
         return {
@@ -162,15 +177,19 @@ class Summarize(HuggingFacePipelineNode):
             "do_sample": self.do_sample,
         }
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
         return result[0]["summary_text"]
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]['summary_text']
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
+        return result[0]["summary_text"]
 
     async def process(self, context: ProcessingContext) -> str:
         return await super().process(context)
-    
+
 
 class QuestionAnswering(HuggingFacePipelineNode):
     """
@@ -186,9 +205,13 @@ class QuestionAnswering(HuggingFacePipelineNode):
 
     class QuestionAnsweringModelId(str, Enum):
         DISTILBERT_BASE_CASED_DISTILLED_SQUAD = "distilbert-base-cased-distilled-squad"
-        BERT_LARGE_UNCASED_WHOLE_WORD_MASKING_FINETUNED_SQUAD = "bert-large-uncased-whole-word-masking-finetuned-squad"
+        BERT_LARGE_UNCASED_WHOLE_WORD_MASKING_FINETUNED_SQUAD = (
+            "bert-large-uncased-whole-word-masking-finetuned-squad"
+        )
         DEEPSET_ROBERTA_BASE_SQUAD2 = "deepset/roberta-base-squad2"
-        DISTILBERT_BASE_UNCASED_DISTILLED_SQUAD = "distilbert-base-uncased-distilled-squad"
+        DISTILBERT_BASE_UNCASED_DISTILLED_SQUAD = (
+            "distilbert-base-uncased-distilled-squad"
+        )
 
     model: QuestionAnsweringModelId = Field(
         default=QuestionAnsweringModelId.DISTILBERT_BASE_CASED_DISTILLED_SQUAD,
@@ -208,7 +231,7 @@ class QuestionAnswering(HuggingFacePipelineNode):
 
     def get_model_id(self):
         return self.model.value
-    
+
     async def get_inputs(self, context: ProcessingContext):
         return {
             "question": self.question,
@@ -217,12 +240,16 @@ class QuestionAnswering(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'question-answering'
+        return "question-answering"
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, Any]:
         return await self.process_local_result(context, result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, Any]:
         return {
             "answer": result["answer"],
             "score": result["score"],
@@ -232,7 +259,7 @@ class QuestionAnswering(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
         return await super().process(context)
-    
+
 
 class FillMask(HuggingFacePipelineNode):
     """
@@ -267,7 +294,7 @@ class FillMask(HuggingFacePipelineNode):
         title="Top K",
         description="Number of top predictions to return",
     )
-    
+
     async def get_inputs(self, context: ProcessingContext):
         return self.inputs
 
@@ -276,17 +303,21 @@ class FillMask(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'fill-mask'
+        return "fill-mask"
 
     def get_params(self):
         return {
             "top_k": self.top_k,
         }
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> DataframeRef:
         return await self.process_local_result(context, result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> DataframeRef:
         data = [[item["token_str"], item["score"]] for item in result]
         columns = [
             ColumnDef(name="token", data_type="string"),
@@ -296,7 +327,7 @@ class FillMask(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> list[dict[str, Any]]:
         return await super().process(context)
-    
+
 
 class TableQuestionAnswering(HuggingFacePipelineNode):
     """
@@ -312,7 +343,9 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
 
     class TableQuestionAnsweringModelId(str, Enum):
         GOOGLE_TAPAS_BASE_FINETUNED_WTQ = "google/tapas-base-finetuned-wtq"
-        MICROSOFT_TAPEX_LARGE_FINETUNED_TABFACT = "microsoft/tapex-large-finetuned-tabfact"
+        MICROSOFT_TAPEX_LARGE_FINETUNED_TABFACT = (
+            "microsoft/tapex-large-finetuned-tabfact"
+        )
         GOOGLE_TAPAS_LARGE_FINETUNED_SQA = "google/tapas-large-finetuned-sqa"
 
     model: TableQuestionAnsweringModelId = Field(
@@ -333,7 +366,7 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
 
     def get_model_id(self):
         return self.model.value
-    
+
     async def get_inputs(self, context: ProcessingContext):
         table = await context.dataframe_to_pandas(self.inputs)
         return {
@@ -343,12 +376,16 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'table-question-answering'
+        return "table-question-answering"
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, Any]:
         return await self.process_local_result(context, result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, Any]:
         return {
             "answer": result["answer"],
             "coordinates": result.get("coordinates"),
@@ -358,7 +395,7 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
         return await super().process(context)
-    
+
 
 class TextToText(HuggingFacePipelineNode):
     """
@@ -410,7 +447,7 @@ class TextToText(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'text2text-generation'
+        return "text2text-generation"
 
     def get_params(self):
         return {
@@ -421,15 +458,19 @@ class TextToText(HuggingFacePipelineNode):
     async def get_inputs(self, context: ProcessingContext):
         return f"{self.prefix} {self.inputs}".strip()
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> list[str]:
-        return [item['generated_text'] for item in result]
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> list[str]:
+        return [item["generated_text"] for item in result]
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> list[str]:
-        return [item['generated_text'] for item in result]
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> list[str]:
+        return [item["generated_text"] for item in result]
 
     async def process(self, context: ProcessingContext) -> list[str]:
         return await super().process(context)
-    
+
 
 class TokenClassification(HuggingFacePipelineNode):
     """
@@ -444,11 +485,13 @@ class TokenClassification(HuggingFacePipelineNode):
     """
 
     class TokenClassificationModelId(str, Enum):
-        DBMDZ_BERT_LARGE_CASED_FINETUNED_CONLL03_ENGLISH = "dbmdz/bert-large-cased-finetuned-conll03-english"
+        DBMDZ_BERT_LARGE_CASED_FINETUNED_CONLL03_ENGLISH = (
+            "dbmdz/bert-large-cased-finetuned-conll03-english"
+        )
         DSLIM_BERT_BASE_NER = "dslim/bert-base-NER"
         JEAN_BAPTISTE_CAMEMBERT_NER = "Jean-Baptiste/camembert-ner"
         FLAIR_POS_ENGLISH = "flair/pos-english"
-        
+
     class AggregationStrategy(str, Enum):
         SIMPLE = "simple"
         FIRST = "first"
@@ -468,7 +511,7 @@ class TokenClassification(HuggingFacePipelineNode):
     aggregation_strategy: AggregationStrategy = Field(
         default=AggregationStrategy.SIMPLE,
         title="Aggregation Strategy",
-        description="Strategy to aggregate tokens into entities"
+        description="Strategy to aggregate tokens into entities",
     )
 
     def get_model_id(self):
@@ -476,7 +519,7 @@ class TokenClassification(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'token-classification'
+        return "token-classification"
 
     def get_params(self):
         return {
@@ -486,11 +529,24 @@ class TokenClassification(HuggingFacePipelineNode):
     async def get_inputs(self, context: ProcessingContext):
         return self.inputs
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> DataframeRef:
         return await self.process_local_result(context, result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> DataframeRef:
-        data = [[item["entity_group"], item["word"], item["start"], item["end"], float(item["score"])] for item in result]
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> DataframeRef:
+        data = [
+            [
+                item["entity_group"],
+                item["word"],
+                item["start"],
+                item["end"],
+                float(item["score"]),
+            ]
+            for item in result
+        ]
         columns = [
             ColumnDef(name="entity", data_type="string"),
             ColumnDef(name="word", data_type="string"),
@@ -502,7 +558,7 @@ class TokenClassification(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         return await super().process(context)
-    
+
 
 class Translation(HuggingFacePipelineNode):
     """
@@ -515,7 +571,7 @@ class Translation(HuggingFacePipelineNode):
     - Localization of applications and websites
     - International market research
     """
-    
+
     class LanguageCode(str, Enum):
         ENGLISH = "en"
         FRENCH = "fr"
@@ -552,7 +608,6 @@ class Translation(HuggingFacePipelineNode):
         FILIPINO = "fil"
         KOERAN = "ko"
         JAPANESE = "ja"
-        
 
     inputs: str = Field(
         default="",
@@ -571,13 +626,13 @@ class Translation(HuggingFacePipelineNode):
     )
 
     async def initialize(self, context: Any):
-        if not self.run_on_huggingface:
-            from transformers import pipeline
-            self._pipeline = pipeline(self.pipeline_task, device=context.device)
+        from transformers import pipeline
+
+        self._pipeline = pipeline(self.pipeline_task, device=context.device)
 
     @property
     def pipeline_task(self) -> str:
-        return f'translation_{self.source_lang}_to_{self.target_lang}'
+        return f"translation_{self.source_lang}_to_{self.target_lang}"
 
     def get_params(self):
         return {
@@ -588,15 +643,19 @@ class Translation(HuggingFacePipelineNode):
     async def get_inputs(self, context: ProcessingContext):
         return self.inputs
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]['translation_text']
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
+        return result[0]["translation_text"]
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]['translation_text']
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
+        return result[0]["translation_text"]
 
     async def process(self, context: ProcessingContext) -> str:
         return await super().process(context)
-    
+
 
 class ZeroShotTextClassifier(HuggingFacePipelineNode):
     """
@@ -642,7 +701,7 @@ class ZeroShotTextClassifier(HuggingFacePipelineNode):
 
     @property
     def pipeline_task(self) -> str:
-        return 'zero-shot-classification'
+        return "zero-shot-classification"
 
     def get_params(self):
         return {
@@ -653,11 +712,15 @@ class ZeroShotTextClassifier(HuggingFacePipelineNode):
     async def get_inputs(self, context: ProcessingContext):
         return self.inputs
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return dict(zip(result['labels'], result['scores']))
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return dict(zip(result["labels"], result["scores"]))
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, float]:
-        return dict(zip(result['labels'], result['scores']))
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> dict[str, float]:
+        return dict(zip(result["labels"], result["scores"]))
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)
