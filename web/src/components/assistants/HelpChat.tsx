@@ -7,7 +7,7 @@ import { Typography } from '@mui/material';
 
 const HelpChat: React.FC = () => {
     const { threadId, messages, isLoading, fetchMessages, sendMessage } = useChatStore();
-    const { getWorkflow } = useNodeStore(state => state.getWorkflow());
+    const getWorkflow = useNodeStore(state => state.getWorkflow);
 
     useEffect(() => {
         fetchMessages(threadId);
@@ -25,7 +25,7 @@ const HelpChat: React.FC = () => {
 
     return (
         <div className="help-chat">
-            <Typography variant="p" style={{ margin: '1em' }}>
+            <Typography style={{ margin: '1em' }}>
                 Welcome to Nodetool! I'm your AI assistant, ready to help you create powerful AI workflows without coding. Ask me anything about Nodetool's features, from building workflows to managing assets. Let's bring your AI ideas to life!
             </Typography>
             <ChatView

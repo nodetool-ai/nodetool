@@ -265,7 +265,7 @@ Workflow Management:
 Open the Node Menu in three ways:
 Double-click the canvas
 Press CTRL+Space
-Click the Nodes Button (circle icon) in the top panel
+Click the Nodes Button (circle icon) ik the top panel
 
 Inside the Node Menu, read the description to learn how to browse and create nodes.
 
