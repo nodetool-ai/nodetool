@@ -59,9 +59,12 @@ from diffusers import StableDiffusionControlNetInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionLatentUpscalePipeline  # type: ignore
 from diffusers import StableDiffusionUpscalePipeline  # type: ignore
+from diffusers import UNet2DConditionModel  # type: ignore
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
+from huggingface_hub import hf_hub_download
+from safetensors.torch import load_file
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -1576,6 +1579,7 @@ class StableCascade(BaseNode):
 class StableDiffusionModelId(str, Enum):
     SD_V1_5 = "runwayml/stable-diffusion-v1-5"
     REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
+    PROTEUS = "dataautogpt3/ProteusV0.5"
     DREAMSHAPER = "Lykon/DreamShaper"
     DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
     EPIC_PHOTOGASM = "Yntec/epiCPhotoGasm"
@@ -2394,6 +2398,75 @@ class StableDiffusionXL(StableDiffusionXLBase):
             )
             self._set_scheduler(self.scheduler)
             self._load_ip_adapter()
+
+    async def process(self, context) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = self._setup_generator()
+        self._load_lora()
+        ip_adapter_image = await self._setup_ip_adapter(context)
+
+        image = self._pipeline(
+            prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            width=self.width,
+            height=self.height,
+            ip_adapter_image=ip_adapter_image,
+            ip_adapter_scale=self.ip_adapter_scale,
+            cross_attention_kwargs={"scale": self.lora_scale},
+            callback=self.progress_callback(context),
+            callback_steps=1,
+            generator=generator,
+        ).images[0]
+
+        return await context.image_from_pil(image)
+
+
+class StableDiffusionXLLightning(StableDiffusionXLBase):
+    """
+    Generates images from text prompts using Stable Diffusion XL in 4 steps.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Creating custom illustrations for marketing materials
+    - Generating concept art for game and film development
+    - Producing unique stock imagery for websites and publications
+    - Visualizing interior design concepts for clients
+    """
+
+    num_inference_steps: int = Field(
+        default=4, ge=1, le=20, description="Number of inference steps."
+    )
+
+    _unet: UNet2DConditionModel | None = None
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion XL Lightning"
+
+    async def initialize(self, context: ProcessingContext):
+        base = "stabilityai/stable-diffusion-xl-base-1.0"
+        self._unet = UNet2DConditionModel.from_config(base, subfolder="unet")  # type: ignore
+        repo = "ByteDance/SDXL-Lightning"
+        ckpt = "sdxl_lightning_4step_unet.safetensors"
+        self._unet.load_state_dict(  # type: ignore
+            load_file(hf_hub_download(repo, ckpt))
+        )
+        self._pipeline = StableDiffusionXLPipeline.from_pretrained(
+            base, unet=self._unet, torch_dtype=torch.float16, variant="fp16"
+        )
+
+        self._set_scheduler(self.scheduler)
+        self._load_ip_adapter()
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+        if self._unet is not None:
+            self._unet.to(device, torch.float16)
 
     async def process(self, context) -> ImageRef:
         if self._pipeline is None:
