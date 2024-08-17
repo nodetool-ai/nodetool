@@ -60,6 +60,7 @@ from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionLatentUpscalePipeline  # type: ignore
 from diffusers import StableDiffusionUpscalePipeline  # type: ignore
 from diffusers import UNet2DConditionModel  # type: ignore
+from diffusers import DiffusionPipeline  # type: ignore
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
@@ -1329,10 +1330,10 @@ class Kandinsky3(BaseNode):
         default=25, description="The number of denoising steps.", ge=1, le=100
     )
     width: int = Field(
-        default=512, description="The width of the generated image.", ge=64, le=2048
+        default=1024, description="The width of the generated image.", ge=64, le=2048
     )
     height: int = Field(
-        default=512, description="The height of the generated image.", ge=64, le=2048
+        default=1024, description="The height of the generated image.", ge=64, le=2048
     )
     seed: int = Field(
         default=0,
@@ -1460,6 +1461,155 @@ class Kandinsky3Img2Img(BaseNode):
             callback=progress_callback(self.id, self.num_inference_steps, context),
             callback_steps=1,
         )  # type: ignore
+
+        image = output.images[0]
+
+        return await context.image_from_pil(image)
+
+
+class PlaygroundV2(BaseNode):
+    """
+    Playground v2.5 is the state-of-the-art open-source model in aesthetic quality.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Create detailed images from text descriptions
+    - Generate unique illustrations for creative projects
+    - Produce visual content for digital media and art
+    - Explore AI-generated imagery for concept development
+    """
+
+    prompt: str = Field(
+        default="A photograph of the inside of a subway train. There are raccoons sitting on the seats. One of them is reading a newspaper. The window shows the city in the background.",
+        description="A text prompt describing the desired image.",
+    )
+    num_inference_steps: int = Field(
+        default=25, description="The number of denoising steps.", ge=1, le=100
+    )
+    guidance_scale: float = Field(
+        default=7.5,
+        description="The scale for classifier-free guidance.",
+        ge=1.0,
+        le=20.0,
+    )
+    width: int = Field(
+        default=1024, description="The width of the generated image.", ge=64, le=2048
+    )
+    height: int = Field(
+        default=1024, description="The height of the generated image.", ge=64, le=2048
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: DiffusionPipeline | None = None
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Playground v2.5"
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = DiffusionPipeline.from_pretrained(
+            "playgroundai/playground-v2.5-1024px-aesthetic",
+            torch_dtype=torch.float16,
+            variant="fp16",
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        # if self._pipeline is not None:
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        output = self._pipeline(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            width=self.width,
+            height=self.height,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        )  # type: ignore
+
+        image = output.images[0]
+
+        return await context.image_from_pil(image)
+    
+
+class OpenDalleV1_1(BaseNode):
+    """
+    OpenDalleV1.1 is an open-source text-to-image generation model.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Generate images from textual descriptions
+    - Create unique visual content for creative projects
+    - Explore AI-generated imagery for concept development
+    - Produce illustrations for various applications
+    """
+
+    prompt: str = Field(
+        default="black fluffy gorgeous dangerous cat animal creature, large orange eyes, big fluffy ears, piercing gaze, full moon, dark ambiance, best quality, extremely detailed",
+        description="A text prompt describing the desired image.",
+    )
+    num_inference_steps: int = Field(
+        default=50, description="The number of denoising steps.", ge=1, le=100
+    )
+    guidance_scale: float = Field(
+        default=7.5,
+        description="The scale for classifier-free guidance.",
+        ge=1.0,
+        le=20.0,
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: AutoPipelineForText2Image | None = None
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "OpenDalle V1.1"
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = AutoPipelineForText2Image.from_pretrained(
+            "dataautogpt3/OpenDalleV1.1",
+            torch_dtype=torch.float16,
+        )
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = torch.Generator(device="cuda")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        output = self._pipeline(
+            prompt=self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=generator,
+            callback=progress_callback(self.id, self.num_inference_steps, context),
+            callback_steps=1,
+        ) # type: ignore
 
         image = output.images[0]
 
