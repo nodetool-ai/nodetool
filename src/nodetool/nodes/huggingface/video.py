@@ -5,7 +5,7 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef, VideoRef
 import torch
-from diffusers import AnimateDiffPipeline, DDIMScheduler, MotionAdapter
+from diffusers import AnimateDiffPipeline, DDIMScheduler, MotionAdapter  # type: ignore
 
 
 class AnimateDiffNode(BaseNode):
@@ -52,7 +52,7 @@ class AnimateDiffNode(BaseNode):
         model_id = "SG161222/Realistic_Vision_V5.1_noVAE"
         self._pipeline = AnimateDiffPipeline.from_pretrained(
             model_id, motion_adapter=adapter, torch_dtype=torch.float16
-        )
+        )  # type: ignore
         scheduler = DDIMScheduler.from_pretrained(
             model_id,
             subfolder="scheduler",
@@ -87,6 +87,6 @@ class AnimateDiffNode(BaseNode):
             generator=generator,
         )
 
-        frames = output.frames[0]
+        frames = output.frames[0]  # type: ignore
 
-        return await context.video_from_numpy(frames)
+        return await context.video_from_numpy(frames)  # type: ignore

@@ -10,7 +10,25 @@ This node is useful for:
 
 **Tags:** audio, analysis, spectrogram
 
+**Fields:**
 - **tensor**: The amplitude tensor to be converted to dB scale. (Tensor)
+
+
+## BeatTracking
+
+Perform beat tracking on an audio file.
+
+Use cases:
+- Analyze rhythm and tempo of music tracks
+- Synchronize visual effects with music beats
+- Extract rhythmic features for music classification tasks
+
+**Tags:** audio, rhythm, tempo, beats
+
+**Fields:**
+- **audio**: The audio file to analyze for beats. (AudioRef)
+- **start_bpm**: The starting tempo estimate in beats per minute. (float)
+
 
 ## ChromaSTFT
 
@@ -21,9 +39,11 @@ Applications:
 
 **Tags:** 
 
+**Fields:**
 - **audio**: The audio file to extract chromagram from. (AudioRef)
 - **n_fft**: The number of samples per frame. (int)
 - **hop_length**: The number of samples between frames. (int)
+
 
 ## DBToAmplitude
 
@@ -34,7 +54,9 @@ Useful for:
 
 **Tags:** 
 
+**Fields:**
 - **tensor**: The dB-scaled tensor to be converted to amplitude scale. (Tensor)
+
 
 ## DBToPower
 
@@ -46,7 +68,9 @@ Useful for:
 
 **Tags:** audio, analysis, spectrogram
 
+**Fields:**
 - **tensor**: The tensor containing the decibel spectrogram. (Tensor)
+
 
 ## GriffinLim
 
@@ -58,6 +82,7 @@ Applications:
 
 **Tags:** audio, synthesis, phase reconstruction
 
+**Fields:**
 - **magnitude_spectrogram**: Magnitude spectrogram input for phase reconstruction. (Tensor)
 - **n_iter**: Number of iterations for the Griffin-Lim algorithm. (int)
 - **hop_length**: Number of samples between successive frames. (int)
@@ -66,16 +91,35 @@ Applications:
 - **center**: If True, the signal `y` is padded so that frame `D[:, t]` is centered at `y[t * hop_length]`. (bool)
 - **length**: If given, the resulting signal will be zero-padded or clipped to this length. (typing.Optional[int])
 
+
+## HarmonicPercussiveSeparation
+
+Perform Harmonic-Percussive Source Separation on an audio file.
+
+Use cases:
+- Isolate melodic and rhythmic components of music
+- Enhance drum tracks by extracting percussive elements
+- Improve pitch detection by focusing on harmonic content
+
+**Tags:** audio, separation, harmonic, percussive
+
+**Fields:**
+- **audio**: The audio file to separate into harmonic and percussive components. (AudioRef)
+- **margin**: The margin for the separation (larger values increase separation at the cost of artifacts). (float)
+
+
 ## MFCC
 
 MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.
 
+**Fields:**
 - **audio**: The audio file to extract MFCCs from. (AudioRef)
 - **n_mfcc**: The number of MFCCs to extract. (int)
 - **n_fft**: The number of samples per frame. (int)
 - **hop_length**: The number of samples between frames. (int)
 - **fmin**: The lowest frequency (in Hz). (int)
 - **fmax**: The highest frequency (in Hz). (int)
+
 
 ## MelSpectrogram
 
@@ -87,12 +131,14 @@ Useful for:
 
 **Tags:** audio, analysis, spectrogram
 
+**Fields:**
 - **audio**: The audio file to convert to a tensor. (AudioRef)
 - **n_fft**: The number of samples per frame. (int)
 - **hop_length**: The number of samples between frames. (int)
 - **n_mels**: The number of Mel bands to generate. (int)
 - **fmin**: The lowest frequency (in Hz). (int)
 - **fmax**: The highest frequency (in Hz). (int)
+
 
 ## PlotSpectrogram
 
@@ -104,14 +150,25 @@ The PlotSpectrogram node generates a visual representation of the spectrum of fr
 
 **Tags:** 
 
+**Fields:**
 - **tensor**: The tensor containing the mel spectrogram. (Tensor)
 - **fmax**: The highest frequency (in Hz). (int)
+
+### result_for_client
+
+**Args:**
+- **result (dict)**
+
+**Returns:** dict
+
 
 ## PowertToDB
 
 Converts a power spectrogram to decibel (dB) scale.
 
+**Fields:**
 - **tensor**: The tensor containing the power spectrogram. (Tensor)
+
 
 ## STFT
 
@@ -125,12 +182,35 @@ This node computes the Short-Time Fourier Transform (STFT) matrix for an audio s
 
 **Tags:** The STFT matrix represents the signal in both time and frequency domains, forming the foundation for many audio processing tasks.
 
+**Fields:**
 - **audio**: The audio file to compute the STFT matrix from. (AudioRef)
 - **n_fft**: The number of samples per frame. (int)
 - **hop_length**: The number of samples between frames. (int)
 - **win_length**: The window length. If None, it defaults to n_fft. (typing.Optional[int])
 - **window**: The type of window to use. (str)
 - **center**: If True, input signal is padded so that frame D[:, t] is centered at y[t * hop_length]. (bool)
+
+
+## SpectralCentroid
+
+Computes the spectral centroid of an audio file.
+
+The spectral centroid indicates where the "center of mass" of the spectrum is located.
+Perceptually, it has a connection with the impression of "brightness" of a sound.
+
+Use cases:
+- Analyze the timbral characteristics of audio
+- Track changes in sound brightness over time
+- Feature extraction for music genre classification
+- Audio effect design and sound manipulation
+
+**Tags:** audio, analysis, spectral
+
+**Fields:**
+- **audio**: The audio file to analyze. (AudioRef)
+- **n_fft**: The length of the FFT window. (int)
+- **hop_length**: Number of samples between successive frames. (int)
+
 
 ## SpectralContrast
 
@@ -144,7 +224,9 @@ Useful note: The `n_fft` and `hop_length` parameters affect the resolution of th
 
 **Tags:** 
 
+**Fields:**
 - **audio**: The audio file to extract spectral contrast from. (AudioRef)
 - **n_fft**: The number of samples per frame. (int)
 - **hop_length**: The number of samples between frames. (int)
+
 

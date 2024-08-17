@@ -16,7 +16,6 @@ async def run_anthropic(
         model=prediction.model,
         **params,
     )
-    print(params)
     yield PredictionResult(
         prediction=prediction,
         content=message.model_dump(),

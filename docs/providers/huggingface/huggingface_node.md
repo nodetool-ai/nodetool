@@ -2,6 +2,7 @@
 
 ## HuggingfaceNode
 
+**Fields:**
 
 ### convert_output
 
@@ -27,6 +28,7 @@
 - **data (bytes | None) (default: None)**
 
 **Returns:** typing.Any
+
 
 ### progress_callback
 

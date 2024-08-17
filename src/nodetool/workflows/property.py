@@ -25,11 +25,12 @@ class Property(BaseModel):
         Returns a JSON schema for the self.
         """
         schema = self.type.get_json_schema()
-        schema["description"] = self.description
+        if self.description and self.description != "":
+            schema["description"] = self.description
         if self.min:
-            schema["minimum"] = self.min
+            schema["minimum"] = self.min if self.type.type != "int" else int(self.min)
         if self.max:
-            schema["maximum"] = self.max
+            schema["maximum"] = self.max if self.type.type != "int" else int(self.max)
         return schema
 
     @staticmethod

@@ -12,8 +12,10 @@ Use cases:
 
 **Tags:** 
 
+**Fields:**
 - **tiles**: List of image tiles to combine. (list)
 - **columns**: Number of columns in the grid. (int)
+
 
 ## SliceImageGrid
 
@@ -27,7 +29,9 @@ Use cases:
 
 **Tags:** 
 
+**Fields:**
 - **image**: The image to slice into a grid. (ImageRef)
 - **columns**: Number of columns in the grid. (int)
 - **rows**: Number of rows in the grid. (int)
+
 

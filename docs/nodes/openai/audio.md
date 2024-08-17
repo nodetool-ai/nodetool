@@ -12,10 +12,12 @@ Use cases:
 
 **Tags:** audio, tts, text-to-speech, voice, synthesis
 
+**Fields:**
 - **model** (TtsModel)
 - **voice** (Voice)
 - **input** (str)
 - **speed** (float)
+
 
 ## Transcribe
 
@@ -29,8 +31,10 @@ Use cases:
 
 **Tags:** audio, transcription, speech-to-text, stt
 
+**Fields:**
 - **audio**: The audio file to transcribe. (AudioRef)
 - **temperature**: The temperature to use for the transcription. (float)
+
 
 ## Translate
 
@@ -44,6 +48,8 @@ Use cases:
 
 **Tags:** audio, translation, speech-to-text, localization
 
+**Fields:**
 - **audio**: The audio file to translate. (AudioRef)
 - **temperature**: The temperature to use for the translation. (float)
+
 

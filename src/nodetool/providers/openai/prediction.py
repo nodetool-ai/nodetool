@@ -53,8 +53,6 @@ async def create_chat_completion(
 ) -> Any:
     assert prediction.model is not None, "Model is not set"
     client = Environment.get_openai_client()
-
-    print(prediction.params)
     res: ChatCompletion = await client.chat.completions.create(
         model=prediction.model,
         **prediction.params,

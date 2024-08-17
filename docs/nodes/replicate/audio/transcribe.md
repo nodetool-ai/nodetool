@@ -4,6 +4,7 @@
 
 whisper-large-v3, incredibly fast, powered by Hugging Face Transformers! 🤗
 
+**Fields:**
 - **task**: Task to perform: transcribe or translate to another language. (Task)
 - **audio**: Audio file (AudioRef)
 - **hf_token**: Provide a hf.co/settings/token for Pyannote.audio to diarise the audio clips. You need to agree to the terms in 'https://huggingface.co/pyannote/speaker-diarization-3.1' and 'https://huggingface.co/pyannote/segmentation-3.0' first. (str | None)
@@ -12,10 +13,12 @@ whisper-large-v3, incredibly fast, powered by Hugging Face Transformers! 🤗
 - **batch_size**: Number of parallel batches you want to compute. Reduce if you face OOMs. (int)
 - **diarise_audio**: Use Pyannote.audio to diarise the audio clips. You will need to provide hf_token below too. (bool)
 
+
 ## Whisper
 
 Convert speech in audio to text
 
+**Fields:**
 - **audio**: Audio file (AudioRef)
 - **model**: This version only supports Whisper-large-v3. (str)
 - **language**: language spoken in the audio, specify None to perform language detection (typing.Optional[nodetool.nodes.replicate.audio.transcribe.Whisper.Language])
@@ -30,4 +33,5 @@ Convert speech in audio to text
 - **condition_on_previous_text**: if True, provide the previous output of the model as a prompt for the next window; disabling may make the text inconsistent across windows, but the model becomes less prone to getting stuck in a failure loop (bool)
 - **compression_ratio_threshold**: if the gzip compression ratio is higher than this value, treat the decoding as failed (float)
 - **temperature_increment_on_fallback**: temperature to increase when falling back when the decoding fails to meet either of the thresholds below (float)
+
 

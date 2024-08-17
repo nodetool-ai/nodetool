@@ -8,6 +8,11 @@
 
 **Returns:** Message
 
+### ensure_alternating_roles
+
+**Args:**
+- **messages**
+
 ### get
 
 **Args:**

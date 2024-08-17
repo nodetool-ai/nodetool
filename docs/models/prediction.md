@@ -2,6 +2,7 @@
 
 ## Prediction
 
+**Fields:**
 - **id** (str)
 - **user_id** (str)
 - **node_id** (str)
@@ -17,4 +18,5 @@
 - **cost** (float | None)
 - **duration** (float | None)
 - **hardware** (str | None)
+
 

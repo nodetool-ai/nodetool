@@ -77,6 +77,24 @@ Finds the highest ID in the list of edges and returns a new ID that is one highe
 
 **Returns:** str
 
+### get_edge_names
+
+Get the names of the input edgeds for a given node class.
+
+
+**Args:**
+
+- **class_name (str)**: The name of the node class.
+
+
+**Returns:**
+
+- **List[str]**: A list of input names for the node class.
+**Args:**
+- **class_name (str)**
+
+**Returns:** typing.List[str]
+
 ### get_widget_names
 
 Get the names of the widgets for a given node class.

@@ -4,7 +4,9 @@
 
 Represents a node in a graph DSL.
 
+**Fields:**
 - **id** (str)
+
 
 ### graph
 

@@ -2,6 +2,7 @@
 
 ## HuggingFacePipelineNode
 
+**Fields:**
 
 ### get_inputs
 
@@ -13,6 +14,10 @@
 **Args:**
 
 ### get_params
+
+**Args:**
+
+### get_torch_dtype
 
 **Args:**
 
@@ -55,4 +60,5 @@
 - **result (typing.Any)**
 
 **Returns:** typing.Any
+
 

@@ -2,6 +2,7 @@
 
 ## Asset
 
+**Fields:**
 - **type** (typing.Literal['asset'])
 - **id** (str)
 - **user_id** (str)
@@ -13,4 +14,5 @@
 - **metadata** (dict | None)
 - **created_at** (datetime)
 - **duration** (typing.Optional[float])
+
 

@@ -4,12 +4,6 @@
 
 ## Tool
 
-### tool_param
-
-**Args:**
-
-**Returns:** ChatToolParam
-
 ### function_tool_from_workflow
 
 Create a function tool from a workflow.

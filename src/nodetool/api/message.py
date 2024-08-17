@@ -77,8 +77,7 @@ async def help(
     history.append(user_message)
     messages = [Message.from_model(message) for message in history]
     messages = ensure_alternating_roles(messages)
-    messages = [message for message in messages if message.role != "tool"]
-    answer = await create_help_answer(user, thread_id, messages)
+    answer = await create_help_answer(user, req, messages)
 
     return [Message.from_model(user_message)] + answer
 

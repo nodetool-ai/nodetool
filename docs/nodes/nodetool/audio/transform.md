@@ -10,8 +10,10 @@ Use cases:
 
 **Tags:** audio, edit, join
 
+**Fields:**
 - **a**: The first audio file. (AudioRef)
 - **b**: The second audio file. (AudioRef)
+
 
 ## FadeIn
 
@@ -23,8 +25,10 @@ Use cases:
 
 **Tags:** audio, edit, transition
 
+**Fields:**
 - **audio**: The audio file to apply fade-in to. (AudioRef)
 - **duration**: Duration of the fade-in effect in seconds. (float)
+
 
 ## FadeOut
 
@@ -36,8 +40,10 @@ Use cases:
 
 **Tags:** audio, edit, transition
 
+**Fields:**
 - **audio**: The audio file to apply fade-out to. (AudioRef)
 - **duration**: Duration of the fade-out effect in seconds. (float)
+
 
 ## MonoToStereo
 
@@ -49,7 +55,9 @@ Use cases:
 
 **Tags:** audio, convert, channels
 
+**Fields:**
 - **audio**: The mono audio file to convert. (AudioRef)
+
 
 ## Normalize
 
@@ -61,7 +69,9 @@ Use cases:
 
 **Tags:** audio, fix, dynamics
 
+**Fields:**
 - **audio**: The audio file to normalize. (AudioRef)
+
 
 ## OverlayAudio
 
@@ -73,8 +83,10 @@ Use cases:
 
 **Tags:** audio, edit, transform
 
+**Fields:**
 - **a**: The first audio file. (AudioRef)
 - **b**: The second audio file. (AudioRef)
+
 
 ## RemoveSilence
 
@@ -87,12 +99,14 @@ Use cases:
 
 **Tags:** audio, edit, clean
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **min_length**: Minimum length of silence to be processed (in milliseconds). (int)
 - **threshold**: Silence threshold in dB (relative to full scale). Higher values detect more silence. (int)
 - **reduction_factor**: Factor to reduce silent parts (0.0 to 1.0). 0.0 keeps silence as is, 1.0 removes it completely. (float)
 - **crossfade**: Duration of crossfade in milliseconds to apply between segments for smooth transitions. (int)
 - **min_silence_between_parts**: Minimum silence duration in milliseconds to maintain between non-silent segments (int)
+
 
 ## Repeat
 
@@ -105,8 +119,10 @@ Use cases:
 
 **Tags:** audio, edit, repeat
 
+**Fields:**
 - **audio**: The audio file to loop. (AudioRef)
 - **loops**: Number of times to loop the audio. Minimum 1 (plays once), maximum 100. (int)
+
 
 ## Reverse
 
@@ -118,7 +134,9 @@ Use cases:
 
 **Tags:** audio, edit, transform
 
+**Fields:**
 - **audio**: The audio file to reverse. (AudioRef)
+
 
 ## SliceAudio
 
@@ -130,9 +148,11 @@ Use cases:
 
 **Tags:** audio, edit, trim
 
+**Fields:**
 - **audio**: The audio file. (AudioRef)
 - **start**: The start time in seconds. (float)
 - **end**: The end time in seconds. (float)
+
 
 ## StereoToMono
 
@@ -144,8 +164,10 @@ Use cases:
 
 **Tags:** audio, convert, channels
 
+**Fields:**
 - **audio**: The stereo audio file to convert. (AudioRef)
 - **method**: Method to use for conversion: 'average', 'left', or 'right'. (str)
+
 
 ## Tone
 
@@ -157,8 +179,10 @@ Use cases:
 
 **Tags:** audio, generate, sound
 
+**Fields:**
 - **frequency**: Frequency of the tone in Hertz. (float)
 - **sampling_rate**: Sampling rate. (int)
 - **duration**: Duration of the tone in seconds. (float)
 - **phi**: Initial phase of the waveform in radians. (float)
+
 

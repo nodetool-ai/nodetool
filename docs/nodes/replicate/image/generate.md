@@ -4,6 +4,7 @@
 
 Product advertising image generator
 
+**Fields:**
 - **pixel**: image total pixel (Pixel)
 - **scale**: Factor to scale image by (maximum: 4) (int)
 - **prompt**: Product name or prompt (str | None)
@@ -15,10 +16,12 @@ Product advertising image generator
 - **negative_prompt**: Anything you don't want in the photo (str)
 - **num_inference_steps**: Inference Steps (int)
 
+
 ## ConsistentCharacter
 
 Create images of a given character in different poses
 
+**Fields:**
 - **seed**: Set a seed for reproducibility. Random by default. (int | None)
 - **prompt**: Describe the subject. Include clothes and hairstyle for more consistency. (str)
 - **subject**: An image of a person. Best images are square close ups of a face, but they do not have to be. (ImageRef)
@@ -30,10 +33,12 @@ Create images of a given character in different poses
 - **disable_safety_checker**: Disable safety checker for generated images. (bool)
 - **number_of_images_per_pose**: The number of images to generate for each pose. (int)
 
+
 ## Controlnet_Realistic_Vision
 
 controlnet 1.1 lineart x realistic-vision-v2.0 (updated to v5)
 
+**Fields:**
 - **seed**: Leave blank to randomize (int | None)
 - **image**: Input image (ImageRef)
 - **steps**:  num_inference_steps (int)
@@ -44,10 +49,12 @@ controlnet 1.1 lineart x realistic-vision-v2.0 (updated to v5)
 - **guidance_scale**: guidance_scale (int)
 - **negative_prompt** (str)
 
+
 ## Controlnet_X_IP_Adapter_Realistic_Vision_V5
 
 Inpainting || multi-controlnet || single-controlnet || ip-adapter || ip adapter face || ip adapter plus || No ip adapter
 
+**Fields:**
 - **eta**: Controls the amount of noise that is added to the input data during the denoising diffusion process. Higher value -> more noise (float)
 - **seed**: Seed (int | None)
 - **prompt**: Prompt - using compel, use +++ to increase words weight:: doc: https://github.com/damian0815/compel/tree/main/doc || https://invoke-ai.github.io/InvokeAI/features/PROMPTS/#attention-weighting (str | None)
@@ -87,10 +94,12 @@ Inpainting || multi-controlnet || single-controlnet || ip-adapter || ip adapter 
 - **inpainting_conditioning_scale**: Conditioning scale for inpaint controlnet (float)
 - **color_temprature_slider_lora_weight**: disabled on 0 (float)
 
+
 ## EpicRealismXL_Lightning_Hades
 
 Fast and high quality lightning model, epiCRealismXL-Lightning Hades
 
+**Fields:**
 - **seed**: Set a seed for reproducibility. Random by default. (int | None)
 - **width** (int)
 - **height** (int)
@@ -101,10 +110,12 @@ Fast and high quality lightning model, epiCRealismXL-Lightning Hades
 - **number_of_images**: Number of images to generate (int)
 - **disable_safety_checker**: Disable safety checker for generated images. (bool)
 
+
 ## Illusions
 
 Create illusions with img2img and masking support
 
+**Fields:**
 - **seed** (int | None)
 - **image**: Optional img2img (ImageRef)
 - **width** (int)
@@ -122,10 +133,12 @@ Create illusions with img2img and masking support
 - **num_inference_steps**: Number of diffusion steps (int)
 - **controlnet_conditioning_scale**: How strong the controlnet conditioning is (float)
 
+
 ## Juggernaut_XL_V9
 
 Juggernaut XL v9
 
+**Fields:**
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **width**: Width of output image (int)
 - **height**: Height of output image (int)
@@ -138,10 +151,12 @@ Juggernaut XL v9
 - **num_inference_steps**: Number of denoising steps (int)
 - **disable_safety_checker**: Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety) (bool)
 
+
 ## Kandinsky
 
 multilingual text2image latent diffusion model
 
+**Fields:**
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **width**: Width of output image. Lower the setting if hits memory limits. (Width)
 - **height**: Height of output image. Lower the setting if hits memory limits. (Height)
@@ -152,10 +167,12 @@ multilingual text2image latent diffusion model
 - **num_inference_steps**: Number of denoising steps (int)
 - **num_inference_steps_prior**: Number of denoising steps for priors (int)
 
+
 ## OpenDalle_Lora
 
 Better than SDXL at both prompt adherence and image quality, by dataautogpt3
 
+**Fields:**
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (ImageRef)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
@@ -176,10 +193,12 @@ Better than SDXL at both prompt adherence and image quality, by dataautogpt3
 - **num_inference_steps**: Number of denoising steps (int)
 - **disable_safety_checker**: Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety) (bool)
 
+
 ## PlaygroundV2
 
 Playground v2.5 is the state-of-the-art open-source model in aesthetic quality
 
+**Fields:**
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (str | None)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
@@ -195,10 +214,12 @@ Playground v2.5 is the state-of-the-art open-source model in aesthetic quality
 - **num_inference_steps**: Number of denoising steps (int)
 - **disable_safety_checker**: Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety (bool)
 
+
 ## Proteus
 
 ProteusV0.4: The Style Update
 
+**Fields:**
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (ImageRef)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
@@ -214,10 +235,12 @@ ProteusV0.4: The Style Update
 - **num_inference_steps**: Number of denoising steps. 20 to 60 steps for more detail, 20 steps for faster results. (int)
 - **disable_safety_checker**: Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety (bool)
 
+
 ## PulidBase
 
 Use a face to make images. Uses SDXL fine-tuned checkpoints.
 
+**Fields:**
 - **seed**: Set a seed for reproducibility. Random by default. (int | None)
 - **width**: Width of the output image (ignored if structure image given) (int)
 - **height**: Height of the output image (ignored if structure image given) (int)
@@ -230,10 +253,12 @@ Use a face to make images. Uses SDXL fine-tuned checkpoints.
 - **checkpoint_model**: Model to use for the generation (Checkpoint_model)
 - **number_of_images**: Number of images to generate (int)
 
+
 ## RealVisXL2_LCM
 
 RealvisXL-v2.0 with LCM LoRA - requires fewer steps (4 to 8 instead of the original 40 to 50)
 
+**Fields:**
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (ImageRef)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
@@ -249,10 +274,12 @@ RealvisXL-v2.0 with LCM LoRA - requires fewer steps (4 to 8 instead of the origi
 - **num_inference_steps**: Number of denoising steps (int)
 - **disable_safety_checker**: Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety (bool)
 
+
 ## RealVisXL_V2
 
 Implementation of SDXL RealVisXL_V2.0
 
+**Fields:**
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (ImageRef)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
@@ -270,10 +297,12 @@ Implementation of SDXL RealVisXL_V2.0
 - **num_inference_steps**: Number of denoising steps (int)
 - **disable_safety_checker**: Disable safety checker for generated images. This feature is only available through the API. See https://replicate.com/docs/how-does-replicate-work#safety (bool)
 
+
 ## RealVisXL_V3_Multi_Controlnet_Lora
 
 RealVisXl V3 with multi-controlnet, lora loading, img2img, inpainting
 
+**Fields:**
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (ImageRef)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
@@ -309,10 +338,12 @@ RealVisXl V3 with multi-controlnet, lora loading, img2img, inpainting
 - **controlnet_2_conditioning_scale**: How strong the controlnet conditioning is (float)
 - **controlnet_3_conditioning_scale**: How strong the controlnet conditioning is (float)
 
+
 ## SD3_Explorer
 
 A model for experimenting with all the SD3 settings. Non-commercial use only unless you have a Stability AI membership.
 
+**Fields:**
 - **seed**: Set a seed for reproducibility. Random by default. (int | None)
 - **model**: Pick whether to use T5-XXL in fp16, fp8 or not at all (Model)
 - **shift**: The timestep scheduling shift. Try values 6.0 and 2.0 to experiment with effects. (float)
@@ -334,10 +365,12 @@ A model for experimenting with all the SD3 settings. Non-commercial use only unl
 - **negative_conditioning_end**: When the negative conditioning should stop being applied. By default it is disabled. (float)
 - **triple_prompt_empty_padding**: Whether to add padding for empty prompts. Useful if you only want to pass a prompt to one or two of the three text encoders. Has no effect when all prompts are filled. Disable this for interesting effects. (bool)
 
+
 ## SDXL_Ad_Inpaint
 
 Product advertising image generator using SDXL
 
+**Fields:**
 - **seed**: Empty or 0 for a random image (int | None)
 - **image**: Remove background from this image (ImageRef)
 - **prompt**: Describe the new setting for your product (str | None)
@@ -351,10 +384,12 @@ Product advertising image generator using SDXL
 - **num_refine_steps**: Number of steps to refine (int)
 - **num_inference_steps**: Inference Steps (int)
 
+
 ## SDXL_Controlnet
 
 SDXL ControlNet - Canny
 
+**Fields:**
 - **seed**: Random seed. Set to 0 to randomize the seed (int)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
 - **prompt**: Input prompt (str)
@@ -362,10 +397,12 @@ SDXL ControlNet - Canny
 - **negative_prompt**: Input Negative Prompt (str)
 - **num_inference_steps**: Number of denoising steps (int)
 
+
 ## SDXL_Emoji
 
 An SDXL fine-tune based on Apple Emojis
 
+**Fields:**
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (ImageRef)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
@@ -384,11 +421,13 @@ An SDXL fine-tune based on Apple Emojis
 - **prompt_strength**: Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image (float)
 - **replicate_weights**: Replicate LoRA weights to use. Leave blank to use the default weights. (str | None)
 - **num_inference_steps**: Number of denoising steps (int)
+
 
 ## SDXL_Pixar
 
 Create Pixar poster easily with SDXL Pixar.
 
+**Fields:**
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (ImageRef)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
@@ -408,10 +447,12 @@ Create Pixar poster easily with SDXL Pixar.
 - **replicate_weights**: Replicate LoRA weights to use. Leave blank to use the default weights. (str | None)
 - **num_inference_steps**: Number of denoising steps (int)
 
+
 ## StableDiffusion
 
 A latent text-to-image diffusion model capable of generating photo-realistic images given any text input
 
+**Fields:**
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **width**: Width of generated image in pixels. Needs to be a multiple of 64 (Width)
 - **height**: Height of generated image in pixels. Needs to be a multiple of 64 (Height)
@@ -422,10 +463,12 @@ A latent text-to-image diffusion model capable of generating photo-realistic ima
 - **negative_prompt**: Specify things to not see in the output (str | None)
 - **num_inference_steps**: Number of denoising steps (int)
 
+
 ## StableDiffusion3
 
 A text-to-image model with greatly improved performance in image quality, typography, complex prompt understanding, and resource-efficiency
 
+**Fields:**
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img mode (str | None)
 - **prompt**: Input prompt (str)
@@ -438,10 +481,12 @@ A text-to-image model with greatly improved performance in image quality, typogr
 - **prompt_strength**: Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image (float)
 - **disable_safety_checker**: Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety) (bool)
 
+
 ## StableDiffusionInpainting
 
 SDXL Inpainting developed by the HF Diffusers team
 
+**Fields:**
 - **mask**: Mask image - make sure it's the same size as the input image (str | None)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image (ImageRef)
@@ -453,10 +498,12 @@ SDXL Inpainting developed by the HF Diffusers team
 - **guidance_scale**: Guidance scale (float)
 - **negative_prompt**: Input Negative Prompt (str)
 
+
 ## StableDiffusionXL
 
 A text-to-image generative AI model that creates beautiful images
 
+**Fields:**
 - **mask**: Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted. (ImageRef)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input image for img2img or inpaint mode (ImageRef)
@@ -477,10 +524,12 @@ A text-to-image generative AI model that creates beautiful images
 - **num_inference_steps**: Number of denoising steps (int)
 - **disable_safety_checker**: Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety) (bool)
 
+
 ## StableDiffusionXLLightning
 
 SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality images in 4 steps
 
+**Fields:**
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **width**: Width of output image. Recommended 1024 or 1280 (int)
 - **height**: Height of output image. Recommended 1024 or 1280 (int)
@@ -492,10 +541,12 @@ SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality 
 - **num_inference_steps**: Number of denoising steps. 4 for best results (int)
 - **disable_safety_checker**: Disable safety checker for generated images (bool)
 
+
 ## StyleTransfer
 
 Transfer the style of one image to another
 
+**Fields:**
 - **seed**: Set a seed for reproducibility. Random by default. (int | None)
 - **model**: Model to use for the generation (Model)
 - **width**: Width of the output image (ignored if structure image given) (int)
@@ -509,4 +560,5 @@ Transfer the style of one image to another
 - **number_of_images**: Number of images to generate (int)
 - **structure_depth_strength**: Strength of the depth controlnet (float)
 - **structure_denoising_strength**: How much of the original image (and colors) to preserve (0 is all, 1 is none, 0.65 is a good balance) (float)
+
 

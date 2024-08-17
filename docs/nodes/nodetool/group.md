@@ -9,5 +9,7 @@ Use cases:
 
 **Tags:** loop, itereate, repeat, for, each, batch
 
+**Fields:**
 - **input**: The input data to loop over. (typing.Any)
+
 

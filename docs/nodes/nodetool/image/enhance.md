@@ -10,9 +10,11 @@ Use cases:
 
 **Tags:** image, contrast, enhance
 
+**Fields:**
 - **image**: The image to adjust the contrast for. (ImageRef)
 - **clip_limit**: Clip limit for adaptive contrast. (float)
 - **grid_size**: Grid size for adaptive contrast. (int)
+
 
 ## AutoContrast
 
@@ -25,8 +27,10 @@ Use cases:
 
 **Tags:** image, contrast, balance
 
+**Fields:**
 - **image**: The image to adjust the contrast for. (ImageRef)
 - **cutoff**: Represents the percentage of pixels to ignore at both the darkest and lightest ends of the histogram. A cutoff value of 5 means ignoring the darkest 5% and the lightest 5% of pixels, enhancing overall contrast by stretching the remaining pixel values across the full brightness range. (int)
+
 
 ## Brightness
 
@@ -39,8 +43,10 @@ Use cases:
 
 **Tags:** image, brightness, enhance
 
+**Fields:**
 - **image**: The image to adjust the brightness for. (ImageRef)
 - **factor**: Factor to adjust the brightness. 1.0 means no change. (float | int)
+
 
 ## Color
 
@@ -53,8 +59,10 @@ Use cases:
 
 **Tags:** image, color, enhance
 
+**Fields:**
 - **image**: The image to adjust the brightness for. (ImageRef)
 - **factor**: Factor to adjust the contrast. 1.0 means no change. (float)
+
 
 ## Contrast
 
@@ -67,8 +75,10 @@ Use cases:
 
 **Tags:** image, contrast, enhance
 
+**Fields:**
 - **image**: The image to adjust the brightness for. (ImageRef)
 - **factor**: Factor to adjust the contrast. 1.0 means no change. (float)
+
 
 ## Detail
 
@@ -81,7 +91,9 @@ Use cases:
 
 **Tags:** image, detail, enhance
 
+**Fields:**
 - **image**: The image to detail. (ImageRef)
+
 
 ## EdgeEnhance
 
@@ -94,7 +106,9 @@ Use cases:
 
 **Tags:** image, edge, enhance
 
+**Fields:**
 - **image**: The image to edge enhance. (ImageRef)
+
 
 ## Equalize
 
@@ -107,7 +121,9 @@ Use cases:
 
 **Tags:** image, contrast, histogram
 
+**Fields:**
 - **image**: The image to equalize. (ImageRef)
+
 
 ## RankFilter
 
@@ -120,9 +136,11 @@ Use cases:
 
 **Tags:** image, filter, enhance
 
+**Fields:**
 - **image**: The image to rank filter. (ImageRef)
 - **size**: Rank filter size. (int)
 - **rank**: Rank filter rank. (int)
+
 
 ## Sharpen
 
@@ -135,7 +153,9 @@ Use cases:
 
 **Tags:** image, sharpen, clarity
 
+**Fields:**
 - **image**: The image to sharpen. (ImageRef)
+
 
 ## Sharpness
 
@@ -148,8 +168,10 @@ Use cases:
 
 **Tags:** image, clarity, sharpness
 
+**Fields:**
 - **image**: The image to adjust the brightness for. (ImageRef)
 - **factor**: Factor to adjust the contrast. 1.0 means no change. (float)
+
 
 ## UnsharpMask
 
@@ -162,10 +184,12 @@ Use cases:
 
 **Tags:** image, sharpen, enhance
 
+**Fields:**
 - **image**: The image to unsharp mask. (ImageRef)
 - **radius**: Unsharp mask radius. (int)
 - **percent**: Unsharp mask percent. (int)
 - **threshold**: Unsharp mask threshold. (int)
+
 
 ### adaptive_contrast
 

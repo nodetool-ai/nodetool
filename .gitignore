@@ -24,6 +24,7 @@ postgres_data/
 .vite
 .venv
 node_modules
+docs.chromadb
 
 # Cache
 .cache

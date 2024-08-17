@@ -3,6 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { Message, MessageCreateRequest, Workflow } from './ApiTypes';
 import { client } from './ApiClient';
 import { useNodeStore } from './NodeStore';
+import { Node, useReactFlow, XYPosition } from 'reactflow';
+import { NodeData } from './NodeData';
+import useMetadataStore from './MetadataStore';
 
 interface ChatStore {
     threadId: string;
@@ -55,6 +58,23 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                         if (toolCall.name === 'workflow_tool') {
                             get().handleWorkflowTool(toolCall.result as Workflow);
                         }
+                        if (toolCall.name?.startsWith('add_node')) {
+                            const metadata = useMetadataStore.getState().metadata
+                            if (!data) {
+                                console.error('Metadata not loaded');
+                                return;
+                            }
+                            if (toolCall.result) {
+                                const result = toolCall.result as { [key: string]: any };
+                                const nodeMetadata = metadata[result["type"]];
+                                if (!nodeMetadata) {
+                                    console.error('Node metadata not found for type:', result["type"]);
+                                    return;
+                                }
+                                const node = useNodeStore.getState().createNode(nodeMetadata, { x: 0, y: 0 }, toolCall.result as Node<NodeData>);
+                                useNodeStore.getState().addNode(node);
+                            }
+                        }
                     });
                 }
             });
@@ -71,3 +91,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         useNodeStore.getState().setWorkflow(workflow);
     },
 }));
+
+function createNode(metadata: any, rfPos: XYPosition) {
+    throw new Error('Function not implemented.');
+}

@@ -4,6 +4,7 @@
 
 Adapt any picture of a face into another image
 
+**Fields:**
 - **seed**: Fix the random seed for reproducibility (int | None)
 - **image**: An image of a person to be converted (ImageRef)
 - **prompt** (str)
@@ -18,10 +19,12 @@ Adapt any picture of a face into another image
 - **disable_safety_checker**: Disable safety checker for generated images (bool)
 - **image_to_become_strength**: How strong the style will be applied (float)
 
+
 ## FaceToMany
 
 Turn a face into 3D, emoji, pixel art, video game, claymation or toy
 
+**Fields:**
 - **seed**: Fix the random seed for reproducibility (int | None)
 - **image**: An image of a person to be converted (ImageRef)
 - **style**: Style to convert to (Style)
@@ -34,10 +37,12 @@ Turn a face into 3D, emoji, pixel art, video game, claymation or toy
 - **instant_id_strength**: How strong the InstantID will be. (float)
 - **control_depth_strength**: Strength of depth controlnet. The bigger this is, the more controlnet affects the output. (float)
 
+
 ## FaceToSticker
 
 Turn a face into a sticker
 
+**Fields:**
 - **seed**: Fix the random seed for reproducibility (int | None)
 - **image**: An image of a person to be converted to a sticker (ImageRef)
 - **steps** (int)
@@ -52,10 +57,12 @@ Turn a face into a sticker
 - **ip_adapter_weight**: How much the IP adapter will influence the image (float)
 - **instant_id_strength**: How strong the InstantID will be. (float)
 
+
 ## InstantId
 
 Make realistic images of real people instantly
 
+**Fields:**
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **image**: Input face image (ImageRef)
 - **prompt**: Input prompt (str)
@@ -84,10 +91,12 @@ Make realistic images of real people instantly
 - **face_detection_input_height**: Height of the input image for face detection (int)
 - **controlnet_conditioning_scale**: Scale for IdentityNet strength (for fidelity) (float)
 
+
 ## PhotoMaker
 
 Create photos, paintings and avatars for anyone in any style within seconds.
 
+**Fields:**
 - **seed**: Seed. Leave blank to use a random number (int | None)
 - **prompt**: Prompt. Example: 'a photo of a man/woman img'. The phrase 'img' is the trigger word. (str)
 - **num_steps**: Number of sample steps (int)
@@ -102,10 +111,12 @@ Create photos, paintings and avatars for anyone in any style within seconds.
 - **style_strength_ratio**: Style strength (%) (float)
 - **disable_safety_checker**: Disable safety checker for generated images. (bool)
 
+
 ## PhotoMakerStyle
 
 Create photos, paintings and avatars for anyone in any style within seconds.  (Stylization version)
 
+**Fields:**
 - **seed**: Seed. Leave blank to use a random number (int | None)
 - **prompt**: Prompt. Example: 'a photo of a man/woman img'. The phrase 'img' is the trigger word. (str)
 - **num_steps**: Number of sample steps (int)
@@ -119,4 +130,5 @@ Create photos, paintings and avatars for anyone in any style within seconds.  (S
 - **negative_prompt**: Negative Prompt. The negative prompt should NOT contain the trigger word. (str)
 - **style_strength_ratio**: Style strength (%) (float)
 - **disable_safety_checker**: Disable safety checker for generated images. (bool)
+
 

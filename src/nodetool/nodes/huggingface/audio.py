@@ -17,9 +17,11 @@ from nodetool.workflows.types import NodeProgress
 from pydantic import Field
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef, TextRef, ModelRef, Tensor
-from transformers import SpeechT5Processor, SpeechT5ForTextToSpeech, SpeechT5HifiGan
+from nodetool.metadata.types import AudioRef
 import torch
+from transformers import pipeline, Pipeline
+from transformers import AutoProcessor, MusicgenForConditionalGeneration
+from diffusers import MusicLDMPipeline  # type: ignore
 
 
 class AudioClassifier(HuggingFacePipelineNode):
@@ -53,6 +55,9 @@ class AudioClassifier(HuggingFacePipelineNode):
         description="The input audio to classify",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_torch_dtype(self):
         return torch.float32
 
@@ -81,9 +86,9 @@ class AudioClassifier(HuggingFacePipelineNode):
         return await super().process(context)
 
 
-class TextToSpeech(HuggingFacePipelineNode):
+class Bark(HuggingFacePipelineNode):
     """
-    Generates natural-sounding speech from text input.
+    Bark is a text-to-audio model created by Suno. Bark can generate highly realistic, multilingual speech as well as other audio - including music, background noise and simple sound effects. The model can also produce nonverbal communications like laughing, sighing and crying.
     tts, audio, speech, huggingface
 
     Use cases:
@@ -101,11 +106,14 @@ class TextToSpeech(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for the image generation",
     )
-    inputs: str = Field(
+    prompt: str = Field(
         default="",
         title="Inputs",
         description="The input text to the model",
     )
+
+    async def get_inputs(self, context: ProcessingContext):
+        return self.prompt
 
     def get_model_id(self):
         return self.model.value
@@ -123,14 +131,14 @@ class TextToSpeech(HuggingFacePipelineNode):
     async def process_local_result(
         self, context: ProcessingContext, result: Any
     ) -> AudioRef:
-        audio = await context.audio_from_bytes(result)  # type: ignore
+        audio = await context.audio_from_numpy(result["audio"], 24_000)  # type: ignore
         return audio
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         return await super().process(context)
 
 
-class TextToAudio(HuggingfaceNode):
+class MusicGen(HuggingfaceNode):
     """
     Generates audio (music or sound effects) from text descriptions.
     audio, music, generation, huggingface
@@ -141,7 +149,7 @@ class TextToAudio(HuggingfaceNode):
     - Prototype musical ideas quickly
     """
 
-    class TextToAudioModelId(str, Enum):
+    class MusicGenModelId(str, Enum):
         MUSICGEN_SMALL = "facebook/musicgen-small"
         MUSICGEN_MEDIUM = "facebook/musicgen-medium"
         MUSICGEN_LARGE = "facebook/musicgen-large"
@@ -149,31 +157,107 @@ class TextToAudio(HuggingfaceNode):
         MUSICGEN_STEREO_SMALL = "facebook/musicgen-stereo-small"
         MUSICGEN_STEREO_LARGE = "facebook/musicgen-stereo-large"
 
-    model: TextToAudioModelId = Field(
-        default=TextToAudioModelId.MUSICGEN_SMALL,
+    model: MusicGenModelId = Field(
+        default=MusicGenModelId.MUSICGEN_SMALL,
         title="Model ID on Huggingface",
         description="The model ID to use for the audio generation",
     )
-    inputs: str = Field(
+    prompt: str = Field(
         default="",
         title="Inputs",
         description="The input text to the model",
     )
+    max_new_tokens: int = Field(
+        default=256,
+        title="Max New Tokens",
+        description="The maximum number of tokens to generate",
+    )
+
+    _processor: AutoProcessor | None = None
+    _model: MusicgenForConditionalGeneration | None = None
 
     def get_model_id(self):
         return self.model.value
 
-    async def process(self, context: ProcessingContext) -> AudioRef:
-        # we need to run this remote as the model is too big to run locally
-        result = await self.run_huggingface(
-            model_id=self.model.value,
-            context=context,
-            params={
-                "inputs": self.inputs,
-            },
+    async def initialize(self, context: ProcessingContext):
+        self._processor = AutoProcessor.from_pretrained(self.model.value)  # type: ignore
+        self._model = MusicgenForConditionalGeneration.from_pretrained(self.model.value)  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._model is not None:
+            self._model.to(device)  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> AudioRef:  # type: ignore
+        if self._model is None:
+            raise ValueError("Model not initialized")
+
+        inputs = self._processor(
+            text=[self.prompt],
+            padding=True,
+            return_tensors="pt",
+        )  # type: ignore
+
+        inputs["input_ids"] = inputs["input_ids"].to(torch.device("cuda"))
+        inputs["attention_mask"] = inputs["attention_mask"].to(torch.device("cuda"))
+
+        audio_values = self._model.generate(**inputs, max_new_tokens=256)
+        sampling_rate = self._model.config.audio_encoder.sampling_rate
+
+        return await context.audio_from_numpy(
+            audio_values[0].cpu().numpy(), sampling_rate
         )
-        audio = await context.audio_from_bytes(result)  # type: ignore
-        return audio
+
+
+class MusicLDM(HuggingFacePipelineNode):
+    """
+    Generates audio (music or sound effects) from text descriptions.
+    audio, music, generation, huggingface
+
+    Use cases:
+    - Create custom background music for videos or games
+    - Generate sound effects based on textual descriptions
+    - Prototype musical ideas quickly
+    """
+
+    prompt: str = Field(
+        default="",
+        title="Inputs",
+        description="The input text to the model",
+    )
+    num_inference_steps: int = Field(
+        default=10,
+        title="Number of Inference Steps",
+        description="The number of inference steps to use for the generation",
+    )
+    audio_length_in_s: float = Field(
+        default=5.0,
+        title="Audio Length",
+        description="The length of the generated audio in seconds",
+    )
+
+    _pipeline: MusicLDMPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        repo_id = "ucsd-reach/musicldm"
+        self._pipeline = MusicLDMPipeline.from_pretrained(
+            repo_id, torch_dtype=torch.float16
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        assert self._pipeline is not None, "Pipeline not initialized"
+        audio = self._pipeline(
+            self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            audio_length_in_s=self.audio_length_in_s,
+        ).audios[  # type: ignore
+            0
+        ]
+
+        return await context.audio_from_numpy(audio, 16_000)
 
 
 class StableAudioNode(BaseNode):
@@ -287,6 +371,9 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         description="The input audio to transcribe",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_model_id(self):
         return self.model.value
 
@@ -337,6 +424,9 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
         title="Candidate Labels",
         description="The candidate labels to classify the audio against, separated by commas",
     )
+
+    def required_inputs(self):
+        return ["inputs"]
 
     def get_model_id(self):
         return self.model.value

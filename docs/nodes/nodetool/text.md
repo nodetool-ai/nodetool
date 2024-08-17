@@ -11,10 +11,12 @@ Use cases:
 
 **Tags:** text, chunk, split
 
+**Fields:**
 - **text** (str | nodetool.metadata.types.TextRef)
 - **length** (int)
 - **overlap** (int)
 - **separator** (str | None)
+
 
 ## Concat
 
@@ -27,8 +29,10 @@ Use cases:
 
 **Tags:** text, concatenation, combine
 
+**Fields:**
 - **a** (str | nodetool.metadata.types.TextRef)
 - **b** (str | nodetool.metadata.types.TextRef)
+
 
 ## Extract
 
@@ -41,9 +45,11 @@ Use cases:
 
 **Tags:** text, extract, substring
 
+**Fields:**
 - **text** (str | nodetool.metadata.types.TextRef)
 - **start** (int)
 - **end** (int)
+
 
 ## ExtractJSON
 
@@ -56,9 +62,11 @@ Use cases:
 
 **Tags:** json, extract, jsonpath
 
+**Fields:**
 - **text** (str | nodetool.metadata.types.TextRef)
 - **json_path** (str)
 - **find_all** (bool)
+
 
 ## ExtractRegex
 
@@ -71,11 +79,13 @@ Use cases:
 
 **Tags:** text, regex, extract
 
+**Fields:**
 - **text** (str | nodetool.metadata.types.TextRef)
 - **regex** (str)
 - **dotall** (bool)
 - **ignorecase** (bool)
 - **multiline** (bool)
+
 
 ## FindAllRegex
 
@@ -88,11 +98,13 @@ Use cases:
 
 **Tags:** text, regex, find
 
+**Fields:**
 - **text** (str | nodetool.metadata.types.TextRef)
 - **regex** (str)
 - **dotall** (bool)
 - **ignorecase** (bool)
 - **multiline** (bool)
+
 
 ## JSONToDataframe
 
@@ -105,7 +117,9 @@ Use cases:
 
 **Tags:** json, dataframe, conversion
 
+**Fields:**
 - **text** (str | nodetool.metadata.types.TextRef)
+
 
 ## Join
 
@@ -118,8 +132,10 @@ Use cases:
 
 **Tags:** text, join, combine
 
+**Fields:**
 - **strings** (list)
 - **separator** (str)
+
 
 ## ParseJSON
 
@@ -132,7 +148,9 @@ Use cases:
 
 **Tags:** json, parse, convert
 
+**Fields:**
 - **text** (str | nodetool.metadata.types.TextRef)
+
 
 ## Replace
 
@@ -145,9 +163,11 @@ Use cases:
 
 **Tags:** text, replace, substitute
 
+**Fields:**
 - **text** (str | nodetool.metadata.types.TextRef)
 - **old** (str)
 - **new** (str)
+
 
 ## SaveText
 
@@ -160,8 +180,10 @@ Use cases:
 
 **Tags:** text, save, file
 
+**Fields:**
 - **value** (str | nodetool.metadata.types.TextRef)
 - **name** (str)
+
 
 ## Split
 
@@ -174,8 +196,10 @@ Use cases:
 
 **Tags:** text, split, tokenize
 
+**Fields:**
 - **text** (str | nodetool.metadata.types.TextRef)
 - **delimiter** (str)
+
 
 ## Template
 
@@ -186,16 +210,25 @@ Use cases:
 - Creating parameterized queries or commands
 - Formatting text output based on variable inputs
 
+Examples:
+- text: "Hello, {name}!" values: {"name": "Alice"} -> "Hello, Alice!"
+- text: "Hello, {0} {1}!" values: ["Alice", "Meyer"] -> "Hello, Alice Meyer!"
+- text: "Hello, {0}!" values: "Alice" -> "Hello, Alice!"
+
 **Tags:** text, template, formatting
 
+**Fields:**
 - **string** (str | nodetool.metadata.types.TextRef)
-- **values** (dict)
+- **values** (str | list | dict[str, typing.Any])
+
 
 ## TextID
 
 Returns the asset id.
 
+**Fields:**
 - **text** (TextRef)
+
 
 ### convert_result
 

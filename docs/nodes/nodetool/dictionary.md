@@ -11,8 +11,10 @@ Use cases:
 
 **Tags:** dictionary, merge, update
 
+**Fields:**
 - **dict_a** (dict)
 - **dict_b** (dict)
+
 
 ## ConflictResolution
 
@@ -29,8 +31,10 @@ Use cases:
 
 **Tags:** dictionary, filter, select
 
+**Fields:**
 - **dictionary** (dict)
 - **keys** (list)
+
 
 ## GetValue
 
@@ -43,8 +47,10 @@ Use cases:
 
 **Tags:** dictionary, get, value, key
 
+**Fields:**
 - **dictionary** (dict)
 - **key** (str)
+
 
 ## ParseJSON
 
@@ -57,7 +63,9 @@ Use cases:
 
 **Tags:** json, parse, dictionary
 
+**Fields:**
 - **json_string** (str)
+
 
 ## ReduceDictionaries
 
@@ -70,10 +78,12 @@ Use cases:
 
 **Tags:** dictionary, reduce, aggregate
 
+**Fields:**
 - **dictionaries**: List of dictionaries to be reduced (list)
 - **key_field**: The field to use as the key in the resulting dictionary (str)
 - **value_field**: Optional field to use as the value. If not specified, the entire dictionary (minus the key field) will be used as the value. (str | None)
 - **conflict_resolution**: How to handle conflicts when the same key appears multiple times (ConflictResolution)
+
 
 ## Remove
 
@@ -86,8 +96,10 @@ Use cases:
 
 **Tags:** dictionary, remove, delete
 
+**Fields:**
 - **dictionary** (dict)
 - **key** (str)
+
 
 ## Update
 
@@ -100,8 +112,10 @@ Use cases:
 
 **Tags:** dictionary, add, update
 
+**Fields:**
 - **dictionary** (dict)
 - **new_pairs** (dict)
+
 
 ## Zip
 
@@ -114,6 +128,8 @@ Use cases:
 
 **Tags:** dictionary, create, zip
 
+**Fields:**
 - **keys** (list)
 - **values** (list)
+
 

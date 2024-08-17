@@ -4,6 +4,7 @@
 
 Metadata for a type.
 
+**Fields:**
 - **type** (str)
 - **optional** (bool)
 - **values** (typing.Optional[list[str | int]])
@@ -68,4 +69,5 @@ Returns a JSON schema for the type.
 ### is_union_type
 
 **Args:**
+
 

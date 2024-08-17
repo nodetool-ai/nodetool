@@ -1,6 +1,5 @@
-from typing import Any, Optional, List, Sequence
+from typing import Any, List, Sequence
 from collections import deque
-import copy
 
 from pydantic import BaseModel, Field
 from nodetool.types.graph import Edge

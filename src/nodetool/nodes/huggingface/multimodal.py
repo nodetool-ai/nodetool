@@ -7,6 +7,7 @@ from nodetool.metadata.types import ImageRef, Tensor
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
 
+
 class FeaturesExtraction(HuggingFacePipelineNode):
     """
     Extracts features from text using pre-trained models.
@@ -20,8 +21,12 @@ class FeaturesExtraction(HuggingFacePipelineNode):
     """
 
     class FeaturesExtractionModelId(str, Enum):
-        SENTENCE_TRANSFORMERS_ALL_MPNET_BASE_V2 = "sentence-transformers/all-mpnet-base-v2"
-        SENTENCE_TRANSFORMERS_ALL_MINILM_L6_V2 = "sentence-transformers/all-MiniLM-L6-v2"
+        SENTENCE_TRANSFORMERS_ALL_MPNET_BASE_V2 = (
+            "sentence-transformers/all-mpnet-base-v2"
+        )
+        SENTENCE_TRANSFORMERS_ALL_MINILM_L6_V2 = (
+            "sentence-transformers/all-MiniLM-L6-v2"
+        )
         DISTILBERT_BASE_UNCASED = "distilbert-base-uncased"
         BERT_BASE_UNCASED = "bert-base-uncased"
 
@@ -36,27 +41,36 @@ class FeaturesExtraction(HuggingFacePipelineNode):
         description="The text to extract features from",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_model_id(self):
         return self.model.value
 
     @property
     def pipeline_task(self) -> str:
-        return 'feature-extraction'
+        return "feature-extraction"
 
     async def get_inputs(self, context: ProcessingContext):
         return self.inputs
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> Tensor:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> Tensor:
         return await self.process_local_result(context, result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> Tensor:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> Tensor:
         # The result is typically a list of lists, where each inner list represents the features for a token
         # We'll return the mean of these features to get a single vector for the entire input
         import numpy as np
+
         return Tensor.from_numpy(np.mean(result[0], axis=0))
 
     async def process(self, context: ProcessingContext) -> list[float]:
         return await super().process(context)
+
 
 # throws an error
 # class DocumentQuestionAnswering(HuggingFacePipelineNode):
@@ -92,7 +106,7 @@ class FeaturesExtraction(HuggingFacePipelineNode):
 
 #     def get_model_id(self):
 #         return self.model.value
-    
+
 #     async def get_inputs(self, context: ProcessingContext):
 #         image = await context.image_to_pil(self.image)
 #         return {
@@ -146,28 +160,36 @@ class ImageFeatureExtraction(HuggingFacePipelineNode):
         description="The image to extract features from",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_model_id(self):
         return self.model.value
 
     @property
     def pipeline_task(self) -> str:
-        return 'image-feature-extraction'
+        return "image-feature-extraction"
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> Tensor:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> Tensor:
         return await self.process_local_result(context, result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> Tensor:
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> Tensor:
         # The result is typically a list with a single numpy array
         # We'll return this array as a Tensor
         import numpy as np
+
         return Tensor.from_numpy(np.array(result[0]))
 
     async def process(self, context: ProcessingContext) -> Tensor:
         return await super().process(context)
-    
+
 
 class ImageToText(HuggingFacePipelineNode):
     """
@@ -185,7 +207,9 @@ class ImageToText(HuggingFacePipelineNode):
         MICROSOFT_GIT_BASE_COCO = "microsoft/git-base-coco"
         NLPCONNECT_VIT_GPT2_IMAGE_CAPTIONING = "nlpconnect/vit-gpt2-image-captioning"
         SALESFORCE_BLIP_IMAGE_CAPTIONING_BASE = "Salesforce/blip-image-captioning-base"
-        SALESFORCE_BLIP_IMAGE_CAPTIONING_LARGE = "Salesforce/blip-image-captioning-large"
+        SALESFORCE_BLIP_IMAGE_CAPTIONING_LARGE = (
+            "Salesforce/blip-image-captioning-large"
+        )
 
     model: ImageToTextModelId = Field(
         default=ImageToTextModelId.MICROSOFT_GIT_BASE_COCO,
@@ -203,12 +227,15 @@ class ImageToText(HuggingFacePipelineNode):
         description="The maximum number of tokens to generate",
     )
 
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_model_id(self):
         return self.model.value
 
     @property
     def pipeline_task(self) -> str:
-        return 'image-to-text'
+        return "image-to-text"
 
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
@@ -218,11 +245,15 @@ class ImageToText(HuggingFacePipelineNode):
             "max_new_tokens": self.max_new_tokens,
         }
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]['generated_text']
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
+        return result[0]["generated_text"]
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]['generated_text']
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
+        return result[0]["generated_text"]
 
     async def process(self, context: ProcessingContext) -> str:
         return await super().process(context)
@@ -262,13 +293,16 @@ class MaskGeneration(HuggingFacePipelineNode):
         ge=1,
         le=64,
     )
-    
+
+    def required_inputs(self):
+        return ["inputs"]
+
     def get_model_id(self):
         return self.model.value
 
     @property
     def pipeline_task(self) -> str:
-        return 'mask-generation'
+        return "mask-generation"
 
     def get_params(self):
         return {
@@ -278,15 +312,21 @@ class MaskGeneration(HuggingFacePipelineNode):
     async def get_inputs(self, context: ProcessingContext):
         return await context.image_to_pil(self.inputs)
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> list[ImageRef]:
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> list[ImageRef]:
         return await self.process_local_result(context, result)
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> list[ImageRef]:
-        return await asyncio.gather(*[context.image_from_numpy(mask) for mask in result['masks']])
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> list[ImageRef]:
+        return await asyncio.gather(
+            *[context.image_from_numpy(mask) for mask in result["masks"]]
+        )
 
     async def process(self, context: ProcessingContext) -> list[ImageRef]:
         return await super().process(context)
-    
+
 
 class VisualQuestionAnswering(HuggingFacePipelineNode):
     """
@@ -321,12 +361,15 @@ class VisualQuestionAnswering(HuggingFacePipelineNode):
         description="The question to be answered about the image",
     )
 
+    def required_inputs(self):
+        return ["image", "question"]
+
     def get_model_id(self):
         return self.model.value
 
     @property
     def pipeline_task(self) -> str:
-        return 'visual-question-answering'
+        return "visual-question-answering"
 
     async def get_inputs(self, context: ProcessingContext):
         image = await context.image_to_pil(self.image)
@@ -335,11 +378,15 @@ class VisualQuestionAnswering(HuggingFacePipelineNode):
             "question": self.question,
         }
 
-    async def process_remote_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]['answer']
+    async def process_remote_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
+        return result[0]["answer"]
 
-    async def process_local_result(self, context: ProcessingContext, result: Any) -> str:
-        return result[0]['answer']
+    async def process_local_result(
+        self, context: ProcessingContext, result: Any
+    ) -> str:
+        return result[0]["answer"]
 
     async def process(self, context: ProcessingContext) -> str:
         return await super().process(context)

@@ -13,8 +13,10 @@ Use cases:
 
 **Tags:** image, t2i, tti, text-to-image, create, generate, dall-e, picture, photo, art, drawing, illustration
 
+**Fields:**
 - **prompt**: The prompt to use. (str)
 - **size**: The size of the image to generate. (Size)
 - **quality**: The quality of the image to generate. (Quality)
 - **style**: The style to use. (Style)
+
 

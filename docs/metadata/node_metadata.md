@@ -4,6 +4,7 @@
 
 Metadata for a node.
 
+**Fields:**
 - **title** (str)
 - **description** (str)
 - **namespace** (str)
@@ -12,4 +13,5 @@ Metadata for a node.
 - **properties** (list)
 - **outputs** (list)
 - **model_info** (dict)
+
 

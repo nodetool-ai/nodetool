@@ -4,6 +4,7 @@
 
 🎨 AnimateDiff (w/ MotionLoRAs for Panning, Zooming, etc): Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning
 
+**Fields:**
 - **seed**: Seed for different images and reproducibility. Use -1 to randomise seed (int)
 - **steps**: Number of inference steps (int)
 - **width**: Width in pixels (int)
@@ -23,10 +24,12 @@
 - **rolling_clockwise_motion_strength**: Strength of Rolling Clockwise Motion LoRA. 0 disables the LoRA (float)
 - **rolling_anticlockwise_motion_strength**: Strength of Rolling Anticlockwise Motion LoRA. 0 disables the LoRA (float)
 
+
 ## AnimateDiffIllusions
 
 Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Prompt Travel (Motion Module SD 1.5 v2)
 
+**Fields:**
 - **loop**: Flag to loop the video. Use when you have an 'infinitely' repeating video/gif ControlNet video (bool)
 - **seed**: Seed for different images and reproducibility. Leave blank to randomise seed (int | None)
 - **steps**: Number of inference steps (int)
@@ -54,10 +57,12 @@ Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Pro
 - **qr_code_monster_v2_guess_mode**: Flag to enable guess mode (un-guided) for QR Code Monster V2 ControlNet (bool)
 - **qr_code_monster_v2_preprocessor**: Flag to pre-process keyframes for QR Code Monster V2 ControlNet (bool)
 
+
 ## AudioToWaveform
 
 Create a waveform video from audio
 
+**Fields:**
 - **audio**: Audio file to create waveform from (AudioRef)
 - **bg_color**: Background color of waveform (str)
 - **fg_alpha**: Opacity of foreground waveform (float)
@@ -66,10 +71,12 @@ Create a waveform video from audio
 - **bars_color**: Color of waveform bars (str)
 - **caption_text**: Caption text for the video (str)
 
+
 ## HotshotXL
 
 😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL
 
+**Fields:**
 - **mp4**: Save as mp4, False for GIF (bool)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **steps**: Number of denoising steps (int)
@@ -79,25 +86,31 @@ Create a waveform video from audio
 - **scheduler**: Select a Scheduler (Scheduler)
 - **negative_prompt**: Negative prompt (str)
 
+
 ## RobustVideoMatting
 
 extract foreground of a video
 
+**Fields:**
 - **input_video**: Video to segment. (VideoRef)
 - **output_type** (Output_type)
+
 
 ## StableDiffusionInfiniteZoom
 
 Use Runway's Stable-diffusion inpainting model to create an infinite loop video
 
+**Fields:**
 - **prompt**: Prompt (str | None)
 - **inpaint_iter**: Number of iterations of pasting the image in it's center and inpainting the boarders (int)
 - **output_format**: infinite loop gif or mp4 video (Output_format)
+
 
 ## Tooncrafter
 
 Create videos from illustrated input images
 
+**Fields:**
 - **loop**: Loop the video (bool)
 - **seed**: Set a seed for reproducibility. Random by default. (int | None)
 - **prompt** (str)
@@ -117,10 +130,12 @@ Create videos from illustrated input images
 - **negative_prompt**: Things you do not want to see in your video (str)
 - **color_correction**: If the colors are coming out strange, or if the colors between your input images are very different, disable this (bool)
 
+
 ## VideoMorpher
 
 Generate a video that morphs between subjects, with an optional style
 
+**Fields:**
 - **mode**: Determines if you produce a quick experimental video or an upscaled interpolated one. (small ~20s, medium ~60s, upscaled ~2min, upscaled-and-interpolated ~4min) (Mode)
 - **seed**: Set a seed for reproducibility. Random by default. (int | None)
 - **prompt**: The prompt has a small effect, but most of the video is driven by the subject images (str)
@@ -135,10 +150,12 @@ Generate a video that morphs between subjects, with an optional style
 - **subject_image_3**: The third subject of the video (ImageRef)
 - **subject_image_4**: The fourth subject of the video (ImageRef)
 
+
 ## Zeroscope_V2_XL
 
 Zeroscope V2 XL & 576w
 
+**Fields:**
 - **fps**: fps for the output video (int)
 - **seed**: Random seed. Leave blank to randomize the seed (int | None)
 - **model**: Model to use (Model)
@@ -153,4 +170,5 @@ Zeroscope V2 XL & 576w
 - **negative_prompt**: Negative prompt (str | None)
 - **remove_watermark**: Remove watermark (bool)
 - **num_inference_steps**: Number of denoising steps (int)
+
 

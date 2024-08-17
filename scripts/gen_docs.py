@@ -1,9 +1,12 @@
 import inspect
+import json
 import os
 from typing import IO, Any, Type, Union
 import importlib
 from pydantic import BaseModel
 import dotenv
+
+from nodetool.workflows.base_node import BaseNode
 
 dotenv.load_dotenv()
 
@@ -235,8 +238,15 @@ def document_class(file: Any, cls: Type[Any], compact: bool = False) -> None:
         if not compact and len(tags) > 0:
             file.write(f"**Tags:** {', '.join(tags)}\n\n")
 
-    if not compact:
-        if issubclass(cls, BaseModel):
+    if issubclass(cls, BaseModel):
+        if compact:
+            if issubclass(cls, BaseNode):
+                try:
+                    file.write(json.dumps(cls.get_json_schema()) + "\n")
+                except Exception as e:
+                    print(f"Error generating schema for {cls.__name__}: {e}")
+        else:
+            file.write("**Fields:**\n")
             for name, field in cls.model_fields.items():
                 file.write(f"- **{name}**")
                 if field.description:
@@ -245,7 +255,8 @@ def document_class(file: Any, cls: Type[Any], compact: bool = False) -> None:
                     file.write(f" ({type_to_str(field.annotation)})\n")
             file.write("\n")
 
-        document_methods(file, cls, compact)
+            document_methods(file, cls, compact)
+        file.write("\n")
 
 
 def document_methods(file: Any, cls: Type[Any], compact: bool = False) -> None:
@@ -282,29 +293,23 @@ def document_function(
     file.write(f"### {func.__name__}\n\n")
 
     if func.__doc__:
-        if compact:
-            # For compact mode, only include the first line of the docstring
-            first_line = func.__doc__.strip().split("\n")[0]
-            file.write(f"{first_line}\n\n")
-        else:
-            file.write(docstring_to_markdown(func.__doc__) + "\n")
+        file.write(docstring_to_markdown(func.__doc__) + "\n")
 
-    if not compact:
-        signature = inspect.signature(func)
-        params = signature.parameters
+    signature = inspect.signature(func)
+    params = signature.parameters
 
-        if params and len(params) > 0:
-            file.write("**Args:**\n")
-            for name, param in params.items():
-                if name == "self":
-                    continue
-                file.write(f"- **{name}")
-                if param.annotation != inspect.Parameter.empty:
-                    file.write(f" ({type_to_str(param.annotation)})")
-                if param.default != inspect.Parameter.empty:
-                    file.write(f" (default: {param.default})")
-                file.write("**\n")
-            file.write("\n")
+    if params and len(params) > 0:
+        file.write("**Args:**\n")
+        for name, param in params.items():
+            if name == "self":
+                continue
+            file.write(f"- **{name}")
+            if param.annotation != inspect.Parameter.empty:
+                file.write(f" ({type_to_str(param.annotation)})")
+            if param.default != inspect.Parameter.empty:
+                file.write(f" (default: {param.default})")
+            file.write("**\n")
+        file.write("\n")
 
         if signature.return_annotation != inspect.Signature.empty:
             file.write(f"**Returns:** {type_to_str(signature.return_annotation)}\n\n")
@@ -342,6 +347,3 @@ if __name__ == "__main__":
 
     # Generate full documentation
     generate_documentation(nodetool, "docs")
-
-    # Generate compact documentation
-    generate_documentation(nodetool.nodes, "src/nodetool/chat/docs", compact=True)

@@ -12,6 +12,7 @@ Use cases:
 
 **Tags:** text, fill-mask, natural language processing
 
+**Fields:**
 - **model**: The model ID to use for fill-mask task (FillMaskModelId)
 - **inputs**: The input text with [MASK] token to be filled (str)
 - **top_k**: Number of top predictions to return (int)
@@ -45,6 +46,7 @@ Use cases:
 
 **Returns:** DataframeRef
 
+
 ## QuestionAnswering
 
 Answers questions based on a given context.
@@ -57,6 +59,7 @@ Use cases:
 
 **Tags:** text, question answering, natural language processing
 
+**Fields:**
 - **model**: The model ID to use for question answering (QuestionAnsweringModelId)
 - **context**: The context or passage to answer questions from (str)
 - **question**: The question to be answered based on the context (str)
@@ -86,8 +89,10 @@ Use cases:
 
 **Returns:** dict
 
+
 ## Summarize
 
+**Fields:**
 - **model**: The model ID to use for the summarization (SummarizeModelId)
 - **inputs**: The input text to the model (str)
 - **max_length**: The maximum length of the generated text (int)
@@ -117,6 +122,7 @@ Use cases:
 
 **Returns:** str
 
+
 ## TableQuestionAnswering
 
 Answers questions based on tabular data.
@@ -129,6 +135,7 @@ Use cases:
 
 **Tags:** table, question answering, natural language processing
 
+**Fields:**
 - **model**: The model ID to use for table question answering (TableQuestionAnsweringModelId)
 - **inputs**: The input table to query (DataframeRef)
 - **question**: The question to be answered based on the table (str)
@@ -158,8 +165,10 @@ Use cases:
 
 **Returns:** dict
 
+
 ## TextClassifier
 
+**Fields:**
 - **model**: The model ID to use for the classification (TextClassifierModelId)
 - **inputs**: The input text to the model (str)
 
@@ -183,6 +192,7 @@ Use cases:
 
 **Returns:** dict
 
+
 ## TextGeneration
 
 Generates text based on a given prompt.
@@ -195,6 +205,7 @@ Use cases:
 
 **Tags:** text, generation, natural language processing
 
+**Fields:**
 - **model**: The model ID to use for the text generation (TextGenerationModelId)
 - **inputs**: The input text prompt for generation (str)
 - **max_new_tokens**: The maximum number of new tokens to generate (int)
@@ -231,6 +242,7 @@ Use cases:
 
 **Returns:** str
 
+
 ## TextToText
 
 Performs text-to-text generation tasks.
@@ -243,6 +255,7 @@ Use cases:
 
 **Tags:** text, generation, translation, summarization, natural language processing
 
+**Fields:**
 - **model**: The model ID to use for the text-to-text generation (TextToTextModelId)
 - **inputs**: The input text for the text-to-text task (str)
 - **prefix**: The prefix to specify the task (e.g., 'translate English to French:', 'summarize:') (str)
@@ -278,6 +291,7 @@ Use cases:
 
 **Returns:** list
 
+
 ## TokenClassification
 
 Performs token classification tasks such as Named Entity Recognition (NER).
@@ -290,6 +304,7 @@ Use cases:
 
 **Tags:** text, token classification, named entity recognition, natural language processing
 
+**Fields:**
 - **model**: The model ID to use for token classification (TokenClassificationModelId)
 - **inputs**: The input text for token classification (str)
 - **aggregation_strategy**: Strategy to aggregate tokens into entities (AggregationStrategy)
@@ -323,6 +338,7 @@ Use cases:
 
 **Returns:** DataframeRef
 
+
 ## Translation
 
 Translates text from one language to another.
@@ -335,6 +351,7 @@ Use cases:
 
 **Tags:** text, translation, natural language processing
 
+**Fields:**
 - **inputs**: The text to translate (str)
 - **source_lang**: The source language code (e.g., 'en' for English) (LanguageCode)
 - **target_lang**: The target language code (e.g., 'fr' for French) (LanguageCode)
@@ -369,6 +386,7 @@ Use cases:
 
 **Returns:** str
 
+
 ## ZeroShotTextClassifier
 
 Performs zero-shot classification on text.
@@ -381,6 +399,7 @@ Use cases:
 
 **Tags:** text, classification, zero-shot, natural language processing
 
+**Fields:**
 - **model**: The model ID to use for zero-shot classification (ZeroShotTextClassifierModelId)
 - **inputs**: The text to classify (str)
 - **candidate_labels**: Comma-separated list of candidate labels for classification (str)
@@ -414,4 +433,5 @@ Use cases:
 - **result (typing.Any)**
 
 **Returns:** dict
+
 

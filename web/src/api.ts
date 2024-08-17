@@ -600,6 +600,7 @@ export interface components {
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
       created_at?: string | null;
+      workflow?: components["schemas"]["Workflow-Input"] | null;
     };
     /** MessageImageContent */
     MessageImageContent: {
@@ -1201,7 +1202,46 @@ export interface components {
       format?: string | null;
     };
     /** Workflow */
-    Workflow: {
+    "Workflow-Input": {
+      /** Id */
+      id: string;
+      /**
+       * User Id
+       * @default
+       */
+      user_id?: string;
+      /**
+       * Access
+       * @default private
+       */
+      access?: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at?: string;
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+      /**
+       * Description
+       * @default
+       */
+      description?: string | null;
+      /** Thumbnail */
+      thumbnail?: string | null;
+      /** Graph */
+      graph?: Record<string, never>;
+    };
+    /** Workflow */
+    "Workflow-Output": {
       /** Id */
       id: string;
       /** Access */
@@ -1229,7 +1269,7 @@ export interface components {
       /** Next */
       next: string | null;
       /** Workflows */
-      workflows: components["schemas"]["Workflow"][];
+      workflows: components["schemas"]["Workflow-Output"][];
     };
     /** WorkflowRef */
     WorkflowRef: {
@@ -1955,7 +1995,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["Workflow"];
+          "application/json": components["schemas"]["Workflow-Output"];
         };
       };
       /** @description Validation Error */
@@ -2000,7 +2040,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["Workflow"];
+          "application/json": components["schemas"]["Workflow-Output"];
         };
       };
       /** @description Validation Error */
@@ -2065,7 +2105,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["Workflow"];
+          "application/json": components["schemas"]["Workflow-Output"];
         };
       };
       /** @description Validation Error */
@@ -2098,7 +2138,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["Workflow"];
+          "application/json": components["schemas"]["Workflow-Output"];
         };
       };
       /** @description Validation Error */

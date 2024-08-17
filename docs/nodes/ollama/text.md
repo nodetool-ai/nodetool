@@ -14,9 +14,11 @@ Use cases:
 
 **Tags:** embeddings, semantic analysis, text similarity, search, clustering
 
+**Fields:**
 - **input** (str | nodetool.metadata.types.TextRef)
 - **model** (LlamaModel)
 - **chunk_size**: The size of the chunks to split the input into (int)
+
 
 ## Ollama
 
@@ -30,10 +32,12 @@ Use cases:
 
 **Tags:** llama, text generation, language model, ai assistant
 
+**Fields:**
 - **model**: The Llama model to use. (LlamaModel)
 - **prompt**: Prompt to send to the model. (str)
 - **system_prompt**: System prompt to send to the model. (str)
 - **temperature**: The temperature to use for the model. (float)
 - **top_k**: The number of highest probability tokens to keep for top-k sampling. (int)
 - **top_p**: The cumulative probability cutoff for nucleus/top-p sampling. (float)
+
 

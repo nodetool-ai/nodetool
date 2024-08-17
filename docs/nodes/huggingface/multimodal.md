@@ -12,6 +12,7 @@ Use cases:
 
 **Tags:** text, feature extraction, embeddings, natural language processing
 
+**Fields:**
 - **model**: The model ID to use for feature extraction (FeaturesExtractionModelId)
 - **inputs**: The text to extract features from (str)
 
@@ -40,6 +41,7 @@ Use cases:
 
 **Returns:** Tensor
 
+
 ## ImageFeatureExtraction
 
 Extracts features from images using pre-trained models.
@@ -52,6 +54,7 @@ Use cases:
 
 **Tags:** image, feature extraction, embeddings, computer vision
 
+**Fields:**
 - **model**: The model ID to use for image feature extraction (ImageFeatureExtractionModelId)
 - **inputs**: The image to extract features from (ImageRef)
 
@@ -80,6 +83,7 @@ Use cases:
 
 **Returns:** Tensor
 
+
 ## ImageToText
 
 Generates text descriptions from images.
@@ -92,6 +96,7 @@ Use cases:
 
 **Tags:** image, text, captioning, vision-language
 
+**Fields:**
 - **model**: The model ID to use for image-to-text generation (ImageToTextModelId)
 - **inputs**: The image to generate text from (ImageRef)
 - **max_new_tokens**: The maximum number of tokens to generate (int)
@@ -125,6 +130,7 @@ Use cases:
 
 **Returns:** str
 
+
 ## MaskGeneration
 
 Generates masks for images using segmentation models.
@@ -137,6 +143,7 @@ Use cases:
 
 **Tags:** image, segmentation, mask generation, computer vision
 
+**Fields:**
 - **model**: The model ID to use for mask generation (MaskGenerationModelId)
 - **inputs**: The image to generate masks for (ImageRef)
 - **points_per_side**: Number of points to be sampled along each side of the image (int)
@@ -170,6 +177,7 @@ Use cases:
 
 **Returns:** list
 
+
 ## VisualQuestionAnswering
 
 Answers questions about images.
@@ -182,6 +190,7 @@ Use cases:
 
 **Tags:** image, text, question answering, multimodal
 
+**Fields:**
 - **model**: The model ID to use for visual question answering (VisualQuestionAnsweringModelId)
 - **image**: The image to analyze (ImageRef)
 - **question**: The question to be answered about the image (str)
@@ -210,4 +219,5 @@ Use cases:
 - **result (typing.Any)**
 
 **Returns:** str
+
 

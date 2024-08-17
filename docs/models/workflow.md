@@ -2,6 +2,7 @@
 
 ## Workflow
 
+**Fields:**
 - **id** (str)
 - **user_id** (str)
 - **access** (str)
@@ -29,4 +30,5 @@ Returns the graph object for the workflow.
 **Args:**
 
 **Returns:** Graph
+
 

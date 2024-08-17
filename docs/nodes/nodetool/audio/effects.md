@@ -11,9 +11,11 @@ Use cases:
 
 **Tags:** audio, effect, distortion
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **bit_depth**: The bit depth to reduce the audio to. Lower values create more distortion. (int)
 - **sample_rate_reduction**: Factor by which to reduce the sample rate. Higher values create more aliasing. (int)
+
 
 ## Compress
 
@@ -26,11 +28,13 @@ Use cases:
 
 **Tags:** audio, effect, dynamics
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **threshold**: Threshold in dB above which compression is applied. (float)
 - **ratio**: Compression ratio. Higher values result in more compression. (float)
 - **attack**: Attack time in milliseconds. (float)
 - **release**: Release time in milliseconds. (float)
+
 
 ## Delay
 
@@ -43,10 +47,12 @@ Use cases:
 
 **Tags:** audio, effect, time-based
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **delay_seconds**: Delay time in seconds. (float)
 - **feedback**: Amount of delayed signal fed back into the effect. (float)
 - **mix**: Mix between the dry (original) and wet (delayed) signals. (float)
+
 
 ## Distortion
 
@@ -59,8 +65,10 @@ Use cases:
 
 **Tags:** audio, effect, distortion
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **drive_db**: Amount of distortion to apply in decibels. (float)
+
 
 ## Gain
 
@@ -73,8 +81,10 @@ Use cases:
 
 **Tags:** audio, effect, volume
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **gain_db**: Gain to apply in decibels. Positive values increase volume, negative values decrease it. (float)
+
 
 ## HighPassFilter
 
@@ -87,8 +97,10 @@ Use cases:
 
 **Tags:** audio, effect, equalizer
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **cutoff_frequency_hz**: The cutoff frequency of the high-pass filter in Hz. (float)
+
 
 ## HighShelfFilter
 
@@ -101,9 +113,11 @@ Use cases:
 
 **Tags:** audio, effect, equalizer
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **cutoff_frequency_hz**: The cutoff frequency of the shelf filter in Hz. (float)
 - **gain_db**: The gain to apply to the frequencies above the cutoff, in dB. (float)
+
 
 ## Limiter
 
@@ -116,9 +130,11 @@ Use cases:
 
 **Tags:** audio, effect, dynamics
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **threshold_db**: Threshold in dB above which the limiter is applied. (float)
 - **release_ms**: Release time in milliseconds. (float)
+
 
 ## LowPassFilter
 
@@ -131,8 +147,10 @@ Use cases:
 
 **Tags:** audio, effect, equalizer
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **cutoff_frequency_hz**: The cutoff frequency of the low-pass filter in Hz. (float)
+
 
 ## LowShelfFilter
 
@@ -145,9 +163,11 @@ Use cases:
 
 **Tags:** audio, effect, equalizer
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **cutoff_frequency_hz**: The cutoff frequency of the shelf filter in Hz. (float)
 - **gain_db**: The gain to apply to the frequencies below the cutoff, in dB. (float)
+
 
 ## NoiseGate
 
@@ -160,10 +180,12 @@ Use cases:
 
 **Tags:** audio, effect, dynamics
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **threshold_db**: Threshold in dB below which the gate is active. (float)
 - **attack_ms**: Attack time in milliseconds. (float)
 - **release_ms**: Release time in milliseconds. (float)
+
 
 ## PeakFilter
 
@@ -176,9 +198,11 @@ Use cases:
 
 **Tags:** audio, effect, equalizer
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **cutoff_frequency_hz**: The cutoff frequency of the band-pass filter in Hz. (float)
 - **q_factor**: The Q factor, determining the width of the band. Higher values create narrower bands. (float)
+
 
 ## Phaser
 
@@ -191,12 +215,14 @@ Use cases:
 
 **Tags:** audio, effect, modulation
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **rate_hz**: Rate of the phaser effect in Hz. (float)
 - **depth**: Depth of the phaser effect. (float)
 - **centre_frequency_hz**: Centre frequency of the phaser in Hz. (float)
 - **feedback**: Feedback of the phaser effect. Negative values invert the phase. (float)
 - **mix**: Mix between the dry (original) and wet (effected) signals. (float)
+
 
 ## PitchShift
 
@@ -209,8 +235,10 @@ Use cases:
 
 **Tags:** audio, effect, pitch
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **semitones**: Number of semitones to shift the pitch. Positive values shift up, negative values shift down. (float)
+
 
 ## Reverb
 
@@ -223,11 +251,13 @@ Use cases:
 
 **Tags:** audio, effect, reverb
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **room_scale**: Size of the simulated room. Higher values create larger spaces. (float)
 - **damping**: Amount of high frequency absorption. Higher values create a duller sound. (float)
 - **wet_level**: Level of the reverb effect in the output. (float)
 - **dry_level**: Level of the original signal in the output. (float)
+
 
 ## TimeStretch
 
@@ -240,6 +270,8 @@ Use cases:
 
 **Tags:** audio, transform, time
 
+**Fields:**
 - **audio**: The audio file to process. (AudioRef)
 - **rate**: Time stretch factor. Values > 1 speed up, < 1 slow down. (float)
+
 

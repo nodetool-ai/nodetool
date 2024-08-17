@@ -160,12 +160,16 @@ def convert_to_openai_message(
                 type="function",
                 id=tool_call.id,
                 function=Function(
-                    name=tool_call.function_name,
-                    arguments=json.dumps(tool_call.function_args),
+                    name=tool_call.name,
+                    arguments=json.dumps(tool_call.args, default=default_serializer),
                 ),
             )
             for tool_call in message.tool_calls
         ]
+        if len(tool_calls) == 0:
+            return ChatCompletionAssistantMessageParam(
+                role=message.role, content=message.content
+            )
         return ChatCompletionAssistantMessageParam(
             role=message.role, content=message.content, tool_calls=tool_calls
         )
@@ -270,8 +274,6 @@ async def create_anthropic_completion(
         ValueError: If no completion content is returned.
     """
 
-    client = Environment.get_anthropic_client()
-
     def convert_message(message: ChatMessageParam) -> MessageParam:
         if isinstance(message, ChatToolMessageParam):
             return {
@@ -283,6 +285,12 @@ async def create_anthropic_completion(
                     "is_error": False,
                 },  # type: ignore
             }
+        elif isinstance(message, ChatSystemMessageParam):
+            return {
+                "type": "text",
+                "text": message.content,
+                "cache_control": {"type": "ephemeral"},
+            }  # type: ignore
         else:
             return {"role": message.role, "content": message.content}  # type: ignore
 
@@ -300,6 +308,7 @@ async def create_anthropic_completion(
         message
         for message in messages
         if not isinstance(message, ChatSystemMessageParam)
+        and not message.role == "tool"
     ]
     if len(tool_choice) > 0:
         kwargs["tool_choice"] = tool_choice
@@ -309,7 +318,7 @@ async def create_anthropic_completion(
         provider=Provider.Anthropic,
         node_id=node_id,
         params={
-            "system": system_messages[0].content if len(system_messages) > 0 else "",
+            "system": [convert_message(message) for message in system_messages],
             "messages": [convert_message(message) for message in messages],
             "tools": [convert_tool(tool) for tool in tools],
             **kwargs,

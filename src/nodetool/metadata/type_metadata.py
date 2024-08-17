@@ -109,11 +109,16 @@ class TypeMetadata(BaseModel):
         if self.type == "tensor":
             return {"type": "array", "items": {"type": "number"}}
         if self.type == "list":
-            return {
-                "type": "array",
-                "items": self.type_args[0].get_json_schema(),
-            }
+            if not self.type_args:
+                return {"type": "array"}
+            else:
+                return {
+                    "type": "array",
+                    "items": self.type_args[0].get_json_schema(),
+                }
         if self.type == "dict":
+            if not self.type_args:
+                return {"type": "object"}
             return {
                 "type": "object",
                 "properties": {
@@ -126,8 +131,16 @@ class TypeMetadata(BaseModel):
                 "anyOf": [t.get_json_schema() for t in self.type_args],
             }
         if self.type == "enum":
-            return {
-                "type": "string",
-                "enum": self.values,
-            }
+            if self.values is None:
+                return {"type": "string"}
+            else:
+                return {
+                    "type": "string",
+                    "enum": self.values,
+                }
+
+        python_type = self.get_python_type()
+        if issubclass(python_type, BaseModel):
+            return python_type.model_json_schema()
+
         raise ValueError(f"Unknown type: {self.type}")

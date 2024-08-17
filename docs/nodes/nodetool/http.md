@@ -2,6 +2,7 @@
 
 ## HTTPBaseNode
 
+**Fields:**
 - **url**: The URL to make the request to. (str)
 - **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
@@ -10,6 +11,7 @@
 ### get_request_kwargs
 
 **Args:**
+
 
 ## HTTPDelete
 
@@ -23,10 +25,12 @@ Use cases:
 
 **Tags:** http, delete, request, url
 
+**Fields:**
 - **url**: The URL to make the request to. (str)
 - **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
+
 
 ## HTTPGet
 
@@ -40,10 +44,12 @@ Use cases:
 
 **Tags:** http, get, request, url
 
+**Fields:**
 - **url**: The URL to make the request to. (str)
 - **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
+
 
 ## HTTPHead
 
@@ -56,10 +62,12 @@ Use cases:
 
 **Tags:** http, head, request, url
 
+**Fields:**
 - **url**: The URL to make the request to. (str)
 - **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
+
 
 ## HTTPPost
 
@@ -73,11 +81,13 @@ Use cases:
 
 **Tags:** http, post, request, url, data
 
+**Fields:**
 - **url**: The URL to make the request to. (str)
 - **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
 - **data**: The data to send in the POST request. (str)
+
 
 ## HTTPPut
 
@@ -91,9 +101,11 @@ Use cases:
 
 **Tags:** http, put, request, url, data
 
+**Fields:**
 - **url**: The URL to make the request to. (str)
 - **headers**: Optional headers to include in the request. (dict)
 - **allow_redirects**: Whether to follow redirects. (bool)
 - **auth**: Authentication credentials. (str | None)
 - **data**: The data to send in the PUT request. (str)
+
 

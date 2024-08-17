@@ -11,7 +11,9 @@ Use cases:
 
 **Tags:** tensor, absolute, magnitude
 
+**Fields:**
 - **input_tensor**: The input tensor to compute the absolute values from. (Tensor)
+
 
 ## ArgMax
 
@@ -24,8 +26,10 @@ Use cases:
 
 **Tags:** tensor, argmax, index, maximum
 
+**Fields:**
 - **a** (Tensor)
 - **axis** (int | None)
+
 
 ## ArgMin
 
@@ -38,8 +42,10 @@ Use cases:
 
 **Tags:** tensor, argmin, index, minimum
 
+**Fields:**
 - **tensor** (Tensor)
 - **axis** (int | None)
+
 
 ## ConvertToAudio
 
@@ -52,8 +58,10 @@ Use cases:
 
 **Tags:** audio, conversion, tensor
 
+**Fields:**
 - **tensor**: The tensor to convert to an audio file. (Tensor)
 - **sample_rate**: The sample rate of the audio file. (int)
+
 
 ## ConvertToImage
 
@@ -67,7 +75,9 @@ Use cases:
 
 **Tags:** 
 
+**Fields:**
 - **tensor**: The input tensor to convert to an image. Should have either 1, 3, or 4 channels. (Tensor)
+
 
 ## Exp
 
@@ -80,7 +90,9 @@ Use cases:
 
 **Tags:** tensor, exponential, math, activation
 
+**Fields:**
 - **x** (int | float | nodetool.metadata.types.Tensor)
+
 
 ## ListToTensor
 
@@ -93,7 +105,9 @@ Use cases:
 
 **Tags:** list, tensor, conversion, type
 
+**Fields:**
 - **values** (list)
+
 
 ## Log
 
@@ -106,7 +120,9 @@ Use cases:
 
 **Tags:** tensor, logarithm, math, transformation
 
+**Fields:**
 - **x** (int | float | nodetool.metadata.types.Tensor)
+
 
 ## MatMul
 
@@ -119,8 +135,10 @@ Use cases:
 
 **Tags:** tensor, matrix, multiplication, linear algebra
 
+**Fields:**
 - **a** (Tensor)
 - **b** (Tensor)
+
 
 ## Max
 
@@ -133,8 +151,10 @@ Use cases:
 
 **Tags:** tensor, maximum, reduction, statistics
 
+**Fields:**
 - **tensor** (Tensor)
 - **axis** (int | None)
+
 
 ## Mean
 
@@ -147,8 +167,10 @@ Use cases:
 
 **Tags:** tensor, average, reduction, statistics
 
+**Fields:**
 - **tensor** (Tensor)
 - **axis** (int | None)
+
 
 ## Min
 
@@ -161,8 +183,10 @@ Use cases:
 
 **Tags:** tensor, minimum, reduction, statistics
 
+**Fields:**
 - **tensor** (Tensor)
 - **axis** (int | None)
+
 
 ## PlotTSNE
 
@@ -175,9 +199,11 @@ Use cases:
 
 **Tags:** tensor, tsne, visualization, dimensionality reduction
 
+**Fields:**
 - **tensor** (Tensor)
 - **color_indices** (list)
 - **perplexity** (int)
+
 
 ## PlotTensor
 
@@ -190,8 +216,10 @@ Use cases:
 
 **Tags:** tensor, plot, visualization, graph
 
+**Fields:**
 - **tensor** (Tensor)
 - **plot_type** (PlotType)
+
 
 ## SaveTensor
 
@@ -204,9 +232,11 @@ Use cases:
 
 **Tags:** tensor, save, file, storage
 
+**Fields:**
 - **value**: The tensor to save. (Tensor)
 - **folder**: The folder to save the tensor in. (FolderRef)
 - **name**: The name of the asset to save. (str)
+
 
 ## ScalarToTensor
 
@@ -219,7 +249,9 @@ Use cases:
 
 **Tags:** scalar, tensor, conversion, type
 
+**Fields:**
 - **value** (float | int)
+
 
 ## Stack
 
@@ -232,8 +264,10 @@ Use cases:
 
 **Tags:** tensor, stack, concatenate, join, merge, axis
 
+**Fields:**
 - **tensors** (list)
 - **axis**: The axis to stack along. (int)
+
 
 ## Sum
 
@@ -246,8 +280,10 @@ Use cases:
 
 **Tags:** tensor, summation, reduction, statistics
 
+**Fields:**
 - **tensor** (Tensor)
 - **axis** (int | None)
+
 
 ## TensorToList
 
@@ -260,7 +296,9 @@ Use cases:
 
 **Tags:** tensor, list, conversion, type
 
+**Fields:**
 - **tensor** (Tensor)
+
 
 ## TensorToScalar
 
@@ -273,7 +311,9 @@ Use cases:
 
 **Tags:** tensor, scalar, conversion, type
 
+**Fields:**
 - **tensor** (Tensor)
+
 
 ## Transpose
 
@@ -286,5 +326,7 @@ Use cases:
 
 **Tags:** tensor, transpose, reshape, dimensions
 
+**Fields:**
 - **tensor** (Tensor)
+
 

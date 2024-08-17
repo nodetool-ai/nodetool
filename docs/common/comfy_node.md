@@ -9,6 +9,7 @@ _comfy_class (str): The comfy class wrapped by this node.
 
 **Tags:** implementation. The comfy class is looed up in the NODE_CLASS_MAPPINGS.
 
+**Fields:**
 
 ### call_comfy_node
 
@@ -46,6 +47,17 @@ Comfy data types are wrapped with their respective classes.
 **Args:**
 - **context (ProcessingContext)**
 - **value (typing.Any)**
+
+### get_comfy_class_name
+
+**Args:**
+
+**Returns:** str
+
+### required_inputs
+
+**Args:**
+
 
 ## DensePoseModel
 

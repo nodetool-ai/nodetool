@@ -174,7 +174,7 @@ export interface NodeStore {
   ) => boolean;
   workflowJSON: () => string;
   loadJSON: (json: string) => void;
-  createNode: (metadata: NodeMetadata, position: XYPosition) => Node<NodeData>;
+  createNode: (metadata: NodeMetadata, position: XYPosition, properties?: Record<string, any>) => Node<NodeData>;
   autoLayout: () => void;
 }
 
@@ -271,20 +271,26 @@ export const useNodeStore = create<NodeStore>()(
        */
       createNode: (
         metadata: NodeMetadata,
-        position: XYPosition
+        position: XYPosition,
+        properties?: Record<string, any>
       ): Node<NodeData> => {
-        const properties = metadata.properties.reduce<Record<string, any>>(
+        const defaults = metadata.properties.reduce<Record<string, any>>(
           (acc, property) => ({
             ...acc,
             [property.name]: property.default
           }),
           {}
         );
+        if (properties) {
+          for (const key in properties) {
+            defaults[key] = properties[key];
+          }
+        }
         return {
           id: get().generateNodeId(),
           type: metadata.node_type,
           data: {
-            properties: properties,
+            properties: defaults,
             collapsed: false,
             dirty: true,
             selectable: true,

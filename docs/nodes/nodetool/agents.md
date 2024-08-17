@@ -11,12 +11,14 @@ Use cases:
 
 **Tags:** task planning, goal decomposition, workflow generation
 
+**Fields:**
 - **model**: The language model to use. (FunctionModel)
 - **goal**: The user prompt (str)
 - **max_tokens**: The maximum number of tokens to generate. (int)
 - **temperature**: The temperature to use for sampling. (float)
 - **top_k**: The number of tokens to sample from. (int)
 - **top_p**: The cumulative probability for sampling. (float)
+
 
 ## CreateImageTaskTool
 
@@ -62,6 +64,7 @@ Use cases:
 
 **Tags:** llm, dataframe creation, data structuring
 
+**Fields:**
 - **model**: The language model to use. (FunctionModel)
 - **prompt**: The user prompt (str)
 - **image**: The image to use in the prompt. (ImageRef)
@@ -72,6 +75,7 @@ Use cases:
 - **top_k**: The number of tokens to sample from. (int)
 - **top_p**: The cumulative probability for sampling. (float)
 - **columns**: The columns to use in the dataframe. (RecordType)
+
 
 ## ProcessTask
 
@@ -84,6 +88,7 @@ Use cases:
 
 **Tags:** task execution, model integration, tool coordination
 
+**Fields:**
 - **model**: The language model to use. (FunctionModel)
 - **task**: The task to process. (Task)
 - **image_nodes**: The image generation nodes to use. (list)
@@ -91,4 +96,5 @@ Use cases:
 - **temperature**: The temperature to use for sampling. (float)
 - **top_k**: The number of tokens to sample from. (int)
 - **top_p**: The cumulative probability for sampling. (float)
+
 
