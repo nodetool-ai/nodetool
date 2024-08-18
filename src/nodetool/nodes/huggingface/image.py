@@ -32,6 +32,7 @@ from diffusers import (
 from diffusers import StableCascadeDecoderPipeline, StableCascadePriorPipeline  # type: ignore
 from diffusers import StableDiffusion3ControlNetPipeline  # type: ignore
 from diffusers.models import SD3ControlNetModel  # type: ignore
+from diffusers import StableDiffusion3Pipeline, StableDiffusion3Img2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, AutoencoderKL  # type: ignore
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionInpaintPipeline  # type: ignore
@@ -57,7 +58,6 @@ from diffusers import AutoPipelineForInpainting  # type: ignore
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel  # type: ignore
 from diffusers import StableDiffusionControlNetInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
-from diffusers import StableDiffusionLatentUpscalePipeline  # type: ignore
 from diffusers import StableDiffusionUpscalePipeline  # type: ignore
 from diffusers import UNet2DConditionModel  # type: ignore
 from diffusers import DiffusionPipeline  # type: ignore
@@ -87,13 +87,6 @@ class ImageClassifier(HuggingFacePipelineNode):
         APPLE_MOBILEVIT_SMALL = "apple/mobilevit-small"
         NATERAW_VIT_AGE_CLASSIFIER = "nateraw/vit-age-classifier"
         FALCONSAI_NSFW_IMAGE_DETECTION = "Falconsai/nsfw_image_detection"
-        MICROSOFT_BEIT_BASE_PATCH16_224_PT22K_FT22K = (
-            "microsoft/beit-base-patch16-224-pt22k-ft22k"
-        )
-        TIMM_VIT_LARGE_PATCH14_CLIP_224_OPENAI_FT_IN12K_IN1K = (
-            "timm/vit_large_patch14_clip_224.openai_ft_in12k_in1k"
-        )
-        ORGANIKA_SDXL_DETECTOR = "Organika/sdxl-detector"
         RIZVANDWIKI_GENDER_CLASSIFICATION_2 = "rizvandwiki/gender-classification-2"
 
     model: ImageClassifierModelId = Field(
@@ -689,7 +682,6 @@ class DepthEstimation(HuggingFacePipelineNode):
 
     class DepthEstimationModelId(str, Enum):
         DEPTH_ANYTHING = "LiheYoung/depth-anything-base-hf"
-        DEPTH_ANYTHING_V2_SMALL = "depth-anything/Depth-Anything-V2-Small"
         INTEL_DPT_LARGE = "Intel/dpt-large"
 
     model: DepthEstimationModelId = Field(
@@ -2820,10 +2812,10 @@ class SDXLTurbo(BaseNode):
         default=0.0, ge=0.0, le=20.0, description="Guidance scale for generation."
     )
     width: int = Field(
-        default=512, ge=64, le=2048, description="Width of the generated image."
+        default=1024, ge=64, le=2048, description="Width of the generated image."
     )
     height: int = Field(
-        default=512, ge=64, le=2048, description="Height of the generated image"
+        default=1024, ge=64, le=2048, description="Height of the generated image"
     )
 
     _pipe: Any = None
@@ -2896,7 +2888,7 @@ class SDXLTurboImg2Img(BaseNode):
         default=4, ge=1, le=50, description="Number of inference steps."
     )
     guidance_scale: float = Field(
-        default=7.0, ge=0.0, le=20.0, description="Guidance scale for generation."
+        default=0.0, ge=0.0, le=20.0, description="Guidance scale for generation."
     )
     width: int = Field(
         default=1024, ge=64, le=2048, description="Width of the generated image."
@@ -2958,7 +2950,105 @@ class SDXLTurboImg2Img(BaseNode):
         return await context.image_from_pil(image)
 
 
-class StableDiffusion3ControlNetNode(BaseNode):
+class StableDiffusion3(BaseNode):
+    """
+    Generates images using Stable Diffusion 3.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Create variations of existing images while maintaining specific features
+    - Artistic image generation with guided outputs
+    """
+
+    prompt: str = Field(
+        default="A girl holding a sign that says InstantX",
+        description="A text prompt describing the desired image.",
+    )
+    num_inference_steps: int = Field(
+        default=30,
+        description="The number of denoising steps.",
+        ge=1,
+        le=100,
+    )
+    width: int = Field(
+        default=1024,
+        description="Width of the generated image.",
+        ge=64,
+        le=2048,
+    )
+    height: int = Field(
+        default=1024,
+        description="Height of the generated image.",
+        ge=64,
+        le=2048,
+    )
+    guidance_scale: float = Field(
+        default=7.0,
+        description="Guidance scale for generation.",
+        ge=0.0,
+        le=20.0,
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: StableDiffusion3Pipeline | None = None
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion 3"
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = StableDiffusion3Pipeline.from_pretrained(
+            "stabilityai/stable-diffusion-3-medium-diffusers",
+            torch_dtype=torch.float16,
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = None
+        if self.seed != -1:
+            generator = torch.Generator(device=self._pipeline.device).manual_seed(
+                self.seed
+            )
+
+        def callback(pipe: Any, step: int, timestep: int, args: dict):
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+            return {}
+
+        # Generate the image
+        # self._pipeline.enable_sequntial_cpu_offload()
+
+        output = self._pipeline(
+            prompt=self.prompt,
+            width=self.width,
+            height=self.height,
+            guidance_scale=self.guidance_scale,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            callback_on_step_end=callback,  # type: ignore
+        )
+
+        # Convert the output image to ImageRef
+        return await context.image_from_pil(output.images[0])  # type: ignore
+
+
+class StableDiffusion3ControlNet(BaseNode):
     """
     Generates images using Stable Diffusion 3 with ControlNet.
     image, generation, AI, text-to-image, controlnet
@@ -2977,6 +3067,12 @@ class StableDiffusion3ControlNetNode(BaseNode):
     prompt: str = Field(
         default="A girl holding a sign that says InstantX",
         description="A text prompt describing the desired image.",
+    )
+    guidance_scale: float = Field(
+        default=7.0,
+        description="Guidance scale for generation.",
+        ge=0.0,
+        le=20.0,
     )
     control_model: StableDiffusion3ControlNetModelId = Field(
         default=StableDiffusion3ControlNetModelId.SD3_CONTROLNET_CANNY,
@@ -3051,7 +3147,7 @@ class StableDiffusion3ControlNetNode(BaseNode):
             return {}
 
         # Generate the image
-        self._pipeline.enable_sequntial_cpu_offload()
+        # self._pipeline.enable_sequntial_cpu_offload()
 
         output = self._pipeline(
             prompt=self.prompt,
@@ -3145,7 +3241,7 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
             init_image = init_image.resize((self.width, self.height))
         else:
             init_image = None
-            
+
         ip_adapter_image = await self._setup_ip_adapter(context)
 
         output = self._pipeline(
