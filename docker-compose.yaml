@@ -91,7 +91,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ${POSTGRES_DATA_DIR}:/var/lib/postgresql/data
-    restart: unless-stopped
   # minio:
   #   container_name: minio
   #   image: minio/minio
