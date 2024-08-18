@@ -1,6 +1,7 @@
 services:
   api:
     container_name: nodetool-api
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile.api
@@ -58,8 +59,10 @@ services:
   memcached:
     image: memcached:bookworm
     container_name: memcached
+    restart: unless-stopped
   chroma:
     container_name: chroma
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile.api
@@ -81,6 +84,7 @@ services:
   postgres:
     image: postgres:16.3
     container_name: postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -106,6 +110,7 @@ services:
   ollama:
     image: ollama/ollama
     container_name: ollama
+    restart: unless-stopped
     volumes:
       - ${OLLAMA_PATH}:/root/.ollama
     deploy:
