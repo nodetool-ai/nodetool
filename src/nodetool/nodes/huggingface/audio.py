@@ -392,7 +392,8 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         return result["text"]
 
     async def get_inputs(self, context: ProcessingContext):
-        return await context.asset_to_io(self.inputs)
+        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        return samples
 
 
 class ZeroShotAudioClassifier(HuggingFacePipelineNode):
