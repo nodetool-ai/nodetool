@@ -58,6 +58,14 @@ COMFY_NODE_CLASSES: dict[str, type["BaseNode"]] = {}
 log = Environment.get_logger()
 
 
+def split_camel_case(text):
+    # Split the string into parts, keeping uppercase sequences together
+    parts = re.findall(r"[A-Z]+[a-z]*|\d+|[a-z]+", text)
+
+    # Join the parts with spaces
+    return " ".join(parts)
+
+
 def add_comfy_classname(node_class: type["BaseNode"]) -> None:
     """
     Register a comfy node class by its class name in the NODES_BY_CLASSNAME dictionary.
@@ -309,15 +317,7 @@ class BaseNode(BaseModel):
         else:
             title = class_name
 
-        # split on camel case and add spaces
-        title = " ".join(
-            [
-                x.capitalize()
-                for x in re.findall(r"[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))", title)
-            ]
-        )
-
-        return title
+        return split_camel_case(title)
 
     @classmethod
     def get_description(cls) -> str:

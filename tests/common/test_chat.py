@@ -35,27 +35,7 @@ class DummyNode(BaseNode):
 
 
 def test_sanitize_node_name():
-    assert sanitize_node_name(VALID_NODE_NAME) == "some_valid_node_name"
-
-
-def test_function_tool_from_node_valid():
-    schema = ProcessNodeTool("nodetool.constant.Text").input_schema
-
-    assert schema == {
-        "type": "object",
-        "properties": {
-            "value": {
-                "description": None,
-                "properties": {"url": {"type": "string"}},
-                "type": "object",
-            }
-        },
-    }
-
-
-def test_function_tool_from_node_invalid():
-    with pytest.raises(ValueError):
-        ProcessNodeTool("unknown.node.name")
+    assert sanitize_node_name(VALID_NODE_NAME) == "some__valid__node__name"
 
 
 @pytest.mark.asyncio

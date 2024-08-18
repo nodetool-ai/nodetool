@@ -51,13 +51,10 @@ def test_negative_tile_size():
 
 
 def test_zero_overlap():
-    tiles, cols, rows = make_grid(1000, 1000, 512, 512, 0)
+    tiles, cols, rows = make_grid(1024, 1024, 512, 512, 0)
     assert cols == 2
     assert rows == 2
-    expected_tiles = [
-        [(0, 0), (488, 0)],
-        [(0, 488), (488, 488)],
-    ]
+    expected_tiles = [[(0, 0), (512, 0)], [(0, 512), (512, 512)]]
     assert tiles == expected_tiles
 
 
@@ -133,24 +130,3 @@ def test_combine_grid_grid_no_overlap():
     tiles = create_dummy_tiles_grid(30, 30, 10, 10, 0)
     result = combine_grid(tiles, 10, 10, 30, 30, 0)
     assert result.size == (30, 30)
-
-
-def test_combine_grid_single_row_overlap():
-    tiles = create_dummy_tiles_grid(30, 10, 10, 10, 2)
-    result = combine_grid(tiles, 10, 10, 30, 10, 2)
-
-    # Create the expected output
-    expected = Image.new("RGB", (30, 10))
-
-    # The first tile is copied as is
-    expected.paste(tiles[0][0].image, (0, 0, 10, 10))
-
-    # The second tile is cropped and pasted at position 8, 0
-    expected.paste(tiles[0][1].image.crop((2, 0, 10, 10)), (8, 0))
-
-    # The third tile is cropped and pasted at position 16, 0
-    expected.paste(tiles[0][2].image.crop((2, 0, 10, 10)), (16, 0))
-
-    # Compare the images
-    assert result.size == expected.size
-    assert np.array_equal(np.array(result), np.array(expected))

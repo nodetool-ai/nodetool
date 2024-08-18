@@ -4,6 +4,107 @@ from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef, Field
 
+from typing import List
+from PIL import Image, ImageChops, ImageDraw
+
+
+class Tile:
+    def __init__(self, image: Image.Image, x: int, y: int):
+        self.image = image
+        self.x = x
+        self.y = y
+
+
+def make_grid(
+    width: int, height: int, tile_w: int = 512, tile_h: int = 512, overlap: int = 0
+) -> tuple[list[list[tuple[int, int]]], int, int]:
+    """
+    Create a grid of coordinates for tiles given the dimensions and overlap.
+    Returns a list of tile coordinates and the number of columns and rows.
+    """
+    assert width > 0 and height > 0, "Dimensions must be positive"
+    assert tile_w > 0 and tile_h > 0, "Tile size must be positive"
+    assert overlap >= 0, "Overlap must be non-negative"
+
+    tiles = []
+    y = 0
+    while y + tile_h <= height:
+        row = []
+        x = 0
+        while x + tile_w <= width:
+            row.append((x, y))
+            x += tile_w - overlap
+        tiles.append(row)
+        y += tile_h - overlap
+
+    cols = len(tiles[0]) if tiles else 0
+    rows = len(tiles)
+
+    return tiles, cols, rows
+
+
+def create_gradient_mask(tile_w: int, tile_h: int, overlap: int) -> Image.Image:
+    """
+    Create a gradient mask for blending the overlapping region of a tile.
+    The gradient will fade from fully opaque to fully transparent.
+    """
+    mask = Image.new("L", (tile_w, tile_h), 0)
+    draw = ImageDraw.Draw(mask)
+
+    # Horizontal gradient
+    for i in range(overlap):
+        draw.rectangle(
+            [tile_w - overlap + i, 0, tile_w - overlap + i + 1, tile_h],
+            fill=int(255 * (i / overlap)),
+        )
+
+    # Vertical gradient
+    for i in range(overlap):
+        draw.rectangle(
+            [0, tile_h - overlap + i, tile_w, tile_h - overlap + i + 1],
+            fill=int(255 * (i / overlap)),
+        )
+
+    return mask
+
+
+def combine_grid(
+    tiles: List[List[Tile]],
+    tile_w: int,
+    tile_h: int,
+    width: int,
+    height: int,
+    overlap: int,
+) -> Image.Image:
+    """
+    Combine a grid of tiles into a single image, taking overlaps into account.
+    The overlapping areas are blended using a gradient mask.
+    """
+    combined_image = Image.new("RGB", (width, height))
+
+    for row in tiles:
+        for tile in row:
+            x, y = tile.x, tile.y
+
+            # Paste the tile onto the combined image
+            combined_image.paste(tile.image, (x, y))
+
+            # Apply a gradient mask for the overlap area
+            if overlap > 0:
+                mask = create_gradient_mask(tile_w, tile_h, overlap)
+
+                # Create a cropped version of the tile that is blended with the previous one
+                cropped_tile = tile.image.crop(
+                    (tile_w - overlap, tile_h - overlap, tile_w, tile_h)
+                )
+
+                # Paste the cropped tile with the gradient mask
+                combined_image.paste(
+                    cropped_tile, (x + tile_w - overlap, y + tile_h - overlap), mask
+                )
+
+    return combined_image
+
 
 class SliceImageGrid(BaseNode):
     """

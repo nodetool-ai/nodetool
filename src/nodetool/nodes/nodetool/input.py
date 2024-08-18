@@ -168,6 +168,7 @@ class AssetSchemaMixin:
     def get_json_schema(self):
         return {
             "type": "object",
+            "description": self.description,  # type: ignore
             "properties": {
                 "uri": {
                     "type": "string",

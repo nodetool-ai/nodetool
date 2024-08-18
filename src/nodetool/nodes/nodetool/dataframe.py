@@ -299,36 +299,6 @@ class ConvertToTensor(BaseNode):
         return Tensor.from_numpy(df.to_numpy())
 
 
-class FromTensor(BaseNode):
-    """
-    Convert tensor to dataframe.
-    tensor, dataframe, convert
-
-    Use cases:
-    - Analyze tensor data using pandas functions
-    - Visualize tensor data in tabular format
-    - Export tensor results to dataframe structure
-    """
-
-    tensor: Tensor = Field(
-        default=Tensor(),
-        description="A tensor object to be converted into a dataframe.",
-    )
-    columns: list[str] = Field(
-        default=[],
-        description="A list of strings specifying the column names for the resulting dataframe.",
-    )
-
-    async def process(self, context: ProcessingContext) -> DataframeRef:
-        array = self.tensor.to_numpy()
-        if array.shape[1] != len(self.columns):
-            raise ValueError(
-                f"Number of columns in tensor ({array.shape[1]}) does not match number of columns specified ({len(self.columns)})"
-            )
-        df = pd.DataFrame(array, columns=self.columns)
-        return await context.dataframe_from_pandas(df)
-
-
 class Chart(BaseNode):
     """
     Create line, bar, or scatter plot from dataframe.

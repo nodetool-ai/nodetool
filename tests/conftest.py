@@ -154,11 +154,10 @@ def http_client():
 
 @pytest.fixture()
 def context(user: User, http_client):
-    workflow = Workflow.create(user.id, "wf", {"edges": [], "nodes": []})
     assert user.auth_token != None and user.auth_token != ""
     return ProcessingContext(
         user_id=user.id,
-        workflow_id=workflow.id,
+        workflow_id="1",
         auth_token=user.auth_token,
         http_client=http_client,
     )
