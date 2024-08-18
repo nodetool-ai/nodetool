@@ -108,8 +108,8 @@
                 "type": "nodetool.constant.Audio",
                 "data": {
                     "value": {
-                        "asset_id": "3ef98e755af111ef9506000042e46680",
-                        "uri": "https://assets.nodetool.ai/3ef98e755af111ef9506000042e46680.webm",
+                        "asset_id": "",
+                        "uri": "",
                         "type": "audio"
                     }
                 },
@@ -138,6 +138,50 @@
                     "zIndex": 0,
                     "width": 150,
                     "height": 150,
+                    "selectable": true
+                }
+            },
+            {
+                "id": "8",
+                "type": "nodetool.workflows.base_node.Comment",
+                "data": {
+                    "headline": "Summarize audio notes",
+                    "comment": [
+                        {
+                            "type": "paragraph",
+                            "children": [
+                                {
+                                    "text": "* Record audio into the audio node"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "paragraph",
+                            "children": [
+                                {
+                                    "text": "* Run the workflow"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "paragraph",
+                            "children": [
+                                {
+                                    "text": "* Listen to the summary"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "ui_properties": {
+                    "selected": false,
+                    "position": {
+                        "x": 44,
+                        "y": 32
+                    },
+                    "zIndex": 0,
+                    "width": 222,
+                    "height": 98,
                     "selectable": true
                 }
             }
