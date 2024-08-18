@@ -3,8 +3,8 @@
     "access": "private",
     "created_at": "2024-07-06T20:13:38.331865",
     "updated_at": "2024-07-06T20:23:13.098945",
-    "name": "Area Composition",
-    "description": "",
+    "name": "Comfy Area Composition",
+    "description": "Compose an image with different areas of prompts",
     "thumbnail": "",
     "thumbnail_url": "/examples/area_composition.png",
     "graph": {

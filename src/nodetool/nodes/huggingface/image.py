@@ -2687,6 +2687,7 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
+        self._load_lora()
         generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
         init_image = init_image.resize((self.width, self.height))
@@ -3067,7 +3068,7 @@ class StableDiffusion3ControlNetNode(BaseNode):
         return await context.image_from_pil(output.images[0])  # type: ignore
 
 
-class StableDiffusionXLControlNetNode(StableDiffusionXLBase):
+class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
     """
     Generates images using Stable Diffusion XL with ControlNet.
     image, generation, AI, text-to-image, controlnet
@@ -3121,34 +3122,16 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLBase):
             vae=vae,
             torch_dtype=torch.float16,
         )  # type: ignore
-        self._pipeline.enable_model_cpu_offload()  # type: ignore
 
-    async def move_to_device(self, device: str):
-        # Not needed as we're using CPU offload
-        pass
+        self._set_scheduler(self.scheduler)
+        self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        self._load_ip_adapter()
         self._load_lora()
-
-        generator = None
-        if self.seed != -1:
-            generator = torch.Generator(device=self._pipeline.device).manual_seed(
-                self.seed
-            )
-
-        def callback(step: int, timestep: int, args: dict):
-            context.post_message(
-                NodeProgress(
-                    node_id=self.id,
-                    progress=step,
-                    total=self.num_inference_steps,
-                )
-            )
-            return {}
+        generator = self._setup_generator()
 
         control_image = await context.image_to_pil(self.control_image)
 
@@ -3157,19 +3140,28 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLBase):
         else:
             ip_adapter_image = None
 
-        # Generate the image
+        if not self.init_image.is_empty():
+            init_image = await context.image_to_pil(self.init_image)
+            init_image = init_image.resize((self.width, self.height))
+        else:
+            init_image = None
+            
+        ip_adapter_image = await self._setup_ip_adapter(context)
+
         output = self._pipeline(
             prompt=self.prompt,
             negative_prompt=self.negative_prompt,
+            init_image=init_image,
             image=control_image,
+            strength=self.strength,
             ip_adapter_image=ip_adapter_image,
+            ip_adapter_scale=self.ip_adapter_scale,
             cross_attention_kwargs={"scale": self.lora_scale},
             controlnet_conditioning_scale=self.controlnet_conditioning_scale,
             num_inference_steps=self.num_inference_steps,
             generator=generator,
-            callback=callback,
+            callback=self.progress_callback(context),
             callback_steps=1,
         )
 
-        # Convert the output image to ImageRef
         return await context.image_from_pil(output.images[0])  # type: ignore
