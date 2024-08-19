@@ -381,9 +381,6 @@ their experience while maintaining the platform's integrity.
 Relevant Documentation:
 {docs}
 
-Current Workflow:
-{workflow.graph if workflow else "No workflow selected"}
-
 Example Workflows:
 {examples}
 """

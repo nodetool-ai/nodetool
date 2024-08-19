@@ -17,6 +17,7 @@ export type TextRef = components["schemas"]["TextRef"];
 export type WorkflowRef = components["schemas"]["WorkflowRef"];
 export type NodeRef = components["schemas"]["NodeRef"];
 export type Workflow = components["schemas"]["Workflow-Output"];
+export type WorkflowInput = components["schemas"]["Workflow-Input"];
 export type WorkflowList = components["schemas"]["WorkflowList"];
 export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
 export type Property = components["schemas"]["Property"];
