@@ -1,4 +1,5 @@
 from typing import Any
+import numpy as np
 from pydantic import Field
 from nodetool.providers.huggingface.huggingface_node import progress_callback
 from nodetool.workflows.base_node import BaseNode
@@ -6,6 +7,10 @@ from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import ImageRef, VideoRef
 import torch
 from diffusers import AnimateDiffPipeline, DDIMScheduler, MotionAdapter  # type: ignore
+from diffusers import StableVideoDiffusionPipeline  # type: ignore
+from diffusers.utils import export_to_video
+
+from nodetool.workflows.types import NodeProgress  # type: ignore
 
 
 class AnimateDiffNode(BaseNode):
@@ -90,3 +95,88 @@ class AnimateDiffNode(BaseNode):
         frames = output.frames[0]  # type: ignore
 
         return await context.video_from_numpy(frames)  # type: ignore
+
+
+class StableVideoDiffusion(BaseNode):
+    """
+    Generates a video from a single image using the Stable Video Diffusion model.
+    video, generation, AI, image-to-video, stable-diffusion
+
+    Use cases:
+    - Create short animations from static images
+    - Generate dynamic content for presentations or social media
+    - Prototype video ideas from still concept art
+    """
+
+    input_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The input image to generate the video from, resized to 1024x576.",
+    )
+    num_frames: int = Field(
+        default=14, ge=1, le=50, description="Number of frames to generate."
+    )
+    num_inference_steps: int = Field(
+        default=25,
+        ge=1,
+        le=100,
+        description="Number of steps per generated frame",
+    )
+    fps: int = Field(
+        default=7, ge=1, le=30, description="Frames per second for the output video."
+    )
+    decode_chunk_size: int = Field(
+        default=8, ge=1, le=16, description="Number of frames to decode at once."
+    )
+    seed: int = Field(
+        default=42, ge=0, le=2**32 - 1, description="Random seed for generation."
+    )
+
+    _pipeline: StableVideoDiffusionPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = StableVideoDiffusionPipeline.from_pretrained(
+            "stabilityai/stable-video-diffusion-img2vid-xt",
+            torch_dtype=torch.float16,
+            variant="fp16",
+        )  # type: ignore
+        self._pipeline.enable_model_cpu_offload()  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> VideoRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Load and preprocess the input image
+        input_image = await context.image_to_pil(self.input_image)
+        input_image = input_image.resize((1024, 576))
+
+        # Set up the generator for reproducibility
+        generator = torch.manual_seed(self.seed)
+
+        def callback(pipe: StableVideoDiffusionPipeline, step: int, *args):
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+            return {}
+
+        # Generate the video frames
+        frames = self._pipeline(
+            input_image,
+            num_frames=self.num_frames,
+            decode_chunk_size=self.decode_chunk_size,
+            generator=generator,
+            callback_on_step_end=callback,  # type: ignore
+        ).frames[  # type: ignore
+            0
+        ]
+        return await context.video_from_numpy(np.array(frames), fps=self.fps)  # type: ignore
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Stable Video Diffusion"
+
+    def required_inputs(self):
+        return ["input_image"]

@@ -1134,9 +1134,24 @@ class ProcessingContext:
         else:
             return TextRef(data=s.encode("utf-8"))
 
+    async def video_from_frames(
+        self,
+        frames: list[PIL.Image.Image] | list[np.ndarray],
+        fps: int = 30,
+        name: str | None = None,
+        parent_id: str | None = None,
+    ) -> VideoRef:
+        import tempfile
+        from diffusers.utils.export_utils import export_to_video
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as temp:
+            export_to_video(frames, temp.name, fps=fps)
+            return await self.video_from_io(open(temp.name, "rb"))
+
     async def video_from_numpy(
         self,
         video: np.ndarray,
+        fps: int = 30,
         name: str | None = None,
         parent_id: str | None = None,
     ) -> VideoRef:
@@ -1154,7 +1169,7 @@ class ProcessingContext:
         import imageio
 
         buffer = BytesIO()
-        imageio.mimwrite(buffer, video, format="mp4")  # type: ignore
+        imageio.mimwrite(buffer, video, format="mp4", fps=fps)  # type: ignore
         buffer.seek(0)
         return await self.video_from_io(buffer, name=name, parent_id=parent_id)
 

@@ -38,6 +38,7 @@ from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline  #
 from diffusers import StableDiffusionInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline  # type: ignore
 from diffusers import PixArtAlphaPipeline  # type: ignore
+from diffusers import PixArtSigmaPipeline  # type: ignore
 from diffusers.schedulers import (
     DPMSolverSDEScheduler,  # type: ignore
     EulerDiscreteScheduler,  # type: ignore
@@ -67,6 +68,8 @@ import PIL.ImageDraw
 import PIL.ImageFont
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file
+from diffusers import WuerstchenDecoderPipeline, WuerstchenPriorPipeline  # type: ignore
+from diffusers.pipelines.wuerstchen import DEFAULT_STAGE_C_TIMESTEPS  # type: ignore
 
 
 class StableDiffusionXLModelId(str, Enum):
@@ -1027,6 +1030,10 @@ class PixArtAlpha(BaseNode):
         default="An astronaut riding a green horse",
         description="A text prompt describing the desired image.",
     )
+    negative_prompt: str = Field(
+        default="",
+        description="A text prompt describing what to avoid in the image.",
+    )
     num_inference_steps: int = Field(
         default=50,
         description="The number of denoising steps.",
@@ -1092,6 +1099,7 @@ class PixArtAlpha(BaseNode):
         # Generate the image
         output = self._pipeline(
             prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
             generator=generator,
@@ -1102,6 +1110,204 @@ class PixArtAlpha(BaseNode):
         image = output.images[0]  # type: ignore
 
         return await context.image_from_pil(image)
+
+
+class PixArtSigma(BaseNode):
+    """
+    Generates images from text prompts using the PixArt-Sigma model.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Create unique images from detailed text descriptions
+    - Generate concept art for creative projects
+    - Produce visual content for digital media and marketing
+    - Explore AI-generated imagery for artistic inspiration
+    """
+
+    prompt: str = Field(
+        default="An astronaut riding a green horse",
+        description="A text prompt describing the desired image.",
+    )
+    negative_prompt: str = Field(
+        default="",
+        description="A text prompt describing what to avoid in the image.",
+    )
+    num_inference_steps: int = Field(
+        default=50,
+        description="The number of denoising steps.",
+        ge=1,
+        le=100,
+    )
+    guidance_scale: float = Field(
+        default=7.5,
+        description="The scale for classifier-free guidance.",
+        ge=1.0,
+        le=20.0,
+    )
+    width: int = Field(
+        default=768,
+        description="The width of the generated image.",
+        ge=128,
+        le=1024,
+    )
+    height: int = Field(
+        default=768,
+        description="The height of the generated image.",
+        ge=128,
+        le=1024,
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: PixArtAlphaPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = PixArtSigmaPipeline.from_pretrained(
+            "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS", torch_dtype=torch.float16
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = None
+        if self.seed != -1:
+            generator = torch.Generator(device=self._pipeline.device).manual_seed(
+                self.seed
+            )
+
+        def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        # Generate the image
+        output = self._pipeline(
+            prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=generator,
+            callback=callback,  # type: ignore
+            callback_steps=1,
+        )
+
+        image = output.images[0]  # type: ignore
+
+        return await context.image_from_pil(image)
+
+
+class WuerstchenImageGeneration(BaseNode):
+    """
+    Würstchen is a diffusion model, whose text-conditional model works in a highly compressed latent space of images.
+    image, generation, AI, text-to-image, Wuerstchen
+
+    Use cases:
+    - Create high-quality images from text descriptions
+    - Generate multiple variations of an image concept
+    - Explore AI-generated imagery for creative projects
+    """
+
+    prompt: str = Field(
+        default="Anthropomorphic cat dressed as a fire fighter",
+        description="The text prompt describing the desired image.",
+    )
+    negative_prompt: str = Field(
+        default="", description="Text describing what to avoid in the generated image."
+    )
+    num_images: int = Field(
+        default=1, ge=1, le=4, description="Number of images to generate."
+    )
+    height: int = Field(
+        default=1024, ge=512, le=2048, description="Height of the generated image."
+    )
+    width: int = Field(
+        default=1536, ge=512, le=2048, description="Width of the generated image."
+    )
+    prior_guidance_scale: float = Field(
+        default=4.0,
+        ge=0.0,
+        le=20.0,
+        description="Guidance scale for the prior pipeline.",
+    )
+    decoder_guidance_scale: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=20.0,
+        description="Guidance scale for the decoder pipeline.",
+    )
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+    )
+
+    _prior_pipeline: WuerstchenPriorPipeline | None = None
+    _decoder_pipeline: WuerstchenDecoderPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        dtype = torch.float16
+        self._prior_pipeline = WuerstchenPriorPipeline.from_pretrained(
+            "warp-ai/wuerstchen-prior", torch_dtype=dtype
+        )  # type: ignore
+        self._decoder_pipeline = WuerstchenDecoderPipeline.from_pretrained(
+            "warp-ai/wuerstchen", torch_dtype=dtype
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._prior_pipeline is not None:
+            self._prior_pipeline.to(device)
+        if self._decoder_pipeline is not None:
+            self._decoder_pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._prior_pipeline is None or self._decoder_pipeline is None:
+            raise ValueError("Pipelines not initialized")
+
+        if self.seed != -1:
+            generator = torch.Generator(device="cuda").manual_seed(self.seed)
+        else:
+            generator = None
+
+        prior_output = self._prior_pipeline(
+            prompt=self.prompt,
+            height=self.height,
+            width=self.width,
+            timesteps=DEFAULT_STAGE_C_TIMESTEPS,
+            generator=generator,
+            negative_prompt=self.negative_prompt,
+            guidance_scale=self.prior_guidance_scale,
+            num_images_per_prompt=self.num_images,
+        )
+
+        image = self._decoder_pipeline(
+            image_embeddings=prior_output.image_embeddings,  # type: ignore
+            prompt=self.prompt,
+            generator=generator,
+            negative_prompt=self.negative_prompt,
+            guidance_scale=self.decoder_guidance_scale,
+            output_type="pil",
+        ).images[  # type: ignore
+            0
+        ]
+
+        return await context.image_from_pil(image)
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Wuerstchen"
 
 
 # class Kandinsky2(BaseNode):
