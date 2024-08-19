@@ -116,6 +116,9 @@ class TextClassifier(HuggingFacePipelineNode):
         description="The input text to the model",
     )
 
+    async def get_inputs(self, context: ProcessingContext):
+        return self.inputs
+
     def get_model_id(self):
         return self.model.value
 
