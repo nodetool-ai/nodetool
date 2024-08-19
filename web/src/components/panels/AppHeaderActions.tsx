@@ -85,6 +85,8 @@ const actionsStyles = (
       padding: "0",
       width: "100%",
       height: "100%",
+      minWidth: "1.2em",
+      minHeight: "1.2em",
       display: "block",
     },
     ".MuiCircularProgress-root": {
