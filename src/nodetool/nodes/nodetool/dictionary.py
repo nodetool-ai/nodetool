@@ -21,9 +21,10 @@ class GetValue(BaseNode):
 
     dictionary: dict[(str, Any)] = {}
     key: str = ""
+    default: Any = None
 
     async def process(self, context: ProcessingContext) -> Any:
-        return self.dictionary[self.key]
+        return self.dictionary.get(self.key, self.default)
 
 
 class Update(BaseNode):
@@ -65,7 +66,8 @@ class Remove(BaseNode):
     key: str = ""
 
     async def process(self, context: ProcessingContext) -> dict[(str, Any)]:
-        del self.dictionary[self.key]
+        if self.key in self.dictionary:
+            del self.dictionary[self.key]
         return self.dictionary
 
 
@@ -108,7 +110,7 @@ class Zip(BaseNode):
     values: list[Any] = []
 
     async def process(self, context: ProcessingContext) -> dict[Any, Any]:
-        return dict(zip(self.keys, self.values))
+        return dict(zip(self.keys, self.values, strict=False))
 
 
 class Combine(BaseNode):
@@ -146,7 +148,9 @@ class Filter(BaseNode):
     keys: list[str] = []
 
     async def process(self, context: ProcessingContext) -> dict[(str, Any)]:
-        return {key: self.dictionary[key] for key in self.keys}
+        return {
+            key: self.dictionary[key] for key in self.keys if key in self.dictionary
+        }
 
 
 class ConflictResolution(str, Enum):

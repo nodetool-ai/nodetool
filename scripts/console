@@ -2,6 +2,6 @@
 
 SCRIPT_DIR=$(dirname "$0")
 
-export PYTHONPATH=src
+export PYTHONPATH=src:/app
 
 python3 "$SCRIPT_DIR/console.py"

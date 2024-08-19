@@ -8,6 +8,8 @@ from nodetool.workflows.base_node import add_comfy_classname
 
 
 class LeReSDepthMapPreprocessor(PreprocessImage):
+    _comfy_class: str = "LeReS-DepthMapPreprocessor"
+
     rm_nearest: float = Field(
         default=0.0, description="The nearest depth to remove.", ge=0.0, le=100.0
     )
@@ -79,7 +81,7 @@ add_comfy_classname(BAE_Normal_Map_Preprocessor)
 
 
 class ZoeDepthMapPreprocessor(PreprocessImage):
-    pass
+    _comfy_class: str = "Zoe-DepthMapPreprocessor"
 
 
 class DepthAnythingModel(str, Enum):

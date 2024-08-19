@@ -212,7 +212,7 @@ class ImageToText(HuggingFacePipelineNode):
         )
 
     model: ImageToTextModelId = Field(
-        default=ImageToTextModelId.MICROSOFT_GIT_BASE_COCO,
+        default=ImageToTextModelId.SALESFORCE_BLIP_IMAGE_CAPTIONING_BASE,
         title="Model ID on Huggingface",
         description="The model ID to use for image-to-text generation",
     )

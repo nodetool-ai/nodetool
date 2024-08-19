@@ -1,10 +1,10 @@
 {
-    "id": "upscale",
+    "id": "comfy_upscale",
     "access": "private",
     "created_at": "2024-07-06T20:13:38.331865",
     "updated_at": "2024-07-06T20:23:13.098945",
-    "name": "Upscale",
-    "description": "",
+    "name": "Comfy Upscale",
+    "description": "How to upscale an image using Comfy nodes",
     "thumbnail": "",
     "thumbnail_url": "/examples/upscale.png",
     "graph": {

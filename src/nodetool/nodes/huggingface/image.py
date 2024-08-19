@@ -32,11 +32,13 @@ from diffusers import (
 from diffusers import StableCascadeDecoderPipeline, StableCascadePriorPipeline  # type: ignore
 from diffusers import StableDiffusion3ControlNetPipeline  # type: ignore
 from diffusers.models import SD3ControlNetModel  # type: ignore
+from diffusers import StableDiffusion3Pipeline, StableDiffusion3Img2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, AutoencoderKL  # type: ignore
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline  # type: ignore
 from diffusers import PixArtAlphaPipeline  # type: ignore
+from diffusers import PixArtSigmaPipeline  # type: ignore
 from diffusers.schedulers import (
     DPMSolverSDEScheduler,  # type: ignore
     EulerDiscreteScheduler,  # type: ignore
@@ -57,15 +59,114 @@ from diffusers import AutoPipelineForInpainting  # type: ignore
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel  # type: ignore
 from diffusers import StableDiffusionControlNetInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
-from diffusers import StableDiffusionLatentUpscalePipeline  # type: ignore
 from diffusers import StableDiffusionUpscalePipeline  # type: ignore
 from diffusers import UNet2DConditionModel  # type: ignore
 from diffusers import DiffusionPipeline  # type: ignore
+from diffusers import LCMScheduler  # type: ignore
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file
+from diffusers import WuerstchenDecoderPipeline, WuerstchenPriorPipeline  # type: ignore
+from diffusers.pipelines.wuerstchen import DEFAULT_STAGE_C_TIMESTEPS  # type: ignore
+
+
+class StableDiffusionXLModelId(str, Enum):
+    SDXL_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
+    JUGGERNAUT_XL = "RunDiffusion/Juggernaut-XL-v9"
+    REALVISXL = "SG161222/RealVisXL_V4.0"
+
+
+class IPAdapter_SDXL_Model(str, Enum):
+    NONE = ""
+    IP_ADAPTER = "ip-adapter_sdxl.safetensors"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sdxl_vit-h.safetensors"
+
+
+class StableDiffusionModelId(str, Enum):
+    SD_V1_5 = "runwayml/stable-diffusion-v1-5"
+    REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
+    DREAMSHAPER = "Lykon/DreamShaper"
+    DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
+    EPIC_PHOTOGASM = "Yntec/epiCPhotoGasm"
+    INPAINTING = "runwayml/stable-diffusion-inpainting"
+
+
+class IPAdapter_SD15_Model(str, Enum):
+    NONE = ""
+    IP_ADAPTER = "ip-adapter_sd15.safetensors"
+    IP_ADAPTER_LIGHT = "ip-adapter_sd15_light.safetensors"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sd15.bin"
+    IP_ADAPTER_PLUS_FACE = "ip-adapter-plus-face_sd15.safetensors"
+    IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
+
+
+class LORA_Model(str, Enum):
+    NONE = ""
+    ADD_DETAIL = "add_detail"
+    _2D_sprite = "2d_sprite"
+    GHIBLI_SCENERY = "ghibli_scenery"
+    COLORWATER = "colorwater"
+    SXZ_GAME_ASSETS = "sxz_game_assets"
+
+
+class LORA_SDXL_Model(str, Enum):
+    NONE = ""
+    TOY_FACE = "toy-face"
+    PIXEL_ART = "pixel-art"
+    _3D_RENDER_STYLE = "3d-render-style"
+    CUTE_CARTOON = "cute-cartoon"
+    GRAPHIC_NOVEL_ILLUSTRATION = "graphic-novel-illustration"
+    COLORING_BOOK = "coloring-book"
+
+
+LORA_WEIGHTS = {
+    LORA_Model._2D_sprite: {
+        "repo": "danbrown/loras",
+        "weight_name": "2d_sprite.safetensors",
+    },
+    LORA_Model.GHIBLI_SCENERY: {
+        "repo": "danbrown/loras",
+        "weight_name": "ghibli_scenery.safetensors",
+    },
+    LORA_Model.ADD_DETAIL: {
+        "repo": "danbrown/loras",
+        "weight_name": "add_detail.safetensors",
+    },
+    LORA_Model.COLORWATER: {
+        "repo": "danbrown/loras",
+        "weight_name": "colorwater.safetensors",
+    },
+    LORA_Model.SXZ_GAME_ASSETS: {
+        "repo": "danbrown/loras",
+        "weight_name": "sxz_game_assets.safetensors",
+    },
+    LORA_SDXL_Model.TOY_FACE: {
+        "repo": "CiroN2022/toy-face",
+        "weight_name": "toy_face_sdxl.safetensors",
+    },
+    LORA_SDXL_Model.PIXEL_ART: {
+        "repo": "nerijs/pixel-art-xl",
+        "weight_name": "pixel-art-xl.safetensors",
+    },
+    LORA_SDXL_Model._3D_RENDER_STYLE: {
+        "repo": "goofyai/3d_render_style_xl",
+        "weight_name": "3d_render_style_xl.safetensors",
+    },
+    LORA_SDXL_Model.CUTE_CARTOON: {
+        "repo": "artificialguybr/CuteCartoonRedmond-V2",
+        "weight_name": "CuteCartoonRedmond-CuteCartoon-CuteCartoonAF.safetensors",
+    },
+    LORA_SDXL_Model.GRAPHIC_NOVEL_ILLUSTRATION: {
+        "repo": "blink7630/graphic-novel-illustration",
+        "weight_name": "Graphic_Novel_Illustration-000007.safetensors",
+    },
+    LORA_SDXL_Model.COLORING_BOOK: {
+        "repo": "robert123231/coloringbookgenerator",
+        "weight_name": "ColoringBookRedmond-ColoringBook-ColoringBookAF.safetensors",
+    },
+}
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -87,13 +188,6 @@ class ImageClassifier(HuggingFacePipelineNode):
         APPLE_MOBILEVIT_SMALL = "apple/mobilevit-small"
         NATERAW_VIT_AGE_CLASSIFIER = "nateraw/vit-age-classifier"
         FALCONSAI_NSFW_IMAGE_DETECTION = "Falconsai/nsfw_image_detection"
-        MICROSOFT_BEIT_BASE_PATCH16_224_PT22K_FT22K = (
-            "microsoft/beit-base-patch16-224-pt22k-ft22k"
-        )
-        TIMM_VIT_LARGE_PATCH14_CLIP_224_OPENAI_FT_IN12K_IN1K = (
-            "timm/vit_large_patch14_clip_224.openai_ft_in12k_in1k"
-        )
-        ORGANIKA_SDXL_DETECTOR = "Organika/sdxl-detector"
         RIZVANDWIKI_GENDER_CLASSIFICATION_2 = "rizvandwiki/gender-classification-2"
 
     model: ImageClassifierModelId = Field(
@@ -523,7 +617,7 @@ class VisualizeObjectDetection(BaseNode):
     )
 
     def required_inputs(self):
-        return ["inputs", "objects"]
+        return ["image", "objects"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -689,7 +783,6 @@ class DepthEstimation(HuggingFacePipelineNode):
 
     class DepthEstimationModelId(str, Enum):
         DEPTH_ANYTHING = "LiheYoung/depth-anything-base-hf"
-        DEPTH_ANYTHING_V2_SMALL = "depth-anything/Depth-Anything-V2-Small"
         INTEL_DPT_LARGE = "Intel/dpt-large"
 
     model: DepthEstimationModelId = Field(
@@ -937,6 +1030,10 @@ class PixArtAlpha(BaseNode):
         default="An astronaut riding a green horse",
         description="A text prompt describing the desired image.",
     )
+    negative_prompt: str = Field(
+        default="",
+        description="A text prompt describing what to avoid in the image.",
+    )
     num_inference_steps: int = Field(
         default=50,
         description="The number of denoising steps.",
@@ -1002,6 +1099,7 @@ class PixArtAlpha(BaseNode):
         # Generate the image
         output = self._pipeline(
             prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
             generator=generator,
@@ -1012,6 +1110,204 @@ class PixArtAlpha(BaseNode):
         image = output.images[0]  # type: ignore
 
         return await context.image_from_pil(image)
+
+
+class PixArtSigma(BaseNode):
+    """
+    Generates images from text prompts using the PixArt-Sigma model.
+    image, generation, AI, text-to-image
+
+    Use cases:
+    - Create unique images from detailed text descriptions
+    - Generate concept art for creative projects
+    - Produce visual content for digital media and marketing
+    - Explore AI-generated imagery for artistic inspiration
+    """
+
+    prompt: str = Field(
+        default="An astronaut riding a green horse",
+        description="A text prompt describing the desired image.",
+    )
+    negative_prompt: str = Field(
+        default="",
+        description="A text prompt describing what to avoid in the image.",
+    )
+    num_inference_steps: int = Field(
+        default=50,
+        description="The number of denoising steps.",
+        ge=1,
+        le=100,
+    )
+    guidance_scale: float = Field(
+        default=7.5,
+        description="The scale for classifier-free guidance.",
+        ge=1.0,
+        le=20.0,
+    )
+    width: int = Field(
+        default=768,
+        description="The width of the generated image.",
+        ge=128,
+        le=1024,
+    )
+    height: int = Field(
+        default=768,
+        description="The height of the generated image.",
+        ge=128,
+        le=1024,
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: PixArtAlphaPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = PixArtSigmaPipeline.from_pretrained(
+            "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS", torch_dtype=torch.float16
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = None
+        if self.seed != -1:
+            generator = torch.Generator(device=self._pipeline.device).manual_seed(
+                self.seed
+            )
+
+        def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        # Generate the image
+        output = self._pipeline(
+            prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=generator,
+            callback=callback,  # type: ignore
+            callback_steps=1,
+        )
+
+        image = output.images[0]  # type: ignore
+
+        return await context.image_from_pil(image)
+
+
+class WuerstchenImageGeneration(BaseNode):
+    """
+    Würstchen is a diffusion model, whose text-conditional model works in a highly compressed latent space of images.
+    image, generation, AI, text-to-image, Wuerstchen
+
+    Use cases:
+    - Create high-quality images from text descriptions
+    - Generate multiple variations of an image concept
+    - Explore AI-generated imagery for creative projects
+    """
+
+    prompt: str = Field(
+        default="Anthropomorphic cat dressed as a fire fighter",
+        description="The text prompt describing the desired image.",
+    )
+    negative_prompt: str = Field(
+        default="", description="Text describing what to avoid in the generated image."
+    )
+    num_images: int = Field(
+        default=1, ge=1, le=4, description="Number of images to generate."
+    )
+    height: int = Field(
+        default=1024, ge=512, le=2048, description="Height of the generated image."
+    )
+    width: int = Field(
+        default=1536, ge=512, le=2048, description="Width of the generated image."
+    )
+    prior_guidance_scale: float = Field(
+        default=4.0,
+        ge=0.0,
+        le=20.0,
+        description="Guidance scale for the prior pipeline.",
+    )
+    decoder_guidance_scale: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=20.0,
+        description="Guidance scale for the decoder pipeline.",
+    )
+    seed: int = Field(
+        default=-1,
+        ge=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+    )
+
+    _prior_pipeline: WuerstchenPriorPipeline | None = None
+    _decoder_pipeline: WuerstchenDecoderPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        dtype = torch.float16
+        self._prior_pipeline = WuerstchenPriorPipeline.from_pretrained(
+            "warp-ai/wuerstchen-prior", torch_dtype=dtype
+        )  # type: ignore
+        self._decoder_pipeline = WuerstchenDecoderPipeline.from_pretrained(
+            "warp-ai/wuerstchen", torch_dtype=dtype
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._prior_pipeline is not None:
+            self._prior_pipeline.to(device)
+        if self._decoder_pipeline is not None:
+            self._decoder_pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._prior_pipeline is None or self._decoder_pipeline is None:
+            raise ValueError("Pipelines not initialized")
+
+        if self.seed != -1:
+            generator = torch.Generator(device="cuda").manual_seed(self.seed)
+        else:
+            generator = None
+
+        prior_output = self._prior_pipeline(
+            prompt=self.prompt,
+            height=self.height,
+            width=self.width,
+            timesteps=DEFAULT_STAGE_C_TIMESTEPS,
+            generator=generator,
+            negative_prompt=self.negative_prompt,
+            guidance_scale=self.prior_guidance_scale,
+            num_images_per_prompt=self.num_images,
+        )
+
+        image = self._decoder_pipeline(
+            image_embeddings=prior_output.image_embeddings,  # type: ignore
+            prompt=self.prompt,
+            generator=generator,
+            negative_prompt=self.negative_prompt,
+            guidance_scale=self.decoder_guidance_scale,
+            output_type="pil",
+        ).images[  # type: ignore
+            0
+        ]
+
+        return await context.image_from_pil(image)
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "Wuerstchen"
 
 
 # class Kandinsky2(BaseNode):
@@ -1544,7 +1840,7 @@ class PlaygroundV2(BaseNode):
         image = output.images[0]
 
         return await context.image_from_pil(image)
-    
+
 
 class OpenDalleV1_1(BaseNode):
     """
@@ -1609,7 +1905,7 @@ class OpenDalleV1_1(BaseNode):
             generator=generator,
             callback=progress_callback(self.id, self.num_inference_steps, context),
             callback_steps=1,
-        ) # type: ignore
+        )  # type: ignore
 
         image = output.images[0]
 
@@ -1726,25 +2022,6 @@ class StableCascade(BaseNode):
         return await context.image_from_pil(decoder_output)
 
 
-class StableDiffusionModelId(str, Enum):
-    SD_V1_5 = "runwayml/stable-diffusion-v1-5"
-    REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
-    PROTEUS = "dataautogpt3/ProteusV0.5"
-    DREAMSHAPER = "Lykon/DreamShaper"
-    DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
-    EPIC_PHOTOGASM = "Yntec/epiCPhotoGasm"
-    INPAINTING = "runwayml/stable-diffusion-inpainting"
-
-
-class IPAdapter_SD15_Model(str, Enum):
-    NONE = ""
-    IP_ADAPTER = "ip-adapter_sd15.safetensors"
-    IP_ADAPTER_LIGHT = "ip-adapter_sd15_light.safetensors"
-    IP_ADAPTER_PLUS = "ip-adapter-plus_sd15.bin"
-    IP_ADAPTER_PLUS_FACE = "ip-adapter-plus-face_sd15.safetensors"
-    IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
-
-
 class StableDiffusionBaseNode(BaseNode):
     model: StableDiffusionModelId = Field(
         default=StableDiffusionModelId.SD_V1_5,
@@ -1772,6 +2049,16 @@ class StableDiffusionBaseNode(BaseNode):
         default=StableDiffusionScheduler.HeunDiscreteScheduler,
         description="The scheduler to use for the diffusion process.",
     )
+    lora_model: LORA_Model = Field(
+        default=LORA_Model.NONE,
+        description="The LORA model to use for image processing",
+    )
+    lora_scale: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=3.0,
+        description="Strength of the LORA image",
+    )
     ip_adapter_model: IPAdapter_SD15_Model = Field(
         default=IPAdapter_SD15_Model.NONE,
         description="The IP adapter model to use for image processing",
@@ -1796,12 +2083,28 @@ class StableDiffusionBaseNode(BaseNode):
     async def initialize(self, context: ProcessingContext):
         raise NotImplementedError("Subclasses must implement this method")
 
+    async def _setup_ip_adapter(self, context: ProcessingContext):
+        self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
+        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+            if not self.ip_adapter_image.is_empty():
+                self._load_ip_adapter()
+                return await context.image_to_pil(self.ip_adapter_image)
+        return None
+
     def _load_ip_adapter(self):
         if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
             self._pipeline.load_ip_adapter(
                 "h94/IP-Adapter",
                 subfolder="models",
                 weight_name=self.ip_adapter_model,
+            )
+
+    def _load_lora(self):
+        if self.lora_model != LORA_Model.NONE:
+            self._pipeline.load_lora_weights(
+                LORA_WEIGHTS[self.lora_model]["repo"],
+                weight_name=LORA_WEIGHTS[self.lora_model]["weight_name"],
+                adapter_name=self.lora_model.value,
             )
 
     def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
@@ -1819,13 +2122,6 @@ class StableDiffusionBaseNode(BaseNode):
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
         return generator
-
-    async def _setup_ip_adapter(self, context: ProcessingContext):
-        self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
-        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
-            assert not self.ip_adapter_image.is_empty()
-            return await context.image_to_pil(self.ip_adapter_image)
-        return None
 
     def progress_callback(self, context: ProcessingContext):
         def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
@@ -1874,12 +2170,12 @@ class StableDiffusion(StableDiffusionBaseNode):
             )  # type: ignore
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
-            self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
+        self._load_lora()
         generator = self._setup_generator()
         ip_adapter_image = await self._setup_ip_adapter(context)
 
@@ -1949,7 +2245,6 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
         self._pipeline = StableDiffusionControlNetPipeline.from_pretrained(
             self.model.value, controlnet=controlnet, torch_dtype=torch.float16
         )  # type: ignore
-        self._load_ip_adapter()
         self._pipeline.enable_model_cpu_offload()  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -1959,6 +2254,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
         control_image = await context.image_to_pil(self.control_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
         generator = self._setup_generator()
+        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2016,7 +2312,6 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
             self._pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(
                 self.model.value, torch_dtype=torch.float16, safety_checker=None
             )  # type: ignore
-            self._load_ip_adapter()
             self._set_scheduler(self.scheduler)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -2026,6 +2321,7 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
         generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
+        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2100,7 +2396,6 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
         self._pipeline = StableDiffusionControlNetInpaintPipeline.from_pretrained(
             self.model.value, controlnet=controlnet, torch_dtype=torch.float16
         )  # type: ignore
-        self._load_ip_adapter()
         self._pipeline.enable_model_cpu_offload()  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -2112,6 +2407,7 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
         control_image = await context.image_to_pil(self.control_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
         generator = self._setup_generator()
+        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2187,6 +2483,7 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
         init_image = await context.image_to_pil(self.init_image)
         mask_image = await context.image_to_pil(self.mask_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
+        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2250,7 +2547,6 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         self._pipeline = StableDiffusionControlNetImg2ImgPipeline.from_pretrained(
             self.model.value, controlnet=controlnet, torch_dtype=torch.float16
         )  # type: ignore
-        self._load_ip_adapter()
         self._pipeline.enable_model_cpu_offload()  # type: ignore
         self._set_scheduler(self.scheduler)
 
@@ -2261,6 +2557,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         input_image = await context.image_to_pil(self.image)
         control_image = await context.image_to_pil(self.control_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
+        self._load_lora()
 
         generator = torch.Generator(device="cuda").manual_seed(self.seed)
 
@@ -2282,9 +2579,9 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         return await context.image_from_pil(image)
 
 
-class StableDiffusionUpscale(StableDiffusionBaseNode):
+class StableDiffusionUpscale(BaseNode):
     """
-    Upscales an image using Stable Diffusion upscaler model.
+    Upscales an image using Stable Diffusion 4x upscaler.
     image, upscaling, AI, stable-diffusion
 
     Use cases:
@@ -2293,15 +2590,33 @@ class StableDiffusionUpscale(StableDiffusionBaseNode):
     - Create high-resolution versions of small images
     """
 
-    image: ImageRef = Field(
-        default=ImageRef(),
-        description="The initial image for Image-to-Image generation.",
+    prompt: str = Field(
+        default="",
+        description="The prompt for image generation.",
+    )
+    negative_prompt: str = Field(
+        default="",
+        description="The negative prompt to guide what should not appear in the generated image.",
     )
     num_inference_steps: int = Field(
         default=25,
         ge=1,
         le=100,
         description="Number of upscaling steps.",
+    )
+    guidance_scale: float = Field(
+        default=7.5,
+        ge=1.0,
+        le=20.0,
+        description="Guidance scale for generation.",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="The initial image for Image-to-Image generation.",
+    )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.HeunDiscreteScheduler,
+        description="The scheduler to use for the diffusion process.",
     )
     seed: int = Field(
         default=-1,
@@ -2325,8 +2640,14 @@ class StableDiffusionUpscale(StableDiffusionBaseNode):
             torch_dtype=torch.float16,
             variant="fp16",
         )  # type: ignore
-        self._load_ip_adapter()
         self._set_scheduler(self.scheduler)
+
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        if self._pipeline is not None:
+            scheduler_class = get_scheduler_class(scheduler_type)
+            self._pipeline.scheduler = scheduler_class.from_config(
+                self._pipeline.scheduler.config
+            )
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -2354,56 +2675,6 @@ class StableDiffusionUpscale(StableDiffusionBaseNode):
         ]
 
         return await context.image_from_pil(upscaled_image)
-
-
-class StableDiffusionXLModelId(str, Enum):
-    SDXL_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
-    JUGGERNAUT_XL = "RunDiffusion/Juggernaut-XL-v9"
-    REALVISXL = "SG161222/RealVisXL_V4.0"
-
-
-class IPAdapter_SDXL_Model(str, Enum):
-    NONE = ""
-    IP_ADAPTER = "ip-adapter_sdxl.safetensors"
-    IP_ADAPTER_PLUS = "ip-adapter-plus_sdxl_vit-h.safetensors"
-
-
-class LORA_SDXL_Model(str, Enum):
-    NONE = ""
-    TOY_FACE = "toy-face"
-    PIXEL_ART = "pixel-art"
-    _3D_RENDER_STYLE = "3d-render-style"
-    CUTE_CARTOON = "cute-cartoon"
-    GRAPHIC_NOVEL_ILLUSTRATION = "graphic-novel-illustration"
-    COLORING_BOOK = "coloring-book"
-
-
-LORA_WEIGHTS = {
-    LORA_SDXL_Model.TOY_FACE: {
-        "repo": "CiroN2022/toy-face",
-        "weight_name": "toy_face_sdxl.safetensors",
-    },
-    LORA_SDXL_Model.PIXEL_ART: {
-        "repo": "nerijs/pixel-art-xl",
-        "weight_name": "pixel-art-xl.safetensors",
-    },
-    LORA_SDXL_Model._3D_RENDER_STYLE: {
-        "repo": "goofyai/3d_render_style_xl",
-        "weight_name": "3d_render_style_xl.safetensors",
-    },
-    LORA_SDXL_Model.CUTE_CARTOON: {
-        "repo": "artificialguybr/CuteCartoonRedmond-V2",
-        "weight_name": "CuteCartoonRedmond-CuteCartoon-CuteCartoonAF.safetensors",
-    },
-    LORA_SDXL_Model.GRAPHIC_NOVEL_ILLUSTRATION: {
-        "repo": "blink7630/graphic-novel-illustration",
-        "weight_name": "Graphic_Novel_Illustration-000007.safetensors",
-    },
-    LORA_SDXL_Model.COLORING_BOOK: {
-        "repo": "robert123231/coloringbookgenerator",
-        "weight_name": "ColoringBookRedmond-ColoringBook-ColoringBookAF.safetensors",
-    },
-}
 
 
 class StableDiffusionXLBase(BaseNode):
@@ -2488,6 +2759,7 @@ class StableDiffusionXLBase(BaseNode):
     async def _setup_ip_adapter(self, context: ProcessingContext):
         if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:
             assert not self.ip_adapter_image.is_empty()
+            self._load_ip_adapter()
             return await context.image_to_pil(self.ip_adapter_image)
         return None
 
@@ -2547,7 +2819,6 @@ class StableDiffusionXL(StableDiffusionXLBase):
                 variant="fp16",
             )
             self._set_scheduler(self.scheduler)
-            self._load_ip_adapter()
 
     async def process(self, context) -> ImageRef:
         if self._pipeline is None:
@@ -2610,7 +2881,6 @@ class StableDiffusionXLLightning(StableDiffusionXLBase):
         )
 
         self._set_scheduler(self.scheduler)
-        self._load_ip_adapter()
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -2682,12 +2952,12 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
                 variant="fp16",
             )
             self._set_scheduler(self.scheduler)
-            self._load_ip_adapter()
 
     async def process(self, context) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
+        self._load_lora()
         generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
         init_image = init_image.resize((self.width, self.height))
@@ -2753,7 +3023,6 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
                 variant="fp16",
             )
             self._set_scheduler(self.scheduler)
-            self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -2820,10 +3089,10 @@ class SDXLTurbo(BaseNode):
         default=0.0, ge=0.0, le=20.0, description="Guidance scale for generation."
     )
     width: int = Field(
-        default=512, ge=64, le=2048, description="Width of the generated image."
+        default=1024, ge=64, le=2048, description="Width of the generated image."
     )
     height: int = Field(
-        default=512, ge=64, le=2048, description="Height of the generated image"
+        default=1024, ge=64, le=2048, description="Height of the generated image"
     )
 
     _pipe: Any = None
@@ -2896,7 +3165,7 @@ class SDXLTurboImg2Img(BaseNode):
         default=4, ge=1, le=50, description="Number of inference steps."
     )
     guidance_scale: float = Field(
-        default=7.0, ge=0.0, le=20.0, description="Guidance scale for generation."
+        default=0.0, ge=0.0, le=20.0, description="Guidance scale for generation."
     )
     width: int = Field(
         default=1024, ge=64, le=2048, description="Width of the generated image."
@@ -2958,117 +3227,7 @@ class SDXLTurboImg2Img(BaseNode):
         return await context.image_from_pil(image)
 
 
-class StableDiffusion3ControlNetNode(BaseNode):
-    """
-    Generates images using Stable Diffusion 3 with ControlNet.
-    image, generation, AI, text-to-image, controlnet
-
-    Use cases:
-    - Generate images with precise control over composition and structure
-    - Create variations of existing images while maintaining specific features
-    - Artistic image generation with guided outputs
-    """
-
-    class StableDiffusion3ControlNetModelId(str, Enum):
-        SD3_CONTROLNET_CANNY = "InstantX/SD3-Controlnet-Canny"
-        SD3_CONTROLNET_TILE = "InstantX/SD3-Controlnet-Tile"
-        SD3_CONTROLNET_POSE = "InstantX/SD3-Controlnet-Pose"
-
-    prompt: str = Field(
-        default="A girl holding a sign that says InstantX",
-        description="A text prompt describing the desired image.",
-    )
-    control_model: StableDiffusion3ControlNetModelId = Field(
-        default=StableDiffusion3ControlNetModelId.SD3_CONTROLNET_CANNY,
-        description="The ControlNet model to use for image generation.",
-    )
-    control_image: ImageRef = Field(
-        default=ImageRef(),
-        description="The control image to guide the generation process.",
-    )
-    controlnet_conditioning_scale: float = Field(
-        default=0.7,
-        description="The scale of the ControlNet conditioning.",
-        ge=0.0,
-        le=1.0,
-    )
-    num_inference_steps: int = Field(
-        default=30,
-        description="The number of denoising steps.",
-        ge=1,
-        le=100,
-    )
-    seed: int = Field(
-        default=-1,
-        description="Seed for the random number generator. Use -1 for a random seed.",
-        ge=-1,
-    )
-
-    _pipeline: StableDiffusion3ControlNetPipeline | None = None
-
-    def required_inputs(self):
-        return ["control_image"]
-
-    @classmethod
-    def get_title(cls):
-        return "Stable Diffusion 3 ControlNet"
-
-    async def initialize(self, context: ProcessingContext):
-        controlnet = SD3ControlNetModel.from_pretrained(
-            self.control_model.value, torch_dtype=torch.float16
-        )
-        self._pipeline = StableDiffusion3ControlNetPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-3-medium-diffusers",
-            controlnet=controlnet,
-            torch_dtype=torch.float16,
-        )  # type: ignore
-
-    async def move_to_device(self, device: str):
-        pass
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
-        # Set up the generator for reproducibility
-        generator = None
-        if self.seed != -1:
-            generator = torch.Generator(device=self._pipeline.device).manual_seed(
-                self.seed
-            )
-
-        # Load the control image
-        control_image = await context.image_to_pil(self.control_image)
-
-        def callback(pipe: Any, step: int, timestep: int, args: dict):
-            context.post_message(
-                NodeProgress(
-                    node_id=self.id,
-                    progress=step,
-                    total=self.num_inference_steps,
-                )
-            )
-            return {}
-
-        # Generate the image
-        self._pipeline.enable_sequntial_cpu_offload()
-
-        output = self._pipeline(
-            prompt=self.prompt,
-            control_image=control_image,
-            width=control_image.width,
-            height=control_image.height,
-            controlnet_conditioning_scale=self.controlnet_conditioning_scale,
-            num_inference_steps=self.num_inference_steps,
-            generator=generator,
-            callback_on_step_end=callback,  # type: ignore
-        )
-
-        # Convert the output image to ImageRef
-        return await context.image_from_pil(output.images[0])  # type: ignore
-
-
-class StableDiffusionXLControlNetNode(StableDiffusionXLBase):
+class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
     """
     Generates images using Stable Diffusion XL with ControlNet.
     image, generation, AI, text-to-image, controlnet
@@ -3122,26 +3281,95 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLBase):
             vae=vae,
             torch_dtype=torch.float16,
         )  # type: ignore
-        self._pipeline.enable_model_cpu_offload()  # type: ignore
 
-    async def move_to_device(self, device: str):
-        # Not needed as we're using CPU offload
-        pass
+        self._set_scheduler(self.scheduler)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        self._load_ip_adapter()
         self._load_lora()
+        generator = self._setup_generator()
 
-        generator = None
-        if self.seed != -1:
-            generator = torch.Generator(device=self._pipeline.device).manual_seed(
-                self.seed
-            )
+        control_image = await context.image_to_pil(self.control_image)
 
-        def callback(step: int, timestep: int, args: dict):
+        if not self.init_image.is_empty():
+            init_image = await context.image_to_pil(self.init_image)
+            init_image = init_image.resize((self.width, self.height))
+        else:
+            init_image = None
+
+        ip_adapter_image = await self._setup_ip_adapter(context)
+
+        output = self._pipeline(
+            prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
+            init_image=init_image,
+            image=control_image,
+            strength=self.strength,
+            ip_adapter_image=ip_adapter_image,
+            ip_adapter_scale=self.ip_adapter_scale,
+            cross_attention_kwargs={"scale": self.lora_scale},
+            controlnet_conditioning_scale=self.controlnet_conditioning_scale,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            callback=self.progress_callback(context),
+            callback_steps=1,
+        )
+
+        return await context.image_from_pil(output.images[0])  # type: ignore
+
+
+class LatentConsistencyModel(StableDiffusionXLBase):
+    """
+    Generates images using the Latent Consistency Model.
+    image, generation, AI, diffusion
+
+    Use cases:
+    - Create AI-generated art and illustrations
+    - Produce concept art for creative projects
+    - Generate visual content for various applications
+    - Explore AI-assisted image creation
+    """
+
+    num_inference_steps: int = Field(
+        default=4,
+        description="Number of denoising steps. LCM supports fast inference even with <=4 steps. Recommended: 1-8 steps.",
+        ge=1,
+        le=50,
+    )
+
+    _unet: UNet2DConditionModel | None = None
+    _pipeline: DiffusionPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._unet = UNet2DConditionModel.from_pretrained(
+            "latent-consistency/lcm-sdxl", torch_dtype=torch.float16, variant="fp16"
+        )  # type: ignore
+        self._pipeline = DiffusionPipeline.from_pretrained(
+            self.model.value,
+            unet=self._unet,
+            torch_dtype=torch.float16,
+            variant="fp16",
+        )
+        self._set_scheduler(self.scheduler)
+        self._pipeline.scheduler = LCMScheduler.from_config(self._pipeline.scheduler.config)  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device, dtype=torch.float16)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = self._setup_generator()
+        self._load_lora()
+        ip_adapter_image = await self._setup_ip_adapter(context)
+
+        def progress_callback(
+            step: int, timestep: int, latents: torch.FloatTensor
+        ) -> None:
             context.post_message(
                 NodeProgress(
                     node_id=self.id,
@@ -3149,28 +3377,19 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLBase):
                     total=self.num_inference_steps,
                 )
             )
-            return {}
 
-        control_image = await context.image_to_pil(self.control_image)
-
-        if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:
-            ip_adapter_image = await context.image_to_pil(self.ip_adapter_image)
-        else:
-            ip_adapter_image = None
-
-        # Generate the image
-        output = self._pipeline(
+        image = self._pipeline(
             prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
-            image=control_image,
+            width=self.width,
+            height=self.height,
             ip_adapter_image=ip_adapter_image,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            controlnet_conditioning_scale=self.controlnet_conditioning_scale,
             num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
             generator=generator,
-            callback=callback,
+            callback=progress_callback,
             callback_steps=1,
-        )
+        ).images[  # type: ignore
+            0
+        ]
 
-        # Convert the output image to ImageRef
-        return await context.image_from_pil(output.images[0])  # type: ignore
+        return await context.image_from_pil(image)

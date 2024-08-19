@@ -198,8 +198,12 @@ class Max(BaseNode):
     tensor: Tensor = Tensor()
     axis: int | None = None
 
-    async def process(self, context: ProcessingContext) -> Tensor:
-        return Tensor.from_numpy(np.max(to_numpy(self.tensor), axis=self.axis))
+    async def process(self, context: ProcessingContext) -> Tensor | float | int:
+        res = np.max(to_numpy(self.tensor), axis=self.axis)
+        if res.size == 1:
+            return res.item()
+        else:
+            return Tensor.from_numpy(res)
 
 
 class Min(BaseNode):
@@ -216,8 +220,12 @@ class Min(BaseNode):
     tensor: Tensor = Tensor()
     axis: int | None = None
 
-    async def process(self, context: ProcessingContext) -> Tensor:
-        return Tensor.from_numpy(np.min(to_numpy(self.tensor), axis=self.axis))
+    async def process(self, context: ProcessingContext) -> Tensor | float | int:
+        res = np.min(to_numpy(self.tensor), axis=self.axis)
+        if res.size == 1:
+            return res.item()
+        else:
+            return Tensor.from_numpy(res)
 
 
 class Mean(BaseNode):
@@ -234,8 +242,12 @@ class Mean(BaseNode):
     tensor: Tensor = Tensor()
     axis: int | None = None
 
-    async def process(self, context: ProcessingContext) -> Tensor:
-        return Tensor.from_numpy(np.mean(to_numpy(self.tensor), axis=self.axis))
+    async def process(self, context: ProcessingContext) -> Tensor | float | int:
+        res = np.mean(to_numpy(self.tensor), axis=self.axis)
+        if res.size == 1:
+            return res.item()
+        else:
+            return Tensor.from_numpy(res)
 
 
 class Sum(BaseNode):
@@ -252,8 +264,12 @@ class Sum(BaseNode):
     tensor: Tensor = Tensor()
     axis: int | None = None
 
-    async def process(self, context: ProcessingContext) -> Tensor:
-        return Tensor.from_numpy(np.sum(to_numpy(self.tensor), axis=self.axis))
+    async def process(self, context: ProcessingContext) -> Tensor | float | int:
+        res = np.sum(to_numpy(self.tensor), axis=self.axis)
+        if res.size == 1:
+            return res.item()
+        else:
+            return Tensor.from_numpy(res)
 
 
 class ArgMax(BaseNode):
@@ -270,8 +286,12 @@ class ArgMax(BaseNode):
     a: Tensor = Tensor()
     axis: int | None = None
 
-    async def process(self, context: ProcessingContext) -> Tensor:
-        return Tensor.from_numpy(np.argmax(to_numpy(self.a), axis=self.axis))
+    async def process(self, context: ProcessingContext) -> Tensor | int:
+        res = np.argmax(to_numpy(self.a), axis=self.axis)
+        if res.size == 1:
+            return res.item()
+        else:
+            return Tensor.from_numpy(res)
 
 
 class ArgMin(BaseNode):
@@ -288,8 +308,12 @@ class ArgMin(BaseNode):
     tensor: Tensor = Tensor()
     axis: int | None = None
 
-    async def process(self, context: ProcessingContext) -> Tensor:
-        return Tensor.from_numpy(np.argmin(to_numpy(self.tensor), axis=self.axis))
+    async def process(self, context: ProcessingContext) -> Tensor | int:
+        res = np.argmin(to_numpy(self.tensor), axis=self.axis)
+        if res.size == 1:
+            return res.item()
+        else:
+            return Tensor.from_numpy(res)
 
 
 class Abs(BaseNode):
@@ -309,7 +333,10 @@ class Abs(BaseNode):
 
     async def process(self, context: ProcessingContext) -> Tensor:
         abs_tensor = np.abs(self.input_tensor.to_numpy())
-        return Tensor.from_numpy(abs_tensor)
+        if abs_tensor.size == 1:
+            return abs_tensor.item()
+        else:
+            return Tensor.from_numpy(abs_tensor)
 
 
 class TensorToScalar(BaseNode):
@@ -325,7 +352,7 @@ class TensorToScalar(BaseNode):
 
     tensor: Tensor = Tensor()
 
-    async def process(self, context: ProcessingContext) -> float:
+    async def process(self, context: ProcessingContext) -> float | int:
         return self.tensor.to_numpy().item()
 
 

@@ -58,6 +58,14 @@ COMFY_NODE_CLASSES: dict[str, type["BaseNode"]] = {}
 log = Environment.get_logger()
 
 
+def split_camel_case(text):
+    # Split the string into parts, keeping uppercase sequences together
+    parts = re.findall(r"[A-Z]+[a-z]*|\d+|[a-z]+", text)
+
+    # Join the parts with spaces
+    return " ".join(parts)
+
+
 def add_comfy_classname(node_class: type["BaseNode"]) -> None:
     """
     Register a comfy node class by its class name in the NODES_BY_CLASSNAME dictionary.
@@ -309,15 +317,7 @@ class BaseNode(BaseModel):
         else:
             title = class_name
 
-        # split on camel case and add spaces
-        title = " ".join(
-            [
-                x.capitalize()
-                for x in re.findall(r"[A-Z](?:[a-z]+|[A-Z]*(?=[A-Z]|$))", title)
-            ]
-        )
-
-        return title
+        return split_camel_case(title)
 
     @classmethod
     def get_description(cls) -> str:
@@ -662,25 +662,25 @@ class BaseNode(BaseModel):
     @classmethod
     def field_types(cls):
         """
-        Returns the input slots of the node.
+        Returns the input slots of the node, including those inherited from all base classes.
         """
         types = cls.__annotations__
-        super_types = (
-            cls.__base__.field_types() if hasattr(cls.__base__, "field_types") else {}  # type: ignore
-        )
+        super_types = {}
+        for base in cls.__bases__:
+            if hasattr(base, "field_types"):
+                super_types.update(base.field_types())  # type: ignore
         return {**super_types, **types}
 
     @classmethod
     def inherited_fields(cls) -> dict[str, FieldInfo]:
         """
-        Returns the input slots of the node.
+        Returns the input slots of the node, including those inherited from all base classes.
         """
         fields = {name: field for name, field in cls.model_fields.items()}
-        super_fields = (
-            cls.__base__.inherited_fields()  # type: ignore
-            if hasattr(cls.__base__, "inherited_fields")
-            else {}
-        )
+        super_fields = {}
+        for base in cls.__bases__:
+            if hasattr(base, "inherited_fields"):
+                super_fields.update(base.inherited_fields())  # type: ignore
         return {**super_fields, **fields}
 
     @classmethod

@@ -522,9 +522,6 @@ Select Nodes On Drag: Select nodes when dragging.
 
 {docs}
 
-Current Workflow:
-{workflow.graph if workflow else "No workflow selected"}
-
 Example Workflows:
 {examples}
 """

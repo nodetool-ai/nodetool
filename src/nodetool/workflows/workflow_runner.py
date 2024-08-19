@@ -19,8 +19,23 @@ from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.common.environment import Environment
 from nodetool.workflows.graph import Graph
+import time
+import random
+from nodetool.common.environment import Environment
 
 log = Environment.get_logger()
+
+MAX_RETRIES = 5
+BASE_DELAY = 1  # seconds
+MAX_DELAY = 60  # seconds
+
+
+def get_available_vram():
+    if torch.cuda.is_available():
+        return torch.cuda.get_device_properties(
+            0
+        ).total_memory - torch.cuda.memory_allocated(0)
+    return 0  # Return 0 if CUDA is not available
 
 
 class WorkflowRunner:
@@ -160,10 +175,17 @@ class WorkflowRunner:
                 await self.validate_graph(context, graph)
                 await self.initialize_graph(context, graph)
                 await self.process_graph(context, graph)
-            except Exception as e:
+            except torch.cuda.OutOfMemoryError as e:
+                error_message = f"VRAM OOM error: {str(e)}. No additional VRAM available after retries."
+                log.error(error_message)
+                context.post_message(
+                    JobUpdate(job_id=self.job_id, status="error", error=error_message)
+                )
+                self.status = "error"
+            finally:
                 for node in graph.nodes:
                     await node.finalize(context)
-                raise e
+                torch.cuda.empty_cache()
 
         if self.is_cancelled:
             log.info("Job cancelled")
@@ -281,18 +303,50 @@ class WorkflowRunner:
 
         self.current_node = node._id
 
-        # Skip nodes that have already been processed in a sub graph.
+        # Skip nodes that have already been processed in a subgraph.
         if node._id in context.processed_nodes:
             return
 
-        try:
-            # If the node is a loop node, run the loop node, which will process the subgraph.
-            if isinstance(node, GroupNode):
-                await self.run_group_node(node, context)
-            else:
-                await self.process_regular_node(context, node)
-        except JobCancelledException:
-            self.cancel()
+        retries = 0
+        initial_vram = get_available_vram()
+
+        while retries < MAX_RETRIES:
+            try:
+                if isinstance(node, GroupNode):
+                    await self.run_group_node(node, context)
+                else:
+                    await self.process_regular_node(context, node)
+                break  # If successful, break the retry loop
+            except torch.cuda.OutOfMemoryError as e:
+                retries += 1
+                current_vram = get_available_vram()
+
+                if current_vram <= initial_vram:
+                    log.warning(
+                        f"No additional VRAM available. Stopping retries for node {node._id}."
+                    )
+                    raise  # Re-raise the exception if no more VRAM is available
+
+                if retries >= MAX_RETRIES:
+                    raise  # If max retries reached, re-raise the exception
+
+                # Calculate delay with exponential backoff and jitter
+                delay = min(
+                    BASE_DELAY * (2 ** (retries - 1)) + random.uniform(0, 1), MAX_DELAY
+                )
+
+                log.warning(
+                    f"VRAM OOM encountered for node {node._id}. Additional VRAM available. Retrying in {delay:.2f} seconds. (Attempt {retries}/{MAX_RETRIES})"
+                )
+
+                # Attempt to free up memory
+                torch.cuda.empty_cache()
+
+                # Wait before retrying
+                await asyncio.sleep(delay)
+            except JobCancelledException:
+                self.cancel()
+                break
 
     async def run_group_node(self, group_node: GroupNode, context: ProcessingContext):
         """

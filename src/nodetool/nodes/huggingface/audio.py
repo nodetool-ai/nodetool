@@ -21,7 +21,10 @@ from nodetool.metadata.types import AudioRef
 import torch
 from transformers import pipeline, Pipeline
 from transformers import AutoProcessor, MusicgenForConditionalGeneration
+from diffusers import DiffusionPipeline  # type: ignore
 from diffusers import MusicLDMPipeline  # type: ignore
+from diffusers import AudioLDMPipeline  # type: ignore
+from diffusers import AudioLDM2Pipeline  # type: ignore
 
 
 class AudioClassifier(HuggingFacePipelineNode):
@@ -260,6 +263,234 @@ class MusicLDM(HuggingFacePipelineNode):
         return await context.audio_from_numpy(audio, 16_000)
 
 
+class AudioLDM(BaseNode):
+    """
+    Generates audio using the AudioLDM model based on text prompts.
+    audio, generation, AI, text-to-audio
+
+    Use cases:
+    - Create custom music or sound effects from text descriptions
+    - Generate background audio for videos, games, or other media
+    - Produce audio content for creative projects
+    - Explore AI-generated audio for music production or sound design
+    """
+
+    prompt: str = Field(
+        default="Techno music with a strong, upbeat tempo and high melodic riffs",
+        description="A text prompt describing the desired audio.",
+    )
+    num_inference_steps: int = Field(
+        default=10,
+        description="Number of denoising steps. More steps generally improve quality but increase generation time.",
+        ge=1,
+        le=100,
+    )
+    audio_length_in_s: float = Field(
+        default=5.0,
+        description="The desired duration of the generated audio in seconds.",
+        ge=1.0,
+        le=30.0,
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: AudioLDMPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = AudioLDMPipeline.from_pretrained(
+            "cvssp/audioldm-s-full-v2",
+            torch_dtype=torch.float16,
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = torch.Generator("cuda")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        def progress_callback(
+            step: int, timestep: int, latents: torch.FloatTensor
+        ) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        audio = self._pipeline(
+            self.prompt,
+            num_inference_steps=self.num_inference_steps,
+            audio_length_in_s=self.audio_length_in_s,
+            generator=generator,
+            callback=progress_callback,  # type: ignore
+            callback_steps=1,
+        ).audios[  # type: ignore
+            0
+        ]
+
+        return await context.audio_from_numpy(audio, 16000)
+
+
+class AudioLDM2(BaseNode):
+    """
+    Generates audio using the AudioLDM2 model based on text prompts.
+    audio, generation, AI, text-to-audio
+
+    Use cases:
+    - Create custom sound effects based on textual descriptions
+    - Generate background audio for videos or games
+    - Produce audio content for multimedia projects
+    - Explore AI-generated audio for creative sound design
+    """
+
+    prompt: str = Field(
+        default="The sound of a hammer hitting a wooden surface.",
+        description="A text prompt describing the desired audio.",
+    )
+    negative_prompt: str = Field(
+        default="Low quality.",
+        description="A text prompt describing what you don't want in the audio.",
+    )
+    num_inference_steps: int = Field(
+        default=200,
+        description="Number of denoising steps. More steps generally improve quality but increase generation time.",
+        ge=50,
+        le=500,
+    )
+    audio_length_in_s: float = Field(
+        default=10.0,
+        description="The desired duration of the generated audio in seconds.",
+        ge=1.0,
+        le=30.0,
+    )
+    num_waveforms_per_prompt: int = Field(
+        default=3,
+        description="Number of audio samples to generate per prompt.",
+        ge=1,
+        le=5,
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: AudioLDM2Pipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = AudioLDM2Pipeline.from_pretrained(
+            "cvssp/audioldm2",
+            torch_dtype=torch.float16,
+        )  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = torch.Generator("cuda")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        def progress_callback(
+            step: int, timestep: int, latents: torch.FloatTensor
+        ) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        audio = self._pipeline(
+            self.prompt,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            audio_length_in_s=self.audio_length_in_s,
+            num_waveforms_per_prompt=self.num_waveforms_per_prompt,
+            generator=generator,
+            callback=progress_callback,  # type: ignore
+            callback_steps=1,
+        ).audios[  # type: ignore
+            0
+        ]
+
+        return await context.audio_from_numpy(audio, 16000)
+
+
+class DanceDiffusion(BaseNode):
+    """
+    Generates audio using the DanceDiffusion model.
+    audio, generation, AI, music
+
+    Use cases:
+    - Create AI-generated music samples
+    - Produce background music for videos or games
+    - Generate audio content for creative projects
+    - Explore AI-composed musical ideas
+    """
+
+    audio_length_in_s: float = Field(
+        default=4.0,
+        description="The desired duration of the generated audio in seconds.",
+        ge=1.0,
+        le=30.0,
+    )
+    num_inference_steps: int = Field(
+        default=50,
+        description="Number of denoising steps. More steps generally improve quality but increase generation time.",
+        ge=1,
+        le=1000,
+    )
+    seed: int = Field(
+        default=0,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+
+    _pipeline: DiffusionPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = DiffusionPipeline.from_pretrained("harmonai/maestro-150k")
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = torch.Generator("cuda")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
+
+        audio = self._pipeline(
+            audio_length_in_s=self.audio_length_in_s,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+        ).audios[  # type: ignore
+            0
+        ]
+
+        return await context.audio_from_numpy(audio, 16000)
+
+
 class StableAudioNode(BaseNode):
     """
     Generates audio using the Stable Audio Pipeline based on a text prompt.
@@ -392,7 +623,8 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         return result["text"]
 
     async def get_inputs(self, context: ProcessingContext):
-        return await context.asset_to_io(self.inputs)
+        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        return samples
 
 
 class ZeroShotAudioClassifier(HuggingFacePipelineNode):

@@ -2,13 +2,11 @@ import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
 import { MessageCreateRequest } from "../../stores/ApiTypes";
 import { useChatStore } from "../../stores/ChatStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import { Typography } from "@mui/material";
 
 const HelpChat: React.FC = () => {
   const { threadId, messages, isLoading, fetchMessages, sendMessage } =
     useChatStore();
-  const getWorkflow = useNodeStore((state) => state.getWorkflow);
 
   useEffect(() => {
     fetchMessages(threadId);
@@ -20,11 +18,10 @@ const HelpChat: React.FC = () => {
         thread_id: threadId,
         role: "user",
         content: prompt,
-        workflow: getWorkflow(),
       };
       await sendMessage(messageRequest);
     },
-    [threadId, getWorkflow, sendMessage]
+    [threadId, sendMessage]
   );
 
   return (

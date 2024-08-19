@@ -4,22 +4,87 @@
   "created_at": "2024-07-06T20:13:38.331865",
   "updated_at": "2024-07-06T20:23:13.098945",
   "name": "Audio To Image",
-  "description": "",
+  "description": "Convert any audio speech into an image",
   "thumbnail": "",
   "thumbnail_url": "/examples/audio_to_image.png",
   "graph": {
+    "edges": [
+      {
+        "id": "4745a385-b63e-4a0a-9523-459bf74f7748",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "01d27a2e-d758-4c6c-a4d5-fa4ef2332ea5",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "8f9e0dfb-eda8-473c-8452-6e2053904edf",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "union"
+        }
+      },
+      {
+        "id": "7db871b0-cb5c-4707-b542-71c452fd8253",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "8",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "9",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "4746",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "9",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
     "nodes": [
       {
         "id": "2",
-        "parent_id": null,
         "type": "openai.audio.Transcribe",
         "data": {
-          "audio": {
-            "type": "audio",
-            "uri": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4f/An_address_by_Opposition_Leader_Anthony_Albanese.ogg/An_address_by_Opposition_Leader_Anthony_Albanese.ogg.mp3?download",
-            "asset_id": null,
-            "temp_id": null
-          },
           "temperature": 0
         },
         "ui_properties": {
@@ -34,7 +99,6 @@
       },
       {
         "id": "3",
-        "parent_id": null,
         "type": "nodetool.constant.Audio",
         "data": {
           "value": {
@@ -56,12 +120,8 @@
       },
       {
         "id": "4",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "value": "The security of our nation is the most solemn responsibility of any government and the first priority of every Prime Minister. Today I want to take the opportunity to share my vision for an Australia that is stronger, safer and more resilient, more prepared to meet the challenges and threats of a less certain world. Almost 80 years ago, on the 14th of March 1942, Prime Minister John Curtin gave a speech for broadcast on American radio. He began with this. On the great waters of the Pacific Ocean war now breathes its bloody steam. From the skies of the Pacific pours down a deathly hail. In the countless islands of the Pacific the tide of war flows madly. For you in America, for us in Australia, it is flowing badly. Now Curtin was not one for doomsaying or hyperbole. Truly they were the most fearful days that our nation has known. Eight decades later, Labor still looks to Curtin. Not just to salute his strength of character or his sacrifice, but because Curtin's famous 1941 declaration that Australia looked to America was deeper than a statement of wartime necessity. It was an assertion of Australia's right and indeed Australia's responsibility to act in our own interests, to make our own alliances, to decide our place in our region for ourselves. And through 80 years of change, that principle of sovereignty has remained at the core of Labor's approach to our foreign policy and our defence policy.",
-          "name": "str_output_2024-07-06"
-        },
+        "data": {},
         "ui_properties": {
           "selected": false,
           "position": {
@@ -76,19 +136,19 @@
       },
       {
         "id": "5",
-        "parent_id": null,
-        "type": "replicate.image.generate.StableDiffusionXLLightning",
+        "type": "stable_diffusion.Flux",
         "data": {
-          "seed": 69680782,
+          "model": "flux1-schnell",
           "width": 1024,
           "height": 1024,
-          "prompt": "Begin by creating a large canvas, symbolizing the vast expanse of the Pacific Ocean where the narrative takes place. Use bold brushstrokes to depict the tumultuous waters, emphasizing the chaos and uncertainty of war described in the text. The colors should be deep blues and greys, reflecting the intensity of the conflict.\n\nIn the center of the painting, imagine a figure representing Prime Minister John Curtin, standing strong and determined against the backdrop of the raging war. Paint him with a sense of seriousness",
-          "scheduler": "K_EULER",
-          "num_outputs": 1,
-          "guidance_scale": 0,
-          "negative_prompt": "worst quality, low quality",
-          "num_inference_steps": 4,
-          "disable_safety_checker": false
+          "batch_size": 1,
+          "steps": 4,
+          "guidance_scale": 3.5,
+          "realism_strength": 1,
+          "scheduler": "karras",
+          "sampler": "dpmpp_2m_sde",
+          "noise_seed": 3606830119,
+          "denoise": 1
         },
         "ui_properties": {
           "selected": false,
@@ -102,21 +162,12 @@
       },
       {
         "id": "6",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "image_output_2024-07-06",
-          "value": {
-            "type": "image",
-            "uri": "https://replicate.delivery/yhqm/96XRjFy4NlrZAhjKANsoyf6vwivsRflvLGuPo7VaqzHV1zFTA/out-0.png",
-            "asset_id": null,
-            "temp_id": null
-          }
-        },
+        "data": {},
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 831,
+            "x": 827,
             "y": 196
           },
           "zIndex": 0,
@@ -127,12 +178,10 @@
       },
       {
         "id": "7",
-        "parent_id": null,
         "type": "openai.text.GPT",
         "data": {
           "model": "gpt-3.5-turbo-0125",
           "system": "You are a brilliant painter",
-          "prompt": "interpret this text as an image, describe vividly as if giving painting instructions: \nThe security of our nation is the most solemn responsibility of any government and the first priority of every Prime Minister. Today I want to take the opportunity to share my vision for an Australia that is stronger, safer and more resilient, more prepared to meet the challenges and threats of a less certain world. Almost 80 years ago, on the 14th of March 1942, Prime Minister John Curtin gave a speech for broadcast on American radio. He began with this. On the great waters of the Pacific Ocean war now breathes its bloody steam. From the skies of the Pacific pours down a deathly hail. In the countless islands of the Pacific the tide of war flows madly. For you in America, for us in Australia, it is flowing badly. Now Curtin was not one for doomsaying or hyperbole. Truly they were the most fearful days that our nation has known. Eight decades later, Labor still looks to Curtin. Not just to salute his strength of character or his sacrifice, but because Curtin's famous 1941 declaration that Australia looked to America was deeper than a statement of wartime necessity. It was an assertion of Australia's right and indeed Australia's responsibility to act in our own interests, to make our own alliances, to decide our place in our region for ourselves. And through 80 years of change, that principle of sovereignty has remained at the core of Labor's approach to our foreign policy and our defence policy.",
           "image": {
             "type": "image",
             "uri": "",
@@ -156,123 +205,91 @@
         }
       },
       {
-        "id": "8",
-        "parent_id": null,
-        "type": "nodetool.text.Concat",
-        "data": {
-          "a": "interpret this text as an image, describe vividly as if giving painting instructions: \n",
-          "b": "The security of our nation is the most solemn responsibility of any government and the first priority of every Prime Minister. Today I want to take the opportunity to share my vision for an Australia that is stronger, safer and more resilient, more prepared to meet the challenges and threats of a less certain world. Almost 80 years ago, on the 14th of March 1942, Prime Minister John Curtin gave a speech for broadcast on American radio. He began with this. On the great waters of the Pacific Ocean war now breathes its bloody steam. From the skies of the Pacific pours down a deathly hail. In the countless islands of the Pacific the tide of war flows madly. For you in America, for us in Australia, it is flowing badly. Now Curtin was not one for doomsaying or hyperbole. Truly they were the most fearful days that our nation has known. Eight decades later, Labor still looks to Curtin. Not just to salute his strength of character or his sacrifice, but because Curtin's famous 1941 declaration that Australia looked to America was deeper than a statement of wartime necessity. It was an assertion of Australia's right and indeed Australia's responsibility to act in our own interests, to make our own alliances, to decide our place in our region for ourselves. And through 80 years of change, that principle of sovereignty has remained at the core of Labor's approach to our foreign policy and our defence policy."
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 312,
-            "y": 149
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
         "id": "9",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": "Begin by creating a large canvas, symbolizing the vast expanse of the Pacific Ocean where the narrative takes place. Use bold brushstrokes to depict the tumultuous waters, emphasizing the chaos and uncertainty of war described in the text. The colors should be deep blues and greys, reflecting the intensity of the conflict.\n\nIn the center of the painting, imagine a figure representing Prime Minister John Curtin, standing strong and determined against the backdrop of the raging war. Paint him with a sense of seriousness",
           "name": "str_output_2024-07-06"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 640,
-            "y": 496
+            "x": 123,
+            "y": 505
           },
           "zIndex": 0,
           "width": 491,
           "height": 150,
           "selectable": true
         }
-      }
-    ],
-    "edges": [
+      },
       {
-        "id": "7db871b0-cb5c-4707-b542-71c452fd8253",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "audio",
+        "id": "10",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "interpret this text as an image, describe vividly as if giving painting instructions: {0}"
+        },
         "ui_properties": {
-          "className": "audio"
+          "selected": false,
+          "position": {
+            "x": 300,
+            "y": 150
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
-        "id": "9",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "value",
+        "id": "11",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Audio to Image",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Convert any audio speech into an image"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Record your speech into the Audio node using the Record feature"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Run the workflow"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Look at the preview result"
+                }
+              ]
+            }
+          ]
+        },
         "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "4745a385-b63e-4a0a-9523-459bf74f7748",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "5",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "7e9177c3-95bb-4cae-97c4-ccec0fba997a",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "8",
-        "targetHandle": "b",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "8",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "09ded5f3-461d-437c-ac67-614aafcd2ade",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "union"
-        }
-      },
-      {
-        "id": "4746",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "9",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
+          "selected": false,
+          "position": {
+            "x": 30,
+            "y": 20
+          },
+          "zIndex": 0,
+          "width": 390,
+          "height": 104,
+          "selectable": true
         }
       }
     ]
-  },
-  "input_schema": {
-    "type": "object",
-    "properties": {}
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {}
   }
 }

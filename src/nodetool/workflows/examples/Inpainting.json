@@ -10,13 +10,13 @@
   "graph": {
     "edges": [
       {
-        "id": "f5b03d6b-b98b-42db-8b9d-67e00c975a03",
-        "source": "36",
+        "id": "aa285aa1-3545-45ac-84fa-f3528b32da6e",
+        "source": "42",
         "sourceHandle": "output",
-        "target": "37",
-        "targetHandle": "segments",
+        "target": "39",
+        "targetHandle": "value",
         "ui_properties": {
-          "className": "list"
+          "className": "image"
         }
       },
       {
@@ -24,6 +24,26 @@
         "source": "40",
         "sourceHandle": "output",
         "target": "41",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "772de6a1-e070-493e-812c-e26558e1e485",
+        "source": "34",
+        "sourceHandle": "output",
+        "target": "42",
+        "targetHandle": "mask_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "94ad5417-91d3-4e11-9ba7-9beaf3660aa5",
+        "source": "37",
+        "sourceHandle": "output",
+        "target": "34",
         "targetHandle": "image",
         "ui_properties": {
           "className": "image"
@@ -40,41 +60,21 @@
         }
       },
       {
-        "id": "a6d864ad-4933-485b-808e-ccc3ebed5f7b",
-        "source": "34",
+        "id": "f5b03d6b-b98b-42db-8b9d-67e00c975a03",
+        "source": "36",
         "sourceHandle": "output",
-        "target": "38",
-        "targetHandle": "mask_image",
+        "target": "37",
+        "targetHandle": "segments",
         "ui_properties": {
-          "className": "image"
+          "className": "list"
         }
       },
       {
-        "id": "95",
-        "source": "38",
-        "sourceHandle": "output",
-        "target": "39",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "94ad5417-91d3-4e11-9ba7-9beaf3660aa5",
-        "source": "37",
-        "sourceHandle": "output",
-        "target": "34",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "fd15ba72-b988-4c0c-b107-2b687f9e5311",
+        "id": "21f552e2-1cd4-4f66-90fd-40ace5c13764",
         "source": "41",
         "sourceHandle": "output",
-        "target": "38",
-        "targetHandle": "init_image",
+        "target": "42",
+        "targetHandle": "image",
         "ui_properties": {
           "className": "image"
         }
@@ -90,8 +90,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 814,
-            "y": 54
+            "x": 303,
+            "y": 570
           },
           "zIndex": 0,
           "selectable": true
@@ -106,8 +106,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 419,
-            "y": 54
+            "x": 212,
+            "y": 410
           },
           "zIndex": 0,
           "selectable": true
@@ -122,39 +122,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 652,
-            "y": 54
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "38",
-        "type": "huggingface.image.StableDiffusionInpaint",
-        "data": {
-          "model": "Yntec/epiCPhotoGasm",
-          "prompt": "eminem",
-          "negative_prompt": "",
-          "seed": 3690489029,
-          "num_inference_steps": 25,
-          "guidance_scale": 7.5,
-          "scheduler": "HeunDiscreteScheduler",
-          "ip_adapter_model": "",
-          "ip_adapter_image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null
-          },
-          "ip_adapter_scale": 0.5,
-          "strength": 0.8
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 992,
-            "y": 54
+            "x": 157,
+            "y": 554
           },
           "zIndex": 0,
           "selectable": true
@@ -169,12 +138,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1184,
-            "y": 54
+            "x": 716,
+            "y": 227
           },
           "zIndex": 0,
-          "width": 319,
-          "height": 305,
+          "width": 377,
+          "height": 379,
           "selectable": true
         }
       },
@@ -190,8 +159,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 45,
-            "y": 54
+            "x": 49,
+            "y": 227
           },
           "zIndex": 0,
           "selectable": true
@@ -201,27 +170,122 @@
         "id": "41",
         "type": "nodetool.image.transform.Resize",
         "data": {
-          "width": 768,
-          "height": 512
+          "width": 1488,
+          "height": 992
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 241,
-            "y": 54
+            "x": 261,
+            "y": 258
           },
           "zIndex": 0,
           "selectable": true
         }
+      },
+      {
+        "id": "42",
+        "type": "huggingface.image.StableDiffusionXLInpainting",
+        "data": {
+          "model": "stabilityai/stable-diffusion-xl-base-1.0",
+          "prompt": "Obama",
+          "negative_prompt": "",
+          "seed": -1,
+          "num_inference_steps": 53,
+          "guidance_scale": 5.1,
+          "width": 1024,
+          "height": 1024,
+          "scheduler": "HeunDiscreteScheduler",
+          "lora_model": "",
+          "lora_scale": 0.5,
+          "ip_adapter_model": "",
+          "ip_adapter_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "ip_adapter_scale": 0.5,
+          "strength": 0.99
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 481,
+            "y": 227
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "43",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Inpainting a Face",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Optimal size for Stable Diffusion XL is 1000 -1500"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Use Segformer segmentation to find the face"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Use the Face segment to create a mask for inpainting"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Use prompt to inpaint the face"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Experiment with different prompts!"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Experiment with different input iages"
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 52,
+            "y": 45
+          },
+          "zIndex": 0,
+          "width": 316,
+          "height": 142,
+          "selectable": true
+        }
       }
     ]
-  },
-  "input_schema": {
-    "type": "object",
-    "properties": {}
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {}
   }
 }
