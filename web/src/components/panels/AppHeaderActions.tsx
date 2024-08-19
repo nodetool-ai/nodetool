@@ -83,7 +83,8 @@ const actionsStyles = (
     },
     ".run-stop-button svg": {
       padding: "0",
-      fontSize: "2rem",
+      width: "100%",
+      height: "100%",
       display: "block",
     },
     ".MuiCircularProgress-root": {
@@ -243,7 +244,7 @@ export default function AppHeaderActions() {
                     <span className="run-status"> Connecting </span>
                     <PlayArrow />
                   </>
-                ) : state === "running" ? (
+                ) : state != "running" ? (
                   <CircularProgress />
                 ) : (
                   <PlayArrow />
