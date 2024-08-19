@@ -662,25 +662,25 @@ class BaseNode(BaseModel):
     @classmethod
     def field_types(cls):
         """
-        Returns the input slots of the node.
+        Returns the input slots of the node, including those inherited from all base classes.
         """
         types = cls.__annotations__
-        super_types = (
-            cls.__base__.field_types() if hasattr(cls.__base__, "field_types") else {}  # type: ignore
-        )
+        super_types = {}
+        for base in cls.__bases__:
+            if hasattr(base, "field_types"):
+                super_types.update(base.field_types())  # type: ignore
         return {**super_types, **types}
 
     @classmethod
     def inherited_fields(cls) -> dict[str, FieldInfo]:
         """
-        Returns the input slots of the node.
+        Returns the input slots of the node, including those inherited from all base classes.
         """
         fields = {name: field for name, field in cls.model_fields.items()}
-        super_fields = (
-            cls.__base__.inherited_fields()  # type: ignore
-            if hasattr(cls.__base__, "inherited_fields")
-            else {}
-        )
+        super_fields = {}
+        for base in cls.__bases__:
+            if hasattr(base, "inherited_fields"):
+                super_fields.update(base.inherited_fields())  # type: ignore
         return {**super_fields, **fields}
 
     @classmethod

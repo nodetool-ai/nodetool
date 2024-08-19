@@ -61,11 +61,109 @@ from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionUpscalePipeline  # type: ignore
 from diffusers import UNet2DConditionModel  # type: ignore
 from diffusers import DiffusionPipeline  # type: ignore
+from diffusers import LCMScheduler  # type: ignore
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file
+
+
+class StableDiffusionXLModelId(str, Enum):
+    SDXL_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
+    JUGGERNAUT_XL = "RunDiffusion/Juggernaut-XL-v9"
+    REALVISXL = "SG161222/RealVisXL_V4.0"
+
+
+class IPAdapter_SDXL_Model(str, Enum):
+    NONE = ""
+    IP_ADAPTER = "ip-adapter_sdxl.safetensors"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sdxl_vit-h.safetensors"
+
+
+class StableDiffusionModelId(str, Enum):
+    SD_V1_5 = "runwayml/stable-diffusion-v1-5"
+    REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
+    DREAMSHAPER = "Lykon/DreamShaper"
+    DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
+    EPIC_PHOTOGASM = "Yntec/epiCPhotoGasm"
+    INPAINTING = "runwayml/stable-diffusion-inpainting"
+
+
+class IPAdapter_SD15_Model(str, Enum):
+    NONE = ""
+    IP_ADAPTER = "ip-adapter_sd15.safetensors"
+    IP_ADAPTER_LIGHT = "ip-adapter_sd15_light.safetensors"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sd15.bin"
+    IP_ADAPTER_PLUS_FACE = "ip-adapter-plus-face_sd15.safetensors"
+    IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
+
+
+class LORA_Model(str, Enum):
+    NONE = ""
+    ADD_DETAIL = "add_detail"
+    _2D_sprite = "2d_sprite"
+    GHIBLI_SCENERY = "ghibli_scenery"
+    COLORWATER = "colorwater"
+    SXZ_GAME_ASSETS = "sxz_game_assets"
+
+
+class LORA_SDXL_Model(str, Enum):
+    NONE = ""
+    TOY_FACE = "toy-face"
+    PIXEL_ART = "pixel-art"
+    _3D_RENDER_STYLE = "3d-render-style"
+    CUTE_CARTOON = "cute-cartoon"
+    GRAPHIC_NOVEL_ILLUSTRATION = "graphic-novel-illustration"
+    COLORING_BOOK = "coloring-book"
+
+
+LORA_WEIGHTS = {
+    LORA_Model._2D_sprite: {
+        "repo": "danbrown/loras",
+        "weight_name": "2d_sprite.safetensors",
+    },
+    LORA_Model.GHIBLI_SCENERY: {
+        "repo": "danbrown/loras",
+        "weight_name": "ghibli_scenery.safetensors",
+    },
+    LORA_Model.ADD_DETAIL: {
+        "repo": "danbrown/loras",
+        "weight_name": "add_detail.safetensors",
+    },
+    LORA_Model.COLORWATER: {
+        "repo": "danbrown/loras",
+        "weight_name": "colorwater.safetensors",
+    },
+    LORA_Model.SXZ_GAME_ASSETS: {
+        "repo": "danbrown/loras",
+        "weight_name": "sxz_game_assets.safetensors",
+    },
+    LORA_SDXL_Model.TOY_FACE: {
+        "repo": "CiroN2022/toy-face",
+        "weight_name": "toy_face_sdxl.safetensors",
+    },
+    LORA_SDXL_Model.PIXEL_ART: {
+        "repo": "nerijs/pixel-art-xl",
+        "weight_name": "pixel-art-xl.safetensors",
+    },
+    LORA_SDXL_Model._3D_RENDER_STYLE: {
+        "repo": "goofyai/3d_render_style_xl",
+        "weight_name": "3d_render_style_xl.safetensors",
+    },
+    LORA_SDXL_Model.CUTE_CARTOON: {
+        "repo": "artificialguybr/CuteCartoonRedmond-V2",
+        "weight_name": "CuteCartoonRedmond-CuteCartoon-CuteCartoonAF.safetensors",
+    },
+    LORA_SDXL_Model.GRAPHIC_NOVEL_ILLUSTRATION: {
+        "repo": "blink7630/graphic-novel-illustration",
+        "weight_name": "Graphic_Novel_Illustration-000007.safetensors",
+    },
+    LORA_SDXL_Model.COLORING_BOOK: {
+        "repo": "robert123231/coloringbookgenerator",
+        "weight_name": "ColoringBookRedmond-ColoringBook-ColoringBookAF.safetensors",
+    },
+}
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -1718,24 +1816,6 @@ class StableCascade(BaseNode):
         return await context.image_from_pil(decoder_output)
 
 
-class StableDiffusionModelId(str, Enum):
-    SD_V1_5 = "runwayml/stable-diffusion-v1-5"
-    REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
-    DREAMSHAPER = "Lykon/DreamShaper"
-    DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
-    EPIC_PHOTOGASM = "Yntec/epiCPhotoGasm"
-    INPAINTING = "runwayml/stable-diffusion-inpainting"
-
-
-class IPAdapter_SD15_Model(str, Enum):
-    NONE = ""
-    IP_ADAPTER = "ip-adapter_sd15.safetensors"
-    IP_ADAPTER_LIGHT = "ip-adapter_sd15_light.safetensors"
-    IP_ADAPTER_PLUS = "ip-adapter-plus_sd15.bin"
-    IP_ADAPTER_PLUS_FACE = "ip-adapter-plus-face_sd15.safetensors"
-    IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
-
-
 class StableDiffusionBaseNode(BaseNode):
     model: StableDiffusionModelId = Field(
         default=StableDiffusionModelId.SD_V1_5,
@@ -1763,6 +1843,16 @@ class StableDiffusionBaseNode(BaseNode):
         default=StableDiffusionScheduler.HeunDiscreteScheduler,
         description="The scheduler to use for the diffusion process.",
     )
+    lora_model: LORA_Model = Field(
+        default=LORA_Model.NONE,
+        description="The LORA model to use for image processing",
+    )
+    lora_scale: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=3.0,
+        description="Strength of the LORA image",
+    )
     ip_adapter_model: IPAdapter_SD15_Model = Field(
         default=IPAdapter_SD15_Model.NONE,
         description="The IP adapter model to use for image processing",
@@ -1787,12 +1877,28 @@ class StableDiffusionBaseNode(BaseNode):
     async def initialize(self, context: ProcessingContext):
         raise NotImplementedError("Subclasses must implement this method")
 
+    async def _setup_ip_adapter(self, context: ProcessingContext):
+        self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
+        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+            if not self.ip_adapter_image.is_empty():
+                self._load_ip_adapter()
+                return await context.image_to_pil(self.ip_adapter_image)
+        return None
+
     def _load_ip_adapter(self):
         if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
             self._pipeline.load_ip_adapter(
                 "h94/IP-Adapter",
                 subfolder="models",
                 weight_name=self.ip_adapter_model,
+            )
+
+    def _load_lora(self):
+        if self.lora_model != LORA_Model.NONE:
+            self._pipeline.load_lora_weights(
+                LORA_WEIGHTS[self.lora_model]["repo"],
+                weight_name=LORA_WEIGHTS[self.lora_model]["weight_name"],
+                adapter_name=self.lora_model.value,
             )
 
     def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
@@ -1810,13 +1916,6 @@ class StableDiffusionBaseNode(BaseNode):
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
         return generator
-
-    async def _setup_ip_adapter(self, context: ProcessingContext):
-        self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
-        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
-            if not self.ip_adapter_image.is_empty():
-                return await context.image_to_pil(self.ip_adapter_image)
-        return None
 
     def progress_callback(self, context: ProcessingContext):
         def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
@@ -1865,12 +1964,12 @@ class StableDiffusion(StableDiffusionBaseNode):
             )  # type: ignore
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
-            self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
+        self._load_lora()
         generator = self._setup_generator()
         ip_adapter_image = await self._setup_ip_adapter(context)
 
@@ -1940,7 +2039,6 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
         self._pipeline = StableDiffusionControlNetPipeline.from_pretrained(
             self.model.value, controlnet=controlnet, torch_dtype=torch.float16
         )  # type: ignore
-        self._load_ip_adapter()
         self._pipeline.enable_model_cpu_offload()  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -1950,6 +2048,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
         control_image = await context.image_to_pil(self.control_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
         generator = self._setup_generator()
+        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2007,7 +2106,6 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
             self._pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(
                 self.model.value, torch_dtype=torch.float16, safety_checker=None
             )  # type: ignore
-            self._load_ip_adapter()
             self._set_scheduler(self.scheduler)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -2017,6 +2115,7 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
         generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
+        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2091,7 +2190,6 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
         self._pipeline = StableDiffusionControlNetInpaintPipeline.from_pretrained(
             self.model.value, controlnet=controlnet, torch_dtype=torch.float16
         )  # type: ignore
-        self._load_ip_adapter()
         self._pipeline.enable_model_cpu_offload()  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -2103,6 +2201,7 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
         control_image = await context.image_to_pil(self.control_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
         generator = self._setup_generator()
+        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2178,6 +2277,7 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
         init_image = await context.image_to_pil(self.init_image)
         mask_image = await context.image_to_pil(self.mask_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
+        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2241,7 +2341,6 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         self._pipeline = StableDiffusionControlNetImg2ImgPipeline.from_pretrained(
             self.model.value, controlnet=controlnet, torch_dtype=torch.float16
         )  # type: ignore
-        self._load_ip_adapter()
         self._pipeline.enable_model_cpu_offload()  # type: ignore
         self._set_scheduler(self.scheduler)
 
@@ -2252,6 +2351,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         input_image = await context.image_to_pil(self.image)
         control_image = await context.image_to_pil(self.control_image)
         ip_adapter_image = await self._setup_ip_adapter(context)
+        self._load_lora()
 
         generator = torch.Generator(device="cuda").manual_seed(self.seed)
 
@@ -2371,56 +2471,6 @@ class StableDiffusionUpscale(BaseNode):
         return await context.image_from_pil(upscaled_image)
 
 
-class StableDiffusionXLModelId(str, Enum):
-    SDXL_1_0 = "stabilityai/stable-diffusion-xl-base-1.0"
-    JUGGERNAUT_XL = "RunDiffusion/Juggernaut-XL-v9"
-    REALVISXL = "SG161222/RealVisXL_V4.0"
-
-
-class IPAdapter_SDXL_Model(str, Enum):
-    NONE = ""
-    IP_ADAPTER = "ip-adapter_sdxl.safetensors"
-    IP_ADAPTER_PLUS = "ip-adapter-plus_sdxl_vit-h.safetensors"
-
-
-class LORA_SDXL_Model(str, Enum):
-    NONE = ""
-    TOY_FACE = "toy-face"
-    PIXEL_ART = "pixel-art"
-    _3D_RENDER_STYLE = "3d-render-style"
-    CUTE_CARTOON = "cute-cartoon"
-    GRAPHIC_NOVEL_ILLUSTRATION = "graphic-novel-illustration"
-    COLORING_BOOK = "coloring-book"
-
-
-LORA_WEIGHTS = {
-    LORA_SDXL_Model.TOY_FACE: {
-        "repo": "CiroN2022/toy-face",
-        "weight_name": "toy_face_sdxl.safetensors",
-    },
-    LORA_SDXL_Model.PIXEL_ART: {
-        "repo": "nerijs/pixel-art-xl",
-        "weight_name": "pixel-art-xl.safetensors",
-    },
-    LORA_SDXL_Model._3D_RENDER_STYLE: {
-        "repo": "goofyai/3d_render_style_xl",
-        "weight_name": "3d_render_style_xl.safetensors",
-    },
-    LORA_SDXL_Model.CUTE_CARTOON: {
-        "repo": "artificialguybr/CuteCartoonRedmond-V2",
-        "weight_name": "CuteCartoonRedmond-CuteCartoon-CuteCartoonAF.safetensors",
-    },
-    LORA_SDXL_Model.GRAPHIC_NOVEL_ILLUSTRATION: {
-        "repo": "blink7630/graphic-novel-illustration",
-        "weight_name": "Graphic_Novel_Illustration-000007.safetensors",
-    },
-    LORA_SDXL_Model.COLORING_BOOK: {
-        "repo": "robert123231/coloringbookgenerator",
-        "weight_name": "ColoringBookRedmond-ColoringBook-ColoringBookAF.safetensors",
-    },
-}
-
-
 class StableDiffusionXLBase(BaseNode):
     model: StableDiffusionXLModelId = Field(
         default=StableDiffusionXLModelId.SDXL_1_0,
@@ -2503,6 +2553,7 @@ class StableDiffusionXLBase(BaseNode):
     async def _setup_ip_adapter(self, context: ProcessingContext):
         if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:
             assert not self.ip_adapter_image.is_empty()
+            self._load_ip_adapter()
             return await context.image_to_pil(self.ip_adapter_image)
         return None
 
@@ -2562,7 +2613,6 @@ class StableDiffusionXL(StableDiffusionXLBase):
                 variant="fp16",
             )
             self._set_scheduler(self.scheduler)
-            self._load_ip_adapter()
 
     async def process(self, context) -> ImageRef:
         if self._pipeline is None:
@@ -2625,7 +2675,6 @@ class StableDiffusionXLLightning(StableDiffusionXLBase):
         )
 
         self._set_scheduler(self.scheduler)
-        self._load_ip_adapter()
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -2697,7 +2746,6 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
                 variant="fp16",
             )
             self._set_scheduler(self.scheduler)
-            self._load_ip_adapter()
 
     async def process(self, context) -> ImageRef:
         if self._pipeline is None:
@@ -2769,7 +2817,6 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
                 variant="fp16",
             )
             self._set_scheduler(self.scheduler)
-            self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -3244,7 +3291,6 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
         )  # type: ignore
 
         self._set_scheduler(self.scheduler)
-        self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -3254,11 +3300,6 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
         generator = self._setup_generator()
 
         control_image = await context.image_to_pil(self.control_image)
-
-        if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:
-            ip_adapter_image = await context.image_to_pil(self.ip_adapter_image)
-        else:
-            ip_adapter_image = None
 
         if not self.init_image.is_empty():
             init_image = await context.image_to_pil(self.init_image)
@@ -3285,3 +3326,78 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
         )
 
         return await context.image_from_pil(output.images[0])  # type: ignore
+
+
+class LatentConsistencyModel(StableDiffusionXLBase):
+    """
+    Generates images using the Latent Consistency Model.
+    image, generation, AI, diffusion
+
+    Use cases:
+    - Create AI-generated art and illustrations
+    - Produce concept art for creative projects
+    - Generate visual content for various applications
+    - Explore AI-assisted image creation
+    """
+
+    num_inference_steps: int = Field(
+        default=4,
+        description="Number of denoising steps. LCM supports fast inference even with <=4 steps. Recommended: 1-8 steps.",
+        ge=1,
+        le=50,
+    )
+
+    _unet: UNet2DConditionModel | None = None
+    _pipeline: DiffusionPipeline | None = None
+
+    async def initialize(self, context: ProcessingContext):
+        self._unet = UNet2DConditionModel.from_pretrained(
+            "latent-consistency/lcm-sdxl", torch_dtype=torch.float16, variant="fp16"
+        )  # type: ignore
+        self._pipeline = DiffusionPipeline.from_pretrained(
+            self.model.value,
+            unet=self._unet,
+            torch_dtype=torch.float16,
+            variant="fp16",
+        )
+        self._set_scheduler(self.scheduler)
+        self._pipeline.scheduler = LCMScheduler.from_config(self._pipeline.scheduler.config)  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device, dtype=torch.float16)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = self._setup_generator()
+        self._load_lora()
+        ip_adapter_image = await self._setup_ip_adapter(context)
+
+        def progress_callback(
+            step: int, timestep: int, latents: torch.FloatTensor
+        ) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        image = self._pipeline(
+            prompt=self.prompt,
+            width=self.width,
+            height=self.height,
+            ip_adapter_image=ip_adapter_image,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            generator=generator,
+            callback=progress_callback,
+            callback_steps=1,
+        ).images[  # type: ignore
+            0
+        ]
+
+        return await context.image_from_pil(image)
