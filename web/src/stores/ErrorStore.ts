@@ -3,6 +3,7 @@ import { create } from "zustand";
 type ErrorStore = {
   errors: Record<string, string>;
   clearErrors: (workflowId: string) => void;
+  clearNodeErrors: (workflowId: string, nodeId: string) => void;
   setError: (workflowId: string, nodeId: string, error: any) => void;
   getError: (workflowId: string, nodeId: string) => any;
 };
@@ -24,6 +25,15 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
         delete errors[key];
       }
     }
+    set({ errors });
+  },
+  /**
+   * Clear the errors for a specific node.
+   */
+  clearNodeErrors: (workflowId: string, nodeId: string) => {
+    const errors = get().errors;
+    const key = hashKey(workflowId, nodeId);
+    delete errors[key];
     set({ errors });
   },
   /**
