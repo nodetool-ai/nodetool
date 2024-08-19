@@ -614,7 +614,7 @@ class VisualizeObjectDetection(BaseNode):
     )
 
     def required_inputs(self):
-        return ["inputs", "objects"]
+        return ["image", "objects"]
 
     @classmethod
     def get_title(cls) -> str:
