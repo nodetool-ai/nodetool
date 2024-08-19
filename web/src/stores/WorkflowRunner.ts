@@ -144,7 +144,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     const setProgress = useResultsStore.getState().setProgress;
 
     try {
-      devLog(`WofkflowRunner ${data.type}`, data);
+      console.log(data.type, data);
 
       if (data.type === "job_update") {
         const job = data as JobUpdate;
@@ -327,6 +327,8 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
         edges: edges.map(reactFlowEdgeToGraphEdge)
       }
     };
+
+    console.log(req);
 
     socket.send(msgpack.encode({
       command: "run_job",
