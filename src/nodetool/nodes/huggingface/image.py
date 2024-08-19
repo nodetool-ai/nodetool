@@ -2273,9 +2273,9 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         return await context.image_from_pil(image)
 
 
-class StableDiffusionUpscale(StableDiffusionBaseNode):
+class StableDiffusionUpscale(BaseNode):
     """
-    Upscales an image using Stable Diffusion upscaler model.
+    Upscales an image using Stable Diffusion 4x upscaler.
     image, upscaling, AI, stable-diffusion
 
     Use cases:
@@ -2284,15 +2284,33 @@ class StableDiffusionUpscale(StableDiffusionBaseNode):
     - Create high-resolution versions of small images
     """
 
-    image: ImageRef = Field(
-        default=ImageRef(),
-        description="The initial image for Image-to-Image generation.",
+    prompt: str = Field(
+        default="",
+        description="The prompt for image generation.",
+    )
+    negative_prompt: str = Field(
+        default="",
+        description="The negative prompt to guide what should not appear in the generated image.",
     )
     num_inference_steps: int = Field(
         default=25,
         ge=1,
         le=100,
         description="Number of upscaling steps.",
+    )
+    guidance_scale: float = Field(
+        default=7.5,
+        ge=1.0,
+        le=20.0,
+        description="Guidance scale for generation.",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="The initial image for Image-to-Image generation.",
+    )
+    scheduler: StableDiffusionScheduler = Field(
+        default=StableDiffusionScheduler.HeunDiscreteScheduler,
+        description="The scheduler to use for the diffusion process.",
     )
     seed: int = Field(
         default=-1,
@@ -2316,8 +2334,14 @@ class StableDiffusionUpscale(StableDiffusionBaseNode):
             torch_dtype=torch.float16,
             variant="fp16",
         )  # type: ignore
-        self._load_ip_adapter()
         self._set_scheduler(self.scheduler)
+
+    def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
+        if self._pipeline is not None:
+            scheduler_class = get_scheduler_class(scheduler_type)
+            self._pipeline.scheduler = scheduler_class.from_config(
+                self._pipeline.scheduler.config
+            )
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
