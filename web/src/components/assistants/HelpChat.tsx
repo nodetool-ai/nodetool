@@ -26,8 +26,8 @@ const HelpChat: React.FC = () => {
 
   return (
     <div className="help-chat">
+      <h3>Welcome to Nodetool!</h3>
       <Typography style={{ margin: "1em" }}>
-        <h3>Welcome to Nodetool!</h3>
         I&apos;m your AI assistant, ready to help you create AI workflows.
         <br />
         <br />
