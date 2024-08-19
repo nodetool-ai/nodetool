@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 // components
@@ -9,6 +10,7 @@ import Alert from "../node_editor/Alert";
 import Logo from "../Logo";
 import Welcome from "../content/Welcome/Welcome";
 import AppHeaderActions from "./AppHeaderActions";
+import LastWorkflowButton from "./LastWorkflowButton";
 
 // mui icons
 import WorkflowsIcon from "@mui/icons-material/ListAlt";
@@ -30,10 +32,11 @@ import {
 // hooks and stores
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useNodeStore } from "../../stores/NodeStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
-import { TOOLTIP_DELAY } from "../../config/constants";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
+
+// constants
+import { TOOLTIP_DELAY } from "../../config/constants";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -99,41 +102,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         color: theme.palette.c_hl1,
       },
     },
-    ".last-workflow": {
-      fontSize: theme.fontSizeBig,
-      color: theme.palette.c_white,
-      backgroundColor: theme.palette.c_gray1,
-      position: "absolute",
-      padding: "0 .5em .5em .5em",
-      height: "2.1em",
-      zIndex: 1000,
-      left: "50%",
-      textAlign: "center",
-      transform: "translateX(-50%)",
-      fontWeight: "normal",
-      "&:hover": {
-        color: theme.palette.c_hl1,
-      },
-    },
-    ".last-workflow button": {
-      backgroundColor: theme.palette.c_gray2,
-      borderRadius: "1em",
-      textTransform: "none",
-      fontSize: "1em",
-    },
-    ".last-workflow button.disabled": {
-      borderRadius: "0",
-      backgroundColor: theme.palette.c_gray1,
-      color: theme.palette.c_gray6,
-    },
-    ".last-workflow button:hover ": {
-      backgroundColor: theme.palette.c_gray3,
-      borderRadius: "1em",
-    },
-    ".last-workflow span": {
-      color: theme.palette.c_attention,
-      marginLeft: "0.2em",
-    },
+
     ".status-message": {
       margin: "auto",
       flexGrow: 0,
@@ -165,8 +134,6 @@ function AppHeader() {
   const buttonAppearance = useSettingsStore(
     (state) => state.settings.buttonAppearance
   );
-  const lastWorkflow = useNodeStore((state) => state.lastWorkflow);
-  const workflowIsDirty = useNodeStore((state) => state.getWorkflowIsDirty());
 
   const {
     helpOpen,
@@ -178,12 +145,6 @@ function AppHeader() {
   } = useAppHeaderStore();
 
   const { handlePanelToggle: toggleChat } = useResizePanel("left");
-
-  const handleNavigateToLastWorkflow = () => {
-    if (lastWorkflow) {
-      navigate(`/editor/${lastWorkflow.id}`);
-    }
-  };
 
   return (
     <div css={styles(ThemeNodetool, buttonAppearance)} className="app-header">
@@ -262,8 +223,9 @@ function AppHeader() {
                 <Button
                   aria-controls="simple-menu"
                   aria-haspopup="true"
-                  className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
-                    }`}
+                  className={`nav-button ${
+                    path.startsWith("/workflows") ? "active" : ""
+                  }`}
                   onClick={() => navigate("/workflows")}
                 >
                   <WorkflowsIcon />
@@ -292,23 +254,11 @@ function AppHeader() {
                   Chat
                 </Button>
               </Tooltip>
-
             </Box>
           </div>
 
           <AppHeaderActions />
-
-          <div className="last-workflow">
-            <Button
-              onClick={handleNavigateToLastWorkflow}
-              disabled={path.startsWith("/editor")}
-              className={`${path.startsWith("/editor") ? "disabled" : ""}`}
-            >
-              {lastWorkflow?.name}
-              {workflowIsDirty && <span>*</span>}
-            </Button>
-          </div>
-
+          <LastWorkflowButton />
           <Alert />
 
           <Box className="buttons-right">
