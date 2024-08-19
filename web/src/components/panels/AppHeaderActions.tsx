@@ -244,7 +244,7 @@ export default function AppHeaderActions() {
                     <span className="run-status"> Connecting </span>
                     <PlayArrow />
                   </>
-                ) : state != "running" ? (
+                ) : state === "running" ? (
                   <CircularProgress />
                 ) : (
                   <PlayArrow />
