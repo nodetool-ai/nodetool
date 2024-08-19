@@ -5,6 +5,7 @@ import { Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { memo } from "react";
+import ThemeNodes from "../themes/ThemeNodes";
 
 export interface NodeFooterProps {
   nodeNamespace: string;
@@ -23,6 +24,7 @@ export const footerStyles = (theme: any) =>
     overflow: "hidden",
     ".pretty-namespace": {
       marginTop: "-0.4em",
+      fontSize: theme.fontSizeSmall,
     },
     ".namespace-button": {
       display: "block",
@@ -81,7 +83,10 @@ export const NodeFooter = memo<NodeFooterProps>(
               component="span"
               style={{
                 fontWeight: index === parts.length - 1 ? "500" : "300",
-                color: index === parts.length - 1 ? "white" : "inherit",
+                color:
+                  index === parts.length - 1
+                    ? ThemeNodes.palette.c_gray6
+                    : "inherit",
               }}
             >
               {part}
