@@ -164,7 +164,7 @@ class Summarize(HuggingFacePipelineNode):
         description="Whether to sample from the model",
     )
 
-    def get_inputs(self, context: ProcessingContext):
+    async def get_inputs(self, context: ProcessingContext):
         return self.inputs
 
     def get_model_id(self):
