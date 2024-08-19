@@ -49,12 +49,59 @@ const styles = (theme: any) =>
       marginLeft: "0.2em",
     },
     "& .edit-button": {
+      display: "block",
+      position: "absolute",
+      left: "-.8em",
+      top: ".5em",
+      width: "1em",
+      height: "1em",
       opacity: 0,
       padding: "0",
-      backgroundColor: "transparent !important",
+      backgroundColor: "transparent",
+    },
+    "&:hover .edit-button:hover": {
+      backgroundColor: "transparent",
     },
     "&:hover .edit-button": {
+      display: "inline-block",
       opacity: 1,
+    },
+    "& .confirm-buttons": {
+      opacity: 0,
+      position: "absolute",
+      zIndex: 10,
+      top: "0",
+      right: "-2em",
+      width: "5em",
+      height: "1.5em",
+      backgroundColor: "transparent",
+    },
+    "&:hover .confirm-buttons": {
+      opacity: 1,
+    },
+    "& .confirm-buttons button:hover, & .edit-button:hover": {
+      color: theme.palette.c_hl1,
+      backgroundColor: "transparent",
+    },
+    "& .confirm-buttons button.cancel:hover": {
+      color: theme.palette.c_delete,
+    },
+    ".edit": {
+      display: "flex",
+      alignItems: "flex-start",
+    },
+    input: {
+      fontSize: theme.fontSizeBig,
+      padding: ".2em 2em .2em 1em",
+      marginLeft: "3em",
+      textAlign: "center",
+      backgroundColor: theme.palette.c_gray2,
+      border: "none",
+      borderRadius: "0",
+      color: theme.palette.c_white,
+      "&:focus": {
+        outline: "none",
+      },
     },
   });
 
@@ -138,7 +185,7 @@ const LastWorkflowButton = () => {
           </Button>
         </>
       ) : (
-        <Box display="flex" alignItems="center">
+        <Box className="edit">
           <InputBase
             value={localName}
             onChange={handleChange}
@@ -146,26 +193,27 @@ const LastWorkflowButton = () => {
               if (e.key === "Enter") {
                 handleSave();
               }
+              if (e.key === "Escape") {
+                handleCancel();
+              }
             }}
           />
-          <Tooltip title="Save" enterDelay={TOOLTIP_DELAY}>
-            <IconButton
-              className="edit-button"
-              size="small"
-              onClick={handleSave}
-            >
-              <CheckIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Cancel" enterDelay={TOOLTIP_DELAY}>
-            <IconButton
-              className="edit-button"
-              size="small"
-              onClick={handleCancel}
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <div className="confirm-buttons">
+            <Tooltip title="Save" enterDelay={TOOLTIP_DELAY}>
+              <IconButton size="small" onClick={handleSave}>
+                <CheckIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Cancel" enterDelay={TOOLTIP_DELAY}>
+              <IconButton
+                className="cancel"
+                size="small"
+                onClick={handleCancel}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </div>
         </Box>
       )}
     </div>
