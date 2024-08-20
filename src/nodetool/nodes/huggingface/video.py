@@ -8,7 +8,7 @@ from nodetool.metadata.types import ImageRef, VideoRef
 import torch
 from diffusers import AnimateDiffPipeline, DDIMScheduler, MotionAdapter  # type: ignore
 from diffusers import StableVideoDiffusionPipeline  # type: ignore
-from diffusers.utils import export_to_video
+from diffusers.utils import export_to_video  # type: ignore
 
 from nodetool.workflows.types import NodeProgress  # type: ignore
 

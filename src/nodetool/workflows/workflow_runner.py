@@ -1,7 +1,6 @@
 import asyncio
 from contextlib import contextmanager
 from datetime import datetime
-import json
 from typing import Dict, Any, Optional
 from functools import lru_cache
 
@@ -70,11 +69,6 @@ class WorkflowRunner:
         Args:
             job_id (str): Unique identifier for this workflow execution.
             device (str): The device to run the workflow on.
-
-        Post-conditions:
-            - Sets initial status to "running".
-            - Initializes is_cancelled to False.
-            - Sets current_node to None.
         """
         import torch
 
@@ -187,7 +181,7 @@ class WorkflowRunner:
                     await node.finalize(context)
                 torch.cuda.empty_cache()
 
-        if self.is_cancelled:
+        if self.is_cancelled or context.is_cancelled:
             log.info("Job cancelled")
             context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
             self.status = "cancelled"
@@ -298,7 +292,7 @@ class WorkflowRunner:
             - Handles special processing for GroupNodes.
             - Posts node status updates (running, completed, error) to the context.
         """
-        if self.is_cancelled:
+        if self.is_cancelled or context.is_cancelled:
             return
 
         self.current_node = node._id
@@ -308,7 +302,6 @@ class WorkflowRunner:
             return
 
         retries = 0
-        initial_vram = get_available_vram()
 
         while retries < MAX_RETRIES:
             try:
@@ -318,17 +311,25 @@ class WorkflowRunner:
                     await self.process_regular_node(context, node)
                 break  # If successful, break the retry loop
             except torch.cuda.OutOfMemoryError as e:
-                retries += 1
-                current_vram = get_available_vram()
+                from comfy.model_management import current_loaded_models
 
-                if current_vram <= initial_vram:
+                retries += 1
+                vram_before_cleanup = get_available_vram()
+
+                for model in current_loaded_models:
+                    model.model_unload()
+
+                torch.cuda.empty_cache()
+                additional_vram = vram_before_cleanup - get_available_vram()
+
+                if additional_vram <= 0:
                     log.warning(
                         f"No additional VRAM available. Stopping retries for node {node._id}."
                     )
                     raise  # Re-raise the exception if no more VRAM is available
 
                 if retries >= MAX_RETRIES:
-                    raise  # If max retries reached, re-raise the exception
+                    raise
 
                 # Calculate delay with exponential backoff and jitter
                 delay = min(
@@ -336,13 +337,9 @@ class WorkflowRunner:
                 )
 
                 log.warning(
-                    f"VRAM OOM encountered for node {node._id}. Additional VRAM available. Retrying in {delay:.2f} seconds. (Attempt {retries}/{MAX_RETRIES})"
+                    f"VRAM OOM encountered for node {node._id}. Additional {additional_vram} VRAM available. Retrying in {delay:.2f} seconds. (Attempt {retries}/{MAX_RETRIES})"
                 )
 
-                # Attempt to free up memory
-                torch.cuda.empty_cache()
-
-                # Wait before retrying
                 await asyncio.sleep(delay)
             except JobCancelledException:
                 self.cancel()

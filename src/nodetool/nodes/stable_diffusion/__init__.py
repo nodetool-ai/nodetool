@@ -10,6 +10,7 @@ from comfy_extras.nodes_custom_sampler import (
     SamplerCustomAdvanced,
 )
 from comfy_extras.nodes_flux import FluxGuidance
+from comfy_extras.nodes_model_advanced import ModelSamplingFlux
 from nodes import (
     CLIPTextEncode,
     ControlNetApply,
@@ -18,6 +19,7 @@ from nodes import (
     EmptyLatentImage,
     KSampler,
     LoraLoader,
+    LoraLoaderModelOnly,
     UNETLoader,
     VAEDecode,
     VAEEncode,
@@ -30,7 +32,7 @@ import torch
 
 from comfy.model_patcher import ModelPatcher
 from comfy.sd import CLIP, VAE
-from nodetool.metadata.types import CheckpointFile, ImageRef
+from nodetool.metadata.types import CheckpointFile, ImageRef, LORAFile
 from nodetool.nodes.stable_diffusion.enums import Sampler, Scheduler
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
@@ -305,17 +307,6 @@ class FluxModel(str, Enum):
     flux1_dev = "flux1-dev"
 
 
-class LoraModel(str, Enum):
-    NONE = ""
-    ANIME = "anime_lora_comfy_converted.safetensors"
-    ART = "art_lora_comfy_converted.safetensors"
-    DETAILER = "flux_detailer.safetensors"
-    DISNEY = "disney_lora_comfy_converted.safetensors"
-    MJV6 = "mjv6_lora_comfy_converted.safetensors"
-    REALISM = "realism_lora_comfy_converted.safetensors"
-    SCENERY = "scenery_lora_comfy_converted.safetensors"
-
-
 class Flux(BaseNode):
     """
     Generates images from text prompts using a custom Stable Diffusion workflow.
@@ -344,19 +335,8 @@ class Flux(BaseNode):
         default=ImageRef(), description="Input image for img2img (optional)"
     )
     noise_seed: int = Field(default=689015878, ge=0, le=1000000000)
-    lora1_model: LoraModel = Field(
-        default=LoraModel.NONE, description="The Lora model to use."
-    )
-    lora1_strength: float = Field(default=0.0, ge=-100, le=100)
-
-    lora2_model: LoraModel = Field(
-        default=LoraModel.NONE, description="The Lora model to use."
-    )
-    lora2_strength: float = Field(default=0.0, ge=-100, le=100)
-    lora3_model: LoraModel = Field(
-        default=LoraModel.NONE, description="The Lora model to use."
-    )
-    lora3_strength: float = Field(default=0.0, ge=-100, le=100)
+    lora: LORAFile = Field(default=LORAFile(), description="The Lora model to use.")
+    lora_strength: float = Field(default=0.0, ge=-100, le=100)
 
     _vae: Optional[VAE] = None
     _clip: Optional[CLIP] = None
@@ -376,6 +356,9 @@ class Flux(BaseNode):
             "clip_l.safetensors", "t5xxl_fp8_e4m3fn.safetensors", "flux"
         )[0]
 
+    async def move_to_device(self, device: str):
+        pass
+
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self.input_image.is_empty():
             latent = EmptyLatentImage().generate(
@@ -391,35 +374,20 @@ class Flux(BaseNode):
             input_tensor = torch.from_numpy(image)[None,]
             latent = VAEEncode().encode(self._vae, input_tensor)[0]
 
-        model = self._unet
-        clip = self._clip
+        if self.lora.name != "":
+            model = LoraLoaderModelOnly().load_lora_model_only(
+                model=self._unet,
+                lora_name=self.lora.name,
+                strength_model=self.lora_strength,
+            )[0]
 
-        if self.lora1_model != LoraModel.NONE:
-            model, clip = LoraLoader().load_lora(
-                model=model,
-                clip=clip,
-                lora_name=self.lora1_model.value,
-                strength_model=self.lora1_strength,
-                strength_clip=self.lora1_strength,
-            )
-
-        if self.lora2_model != LoraModel.NONE:
-            model, clip = LoraLoader().load_lora(
-                model=model,
-                clip=clip,
-                lora_name=self.lora2_model.value,
-                strength_model=self.lora2_strength,
-                strength_clip=self.lora2_strength,
-            )
-
-        if self.lora3_model != LoraModel.NONE:
-            model, clip = LoraLoader().load_lora(
-                model=model,
-                clip=clip,
-                lora_name=self.lora3_model.value,
-                strength_model=self.lora3_strength,
-                strength_clip=self.lora3_strength,
-            )
+        model = ModelSamplingFlux().patch(
+            model=self._unet,
+            width=self.width,
+            height=self.height,
+            max_shift=1.15,
+            base_shift=0.5,
+        )[0]
 
         sampler = KSamplerSelect().get_sampler(self.sampler.value)[0]
         sigmas = BasicScheduler().get_sigmas(
@@ -429,7 +397,7 @@ class Flux(BaseNode):
             denoise=self.denoise,
         )[0]
 
-        conditioning = CLIPTextEncode().encode(clip, self.prompt)[0]
+        conditioning = CLIPTextEncode().encode(self._clip, self.prompt)[0]
         conditioning = FluxGuidance().append(conditioning, self.guidance_scale)[0]
 
         guider = BasicGuider().get_guider(model, conditioning)[0]
@@ -440,4 +408,5 @@ class Flux(BaseNode):
         )[0]
 
         decoded_image = VAEDecode().decode(self._vae, sampled_latent)[0]
+
         return await context.image_from_tensor(decoded_image)
