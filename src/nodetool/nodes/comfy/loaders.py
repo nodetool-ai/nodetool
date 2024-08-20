@@ -265,15 +265,16 @@ class LoraLoaderModelOnly(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"unet": UNet}
+        return {"model": UNet}
 
     async def process(self, context: ProcessingContext):
         if self.lora_name.name == "":
             raise Exception("LoRA name must be selected.")
 
-        lora, _ = await self.call_comfy_node(context)
+        model = (await self.call_comfy_node(context))[0]
 
-        context.add_model("comfy.lora", self.lora_name.name, lora)
+        context.add_model("comfy.unet", self.lora_name.name, model)
+
         return {
             "model": UNet(name=self.lora_name.name),
         }

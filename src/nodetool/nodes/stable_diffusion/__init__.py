@@ -32,7 +32,7 @@ import torch
 
 from comfy.model_patcher import ModelPatcher
 from comfy.sd import CLIP, VAE
-from nodetool.metadata.types import CheckpointFile, ImageRef, LORAFile
+from nodetool.metadata.types import CheckpointFile, ImageRef, LORAFile, UNetFile
 from nodetool.nodes.stable_diffusion.enums import Sampler, Scheduler
 from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
@@ -302,11 +302,6 @@ class ControlNet(StableDiffusion):
         return await context.image_from_tensor(decoded_image)
 
 
-class FluxModel(str, Enum):
-    flux1_schnell = "flux1-schnell"
-    flux1_dev = "flux1-dev"
-
-
 class Flux(BaseNode):
     """
     Generates images from text prompts using a custom Stable Diffusion workflow.
@@ -318,9 +313,7 @@ class Flux(BaseNode):
     - Experimenting with different VAE, CLIP, and UNET combinations
     """
 
-    model: FluxModel = Field(
-        default=FluxModel.flux1_schnell, description="The Flux model to use."
-    )
+    model: UNetFile = Field(default=UNetFile(), description="The Flux model to use.")
 
     prompt: str = Field(default="", description="The prompt to use.")
     width: int = Field(default=1024, ge=64, le=2048, multiple_of=64)
@@ -343,14 +336,16 @@ class Flux(BaseNode):
     _unet: Optional[ModelPatcher] = None
 
     async def initialize(self, context: ProcessingContext):
-        if self.model == FluxModel.flux1_schnell:
+        if self.model.name == "flux1-schnell.sft":
             self._unet = UNETLoader().load_unet("flux1-schnell.sft", "fp16")[0]
-        elif self.model == FluxModel.flux1_dev:
+        elif self.model.name == "flux1-dev.sft":
+            self._unet = UNETLoader().load_unet("flux1-dev.sft", "fp16")[0]
+        elif self.model.name == "flux1-dev-fp8.safetensors":
             self._unet = UNETLoader().load_unet(
                 "flux1-dev-fp8.safetensors", "fp8_e4m3fn"
             )[0]
         else:
-            raise ValueError("No model selected")
+            raise ValueError("Select a valid Flux model.")
         self._vae = VAELoader().load_vae("ae.sft")[0]
         self._clip = DualCLIPLoader().load_clip(
             "clip_l.safetensors", "t5xxl_fp8_e4m3fn.safetensors", "flux"
@@ -374,15 +369,17 @@ class Flux(BaseNode):
             input_tensor = torch.from_numpy(image)[None,]
             latent = VAEEncode().encode(self._vae, input_tensor)[0]
 
-        if self.lora.name != "":
+        model = self._unet
+
+        if self.lora_strength > 0.0:
             model = LoraLoaderModelOnly().load_lora_model_only(
-                model=self._unet,
+                model=model,
                 lora_name=self.lora.name,
                 strength_model=self.lora_strength,
             )[0]
 
         model = ModelSamplingFlux().patch(
-            model=self._unet,
+            model=model,
             width=self.width,
             height=self.height,
             max_shift=1.15,
