@@ -92,6 +92,7 @@ const componentTypeMap: Record<string, (props: PropertyProps) => JSX.Element> =
   "comfy.upscale_model_file": ModelProperty,
   "comfy.lora_file": ModelProperty,
   "comfy.unet_file": ModelProperty,
+  "comfy.instant_id_file": ModelProperty,
 };
 
 /**

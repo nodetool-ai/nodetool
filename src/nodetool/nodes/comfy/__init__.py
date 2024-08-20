@@ -22,6 +22,7 @@ import nodetool.nodes.comfy.image.preprocessors
 import nodetool.nodes.comfy.image.transform
 import nodetool.nodes.comfy.image.upscaling
 import nodetool.nodes.comfy.ipadapter
+import nodetool.nodes.comfy.instantid
 import nodetool.nodes.comfy.latent
 import nodetool.nodes.comfy.latent.advanced
 import nodetool.nodes.comfy.latent.batch

@@ -24,7 +24,7 @@ class ModelSamplingBase(ComfyNode):
     async def process(self, context: ProcessingContext) -> dict[str, UNet]:
         (unet,) = await self.call_comfy_node(context)
 
-        context.add_model("comfy.unet", self.get_model_name(), unet)
+        context.add_model(UNet.type, self.get_model_name(), unet)
 
         return {"model": UNet(name=self.get_model_name())}
 

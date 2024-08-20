@@ -35,6 +35,8 @@ export function modelFolder(type: TypeName) {
       return "loras";
     case "comfy.unet_file":
       return "unet";
+    case "comfy.instant_id_file":
+      return "instantid";
     default:
       return undefined;
   }

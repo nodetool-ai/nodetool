@@ -253,6 +253,10 @@ class UpscaleModelFile(ModelFile):
     type: Literal["comfy.upscale_model_file"] = "comfy.upscale_model_file"
 
 
+class InstantIDFile(ModelFile):
+    type: Literal["comfy.instant_id_file"] = "comfy.instant_id_file"
+
+
 comfy_model_types = set()
 
 
@@ -292,6 +296,10 @@ class VAE(ComfyModel):
 
 class UNet(ComfyModel):
     type: Literal["comfy.unet"] = "comfy.unet"
+
+
+class InstantID(ComfyModel):
+    type: Literal["comfy.instant_id"] = "comfy.instant_id"
 
 
 class UpscaleModel(ComfyModel):
@@ -360,6 +368,14 @@ class Sampler(ComfyData):
 
 class Embeds(ComfyData):
     type: Literal["comfy.embeds"] = "comfy.embeds"
+
+
+class FaceAnalysis(ComfyData):
+    type: Literal["comfy.face_analysis"] = "comfy.face_analysis"
+
+
+class FaceEmbeds(ComfyData):
+    type: Literal["comfy.face_embeds"] = "comfy.face_embeds"
 
 
 class Task(BaseType):
