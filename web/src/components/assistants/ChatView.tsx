@@ -8,7 +8,7 @@ import {
   CircularProgress,
   TextareaAutosize,
   Tooltip,
-  Typography
+  Typography,
 } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
@@ -17,7 +17,7 @@ import {
   MessageImageContent,
   MessageTextContent,
   Message,
-  MessageContent
+  MessageContent,
 } from "../../stores/ApiTypes";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 // utils
@@ -30,62 +30,62 @@ const styles = (theme: any) =>
   css({
     "&": {
       height: "100%",
-      width: "100%"
+      width: "100%",
     },
     ".messages": {
       overflowY: "auto",
       listStyleType: "none",
       maxHeight: "500px",
-      padding: "14px"
+      padding: "14px",
     },
     ".messages li.chat-message": {
-      fontFamily: theme.fontFamily2,
+      fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
-      listStyleType: "none"
+      listStyleType: "none",
     },
     ".messages li.chat-message p": {
-      margin: "0.3em 0"
+      margin: "0.3em 0",
     },
     ".messages li.user": {
       color: theme.palette.c_gray5,
       borderBottom: `1px solid ${theme.palette.c_gray2}`,
       padding: "0.1em 0.2em 0",
-      margin: "2em 0 1em 0"
+      margin: "2em 0 1em 0",
     },
     ".messages li.assistant": {
-      color: theme.palette.c_white
+      color: theme.palette.c_white,
     },
     ".messages li pre": {
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       backgroundColor: theme.palette.c_black,
-      padding: "1em"
+      padding: "1em",
     },
     ".messages li pre code": {
       fontFamily: theme.fontFamily2,
-      color: theme.palette.c_white
+      color: theme.palette.c_white,
     },
     ".messages li a": {
-      color: theme.palette.c_hl1
+      color: theme.palette.c_hl1,
     },
     ".messages li a:hover": {
-      color: `${theme.c_gray4} !important`
+      color: `${theme.c_gray4} !important`,
     },
     ".chat-window .chat-header": {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      height: "25px"
+      height: "25px",
     },
     ".chat-window .chat-header h6": {
       marginTop: "14px",
-      marginLeft: "10px"
+      marginLeft: "10px",
     },
     ".compose-message": {
       height: "auto",
       width: "100%",
       backgroundColor: theme.palette.c_gray1,
-      display: "flex"
+      display: "flex",
     },
     ".compose-message textarea": {
       position: "relative",
@@ -101,11 +101,11 @@ const styles = (theme: any) =>
       width: "calc(100% - 38px)" /* Subtract the width of the button */,
       height: "100%",
       flexGrow: 1,
-      borderRadius: "5px"
+      borderRadius: "5px",
     },
     ".compose-message textarea:focus, .compose-message textarea:active": {
       outline: 0,
-      border: `1px solid ${theme.c_gray3} !important`
+      border: `1px solid ${theme.c_gray3} !important`,
     },
     ".compose-message button": {
       position: "relative",
@@ -113,12 +113,12 @@ const styles = (theme: any) =>
       flexGrow: 0,
       top: "8px",
       height: "38px",
-      width: "38px"
+      width: "38px",
     },
     ".compose-message-label": {
       color: theme.palette.c_gray3,
       margin: "-2em 1em 1em",
-      padding: "0 1em"
+      padding: "0 1em",
     },
     "button.scroll-to-bottom": {
       left: 0,
@@ -126,8 +126,8 @@ const styles = (theme: any) =>
       position: "absolute",
       top: "-27px",
       bottom: "unset",
-      background: "transparent"
-    }
+      background: "transparent",
+    },
   });
 
 type ChatViewProps = {
@@ -166,11 +166,7 @@ const MessageView = (msg: Message) => {
   );
 };
 
-const ChatView = ({
-  isLoading,
-  messages,
-  sendMessage
-}: ChatViewProps) => {
+const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
   const { isKeyPressed } = useKeyPressedStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesListRef = useRef<HTMLUListElement | null>(null);
@@ -234,7 +230,6 @@ const ChatView = ({
       </ul>
 
       {isLoading && <CircularProgress size={24} />}
-
 
       <div className="chat-controls">
         <div className="compose-message">
