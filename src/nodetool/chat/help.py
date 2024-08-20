@@ -310,12 +310,12 @@ important: when a user asks about shortcuts, provide the following information a
  
  Nodes Shortcuts
  - Node Context Menu: Right click on node name or left click on top-right menu icon
- - Copy selected nodes: Shift + C
- - Paste selected nodes: Shift + V
+ - Copy selected nodes: Shift + C and Paste selected nodes with Shift + V
  - Select multiple Nodes: Drag area with left click, Shift + Left Click if using LMB for panning
  - Collapse / Uncollapse a Node: Double click on node name or use right click menu
  - Delete Node: Backspace or Delete when one or more nodes are selected
- 
+ - Select multiple nodes: click on nodes with CTRL key or draw a rectangle around nodes
+
 Command Menu Shortcut
  - Open Command Menu: Alt + K, Option + K
  
