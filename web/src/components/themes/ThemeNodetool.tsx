@@ -173,19 +173,16 @@ ThemeNodetool.components = {
       },
       h2: {
         cursor: "default",
-        fontSize: "1.75em",
+        fontSize: "1.3em",
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
-        fontFamily: ThemeNodetool.fontFamily2,
-        wordSpacing: "-3px",
       },
       h3: {
         cursor: "default",
-        fontSize: "1.5em",
+        fontSize: "1.1em",
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
-        fontFamily: ThemeNodetool.fontFamily2,
-        wordSpacing: "-3px",
+        fontFamily: ThemeNodetool.fontFamily1,
       },
       h4: {
         cursor: "default",
@@ -219,11 +216,11 @@ ThemeNodetool.components = {
         wordSpacing: "-.2em",
       },
       body1: {
-        fontSize: "0.8em",
+        fontSize: "0.9em",
         fontFamily: ThemeNodetool.fontFamily1,
         fontWeight: 300,
         wordSpacing: "0",
-        lineHeight: 1.1,
+        lineHeight: 1.2,
         marginTop: ThemeNodetool.spacing(0),
         marginBottom: ThemeNodetool.spacing(0),
       },
@@ -288,6 +285,44 @@ ThemeNodetool.components = {
       },
     },
   },
+
+  // List
+  // MuiList: {
+  //   styleOverrides: {
+  //     root: {
+  //       paddingLeft: ThemeNodetool.spacing(1),
+  //     },
+  //   },
+  // },
+  // MuiListItem: {
+  //   styleOverrides: {
+  //     root: {
+  //       paddingTop: ThemeNodetool.spacing(0.5),
+  //       paddingBottom: ThemeNodetool.spacing(0.5),
+  //       paddingLeft: ThemeNodetool.spacing(1),
+  //       paddingRight: ThemeNodetool.spacing(1),
+  //     },
+  //   },
+  // },
+  // MuiListItemText: {
+  //   styleOverrides: {
+  //     root: {
+  //       listStyleType: "square",
+  //       margin: 0,
+  //     },
+  //     primary: {
+  //       color: ThemeNodetool.palette.c_white,
+  //     },
+  //   },
+  // },
+  // MuiListItemIcon: {
+  //   styleOverrides: {
+  //     root: {
+  //       minWidth: "20px",
+  //       color: ThemeNodetool.palette.c_white,
+  //     },
+  //   },
+  // },
 };
 
 export default ThemeNodetool;

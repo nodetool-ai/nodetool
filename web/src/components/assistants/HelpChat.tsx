@@ -2,7 +2,8 @@ import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
 import { MessageCreateRequest } from "../../stores/ApiTypes";
 import { useChatStore } from "../../stores/ChatStore";
-import { Typography } from "@mui/material";
+import { Box, List, ListItem, ListItemText, Typography } from "@mui/material";
+import SquareIcon from "@mui/icons-material/CheckBoxOutlineBlank"; // Example icon
 
 const HelpChat: React.FC = () => {
   const { threadId, messages, isLoading, fetchMessages, sendMessage } =
@@ -25,17 +26,28 @@ const HelpChat: React.FC = () => {
   );
 
   return (
-    <div className="help-chat">
-      <h3>Welcome to Nodetool!</h3>
-      <Typography style={{ margin: "1em" }}>
-        I&apos;m your AI assistant, ready to help you create AI workflows.
+    <div className="help-chat" style={{ margin: ".5em" }}>
+      <Typography variant="h4">Hello</Typography>
+      <Typography>
+        I&apos;m your experimental AI assistant!
         <br />
         <br />
-        Ask me anything about Nodetool&apos;s features, from building workflows
-        to managing assets.
-        <br />
-        <br />
-        Let&apos;s bring your AI ideas to life!
+        Ask me anything about Nodetool&apos;s features, like:
+        <Box
+          component="ul"
+          sx={{
+            paddingLeft: "1em",
+            margin: ".5em 0 1em 0",
+            listStyleType: "square",
+          }}
+        >
+          <Typography component="li">Getting started</Typography>
+          <Typography component="li">Managing assets</Typography>
+          <Typography component="li">Working with nodes</Typography>
+          <Typography component="li">Shortcuts</Typography>
+          <Typography component="li">Settings</Typography>
+        </Box>
+        You can even ask me to try and build a workflow.
       </Typography>
       <ChatView
         isLoading={isLoading}
