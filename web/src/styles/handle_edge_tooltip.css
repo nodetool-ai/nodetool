@@ -124,8 +124,7 @@
 
 /* multiple outputs */
 .multi-outputs .react-flow__handle-right {
-  top: .3em;
-  /* transform: none; */
+  top: .4em;
 }
 
 ul.multi-outputs {
@@ -134,13 +133,11 @@ ul.multi-outputs {
   background-color: var(--c_gray1);
   margin: .5em 0 0;
   width: 100%;
-  /* position: absolute; */
-  /* top: 40px; */
-  /* right: 0; */
 }
 ul.multi-outputs li {
   position: relative;
-  padding: 0 0 .5em 0;
+  padding: 0 0 .75em 0;
+  color: var(--c_gray6);
 }
 
 ul.multi-outputs li::marker {
