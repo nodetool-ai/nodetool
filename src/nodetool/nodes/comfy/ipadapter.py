@@ -99,7 +99,7 @@ class IPAdapterModelLoader(ComfyNode):
 
     async def initialize(self, context: ProcessingContext):
         (ipadapter,) = await self.call_comfy_node(context)
-        context.add_model("comfy.ip_adapter", self.ipadapter_file.name, ipadapter)
+        context.add_model(IPAdapter().type, self.ipadapter_file.name, ipadapter)
 
     async def process(self, context: ProcessingContext):
         return {"ipadapter": IPAdapter(name=self.ipadapter_file.name)}
@@ -185,7 +185,7 @@ class IPAdapterApply(ComfyNode):
     async def process(self, context: ProcessingContext):
         (unet,) = await self.call_comfy_node(context)
         name = self.model.name + "_" + self.ipadapter.name
-        context.add_model("comfy.unet", name, unet)
+        context.add_model(UNet().type, name, unet)
         return {"unet": UNet(name=name)}
 
 

@@ -2669,7 +2669,7 @@ class StableDiffusionUpscale(BaseNode):
             image=input_image,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
-            callback=self.progress_callback(context),  # type: ignore
+            callback=progress_callback(self.id, self.num_inference_steps, context), # type: ignore
         ).images[  # type: ignore
             0
         ]

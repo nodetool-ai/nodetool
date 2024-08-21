@@ -125,7 +125,7 @@ class ComfyNode(BaseNode):
             return {
                 o.name: await convert_value(o, v) for o, v in zip(self.outputs(), value)
             }
-        elif isinstance(value, dict):
+        elif isinstance(value, dict) and "result" in value:
             return await self.convert_output(context, value["result"])
         else:
             return value

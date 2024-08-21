@@ -74,6 +74,7 @@ folder_names_and_paths: dict[str, tuple[list[str], set[str]]] = {
     "vae": ([model_path("vae")], supported_pt_extensions),
     "clip": ([model_path("clip")], supported_pt_extensions),
     "unet": ([model_path("unet")], supported_pt_extensions),
+    "instantid": ([model_path("instantid")], supported_pt_extensions),
     "clip_vision": ([model_path("clip_vision")], supported_pt_extensions),
     "style_models": ([model_path("style_models")], supported_pt_extensions),
     "embeddings": ([model_path("embeddings")], supported_pt_extensions),

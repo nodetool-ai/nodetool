@@ -308,7 +308,7 @@ class CLIPSetLastLayer(ComfyNode):
     async def process(self, context: ProcessingContext):
         (clip,) = await self.call_comfy_node(context)
         name = self.clip.name + "_layer_" + str(self.stop_at_clip_layer)
-        context.add_model("comfy.clip", name, clip)
+        context.add_model(CLIP().type, name, clip)
         return {"clip": CLIP(name=name)}
 
 

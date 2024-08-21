@@ -48,9 +48,9 @@ class CheckpointLoaderSimple(ComfyNode):
 
         unet, clip, vae = await self.call_comfy_node(context)
 
-        context.add_model("comfy.unet", self.ckpt_name.name, unet)
-        context.add_model("comfy.clip", self.ckpt_name.name, clip)
-        context.add_model("comfy.vae", self.ckpt_name.name, vae)
+        context.add_model(UNet().type, self.ckpt_name.name, unet)
+        context.add_model(CLIP().type, self.ckpt_name.name, clip)
+        context.add_model(VAE().type, self.ckpt_name.name, vae)
 
         return {
             "model": UNet(name=self.ckpt_name.name),
@@ -90,10 +90,10 @@ class unCLIPCheckpointLoader(ComfyNode):
 
         unet, clip, vae, clip_vision = await self.call_comfy_node(context)
 
-        context.add_model("comfy.unet", self.ckpt_name.name, unet)
-        context.add_model("comfy.clip", self.ckpt_name.name, clip)
-        context.add_model("comfy.vae", self.ckpt_name.name, vae)
-        context.add_model("comfy.clip_vision", self.ckpt_name.name, clip_vision)
+        context.add_model(UNet().type, self.ckpt_name.name, unet)
+        context.add_model(CLIP().type, self.ckpt_name.name, clip)
+        context.add_model(VAE().type, self.ckpt_name.name, vae)
+        context.add_model(CLIPVision().type, self.ckpt_name.name, clip_vision)
 
         return {
             "model": UNet(name=self.ckpt_name.name),
@@ -121,7 +121,7 @@ class CLIPVisionLoader(ComfyNode):
         if self.clip_name.name == "":
             raise Exception("CLIP vision name must be selected.")
         (clip_vision,) = await self.call_comfy_node(context)
-        context.add_model("comfy.clip_vision", self.clip_name.name, clip_vision)
+        context.add_model(CLIPVision().type, self.clip_name.name, clip_vision)
         return {"clip_vision": CLIPVision(name=self.clip_name.name)}
 
 
@@ -146,7 +146,7 @@ class ControlNetLoader(ComfyNode):
         if self.control_net_name.name == "":
             raise Exception("ControlNet name must be selected.")
         (control_net,) = await self.call_comfy_node(context)
-        context.add_model("comfy.control_net", self.control_net_name.name, control_net)
+        context.add_model(ControlNet().type, self.control_net_name.name, control_net)
         return {"control_net": ControlNet(name=self.control_net_name.name)}
 
 
@@ -172,7 +172,7 @@ class UpscaleModelLoader(ComfyNode):
         if self.model_name.name == "":
             raise Exception("Upscale model name must be selected.")
         (upscale_model,) = await self.call_comfy_node(context)
-        context.add_model("comfy.upscale_model", self.model_name.name, upscale_model)
+        context.add_model(UpscaleModel().type, self.model_name.name, upscale_model)
         return {"upscale_model": UpscaleModel(name=self.model_name.name)}
 
 
@@ -198,7 +198,7 @@ class GLIGENLoader(ComfyNode):
         if self.gligen_name.name == "":
             raise Exception("GLIGEN name must be selected.")
         (gligen,) = await self.call_comfy_node(context)
-        context.add_model("comfy.gligen", self.gligen_name.name, gligen)
+        context.add_model(GLIGEN().type, self.gligen_name.name, gligen)
         return {"gligen": GLIGEN(name=self.gligen_name.name)}
 
 
@@ -238,8 +238,8 @@ class LoraLoader(ComfyNode):
 
         unet, clip = await self.call_comfy_node(context)
 
-        context.add_model("comfy.unet", self.lora_name.name, unet)
-        context.add_model("comfy.clip", self.lora_name.name, clip)
+        context.add_model(UNet().type, self.lora_name.name, unet)
+        context.add_model(CLIP().type, self.lora_name.name, clip)
 
         return {
             "model": UNet(name=self.lora_name.name),
@@ -265,15 +265,16 @@ class LoraLoaderModelOnly(ComfyNode):
 
     @classmethod
     def return_type(cls):
-        return {"unet": UNet}
+        return {"model": UNet}
 
     async def process(self, context: ProcessingContext):
         if self.lora_name.name == "":
             raise Exception("LoRA name must be selected.")
 
-        lora, _ = await self.call_comfy_node(context)
+        model = (await self.call_comfy_node(context))[0]
 
-        context.add_model("comfy.lora", self.lora_name.name, lora)
+        context.add_model(UNet().type, self.lora_name.name, model)
+
         return {
             "model": UNet(name=self.lora_name.name),
         }
@@ -297,7 +298,7 @@ class VAELoader(ComfyNode):
             raise Exception("VAE name must be selected.")
 
         (vae,) = await self.call_comfy_node(context)
-        context.add_model("comfy.vae", self.vae_name.name, vae)
+        context.add_model(VAE().type, self.vae_name.name, vae)
         return {"vae": VAE(name=self.vae_name.name)}
 
 
@@ -312,7 +313,7 @@ class CLIPLoader(ComfyNode):
             raise Exception("CLIP name must be selected")
 
         (clip,) = await self.call_comfy_node(context)
-        context.add_model("comfy.clip", self.clip_name.name, clip)
+        context.add_model(CLIP().type, self.clip_name.name, clip)
         return {"clip": CLIP(name=self.clip_name.name)}
 
     @classmethod
@@ -350,7 +351,7 @@ class DualCLIPLoader(ComfyNode):
 
         (clip,) = await self.call_comfy_node(context)
 
-        context.add_model("comfy.clip", self.clip_name1.name, clip)
+        context.add_model(CLIP().type, self.clip_name1.name, clip)
         return {"clip": CLIP(name=self.clip_name1.name)}
 
     @classmethod
@@ -383,7 +384,7 @@ class UNETLoader(ComfyNode):
             raise Exception("UNet name must be selected")
 
         (unet,) = await self.call_comfy_node(context)
-        context.add_model("comfy.unet", self.unet_name.name, unet)
+        context.add_model(UNet().type, self.unet_name.name, unet)
 
         return {"unet": UNet(name=self.unet_name.name)}
 
