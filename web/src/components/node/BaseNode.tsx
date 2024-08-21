@@ -183,9 +183,6 @@ export default memo(
             </Typography>
           )}
         </>
-        {!isOutputNode && (
-          <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
-        )}
         <NodeInputs
           id={props.id}
           layout={nodeMetadata.layout}
@@ -196,6 +193,9 @@ export default memo(
           onlyHandles={false}
           edges={edges}
         />
+        {!isOutputNode && (
+          <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
+        )}
         {renderedResult}
         {nodeMetadata.layout === "default" && (
           <>
