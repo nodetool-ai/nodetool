@@ -128,7 +128,8 @@
 }
 
 ul.multi-outputs {
-  padding: .5em 0 0 1em;
+  position: relative;
+  padding: .75em 0 0 1em;
   border-top: 1px solid var(--c_gray2);
   background-color: var(--c_gray1);
   margin: .5em 0 0;
@@ -136,8 +137,15 @@ ul.multi-outputs {
 }
 ul.multi-outputs li {
   position: relative;
-  padding: 0 0 .75em 0;
-  color: var(--c_gray6);
+  padding: 0 1em .75em 0;
+  color: var(--c_gray5);
+  text-transform: uppercase;
+  text-align: right;
+  font-family: var(--font_family2) !important;
+}
+
+ul.multi-outputs li p {
+  font-family: var(--font_family2) !important;
 }
 
 ul.multi-outputs li::marker {
