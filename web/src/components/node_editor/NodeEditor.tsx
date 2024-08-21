@@ -184,34 +184,6 @@ const NodeEditor: React.FC<unknown> = () => {
     [getWorkflowIsDirty]
   );
 
-  /* CLOSE BROWSER TAB */
-  const addBeforeUnloadListener = useCallback(() => {
-    if (window.__beforeUnloadListenerAdded) {
-      return;
-    }
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!window.location.pathname.includes("editor")) {
-        return;
-      }
-      if (!workflowIsDirty || settings.alertBeforeTabClose === false) {
-        return;
-      }
-      event.preventDefault();
-      event.returnValue = "";
-      return "";
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.__beforeUnloadListenerAdded = true;
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [workflowIsDirty, settings.alertBeforeTabClose]);
-
-  useEffect(() => {
-    const cleanup = addBeforeUnloadListener();
-    return cleanup;
-  }, [addBeforeUnloadListener]);
-
-  addBeforeUnloadListener();
-
   // OPEN NODE MENU
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
     (state) => ({

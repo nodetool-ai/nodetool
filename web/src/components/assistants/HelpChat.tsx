@@ -29,32 +29,37 @@ const HelpChat: React.FC = () => {
     <div className="help-chat" style={{ margin: ".5em" }}>
       <Typography variant="h4">Hello</Typography>
       <Typography>
-        I&apos;m your experimental AI assistant!
-        <br />
-        <br />
-        Ask me anything about Nodetool&apos;s features, like:
+        <Box>
+          I&apos;m your experimental AI assistant!
+          <br />
+          <br />
+          Ask me anything about Nodetool&apos;s features, like:
+        </Box>
         <Box
-          component="ul"
           sx={{
             paddingLeft: "1em",
             margin: ".5em 0 1em 0",
             listStyleType: "square",
           }}
         >
-          <Typography component="li">Getting started</Typography>
-          <Typography component="li">Managing assets</Typography>
-          <Typography component="li">Working with nodes</Typography>
-          <Typography component="li">Shortcuts</Typography>
-          <Typography component="li">Settings</Typography>
+          <ul>
+            <Typography component="li">Getting started</Typography>
+            <Typography component="li">Managing assets</Typography>
+            <Typography component="li">Working with nodes</Typography>
+            <Typography component="li">Shortcuts</Typography>
+            <Typography component="li">Settings</Typography>
+          </ul>
         </Box>
-        You can even ask me to try and build a workflow.
+        <Box>
+          You can even ask me to try and build a workflow.
+        </Box>
       </Typography>
       <ChatView
         isLoading={isLoading}
         messages={messages}
         sendMessage={handleSendMessage}
       />
-    </div>
+    </div >
   );
 };
 
