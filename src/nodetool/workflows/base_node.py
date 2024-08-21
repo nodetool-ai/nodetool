@@ -33,6 +33,7 @@ from nodetool.metadata.utils import (
     is_enum_type,
     is_list_type,
     is_optional_type,
+    is_tuple_type,
     is_union_type,
 )
 
@@ -125,6 +126,11 @@ def type_metadata(python_type: Type | UnionType) -> TypeMetadata:
         return TypeMetadata(
             type="list",
             type_args=[type_metadata(python_type.__args__[0])],  # type: ignore
+        )
+    elif is_tuple_type(python_type):
+        return TypeMetadata(
+            type="tuple",
+            type_args=[type_metadata(t) for t in python_type.__args__],  # type: ignore
         )
     elif is_dict_type(python_type):
         return TypeMetadata(

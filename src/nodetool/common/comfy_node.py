@@ -1,6 +1,7 @@
 from enum import Enum
 from nodetool.metadata.types import (
     ComfyData,
+    ComfyModel,
     ImageRef,
     ModelFile,
     OutputSlot,
@@ -114,10 +115,21 @@ class ComfyNode(BaseNode):
         """
 
         async def convert_value(output: OutputSlot, v: Any) -> Any:
+            output_type = output.type.get_python_type()
+
             if output.type.type == "image":
+                if isinstance(v, ImageRef):
+                    return v
                 return await context.image_from_tensor(v)
-            if output.type.is_comfy_data_type():
-                return output.type.get_python_type()(data=v)
+            # TODO: Add support for other asset types
+            elif output.type.is_comfy_data_type():
+                if isinstance(v, ComfyData):
+                    return v
+                return output_type(data=v)
+            elif output.type.is_comfy_model():
+                if isinstance(v, ComfyModel):
+                    return v
+                return output_type(name=v)
             else:
                 return v
 

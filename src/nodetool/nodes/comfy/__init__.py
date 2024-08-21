@@ -13,6 +13,13 @@ import nodetool.nodes.comfy.controlnet.normal_and_depth
 import nodetool.nodes.comfy.controlnet.others
 import nodetool.nodes.comfy.controlnet.line_extractors
 import nodetool.nodes.comfy.controlnet.t2i
+import nodetool.nodes.comfy.essentials.conditioning
+import nodetool.nodes.comfy.essentials.image
+import nodetool.nodes.comfy.essentials.mask
+import nodetool.nodes.comfy.essentials.misc
+import nodetool.nodes.comfy.essentials.sampling
+import nodetool.nodes.comfy.essentials.segmentation
+import nodetool.nodes.comfy.essentials.text
 import nodetool.nodes.comfy.flux
 import nodetool.nodes.comfy.generate
 import nodetool.nodes.comfy.image

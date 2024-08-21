@@ -85,6 +85,19 @@ def is_list_type(t):
     return t is list or get_origin(t) is list
 
 
+def is_tuple_type(t):
+    """
+    Check if a type is a tuple.
+
+    Args:
+        t: The type to check.
+
+    Returns:
+        True if the type is a tuple, False otherwise.
+    """
+    return t is tuple or get_origin(t) is tuple
+
+
 def is_dict_type(t):
     """
     Check if a type is a dictionary.

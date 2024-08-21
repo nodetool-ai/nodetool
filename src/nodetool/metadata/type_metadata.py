@@ -66,6 +66,9 @@ class TypeMetadata(BaseModel):
     def is_list_type(self):
         return self.type == "list"
 
+    def is_tuple_type(self):
+        return self.type == "tuple"
+
     def is_dict_type(self):
         return self.type == "dict"
 

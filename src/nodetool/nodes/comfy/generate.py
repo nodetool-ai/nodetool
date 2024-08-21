@@ -3,6 +3,10 @@ from nodetool.common.comfy_node import ComfyNode
 
 
 class EmptyImage(ComfyNode):
+    """
+    Generates an empty image.
+    """
+
     width: int = Field(default=512, description="The width of the empty image.")
     height: int = Field(default=512, description="The height of the empty image.")
     batch_size: int = Field(

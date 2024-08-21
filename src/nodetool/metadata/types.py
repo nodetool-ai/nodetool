@@ -169,6 +169,7 @@ class Provider(str, enum.Enum):
 class GPTModel(str, enum.Enum):
     GPT3 = "gpt-3.5-turbo-0125"
     GPT4 = "gpt-4o"
+    GPT4Mini = "gpt-4o-mini"
 
 
 class AnthropicModel(str, enum.Enum):
@@ -376,6 +377,10 @@ class FaceAnalysis(ComfyData):
 
 class FaceEmbeds(ComfyData):
     type: Literal["comfy.face_embeds"] = "comfy.face_embeds"
+
+
+class REMBGSession(ComfyData):
+    type: Literal["comfy.rembg_session"] = "comfy.rembg_session"
 
 
 class Task(BaseType):

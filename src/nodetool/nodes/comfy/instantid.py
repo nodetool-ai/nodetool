@@ -16,6 +16,10 @@ from nodetool.workflows.processing_context import ProcessingContext
 
 
 class InstantIDModelLoader(ComfyNode):
+    """
+    The InstantID Model Loader node loads an InstantID model file for use in face-aware image generation and editing tasks.
+    """
+
     instantid_file: InstantIDFile = Field(
         default=InstantIDFile(), description="The InstantID model file to load."
     )
@@ -33,6 +37,10 @@ class InstantIDModelLoader(ComfyNode):
 
 
 class InstantIDFaceAnalysis(ComfyNode):
+    """
+    The InstantID Face Analysis node initializes a face analysis model, which is used to detect and analyze facial features in images.
+    """
+
     provider: str = Field(default="CPU", description="The provider for face analysis.")
 
     @classmethod
@@ -41,6 +49,10 @@ class InstantIDFaceAnalysis(ComfyNode):
 
 
 class FaceKeypointsPreprocessor(ComfyNode):
+    """
+    The Face Keypoints Preprocessor node prepares an input image by detecting and extracting facial keypoints, which are crucial for face-aware image processing tasks.
+    """
+
     faceanalysis: FaceAnalysis = Field(
         default=FaceAnalysis(), description="The face analysis model."
     )
@@ -52,6 +64,10 @@ class FaceKeypointsPreprocessor(ComfyNode):
 
 
 class ApplyInstantID(ComfyNode):
+    """
+    The Apply InstantID node integrates InstantID face-aware processing into the image generation pipeline, allowing for more precise control over facial features in generated images.
+    """
+
     instantid: InstantID = Field(
         default=InstantID(), description="The InstantID model."
     )
@@ -101,6 +117,10 @@ class ApplyInstantID(ComfyNode):
 
 
 class ApplyInstantIDAdvanced(ComfyNode):
+    """
+    The Apply InstantID Advanced node provides more fine-grained control over the InstantID face-aware processing, allowing for separate control of IP weight and ControlNet strength.
+    """
+
     instantid: InstantID = Field(
         default=InstantID(), description="The InstantID model."
     )
@@ -156,6 +176,10 @@ class ApplyInstantIDAdvanced(ComfyNode):
 
 
 class InstantIDAttentionPatch(ComfyNode):
+    """
+    The InstantID Attention Patch node applies an attention patching mechanism to the UNet model, enhancing its focus on facial features during the generation process.
+    """
+
     instantid: InstantID = Field(
         default=InstantID(), description="The InstantID model."
     )
@@ -195,6 +219,10 @@ class InstantIDAttentionPatch(ComfyNode):
 
 
 class ApplyInstantIDControlNet(ComfyNode):
+    """
+    The Apply InstantID ControlNet node integrates face embeddings and keypoints with a ControlNet model, allowing for precise control over facial features in the generated images.
+    """
+
     face_embeds: FaceEmbeds = Field(
         default=FaceEmbeds(), description="The face embeddings."
     )

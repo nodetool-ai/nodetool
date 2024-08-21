@@ -84,6 +84,10 @@ class ConditioningAverage(ComfyNode):
 
 
 class ConditioningConcat(ComfyNode):
+    """
+    The Conditioning (Concat) node can be used to concatenate two conditionings. This allows for combining different conditioning inputs sequentially, which can be useful for creating more complex guidance for the diffusion model.
+    """
+
     conditioning_to: Conditioning = Field(
         default=Conditioning(), description="The conditioning to concatenate to."
     )
@@ -233,6 +237,10 @@ class ConditioningSetMask(ComfyNode):
 
 
 class ConditioningZeroOut(ComfyNode):
+    """
+    The Conditioning (Zero Out) node can be used to zero out a conditioning. This effectively removes the influence of the conditioning on the diffusion process, which can be useful for creating areas of the image that are not influenced by the prompt or other conditioning inputs.
+    """
+
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to be zeroed out."
     )
@@ -338,6 +346,10 @@ class ControlNetApply(ComfyNode):
 
 
 class ControlNetApplyAdvanced(ComfyNode):
+    """
+    The Apply ControlNet (Advanced) node provides more fine-grained control over the application of a ControlNet to the diffusion process. It allows for separate positive and negative conditioning, as well as control over the strength and range of application of the ControlNet.
+    """
+
     positive: Conditioning = Field(
         default=Conditioning(), description="The positive conditioning to apply."
     )
@@ -381,6 +393,10 @@ class ControlNetApplyAdvanced(ComfyNode):
 
 
 class unCLIPConditioning(ComfyNode):
+    """
+    The unCLIP Conditioning node can be used to incorporate CLIP vision output into the conditioning process. This allows for image-guided generation, where the content and style of an input image can influence the output of the diffusion model.
+    """
+
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to modify."
     )
@@ -457,6 +473,10 @@ class GLIGENTextBoxApply(ComfyNode):
 
 
 class SVD_img2vid_Conditioning(ComfyNode):
+    """
+    The SVD Image to Video Conditioning node prepares conditioning for transforming a single image into a video sequence. It utilizes CLIP vision encoding and VAE processing to create appropriate conditioning for video generation models.
+    """
+
     clip_vision: CLIPVision = Field(
         default=CLIPVision(), description="The CLIP vision model to use."
     )

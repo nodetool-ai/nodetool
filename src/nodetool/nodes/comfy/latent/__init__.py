@@ -22,7 +22,7 @@ class LatentCompositeMasked(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
-    
+
     @classmethod
     def get_title(cls):
         return "Latent Composite Masked"
@@ -75,6 +75,10 @@ class VAEEncode(ComfyNode):
 
 
 class VAEEncodeTiled(ComfyNode):
+    """
+    The VAE Encode Tiled node can be used to encode pixel space images into latent space images using a tiled approach. This is useful for encoding large images that might exceed memory limits when processed all at once.
+    """
+
     pixels: ImageRef = Field(
         default=ImageRef(), description="The image pixels to encode."
     )
@@ -93,6 +97,10 @@ class VAEEncodeTiled(ComfyNode):
 
 
 class VAEEncodeForInpaint(ComfyNode):
+    """
+    The VAE Encode for Inpaint node can be used to encode pixel space images into latent space specifically for inpainting tasks. It takes into account a mask to focus the encoding on specific areas of the image.
+    """
+
     pixels: ImageRef = Field(
         default=ImageRef(), description="The image pixels to encode for inpainting."
     )
@@ -278,13 +286,17 @@ class LatentComposite(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
-    
+
     @classmethod
     def get_title(cls):
         return "Latent Composite"
 
 
 class LatentBlend(ComfyNode):
+    """
+    The Latent Blend node can be used to blend two sets of latent samples. This allows for smooth transitions or combinations of different latent representations.
+    """
+
     samples1: Latent = Field(
         default=Latent(), description="The first set of latent samples."
     )
@@ -298,7 +310,7 @@ class LatentBlend(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
-    
+
     @classmethod
     def get_title(cls):
         return "Latent Blend"
@@ -309,12 +321,8 @@ class LatentFlip(ComfyNode):
     The Flip Latent node can be used to flip latent images.
     """
 
-    samples: Latent = Field(
-        default=Latent(), description="The latent samples to flip."
-    )
-    horizontal: bool = Field(
-        default=False, description="Whether to flip horizontally."
-    )
+    samples: Latent = Field(default=Latent(), description="The latent samples to flip.")
+    horizontal: bool = Field(default=False, description="Whether to flip horizontally.")
     vertical: bool = Field(default=False, description="Whether to flip vertically.")
 
     @classmethod
@@ -324,7 +332,7 @@ class LatentFlip(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
-    
+
 
 class LatentRotate(ComfyNode):
     """
@@ -334,9 +342,7 @@ class LatentRotate(ComfyNode):
     samples: Latent = Field(
         default=Latent(), description="The latent samples to rotate."
     )
-    angle: float = Field(
-        default=0.0, description="The angle to rotate the latent by."
-    )
+    angle: float = Field(default=0.0, description="The angle to rotate the latent by.")
 
     @classmethod
     def get_title(cls):
@@ -345,16 +351,14 @@ class LatentRotate(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"latent": Latent}
-    
+
 
 class LatentCrop(ComfyNode):
     """
     The Crop Latent node can be used to crop latent images.
     """
 
-    samples: Latent = Field(
-        default=Latent(), description="The latent samples to crop."
-    )
+    samples: Latent = Field(default=Latent(), description="The latent samples to crop.")
     x: int = Field(default=0, description="The x-coordinate for cropping.")
     y: int = Field(default=0, description="The y-coordinate for cropping.")
     width: int = Field(default=512, description="The width of the crop.")

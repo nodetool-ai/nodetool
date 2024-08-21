@@ -12,6 +12,7 @@ def calculate_cost(
     # Pricing information for different models
     pricing: dict[str, Any] = {
         "gpt-4o": {"input": 5.00, "output": 15.00},
+        "gpt-4o-mini": {"input": 0.15, "output": 0.6},
         "gpt-3.5-turbo-0125": {"input": 0.50, "output": 1.50},
         "gpt-3.5-turbo-instruct": {"input": 1.50, "output": 2.00},
         "text-embedding-3-small": {"usage": 0.02},
