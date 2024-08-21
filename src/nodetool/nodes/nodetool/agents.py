@@ -1,24 +1,26 @@
 import asyncio
-from datetime import datetime
 import json
-from typing import Any, Sequence
+from urllib.parse import urljoin
+import uuid
+import aiohttp
+from bs4 import BeautifulSoup
+import re
+
+from typing import Any
 from pydantic import Field
-from nodetool.types.chat import (
-    MessageCreateRequest,
-    TaskCreateRequest,
-)
 from nodetool.chat.chat import (
     json_schema_for_column,
     process_messages,
     process_tool_calls,
 )
-from nodetool.chat.tools import ProcessNodeTool, Tool
+from nodetool.chat.tools import ProcessNodeTool
 from nodetool.metadata.types import (
-    ColumnDef,
     DataframeRef,
     FunctionModel,
+    GPTModel,
     ImageRef,
     NodeRef,
+    Provider,
     RecordType,
     Task,
 )
@@ -28,330 +30,7 @@ from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import Message
 
 
-class CreateRecordTool(Tool):
-    """
-    Tool for creating data records with specified columns.
-    data creation, schema validation, type coercion
-
-    Use cases:
-    - Creating structured data entries from user input
-    - Validating and coercing data to match a predefined schema
-    - Building datasets with consistent structure
-    """
-
-    columns: Sequence[ColumnDef]
-    description: str
-
-    def __init__(
-        self,
-        name: str,
-        columns: list[ColumnDef],
-        description: str = "Create a data record.",
-    ):
-        super().__init__(
-            name=name,
-            description=description,
-        )
-        self.columns = columns
-        self.input_schema = {
-            "type": "object",
-            "properties": {
-                column.name: json_schema_for_column(column) for column in columns
-            },
-            "required": [column.name for column in columns],
-        }
-
-    async def process(
-        self, context: ProcessingContext, thread_id: str, params: dict
-    ) -> Any:
-        """
-        Create a record with the given parameters.
-
-        Args:
-            context (ProcessingContext): The processing context.
-            columns (Sequence[ColumnDef]): The columns of the record.
-            params (dict): The parameters of the record.
-        """
-        properties = {
-            column.name: {
-                "type": column.data_type,
-            }
-            for column in self.columns
-        }
-
-        def coerce(key, value):
-            if key not in properties:
-                raise ValueError(f"Unknown property {key}")
-            if properties[key]["type"] == "number":
-                return float(value)
-            if properties[key]["type"] == "integer":
-                return int(value)
-            if properties[key]["type"] == "string":
-                return str(value)
-            if properties[key]["type"] == "datetime":
-                return datetime.fromisoformat(value)
-            return value
-
-        return {key: coerce(key, value) for key, value in params.items()}
-
-
-class CreateTextTaskTool(Tool):
-    """
-    Tool for creating text generation tasks.
-    task creation, text generation, prompt engineering
-
-    Use cases:
-    - Creating detailed instructions for text generation models
-    - Defining dependencies between text generation tasks
-    - Crafting specific prompts for language models
-    """
-
-    def __init__(self):
-        super().__init__(
-            name="create_text_task",
-            description="""
-            Create a task to be executed by an language model.
-            Craft a detailed prompt for the agent to generate the text.
-            Use dependent tasks to provide additional context and information.
-            """,
-        )
-        self.input_schema = {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The name of the task. Used to reference the task in dependencies.",
-                },
-                "instructions": {
-                    "type": "string",
-                    "description": """
-                        Specific instructions for the agent to generate the image.
-                        This prompt should be detailed and specific to the task.
-                        For example: write a short story about a detective, who is also a cat,
-                        solving a mystery in a small town. The story should be engaging,
-                        with a twist at the end. The story should be 500 words long.
-                    """,
-                },
-                "dependencies": {
-                    "type": "array",
-                    "description": """
-                        The dependencies of the task. 
-                        The dependent tasks will be executed before this task.
-                        The output of the dependent tasks will be available to this task.
-                    """,
-                    "items": {
-                        "type": "string",
-                        "description": "The name of the dependent task.",
-                    },
-                },
-            },
-        }
-
-    async def process(
-        self, context: ProcessingContext, thread_id: str, params: dict
-    ) -> Any:
-        return await context.create_task(
-            TaskCreateRequest(
-                thread_id=thread_id,
-                task_type="image",
-                name=params["name"],
-                instructions=params["instructions"],
-                dependencies=params.get("dependencies", []),
-            )
-        )
-
-
-class CreateImageTaskTool(Tool):
-    """
-    Tool for creating image generation tasks.
-    task creation, image generation, prompt engineering
-
-    Use cases:
-    - Creating detailed instructions for image generation models
-    - Defining dependencies between image generation tasks
-    - Crafting specific prompts for image generation models
-    """
-
-    def __init__(self):
-        super().__init__(
-            name="create_image_task",
-            description="""
-            Create a task to be executed by an image generation model.
-            Craft a detailed prompt for the agent to generate the image.
-            Use dependent tasks to provide additional context and information.
-            """,
-        )
-        self.input_schema = {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The name of the task. Used to reference the task in dependencies.",
-                },
-                "instructions": {
-                    "type": "string",
-                    "description": """
-                        Specific instructions for the agent to generate the image.
-                        This prompt should be detailed and specific to the task.
-                        For example: acid lighting, from below, hyperdetailed, hyper realistic,
-                        epic action full body portrait Incredible beautiful of Firebird girl 
-                        with the merger between gold and fire, hypnotic opinion, fractal hair and 
-                        feathers, detailed face | DamShelma | Bayard Wu, Ognjen Sporin, Yann Dalon, 
-                        Toni Infante, Amr Elshamy, Viktor Miller-Gausa inquisitive soul 
-                        | inspiration | gold colors, intricate detailing, surrealism, fractal details, 
-                        enigmatic flirty smile, view from back, dressed in complex chaotic diamond outfit, 
-                        artificial nightmares style, reflective eyes, detailed eyes, 
-                        detailed art deco ornamentation, 32k
-                    """,
-                },
-                "dependencies": {
-                    "type": "array",
-                    "description": """
-                        The dependencies of the task. 
-                        The dependent tasks will be executed before this task.
-                        The output of the dependent tasks will be available to this task.
-                    """,
-                    "items": {
-                        "type": "string",
-                        "description": "The name of the dependent task.",
-                    },
-                },
-            },
-        }
-
-    async def process(
-        self, context: ProcessingContext, thread_id: str, params: dict
-    ) -> Any:
-        return await context.create_task(
-            TaskCreateRequest(
-                thread_id=thread_id,
-                task_type="image",
-                name=params["name"],
-                instructions=params["instructions"],
-                dependencies=params.get("dependencies", []),
-            )
-        )
-
-
-class DataframeAgent(BaseNode):
-    """
-    LLM Agent to create a dataframe based on a user prompt.
-    llm, dataframe creation, data structuring
-
-    Use cases:
-    - Generating structured data from natural language descriptions
-    - Creating sample datasets for testing or demonstration
-    - Converting unstructured text into tabular format
-    """
-
-    model: FunctionModel = Field(
-        default=FunctionModel(),
-        description="The language model to use.",
-    )
-    prompt: str = Field(
-        default="",
-        description="The user prompt",
-    )
-    image: ImageRef = Field(
-        default=ImageRef(),
-        description="The image to use in the prompt.",
-    )
-    tool_name: str = Field(
-        default="add_row",
-        description="The name of the tool to use.",
-    )
-    tool_description: str = Field(
-        default="Adds one row.",
-        description="The description of the tool to use.",
-    )
-    max_tokens: int = Field(
-        default=1000,
-        ge=0,
-        le=10000,
-        description="The maximum number of tokens to generate.",
-    )
-    temperature: float = Field(
-        default=1.0,
-        ge=0.0,
-        le=2.0,
-        description="The temperature to use for sampling.",
-    )
-    top_k: int = Field(
-        default=50,
-        ge=0,
-        le=1000,
-        description="The number of tokens to sample from.",
-    )
-    top_p: float = Field(
-        default=1.0,
-        ge=0.0,
-        le=1.0,
-        description="The cumulative probability for sampling.",
-    )
-    columns: RecordType = Field(
-        default=RecordType(),
-        description="The columns to use in the dataframe.",
-    )
-
-    async def process(self, context: ProcessingContext) -> DataframeRef:
-        system_message = await context.create_message(
-            MessageCreateRequest(
-                role="system",
-                content="You are an assistant with access to tools.",
-            )
-        )
-        assert system_message.thread_id is not None, "Thread ID is required"
-        thread_id = system_message.thread_id
-
-        user_message = await context.create_message(
-            MessageCreateRequest(
-                role="user",
-                content=self.prompt,
-                thread_id=thread_id,
-            )
-        )
-        messages = [system_message, user_message]
-
-        tools = [
-            CreateRecordTool(
-                self.tool_name, self.columns.columns, self.tool_description
-            )
-        ]
-
-        assistant_message = await process_messages(
-            context=context,
-            thread_id=thread_id,
-            node_id=self._id,
-            model=self.model,
-            messages=messages,
-            tools=tools,
-            # tool_choice={"type": "tool", "name": self.tool_name},
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
-            top_k=self.top_k,
-            top_p=self.top_p,
-        )
-
-        assert assistant_message.tool_calls is not None, "Tool calls missing"
-
-        tool_calls = await process_tool_calls(
-            context=context,
-            thread_id=thread_id,
-            tool_calls=assistant_message.tool_calls,
-            tools=tools,
-        )
-
-        data = [
-            [
-                (call.result[col.name] if col.name in call.result else None)
-                for col in self.columns.columns
-            ]
-            for call in tool_calls
-        ]
-        return DataframeRef(columns=self.columns.columns, data=data)
-
-
-class AgentNode(BaseNode):
+class Agent(BaseNode):
     """
     Agent node to plan tasks to achieve a goal.
     task planning, goal decomposition, workflow generation
@@ -362,10 +41,6 @@ class AgentNode(BaseNode):
     - Generating workflows for automated task execution
     """
 
-    model: FunctionModel = Field(
-        default=FunctionModel(),
-        description="The language model to use.",
-    )
     goal: str = Field(
         default="",
         description="The user prompt",
@@ -380,25 +55,13 @@ class AgentNode(BaseNode):
         le=2.0,
         description="The temperature to use for sampling.",
     )
-    top_k: int = Field(
-        default=50,
-        description="The number of tokens to sample from.",
-    )
-    top_p: float = Field(
-        default=1.0,
-        description="The cumulative probability for sampling.",
-    )
 
     async def process(self, context: ProcessingContext) -> list[Task]:
-        message = await context.create_message(
-            MessageCreateRequest(
-                role="user",
-                content=self.goal,
-            )
-        )
+        thread_id = uuid.uuid4().hex
         input_messages = [
             Message(
                 role="system",
+                thread_id=thread_id,
                 content="""
                 Generate a full list of tasks to achieve the goal below.
                 Model the tasks as a directed acyclic graph (DAG) with dependencies.
@@ -409,41 +72,176 @@ class AgentNode(BaseNode):
                 Describe each task in detail.
                 """,
             ),
-            message,
+            Message(
+                role="user",
+                thread_id=thread_id,
+                content=self.goal,
+            ),
         ]
-        assert message.thread_id is not None, "Thread ID is required"
-
-        tools = [CreateImageTaskTool(), CreateTextTaskTool()]
 
         assistant_message = await process_messages(
             context=context,
-            thread_id=message.thread_id,
             node_id=self._id,
-            model=self.model,
+            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
             messages=input_messages,
-            tools=tools,
-            top_k=self.top_k,
-            top_p=self.top_p,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "tasks",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "tasks": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {"type": "string"},
+                                        "type": {
+                                            "type": "string",
+                                            "enum": ["text", "image"],
+                                        },
+                                        "instructions": {"type": "string"},
+                                        "dependencies": {
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                        },
+                                    },
+                                    "required": [
+                                        "name",
+                                        "type",
+                                        "instructions",
+                                        "dependencies",
+                                    ],
+                                    "additionalProperties": False,
+                                },
+                            }
+                        },
+                        "required": ["tasks"],
+                        "additionalProperties": False,
+                    },
+                },
+            },
         )
 
-        assert assistant_message.tool_calls is not None, "Tool calls missing"
+        tasks_data = json.loads(str(assistant_message.content)).get("tasks", [])
 
-        tool_calls = await process_tool_calls(
+        created_tasks = []
+        for task_data in tasks_data:
+            task = Task(
+                thread_id=thread_id,
+                task_type=task_data["type"],
+                name=task_data["name"],
+                instructions=task_data["instructions"],
+                dependencies=task_data.get("dependencies", []),
+            )
+            created_tasks.append(task)
+
+        return created_tasks
+
+
+class DataframeAgent(BaseNode):
+    """
+    LLM Agent to create a dataframe based on a user prompt.
+    llm, dataframe creation, data structuring
+
+    Use cases:
+    - Generating structured data from natural language descriptions
+    - Creating sample datasets for testing or demonstration
+    - Converting unstructured text into tabular format
+    """
+
+    prompt: str = Field(
+        default="",
+        description="The user prompt",
+    )
+    input_text: str = Field(
+        default="",
+        description="The input text to be analyzed by the agent.",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="The image to use in the prompt.",
+    )
+    max_tokens: int = Field(
+        default=1000,
+        ge=0,
+        le=10000,
+        description="The maximum number of tokens to generate.",
+    )
+    temperature: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=2.0,
+        description="The temperature to use for sampling.",
+    )
+    columns: RecordType = Field(
+        default=RecordType(),
+        description="The columns to use in the dataframe.",
+    )
+
+    async def process(self, context: ProcessingContext) -> DataframeRef:
+        system_message = Message(
+            role="system",
+            content="You are an assistant with access to tools.",
+        )
+
+        user_message = Message(
+            role="user",
+            content=self.prompt + "\n\n" + self.input_text,
+        )
+        messages = [system_message, user_message]
+
+        assistant_message = await process_messages(
             context=context,
-            thread_id=message.thread_id,
-            tool_calls=assistant_message.tool_calls,
-            tools=tools,
+            node_id=self._id,
+            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
+            messages=messages,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "datatable",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "data": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        column.name: json_schema_for_column(column)
+                                        for column in self.columns.columns
+                                    },
+                                    "required": [
+                                        column.name for column in self.columns.columns
+                                    ],
+                                    "additionalProperties": False,
+                                },
+                            }
+                        },
+                        "required": ["data"],
+                        "additionalProperties": False,
+                    },
+                    "strict": True,
+                },
+            },
         )
+        data = [
+            [
+                (row[col.name] if col.name in row else None)
+                for col in self.columns.columns
+            ]
+            for row in json.loads(str(assistant_message.content)).get("data", [])
+        ]
+        return DataframeRef(columns=self.columns.columns, data=data)
 
-        for call in tool_calls:
-            print(call)
 
-        return [call.result for call in tool_calls for call in tool_calls]
-
-
-class ProcessTask(BaseNode):
+class RunTasks(BaseNode):
     """
     Process a task using specified models and tools.
     task execution, model integration, tool coordination
@@ -454,12 +252,8 @@ class ProcessTask(BaseNode):
     - Generating outputs based on task instructions
     """
 
-    model: FunctionModel = Field(
-        default=FunctionModel(),
-        description="The language model to use.",
-    )
-    task: Task = Field(
-        default=Task(),
+    tasks: list[Task] = Field(
+        default=[],
         description="The task to process.",
     )
     image_nodes: list[NodeRef] = Field(
@@ -476,49 +270,72 @@ class ProcessTask(BaseNode):
         le=2.0,
         description="The temperature to use for sampling.",
     )
-    top_k: int = Field(
-        default=50,
-        description="The number of tokens to sample from.",
-    )
-    top_p: float = Field(
-        default=1.0,
-        description="The cumulative probability for sampling.",
-    )
 
-    async def process(self, context: ProcessingContext) -> str:
-        message = await context.create_message(
-            MessageCreateRequest(
-                role="user",
-                content=self.task.instructions,
-            )
-        )
-        assert message.thread_id is not None, "Thread ID is required"
+    def topological_sort(self, tasks: list[Task]) -> list[Task]:
+        """
+        Perform a topological sort on the tasks to determine the order of execution.
+        """
+        tasks_by_name = {task.name: task for task in tasks}
+        dependencies = {task.name: task.dependencies for task in tasks}
 
+        def visit(task_name, visited, stack):
+            if task_name in stack:
+                raise ValueError("Cycle detected in task dependencies")
+            if task_name not in visited:
+                stack.add(task_name)
+                for dep in dependencies[task_name]:
+                    visit(dep, visited, stack)
+                stack.remove(task_name)
+                visited.add(task_name)
+
+        visited = set()
+        sorted_tasks = []
+        for task_name in tasks_by_name:
+            visit(task_name, visited, set())
+        for task_name in visited:
+            sorted_tasks.append(tasks_by_name[task_name])
+
+        return sorted_tasks
+
+    async def process_task(
+        self,
+        thread_id: str,
+        task: Task,
+        tasks_by_name: dict[str, Task],
+        context: ProcessingContext,
+    ) -> str:
+        dependent_results = [
+            tasks_by_name[dep].result
+            for dep in task.dependencies
+            if dep in tasks_by_name
+        ]
         input_messages = [
             Message(
                 role="system",
-                content="""
+                content=f"""
                 You are a friendly assistant who helps with tasks.
                 Generate a response to the task insctructions below.
                 Follow the instructions carefully.
                 Use the given tools to generate the output.
                 Do not make more than one tool call per message.
+                These are the results from the dependencies:
+                {dependent_results}
                 """,
             ),
-            message,
+            Message(
+                role="user",
+                content=task.instructions,
+            ),
         ]
         tools = [ProcessNodeTool(node.id) for node in self.image_nodes]
 
         assistant_message = await process_messages(
             context=context,
-            thread_id=message.thread_id,
             node_id=self._id,
-            model=self.model,
+            model=FunctionModel(provider=Provider.OpenAI, name=GPTModel.GPT4Mini.value),
             tools=tools,
             messages=input_messages,
             temperature=self.temperature,
-            top_k=self.top_k,
-            top_p=self.top_p,
             max_tokens=self.max_tokens,
         )
 
@@ -528,10 +345,153 @@ class ProcessTask(BaseNode):
         ):
             tool_calls = await process_tool_calls(
                 context=context,
-                thread_id=message.thread_id,
+                thread_id=thread_id,
                 tool_calls=assistant_message.tool_calls,
                 tools=tools,
             )
             return tool_calls[0].result["output"]
         else:
             return str(assistant_message.content)
+
+    async def process(self, context: ProcessingContext) -> list[Any]:
+        thread_id = uuid.uuid4().hex
+        tasks = self.topological_sort(self.tasks)
+        for task in tasks:
+            task.result = await self.process_task(
+                thread_id=thread_id,
+                task=task,
+                tasks_by_name={task.name: task for task in self.tasks},
+                context=context,
+            )
+        return tasks
+
+
+def extract_content(html_content: str) -> str:
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    def clean_text(text: str) -> str:
+        # Remove extra whitespace and newlines
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    # Remove script and style elements
+    for script in soup(["script", "style"]):
+        script.decompose()
+
+    # Try to find the main content
+    main_content = None
+    potential_content_tags = [
+        "article",
+        "main",
+        'div[id*="content"]',
+        'div[class*="content"]',
+    ]
+
+    for tag in potential_content_tags:
+        content = soup.select_one(tag)
+        if content:
+            main_content = content
+            break
+
+    # If we couldn't find a clear main content, use the body
+    if not main_content:
+        main_content = soup.body
+
+    # Extract the text from the main content
+    if main_content:
+        # Remove common non-content elements
+        for elem in main_content(["nav", "sidebar", "footer", "header"]):
+            elem.decompose()
+
+        return clean_text(main_content.get_text())
+    else:
+        return "No main content found"
+
+
+class WebsiteContentExtractor(BaseNode):
+    """
+    Extract main content from a website, removing navigation, ads, and other non-essential elements.
+    web scraping, content extraction, text analysis
+
+    Use cases:
+    - Clean web content for further analysis
+    - Extract article text from news websites
+    - Prepare web content for summarization
+    """
+
+    html_content: str = Field(
+        default="",
+        description="The raw HTML content of the website.",
+    )
+
+    async def process(self, context: ProcessingContext) -> str:
+        return extract_content(self.html_content)
+
+
+class ImageDownloader(BaseNode):
+    """
+    Download images from URLs in a dataframe and return a list of ImageRefs.
+    image download, web scraping, data processing
+
+    Use cases:
+    - Prepare image datasets for machine learning tasks
+    - Archive images from web pages
+    - Process and analyze images extracted from websites
+    """
+
+    images: DataframeRef = Field(
+        default=DataframeRef(),
+        description="Dataframe containing image URLs and alt text.",
+    )
+    base_url: str = Field(
+        default="",
+        description="Base URL to prepend to relative image URLs.",
+    )
+    max_concurrent_downloads: int = Field(
+        default=10,
+        description="Maximum number of concurrent image downloads.",
+    )
+
+    async def download_image(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+        context: ProcessingContext,
+    ) -> ImageRef | None:
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    content = await response.read()
+                    image_ref = await context.image_from_bytes(content)
+                    return image_ref
+                else:
+                    print(
+                        f"Failed to download image from {url}. Status code: {response.status}"
+                    )
+                    return None
+        except Exception as e:
+            print(f"Error downloading image from {url}: {str(e)}")
+            return None
+
+    async def process(self, context: ProcessingContext) -> list[ImageRef]:
+        images = []
+
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            assert self.images.data, "No data in the images dataframe"
+            for row in self.images.data:
+                src, alt, type = row
+                url = urljoin(self.base_url, src)
+                task = self.download_image(session, url, context)
+                tasks.append(task)
+
+                if len(tasks) >= self.max_concurrent_downloads:
+                    completed = await asyncio.gather(*tasks)
+                    images.extend([img for img in completed if img is not None])
+                    tasks = []
+
+            if tasks:
+                completed = await asyncio.gather(*tasks)
+                images.extend([img for img in completed if img is not None])
+
+        return images

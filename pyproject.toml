@@ -30,6 +30,7 @@ bs4 = "*"
 chromadb = "*"
 click = "*"
 cryptography = "*"
+crawl4ai = { git = "https://github.com/unclecode/crawl4ai.git" }
 datasets = "*"
 diffusers = {extras = ["torch"], version = "*"}
 einops = "*"

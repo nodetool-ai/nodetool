@@ -202,8 +202,6 @@ async def create_openai_completion(
         Message: The message returned by the OpenAI API.
     """
 
-    kwargs = {}
-
     if len(tools) > 0:
         kwargs["tools"] = [tool.tool_param() for tool in tools]
         if len(tool_choice) > 0:
@@ -423,55 +421,28 @@ async def create_ollama_completion(
 async def create_completion(
     context: ProcessingContext,
     model: FunctionModel,
-    node_id: str,
-    thread_id: str,
-    messages: Sequence[ChatMessageParam],
-    tools: Sequence[Tool],
-    tool_choice: dict[str, Any],
     **kwargs,
 ) -> Message:
     if model.provider == Provider.OpenAI:
-        response = await create_openai_completion(
+        return await create_openai_completion(
             context=context,
             model=model,
-            node_id=node_id,
-            messages=messages,
-            tools=tools,
-            tool_choice=tool_choice,
             **kwargs,
         )
     elif model.provider == Provider.Anthropic:
-        response = await create_anthropic_completion(
+        return await create_anthropic_completion(
             context=context,
             model=model,
-            node_id=node_id,
-            messages=messages,
-            tools=tools,
-            tool_choice=tool_choice,
             **kwargs,
         )
     elif model.provider == Provider.Ollama:
-        response = await create_ollama_completion(
+        return await create_ollama_completion(
             context=context,
             model=model,
-            node_id=node_id,
-            messages=messages,
-            tools=tools,
-            tool_choice=tool_choice,
             **kwargs,
         )
     else:
         raise ValueError(f"Provider {model.provider} not supported")
-
-    return await context.create_message(
-        MessageCreateRequest(
-            thread_id=thread_id,
-            user_id=context.user_id,
-            role="assistant",
-            content=response.content,
-            tool_calls=response.tool_calls,
-        )
-    )
 
 
 def message_param(message: Message) -> ChatMessageParam:
@@ -655,7 +626,6 @@ async def process_messages(
     context: ProcessingContext,
     messages: Sequence[Message],
     model: FunctionModel,
-    thread_id: str,
     node_id: str,
     tools: Sequence[Tool] = [],
     tool_choice: dict[str, str] = {},
@@ -684,7 +654,6 @@ async def process_messages(
     return await create_completion(
         context=context,
         model=model,
-        thread_id=thread_id,
         node_id=node_id,
         messages=[message_param(message) for message in messages],
         tools=tools,

@@ -3,6 +3,7 @@ import anthropic
 import dotenv
 import argparse
 
+from nodetool.common.environment import Environment
 from nodetool.common.get_files import get_content
 
 """
@@ -50,7 +51,7 @@ if __name__ == "__main__":
 
     print("Number of characters in the combined content:", len(combined))
 
-    client = anthropic.Anthropic()
+    client = Environment.get_anthropic_client()
     message = client.messages.create(
         model="claude-3-5-sonnet-20240620",
         max_tokens=4000,

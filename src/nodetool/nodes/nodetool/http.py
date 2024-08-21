@@ -1,5 +1,8 @@
 from pydantic import Field
+from nodetool.metadata.types import ColumnDef, DataframeRef, ImageRef
 from nodetool.workflows.base_node import BaseNode
+from nodetool.workflows.processing_context import ProcessingContext
+from crawl4ai.models import CrawlResult
 
 
 class HTTPBaseNode(BaseNode):
@@ -11,16 +14,15 @@ class HTTPBaseNode(BaseNode):
         default_factory=dict,
         description="Optional headers to include in the request.",
     )
-    allow_redirects: bool = Field(
-        default=True,
-        description="Whether to follow redirects.",
-    )
     auth: str | None = Field(default=None, description="Authentication credentials.")
+
+    @classmethod
+    def is_visible(cls) -> bool:
+        return cls is not HTTPBaseNode
 
     def get_request_kwargs(self):
         return {
             "headers": self.headers,
-            "allow_redirects": self.allow_redirects,
             "auth": self.auth,
         }
 
@@ -37,11 +39,9 @@ class HTTPGet(HTTPBaseNode):
     - Check website availability
     """
 
-    async def process(self, context) -> str:
-        async with context.http_session.get(
-            self.url, **self.get_request_kwargs()
-        ) as response:
-            return await response.text()
+    async def process(self, context: ProcessingContext) -> str:
+        res = await context.http_get(self.url, **self.get_request_kwargs())
+        return res.content.decode(res.encoding or "utf-8")
 
 
 class HTTPPost(HTTPBaseNode):
@@ -61,11 +61,11 @@ class HTTPPost(HTTPBaseNode):
         description="The data to send in the POST request.",
     )
 
-    async def process(self, context) -> str:
-        async with context.http_session.post(
+    async def process(self, context: ProcessingContext) -> str:
+        res = await context.http_post(
             self.url, data=self.data, **self.get_request_kwargs()
-        ) as response:
-            return await response.text()
+        )
+        return res.content.decode(res.encoding or "utf-8")
 
 
 class HTTPPut(HTTPBaseNode):
@@ -85,11 +85,11 @@ class HTTPPut(HTTPBaseNode):
         description="The data to send in the PUT request.",
     )
 
-    async def process(self, context) -> str:
-        async with context.http_session.put(
+    async def process(self, context: ProcessingContext) -> str:
+        res = await context.http_put(
             self.url, data=self.data, **self.get_request_kwargs()
-        ) as response:
-            return await response.text()
+        )
+        return res.content.decode(res.encoding or "utf-8")
 
 
 class HTTPDelete(HTTPBaseNode):
@@ -104,11 +104,9 @@ class HTTPDelete(HTTPBaseNode):
     - Clear cache entries
     """
 
-    async def process(self, context) -> str:
-        async with context.http_session.delete(
-            self.url, **self.get_request_kwargs()
-        ) as response:
-            return await response.text()
+    async def process(self, context: ProcessingContext) -> str:
+        res = await context.http_delete(self.url, **self.get_request_kwargs())
+        return res.content.decode(res.encoding or "utf-8")
 
 
 class HTTPHead(HTTPBaseNode):
@@ -122,8 +120,91 @@ class HTTPHead(HTTPBaseNode):
     - Verify authentication or permissions
     """
 
-    async def process(self, context) -> dict[str, str]:
-        async with context.http_session.head(
-            self.url, **self.get_request_kwargs()
-        ) as response:
-            return dict(response.headers)
+    async def process(self, context: ProcessingContext) -> dict[str, str]:
+        res = await context.http_head(self.url, **self.get_request_kwargs())
+        return dict(res.headers.items())
+
+
+class WebCrawler(BaseNode):
+    """
+    Run a web crawler to extract data from a website.
+    http, crawler, scrape, extract, data
+
+    Use cases:
+    - Collect product information
+    - Monitor news articles
+    - Scrape job listings
+    - Gather contact details
+    """
+
+    url: str = Field(
+        default="",
+        description="The URL to start the crawl from.",
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "html": str,
+            "success": bool,
+            "error_message": str | None,
+            "cleaned_html": str | None,
+            "metadata": dict | None,
+            "media": DataframeRef,
+            "links": DataframeRef,
+            "screenshot": ImageRef | None,
+        }
+
+    async def process(self, context: ProcessingContext):
+        crawler = context.get_web_crawler()
+        result = crawler.run(self.url)
+
+        media_columns = [
+            ColumnDef(name="src", data_type="string"),
+            ColumnDef(name="alt", data_type="string"),
+            ColumnDef(name="type", data_type="string"),
+        ]
+
+        links_columns = [
+            ColumnDef(name="href", data_type="string"),
+            ColumnDef(name="text", data_type="string"),
+            ColumnDef(name="type", data_type="string"),
+        ]
+
+        if result.success:
+            return {
+                "html": result.html,
+                "success": True,
+                "error_message": None,
+                "cleaned_html": result.cleaned_html,
+                "metadata": result.metadata,
+                "media": DataframeRef(
+                    columns=media_columns,
+                    data=[
+                        [str(m["src"]), str(m["alt"]), "image"]
+                        for m in result.media["images"]
+                    ]
+                    + [
+                        [str(m["src"]), str(m["alt"]), "video"]
+                        for m in result.media["videos"]
+                    ]
+                    + [
+                        [str(m["src"]), str(m["alt"]), "audio"]
+                        for m in result.media["audios"]
+                    ],
+                ),
+                "links": DataframeRef(
+                    columns=links_columns,
+                    data=[
+                        [str(l["href"]), str(l["text"]), "internal"]
+                        for l in result.links["internal"]
+                    ]
+                    + [
+                        [str(l["href"]), str(l["text"]), "external"]
+                        for l in result.links["external"]
+                    ],
+                ),
+                "screenshot": result.screenshot,
+            }
+        else:
+            raise Exception(result.error_message)

@@ -566,9 +566,8 @@ async def create_help_answer(
             # provider=Provider.Anthropic,
             # name="claude-3-5-sonnet-20240620",
             provider=Provider.OpenAI,
-            name="gpt-4o",
+            name="gpt-4o-mini",
         ),
-        thread_id=thread_id,
         node_id="",
         tools=tools,
     )

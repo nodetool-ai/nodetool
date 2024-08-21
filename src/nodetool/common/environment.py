@@ -567,7 +567,7 @@ class Environment(object):
         return AsyncClient(api_key=cls.get_openai_api_key())
 
     @classmethod
-    def get_anthropic_client(cls):
+    def get_anthropic_client(cls, use_async=True):
         from anthropic import AsyncAnthropic
 
         return AsyncAnthropic(
@@ -657,6 +657,10 @@ class Environment(object):
             FunctionModel(
                 provider=Provider.OpenAI,
                 name=GPTModel.GPT4.value,
+            ),
+            FunctionModel(
+                provider=Provider.OpenAI,
+                name=GPTModel.GPT4Mini.value,
             ),
             FunctionModel(
                 provider=Provider.Anthropic, name=AnthropicModel.claude_3_opus

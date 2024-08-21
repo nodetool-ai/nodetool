@@ -67,6 +67,10 @@ from pickle import dumps, loads
 
 log = Environment.get_logger()
 
+HTTP_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/1"
+}
+
 
 class ProcessingContext:
     """
@@ -643,7 +647,7 @@ class ProcessingContext:
         io.seek(0)
         return io
 
-    async def http_get(self, url: str) -> bytes:
+    async def http_get(self, url: str, **kwargs) -> httpx.Response:
         """
         Sends an HTTP GET request to the specified URL.
 
@@ -653,17 +657,41 @@ class ProcessingContext:
         Returns:
             bytes: The response content.
         """
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
-        }
-        response = await self.http_client.get(url, headers=headers)
+        _headers = HTTP_HEADERS.copy()
+        kwargs["headers"] = _headers.update(kwargs.get("headers", {}))
+        response = await self.http_client.get(url, **kwargs)
         log.info(f"GET {url} {response.status_code}")
         response.raise_for_status()
-        return response.content
+        return response
 
-    async def http_post(self, url: str, data: dict[str, Any]) -> Any:
+    async def http_post(
+        self,
+        url: str,
+        **kwargs,
+    ) -> httpx.Response:
         """
         Sends an HTTP POST request to the specified URL.
+
+        Args:
+            url (str): The URL to send the request to.
+
+        Returns:
+            bytes: The response content.
+        """
+        _headers = HTTP_HEADERS.copy()
+        kwargs["headers"] = _headers.update(kwargs.get("headers", {}))
+        response = await self.http_client.post(url, **kwargs)
+        log.info(f"POST {url} {response.status_code}")
+        response.raise_for_status()
+        return response
+
+    async def http_put(
+        self,
+        url: str,
+        **kwargs,
+    ) -> httpx.Response:
+        """
+        Sends an HTTP PUT request to the specified URL.
 
         Args:
             url (str): The URL to send the request to.
@@ -672,10 +700,66 @@ class ProcessingContext:
         Returns:
             bytes: The response content.
         """
-        response = await self.http_client.post(url, json=data)
-        log.info(f"POST {url} {response.status_code}")
+        _headers = HTTP_HEADERS.copy()
+        kwargs["headers"] = _headers.update(kwargs.get("headers", {}))
+        response = await self.http_client.put(url, **kwargs)
+        log.info(f"PUT {url} {response.status_code}")
         response.raise_for_status()
-        return response.json()
+        return response
+
+    async def http_delete(
+        self,
+        url: str,
+        **kwargs,
+    ) -> httpx.Response:
+        """
+        Sends an HTTP DELETE request to the specified URL.
+
+        Args:
+            url (str): The URL to send the request to.
+
+        Returns:
+            bytes: The response content.
+        """
+        _headers = HTTP_HEADERS.copy()
+        kwargs["headers"] = _headers.update(kwargs.get("headers", {}))
+        response = await self.http_client.delete(url, **kwargs)
+        log.info(f"DELETE {url} {response.status_code}")
+        response.raise_for_status()
+        return response
+
+    async def http_head(
+        self,
+        url: str,
+        **kwargs,
+    ) -> httpx.Response:
+        """
+        Sends an HTTP HEAD request to the specified URL.
+
+        Args:
+            url (str): The URL to send the request to.
+
+        Returns:
+            httpx.Response: The response object.
+        """
+        _headers = HTTP_HEADERS.copy()
+        kwargs["headers"] = _headers.update(kwargs.get("headers", {}))
+        response = await self.http_client.head(url, **kwargs)
+        log.info(f"HEAD {url} {response.status_code}")
+        response.raise_for_status()
+        return response
+
+    def get_web_crawler(self):
+        """
+        Returns a web crawler instance.
+        """
+        if not hasattr(self, "web_crawler"):
+            from crawl4ai import WebCrawler
+
+            self.web_crawler = WebCrawler()
+            self.web_crawler.warmup()
+
+        return self.web_crawler
 
     async def download_file(self, url: str) -> IO:
         """
@@ -698,7 +782,8 @@ class ProcessingContext:
             file.name = f"{uuid.uuid4()}.{ext}"
             return file
 
-        return BytesIO(await self.http_get(url))
+        response = await self.http_get(url)
+        return BytesIO(response.content)
 
     async def asset_to_io(self, asset_ref: AssetRef) -> IO:
         """
