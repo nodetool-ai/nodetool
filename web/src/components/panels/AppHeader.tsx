@@ -37,6 +37,7 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
+import { useEffect, useState } from "react";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -131,9 +132,36 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
 function AppHeader() {
   const navigate = useNavigate();
   const path = useLocation().pathname;
-  const buttonAppearance = useSettingsStore(
+
+  const globalButtonAppearance = useSettingsStore(
     (state) => state.settings.buttonAppearance
   );
+
+  // Local state to manage button appearance based on screen size
+  const [buttonAppearance, setButtonAppearance] = useState(
+    globalButtonAppearance
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 1200) {
+        setButtonAppearance("icon");
+      } else {
+        setButtonAppearance(globalButtonAppearance);
+      }
+    };
+
+    // Initialize on component mount
+    handleResize();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup the event listener on unmount
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [globalButtonAppearance]);
 
   const {
     helpOpen,

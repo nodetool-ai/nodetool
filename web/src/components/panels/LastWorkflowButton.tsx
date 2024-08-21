@@ -21,9 +21,11 @@ const styles = (theme: any) =>
       height: "2em",
       zIndex: 1000,
       left: "50%",
+      top: ".25em",
       textAlign: "center",
       transform: "translateX(-50%)",
       fontWeight: "normal",
+      backgroundColor: theme.palette.c_gray1,
       "&:hover": {
         color: theme.palette.c_hl1,
       },
@@ -92,7 +94,7 @@ const styles = (theme: any) =>
     },
     input: {
       fontSize: theme.fontSizeBig,
-      padding: ".2em 2em .2em 1em",
+      padding: ".5em 2em .2em 1em",
       marginLeft: "3em",
       textAlign: "center",
       backgroundColor: theme.palette.c_gray2,
