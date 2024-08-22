@@ -1,17 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { ButtonGroup, Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";
 import DeleteButton from "../buttons/DeleteButton";
-import { useAssetStore } from "../../stores/AssetStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
-// import useAssets from "../../serverState/useAssets";
-// import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
-// import { colorForType } from "../../config/data_types";
 
 const styles = (theme: any) =>
   css({
@@ -91,8 +86,8 @@ const styles = (theme: any) =>
 
 export interface FolderItemProps {
   folder: Asset;
-  // isSelected: boolean;
   isParent?: boolean;
+  isSelected?: boolean;
   onSelect: () => void;
   onClickParent?: (id: string) => void;
   enableContextMenu?: boolean;
@@ -103,9 +98,10 @@ export interface FolderItemProps {
 const FolderItem: React.FC<FolderItemProps> = ({
   folder,
   isParent,
+  isSelected,
   enableContextMenu = true,
   showDeleteButton = true,
-  // onSelect,
+  onSelect,
   // openDeleteDialog,
 }) => {
   const {
@@ -119,39 +115,13 @@ const FolderItem: React.FC<FolderItemProps> = ({
     handleDelete,
   } = useAssetActions(folder);
 
-  const selectedFolderIds = useSessionStateStore(
-    (state) => state.selectedFolderIds
-  );
-  const setSelectedFolderIds = useSessionStateStore(
-    (state) => state.setSelectedFolderIds
-  );
-
-  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-
-  const handleClick = useCallback(() => {
-    setCurrentFolderId(folder.id || "1");
-    setSelectedFolderIds([folder.id]);
-  }, [folder.id, setCurrentFolderId, setSelectedFolderIds]);
-
-  // const handleDoubleClick = useCallback(
-  //   (asset: Asset) => {
-  //     // setCurrentFolderId(asset.id);
-  //     // setSelectedFolderIds([]);
-  //   },
-  //   [setCurrentFolderId]
-  // );
-
-  // const { sortedAssets } = useAssets();
-  // const { selectedAssetIds } = useAssetSelection(sortedAssets);
-  const isSelected = selectedFolderIds.includes(folder.id);
-
   return (
     <div
       css={styles}
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
-      onClick={handleClick}
+      onClick={onSelect}
       // onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
       onDragOver={handleDragOver}

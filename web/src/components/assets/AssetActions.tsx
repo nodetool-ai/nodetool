@@ -113,7 +113,7 @@ const AssetActions = ({
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
-  const { refetchAssetsAndFolders, isLoading } = useAssets(currentFolderId);
+  const { refetchAssetsAndFolders, isLoading } = useAssets();
 
   const [createFolderAnchor, setCreateFolderAnchor] =
     useState<HTMLButtonElement | null>(null);
@@ -160,7 +160,6 @@ const AssetActions = ({
 
   return (
     <div className="asset-actions" css={styles}>
-      {currentFolder?.name || ":"}
       <ButtonGroup className="asset-button-group">
         <span>
           {/* // span is needed for disabled buttons*/}

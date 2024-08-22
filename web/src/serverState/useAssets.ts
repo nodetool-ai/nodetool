@@ -24,6 +24,7 @@ type AssetUpdate = {
 
 export const useAssets = (initialFolderId: string | null = null) => {
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
+
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
 
   const {
@@ -37,6 +38,9 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const queryClient = useQueryClient();
   const setSelectedFolderId = useSessionStateStore(
     (state) => state.setSelectedFolderId
+  );
+  const setSelectedFolderIds = useSessionStateStore(
+    (state) => state.setSelectedFolderIds
   );
   const assetSearchTerm = useSessionStateStore(
     (state) => state.assetSearchTerm
@@ -164,8 +168,10 @@ export const useAssets = (initialFolderId: string | null = null) => {
   // Navigate to folder
   const navigateToFolder = useCallback(
     (folderId: string | null) => {
-      setCurrentFolderId(folderId || "1");
       setSelectedFolderId(folderId);
+      setSelectedFolderIds(folderId ? [folderId] : []);
+      setCurrentFolderId(folderId || "1");
+      console.log("navigateToFolder", folderId);
     },
     [setCurrentFolderId, setSelectedFolderId]
   );

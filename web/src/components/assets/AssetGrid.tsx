@@ -1,13 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useMemo,
-} from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Box, Divider, Typography } from "@mui/material";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -75,7 +69,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isHorizontal,
 }) => {
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
-  const { folderFiles, isLoading, error } = useAssets(currentFolderId);
+  const { folderFiles, isLoading, error } = useAssets();
 
   // const filteredAssets = useMemo(() => {
   //   return filterAssets(assets, { searchTerm });
@@ -172,18 +166,27 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     [currentFolderId, uploadAsset]
   );
 
-  const handleSearchChange = useCallback((newSearchTerm: string) => {
-    setAssetSearchTerm(newSearchTerm);
-  }, []);
+  const handleSearchChange = useCallback(
+    (newSearchTerm: string) => {
+      setAssetSearchTerm(newSearchTerm);
+    },
+    [setAssetSearchTerm]
+  );
 
   const handleSearchClear = useCallback(() => {
     setAssetSearchTerm("");
-  }, []);
+  }, [setAssetSearchTerm]);
 
-  if (isLoading) {
-    return <Typography>Loading...</Typography>;
+  const selectedFolderId = useSessionStateStore(
+    (state) => state.selectedFolderId
+  );
+  const { navigateToFolder } = useAssets();
+
+  if (selectedFolderId === null) {
+    navigateToFolder("1");
+  } else {
+    console.log("selectedFolderId", selectedFolderId);
   }
-
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
       {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}

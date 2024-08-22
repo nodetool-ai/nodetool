@@ -209,15 +209,15 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [currentAsset, setCurrentAsset] = useState<Asset | undefined>(asset);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const [currentUrl, setCurrentUrl] = useState<string | undefined>(url);
-  const { refetchAssetsAndFolders, isLoading } = useAssets(currentFolderId);
+  const { refetchAssetsAndFolders, isLoading } = useAssets();
 
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
   const getAsset = useAssetStore((state) => state.get);
-  const folderAssets = useAssets(currentFolderId).folderAssets;
+  const folderAssets = useAssets();
   const sortedAssets = useMemo(() => {
-    return folderAssets?.assets || [];
+    return folderAssets?.folderFiles || [];
   }, [folderAssets]);
 
   const [currentFolderName, setCurrentFolderName] = useState<string | null>();

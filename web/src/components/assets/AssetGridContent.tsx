@@ -70,7 +70,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   const selectedFolderId = useSessionStateStore(
     (state) => state.selectedFolderId
   );
-  const { folderFilesFiltered } = useAssets(currentFolderId || "1");
+  const { folderFilesFiltered } = useAssets();
   // const fetchAssets = useAssets(currentFolderId || "1").fetchAssets;
 
   const assetItemSize = useSettingsStore(

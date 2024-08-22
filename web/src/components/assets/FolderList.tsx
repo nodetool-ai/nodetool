@@ -13,7 +13,7 @@ import useAssets from "../../serverState/useAssets";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useAssetStore } from "../../stores/AssetStore";
 
-const INITIAL_FOLDER_LIST_HEIGHT = 150;
+const INITIAL_FOLDER_LIST_HEIGHT = 200;
 const MIN_FOLDER_LIST_HEIGHT = 100;
 const MAX_FOLDER_LIST_HEIGHT = 1500;
 const RESIZE_HANDLE_HEIGHT = 20;
@@ -149,8 +149,7 @@ interface FolderListProps {
 }
 
 const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
-  const currentFolderId = useAssetStore((state) => state.currentFolderId);
-  const { folderTree } = useAssets(currentFolderId);
+  const { folderTree } = useAssets();
   const [folderListHeight, setFolderListHeight] = useState(
     INITIAL_FOLDER_LIST_HEIGHT
   );
@@ -159,14 +158,13 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const initialMouseY = useRef<number>(0);
   const initialHeight = useRef<number>(INITIAL_FOLDER_LIST_HEIGHT);
-  const navigateToFolder = useAssets(currentFolderId).navigateToFolder;
+  const { navigateToFolder } = useAssets();
   // const selectedFolderIds = useSessionStateStore(
   //   (state) => state.selectedFolderIds
   // );
   const setSelectedFolderIds = useSessionStateStore(
     (state) => state.setSelectedFolderIds
   );
-  // const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
 
   const handleResizeStart = useCallback(
@@ -210,21 +208,30 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     };
   }, [isResizing, handleResize, handleResizeEnd]);
 
-  // Updated handleSelect function to work with selectedFolderId
+  const selectedFolderId = useSessionStateStore(
+    (state) => state.selectedFolderId
+  );
+  const setSelectedFolderId = useSessionStateStore(
+    (state) => state.setSelectedFolderId
+  );
+  const selectedFolderIds = useSessionStateStore(
+    (state) => state.selectedFolderIds
+  );
+
   const handleSelect = (folderId: string) => {
     navigateToFolder(folderId);
+    setSelectedFolderId(folderId);
     setSelectedFolderIds([folderId]);
-    setCurrentFolderId(folderId || "1");
   };
 
-  const renderFolder = (node: any, level = 0, isRoot = false) => {
-    if (!node || !node.id) return null;
-    const hasChildren = node.children && node.children.length > 0;
+  const renderFolder = (folder: any, level = 0, isRoot = false) => {
+    if (!folder || !folder.id) return null;
+    const hasChildren = folder.children && folder.children.length > 0;
 
     return hasChildren ? (
       <Accordion
         className={"accordion " + (isRoot ? "root-folder" : "")}
-        key={node.id}
+        key={folder.id}
       >
         <AccordionSummary
           className="accordion-summary"
@@ -233,13 +240,17 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
             paddingLeft: `${level * LEVEL_PADDING}em !important`,
           }}
           expandIcon={<ExpandMoreIcon />}
-          aria-controls={`panel-${node.id}-content`}
-          id={`panel-${node.id}-header`}
+          aria-controls={`panel-${folder.id}-content`}
+          id={`panel-${folder.id}-header`}
         >
-          <FolderItem folder={node} onSelect={() => handleSelect(node.id)} />
+          <FolderItem
+            folder={folder}
+            onSelect={() => handleSelect(folder.id)}
+            isSelected={selectedFolderIds.includes(folder.id)}
+          />
         </AccordionSummary>
         <AccordionDetails>
-          {node.children.map((childNode: any) =>
+          {folder.children.map((childNode: any) =>
             renderFolder(childNode, level + 1)
           )}
         </AccordionDetails>
@@ -251,9 +262,13 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           height: ROW_HEIGHT + "em",
           paddingLeft: `${level * LEVEL_PADDING}em !important`,
         }}
-        key={node.id}
+        key={folder.id}
       >
-        <FolderItem folder={node} onSelect={() => handleSelect(node.id)} />
+        <FolderItem
+          folder={folder}
+          onSelect={() => handleSelect(folder.id)}
+          isSelected={selectedFolderIds.includes(folder.id)}
+        />
       </Box>
     );
   };
