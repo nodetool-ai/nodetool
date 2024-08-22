@@ -1,6 +1,5 @@
 services:
   api:
-    container_name: nodetool-api
     restart: unless-stopped
     build:
       context: .
@@ -8,8 +7,6 @@ services:
     volumes:
       - "./key.pem:/app/key.pem"
       - "./cert.pem:/app/cert.pem"
-      - ${COMFY_FOLDER}:/comfy
-      - ${HF_HOME}:/app/huggingface
     command:
       [
         "uvicorn",
@@ -35,21 +32,54 @@ services:
       S3_REGION: ${S3_REGION}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      HF_TOKEN: ${HF_TOKEN}
-      HF_HOME: /app/huggingface
-      OLLAMA_API_URL: http://ollama:11434
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
+      CHROMA_URL: http://chroma:9000
+      OLLAMA_API_URL: http://ollama:11434
+      WORKER_URL: http://worker:5001
+  worker:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    volumes:
+      - ${COMFY_FOLDER}:/comfy
+      - ${HF_HOME}:/app/huggingface
+    command:
+      [
+        "uvicorn",
+        "nodetool.api.worker:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5001",
+      ]
+    expose:
+      - "5001"
+    environment:
+      ENV: ${ENV:-development}
+      ASSET_BUCKET: ${ASSET_BUCKET}
+      ASSET_DOMAIN: ${ASSET_DOMAIN}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_REGION: ${S3_REGION}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN}
+      HF_TOKEN: ${HF_TOKEN}
+      HF_HOME: /app/huggingface
       MEMCACHE_HOST: memcached
       MEMCACHE_PORT: 11211
       COMFY_FOLDER: /comfy
+      OLLAMA_API_URL: http://ollama:11434
       CHROMA_URL: http://chroma:9000
+      NODETOOL_API_URL: http://api:5000
     deploy:
       resources:
         reservations:
@@ -59,10 +89,8 @@ services:
               capabilities: [ gpu ]
   memcached:
     image: memcached:bookworm
-    container_name: memcached
     restart: unless-stopped
   chroma:
-    container_name: chroma
     restart: unless-stopped
     build:
       context: .
@@ -80,11 +108,10 @@ services:
         "--path",
         "/chroma-data"
       ]
-    ports:
-      - "9000:9000"
+    expose:
+      - "9000"
   postgres:
     image: postgres:16.3
-    container_name: postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -92,6 +119,21 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ${POSTGRES_DATA_DIR}:/var/lib/postgresql/data
+  ollama:
+    image: ollama/ollama
+    restart: unless-stopped
+    volumes:
+      - ${OLLAMA_PATH}:/root/.ollama
+    expose:
+      - "11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
   # minio:
   #   container_name: minio
   #   image: minio/minio
@@ -107,16 +149,3 @@ services:
   #     MINIO_ROOT_PASSWORD: minio123
   #     MINIO_VOLUMES: /data
   #   command: server --console-address ":9001"
-  ollama:
-    image: ollama/ollama
-    container_name: ollama
-    restart: unless-stopped
-    volumes:
-      - ${OLLAMA_PATH}:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]

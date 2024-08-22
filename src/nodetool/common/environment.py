@@ -119,7 +119,6 @@ class Environment(object):
     development purposes.
     """
 
-    model_files: dict[str, list[str]] = {}
     settings: dict[str, Any] | None = None
     secrets: dict[str, Any] | None = None
     remote_auth: bool = True
@@ -538,6 +537,16 @@ class Environment(object):
             return "http://localhost:8000/api/storage/"
 
     @classmethod
+    def get_worker_api_client(cls):
+        from nodetool.common.worker_api_client import WorkerAPIClient
+
+        worker_url = cls.get_worker_url()
+        if worker_url:
+            return WorkerAPIClient(base_url=worker_url)
+        else:
+            return None
+
+    @classmethod
     def get_nodetool_api_client(
         cls, user_id: str, auth_token: str, api_url: str | None = None
     ) -> NodetoolAPIClient:
@@ -690,12 +699,14 @@ class Environment(object):
         return [LlamaModel(**model) for model in models["models"]]
 
     @classmethod
-    def get_model_files(cls, folder: str):
+    async def get_model_files(cls, folder: str):
         """
         Get the files in a model folder.
         """
-        if len(cls.model_files) > 0:
-            return cls.model_files.get(folder, [])
+        worker_client = Environment.get_worker_api_client()
+        if worker_client:
+            res = await worker_client.get(f"/models/{folder}")
+            return res.json()
         else:
             import folder_paths
 

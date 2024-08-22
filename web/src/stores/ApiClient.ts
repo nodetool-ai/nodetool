@@ -15,7 +15,7 @@ export const isProduction = mode === "production";
 
 export const BASE_URL =
   isDevelopment
-    ? "http://" + window.location.hostname + ":8000"
+    ? "http://" + window.location.hostname + ":5000"
     : isStaging
       ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com"
       : "https://api.nodetool.ai";

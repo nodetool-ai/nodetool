@@ -3,6 +3,8 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from nodetool.api.websocket_runner import WebSocketRunner
 
+from nodetool.common.environment import Environment
+from nodetool.metadata.node_metadata import NodeMetadata
 import nodetool.nodes.anthropic
 import nodetool.nodes.comfy
 import nodetool.nodes.huggingface
@@ -11,6 +13,7 @@ import nodetool.nodes.openai
 import nodetool.nodes.replicate
 import nodetool.nodes.stable_diffusion
 import nodetool.nodes.ollama
+from nodetool.workflows.base_node import get_registered_node_classes
 
 
 env_file = dotenv.find_dotenv(usecwd=True)
@@ -35,3 +38,18 @@ app.add_middleware(
 async def websocket_endpoint(websocket: WebSocket):
     runner = WebSocketRunner()
     await runner.run(websocket)
+
+
+@app.get("/metadata")
+async def metadata() -> list[NodeMetadata]:
+    """
+    Returns a list of all node metadata.
+    """
+    import nodetool.nodes
+
+    return [node_class.metadata() for node_class in get_registered_node_classes()]
+
+
+@app.get("/models/{folder}")
+async def index(folder: str) -> list[str]:
+    return await Environment.get_model_files(folder)

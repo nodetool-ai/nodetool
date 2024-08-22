@@ -181,7 +181,7 @@ class WorkflowRunner:
                     await node.finalize(context)
                 torch.cuda.empty_cache()
 
-        if self.is_cancelled or context.is_cancelled:
+        if self.is_cancelled:
             log.info("Job cancelled")
             context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
             self.status = "cancelled"
@@ -292,7 +292,7 @@ class WorkflowRunner:
             - Handles special processing for GroupNodes.
             - Posts node status updates (running, completed, error) to the context.
         """
-        if self.is_cancelled or context.is_cancelled:
+        if self.is_cancelled:
             return
 
         self.current_node = node._id
