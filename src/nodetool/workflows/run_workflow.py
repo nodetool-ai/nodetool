@@ -61,7 +61,9 @@ async def run_workflow(
             await runner.run(req, context)
         except Exception as e:
             log.exception(e)
-            context.post_message(Error(error=str(e)))
+            context.post_message(
+                JobUpdate(job_id=runner.job_id, status="failed", error=str(e))
+            )
 
     if use_thread:
         with ThreadedEventLoop() as tel:
@@ -85,8 +87,7 @@ async def run_workflow(
             except Exception as e:
                 log.exception(e)
                 run_future.cancel()
-                yield Error(error=str(e))
-
+                yield JobUpdate(job_id=runner.job_id, status="failed", error=str(e))
             try:
                 run_future.result()
             except Exception as e:

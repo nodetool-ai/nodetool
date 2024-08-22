@@ -323,7 +323,17 @@ class Environment(object):
 
     @classmethod
     def set_remote_auth(cls, remote_auth: bool):
+        """
+        Set the remote auth flag.
+        """
         os.environ["REMOTE_AUTH"] = "1" if remote_auth else "0"
+
+    @classmethod
+    def set_worker_url(cls, worker_url: str):
+        """
+        Set the worker url.
+        """
+        os.environ["WORKER_URL"] = worker_url
 
     @classmethod
     def use_remote_auth(cls):
@@ -410,7 +420,6 @@ class Environment(object):
         """
         The database adapter is the adapter that we use to connect to the database.
         """
-
         if cls.get("POSTGRES_DB", None) is not None:
             from nodetool.models.postgres_adapter import PostgresAdapter
 

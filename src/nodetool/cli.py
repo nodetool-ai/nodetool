@@ -1,6 +1,6 @@
+import os
 import click
 from nodetool.api.server import run_uvicorn_server
-from nodetool.api.server import create_app
 from nodetool.common.environment import Environment
 import dotenv
 
@@ -10,13 +10,6 @@ import warnings
 from nodetool.workflows.base_node import get_registered_node_classes
 
 warnings.filterwarnings("ignore")
-
-env_file = dotenv.find_dotenv(usecwd=True)
-
-if env_file != "":
-    print(f"Loading environment from {env_file}")
-    dotenv.load_dotenv(env_file)
-
 log = Environment.get_logger()
 
 
@@ -34,14 +27,48 @@ def setup():
 
 @click.command()
 @click.option("--host", default="127.0.0.1", help="Host address to serve on.")
+@click.option("--port", default=8001, help="Port to serve on.", type=int)
+@click.option("--force-fp16", is_flag=True, help="Force FP16.")
+@click.option("--reload", is_flag=True, help="Reload the server on changes.")
+def worker(
+    host: str,
+    port: int,
+    reload: bool = False,
+    force_fp16: bool = False,
+):
+    """Serve the Nodetool API server."""
+
+    if Environment.get_comfy_folder():
+        import comfy.cli_args
+
+        comfy.cli_args.args.force_fp16 = force_fp16
+
+    app = "nodetool.api.worker:app"
+
+    if Environment.get_comfy_folder():
+        import comfy.cli_args
+
+        comfy.cli_args.args.force_fp16 = True
+
+        import comfy.model_management
+        import comfy.utils
+        from nodes import init_extra_nodes
+
+        init_extra_nodes()
+
+    run_uvicorn_server(app=app, host=host, port=port, reload=reload)
+
+
+@click.command()
+@click.option("--host", default="127.0.0.1", help="Host address to serve on.")
 @click.option("--port", default=8000, help="Port to serve on.", type=int)
+@click.option("--worker-url", default=None, help="URL of the worker to connect to.")
 @click.option(
     "--static-folder",
     default=None,
     help="Path to the static folder to serve.",
     type=click.Path(exists=True, resolve_path=True, file_okay=False, dir_okay=True),
 )
-@click.option("--skip-setup", is_flag=True, help="Skip the setup process.")
 @click.option("--force-fp16", is_flag=True, help="Force FP16.")
 @click.option("--reload", is_flag=True, help="Reload the server on changes.")
 @click.option(
@@ -54,26 +81,21 @@ def serve(
     port: int,
     static_folder: str | None = None,
     reload: bool = False,
-    skip_setup: bool = False,
     force_fp16: bool = False,
     remote_auth: bool = False,
+    worker_url: str | None = None,
 ):
     """Serve the Nodetool API server."""
-    if not Environment.has_settings() and not skip_setup:
-        print("No settings found. Running setup.")
-        Environment.setup()
 
     if Environment.get_comfy_folder():
         import comfy.cli_args
 
         comfy.cli_args.args.force_fp16 = force_fp16
 
-    if remote_auth:
-        print("Using remote auth.")
-    else:
-        print("Disable auth.")
-
     Environment.set_remote_auth(remote_auth)
+
+    if worker_url:
+        Environment.set_worker_url(worker_url)
 
     app = "nodetool.api.dev_app:app"
 
@@ -149,6 +171,7 @@ def chat():
             break
 
 
+cli.add_command(worker)
 cli.add_command(setup)
 cli.add_command(serve)
 cli.add_command(run)

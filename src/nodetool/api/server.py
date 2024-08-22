@@ -1,8 +1,10 @@
 import os
+import dotenv
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from nodetool.api import prediction
+from nodetool.api.websocket_proxy import WebSocketProxy
 from nodetool.common.environment import Environment
 
 from fastapi import APIRouter, FastAPI, Request, WebSocket
@@ -40,6 +42,12 @@ def create_app(
     routers: list[APIRouter] = DEFAULT_ROUTERS,
     static_folder: str | None = None,
 ):
+    env_file = dotenv.find_dotenv(usecwd=True)
+
+    if env_file != "":
+        print(f"Loading environment from {env_file}")
+        dotenv.load_dotenv(env_file)
+
     app = FastAPI()
     app.add_middleware(
         CORSMiddleware,
@@ -63,27 +71,37 @@ def create_app(
             print(f"Request validation error: {exc}")
             return JSONResponse({"detail": exc.errors()}, status_code=422)
 
-    if Environment.get_comfy_folder():
-        import comfy.cli_args
-
-        comfy.cli_args.args.force_fp16 = True
-
-        import comfy.model_management
-        import comfy.utils
-        from nodes import init_extra_nodes
-
-        init_extra_nodes()
-
     @app.get("/health")
     async def health_check() -> str:
         return "OK"
 
-    @app.websocket("/predict")
-    async def websocket_endpoint(websocket: WebSocket):
-        from nodetool.api.websocket_runner import WebSocketRunner
+    worker_url = Environment.get_worker_url()
 
-        runner = WebSocketRunner()
-        await runner.run(websocket)
+    if worker_url:
+        ws_proxy = WebSocketProxy(worker_url=worker_url)
+
+        @app.websocket("/predict")
+        async def websocket_endpoint(websocket: WebSocket):
+            await ws_proxy(websocket)
+
+    else:
+        # if we don't run the worker, we need to initialize the comfy environment
+        if Environment.get_comfy_folder():
+            import comfy.cli_args
+
+            comfy.cli_args.args.force_fp16 = True
+
+            import comfy.model_management
+            import comfy.utils
+            from nodes import init_extra_nodes
+
+            init_extra_nodes()
+
+        @app.websocket("/predict")
+        async def websocket_endpoint(websocket: WebSocket):
+            from nodetool.api.websocket_runner import WebSocketRunner
+
+            await WebSocketRunner().run(websocket)
 
     if static_folder:
         app.mount("/", StaticFiles(directory=static_folder, html=True), name="static")

@@ -9,6 +9,7 @@ from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
 from queue import Queue
 from nodetool.common.environment import Environment
+from nodetool.types.job import JobUpdate
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.run_job_request import RunJobRequest
@@ -174,6 +175,14 @@ class WebSocketRunner:
             # TODO: Update the job model with the final status
         except Exception as e:
             log.exception(f"Error in job {self.job_id}: {e}")
+            msg = {
+                "type": "job_update",
+                "status": "failed",
+                "error": str(e),
+                "job_id": self.job_id,
+            }
+            packed_message = msgpack.packb(msg, use_bin_type=True)
+            await self.websocket.send_bytes(packed_message)  # type: ignore
 
         # TODO: Implement bookkeeping for credits used
         self.active_job = None
