@@ -184,8 +184,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   if (selectedFolderId === null) {
     navigateToFolder("1");
-  } else {
-    console.log("selectedFolderId", selectedFolderId);
   }
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>

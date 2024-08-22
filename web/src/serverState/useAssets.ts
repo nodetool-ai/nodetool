@@ -171,9 +171,8 @@ export const useAssets = (initialFolderId: string | null = null) => {
       setSelectedFolderId(folderId);
       setSelectedFolderIds(folderId ? [folderId] : []);
       setCurrentFolderId(folderId || "1");
-      console.log("navigateToFolder", folderId);
     },
-    [setCurrentFolderId, setSelectedFolderId]
+    [setCurrentFolderId, setSelectedFolderId, setSelectedFolderIds]
   );
 
   const isLoading = isLoadingCurrentFolder || isLoadingFolderTree;
