@@ -550,24 +550,22 @@ class Environment(object):
         if api_url is None:
             api_url = cls.get_nodetool_api_url()
 
-        if not hasattr(cls, "nodetool_api_client"):
-            if api_url is not None:
-                cls.nodetool_api_client = NodetoolAPIClient(
-                    user_id=user_id,
-                    auth_token=auth_token,
-                    base_url=api_url,
-                    client=AsyncClient(timeout=30),
-                )
-            else:
-                app = create_app()
-                transport = ASGITransport(app=app)  # type: ignore
-                cls.nodetool_api_client = NodetoolAPIClient(
-                    user_id=user_id,
-                    auth_token=auth_token,
-                    base_url=NODETOOL_INTERNAL_API,
-                    client=AsyncClient(transport=transport),
-                )
-        return cls.nodetool_api_client
+        if api_url is not None:
+            return NodetoolAPIClient(
+                user_id=user_id,
+                auth_token=auth_token,
+                base_url=api_url,
+                client=AsyncClient(timeout=30),
+            )
+        else:
+            app = create_app()
+            transport = ASGITransport(app=app)  # type: ignore
+            return NodetoolAPIClient(
+                user_id=user_id,
+                auth_token=auth_token,
+                base_url=NODETOOL_INTERNAL_API,
+                client=AsyncClient(transport=transport),
+            )
 
     @classmethod
     def get_openai_client(cls):
