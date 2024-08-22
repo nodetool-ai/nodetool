@@ -113,7 +113,6 @@ class ProcessingContext:
             queue.Queue, asyncio.Queue, multiprocessing.Queue, None
         ] = None,
         http_client: httpx.AsyncClient | None = None,
-        api_client: NodetoolAPIClient | None = None,
         device: str = "cpu",
         models: dict[str, dict[str, Any]] | None = None,
     ):
@@ -124,16 +123,10 @@ class ProcessingContext:
         self.results = results if results else {}
         self.processed_nodes = set()
         self.message_queue = message_queue if message_queue else asyncio.Queue()
-        self.is_cancelled = False
         self.device = device
         self.models = models if models else {}
         self.variables = (
             variables if variables else {"seed": random.randint(0, 2**32 - 1)}
-        )
-        self.api_client = (
-            Environment.get_nodetool_api_client(self.user_id, self.auth_token)
-            if api_client is None
-            else api_client
         )
         self.http_client = (
             httpx.AsyncClient(follow_redirects=True, timeout=600)
@@ -141,6 +134,14 @@ class ProcessingContext:
             else http_client
         )
         assert self.auth_token is not None, "Auth token is required"
+
+    @property
+    def api_client(self) -> NodetoolAPIClient:
+        if not hasattr(self, "_api_client"):
+            self._api_client = Environment.get_nodetool_api_client(
+                self.user_id, self.auth_token
+            )
+        return self._api_client
 
     def get(self, key: str, default: Any = None) -> Any:
         """
@@ -428,8 +429,6 @@ class ProcessingContext:
         prediction.data = data
 
         async for msg in run_prediction(prediction):
-            if self.is_cancelled:
-                raise JobCancelledException()
             if isinstance(msg, PredictionResult):
                 # TODO: save prediction result
                 return msg.decode_content()

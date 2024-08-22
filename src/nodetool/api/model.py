@@ -22,7 +22,4 @@ async def function_model(user: User = Depends(current_user)) -> list[FunctionMod
 
 @router.get("/{folder}")
 async def index(folder: str, user: User = Depends(current_user)) -> list[str]:
-    try:
-        return Environment.get_model_files(folder)
-    except Exception as e:
-        raise HTTPException(status_code=404, detail="Error getting model files")
+    return await Environment.get_model_files(folder)

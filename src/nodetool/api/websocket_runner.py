@@ -120,30 +120,6 @@ class WebSocketRunner:
             start_time = time.time()
             self.job_id = uuid.uuid4().hex
             self.runner = WorkflowRunner(job_id=self.job_id)
-            api_client = Environment.get_nodetool_api_client(
-                user_id=req.user_id,
-                auth_token=req.auth_token,
-            )
-
-            self.context = ProcessingContext(
-                user_id=req.user_id,
-                auth_token=req.auth_token,
-                workflow_id=req.workflow_id,
-                api_client=api_client,
-            )
-
-            if Environment.is_production():
-                res = await self.context.api_client.post(
-                    "api/auth/verify", json={"token": req.auth_token}
-                )
-                if res.json()["valid"] == False:
-                    raise ValueError("Invalid auth token")
-
-            if req.graph is None:
-                workflow = await self.context.get_workflow(req.workflow_id)
-                req.graph = workflow.graph
-
-            # TODO: Create a job model and save it to the database
 
             log.info("Running job: %s", self.job_id)
             if self.pre_run_hook:
@@ -175,18 +151,21 @@ class WebSocketRunner:
             # TODO: Update the job model with the final status
         except Exception as e:
             log.exception(f"Error in job {self.job_id}: {e}")
-            msg = {
-                "type": "job_update",
-                "status": "failed",
-                "error": str(e),
-                "job_id": self.job_id,
-            }
-            packed_message = msgpack.packb(msg, use_bin_type=True)
-            await self.websocket.send_bytes(packed_message)  # type: ignore
+            await self.send_job_update("failed", str(e))
 
         # TODO: Implement bookkeeping for credits used
         self.active_job = None
         self.job_id = None
+
+    async def send_job_update(self, status: str, error: str | None = None):
+        msg = {
+            "type": "job_update",
+            "status": status,
+            "error": error,
+            "job_id": self.job_id,
+        }
+        packed_message = msgpack.packb(msg, use_bin_type=True)
+        await self.websocket.send_bytes(packed_message)  # type: ignore
 
     async def cancel_job(self):
         """
@@ -199,9 +178,9 @@ class WebSocketRunner:
         if self.active_job:
             if self.runner:
                 self.runner.cancel()
-            if self.context:
-                self.context.is_cancelled = True
-            # self.active_job.cancel()
+            await self.send_job_update("cancelled")
+            await asyncio.sleep(3.0)
+            self.active_job.cancel()
             self.active_job = None
             self.job_id = None
             return {"message": "Job cancelled"}

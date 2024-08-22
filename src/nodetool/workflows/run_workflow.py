@@ -38,18 +38,18 @@ async def run_workflow(
     Returns:
         AsyncGenerator[Any, None]: An asynchronous generator that yields job updates and messages from the workflow.
     """
-    api_client = Environment.get_nodetool_api_client(
-        user_id=req.user_id, auth_token=req.auth_token, api_url=req.api_url
-    )
-
     if context is None:
         context = ProcessingContext(
             user_id=req.user_id,
             auth_token=req.auth_token,
             workflow_id=req.workflow_id,
-            api_client=api_client,
-            message_queue=Queue() if use_thread else AsyncQueue(),
         )
+
+    if req.graph is None:
+        workflow = await context.get_workflow(req.workflow_id)
+        req.graph = workflow.graph
+
+    # TODO: Create a job model and save it to the database
 
     if runner is None:
         runner = WorkflowRunner(job_id=uuid4().hex)

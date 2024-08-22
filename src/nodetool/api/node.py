@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from fastapi import APIRouter
+import httpx
 from nodetool.types.job import (
     JobUpdate,
 )
@@ -61,6 +62,9 @@ async def metadata() -> list[NodeMetadata]:
     """
     Returns a list of all node metadata.
     """
-    import nodetool.nodes
-
-    return [node_class.metadata() for node_class in get_registered_node_classes()]
+    worker_client = Environment.get_worker_api_client()
+    if worker_client:
+        res = await worker_client.get("/metadata")
+        return res.json()
+    else:
+        return [node_class.metadata() for node_class in get_registered_node_classes()]

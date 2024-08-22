@@ -31,15 +31,10 @@ class MultiprocessRunner:
     ):
         async def run():
             runner = WorkflowRunner(job_id=req.workflow_id)
-            api_client = Environment.get_nodetool_api_client(
-                user_id=req.user_id,
-                auth_token=req.auth_token,
-            )
             context = ProcessingContext(
                 user_id=req.user_id,
                 auth_token=req.auth_token,
                 workflow_id=req.workflow_id,
-                api_client=api_client,
                 message_queue=queue,
             )
             if Environment.is_production():
