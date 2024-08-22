@@ -19,6 +19,8 @@ RUN apt-get update && \
     ffmpeg \
     git \
     gcc \
+    g++ \
+    build-essential \
     wget \
     curl \
     libgl1 \
