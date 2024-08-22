@@ -33,7 +33,6 @@ async def current_user(
     auth_cookie: Optional[str] = Cookie(None),
 ) -> User:
     if not Environment.use_remote_auth():
-        log.info("Using local user for authentication")
         return get_local_user()
 
     if authorization:

@@ -61,7 +61,6 @@ class WebSocketProxy:
                 async def send_back():
                     # Continuously receive messages from the worker and forward them to the client
                     async for msg in worker_ws:
-                        print(msg)
                         if msg.type == aiohttp.WSMsgType.TEXT:
                             await websocket.send_text(msg.data)
                         elif msg.type == aiohttp.WSMsgType.BINARY:
