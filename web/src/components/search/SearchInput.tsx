@@ -86,7 +86,7 @@ interface SearchInputProps {
 
 const SearchInput: React.FC<SearchInputProps> = ({
   onSearchChange,
-  onSearchClear = () => {},
+  onSearchClear = () => { },
   focusSearchInput = true,
   focusOnTyping = false,
   focusOnEscapeKey = true,
@@ -96,8 +96,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
 }) => {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const { isKeyPressed } = useKeyPressedStore();
-  const controlKeyPressed = isKeyPressed("Control");
+  const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
 
   const setSearchFocused = () => {
     inputRef.current?.focus();

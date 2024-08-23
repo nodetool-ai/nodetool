@@ -4,6 +4,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { devError } from "../../utils/DevLog";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 
 export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
@@ -20,6 +21,14 @@ export const useAssetActions = (asset: Asset) => {
   );
   const setMoveToFolderDialogOpen = useAssetGridStore(
     (state) => state.setMoveToFolderDialogOpen
+  );
+  const { isControlPressed, isShiftPressed } = useKeyPressedStore(
+    (state) => (
+      {
+        isControlPressed: state.isKeyPressed("Control"),
+        isShiftPressed: state.isKeyPressed("Shift")
+      }
+    )
   );
 
   const { mutation: updateAssetMutation } = useAssetUpdate();

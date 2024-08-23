@@ -4,11 +4,11 @@ import { Asset } from "../../stores/ApiTypes";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 export const useAssetSelection = (sortedAssets: Asset[]) => {
-  const selectedAssetIds = useAssetGridStore(
-    (state) => state.selectedAssetIds
-  );
-  const setSelectedAssetIds = useAssetGridStore(
-    (state) => state.setSelectedAssetIds
+  const { selectedAssetIds, setSelectedAssetIds } = useAssetGridStore(
+    (state) => ({
+      selectedAssetIds: state.selectedAssetIds,
+      setSelectedAssetIds: state.setSelectedAssetIds
+    })
   );
   const [lastSelectedAssetId, setLastSelectedAssetId] = useState<string | null>(
     null
@@ -18,18 +18,11 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     (state) => state.setCurrentAudioAsset
   );
 
-  const shiftKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("shift")
-  );
-  const controlKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("control")
-  );
-  const metaKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("meta")
-  );
-
   const handleSelectAsset = useCallback(
     (assetId: string) => {
+      const shiftKeyPressed = useKeyPressedStore.getState().isKeyPressed("shift");
+      const controlKeyPressed = useKeyPressedStore.getState().isKeyPressed("control");
+      const metaKeyPressed = useKeyPressedStore.getState().isKeyPressed("meta");
       const selectedAssetIndex = sortedAssets.findIndex(
         (asset) => asset.id === assetId
       );
@@ -74,9 +67,6 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     [
       sortedAssets,
       lastSelectedAssetId,
-      shiftKeyPressed,
-      controlKeyPressed,
-      metaKeyPressed,
       selectedAssetIds,
       setSelectedAssetIds,
       setCurrentAudioAsset,

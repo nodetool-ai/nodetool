@@ -15,7 +15,6 @@ import AssetUploadOverlay from "./AssetUploadOverlay";
 import Dropzone from "./Dropzone";
 import FolderList from "./FolderList";
 
-import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -81,10 +80,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   };
   const { user } = useAuth();
 
-  const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
-  const spaceKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed(" ")
-  );
+  const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore((state) => ({
+    F2KeyPressed: state.isKeyPressed("F2"),
+    spaceKeyPressed: state.isKeyPressed(" ")
+  }));
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { uploadAsset } = useAssetUpload();

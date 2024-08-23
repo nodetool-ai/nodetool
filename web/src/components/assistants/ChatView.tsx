@@ -167,12 +167,15 @@ const MessageView = (msg: Message) => {
 };
 
 const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
-  const { isKeyPressed } = useKeyPressedStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesListRef = useRef<HTMLUListElement | null>(null);
-  const metaKeyPressed = isKeyPressed("Meta");
-  const altKeyPressed = isKeyPressed("Alt");
-  const shiftkeyPressed = isKeyPressed("Shift");
+  const { metaKeyPressed, altKeyPressed, shiftKeyPressed } = useKeyPressedStore(
+    (state) => ({
+      metaKeyPressed: state.isKeyPressed("Meta"),
+      altKeyPressed: state.isKeyPressed("Alt"),
+      shiftKeyPressed: state.isKeyPressed("Shift"),
+    })
+  );
   const [submitted, setSubmitted] = useState(false);
   // const readFromStorage = useAuth((state) => state.readFromStorage);
   // const user = readFromStorage();
@@ -244,7 +247,7 @@ const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
                 e.key === "Enter" &&
                 !metaKeyPressed &&
                 !altKeyPressed &&
-                !shiftkeyPressed
+                !shiftKeyPressed
               ) {
                 e.preventDefault();
                 chatPost();

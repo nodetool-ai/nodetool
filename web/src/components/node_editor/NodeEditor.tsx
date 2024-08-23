@@ -391,13 +391,6 @@ const NodeEditor: React.FC<unknown> = () => {
     }
   }, [fitScreen, shouldFitToScreen]);
 
-  // KEY LISTENERS
-  useEffect(() => {
-    // Initialize key listeners on component mount
-    const cleanup = initKeyListeners();
-    return cleanup; // Cleanup key listeners on component unmount
-  }, []);
-
   // INIT
   const handleOnInit = useCallback(() => {
     setTimeout(() => {

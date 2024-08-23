@@ -1,5 +1,4 @@
-import create from 'zustand';
-import { Workflow } from './ApiTypes';
+import { create } from 'zustand';
 
 interface AppHeaderState {
     helpOpen: boolean;

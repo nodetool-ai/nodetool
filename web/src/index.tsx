@@ -42,6 +42,7 @@ import { initSentry } from "./utils/sentry";
 import { RouteObject } from "@sentry/react/types/types";
 import useAuth from "./stores/useAuth";
 import { pingWorker } from "./stores/ApiClient";
+import { initKeyListeners } from "./stores/KeyPressedStore";
 
 initSentry();
 
@@ -176,6 +177,8 @@ const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
+
+initKeyListeners();
 
 root.render(
   <React.StrictMode>

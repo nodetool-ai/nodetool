@@ -103,10 +103,10 @@ const styles = (theme: any) =>
       transition: "background-color 0.2s 0.2s",
     },
     ".MuiSlider-root:hover .MuiSlider-track, .MuiSlider-root:active .MuiSlider-track, .MuiSlider-root:focus .MuiSlider-track":
-      {
-        backgroundColor: "#8eaca733",
-        transition: "background-color 0.2s 0s",
-      },
+    {
+      backgroundColor: "#8eaca733",
+      transition: "background-color 0.2s 0s",
+    },
     ".range-container": {
       transition: "opacity 0.2s",
       position: "absolute",
@@ -190,9 +190,10 @@ const useDragHandling = (
   state: NumberInputState,
   setState: React.Dispatch<React.SetStateAction<NumberInputState>>
 ) => {
-  const { isKeyPressed } = useKeyPressedStore();
-  const controlKeyPressed = isKeyPressed("Control");
-  const shiftKeyPressed = isKeyPressed("Shift");
+  const { controlKeyPressed, shiftKeyPressed } = useKeyPressedStore((state) => ({
+    controlKeyPressed: state.isKeyPressed("Control"),
+    shiftKeyPressed: state.isKeyPressed("Shift"),
+  }));
   const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
 
   const handleMouseMove = useCallback(

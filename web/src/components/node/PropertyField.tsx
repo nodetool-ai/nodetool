@@ -54,13 +54,12 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   isInspector,
   edgeConnected
 }: PropertyFieldProps) => {
-  const { isKeyPressed } = useKeyPressedStore();
-  const controlKeyPressed = isKeyPressed("Control");
-  const connectType = useConnectionStore((state) => state.connectType);
-  const connectDirection = useConnectionStore(
-    (state) => state.connectDirection
-  );
-  const connectNodeId = useConnectionStore((state) => state.connectNodeId);
+  const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
+  const { connectType, connectDirection, connectNodeId } = useConnectionStore((state) => ({
+    connectType: state.connectType,
+    connectDirection: state.connectDirection,
+    connectNodeId: state.connectNodeId
+  }));
   const currentZoom = useStore((state) => state.transform[2]);
   const isMinZoom = currentZoom === MIN_ZOOM;
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);

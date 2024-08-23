@@ -119,9 +119,10 @@ const LoopNode = (props: NodeProps<NodeData>) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
-  const { isKeyPressed } = useKeyPressedStore();
-  const controlKeyPressed = isKeyPressed("Control");
-  const spaceKeyPressed = isKeyPressed(" ");
+  const { controlKeyPressed, spaceKeyPressed } = useKeyPressedStore((state) => ({
+    controlKeyPressed: state.isKeyPressed("Control"),
+    spaceKeyPressed: state.isKeyPressed(" "),
+  }));
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
@@ -204,9 +205,8 @@ const LoopNode = (props: NodeProps<NodeData>) => {
   return (
     <div
       ref={nodeRef}
-      className={`loop-node ${nodeHovered ? "hovered" : ""} ${
-        spaceKeyPressed ? "space-pressed" : ""
-      } ${props.data.collapsed ? "collapsed" : ""}`}
+      className={`loop-node ${nodeHovered ? "hovered" : ""} ${spaceKeyPressed ? "space-pressed" : ""
+        } ${props.data.collapsed ? "collapsed" : ""}`}
       onDoubleClick={(e) => {
         handleDoubleClick(e, props.id);
       }}
