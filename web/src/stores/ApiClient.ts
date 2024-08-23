@@ -13,11 +13,12 @@ export const isDevelopment = mode === "development";
 export const isStaging = mode === "staging";
 export const isProduction = mode === "production";
 
+// TODO: make it configurable via env vars
 export const BASE_URL =
   isDevelopment
-    ? "http://" + window.location.hostname + ":5000"
+    ? "http://" + window.location.hostname + ":8000"
     : isStaging
-      ? "https://bqcu2fdqq5.eu-central-1.awsapprunner.com"
+      ? "https://staging-api.nodetool.ai"
       : "https://api.nodetool.ai";
 
 export const WORKER_URL = BASE_URL + "/predict";
