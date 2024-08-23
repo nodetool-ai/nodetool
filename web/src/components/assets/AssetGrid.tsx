@@ -188,6 +188,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
       {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}
       <AssetUploadOverlay />
+
       <AssetActionsMenu
         onSearchChange={handleSearchChange}
         onSearchClear={handleSearchClear}
