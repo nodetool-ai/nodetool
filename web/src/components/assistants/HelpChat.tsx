@@ -42,7 +42,12 @@ const HelpChat: React.FC = () => {
             listStyleType: "square",
           }}
         >
-          <ul>
+          <ul
+            style={{
+              padding: 0,
+              margin: 0,
+            }}
+          >
             <Typography component="li">Getting started</Typography>
             <Typography component="li">Managing assets</Typography>
             <Typography component="li">Working with nodes</Typography>
@@ -50,16 +55,14 @@ const HelpChat: React.FC = () => {
             <Typography component="li">Settings</Typography>
           </ul>
         </Box>
-        <Box>
-          You can even ask me to try and build a workflow.
-        </Box>
+        <Box>You can even ask me to try and build a workflow.</Box>
       </Typography>
       <ChatView
         isLoading={isLoading}
         messages={messages}
         sendMessage={handleSendMessage}
       />
-    </div >
+    </div>
   );
 };
 
