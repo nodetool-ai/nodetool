@@ -46,7 +46,7 @@ class PorterDuffImageComposite(ComfyNode):
     )
 
     @classmethod
-    def return_types(cls):
+    def return_type(cls):
         return {"image": ImageRef, "mask": Mask}
 
 
@@ -62,7 +62,7 @@ class SplitImageWithAlpha(ComfyNode):
     )
 
     @classmethod
-    def return_types(cls):
+    def return_type(cls):
         return {"image": ImageRef, "mask": Mask}
 
 

@@ -1,10 +1,10 @@
 from typing import Any
+from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import UNet, Latent
-from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 
 
-class SimpleMathFloat(BaseNode):
+class SimpleMathFloat(ComfyNode):
     """
     Represent a floating-point number.
     float, number, value
@@ -15,6 +15,7 @@ class SimpleMathFloat(BaseNode):
     - Provide flexible numeric inputs
     """
 
+    _comfy_class = "SimpleMathFloat+"
     value: float = Field(default=0.0, description="Floating-point value.")
 
     @classmethod
@@ -22,7 +23,7 @@ class SimpleMathFloat(BaseNode):
         return {"value": float}
 
 
-class SimpleMathPercent(BaseNode):
+class SimpleMathPercent(ComfyNode):
     """
     Represent a percentage value.
     percent, ratio, proportion
@@ -33,6 +34,7 @@ class SimpleMathPercent(BaseNode):
     - Control strength of effects or blending
     """
 
+    _comfy_class = "SimpleMathPercent+"
     value: float = Field(default=0.0, ge=0, le=1, description="Percentage value (0-1).")
 
     @classmethod
@@ -40,7 +42,7 @@ class SimpleMathPercent(BaseNode):
         return {"value": float}
 
 
-class SimpleMathInt(BaseNode):
+class SimpleMathInt(ComfyNode):
     """
     Represent an integer number.
     integer, number, value
@@ -51,6 +53,7 @@ class SimpleMathInt(BaseNode):
     - Provide discrete numeric inputs
     """
 
+    _comfy_class = "SimpleMathInt+"
     value: int = Field(default=0, description="Integer value.")
 
     @classmethod
@@ -58,7 +61,7 @@ class SimpleMathInt(BaseNode):
         return {"value": int}
 
 
-class SimpleMathSlider(BaseNode):
+class SimpleMathSlider(ComfyNode):
     """
     Provide a slider for float input.
     slider, float, range
@@ -69,6 +72,7 @@ class SimpleMathSlider(BaseNode):
     - Provide bounded numeric inputs
     """
 
+    _comfy_class = "SimpleMathSlider+"
     value: float = Field(default=0.5, ge=0.0, le=1.0, description="Slider value.")
 
     @classmethod
@@ -76,7 +80,7 @@ class SimpleMathSlider(BaseNode):
         return {"value": float}
 
 
-class SimpleMathBoolean(BaseNode):
+class SimpleMathBoolean(ComfyNode):
     """
     Represent a boolean value.
     boolean, toggle, switch
@@ -87,6 +91,7 @@ class SimpleMathBoolean(BaseNode):
     - Toggle between two states
     """
 
+    _comfy_class = "SimpleMathBoolean+"
     value: bool = Field(default=False, description="Boolean value.")
 
     @classmethod
@@ -94,7 +99,7 @@ class SimpleMathBoolean(BaseNode):
         return {"value": bool}
 
 
-class SimpleMath(BaseNode):
+class SimpleMath(ComfyNode):
     """
     Perform custom mathematical operations.
     math, calculation, expression
@@ -105,6 +110,7 @@ class SimpleMath(BaseNode):
     - Implement custom numeric logic
     """
 
+    _comfy_class = "SimpleMath+"
     a: int | float = Field(default=0.0, description="First optional value.")
     b: int | float = Field(default=0.0, description="Second optional value.")
     c: int | float = Field(default=0.0, description="Third optional value.")
@@ -115,7 +121,7 @@ class SimpleMath(BaseNode):
         return {"int_result": int, "float_result": float}
 
 
-class SimpleMathCondition(BaseNode):
+class SimpleMathCondition(ComfyNode):
     """
     Perform conditional mathematical operations.
     condition, math, branching
@@ -126,6 +132,7 @@ class SimpleMathCondition(BaseNode):
     - Combine conditional and mathematical operations
     """
 
+    _comfy_class = "SimpleMathCondition+"
     a: Any = Field(default=0.0, description="First optional value.")
     b: Any = Field(default=0.0, description="Second optional value.")
     c: Any = Field(default=0.0, description="Third optional value.")
@@ -142,7 +149,7 @@ class SimpleMathCondition(BaseNode):
         return {"int_result": int, "float_result": float}
 
 
-class SimpleCondition(BaseNode):
+class SimpleCondition(ComfyNode):
     """
     Perform a simple conditional operation.
     condition, branching, logic
@@ -153,6 +160,7 @@ class SimpleCondition(BaseNode):
     - Create dynamic workflows with branching
     """
 
+    _comfy_class = "SimpleCondition+"
     evaluate: Any = Field(default=0, description="Condition to evaluate.")
     on_true: Any = Field(default=0, description="Value to return if condition is true.")
     on_false: Any = Field(
@@ -164,7 +172,7 @@ class SimpleCondition(BaseNode):
         return {"value": Any}
 
 
-class SimpleComparison(BaseNode):
+class SimpleComparison(ComfyNode):
     """
     Perform a comparison between two values.
     comparison, logic, equality
@@ -175,6 +183,7 @@ class SimpleComparison(BaseNode):
     - Implement decision logic in workflows
     """
 
+    _comfy_class = "SimpleComparison+"
     a: Any = Field(default=0, description="First value to compare.")
     b: Any = Field(default=0, description="Second value to compare.")
     comparison: str = Field(default="==", description="Comparison operator.")
@@ -184,7 +193,7 @@ class SimpleComparison(BaseNode):
         return {"result": bool}
 
 
-class ConsoleDebug(BaseNode):
+class ConsoleDebug(ComfyNode):
     """
     Output debug information to the console.
     debug, logging, console
@@ -195,6 +204,7 @@ class ConsoleDebug(BaseNode):
     - Verify data flow through nodes
     """
 
+    _comfy_class = "ConsoleDebug+"
     value: Any = Field(description="Value to debug.")
     prefix: str = Field(default="Value:", description="Prefix for the debug output.")
 
@@ -203,7 +213,7 @@ class ConsoleDebug(BaseNode):
         return {}
 
 
-class DebugTensorShape(BaseNode):
+class DebugTensorShape(ComfyNode):
     """
     Output the shape of a tensor for debugging.
     debug, tensor, shape
@@ -214,6 +224,7 @@ class DebugTensorShape(BaseNode):
     - Inspect complex nested tensor structures
     """
 
+    _comfy_class = "DebugTensorShape+"
     tensor: Any = Field(
         description="Tensor or structure containing tensors to inspect."
     )
@@ -223,7 +234,7 @@ class DebugTensorShape(BaseNode):
         return {}
 
 
-class BatchCount(BaseNode):
+class BatchCount(ComfyNode):
     """
     Count the number of items in a batch.
     batch, count, size
@@ -234,6 +245,7 @@ class BatchCount(BaseNode):
     - Adapt processing based on batch size
     """
 
+    _comfy_class = "BatchCount+"
     batch: Any = Field(description="Batch to count items from.")
 
     @classmethod
@@ -241,7 +253,7 @@ class BatchCount(BaseNode):
         return {"count": int}
 
 
-class UNetCompile(BaseNode):
+class UNetCompile(ComfyNode):
     """
     Compile a PyTorch UNet for optimized execution.
     UNet, compilation, optimization
@@ -252,6 +264,7 @@ class UNetCompile(BaseNode):
     - Fine-tune UNet compilation settings
     """
 
+    _comfy_class = "UNetCompile+"
     unet: UNet = Field(description="UNet to compile.")
     fullgraph: bool = Field(default=False, description="Use full graph compilation.")
     dynamic: bool = Field(default=False, description="Use dynamic shape compilation.")
@@ -262,7 +275,7 @@ class UNetCompile(BaseNode):
         return {"UNet": UNet}
 
 
-class RemoveLatentMask(BaseNode):
+class RemoveLatentMask(ComfyNode):
     """
     Remove the noise mask from a latent sample.
     latent, mask, cleanup
@@ -273,6 +286,7 @@ class RemoveLatentMask(BaseNode):
     - Remove unwanted mask information
     """
 
+    _comfy_class = "RemoveLatentMask+"
     samples: Latent = Field(description="Latent samples to process.")
 
     @classmethod
@@ -280,7 +294,7 @@ class RemoveLatentMask(BaseNode):
         return {"latent": Latent}
 
 
-class SDXLEmptyLatentSizePicker(BaseNode):
+class SDXLEmptyLatentSizePicker(ComfyNode):
     """
     Create empty latents with specific sizes for SDXL.
     latent, size, SDXL
@@ -291,6 +305,7 @@ class SDXLEmptyLatentSizePicker(BaseNode):
     - Set up batch processing with specific dimensions
     """
 
+    _comfy_class = "SDXLEmptyLatentSizePicker+"
     resolution: str = Field(
         default="1024x1024 (1.0)", description="Predefined resolution option."
     )

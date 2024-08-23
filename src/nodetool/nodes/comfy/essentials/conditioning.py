@@ -1,9 +1,9 @@
+from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import Conditioning, CLIP
-from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 
 
-class CLIPTextEncodeSDXLSimplified(BaseNode):
+class CLIPTextEncodeSDXLSimplified(ComfyNode):
     """
     Encode text for SDXL models with simplified parameters.
     text, encoding, SDXL
@@ -31,7 +31,7 @@ class CLIPTextEncodeSDXLSimplified(BaseNode):
         return {"conditioning": Conditioning}
 
 
-class ConditioningCombineMultiple(BaseNode):
+class ConditioningCombineMultiple(ComfyNode):
     """
     Combine multiple conditioning inputs.
     conditioning, combine, merge
@@ -63,7 +63,7 @@ class ConditioningCombineMultiple(BaseNode):
         return {"conditioning": Conditioning}
 
 
-class SD3NegativeConditioning(BaseNode):
+class SD3NegativeConditioning(ComfyNode):
     """
     Generate negative conditioning for Stable Diffusion 3 models.
     conditioning, negative, SD3

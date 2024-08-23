@@ -1,5 +1,5 @@
+from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import ImageRef, Mask
-from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from enum import Enum
 from typing import Optional
@@ -22,7 +22,7 @@ class Direction(str, Enum):
     RTL = "rtl"
 
 
-class DrawText(BaseNode):
+class DrawText(ComfyNode):
     """
     Draw text on an image or create a new image with text.
     text, image, drawing
@@ -32,6 +32,8 @@ class DrawText(BaseNode):
     - Create text-based images for graphics or designs
     - Overlay text on existing images with customizable styles
     """
+
+    _comfy_class = "DrawText+"
 
     text: str = Field(default="Hello, World!", description="The text to draw")
     font: str = Field(default="", description="Font file name")

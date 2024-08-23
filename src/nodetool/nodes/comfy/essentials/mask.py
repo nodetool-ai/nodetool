@@ -1,9 +1,9 @@
+from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import Mask, ImageRef
-from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 
 
-class MaskBlur(BaseNode):
+class MaskBlur(ComfyNode):
     """
     Apply Gaussian blur to a mask.
     mask, blur, smoothing
@@ -14,6 +14,8 @@ class MaskBlur(BaseNode):
     - Create gradient effects in masks
     """
 
+    _comfy_class = "MaskBlur+"
+
     mask: Mask = Field(default=Mask(), description="The input mask to blur.")
     amount: int = Field(default=6, ge=0, le=256, description="Blur amount.")
     device: str = Field(default="auto", description="Device to perform blur on.")
@@ -23,7 +25,7 @@ class MaskBlur(BaseNode):
         return {"mask": Mask}
 
 
-class MaskFlip(BaseNode):
+class MaskFlip(ComfyNode):
     """
     Flip a mask along specified axis.
     mask, flip, mirror
@@ -34,6 +36,8 @@ class MaskFlip(BaseNode):
     - Generate variations of existing masks
     """
 
+    _comfy_class = "MaskFlip+"
+
     mask: Mask = Field(default=Mask(), description="The input mask to flip.")
     axis: str = Field(default="x", description="Axis to flip along: 'x', 'y', or 'xy'.")
 
@@ -42,7 +46,7 @@ class MaskFlip(BaseNode):
         return {"mask": Mask}
 
 
-class MaskPreview(BaseNode):
+class MaskPreview(ComfyNode):
     """
     Generate a preview image of a mask.
     mask, preview, visualization
@@ -53,6 +57,8 @@ class MaskPreview(BaseNode):
     - Export mask as viewable image
     """
 
+    _comfy_class = "MaskPreview+"
+
     mask: Mask = Field(default=Mask(), description="The mask to preview.")
 
     @classmethod
@@ -60,7 +66,7 @@ class MaskPreview(BaseNode):
         return {"image": ImageRef}
 
 
-class MaskBatch(BaseNode):
+class MaskBatch(ComfyNode):
     """
     Combine multiple masks into a batch.
     mask, batch, combine
@@ -71,6 +77,8 @@ class MaskBatch(BaseNode):
     - Create mask sequences for animations
     """
 
+    _comfy_class = "MaskBatch+"
+
     mask1: Mask = Field(default=Mask(), description="First mask to batch.")
     mask2: Mask = Field(default=Mask(), description="Second mask to batch.")
 
@@ -79,7 +87,7 @@ class MaskBatch(BaseNode):
         return {"mask": Mask}
 
 
-class MaskExpandBatch(BaseNode):
+class MaskExpandBatch(ComfyNode):
     """
     Expand a mask batch to a specified size.
     mask, batch, expand
@@ -90,6 +98,8 @@ class MaskExpandBatch(BaseNode):
     - Adjust mask batch size for compatibility
     """
 
+    _comfy_class = "MaskExpandBatch+"
+
     mask: Mask = Field(default=Mask(), description="The mask batch to expand.")
     size: int = Field(default=16, ge=1, description="Target batch size.")
     method: str = Field(default="expand", description="Method for expanding the batch.")
@@ -99,7 +109,7 @@ class MaskExpandBatch(BaseNode):
         return {"mask": Mask}
 
 
-class MaskBoundingBox(BaseNode):
+class MaskBoundingBox(ComfyNode):
     """
     Compute the bounding box of a mask.
     mask, bounding box, crop
@@ -109,6 +119,8 @@ class MaskBoundingBox(BaseNode):
     - Automatically crop masks to content
     - Extract region of interest from masks
     """
+
+    _comfy_class = "MaskBoundingBox+"
 
     mask: Mask = Field(default=Mask(), description="The input mask.")
     padding: int = Field(
@@ -133,7 +145,7 @@ class MaskBoundingBox(BaseNode):
         }
 
 
-class MaskFromColor(BaseNode):
+class MaskFromColor(ComfyNode):
     """
     Create a mask from a specific color in an image.
     mask, color, extraction
@@ -143,6 +155,8 @@ class MaskFromColor(BaseNode):
     - Create masks for color-coded regions
     - Isolate elements based on color information
     """
+
+    _comfy_class = "MaskFromColor+"
 
     image: ImageRef = Field(default=ImageRef(), description="The input image.")
     red: int = Field(
@@ -163,7 +177,7 @@ class MaskFromColor(BaseNode):
         return {"mask": Mask}
 
 
-class MaskFromSegmentation(BaseNode):
+class MaskFromSegmentation(ComfyNode):
     """
     Generate masks from image segmentation.
     mask, segmentation, color quantization
@@ -173,6 +187,8 @@ class MaskFromSegmentation(BaseNode):
     - Separate image elements based on color
     - Prepare masks for selective processing
     """
+
+    _comfy_class = "MaskFromSegmentation+"
 
     image: ImageRef = Field(
         default=ImageRef(), description="The input image to segment."
@@ -198,7 +214,7 @@ class MaskFromSegmentation(BaseNode):
         return {"mask": Mask}
 
 
-class MaskFix(BaseNode):
+class MaskFix(ComfyNode):
     """
     Apply various fixes and adjustments to a mask.
     mask, fix, adjust
@@ -208,6 +224,8 @@ class MaskFix(BaseNode):
     - Refine mask edges and shapes
     - Prepare masks for specific processing requirements
     """
+
+    _comfy_class = "MaskFix+"
 
     mask: Mask = Field(default=Mask(), description="The input mask to fix.")
     erode_dilate: int = Field(
@@ -234,7 +252,7 @@ class MaskFix(BaseNode):
         return {"mask": Mask}
 
 
-class TransitionMask(BaseNode):
+class TransitionMask(ComfyNode):
     """
     Generate a sequence of transition masks.
     mask, transition, animation
@@ -244,6 +262,8 @@ class TransitionMask(BaseNode):
     - Generate mask sequences for special effects
     - Produce animated mask patterns
     """
+
+    _comfy_class = "TransitionMask+"
 
     width: int = Field(default=512, ge=1, le=8192, description="Width of the mask.")
     height: int = Field(default=512, ge=1, le=8192, description="Height of the mask.")

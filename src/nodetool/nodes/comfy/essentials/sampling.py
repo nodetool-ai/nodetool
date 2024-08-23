@@ -1,11 +1,11 @@
+from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import ImageRef, Latent, UNet, CLIP, Conditioning
-from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from enum import Enum
 from typing import List, Optional
 
 
-class KSamplerVariationsStochastic(BaseNode):
+class KSamplerVariationsStochastic(ComfyNode):
     """
     Generate variations of an image using stochastic sampling.
     sampling, variations, stochastic
@@ -16,6 +16,7 @@ class KSamplerVariationsStochastic(BaseNode):
     - Generate multiple versions with subtle differences
     """
 
+    _comfy_class = "KSamplerVariationsStochastic+"
     model: UNet = Field(default=UNet(), description="The model to use for sampling")
     latent_image: Latent = Field(default=Latent(), description="The input latent image")
     noise_seed: int = Field(default=0, description="Seed for noise generation")
@@ -40,7 +41,7 @@ class KSamplerVariationsStochastic(BaseNode):
         return {"latent": Latent}
 
 
-class KSamplerVariationsWithNoise(BaseNode):
+class KSamplerVariationsWithNoise(ComfyNode):
     """
     Generate variations by injecting noise during sampling.
     sampling, variations, noise
@@ -51,6 +52,7 @@ class KSamplerVariationsWithNoise(BaseNode):
     - Fine-tune the balance between original and varied outputs
     """
 
+    _comfy_class = "KSamplerVariationsWithNoise+"
     model: UNet = Field(default=UNet(), description="The model to use for sampling")
     latent_image: Latent = Field(default=Latent(), description="The input latent image")
     main_seed: int = Field(default=0, description="Main seed for sampling")
@@ -75,7 +77,7 @@ class KSamplerVariationsWithNoise(BaseNode):
         return {"latent": Latent}
 
 
-class InjectLatentNoise(BaseNode):
+class InjectLatentNoise(ComfyNode):
     """
     Inject noise into a latent image.
     latent, noise, injection
@@ -86,6 +88,7 @@ class InjectLatentNoise(BaseNode):
     - Augment latent space for more diverse outputs
     """
 
+    _comfy_class = "InjectLatentNoise+"
     latent: Latent = Field(default=Latent(), description="The input latent image")
     noise_seed: int = Field(default=0, description="Seed for noise generation")
     noise_strength: float = Field(default=1.0, description="Strength of injected noise")
@@ -99,7 +102,7 @@ class InjectLatentNoise(BaseNode):
         return {"latent": Latent}
 
 
-class FluxSamplerParams(BaseNode):
+class FluxSamplerParams(ComfyNode):
     """
     Set up parameters for Flux sampler.
     sampling, flux, parameters
@@ -110,6 +113,7 @@ class FluxSamplerParams(BaseNode):
     - Fine-tune the sampling process for specific outputs
     """
 
+    _comfy_class = "FluxSamplerParams+"
     model: UNet = Field(default=UNet(), description="The model to use")
     conditioning: Conditioning = Field(
         default=Conditioning(), description="The conditioning to use"
@@ -129,7 +133,7 @@ class FluxSamplerParams(BaseNode):
         return {"latent": Latent, "params": dict}
 
 
-class PlotParameters(BaseNode):
+class PlotParameters(ComfyNode):
     """
     Plot sampler parameters alongside generated images.
     visualization, parameters, plot
@@ -140,6 +144,7 @@ class PlotParameters(BaseNode):
     - Create visual summaries of sampling experiments
     """
 
+    _comfy_class = "PlotParameters+"
     images: ImageRef = Field(default=ImageRef(), description="The generated images")
     params: dict = Field(default={}, description="The sampling parameters")
     order_by: str = Field(default="none", description="Parameter to order by")
@@ -153,7 +158,7 @@ class PlotParameters(BaseNode):
         return {"image": ImageRef}
 
 
-class TextEncodeForSamplerParams(BaseNode):
+class TextEncodeForSamplerParams(ComfyNode):
     """
     Encode text for use with sampler parameters.
     text, encoding, sampling
@@ -164,6 +169,7 @@ class TextEncodeForSamplerParams(BaseNode):
     - Create structured text inputs for sampling workflows
     """
 
+    _comfy_class = "TextEncodeForSamplerParams+"
     text: str = Field(default="", description="The input text to encode")
     clip: CLIP = Field(default=CLIP(), description="The CLIP model to use for encoding")
 
@@ -172,7 +178,7 @@ class TextEncodeForSamplerParams(BaseNode):
         return {"conditioning": Conditioning}
 
 
-class SamplerSelectHelper(BaseNode):
+class SamplerSelectHelper(ComfyNode):
     """
     Helper node for selecting samplers.
     sampling, selection, helper
@@ -183,6 +189,7 @@ class SamplerSelectHelper(BaseNode):
     - Batch process with multiple samplers
     """
 
+    _comfy_class = "SamplerSelectHelper+"
     samplers: List[bool] = Field(
         default_factory=list, description="List of boolean flags for samplers"
     )
@@ -192,7 +199,7 @@ class SamplerSelectHelper(BaseNode):
         return {"string": str}
 
 
-class SchedulerSelectHelper(BaseNode):
+class SchedulerSelectHelper(ComfyNode):
     """
     Helper node for selecting schedulers.
     scheduling, selection, helper
@@ -203,6 +210,7 @@ class SchedulerSelectHelper(BaseNode):
     - Batch process with multiple schedulers
     """
 
+    _comfy_class = "SchedulerSelectHelper+"
     schedulers: List[bool] = Field(
         default_factory=list, description="List of boolean flags for schedulers"
     )

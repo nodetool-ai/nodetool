@@ -1,10 +1,10 @@
+from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import ImageRef, Mask
-from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 from typing import Tuple, Any
 
 
-class LoadCLIPSegModels(BaseNode):
+class LoadCLIPSegModels(ComfyNode):
     """
     Load CLIP segmentation models.
     segmentation, CLIP, model loading
@@ -15,12 +15,14 @@ class LoadCLIPSegModels(BaseNode):
     - Initialize segmentation pipeline
     """
 
+    _comfy_class = "LoadCLIPSegModels+"
+
     @classmethod
     def return_type(cls):
         return {"clip_seg": Tuple[Any, Any]}
 
 
-class ApplyCLIPSeg(BaseNode):
+class ApplyCLIPSeg(ComfyNode):
     """
     Apply CLIP segmentation to an image.
     segmentation, CLIP, image analysis
@@ -30,6 +32,8 @@ class ApplyCLIPSeg(BaseNode):
     - Extract specific objects or regions from images
     - Create masks based on text prompts
     """
+
+    _comfy_class = "ApplyCLIPSeg+"
 
     clip_seg: Tuple[Any, Any] = Field(
         default=(None, None), description="The CLIP segmentation models"
