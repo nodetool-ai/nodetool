@@ -28,7 +28,6 @@ class Workflow(BaseModel):
             if asset:
                 thumbnail_url = Environment.get_asset_storage().get_url(asset.file_name)
 
-        graph = workflow.get_graph()
         api_graph = workflow.get_api_graph()
 
         return cls(
@@ -41,8 +40,6 @@ class Workflow(BaseModel):
             thumbnail=workflow.thumbnail or "",
             thumbnail_url=thumbnail_url,
             graph=api_graph,
-            input_schema=graph.get_input_schema(),
-            output_schema=graph.get_output_schema(),
         )
 
 

@@ -79,7 +79,7 @@ services:
       COMFY_FOLDER: /comfy
       OLLAMA_API_URL: http://ollama:11434
       CHROMA_URL: http://chroma:9000
-      NODETOOL_API_URL: http://api:5000
+      NODETOOL_API_URL: http://api:443
     deploy:
       resources:
         reservations:
