@@ -226,33 +226,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   const handleDownload = useCallback(async () => {
     if (currentAsset && currentAsset.get_url) {
-      try {
-        const response = await fetch(currentAsset.get_url);
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.href = blobUrl;
-
-        const fileName = currentAsset.name || "asset_download";
-        const fileExtension = currentAsset.content_type.split("/")[1];
-        const fullFileName = fileName.endsWith(fileExtension)
-          ? fileName
-          : `${fileName}.${fileExtension}`;
-
-        link.download = fullFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl);
-      } catch (error) {
-        console.warn("Error downloading file:", error);
-        addNotification({
-          type: "warning",
-          alert: true,
-          content: "File download failed",
-        });
-      }
+      window.open(currentAsset.get_url, "_blank");
     } else if (url) {
       window.open(url, "_blank");
     }
