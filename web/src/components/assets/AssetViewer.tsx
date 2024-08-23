@@ -25,6 +25,7 @@ import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import useAssets from "../../serverState/useAssets";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 const containerStyles = css({
   width: "100%",
@@ -207,7 +208,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const { asset, url, open, contentType, onClose: handleClose } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentAsset, setCurrentAsset] = useState<Asset | undefined>(asset);
-  const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const [currentUrl, setCurrentUrl] = useState<string | undefined>(url);
   const { refetchAssetsAndFolders, isLoading } = useAssets();
 
@@ -308,7 +308,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           if (controlKeyPressed) {
             handleChangeAsset(
               sortedAssets[
-                Math.min(currentIndex + prevNextAmount, sortedAssets.length - 1)
+              Math.min(currentIndex + prevNextAmount, sortedAssets.length - 1)
               ]
             );
           } else {

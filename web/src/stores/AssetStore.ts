@@ -4,6 +4,7 @@ import { Asset, AssetList } from "../stores/ApiTypes";
 import { devLog } from "../utils/DevLog";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
+import { useAssetGridStore } from "./AssetGridStore";
 
 const createAsset = (
   url: string,
@@ -59,10 +60,6 @@ export interface AssetStore {
   setQueryClient: (queryClient: QueryClient) => void;
   add: (asset: Asset) => void;
   invalidateQueries: (queryKey: QueryKey) => void;
-  currentFolderId: string | null;
-  setCurrentFolderId: (folderId: string | null) => void;
-  currentFolder: Asset | null;
-  parentFolder: Asset | null;
   get: (id: string) => Promise<Asset>;
   createFolder: (parent_id: string | null, name: string) => Promise<Asset>;
   createAsset: (
@@ -215,15 +212,17 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * Load the current folder and its parent folder.
    */
   loadCurrentFolder: async (cursor?: string) => {
-    const currentFolderId = get().currentFolderId;
+    const currentFolderId = useAssetGridStore.getState().currentFolderId;
+    const setCurrentFolder = useAssetGridStore.getState().setCurrentFolder;
+    const setParentFolder = useAssetGridStore.getState().setParentFolder;
     if (currentFolderId) {
       const asset = await get().get(currentFolderId);
-      set({ currentFolder: asset });
+      setCurrentFolder(asset);
       if (asset?.parent_id !== "") {
         get()
           .get(asset.parent_id)
           .then((parent) => {
-            set({ parentFolder: parent });
+            setParentFolder(parent);
           });
       }
     }
@@ -260,7 +259,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         name: name,
       },
       undefined,
-      (_) => {}
+      (_) => { }
     );
     get().add(folder);
     get().invalidateQueries(["assets", { parent_id: parent_id }]);
@@ -273,8 +272,12 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @param folderId The ID of the folder.
    */
   setCurrentFolderId: (folderId: string | null) => {
-    set({ currentFolderId: folderId, currentFolder: null, parentFolder: null });
-    // get().loadCurrentFolder();
+    const setCurrentFolderId = useAssetGridStore.getState().setCurrentFolderId;
+    const setCurrentFolder = useAssetGridStore.getState().setCurrentFolder;
+    const setParentFolder = useAssetGridStore.getState().setParentFolder;
+    setCurrentFolderId(folderId);
+    setCurrentFolder(null);
+    setParentFolder(null);
   },
 
   /**
@@ -407,7 +410,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         name: file.name,
       },
       file,
-      onUploadProgress || ((_) => {})
+      onUploadProgress || ((_) => { })
     );
     get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
     get().add(asset);

@@ -5,6 +5,7 @@ import { Asset } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
 import useSessionStateStore from "../stores/SessionStateStore";
 import useAuth from "../stores/useAuth";
+import { useAssetGridStore } from "../stores/AssetGridStore";
 
 type SortOrder = "name" | "date";
 type FilterOptions = {
@@ -24,8 +25,8 @@ type AssetUpdate = {
 };
 
 export const useAssets = (initialFolderId: string | null = null) => {
-  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-  const currentFolderId = useAssetStore((state) => state.currentFolderId);
+  const setCurrentFolderId = useAssetGridStore((state) => state.setCurrentFolderId);
+  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const currentUser = useAuth((state) => state.getUser());
 
   const {
@@ -37,13 +38,13 @@ export const useAssets = (initialFolderId: string | null = null) => {
   } = useAssetStore();
   const { settings } = useSettingsStore();
   const queryClient = useQueryClient();
-  const setSelectedFolderId = useSessionStateStore(
+  const setSelectedFolderId = useAssetGridStore(
     (state) => state.setSelectedFolderId
   );
-  const setSelectedFolderIds = useSessionStateStore(
+  const setSelectedFolderIds = useAssetGridStore(
     (state) => state.setSelectedFolderIds
   );
-  const assetSearchTerm = useSessionStateStore(
+  const assetSearchTerm = useAssetGridStore(
     (state) => state.assetSearchTerm
   );
 

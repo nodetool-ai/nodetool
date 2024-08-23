@@ -23,10 +23,10 @@ import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useNodeStore } from "../../stores/NodeStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 const styles = (theme: any) =>
   css({
@@ -70,18 +70,22 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   itemSpacing = 5,
   isHorizontal,
 }) => {
-  const currentFolder = useAssetStore((state) => state.currentFolder);
-  const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const { folderFiles, error } = useAssets();
-  const [openAsset, setOpenAsset] = useState<Asset | undefined>(undefined);
+  const {
+    openAsset,
+    setOpenAsset,
+    selectedAssets,
+    selectedAssetIds,
+    selectedFolderId,
+    setSelectedAssetIds,
+    setAssetSearchTerm,
+    currentAudioAsset,
+    currentFolder,
+    currentFolderId,
+  } = useAssetGridStore();
   const handleDoubleClick = (asset: Asset) => {
     setOpenAsset(asset);
   };
-
-  const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
-  const setAssetSearchTerm = useSessionStateStore(
-    (state) => state.setAssetSearchTerm
-  );
 
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
@@ -94,13 +98,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { uploadAsset } = useAssetUpload();
-  const currentAudioAsset = useSessionStateStore(
-    (state) => state.currentAudioAsset
-  );
 
   const {
-    selectedAssetIds,
-    setSelectedAssetIds,
     handleSelectAllAssets,
     handleDeselectAssets,
   } = useAssetSelection(folderFiles);
@@ -178,9 +177,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     setAssetSearchTerm("");
   }, [setAssetSearchTerm]);
 
-  const selectedFolderId = useSessionStateStore(
-    (state) => state.selectedFolderId
-  );
   const { navigateToFolder } = useAssets();
 
   if (selectedFolderId === null) {
@@ -193,8 +189,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       {openAsset && (
         <AssetViewer
           asset={openAsset}
-          open={openAsset !== undefined}
-          onClose={() => setOpenAsset(undefined)}
+          open={openAsset !== null}
+          onClose={() => setOpenAsset(null)}
         />
       )}
       <AssetActionsMenu
@@ -218,7 +214,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         >
           <FolderList
             isHorizontal={isHorizontal}
-            // onNavigate={navigateToFolder}
+          // onNavigate={navigateToFolder}
           />
           {/* <AssetGridContent itemSpacing={itemSpacing} assets={filteredAssets} /> */}
           <AssetGridContent

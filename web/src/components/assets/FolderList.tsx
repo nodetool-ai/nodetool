@@ -13,6 +13,7 @@ import useAssets from "../../serverState/useAssets";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import useAuth from "../../stores/useAuth";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 const INITIAL_FOLDER_LIST_HEIGHT = 200;
 const MIN_FOLDER_LIST_HEIGHT = 100;
@@ -164,10 +165,10 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   // const selectedFolderIds = useSessionStateStore(
   //   (state) => state.selectedFolderIds
   // );
-  const setSelectedFolderIds = useSessionStateStore(
+  const setSelectedFolderIds = useAssetGridStore(
     (state) => state.setSelectedFolderIds
   );
-  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
+  const setCurrentFolderId = useAssetGridStore((state) => state.setCurrentFolderId);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -216,7 +217,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   // const setSelectedFolderId = useSessionStateStore(
   //   (state) => state.setSelectedFolderId
   // );
-  const selectedFolderIds = useSessionStateStore(
+  const selectedFolderIds = useAssetGridStore(
     (state) => state.selectedFolderIds
   );
 

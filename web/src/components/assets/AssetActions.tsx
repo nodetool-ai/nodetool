@@ -31,6 +31,7 @@ import { TOOLTIP_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import dialogStyles from "../../styles/DialogStyles";
 import useAuth from "../../stores/useAuth";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -111,7 +112,7 @@ const AssetActions = ({
   handleDeselectAssets,
   maxItemSize = 10,
 }: AssetActionsProps) => {
-  const currentFolder = useAssetStore((state) => state.currentFolder);
+  const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const { refetchAssetsAndFolders, navigateToFolder, isLoading } = useAssets();
   const currentUser = useAuth((state) => state.getUser());
   const [createFolderAnchor, setCreateFolderAnchor] =
@@ -172,9 +173,8 @@ const AssetActions = ({
               // setCurrentFolderId(currentFolder?.parent_id || currentUser?.id || "");
               // setSelectedAssetIds([]);
             }}
-            className={`folder-up-button ${
-              currentFolder?.parent_id !== "" ? " enabled" : " disabled"
-            }`}
+            className={`folder-up-button ${currentFolder?.parent_id !== "" ? " enabled" : " disabled"
+              }`}
           >
             <NorthWestIcon />
           </Button>

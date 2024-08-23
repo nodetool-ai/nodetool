@@ -1,20 +1,22 @@
 import { useState, useCallback, useEffect } from "react";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { Asset } from "../../stores/ApiTypes";
-import useSessionStateStore from "../../stores/SessionStateStore";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 export const useAssetSelection = (sortedAssets: Asset[]) => {
-  const selectedAssetIds = useSessionStateStore(
+  const selectedAssetIds = useAssetGridStore(
     (state) => state.selectedAssetIds
   );
-  const setSelectedAssetIds = useSessionStateStore(
+  const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
   );
   const [lastSelectedAssetId, setLastSelectedAssetId] = useState<string | null>(
     null
   );
 
-  const { setCurrentAudioAsset } = useSessionStateStore();
+  const setCurrentAudioAsset = useAssetGridStore(
+    (state) => state.setCurrentAudioAsset
+  );
 
   const shiftKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("shift")

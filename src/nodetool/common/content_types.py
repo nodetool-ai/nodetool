@@ -27,6 +27,7 @@ CONTENT_TYPE_TO_EXTENSION = {
     "application/x-gzip": "gz",
     "audio/midi": "midi",
     "audio/mpeg": "mp3",
+    "audio/mp3": "mp3",
     "audio/webm": "webm",
     "audio/ogg": "ogg",
     "audio/wav": "wav",
@@ -49,6 +50,5 @@ CONTENT_TYPE_TO_EXTENSION = {
 }
 
 EXTENSION_TO_CONTENT_TYPE = {
-    value: key
-    for key, value in CONTENT_TYPE_TO_EXTENSION.items()
+    value: key for key, value in CONTENT_TYPE_TO_EXTENSION.items()
 }
