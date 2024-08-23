@@ -112,11 +112,8 @@ const AssetActions = ({
   maxItemSize = 10,
 }: AssetActionsProps) => {
   const currentFolder = useAssetStore((state) => state.currentFolder);
-  const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-  const currentFolderId = useAssetStore((state) => state.currentFolderId);
-  const { refetchAssetsAndFolders, isLoading } = useAssets();
+  const { refetchAssetsAndFolders, navigateToFolder, isLoading } = useAssets();
   const currentUser = useAuth((state) => state.getUser());
-
   const [createFolderAnchor, setCreateFolderAnchor] =
     useState<HTMLButtonElement | null>(null);
   const [createFolderName, setCreateFolderName] =
@@ -169,11 +166,15 @@ const AssetActions = ({
           <Button
             disabled={!currentFolder?.parent_id}
             onClick={() => {
-              setCurrentFolderId(currentFolder?.parent_id || currentUser?.id || "");
-              setSelectedAssetIds([]);
+              navigateToFolder(
+                currentFolder?.parent_id || currentUser?.id || ""
+              );
+              // setCurrentFolderId(currentFolder?.parent_id || currentUser?.id || "");
+              // setSelectedAssetIds([]);
             }}
-            className={`folder-up-button ${currentFolder?.parent_id !== "" ? " enabled" : " disabled"
-              }`}
+            className={`folder-up-button ${
+              currentFolder?.parent_id !== "" ? " enabled" : " disabled"
+            }`}
           >
             <NorthWestIcon />
           </Button>

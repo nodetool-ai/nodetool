@@ -68,6 +68,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   itemSpacing = 5,
   isHorizontal,
 }) => {
+  const currentFolder = useAssetStore((state) => state.currentFolder);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
   const { folderFiles, isLoading, error } = useAssets();
 
@@ -83,8 +84,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const { mutation: deleteMutation } = useAssetDeletion();
   const { mutation: updateMutation } = useAssetUpdate();
   const { mutation: moveMutation } = useAssetUpdate();
-
-  const currentFolder = useAssetStore((state) => state.currentFolder);
 
   const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
   const spaceKeyPressed = useKeyPressedStore((state) =>
@@ -189,6 +188,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
       {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}
       <AssetUploadOverlay />
+      cfid:{currentFolderId} s:{selectedFolderId} cf:{currentFolder?.id}
       <AssetActionsMenu
         onSearchChange={handleSearchChange}
         onSearchClear={handleSearchClear}
