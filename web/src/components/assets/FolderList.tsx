@@ -274,7 +274,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   };
 
   const rootFolder = {
-    id: "1",
+    id: currentUser?.id,
     name: "ASSETS",
     content_type: "folder",
     children: folderTree,
