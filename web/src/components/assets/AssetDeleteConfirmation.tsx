@@ -9,27 +9,26 @@ import {
   Typography,
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
-import { UseMutationResult } from "@tanstack/react-query";
 import dialogStyles from "../../styles/DialogStyles";
 import { Asset } from "../../stores/ApiTypes";
 import useAssets from "../../serverState/useAssets";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useAssetDeletion } from "../../serverState/useAssetDeletion";
+import { useAssetStore } from "../../stores/AssetStore";
 
 interface AssetDeleteConfirmationProps {
-  dialogOpen: boolean;
   assets: string[];
-  setDialogOpen: (open: boolean) => void;
-  mutation: UseMutationResult<void, Error, string[], unknown>;
 }
 
 const AssetDeleteConfirmation = ({
-  dialogOpen,
-  setDialogOpen,
   assets,
-  mutation,
 }: AssetDeleteConfirmationProps) => {
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [hasNonEmptyFolder, setHasNonEmptyFolder] = useState(false);
   const { folderFiles: allAssets, folderTree } = useAssets();
+  const dialogOpen = useAssetGridStore((state) => state.deleteDialogOpen);
+  const setDialogOpen = useAssetGridStore((state) => state.setDeleteDialogOpen);
+  const { mutation } = useAssetDeletion();
 
   const assetItems = useMemo(
     () => allAssets.filter((asset) => assets.includes(asset.id)),

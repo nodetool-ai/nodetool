@@ -16,22 +16,22 @@ import dialogStyles from "../../styles/DialogStyles";
 import FolderTree from "./FolderTree";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 
 interface AssetMoveToFolderConfirmationProps {
-  dialogOpen: boolean;
   assets: string[];
-  setDialogOpen: (open: boolean) => void;
-  mutation: UseMutationResult<any, unknown, AssetUpdate[], unknown>;
 }
 
 const AssetMoveToFolderConfirmation: React.FC<
   AssetMoveToFolderConfirmationProps
 > = (props) => {
-  const { dialogOpen, setDialogOpen, assets, mutation } = props;
+  const { assets } = props;
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
-
+  const dialogOpen = useAssetGridStore((state) => state.moveToFolderDialogOpen);
+  const setDialogOpen = useAssetGridStore((state) => state.setMoveToFolderDialogOpen);
+  const { mutation } = useAssetUpdate();
   const handleSelectFolder = useCallback(
     async (folderId: string) => {
       const assetUpdates = selectedAssets.map((asset: Asset) => ({

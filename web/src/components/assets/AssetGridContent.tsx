@@ -22,7 +22,6 @@ import {
   DIVIDER_HEIGHT,
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
-import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
 
 const styles = (theme: any) =>
   css({
@@ -77,7 +76,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
 
   const { selectedAssetIds, setSelectedAssetIds, handleSelectAsset } =
     useAssetSelection(assets);
-  const { openDeleteDialog, openRenameDialog } = useAssetDialog();
 
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
@@ -152,12 +150,10 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       footerHeight,
       itemSpacing,
       selectedAssetIds,
-      openDeleteDialog,
-      openRenameDialog,
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
-      onDoubleClick: onDoubleClick || (() => {}),
+      onDoubleClick: onDoubleClick || (() => { }),
       // refetch: refetchAssets,
     }),
     [
@@ -166,8 +162,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       footerHeight,
       itemSpacing,
       selectedAssetIds,
-      openDeleteDialog,
-      openRenameDialog,
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,

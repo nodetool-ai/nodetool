@@ -1,11 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { useCallback } from "react";
 import { Box, Typography } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import AssetActions from "./AssetActions";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
+import useAssets from "../../serverState/useAssets";
 
 const styles = (theme: any) =>
   css({
@@ -53,28 +56,35 @@ const styles = (theme: any) =>
   });
 
 interface AssetActionsMenuProps {
-  onSearchChange: (newSearchTerm: string) => void;
-  onSearchClear: () => void;
-  setSelectedAssetIds: (ids: string[]) => void;
-  handleSelectAllAssets: () => void;
-  handleDeselectAssets: () => void;
   maxItemSize: number;
-  currentFolder: { name: string } | null;
-  selectedAssetIds: string[];
-  selectedAssets: any[];
 }
 
 const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
-  onSearchChange,
-  onSearchClear,
-  setSelectedAssetIds,
-  handleSelectAllAssets,
-  handleDeselectAssets,
   maxItemSize,
-  currentFolder,
-  selectedAssetIds,
-  selectedAssets
 }) => {
+  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
+  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
+  const setSelectedAssetIds = useAssetGridStore((state) => state.setSelectedAssetIds);
+  const setAssetSearchTerm = useAssetGridStore((state) => state.setAssetSearchTerm);
+  const { folderFiles } = useAssets();
+  const currentFolder = useAssetGridStore((state) => state.currentFolder);
+
+  const {
+    handleSelectAllAssets,
+    handleDeselectAssets,
+  } = useAssetSelection(folderFiles);
+
+  const onSearchChange = useCallback(
+    (newSearchTerm: string) => {
+      setAssetSearchTerm(newSearchTerm);
+    },
+    [setAssetSearchTerm]
+  );
+
+  const onSearchClear = useCallback(() => {
+    setAssetSearchTerm("");
+  }, [setAssetSearchTerm]);
+
   return (
     <Box className="asset-menu" css={styles}>
       <SearchInput

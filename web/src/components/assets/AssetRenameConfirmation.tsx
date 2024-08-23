@@ -16,23 +16,25 @@ import { devLog } from "../../utils/DevLog";
 import { UseMutationResult } from "@tanstack/react-query";
 import { AssetUpdate, useAssetStore } from "../../stores/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 
 interface AssetRenameConfirmationProps {
-  dialogOpen: boolean;
   assets: string[];
-  setDialogOpen: (open: boolean) => void;
-  mutation: UseMutationResult<any, unknown, AssetUpdate[], unknown>;
 }
 
 const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   props
 ) => {
-  const { dialogOpen, setDialogOpen, assets, mutation } = props;
+  const { assets } = props;
+  const setDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
+  const dialogOpen = useAssetGridStore((state) => state.renameDialogOpen);
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [baseNewName, setBaseNewName] = useState("");
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const getAsset = useAssetStore((state) => state.get);
+  const { mutation } = useAssetUpdate();
 
   useEffect(() => {
     if (dialogOpen) {

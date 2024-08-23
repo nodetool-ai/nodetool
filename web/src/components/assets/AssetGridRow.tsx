@@ -15,8 +15,6 @@ interface AssetGridRowProps {
     footerHeight: number;
     itemSpacing: number;
     selectedAssetIds: string[];
-    openDeleteDialog: () => void;
-    openRenameDialog: () => void;
     handleSelectAsset: (id: string) => void;
     // refetch: () => void;
     setSelectedAssetIds: (ids: string[]) => void;

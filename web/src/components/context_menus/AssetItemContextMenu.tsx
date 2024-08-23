@@ -7,24 +7,16 @@ import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutli
 import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { devLog } from "../../utils/DevLog";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 
-interface AssetItemContextMenuProps {
-  openDeleteDialog: () => void;
-  openRenameDialog: () => void;
-  openMoveToFolderDialog: () => void;
-}
-
-const AssetItemContextMenu = ({
-  openDeleteDialog,
-  openRenameDialog,
-  openMoveToFolderDialog,
-}: AssetItemContextMenuProps) => {
+const AssetItemContextMenu = () => {
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
+  const setRenameDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
+  const setMoveToFolderDialogOpen = useAssetGridStore((state) => state.setMoveToFolderDialogOpen);
+  const setDeleteDialogOpen = useAssetGridStore((state) => state.setDeleteDialogOpen);
   const selectedAssetIds = useAssetGridStore(
     (state) => state.selectedAssetIds
   );
@@ -59,7 +51,7 @@ const AssetItemContextMenu = ({
         <ContextMenuItem
           onClick={(e: any) => {
             e.stopPropagation();
-            openRenameDialog();
+            setRenameDialogOpen(true);
           }}
           label="Rename"
           IconComponent={<DriveFileRenameOutlineIcon />}
@@ -68,7 +60,7 @@ const AssetItemContextMenu = ({
         <ContextMenuItem
           onClick={(e: any) => {
             e.stopPropagation();
-            openMoveToFolderDialog();
+            setMoveToFolderDialogOpen(true);
           }}
           label="Move to folder"
           IconComponent={<DriveFileMoveIcon />}
@@ -88,7 +80,7 @@ const AssetItemContextMenu = ({
           onClick={(e) => {
             if (e) {
               e.stopPropagation();
-              openDeleteDialog();
+              setDeleteDialogOpen(true);
             }
           }}
           label="Delete"

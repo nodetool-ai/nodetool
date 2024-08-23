@@ -15,10 +15,6 @@ import AssetUploadOverlay from "./AssetUploadOverlay";
 import Dropzone from "./Dropzone";
 import FolderList from "./FolderList";
 
-import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
-import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
-import { useAssetStore } from "../../stores/AssetStore";
-import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -27,6 +23,7 @@ import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import useAuth from "../../stores/useAuth";
 
 const styles = (theme: any) =>
   css({
@@ -70,26 +67,19 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   itemSpacing = 5,
   isHorizontal,
 }) => {
-  const { folderFiles, error } = useAssets();
-  const {
-    openAsset,
-    setOpenAsset,
-    selectedAssets,
-    selectedAssetIds,
-    selectedFolderId,
-    setSelectedAssetIds,
-    setAssetSearchTerm,
-    currentAudioAsset,
-    currentFolder,
-    currentFolderId,
-  } = useAssetGridStore();
+  const { error } = useAssets();
+  const openAsset = useAssetGridStore((state) => state.openAsset);
+  const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
+  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
+  const selectedFolderId = useAssetGridStore((state) => state.selectedFolderId);
+  const setSelectedAssetIds = useAssetGridStore((state) => state.setSelectedAssetIds);
+  const setRenameDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
+  const currentAudioAsset = useAssetGridStore((state) => state.currentAudioAsset);
+  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const handleDoubleClick = (asset: Asset) => {
     setOpenAsset(asset);
   };
-
-  const { mutation: deleteMutation } = useAssetDeletion();
-  const { mutation: updateMutation } = useAssetUpdate();
-  const { mutation: moveMutation } = useAssetUpdate();
+  const { user } = useAuth();
 
   const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
   const spaceKeyPressed = useKeyPressedStore((state) =>
@@ -98,23 +88,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { uploadAsset } = useAssetUpload();
-
-  const {
-    handleSelectAllAssets,
-    handleDeselectAssets,
-  } = useAssetSelection(folderFiles);
-
-  const {
-    deleteDialogOpen,
-    renameDialogOpen,
-    moveToFolderDialogOpen,
-    openDeleteDialog,
-    closeDeleteDialog,
-    openRenameDialog,
-    closeRenameDialog,
-    openMoveToFolderDialog,
-    closeMoveToFolderDialog,
-  } = useAssetDialog();
 
   const handleClickOutside = useCallback(
     (e: MouseEvent) => {
@@ -148,9 +121,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   useEffect(() => {
     if (F2KeyPressed && selectedAssetIds.length > 0) {
-      openRenameDialog();
+      setRenameDialogOpen(true);
     }
-  }, [F2KeyPressed, selectedAssetIds, openRenameDialog]);
+  }, [F2KeyPressed, selectedAssetIds]);
 
   const uploadFiles = useCallback(
     (files: File[]) => {
@@ -166,21 +139,14 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     [currentFolderId, uploadAsset]
   );
 
-  const handleSearchChange = useCallback(
-    (newSearchTerm: string) => {
-      setAssetSearchTerm(newSearchTerm);
-    },
-    [setAssetSearchTerm]
-  );
-
-  const handleSearchClear = useCallback(() => {
-    setAssetSearchTerm("");
-  }, [setAssetSearchTerm]);
-
   const { navigateToFolder } = useAssets();
 
   if (selectedFolderId === null) {
-    navigateToFolder("1");
+    if (user) {
+      navigateToFolder(user?.id);
+    } else {
+      console.error("User is not logged in");
+    }
   }
   return (
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
@@ -193,17 +159,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           onClose={() => setOpenAsset(null)}
         />
       )}
-      <AssetActionsMenu
-        onSearchChange={handleSearchChange}
-        onSearchClear={handleSearchClear}
-        setSelectedAssetIds={setSelectedAssetIds}
-        handleSelectAllAssets={handleSelectAllAssets}
-        handleDeselectAssets={handleDeselectAssets}
-        maxItemSize={maxItemSize}
-        currentFolder={currentFolder}
-        selectedAssetIds={selectedAssetIds}
-        selectedAssets={selectedAssets}
-      />
+      <AssetActionsMenu maxItemSize={maxItemSize} />
       <Dropzone onDrop={uploadFiles}>
         <div
           style={{
@@ -241,27 +197,14 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           playOnLoad={spaceKeyPressed}
         />
       )}
-      <AssetItemContextMenu
-        openDeleteDialog={openDeleteDialog}
-        openRenameDialog={openRenameDialog}
-        openMoveToFolderDialog={openMoveToFolderDialog}
-      />
+      <AssetItemContextMenu />
       <AssetDeleteConfirmation
-        mutation={deleteMutation}
-        dialogOpen={deleteDialogOpen}
-        setDialogOpen={closeDeleteDialog}
         assets={selectedAssetIds}
       />
       <AssetRenameConfirmation
-        mutation={updateMutation}
-        dialogOpen={renameDialogOpen}
-        setDialogOpen={closeRenameDialog}
         assets={selectedAssetIds}
       />
       <AssetMoveToFolderConfirmation
-        mutation={moveMutation}
-        dialogOpen={moveToFolderDialogOpen}
-        setDialogOpen={closeMoveToFolderDialog}
         assets={selectedAssetIds}
       />
     </Box>

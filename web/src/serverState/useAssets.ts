@@ -48,26 +48,31 @@ export const useAssets = (initialFolderId: string | null = null) => {
     (state) => state.assetSearchTerm
   );
 
+  if (currentUser === null) {
+    throw new Error("User not logged");
+  }
+
   // Fetch assets in the current folder
   const fetchAssets = useCallback(async () => {
     const result = await load({
-      parent_id: currentFolderId || currentUser?.id || "",
+      parent_id: currentFolderId || currentUser?.id
     });
     return result;
   }, [load, currentFolderId, currentUser?.id]);
+
   const {
     data: currentFolderAssets,
     error: currentFolderError,
     isLoading: isLoadingCurrentFolder,
   } = useQuery({
-    queryKey: ["assets", currentFolderId],
+    queryKey: ["assets", { parent_id: currentFolderId }],
     queryFn: fetchAssets,
     enabled: !!currentFolderId,
   });
 
   const refetchAssets = useCallback(() => {
     return queryClient.invalidateQueries({
-      queryKey: ["assets", currentFolderId],
+      queryKey: ["assets", { parent_id: currentFolderId }],
     });
   }, [queryClient, currentFolderId]);
 

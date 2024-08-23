@@ -295,7 +295,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     if (error) {
       throw error;
     }
-
     get().invalidateQueries(["assets", id]);
     get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
   },

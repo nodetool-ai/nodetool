@@ -5,7 +5,7 @@ import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { devError } from "../../utils/DevLog";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 
-export const useAssetActions = (asset: Asset, onMoveToFolder?: () => void) => {
+export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -14,6 +14,12 @@ export const useAssetActions = (asset: Asset, onMoveToFolder?: () => void) => {
   );
   const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
+  );
+  const setDeleteDialogOpen = useAssetGridStore(
+    (state) => state.setDeleteDialogOpen
+  );
+  const setMoveToFolderDialogOpen = useAssetGridStore(
+    (state) => state.setMoveToFolderDialogOpen
   );
 
   const { mutation: updateAssetMutation } = useAssetUpdate();
@@ -116,13 +122,13 @@ export const useAssetActions = (asset: Asset, onMoveToFolder?: () => void) => {
           await updateAssetMutation.mutateAsync(
             selectedAssetIds.map((id: string) => ({ id, parent_id: asset.id }))
           );
-          onMoveToFolder && onMoveToFolder();
+          setMoveToFolderDialogOpen(false);
         }
       } catch (error) {
         devError("Invalid JSON string:", assetData);
       }
     },
-    [asset.content_type, asset.id, updateAssetMutation, onMoveToFolder]
+    [asset.content_type, asset.id, updateAssetMutation]
   );
 
   const handleContextMenu = useCallback(
@@ -146,13 +152,11 @@ export const useAssetActions = (asset: Asset, onMoveToFolder?: () => void) => {
   );
 
   const handleDelete = useCallback(
-    (openDeleteDialog?: () => void) => {
+    () => {
       if (selectedAssetIds?.length === 0) {
         setSelectedAssetIds([asset.id]);
       }
-      if (openDeleteDialog) {
-        openDeleteDialog();
-      }
+      setDeleteDialogOpen(true);
     },
     [selectedAssetIds?.length, setSelectedAssetIds, asset.id]
   );

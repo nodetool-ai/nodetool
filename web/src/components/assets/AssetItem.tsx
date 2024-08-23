@@ -216,12 +216,9 @@ export type AssetItemProps = {
   showInfo?: boolean;
   showFiletype?: boolean;
   showDuration?: boolean;
-  openDeleteDialog?: () => void;
-  openRenameDialog?: () => void;
   onSelect?: () => void;
   onClickParent?: (id: string) => void;
   onDragStart?: (assetId: string) => string[];
-  onMoveToFolder?: () => void;
   onDeleteAssets?: () => void;
   onSetCurrentAudioAsset?: (asset: Asset) => void;
   onDoubleClick?: (asset: Asset) => void;
@@ -239,11 +236,9 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     showInfo = true,
     showFiletype = true,
     showDuration = true,
-    openDeleteDialog,
     onSelect,
     onDoubleClick,
     onClickParent,
-    onMoveToFolder,
     onSetCurrentAudioAsset,
   } = props;
 
@@ -263,7 +258,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     handleDrop,
     handleContextMenu,
     handleDelete,
-  } = useAssetActions(asset, onMoveToFolder);
+  } = useAssetActions(asset);
 
   const assetType = useMemo(() => {
     return asset?.content_type ? asset.content_type.split("/")[0] : "unknown";
@@ -293,9 +288,8 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
   return (
     <div
       css={styles}
-      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
-        isDragHovered ? "drag-hover" : ""
-      } ${isParent ? "parent" : ""}`}
+      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
+        } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
@@ -317,7 +311,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
           <DeleteButton<Asset>
             className="asset-delete"
             item={asset}
-            onClick={() => handleDelete(openDeleteDialog)}
+            onClick={() => handleDelete()}
           />
         </ButtonGroup>
       )}
@@ -329,18 +323,16 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${
-                  asset.thumb_url || "/images/placeholder.png"
-                })`,
+                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"
+                  })`,
               }}
               aria-label={asset.id}
             />
             <div
               className="image-aspect-ratio"
               style={{
-                backgroundImage: `url(${
-                  asset.thumb_url || "/images/placeholder.png"
-                })`,
+                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"
+                  })`,
               }}
               aria-label={asset.id}
             />
@@ -370,9 +362,8 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${
-                  asset.thumb_url || "/images/placeholder.png"
-                })`,
+                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"
+                  })`,
               }}
               aria-label={asset.id}
             />
