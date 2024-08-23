@@ -19,6 +19,7 @@ import { devError, devLog } from "../../utils/DevLog";
 import { useCallback } from "react";
 import useAuth from "../../stores/useAuth";
 import Papa, { ParseResult } from "papaparse";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 interface DropHandler {
   onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -180,7 +181,7 @@ export const useDropHandler = (): DropHandler => {
   const createWorkflow = useWorkflowStore((state) => state.create);
   const setWorkflow = useNodeStore((state) => state.setWorkflow);
   const getAsset = useAssetStore((state) => state.get);
-  const currentFolderId = useAssetStore((state) => state.currentFolderId);
+  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const { uploadAsset } = useAssetUpload();
   const { user } = useAuth();
   const addNotification = useNotificationStore(

@@ -14,8 +14,8 @@ import { UseMutationResult } from "@tanstack/react-query";
 import { AssetUpdate } from "../../stores/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 import FolderTree from "./FolderTree";
-import useSessionStateStore from "../../stores/SessionStateStore";
 import { Asset } from "../../stores/ApiTypes";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 interface AssetMoveToFolderConfirmationProps {
   dialogOpen: boolean;
@@ -30,7 +30,7 @@ const AssetMoveToFolderConfirmation: React.FC<
   const { dialogOpen, setDialogOpen, assets, mutation } = props;
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [showAlert, setShowAlert] = useState<string | null>(null);
-  const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
+  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
 
   const handleSelectFolder = useCallback(
     async (folderId: string) => {

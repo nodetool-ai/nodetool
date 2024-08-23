@@ -10,6 +10,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { devLog } from "../../utils/DevLog";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 interface AssetItemContextMenuProps {
   openDeleteDialog: () => void;
@@ -24,7 +25,7 @@ const AssetItemContextMenu = ({
 }: AssetItemContextMenuProps) => {
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const selectedAssetIds = useSessionStateStore(
+  const selectedAssetIds = useAssetGridStore(
     (state) => state.selectedAssetIds
   );
   const download = useAssetStore((state) => state.download);

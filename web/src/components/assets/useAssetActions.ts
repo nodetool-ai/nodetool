@@ -1,18 +1,18 @@
 import { useCallback, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
-import useSessionStateStore from "../../stores/SessionStateStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { devError } from "../../utils/DevLog";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 export const useAssetActions = (asset: Asset, onMoveToFolder?: () => void) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const selectedAssetIds = useSessionStateStore(
+  const selectedAssetIds = useAssetGridStore(
     (state) => state.selectedAssetIds
   );
-  const setSelectedAssetIds = useSessionStateStore(
+  const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
   );
 
