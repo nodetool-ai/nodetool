@@ -103,9 +103,11 @@ class Asset(DBModel):
         cls,
         user_id: str,
         parent_id: Optional[str] = None,
+        workflow_id: Optional[str] = None,
         content_type: Optional[str] = None,
         limit: int = 100,
         start_key: str | None = None,
+        reverse: bool = False,
     ):
         """
         Paginate assets for a user using boto3.
@@ -121,6 +123,14 @@ class Asset(DBModel):
                 .and_(Field("id").greater_than(start_key or ""))
             )
             return cls.query(condition, limit)
+        elif workflow_id:
+            condition = (
+                Field("user_id")
+                .equals(user_id)
+                .and_(Field("workflow_id").equals(workflow_id))
+                .and_(Field("id").greater_than(start_key or ""))
+            )
+            return cls.query(condition, limit)
         else:
             condition = (
                 Field("user_id")
@@ -128,7 +138,7 @@ class Asset(DBModel):
                 .and_(Field("content_type").like((content_type or "") + "%"))
                 .and_(Field("id").greater_than(start_key or ""))
             )
-            return cls.query(condition, limit)
+            return cls.query(condition, limit, reverse)
 
     @classmethod
     def get_children(cls, parent_id: str) -> Sequence["Asset"]:

@@ -7,6 +7,21 @@ from nodetool.models.workflow import Workflow as WorkflowModel
 from pydantic import BaseModel
 
 
+def find_thumbnail(workflow: WorkflowModel) -> str | None:
+    if workflow.thumbnail and workflow.thumbnail != "":
+        asset = AssetModel.get(workflow.thumbnail)
+    else:
+        assets, _ = AssetModel.paginate(
+            user_id=workflow.user_id, workflow_id=workflow.id, limit=1, reverse=True
+        )
+        asset = assets[0] if assets else None
+
+    if asset:
+        return Environment.get_asset_storage().get_url(asset.file_name)
+    else:
+        return None
+
+
 class Workflow(BaseModel):
     id: str
     access: str
@@ -22,12 +37,6 @@ class Workflow(BaseModel):
 
     @classmethod
     def from_model(cls, workflow: WorkflowModel):
-        thumbnail_url = None
-        if workflow.thumbnail and workflow.thumbnail != "":
-            asset = AssetModel.get(workflow.thumbnail)
-            if asset:
-                thumbnail_url = Environment.get_asset_storage().get_url(asset.file_name)
-
         api_graph = workflow.get_api_graph()
 
         return cls(
@@ -38,7 +47,7 @@ class Workflow(BaseModel):
             name=workflow.name,
             description=workflow.description or "",
             thumbnail=workflow.thumbnail or "",
-            thumbnail_url=thumbnail_url,
+            thumbnail_url=find_thumbnail(workflow),
             graph=api_graph,
         )
 
