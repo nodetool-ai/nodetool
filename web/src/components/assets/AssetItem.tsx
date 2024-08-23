@@ -402,7 +402,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
               className="name info"
             >
               {asset.name}
-              {asset.parent_id}
+              {/* {asset.parent_id} */}
             </Typography>
           )}
         </>
