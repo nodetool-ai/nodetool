@@ -12,7 +12,7 @@ import {
   InputLabel,
   FormControl,
   Tooltip,
-  Switch
+  Switch,
 } from "@mui/material";
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -31,7 +31,7 @@ const styles = (theme: any) =>
       border: `2px solid ${theme.palette.c_gray3}`,
       borderRadius: "1em",
       height: "80vh",
-      overflow: "hidden"
+      overflow: "hidden",
     },
     ".settings": {
       display: "flex",
@@ -41,13 +41,13 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray0,
       width: "100%",
       height: "100%",
-      padding: ".5em 1em"
+      padding: ".5em 1em",
     },
     ".top": {
       height: "50px",
       padding: "0.5em 1em",
       borderBottom: "1px solid" + theme.palette.c_gray0,
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
     },
     ".bottom": {
       height: "40px",
@@ -56,13 +56,13 @@ const styles = (theme: any) =>
       justifyContent: "space-between",
       alignItems: "flex-end",
       padding: "0.25em 1.5em",
-      borderTop: "1px solid" + theme.palette.c_gray0
+      borderTop: "1px solid" + theme.palette.c_gray0,
     },
     ".settings-menu": {
       flexGrow: 1,
       backgroundColor: theme.palette.c_gray1,
       width: "60vw",
-      height: "70vh",
+      height: "65vh",
       overflowY: "auto",
       minWidth: "400px",
       maxWidth: "800px",
@@ -79,12 +79,12 @@ const styles = (theme: any) =>
         backgroundColor: theme.palette.c_gray0,
         padding: ".5em .2em",
         width: "100%",
-        gap: "1.5em"
+        gap: "1.5em",
       },
       ".MuiSelect-select": {
         fontSize: theme.fontSizeBig,
         padding: "0.5em 0 0 !important",
-        marginTop: "0.5em !important"
+        marginTop: "0.5em !important",
       },
       "div label": {
         transform: "none",
@@ -94,25 +94,25 @@ const styles = (theme: any) =>
         color: theme.palette.c_hl1,
         backgroundColor: "transparent",
         padding: "0 0.5em 0.5em",
-        width: "100%"
+        width: "100%",
       },
       ".MuiInput-root": {
         minWidth: "210px",
         width: "200px",
-        padding: "0.2em 0.5em"
+        padding: "0.2em 0.5em",
       },
       ".MuiFormControl-root": {
         width: "auto",
         minWidth: "200px",
         margin: 0,
-        padding: "0 0 0.25em 0"
+        padding: "0 0 0.25em 0",
       },
       "input, label": {
-        fontSize: "1em"
+        fontSize: "1em",
       },
       button: {
         height: "25px",
-        fontSize: "15px"
+        fontSize: "15px",
       },
       ".description": {
         color: theme.palette.c_gray6,
@@ -120,10 +120,10 @@ const styles = (theme: any) =>
         fontSize: theme.fontSizeNormal,
         marginTop: 0,
         flexShrink: 1,
-        wordSpacing: 0
+        wordSpacing: 0,
       },
       ".MuiTextField-root input": {
-        padding: "0.8em 0 0.2em 0"
+        padding: "0.8em 0 0.2em 0",
       },
       ul: {
         paddingLeft: "1em",
@@ -131,9 +131,9 @@ const styles = (theme: any) =>
         fontFamily: theme.fontFamily1,
         color: theme.palette.gray3,
         margin: "0.25em 0 0",
-        listStyleType: "disc"
-      }
-    }
+        listStyleType: "disc",
+      },
+    },
   });
 
 function SettingsMenu() {
@@ -161,7 +161,7 @@ function SettingsMenu() {
     setTimeFormat,
     setButtonAppearance,
     setAlertBeforeTabClose,
-    setSelectNodesOnDrag
+    setSelectNodesOnDrag,
   } = useSettingsStore((state) => ({
     settings: state.settings,
     setGridSnap: state.setGridSnap,
@@ -174,7 +174,7 @@ function SettingsMenu() {
     setTimeFormat: state.setTimeFormat,
     setButtonAppearance: state.setButtonAppearance,
     setAlertBeforeTabClose: state.setAlertBeforeTabClose,
-    setSelectNodesOnDrag: state.setSelectNodesOnDrag
+    setSelectNodesOnDrag: state.setSelectNodesOnDrag,
   }));
 
   const id = open ? "docs" : undefined;
@@ -199,16 +199,16 @@ function SettingsMenu() {
         onContextMenu={(event) => event.preventDefault()}
         onClose={handleClose}
         MenuListProps={{
-          "aria-labelledby": "basic-button"
+          "aria-labelledby": "basic-button",
         }}
         anchorReference="anchorPosition"
         anchorPosition={{
           top: window.innerHeight / 2,
-          left: window.innerWidth / 2
+          left: window.innerWidth / 2,
         }}
         transformOrigin={{
           vertical: "center",
-          horizontal: "center"
+          horizontal: "center",
         }}
       >
         <div className="top">
@@ -276,7 +276,7 @@ function SettingsMenu() {
               onChange={(e) => setGridSnap(Number(e.target.value))}
               variant="standard"
               InputLabelProps={{
-                shrink: true
+                shrink: true,
               }}
             />
             <Typography className="description">
@@ -352,7 +352,7 @@ function SettingsMenu() {
               onChange={(e) => setAssetItemSize(Number(e.target.value))}
               variant="standard"
               InputLabelProps={{
-                shrink: true
+                shrink: true,
               }}
             />
             <Typography className="description">
@@ -411,8 +411,8 @@ function SettingsMenu() {
               <Switch
                 sx={{
                   "&.MuiSwitch-root": {
-                    margin: "16px 0 0"
-                  }
+                    margin: "16px 0 0",
+                  },
                 }}
                 checked={!!settings.alertBeforeTabClose}
                 onChange={(e) =>
@@ -432,8 +432,8 @@ function SettingsMenu() {
               <Switch
                 sx={{
                   "&.MuiSwitch-root": {
-                    margin: "16px 0 0"
-                  }
+                    margin: "16px 0 0",
+                  },
                 }}
                 checked={!!settings.selectNodesOnDrag}
                 onChange={(e) =>
@@ -454,7 +454,7 @@ function SettingsMenu() {
                 style={{
                   display: "inline-block",
                   margin: "0 10px 0 0",
-                  fontSize: "0.9em"
+                  fontSize: "0.9em",
                 }}
               >
                 {user.email}
@@ -479,7 +479,7 @@ function SettingsMenu() {
             style={{
               color: "#666",
               marginTop: "2em",
-              fontSize: ThemeNodetool.fontSizeSmaller
+              fontSize: ThemeNodetool.fontSizeSmaller,
             }}
           >
             NODETOOL {VERSION}
