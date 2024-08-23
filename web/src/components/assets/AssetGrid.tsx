@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Divider, Typography } from "@mui/material";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -25,6 +25,8 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import useAssets from "../../serverState/useAssets";
+import { Asset } from "../../stores/ApiTypes";
+import AssetViewer from "./AssetViewer";
 
 const styles = (theme: any) =>
   css({
@@ -70,11 +72,11 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 }) => {
   const currentFolder = useAssetStore((state) => state.currentFolder);
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
-  const { folderFiles, isLoading, error } = useAssets();
-
-  // const filteredAssets = useMemo(() => {
-  //   return filterAssets(assets, { searchTerm });
-  // }, [assets, filterAssets, searchTerm]);
+  const { folderFiles, error } = useAssets();
+  const [openAsset, setOpenAsset] = useState<Asset | undefined>(undefined);
+  const handleDoubleClick = (asset: Asset) => {
+    setOpenAsset(asset);
+  };
 
   const selectedAssets = useSessionStateStore((state) => state.selectedAssets);
   const setAssetSearchTerm = useSessionStateStore(
@@ -188,7 +190,13 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     <Box css={styles} className="asset-grid-container" ref={containerRef}>
       {error && <Typography sx={{ color: "red" }}>{error.message}</Typography>}
       <AssetUploadOverlay />
-
+      {openAsset && (
+        <AssetViewer
+          asset={openAsset}
+          open={openAsset !== undefined}
+          onClose={() => setOpenAsset(undefined)}
+        />
+      )}
       <AssetActionsMenu
         onSearchChange={handleSearchChange}
         onSearchClear={handleSearchClear}
@@ -213,7 +221,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             // onNavigate={navigateToFolder}
           />
           {/* <AssetGridContent itemSpacing={itemSpacing} assets={filteredAssets} /> */}
-          <AssetGridContent itemSpacing={itemSpacing} />
+          <AssetGridContent
+            itemSpacing={itemSpacing}
+            onDoubleClick={handleDoubleClick}
+          />
         </div>
       </Dropzone>
       <Divider />

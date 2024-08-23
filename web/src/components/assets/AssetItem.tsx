@@ -224,6 +224,7 @@ export type AssetItemProps = {
   onMoveToFolder?: () => void;
   onDeleteAssets?: () => void;
   onSetCurrentAudioAsset?: (asset: Asset) => void;
+  onDoubleClick?: (asset: Asset) => void;
 };
 
 const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
@@ -240,6 +241,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     showDuration = true,
     openDeleteDialog,
     onSelect,
+    onDoubleClick,
     onClickParent,
     onMoveToFolder,
     onSetCurrentAudioAsset,
@@ -253,7 +255,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
   const {
     isDragHovered,
     handleClick,
-    handleDoubleClick,
+    // handleDoubleClick,
     handleDrag,
     handleDragOver,
     handleDragEnter,
@@ -302,7 +304,9 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
       onDragStart={handleDrag}
       onDoubleClick={(e) => {
         e.stopPropagation();
-        handleDoubleClick(setOpenAsset);
+        if (onDoubleClick) {
+          onDoubleClick(asset);
+        }
       }}
       onClick={() => handleClick(onSelect, onClickParent, isParent)}
       onDrop={handleDrop}
@@ -406,13 +410,6 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
             </Typography>
           )}
         </>
-      )}
-      {openAsset && (
-        <AssetViewer
-          asset={openAsset}
-          open={openAsset !== undefined}
-          onClose={() => setOpenAsset(undefined)}
-        />
       )}
     </div>
   );

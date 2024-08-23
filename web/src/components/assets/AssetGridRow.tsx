@@ -4,6 +4,7 @@ import React from "react";
 import { AssetOrDivider, DIVIDER_HEIGHT } from "./assetGridUtils";
 import AssetItem from "./AssetItem";
 import { colorForType } from "../../config/data_types";
+import { Asset } from "../../stores/ApiTypes";
 
 interface AssetGridRowProps {
   index: number;
@@ -20,6 +21,7 @@ interface AssetGridRowProps {
     // refetch: () => void;
     setSelectedAssetIds: (ids: string[]) => void;
     onDragStart: (id: string) => string[];
+    onDoubleClick: (asset: Asset) => void;
   };
 }
 
@@ -31,6 +33,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     itemSpacing,
     selectedAssetIds,
     handleSelectAsset,
+    onDoubleClick,
   } = data;
 
   const rowItems = getItemsForRow(index);
@@ -101,6 +104,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
               draggable={true}
               isSelected={isSelected}
               onSelect={() => handleSelectAsset(item.id)}
+              onDoubleClick={onDoubleClick}
             />
           </div>
         );

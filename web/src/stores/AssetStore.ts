@@ -274,7 +274,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
   setCurrentFolderId: (folderId: string | null) => {
     set({ currentFolderId: folderId, currentFolder: null, parentFolder: null });
-    get().loadCurrentFolder();
+    // get().loadCurrentFolder();
   },
 
   /**

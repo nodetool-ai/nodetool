@@ -58,11 +58,13 @@ const styles = (theme: any) =>
 interface AssetGridContentProps {
   itemSpacing?: number;
   assets?: Asset[];
+  onDoubleClick?: (asset: Asset) => void;
 }
 
 const AssetGridContent: React.FC<AssetGridContentProps> = ({
   itemSpacing = 2,
   assets: propAssets,
+  onDoubleClick,
 }) => {
   const { folderFilesFiltered } = useAssets();
   const assetItemSize = useSettingsStore(
@@ -155,6 +157,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
+      onDoubleClick: onDoubleClick || (() => {}),
       // refetch: refetchAssets,
     }),
     [
@@ -168,6 +171,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
+      onDoubleClick,
       // refetchAssets,
     ]
   );
