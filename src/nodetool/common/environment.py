@@ -564,7 +564,7 @@ class Environment(object):
                 user_id=user_id,
                 auth_token=auth_token,
                 base_url=api_url,
-                client=AsyncClient(timeout=30),
+                client=AsyncClient(timeout=30, verify=False)
             )
         else:
             app = create_app()
