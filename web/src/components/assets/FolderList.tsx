@@ -12,6 +12,7 @@ import FolderItem from "./FolderItem";
 import useAssets from "../../serverState/useAssets";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useAssetStore } from "../../stores/AssetStore";
+import useAuth from "../../stores/useAuth";
 
 const INITIAL_FOLDER_LIST_HEIGHT = 200;
 const MIN_FOLDER_LIST_HEIGHT = 100;
@@ -149,6 +150,7 @@ interface FolderListProps {
 }
 
 const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
+  const currentUser = useAuth((state) => state.getUser());
   const { folderTree } = useAssets();
   const [folderListHeight, setFolderListHeight] = useState(
     INITIAL_FOLDER_LIST_HEIGHT
@@ -208,20 +210,18 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     };
   }, [isResizing, handleResize, handleResizeEnd]);
 
-  const selectedFolderId = useSessionStateStore(
-    (state) => state.selectedFolderId
-  );
-  const setSelectedFolderId = useSessionStateStore(
-    (state) => state.setSelectedFolderId
-  );
+  // const selectedFolderId = useSessionStateStore(
+  //   (state) => state.selectedFolderId
+  // );
+  // const setSelectedFolderId = useSessionStateStore(
+  //   (state) => state.setSelectedFolderId
+  // );
   const selectedFolderIds = useSessionStateStore(
     (state) => state.selectedFolderIds
   );
 
   const handleSelect = (folderId: string) => {
     navigateToFolder(folderId);
-    setSelectedFolderId(folderId);
-    setSelectedFolderIds([folderId]);
   };
 
   const renderFolder = (folder: any, level = 0, isRoot = false) => {
@@ -278,6 +278,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     name: "ASSETS",
     content_type: "folder",
     children: folderTree,
+    parent_id: currentUser?.id || "",
   };
 
   return (

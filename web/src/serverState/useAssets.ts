@@ -4,6 +4,7 @@ import { useAssetStore } from "../stores/AssetStore";
 import { Asset } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
 import useSessionStateStore from "../stores/SessionStateStore";
+import useAuth from "../stores/useAuth";
 
 type SortOrder = "name" | "date";
 type FilterOptions = {
@@ -24,8 +25,8 @@ type AssetUpdate = {
 
 export const useAssets = (initialFolderId: string | null = null) => {
   const setCurrentFolderId = useAssetStore((state) => state.setCurrentFolderId);
-
   const currentFolderId = useAssetStore((state) => state.currentFolderId);
+  const currentUser = useAuth((state) => state.getUser());
 
   const {
     load,
@@ -48,9 +49,11 @@ export const useAssets = (initialFolderId: string | null = null) => {
 
   // Fetch assets in the current folder
   const fetchAssets = useCallback(async () => {
-    const result = await load({ parent_id: currentFolderId || "1" });
+    const result = await load({
+      parent_id: currentFolderId || currentUser?.id || "",
+    });
     return result;
-  }, [load, currentFolderId]);
+  }, [load, currentFolderId, currentUser?.id]);
   const {
     data: currentFolderAssets,
     error: currentFolderError,
@@ -170,9 +173,14 @@ export const useAssets = (initialFolderId: string | null = null) => {
     (folderId: string | null) => {
       setSelectedFolderId(folderId);
       setSelectedFolderIds(folderId ? [folderId] : []);
-      setCurrentFolderId(folderId || "1");
+      setCurrentFolderId(folderId || currentUser?.id || "");
     },
-    [setCurrentFolderId, setSelectedFolderId, setSelectedFolderIds]
+    [
+      currentUser?.id,
+      setCurrentFolderId,
+      setSelectedFolderId,
+      setSelectedFolderIds,
+    ]
   );
 
   const isLoading = isLoadingCurrentFolder || isLoadingFolderTree;

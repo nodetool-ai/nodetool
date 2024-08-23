@@ -10,7 +10,6 @@ import React, {
 import AutoSizer from "react-virtualized-auto-sizer";
 import { VariableSizeList as List } from "react-window";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
 import AssetGridRow from "./AssetGridRow";
@@ -24,7 +23,6 @@ import {
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import { useAssetDialog } from "../../hooks/assets/useAssetDialog";
-import { useAssetStore } from "../../stores/AssetStore";
 
 const styles = (theme: any) =>
   css({
@@ -66,17 +64,10 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   itemSpacing = 2,
   assets: propAssets,
 }) => {
-  const currentFolderId = useAssetStore((state) => state.currentFolderId);
-  const selectedFolderId = useSessionStateStore(
-    (state) => state.selectedFolderId
-  );
   const { folderFilesFiltered } = useAssets();
-  // const fetchAssets = useAssets(currentFolderId || "1").fetchAssets;
-
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
-
   const assets = useMemo(() => {
     if (propAssets) return propAssets;
     return folderFilesFiltered || [];
@@ -91,12 +82,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     itemWidth: 0,
     itemHeight: 0,
   });
-
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-
   const listRef = useRef<List>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
   const footerHeight = useMemo(
     () => getFooterHeight(assetItemSize),
     [assetItemSize]
