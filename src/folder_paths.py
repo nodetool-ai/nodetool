@@ -38,7 +38,7 @@ def model_path(name: str) -> str:
 
 def get_output_directory() -> str:
     """NOT USED"""
-    raise NotImplementedError("Not implemented")
+    return "/tmp"
 
 
 def get_temp_directory() -> str:
@@ -48,7 +48,7 @@ def get_temp_directory() -> str:
 
 def get_input_directory() -> str:
     """NOT USED"""
-    raise NotImplementedError("Not implemented")
+    return "/tmp"
 
 
 def get_save_image_path(filename_prefix: str, output_dir: str, *args) -> Any:
@@ -58,7 +58,7 @@ def get_save_image_path(filename_prefix: str, output_dir: str, *args) -> Any:
 
 def get_annotated_filepath(filename: str) -> str:
     """NOT USED"""
-    raise NotImplementedError("Not implemented")
+    return filename
 
 
 def exists_annotated_filepath(filename: str) -> bool:
