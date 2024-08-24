@@ -19,15 +19,10 @@ def load_example(name: str) -> Workflow:
     example_path = os.path.join(examples_folder, name)
     with open(example_path, "r") as f:
         try:
-            content = f.read()
-            props = json.loads(content)
-            if not "nodes" in props["graph"]:
-                edges, nodes = read_graph(props["graph"])
-                props["graph"] = Graph(edges=edges, nodes=nodes)
+            props = json.load(f)
             return Workflow(**props)
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON for example workflow {name}: {e}")
-            logger.error(f"Content of {name}: {content}")
             # Return an empty Workflow with the name indicating it is broken
             now_str = datetime.now().isoformat()
             return Workflow(

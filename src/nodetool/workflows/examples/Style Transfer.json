@@ -1,262 +1,262 @@
 {
-    "id": "style_transfer",
-    "access": "private",
-    "created_at": "2024-08-18T18:14:40.909434",
-    "updated_at": "2024-08-18T18:33:51.638639",
-    "name": "Style Transfer",
-    "description": "Apply the style of an image to another image",
-    "thumbnail": "",
-    "thumbnail_url": "/examples/style_transfer.png",
-    "graph": {
-        "edges": [
+  "id": "style_transfer",
+  "access": "private",
+  "created_at": "2024-08-18T18:14:40.909434",
+  "updated_at": "2024-08-18T18:33:51.638639",
+  "name": "Style Transfer",
+  "description": "Apply the style of an image to another image",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/style_transfer.png",
+  "graph": {
+    "edges": [
+      {
+        "id": "ae14723f-ca6b-49b9-b9be-4a246fa7bf1f",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "7",
+        "targetHandle": "control_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "0ceacb6c-8104-4036-a839-c7e8cc1c3beb",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "1b2e947d-f833-421e-9f3c-578fe9cf378d",
+        "source": "7",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "ef179169-9244-4a19-8675-718b875f5953",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "ip_adapter_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "7ac46fea-1954-4f44-8292-1eb4e8d47a10",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "init_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "2",
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://eavf3cou74b.exactdn.com/wp-content/uploads/2020/08/21162951/Worlds-15-Most-Iconic-Portraits-by-iPhotography.com-10.jpg?strip=all&lossy=1&ssl=1",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 9,
+            "y": 344
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/e36b69a2-a218-4f43-97c0-dd316a21c699/dgc0peb-d694edce-d0eb-4b93-ab7b-81936a9ab15a.jpg/v1/fill/w_768,h_768,q_75,strp/futuristic_human_by_pickgameru_dgc0peb-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9NzY4IiwicGF0aCI6IlwvZlwvZTM2YjY5YTItYTIxOC00ZjQzLTk3YzAtZGQzMTZhMjFjNjk5XC9kZ2MwcGViLWQ2OTRlZGNlLWQwZWItNGI5My1hYjdiLTgxOTM2YTlhYjE1YS5qcGciLCJ3aWR0aCI6Ijw9NzY4In1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmltYWdlLm9wZXJhdGlvbnMiXX0.s-9V0oHC2cAeii6oDuazDBbG-hjMdZa0deSu1O23zhc",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 172,
+            "y": 207
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "4",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-08-18"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 619,
+            "y": 171
+          },
+          "zIndex": 0,
+          "width": 271,
+          "height": 340,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "type": "huggingface.image.StableDiffusionXLControlNet",
+        "data": {
+          "model": "stabilityai/stable-diffusion-xl-base-1.0",
+          "prompt": "Albert Einstein in Space",
+          "negative_prompt": "",
+          "seed": -1,
+          "num_inference_steps": 40,
+          "guidance_scale": 4.6,
+          "width": 1024,
+          "height": 1024,
+          "scheduler": "HeunDiscreteScheduler",
+          "lora_model": "3d-render-style",
+          "lora_scale": 1,
+          "ip_adapter_model": "ip-adapter_sdxl.safetensors",
+          "ip_adapter_scale": 0.36,
+          "strength": 0.55,
+          "control_model": "diffusers/controlnet-depth-sdxl-1.0",
+          "controlnet_conditioning_scale": 0.6
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 383,
+            "y": 58
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "type": "comfy.controlnet.normal_and_depth.DepthAnythingV2Preprocessor",
+        "data": {
+          "resolution": 1024,
+          "ckpt_name": "depth_anything_v2_vits.pth"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 174,
+            "y": 453
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "9",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Style Transfer",
+          "comment": [
             {
-                "id": "ae14723f-ca6b-49b9-b9be-4a246fa7bf1f",
-                "source": "8",
-                "sourceHandle": "image",
-                "target": "7",
-                "targetHandle": "control_image",
-                "ui_properties": {
-                    "className": "image"
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* IP Adapter apply the style of an image to the generated image"
                 }
+              ]
             },
             {
-                "id": "0ceacb6c-8104-4036-a839-c7e8cc1c3beb",
-                "source": "2",
-                "sourceHandle": "output",
-                "target": "8",
-                "targetHandle": "image",
-                "ui_properties": {
-                    "className": "image"
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Controlnet preserves the structure of the input image"
                 }
+              ]
             },
             {
-                "id": "1b2e947d-f833-421e-9f3c-578fe9cf378d",
-                "source": "7",
-                "sourceHandle": "output",
-                "target": "4",
-                "targetHandle": "value",
-                "ui_properties": {
-                    "className": "image"
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* LORA  models add their own style"
                 }
+              ]
             },
             {
-                "id": "ef179169-9244-4a19-8675-718b875f5953",
-                "source": "3",
-                "sourceHandle": "output",
-                "target": "7",
-                "targetHandle": "ip_adapter_image",
-                "ui_properties": {
-                    "className": "image"
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Experiment with different IP Adapter images"
                 }
+              ]
             },
             {
-                "id": "7ac46fea-1954-4f44-8292-1eb4e8d47a10",
-                "source": "2",
-                "sourceHandle": "output",
-                "target": "7",
-                "targetHandle": "init_image",
-                "ui_properties": {
-                    "className": "image"
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "* Experiment with parameters for "
                 }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "  * IP Adapter Scale"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "  * LORA Scale"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "  * Strength"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": "  * Controlnet Conditioning Scale "
+                }
+              ]
             }
-        ],
-        "nodes": [
-            {
-                "id": "2",
-                "type": "nodetool.constant.Image",
-                "data": {
-                    "value": {
-                        "uri": "https://eavf3cou74b.exactdn.com/wp-content/uploads/2020/08/21162951/Worlds-15-Most-Iconic-Portraits-by-iPhotography.com-10.jpg?strip=all&lossy=1&ssl=1",
-                        "type": "image"
-                    }
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 9,
-                        "y": 344
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "3",
-                "type": "nodetool.constant.Image",
-                "data": {
-                    "value": {
-                        "uri": "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/e36b69a2-a218-4f43-97c0-dd316a21c699/dgc0peb-d694edce-d0eb-4b93-ab7b-81936a9ab15a.jpg/v1/fill/w_768,h_768,q_75,strp/futuristic_human_by_pickgameru_dgc0peb-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9NzY4IiwicGF0aCI6IlwvZlwvZTM2YjY5YTItYTIxOC00ZjQzLTk3YzAtZGQzMTZhMjFjNjk5XC9kZ2MwcGViLWQ2OTRlZGNlLWQwZWItNGI5My1hYjdiLTgxOTM2YTlhYjE1YS5qcGciLCJ3aWR0aCI6Ijw9NzY4In1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmltYWdlLm9wZXJhdGlvbnMiXX0.s-9V0oHC2cAeii6oDuazDBbG-hjMdZa0deSu1O23zhc",
-                        "type": "image"
-                    }
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 172,
-                        "y": 207
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "4",
-                "type": "nodetool.workflows.base_node.Preview",
-                "data": {
-                    "name": "image_output_2024-08-18"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 619,
-                        "y": 171
-                    },
-                    "zIndex": 0,
-                    "width": 271,
-                    "height": 340,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "7",
-                "type": "huggingface.image.StableDiffusionXLControlNet",
-                "data": {
-                    "model": "stabilityai/stable-diffusion-xl-base-1.0",
-                    "prompt": "Albert Einstein in Space",
-                    "negative_prompt": "",
-                    "seed": -1,
-                    "num_inference_steps": 40,
-                    "guidance_scale": 4.6,
-                    "width": 1024,
-                    "height": 1024,
-                    "scheduler": "HeunDiscreteScheduler",
-                    "lora_model": "3d-render-style",
-                    "lora_scale": 1,
-                    "ip_adapter_model": "ip-adapter_sdxl.safetensors",
-                    "ip_adapter_scale": 0.36,
-                    "strength": 0.55,
-                    "control_model": "diffusers/controlnet-depth-sdxl-1.0",
-                    "controlnet_conditioning_scale": 0.6
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 383,
-                        "y": 58
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "8",
-                "type": "comfy.controlnet.normal_and_depth.DepthAnythingV2Preprocessor",
-                "data": {
-                    "resolution": 1024,
-                    "ckpt_name": "depth_anything_v2_vits.pth"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 174,
-                        "y": 453
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "9",
-                "type": "nodetool.workflows.base_node.Comment",
-                "data": {
-                    "headline": "Style Transfer",
-                    "comment": [
-                        {
-                            "type": "paragraph",
-                            "children": [
-                                {
-                                    "text": "* IP Adapter apply the style of an image to the generated image"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "children": [
-                                {
-                                    "text": "* Controlnet preserves the structure of the input image"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "children": [
-                                {
-                                    "text": "* LORA  models add their own style"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "children": [
-                                {
-                                    "text": "* Experiment with different IP Adapter images"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "children": [
-                                {
-                                    "text": "* Experiment with parameters for "
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "children": [
-                                {
-                                    "text": "  * IP Adapter Scale"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "children": [
-                                {
-                                    "text": "  * LORA Scale"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "children": [
-                                {
-                                    "text": "  * Strength"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "children": [
-                                {
-                                    "text": "  * Controlnet Conditioning Scale "
-                                }
-                            ]
-                        }
-                    ]
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 18,
-                        "y": 19
-                    },
-                    "zIndex": 0,
-                    "width": 317,
-                    "height": 166,
-                    "selectable": true
-                }
-            }
-        ]
-    }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 18,
+            "y": 19
+          },
+          "zIndex": 0,
+          "width": 317,
+          "height": 166,
+          "selectable": true
+        }
+      }
+    ]
+  }
 }

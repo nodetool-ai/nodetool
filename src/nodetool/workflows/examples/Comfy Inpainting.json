@@ -1,389 +1,389 @@
 {
-    "id": "comfy_inpainting",
-    "access": "private",
-    "created_at": "2024-08-10T21:40:43.442888",
-    "updated_at": "2024-08-10T23:17:03.584031",
-    "name": "Inpainting in Comfy",
-    "description": "Replace the face of an image with a new face",
-    "thumbnail": "",
-    "thumbnail_url": "/examples/inpainting.png",
-    "graph": {
-        "edges": [
-            {
-                "id": "10",
-                "source": "6",
-                "sourceHandle": "conditioning",
-                "target": "3",
-                "targetHandle": "positive"
-            },
-            {
-                "id": "2",
-                "source": "29",
-                "sourceHandle": "clip",
-                "target": "7",
-                "targetHandle": "clip"
-            },
-            {
-                "id": "9",
-                "source": "29",
-                "sourceHandle": "model",
-                "target": "3",
-                "targetHandle": "model"
-            },
-            {
-                "id": "720eb177-8f79-45e8-a19a-b8a1aed0f309",
-                "source": "31",
-                "sourceHandle": "mask",
-                "target": "26",
-                "targetHandle": "mask",
-                "ui_properties": {
-                    "className": "comfy_mask"
-                }
-            },
-            {
-                "id": "f5b03d6b-b98b-42db-8b9d-67e00c975a03",
-                "source": "36",
-                "sourceHandle": "output",
-                "target": "37",
-                "targetHandle": "segments",
-                "ui_properties": {
-                    "className": "list"
-                }
-            },
-            {
-                "id": "94ad5417-91d3-4e11-9ba7-9beaf3660aa5",
-                "source": "37",
-                "sourceHandle": "output",
-                "target": "34",
-                "targetHandle": "image",
-                "ui_properties": {
-                    "className": "image"
-                }
-            },
-            {
-                "id": "7",
-                "source": "29",
-                "sourceHandle": "vae",
-                "target": "8",
-                "targetHandle": "vae"
-            },
-            {
-                "id": "ad00fa5a-1a94-4785-8d2c-fe662d7e93f0",
-                "source": "34",
-                "sourceHandle": "output",
-                "target": "31",
-                "targetHandle": "image",
-                "ui_properties": {
-                    "className": "image"
-                }
-            },
-            {
-                "id": "721",
-                "source": "8",
-                "sourceHandle": "image",
-                "target": "33",
-                "targetHandle": "value",
-                "ui_properties": {
-                    "className": "image"
-                }
-            },
-            {
-                "id": "6",
-                "source": "3",
-                "sourceHandle": "latent",
-                "target": "8",
-                "targetHandle": "samples"
-            },
-            {
-                "id": "4",
-                "source": "29",
-                "sourceHandle": "vae",
-                "target": "26",
-                "targetHandle": "vae"
-            },
-            {
-                "id": "1515",
-                "source": "34",
-                "sourceHandle": "output",
-                "target": "35",
-                "targetHandle": "value",
-                "ui_properties": {
-                    "className": "image"
-                }
-            },
-            {
-                "id": "17",
-                "source": "7",
-                "sourceHandle": "conditioning",
-                "target": "3",
-                "targetHandle": "negative"
-            },
-            {
-                "id": "1",
-                "source": "29",
-                "sourceHandle": "clip",
-                "target": "6",
-                "targetHandle": "clip"
-            },
-            {
-                "id": "cf1bed87-6747-40a8-a503-8fb7e13cf9a4",
-                "source": "26",
-                "sourceHandle": "latent",
-                "target": "3",
-                "targetHandle": "latent_image",
-                "ui_properties": {
-                    "className": "comfy_latent"
-                }
-            },
-            {
-                "id": "3",
-                "source": "20",
-                "sourceHandle": "image",
-                "target": "26",
-                "targetHandle": "pixels"
-            },
-            {
-                "id": "da0a62d1-62f0-4643-9d31-7b0fc5620933",
-                "source": "20",
-                "sourceHandle": "image",
-                "target": "36",
-                "targetHandle": "image",
-                "ui_properties": {
-                    "className": "image"
-                }
-            }
-        ],
-        "nodes": [
-            {
-                "id": "6",
-                "type": "comfy.conditioning.CLIPTextEncode",
-                "data": {
-                    "text": "face of taylor swift"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 1190.5,
-                        "y": 396.25
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "7",
-                "type": "comfy.conditioning.CLIPTextEncode",
-                "data": {
-                    "text": "watermark, text\n"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 1190.5,
-                        "y": 234.25
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "26",
-                "type": "comfy.latent.VAEEncodeForInpaint",
-                "data": {
-                    "grow_mask_by": 6
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 1190.5,
-                        "y": 575
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "8",
-                "type": "comfy.latent.VAEDecode",
-                "data": {},
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 1529,
-                        "y": 354
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "29",
-                "type": "comfy.loaders.CheckpointLoaderSimple",
-                "data": {
-                    "ckpt_name": {
-                        "type": "comfy.checkpoint_file",
-                        "name": "Realistic_Vision_V6.0_NV_B1_fp16.safetensors"
-                    }
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 941.5,
-                        "y": 123.5
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "20",
-                "type": "comfy.image.LoadImage",
-                "data": {
-                    "image": {
-                        "uri": "http://app.nodetool.ai/examples/inpainting_input.png",
-                        "type": "image"
-                    }
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 92,
-                        "y": 553.5
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "3",
-                "type": "comfy.sampling.KSampler",
-                "data": {
-                    "seed": 3486928081,
-                    "seed_control_mode": 3486928081,
-                    "steps": 16,
-                    "cfg": 8,
-                    "sampler_name": "dpmpp_sde",
-                    "scheduler": "normal",
-                    "denoise": 0.5
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 1390.5,
-                        "y": 272
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "31",
-                "type": "comfy.mask.ImageToMask",
-                "data": {
-                    "channel": "red"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 941.5,
-                        "y": 530.5
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "33",
-                "type": "nodetool.workflows.base_node.Preview",
-                "data": {
-                    "name": "image_image_2024-08-10"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 1660,
-                        "y": 259
-                    },
-                    "zIndex": 0,
-                    "width": 243,
-                    "height": 257,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "34",
-                "type": "nodetool.image.transform.Blur",
-                "data": {
-                    "radius": 16
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 704,
-                        "y": 464.5
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "35",
-                "type": "nodetool.workflows.base_node.Preview",
-                "data": {
-                    "name": "image_output_2024-08-10"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 941.5,
-                        "y": 358.5
-                    },
-                    "zIndex": 0,
-                    "width": 150,
-                    "height": 150,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "36",
-                "type": "huggingface.image.Segmentation",
-                "data": {
-                    "model": "mattmdjaga/segformer_b2_clothes"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 316.5,
-                        "y": 464.5
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            },
-            {
-                "id": "37",
-                "type": "huggingface.image.FindSegment",
-                "data": {
-                    "segment_label": "Face"
-                },
-                "ui_properties": {
-                    "selected": false,
-                    "position": {
-                        "x": 524,
-                        "y": 464.5
-                    },
-                    "zIndex": 0,
-                    "selectable": true
-                }
-            }
-        ]
-    },
-    "input_schema": {
-        "type": "object",
-        "properties": {}
-    },
-    "output_schema": {
-        "type": "object",
-        "properties": {}
-    }
+  "id": "comfy_inpainting",
+  "access": "private",
+  "created_at": "2024-08-10T21:40:43.442888",
+  "updated_at": "2024-08-10T23:17:03.584031",
+  "name": "Inpainting in Comfy",
+  "description": "Replace the face of an image with a new face",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/inpainting.png",
+  "graph": {
+    "edges": [
+      {
+        "id": "10",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "positive"
+      },
+      {
+        "id": "2",
+        "source": "29",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip"
+      },
+      {
+        "id": "9",
+        "source": "29",
+        "sourceHandle": "model",
+        "target": "3",
+        "targetHandle": "model"
+      },
+      {
+        "id": "720eb177-8f79-45e8-a19a-b8a1aed0f309",
+        "source": "31",
+        "sourceHandle": "mask",
+        "target": "26",
+        "targetHandle": "mask",
+        "ui_properties": {
+          "className": "comfy_mask"
+        }
+      },
+      {
+        "id": "f5b03d6b-b98b-42db-8b9d-67e00c975a03",
+        "source": "36",
+        "sourceHandle": "output",
+        "target": "37",
+        "targetHandle": "segments",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "94ad5417-91d3-4e11-9ba7-9beaf3660aa5",
+        "source": "37",
+        "sourceHandle": "output",
+        "target": "34",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "7",
+        "source": "29",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae"
+      },
+      {
+        "id": "ad00fa5a-1a94-4785-8d2c-fe662d7e93f0",
+        "source": "34",
+        "sourceHandle": "output",
+        "target": "31",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "721",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "33",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "6",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples"
+      },
+      {
+        "id": "4",
+        "source": "29",
+        "sourceHandle": "vae",
+        "target": "26",
+        "targetHandle": "vae"
+      },
+      {
+        "id": "1515",
+        "source": "34",
+        "sourceHandle": "output",
+        "target": "35",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "17",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "negative"
+      },
+      {
+        "id": "1",
+        "source": "29",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip"
+      },
+      {
+        "id": "cf1bed87-6747-40a8-a503-8fb7e13cf9a4",
+        "source": "26",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "3",
+        "source": "20",
+        "sourceHandle": "image",
+        "target": "26",
+        "targetHandle": "pixels"
+      },
+      {
+        "id": "da0a62d1-62f0-4643-9d31-7b0fc5620933",
+        "source": "20",
+        "sourceHandle": "image",
+        "target": "36",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "6",
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "face of taylor swift"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1190.5,
+            "y": 396.25
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "7",
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "watermark, text\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1190.5,
+            "y": 234.25
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "26",
+        "type": "comfy.latent.VAEEncodeForInpaint",
+        "data": {
+          "grow_mask_by": 6
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1190.5,
+            "y": 575
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "8",
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1529,
+            "y": 354
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "29",
+        "type": "comfy.loaders.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": {
+            "type": "comfy.checkpoint_file",
+            "name": "Realistic_Vision_V6.0_NV_B1_fp16.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 941.5,
+            "y": 123.5
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "20",
+        "type": "comfy.image.LoadImage",
+        "data": {
+          "image": {
+            "uri": "http://app.nodetool.ai/examples/inpainting_input.png",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 92,
+            "y": 553.5
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.sampling.KSampler",
+        "data": {
+          "seed": 3486928081,
+          "seed_control_mode": 3486928081,
+          "steps": 16,
+          "cfg": 8,
+          "sampler_name": "dpmpp_sde",
+          "scheduler": "normal",
+          "denoise": 0.5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1390.5,
+            "y": 272
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "31",
+        "type": "comfy.mask.ImageToMask",
+        "data": {
+          "channel": "red"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 941.5,
+            "y": 530.5
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "33",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-08-10"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1660,
+            "y": 259
+          },
+          "zIndex": 0,
+          "width": 243,
+          "height": 257,
+          "selectable": true
+        }
+      },
+      {
+        "id": "34",
+        "type": "nodetool.image.transform.Blur",
+        "data": {
+          "radius": 16
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 704,
+            "y": 464.5
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "35",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-08-10"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 941.5,
+            "y": 358.5
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 150,
+          "selectable": true
+        }
+      },
+      {
+        "id": "36",
+        "type": "huggingface.image.Segmentation",
+        "data": {
+          "model": "mattmdjaga/segformer_b2_clothes"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 316.5,
+            "y": 464.5
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "37",
+        "type": "huggingface.image.FindSegment",
+        "data": {
+          "segment_label": "Face"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 524,
+            "y": 464.5
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {}
+  }
 }

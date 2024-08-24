@@ -8,193 +8,292 @@
   "thumbnail": "",
   "thumbnail_url": "/examples/ip_adapter.png",
   "graph": {
-    "3": {
-      "type": "comfy.sampling.KSampler",
-      "inputs": {
-        "seed": 3031607639,
-        "steps": 32,
-        "cfg": 8,
-        "sampler_name": "dpmpp_2m_sde",
-        "scheduler": "karras",
-        "denoise": 1,
-        "negative": [
-          "7",
-          "conditioning"
-        ],
-        "model": [
-          "11",
-          "unet"
-        ],
-        "positive": [
-          "6",
-          "conditioning"
-        ],
-        "latent_image": [
-          "5",
-          "latent"
-        ]
+    "edges": [
+      {
+        "id": "1",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
       },
-      "position": {
-        "x": 433,
-        "y": 579
+      {
+        "id": "2",
+        "source": "11",
+        "sourceHandle": "unet",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "5",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "4",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "4",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "4",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "13",
+        "sourceHandle": "ipadapter",
+        "target": "11",
+        "targetHandle": "ipadapter",
+        "ui_properties": null
+      },
+      {
+        "id": "10",
+        "source": "12",
+        "sourceHandle": "clip_vision",
+        "target": "11",
+        "targetHandle": "clip_vision",
+        "ui_properties": null
+      },
+      {
+        "id": "17",
+        "source": "4",
+        "sourceHandle": "model",
+        "target": "11",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "24",
+        "source": "16",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "37",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "15",
+        "targetHandle": "value",
+        "ui_properties": null
       }
-    },
-    "4": {
-      "type": "comfy.loaders.CheckpointLoaderSimple",
-      "inputs": {
-        "ckpt_name": {
-          "type": "comfy.checkpoint_file",
-          "name": "Realistic_Vision_V5.safetensors"
+    ],
+    "nodes": [
+      {
+        "id": "3",
+        "parent_id": null,
+        "type": "comfy.sampling.KSampler",
+        "data": {
+          "seed": 3031607639,
+          "steps": 32,
+          "cfg": 8,
+          "sampler_name": "dpmpp_2m_sde",
+          "scheduler": "karras",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 433,
+            "y": 579
+          }
         }
       },
-      "position": {
-        "x": 29,
-        "y": 532.5
-      }
-    },
-    "5": {
-      "type": "comfy.latent.EmptyLatentImage",
-      "inputs": {
-        "width": 768,
-        "height": 768,
-        "batch_size": 1
-      },
-      "position": {
-        "x": 238.5,
-        "y": 810
-      }
-    },
-    "6": {
-      "type": "comfy.conditioning.CLIPTextEncode",
-      "inputs": {
-        "text": "cute pet",
-        "clip": [
-          "4",
-          "clip"
-        ]
-      },
-      "position": {
-        "x": 240,
-        "y": 501
-      }
-    },
-    "7": {
-      "type": "comfy.conditioning.CLIPTextEncode",
-      "inputs": {
-        "text": "text, watermark",
-        "clip": [
-          "4",
-          "clip"
-        ]
-      },
-      "position": {
-        "x": 238.5,
-        "y": 649.5
-      }
-    },
-    "8": {
-      "type": "comfy.latent.VAEDecode",
-      "inputs": {
-        "samples": [
-          "3",
-          "latent"
-        ],
-        "vae": [
-          "4",
-          "vae"
-        ]
-      },
-      "position": {
-        "x": 596,
-        "y": 704
-      }
-    },
-    "11": {
-      "type": "comfy.ipadapter.IPAdapterApply",
-      "inputs": {
-        "weight": 2.31,
-        "noise": 0,
-        "weight_type": "original",
-        "start_at": 0,
-        "end_at": 1,
-        "unfold_batch": false,
-        "attn_mask": null,
-        "ipadapter": [
-          "13",
-          "ipadapter"
-        ],
-        "clip_vision": [
-          "12",
-          "clip_vision"
-        ],
-        "model": [
-          "4",
-          "model"
-        ],
-        "image": [
-          "16",
-          "output"
-        ]
-      },
-      "position": {
-        "x": 238.5,
-        "y": 176.75
-      }
-    },
-    "12": {
-      "type": "comfy.loaders.CLIPVisionLoader",
-      "inputs": {
-        "clip_name": {
-          "type": "comfy.clip_vision_file",
-          "name": "clip_vit_h.safetensors"
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "comfy.loaders.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": {
+            "type": "comfy.checkpoint_file",
+            "name": "Realistic_Vision_V5.safetensors"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 29,
+            "y": 532.5
+          }
         }
       },
-      "position": {
-        "x": 29,
-        "y": 136.5
-      }
-    },
-    "13": {
-      "type": "comfy.ipadapter.IPAdapterModelLoader",
-      "inputs": {
-        "ipadapter_file": {
-          "type": "comfy.ip_adapter_file",
-          "name": "ip-adapter_sd15.safetensors"
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "comfy.latent.EmptyLatentImage",
+        "data": {
+          "width": 768,
+          "height": 768,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 238.5,
+            "y": 810
+          }
         }
       },
-      "position": {
-        "x": 29,
-        "y": -4.5
-      }
-    },
-    "15": {
-      "type": "nodetool.workflows.base_node.Preview",
-      "inputs": {
-        "name": "comfy.image_tensor_image_2024-07-29",
-        "value": [
-          "8",
-          "image"
-        ]
-      },
-      "position": {
-        "x": 721,
-        "y": 663
-      },
-      "width": 150,
-      "height": 150
-    },
-    "16": {
-      "type": "nodetool.constant.Image",
-      "inputs": {
-        "value": {
-          "uri": "https://app.nodetool.ai/examples/phantasy_animals.png",
-          "type": "image"
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "cute pet"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 240,
+            "y": 501
+          }
         }
       },
-      "position": {
-        "x": 12,
-        "y": 267
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "text, watermark"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 238.5,
+            "y": 649.5
+          }
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 596,
+            "y": 704
+          }
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "comfy.ipadapter.IPAdapterApply",
+        "data": {
+          "weight": 2.31,
+          "noise": 0,
+          "weight_type": "original",
+          "start_at": 0,
+          "end_at": 1,
+          "unfold_batch": false,
+          "attn_mask": null
+        },
+        "ui_properties": {
+          "position": {
+            "x": 238.5,
+            "y": 176.75
+          }
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "comfy.loaders.CLIPVisionLoader",
+        "data": {
+          "clip_name": {
+            "type": "comfy.clip_vision_file",
+            "name": "clip_vit_h.safetensors"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 29,
+            "y": 136.5
+          }
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "comfy.ipadapter.IPAdapterModelLoader",
+        "data": {
+          "ipadapter_file": {
+            "type": "comfy.ip_adapter_file",
+            "name": "ip-adapter_sd15.safetensors"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 29,
+            "y": -4.5
+          }
+        }
+      },
+      {
+        "id": "15",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "comfy.image_tensor_image_2024-07-29"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 721,
+            "y": 663
+          },
+          "width": 150,
+          "height": 150
+        }
+      },
+      {
+        "id": "16",
+        "parent_id": null,
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://app.nodetool.ai/examples/phantasy_animals.png",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 12,
+            "y": 267
+          }
+        }
       }
-    }
+    ]
   }
 }

@@ -1,199 +1,296 @@
 {
-    "id": "flux",
-    "access": "private",
-    "created_at": "2024-07-06T19:13:40.477460",
-    "updated_at": "2024-07-06T19:23:59.712727",
-    "name": "Flux",
-    "description": "SOTA Image Generation",
-    "thumbnail": "",
-    "thumbnail_url": "/examples/flux_schnell_example.png",
-    "graph": {
-        "5": {
-            "type": "comfy.latent.EmptyLatentImage",
-            "inputs": {
-                "width": 1024,
-                "height": 1024,
-                "batch_size": 1
-            },
-            "position": {
-                "x": 404,
-                "y": 61.5
-            }
+  "id": "flux",
+  "access": "private",
+  "created_at": "2024-07-06T19:13:40.477460",
+  "updated_at": "2024-07-06T19:23:59.712727",
+  "name": "Flux",
+  "description": "SOTA Image Generation",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/flux_schnell_example.png",
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "11",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "10",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "25",
+        "sourceHandle": "noise",
+        "target": "13",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "22",
+        "sourceHandle": "guider",
+        "target": "13",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "16",
+        "sourceHandle": "sampler",
+        "target": "13",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "17",
+        "sourceHandle": "sigmas",
+        "target": "13",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "5",
+        "sourceHandle": "latent",
+        "target": "13",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "12",
+        "sourceHandle": "unet",
+        "target": "17",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "10",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "22",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "17",
+        "source": "12",
+        "sourceHandle": "unet",
+        "target": "22",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "24",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "26",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ],
+    "nodes": [
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "comfy.latent.EmptyLatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
         },
-        "6": {
-            "type": "comfy.conditioning.CLIPTextEncode",
-            "inputs": {
-                "text": "a bottle with a rainbow galaxy inside it on top of a wooden table on a table in the middle of a modern kitchen",
-                "clip": [
-                    "11",
-                    "clip"
-                ]
-            },
-            "position": {
-                "x": 202.5,
-                "y": 317
-            }
-        },
-        "8": {
-            "type": "comfy.latent.VAEDecode",
-            "inputs": {
-                "vae": [
-                    "10",
-                    "vae"
-                ],
-                "samples": [
-                    "13",
-                    "output"
-                ]
-            },
-            "position": {
-                "x": 786,
-                "y": 248.75
-            }
-        },
-        "10": {
-            "type": "comfy.loaders.VAELoader",
-            "inputs": {
-                "vae_name": {
-                    "type": "comfy.vae_file",
-                    "name": "ae.sft"
-                }
-            },
-            "position": {
-                "x": 606,
-                "y": 170.5
-            }
-        },
-        "11": {
-            "type": "comfy.loaders.DualCLIPLoader",
-            "inputs": {
-                "clip_name1": {
-                    "type": "comfy.clip_file",
-                    "name": "clip_l.safetensors"
-                },
-                "clip_name2": {
-                    "type": "comfy.clip_file",
-                    "name": "t5xxl_fp8_e4m3fn.safetensors"
-                },
-                "type": "flux"
-            },
-            "position": {
-                "x": 17,
-                "y": 281
-            }
-        },
-        "12": {
-            "type": "comfy.loaders.UNETLoader",
-            "inputs": {
-                "unet_name": {
-                    "type": "comfy.unet_file",
-                    "name": "flux1-schnell.sft"
-                },
-                "weight_dtype": "default"
-            },
-            "position": {
-                "x": 202.5,
-                "y": 487.5
-            }
-        },
-        "13": {
-            "type": "comfy.sampling.samplers.SamplerCustomAdvanced",
-            "inputs": {
-                "noise": [
-                    "25",
-                    "noise"
-                ],
-                "guider": [
-                    "22",
-                    "guider"
-                ],
-                "sampler": [
-                    "16",
-                    "sampler"
-                ],
-                "sigmas": [
-                    "17",
-                    "sigmas"
-                ],
-                "latent_image": [
-                    "5",
-                    "latent"
-                ]
-            },
-            "position": {
-                "x": 606,
-                "y": 327
-            }
-        },
-        "16": {
-            "type": "comfy.sampling.samplers.KSamplerSelect",
-            "inputs": {
-                "sampler_name": "euler"
-            },
-            "position": {
-                "x": 404,
-                "y": 198.5
-            }
-        },
-        "17": {
-            "type": "comfy.sampling.schedulers.BasicScheduler",
-            "inputs": {
-                "scheduler": "simple",
-                "steps": 4,
-                "denoise": 1,
-                "model": [
-                    "12",
-                    "unet"
-                ]
-            },
-            "position": {
-                "x": 404,
-                "y": 497.5
-            }
-        },
-        "22": {
-            "type": "comfy.sampling.guiders.BasicGuider",
-            "inputs": {
-                "conditioning": [
-                    "6",
-                    "conditioning"
-                ],
-                "model": [
-                    "12",
-                    "unet"
-                ]
-            },
-            "position": {
-                "x": 404,
-                "y": 327
-            }
-        },
-        "25": {
-            "type": "comfy.sampling.noise.RandomNoise",
-            "inputs": {
-                "noise_seed": 689015878,
-                "seed_control_mode": "randomize"
-            },
-            "position": {
-                "x": 404,
-                "y": 643.5
-            }
-        },
-        "26": {
-            "type": "nodetool.workflows.base_node.Preview",
-            "inputs": {
-                "value": [
-                    "8",
-                    "image"
-                ],
-                "name": "image_image_2024-08-07"
-            },
-            "position": {
-                "x": 926,
-                "y": 164
-            },
-            "width": 301,
-            "height": 321
+        "ui_properties": {
+          "position": {
+            "x": 404,
+            "y": 61.5
+          }
         }
-    }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "a bottle with a rainbow galaxy inside it on top of a wooden table on a table in the middle of a modern kitchen"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 202.5,
+            "y": 317
+          }
+        }
+      },
+      {
+        "id": "8",
+        "parent_id": null,
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 786,
+            "y": 248.75
+          }
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "comfy.loaders.VAELoader",
+        "data": {
+          "vae_name": {
+            "type": "comfy.vae_file",
+            "name": "ae.sft"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 606,
+            "y": 170.5
+          }
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "comfy.loaders.DualCLIPLoader",
+        "data": {
+          "clip_name1": {
+            "type": "comfy.clip_file",
+            "name": "clip_l.safetensors"
+          },
+          "clip_name2": {
+            "type": "comfy.clip_file",
+            "name": "t5xxl_fp8_e4m3fn.safetensors"
+          },
+          "type": "flux"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 17,
+            "y": 281
+          }
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "comfy.loaders.UNETLoader",
+        "data": {
+          "unet_name": {
+            "type": "comfy.unet_file",
+            "name": "flux1-schnell.sft"
+          },
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 202.5,
+            "y": 487.5
+          }
+        }
+      },
+      {
+        "id": "13",
+        "parent_id": null,
+        "type": "comfy.sampling.samplers.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 606,
+            "y": 327
+          }
+        }
+      },
+      {
+        "id": "16",
+        "parent_id": null,
+        "type": "comfy.sampling.samplers.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 404,
+            "y": 198.5
+          }
+        }
+      },
+      {
+        "id": "17",
+        "parent_id": null,
+        "type": "comfy.sampling.schedulers.BasicScheduler",
+        "data": {
+          "scheduler": "simple",
+          "steps": 4,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 404,
+            "y": 497.5
+          }
+        }
+      },
+      {
+        "id": "22",
+        "parent_id": null,
+        "type": "comfy.sampling.guiders.BasicGuider",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 404,
+            "y": 327
+          }
+        }
+      },
+      {
+        "id": "25",
+        "parent_id": null,
+        "type": "comfy.sampling.noise.RandomNoise",
+        "data": {
+          "noise_seed": 689015878,
+          "seed_control_mode": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 404,
+            "y": 643.5
+          }
+        }
+      },
+      {
+        "id": "26",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-08-07"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 926,
+            "y": 164
+          },
+          "width": 301,
+          "height": 321
+        }
+      }
+    ]
+  }
 }

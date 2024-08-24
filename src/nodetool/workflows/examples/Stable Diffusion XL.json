@@ -1,181 +1,272 @@
 {
-    "id": "stable_diffusion_xl",
-    "access": "private",
-    "created_at": "2024-07-06T20:13:38.331865",
-    "updated_at": "2024-07-06T20:23:13.098945",
-    "name": "Stable Diffusion XL in Comfy",
-    "description": "",
-    "thumbnail": "",
-    "thumbnail_url": "/examples/stable_diffusion_xl.png",
-    "graph": {
-        "4": {
-            "type": "comfy.loaders.CheckpointLoaderSimple",
-            "inputs": {
-                "ckpt_name": {
-                    "type": "comfy.checkpoint_file",
-                    "name": "sd_xl_base_1.0.safetensors"
-                }
-            },
-            "position": {
-                "x": 181,
-                "y": 78
-            }
+  "id": "stable_diffusion_xl",
+  "access": "private",
+  "created_at": "2024-07-06T20:13:38.331865",
+  "updated_at": "2024-07-06T20:23:13.098945",
+  "name": "Stable Diffusion XL in Comfy",
+  "description": "",
+  "thumbnail": "",
+  "thumbnail_url": "/examples/stable_diffusion_xl.png",
+  "graph": {
+    "edges": [
+      {
+        "id": "1",
+        "source": "4",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "2",
+        "source": "4",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "3",
+        "source": "5",
+        "sourceHandle": "latent",
+        "target": "10",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "4",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "10",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "5",
+        "source": "4",
+        "sourceHandle": "model",
+        "target": "10",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "6",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "10",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7",
+        "source": "10",
+        "sourceHandle": "latent",
+        "target": "11",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "8",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "11",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "9",
+        "source": "4",
+        "sourceHandle": "model",
+        "target": "11",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "10",
+        "source": "6",
+        "sourceHandle": "conditioning",
+        "target": "11",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "17",
+        "source": "11",
+        "sourceHandle": "latent",
+        "target": "17",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "24",
+        "source": "12",
+        "sourceHandle": "vae",
+        "target": "17",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "37",
+        "source": "17",
+        "sourceHandle": "image",
+        "target": "46",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ],
+    "nodes": [
+      {
+        "id": "4",
+        "parent_id": null,
+        "type": "comfy.loaders.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": {
+            "type": "comfy.checkpoint_file",
+            "name": "sd_xl_base_1.0.safetensors"
+          }
         },
-        "5": {
-            "type": "comfy.latent.EmptyLatentImage",
-            "inputs": {
-                "width": 1024,
-                "height": 1024,
-                "batch_size": 1
-            },
-            "position": {
-                "x": 385,
-                "y": 267
-            }
-        },
-        "6": {
-            "type": "comfy.conditioning.CLIPTextEncode",
-            "inputs": {
-                "text": "a woman",
-                "clip": [
-                    "4",
-                    "clip"
-                ]
-            },
-            "position": {
-                "x": 366,
-                "y": 9
-            }
-        },
-        "7": {
-            "type": "comfy.conditioning.CLIPTextEncode",
-            "inputs": {
-                "text": "deformed",
-                "clip": [
-                    "4",
-                    "clip"
-                ]
-            },
-            "position": {
-                "x": 359,
-                "y": 138
-            }
-        },
-        "10": {
-            "type": "comfy.sampling.KSamplerAdvanced",
-            "inputs": {
-                "add_noise": "enable",
-                "noise_seed": 2275274373,
-                "seed_control_mode": "randomize",
-                "cfg": 8,
-                "sampler_name": "euler",
-                "scheduler": "normal",
-                "start_at_step": 0,
-                "return_with_leftover_noise": "enable",
-                "end_at_step": 10,
-                "steps": 10,
-                "latent_image": [
-                    "5",
-                    "latent"
-                ],
-                "negative": [
-                    "7",
-                    "conditioning"
-                ],
-                "model": [
-                    "4",
-                    "model"
-                ],
-                "positive": [
-                    "6",
-                    "conditioning"
-                ]
-            },
-            "position": {
-                "x": 552,
-                "y": 110
-            }
-        },
-        "11": {
-            "type": "comfy.sampling.KSamplerAdvanced",
-            "inputs": {
-                "add_noise": "enable",
-                "noise_seed": 2275274373,
-                "seed_control_mode": "fixed",
-                "cfg": 8,
-                "sampler_name": "euler",
-                "scheduler": "normal",
-                "end_at_step": 40,
-                "return_with_leftover_noise": "disable",
-                "start_at_step": 10,
-                "steps": 30,
-                "latent_image": [
-                    "10",
-                    "latent"
-                ],
-                "negative": [
-                    "7",
-                    "conditioning"
-                ],
-                "model": [
-                    "4",
-                    "model"
-                ],
-                "positive": [
-                    "6",
-                    "conditioning"
-                ]
-            },
-            "position": {
-                "x": 726,
-                "y": 110
-            }
-        },
-        "12": {
-            "type": "comfy.loaders.CheckpointLoaderSimple",
-            "inputs": {
-                "ckpt_name": {
-                    "type": "comfy.checkpoint_file",
-                    "name": "sd_xl_refiner_1.0.safetensors"
-                }
-            },
-            "position": {
-                "x": 720,
-                "y": 13
-            }
-        },
-        "17": {
-            "type": "comfy.latent.VAEDecode",
-            "inputs": {
-                "samples": [
-                    "11",
-                    "latent"
-                ],
-                "vae": [
-                    "12",
-                    "vae"
-                ]
-            },
-            "position": {
-                "x": 911,
-                "y": 234
-            }
-        },
-        "46": {
-            "type": "nodetool.workflows.base_node.Preview",
-            "inputs": {
-                "value": [
-                    "17",
-                    "image"
-                ],
-                "name": "image_image_2024-08-06"
-            },
-            "position": {
-                "x": 1042,
-                "y": 101
-            },
-            "width": 242,
-            "height": 341
+        "ui_properties": {
+          "position": {
+            "x": 181,
+            "y": 78
+          }
         }
-    }
+      },
+      {
+        "id": "5",
+        "parent_id": null,
+        "type": "comfy.latent.EmptyLatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 385,
+            "y": 267
+          }
+        }
+      },
+      {
+        "id": "6",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "a woman"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 366,
+            "y": 9
+          }
+        }
+      },
+      {
+        "id": "7",
+        "parent_id": null,
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "deformed"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 359,
+            "y": 138
+          }
+        }
+      },
+      {
+        "id": "10",
+        "parent_id": null,
+        "type": "comfy.sampling.KSamplerAdvanced",
+        "data": {
+          "add_noise": "enable",
+          "noise_seed": 2275274373,
+          "seed_control_mode": "randomize",
+          "cfg": 8,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "start_at_step": 0,
+          "return_with_leftover_noise": "enable",
+          "end_at_step": 10,
+          "steps": 10
+        },
+        "ui_properties": {
+          "position": {
+            "x": 552,
+            "y": 110
+          }
+        }
+      },
+      {
+        "id": "11",
+        "parent_id": null,
+        "type": "comfy.sampling.KSamplerAdvanced",
+        "data": {
+          "add_noise": "enable",
+          "noise_seed": 2275274373,
+          "seed_control_mode": "fixed",
+          "cfg": 8,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "end_at_step": 40,
+          "return_with_leftover_noise": "disable",
+          "start_at_step": 10,
+          "steps": 30
+        },
+        "ui_properties": {
+          "position": {
+            "x": 726,
+            "y": 110
+          }
+        }
+      },
+      {
+        "id": "12",
+        "parent_id": null,
+        "type": "comfy.loaders.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": {
+            "type": "comfy.checkpoint_file",
+            "name": "sd_xl_refiner_1.0.safetensors"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 13
+          }
+        }
+      },
+      {
+        "id": "17",
+        "parent_id": null,
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 911,
+            "y": 234
+          }
+        }
+      },
+      {
+        "id": "46",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-08-06"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1042,
+            "y": 101
+          },
+          "width": 242,
+          "height": 341
+        }
+      }
+    ]
+  }
 }
