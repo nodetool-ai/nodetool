@@ -11,7 +11,6 @@ const ProtectedRoute: React.FC<Props> = ({ children }) => {
   const navigate = useNavigate();
   const { state } = useAuth();
 
-
   useEffect(() => {
     if (state === "logged_out") {
       navigate("/login");

@@ -23,21 +23,29 @@ function createWindow() {
 }
 
 function startServer() {
-  const pythonExecutable = path.join(__dirname, ".venv", 'bin', 'python');
+  // const pythonExecutable = path.join(__dirname, ".venv", 'bin', 'python');
+  const pythonExecutable = "python";
 
-  serverProcess = spawn(pythonExecutable, ["-m", "nodetool.cli", "server"], {
+  serverProcess = spawn(pythonExecutable, ["-m", "nodetool.cli", "serve"], {
     "PYTHONPATH": "src"
   });
 
   serverProcess.stdout.on('data', (data) => {
-    console.log(`Server output: ${data}`);
+    console.log(data.toString());
+    if (data.toString().includes("Application startup complete.")) {
+      mainWindow.webContents.send('server-started');
+    }
+      
     if (mainWindow) {
       mainWindow.webContents.send('server-log', data.toString());
     }
   });
 
   serverProcess.stderr.on('data', (data) => {
-    console.error(`Server error: ${data}`);
+    console.log(data.toString());
+    if (data.toString().includes("Application startup complete.")) {
+      mainWindow.webContents.send('server-started');
+    }
     if (mainWindow) {
       mainWindow.webContents.send('server-log', data.toString());
     }

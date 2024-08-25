@@ -38,18 +38,27 @@ export const useAuth = create<LoginStore>((set, get) => ({
     get().saveToStorage(user);
   },
 
+  /**
+   * Initialize the auth store.
+   * This will check if the user token is saved in local storage and still valid.
+   * If the token is valid, it will set the state to "logged_in".
+   * If the token is not valid, it will set the state to "logged_out".
+   * If there is an error, it will set the state to "error".
+   */
   initialize: async () => {
-    if (get().state !== "init") {
-      return;
-    }
-    const user = get().readFromStorage();
     if (!useRemoteAuth) {
       set({
         user: {
           id: "1", email: "", auth_token: "local_token",
-        }
+        },
+        state: "logged_in"
       });
+      return;
     }
+    if (get().state !== "init") {
+      return;
+    }
+    const user = get().readFromStorage();
     if (!user || !user.auth_token) {
       set({ user: null, state: "logged_out" });
       return;

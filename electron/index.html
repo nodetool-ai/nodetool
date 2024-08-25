@@ -4,12 +4,13 @@
 <head>
     <title>Nodetool</title>
     <style>
-        body,
-        html {
+        body, html {
             height: 100%;
             margin: 0;
             display: flex;
             flex-direction: column;
+            background-color: #222222;
+            font-family: Arial, sans-serif;
         }
 
         #content {
@@ -17,27 +18,88 @@
             border: none;
         }
 
-        #log {
+        #log-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #333333;
+            transition: height 0.3s ease-out;
+            height: 30px;
+            overflow: hidden;
+        }
+
+        #log-container.expanded {
             height: 200px;
+        }
+
+        #log-toggle {
+            width: 100%;
+            height: 30px;
+            background-color: #444444;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        #log-toggle:hover {
+            background-color: #555555;
+        }
+
+        #log {
+            height: 170px;
             overflow-y: scroll;
-            background-color: #f0f0f0;
+            color: #ffffff;
             padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        #boot {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #ffffff;
+            font-size: 24px;
             font-family: monospace;
         }
     </style>
 </head>
 
 <body>
-    <iframe id="content" src="http://localhost:8000"></iframe>
-    <div id="log"></div>
+    <div id="boot">Starting server...</div>
+    <iframe id="content"></iframe>
+    <div id="log-container">
+        <button id="log-toggle">Show Log</button>
+        <div id="log"></div>
+    </div>
 
     <script>
         const { ipcRenderer } = require('electron');
+        const contentElement = document.getElementById('content');
         const logElement = document.getElementById('log');
+        const bootElement = document.getElementById('boot');
+        const logContainer = document.getElementById('log-container');
+        const logToggle = document.getElementById('log-toggle');
+        
+        ipcRenderer.on('server-started', () => {
+            contentElement.src = 'http://localhost:8000';
+            bootElement.style.display = 'none';
+        });
 
         ipcRenderer.on('server-log', (event, message) => {
             logElement.innerHTML += message + '<br>';
             logElement.scrollTop = logElement.scrollHeight;
+        });
+
+        logToggle.addEventListener('click', () => {
+            logContainer.classList.toggle('expanded');
+            logToggle.textContent = logContainer.classList.contains('expanded') ? 'Hide Log' : 'Show Log';
         });
     </script>
 </body>

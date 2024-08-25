@@ -4,10 +4,10 @@ import { useAuth } from "./useAuth.js";
 
 const mode: string = import.meta.env.MODE;
 
+export const isLocalhost = window.location.hostname.includes("localhost");
+
 export const useRemoteAuth =
-  import.meta.env.VITE_REMOTE_AUTH === "true" ||
-  ((mode === "production" || mode === "staging") &&
-    !window.location.hostname.includes("localhost"));
+  ((mode === "production" || mode === "staging") && !isLocalhost);
 
 export const isDevelopment = mode === "development";
 export const isStaging = mode === "staging";
@@ -15,13 +15,13 @@ export const isProduction = mode === "production";
 
 // TODO: make it configurable via env vars
 export const BASE_URL =
-  isDevelopment
+  isLocalhost
     ? "http://" + window.location.hostname + ":8000"
     : isStaging
       ? "https://staging-api.nodetool.ai"
       : "https://api.nodetool.ai";
 
-export const WORKER_URL = BASE_URL + "/predict";
+export const WORKER_URL = BASE_URL.replace("http://", "ws://").replace("https://", "wss://") + "/predict";
 
 export const pingWorker = () => {
   if (isDevelopment) {
