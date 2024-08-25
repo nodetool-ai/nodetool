@@ -10,4 +10,4 @@ import nodetool.nodes.replicate
 import nodetool.nodes.stable_diffusion
 import nodetool.nodes.ollama
 
-app = create_app()
+app = create_app(static_folder="web/dist")

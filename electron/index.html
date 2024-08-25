@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Nodetool</title>
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #content {
+            flex: 1;
+            border: none;
+        }
+
+        #log {
+            height: 200px;
+            overflow-y: scroll;
+            background-color: #f0f0f0;
+            padding: 10px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <iframe id="content" src="http://localhost:8000"></iframe>
+    <div id="log"></div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const logElement = document.getElementById('log');
+
+        ipcRenderer.on('server-log', (event, message) => {
+            logElement.innerHTML += message + '<br>';
+            logElement.scrollTop = logElement.scrollHeight;
+        });
+    </script>
+</body>
+
+</html>

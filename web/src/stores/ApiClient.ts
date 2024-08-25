@@ -5,9 +5,9 @@ import { useAuth } from "./useAuth.js";
 const mode: string = import.meta.env.MODE;
 
 export const useRemoteAuth =
-  mode === "production" ||
-  mode === "staging" ||
-  import.meta.env.VITE_REMOTE_AUTH === "true";
+  import.meta.env.VITE_REMOTE_AUTH === "true" ||
+  ((mode === "production" || mode === "staging") &&
+    !window.location.hostname.includes("localhost"));
 
 export const isDevelopment = mode === "development";
 export const isStaging = mode === "staging";
