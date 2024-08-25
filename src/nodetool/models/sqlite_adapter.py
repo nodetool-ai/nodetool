@@ -111,11 +111,12 @@ def convert_from_sqlite_attributes(
     """
     Convert a dictionary of attributes from SQLite to a dictionary of Python types based on the provided fields.
     """
-    for key in attributes:
-        if key not in fields:
-            raise ValueError(f"Field {key} not found in fields")
     return {
-        key: convert_from_sqlite_format(attributes[key], fields[key].annotation)  # type: ignore
+        key: (
+            convert_from_sqlite_format(attributes[key], fields[key].annotation)
+            if key in fields
+            else attributes[key]
+        )
         for key in attributes
     }
 
@@ -127,7 +128,11 @@ def convert_to_sqlite_attributes(
     Convert a dictionary of attributes from SQLite to a dictionary of Python types based on the provided fields.
     """
     return {
-        key: convert_to_sqlite_format(attributes[key], fields[key].annotation)  # type: ignore
+        key: (
+            convert_to_sqlite_format(attributes[key], fields[key].annotation)
+            if key in fields
+            else attributes[key]
+        )
         for key in attributes
     }
 

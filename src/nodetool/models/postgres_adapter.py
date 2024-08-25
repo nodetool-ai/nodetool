@@ -105,11 +105,12 @@ def convert_from_postgres_attributes(
     """
     Convert a dictionary of attributes from PostgreSQL to a dictionary of Python types based on the provided fields.
     """
-    for key in attributes:
-        if key not in fields:
-            raise ValueError(f"Field {key} not found in fields")
     return {
-        key: convert_from_postgres_format(attributes[key], fields[key].annotation)
+        key: (
+            convert_from_postgres_format(attributes[key], fields[key].annotation)
+            if key in fields
+            else attributes[key]
+        )
         for key in attributes
     }
 
@@ -121,7 +122,11 @@ def convert_to_postgres_attributes(
     Convert a dictionary of attributes from PostgreSQL to a dictionary of Python types based on the provided fields.
     """
     return {
-        key: convert_to_postgres_format(attributes[key], fields[key].annotation)
+        key: (
+            convert_to_postgres_format(attributes[key], fields[key].annotation)
+            if key in fields
+            else attributes[key]
+        )
         for key in attributes
     }
 

@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Optional
+from nodetool.common.content_types import CONTENT_TYPE_TO_EXTENSION
 from nodetool.models.condition_builder import Field
 from nodetool.types.graph import Graph as APIGraph
 from nodetool.workflows.graph import Graph
@@ -75,27 +76,51 @@ class Workflow(DBModel):
         limit: int = 100,
         start_key: Optional[str] = None,
     ) -> tuple[list["Workflow"], str]:
-        query = f"SELECT * FROM {cls.get_table_schema()['table_name']} WHERE "
+        query = f"""
+    SELECT w.*,
+           a.id as asset_id,
+           a.content_type as asset_content_type
+    FROM {cls.get_table_schema()['table_name']} w
+    LEFT OUTER JOIN (
+        SELECT workflow_id, id, content_type,
+               ROW_NUMBER() OVER (PARTITION BY workflow_id ORDER BY created_at DESC) as rn
+        FROM nodetool_assets
+    ) a ON (w.id = a.workflow_id AND a.rn = 1) OR (a.id = w.thumbnail)
+    WHERE """
         params = {}
 
         if user_id is None:
-            query += "access = :access AND "
+            query += "w.access = :access AND "
             params["access"] = "public"
         else:
-            query += "user_id = :user_id AND "
+            query += "w.user_id = :user_id AND "
             params["user_id"] = user_id
 
         if start_key:
-            query += "id > :start_key "
+            query += "w.id > :start_key "
             params["start_key"] = start_key
         else:
             query += "1=1 "
 
-        query += f"ORDER BY id ASC LIMIT {limit + 1}"
+        query += f"ORDER BY w.id ASC LIMIT {limit + 1}"
 
         results = cls.adapter().execute_sql(query, params)
 
-        workflows = [Workflow.from_dict(row) for row in results[:limit]]
+        workflows = [
+            Workflow.from_dict(
+                {
+                    **row,
+                    "thumbnail": (
+                        row["asset_id"]
+                        + "."
+                        + CONTENT_TYPE_TO_EXTENSION[row["asset_content_type"]]
+                        if row["asset_id"] is not None
+                        else None
+                    ),
+                }
+            )
+            for row in results[:limit]
+        ]
 
         if len(results) > limit:
             last_evaluated_key = results[-1]["id"]

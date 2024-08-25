@@ -8,16 +8,8 @@ from pydantic import BaseModel
 
 
 def find_thumbnail(workflow: WorkflowModel) -> str | None:
-    if workflow.thumbnail and workflow.thumbnail != "":
-        asset = AssetModel.get(workflow.thumbnail)
-    else:
-        assets, _ = AssetModel.paginate(
-            user_id=workflow.user_id, workflow_id=workflow.id, limit=1, reverse=True
-        )
-        asset = assets[0] if assets else None
-
-    if asset:
-        return Environment.get_asset_storage().get_url(asset.file_name)
+    if workflow.thumbnail:
+        return Environment.get_asset_storage().get_url(workflow.thumbnail)
     else:
         return None
 
