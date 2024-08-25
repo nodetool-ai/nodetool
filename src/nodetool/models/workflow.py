@@ -74,21 +74,35 @@ class Workflow(DBModel):
         user_id: str | None = None,
         limit: int = 100,
         start_key: Optional[str] = None,
-    ):
+    ) -> tuple[list["Workflow"], str]:
+        query = f"SELECT * FROM {cls.get_table_schema()['table_name']} WHERE "
+        params = {}
+
         if user_id is None:
-            return cls.query(
-                condition=Field("access")
-                .equals("public")
-                .and_(Field("id").greater_than(start_key or "")),
-                limit=limit,
-            )
+            query += "access = :access AND "
+            params["access"] = "public"
         else:
-            return cls.query(
-                condition=Field("user_id")
-                .equals(user_id)
-                .and_(Field("id").greater_than(start_key or "")),
-                limit=limit,
-            )
+            query += "user_id = :user_id AND "
+            params["user_id"] = user_id
+
+        if start_key:
+            query += "id > :start_key "
+            params["start_key"] = start_key
+        else:
+            query += "1=1 "
+
+        query += f"ORDER BY id ASC LIMIT {limit + 1}"
+
+        results = cls.adapter().execute_sql(query, params)
+
+        workflows = [Workflow.from_dict(row) for row in results[:limit]]
+
+        if len(results) > limit:
+            last_evaluated_key = results[-1]["id"]
+        else:
+            last_evaluated_key = ""
+
+        return workflows, last_evaluated_key
 
     def get_api_graph(self) -> APIGraph:
         """

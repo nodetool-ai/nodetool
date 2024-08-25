@@ -36,7 +36,14 @@ class DatabaseAdapter(ABC):
         condition: ConditionBuilder,
         limit: int = 100,
         reverse: bool = False,
+        join_tables: List[Dict[str, str]] | None = None,
     ) -> tuple[list[dict[str, Any]], str]:
+        pass
+
+    @abstractmethod
+    def execute_sql(
+        self, sql: str, params: dict[str, Any] = {}
+    ) -> List[Dict[str, Any]]:
         pass
 
     def get_primary_key(self) -> str:

@@ -179,7 +179,7 @@ def translate_condition_to_sql(condition: str) -> str:
     # Function to replace each match with the PostgreSQL LIKE syntax
     def replacement(match):
         column_name, param_name = match.groups()
-        return f"{column_name} LIKE %(${param_name})s || '%'"
+        return f"{column_name} LIKE %({param_name})s || '%'"
 
     # Use the regex sub function to replace all occurrences of the pattern
     translated_condition = re.sub(pattern, replacement, condition)
@@ -188,6 +188,16 @@ def translate_condition_to_sql(condition: str) -> str:
     translated_condition = re.sub(r":(\w+)", r"%({\1})s", translated_condition)
 
     return translated_condition
+
+
+def translate_postgres_params(
+    query: str, params: Dict[str, Any]
+) -> tuple[str, Dict[str, Any]]:
+    """
+    Translate SQLite-style named parameters to PostgreSQL-style parameters.
+    """
+    translated_query = re.sub(r":(\w+)", r"%(\1)s", query)
+    return translated_query, params
 
 
 class PostgresAdapter(DatabaseAdapter):
@@ -370,21 +380,62 @@ class PostgresAdapter(DatabaseAdapter):
                     params,
                 )
 
+    def _build_join(
+        self, join_tables: List[Dict[str, str]]
+    ) -> tuple[Composed, List[SQL]]:
+        join_clauses = []
+        join_columns = []
+        for join in join_tables:
+            join_type = SQL(join.get("type", "INNER").upper() + " JOIN")
+            join_table = Identifier(join["table"])
+            on_condition = SQL(join["on"])
+            join_clauses.append(
+                SQL("{} {} ON {}").format(join_type, join_table, on_condition)
+            )
+            if "columns" in join:
+                join_columns.extend([SQL(col) for col in join["columns"].split(",")])
+        return SQL(" ").join(join_clauses), join_columns
+
     def query(
         self,
         condition: ConditionBuilder,
         limit: int = 100,
         reverse: bool = False,
+        join_tables: List[Dict[str, str]] | None = None,
     ) -> tuple[List[Dict[str, Any]], str]:
         pk = self.get_primary_key()
-        order_by = SQL("{} DESC" if reverse else "{} ASC").format(Identifier(pk))
+        order_by = SQL("{}.{} DESC" if reverse else "{}.{} ASC").format(
+            Identifier(self.table_name), Identifier(pk)
+        )
 
         where_clause, params = self._build_condition(condition.build())
 
-        cols = SQL(", ").join(map(Identifier, self.fields.keys()))
-        query = SQL("SELECT {} FROM {} WHERE {} ORDER BY {} LIMIT {}").format(
-            cols, Identifier(self.table_name), where_clause, order_by, SQL(str(limit))
+        cols = SQL(", ").join(
+            [
+                SQL("{}.{}").format(Identifier(self.table_name), Identifier(col))
+                for col in self.fields.keys()
+            ]
         )
+
+        if join_tables:
+            join_clause, join_columns = self._build_join(join_tables)
+            cols = SQL("{}, {}").format(cols, SQL(", ").join(join_columns))
+            query = SQL("SELECT {} FROM {} {} WHERE {} ORDER BY {} LIMIT {}").format(
+                cols,
+                Identifier(self.table_name),
+                join_clause,
+                where_clause,
+                order_by,
+                SQL(str(limit)),
+            )
+        else:
+            query = SQL("SELECT {} FROM {} WHERE {} ORDER BY {} LIMIT {}").format(
+                cols,
+                Identifier(self.table_name),
+                where_clause,
+                order_by,
+                SQL(str(limit)),
+            )
 
         with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(query, params)
@@ -403,6 +454,19 @@ class PostgresAdapter(DatabaseAdapter):
     def get_cursor(self):
         with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
             yield cursor
+
+    def execute_sql(
+        self, sql: str, params: Dict[str, Any] = {}
+    ) -> List[Dict[str, Any]]:
+        translated_sql, translated_params = translate_postgres_params(sql, params)
+        with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(translated_sql, translated_params)
+            if cursor.description:
+                return [
+                    convert_from_postgres_attributes(dict(row), self.fields)
+                    for row in cursor.fetchall()
+                ]
+            return []
 
     def __del__(self):
         if hasattr(self, "_connection") and self._connection:

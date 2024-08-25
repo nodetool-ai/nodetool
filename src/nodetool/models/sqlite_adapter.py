@@ -361,19 +361,41 @@ class SQLiteAdapter(DatabaseAdapter):
                     params,
                 )
 
+    def _build_join(self, join_tables: List[Dict[str, str]]) -> tuple[str, List[str]]:
+        join_clauses = []
+        join_columns = []
+        for join in join_tables:
+            join_type = join.get("type", "INNER").upper()
+            join_table = join["table"]
+            on_condition = join["on"]
+            join_clauses.append(f"{join_type} JOIN {join_table} ON {on_condition}")
+            if "columns" in join:
+                join_columns.extend(join["columns"].split(","))
+        return " ".join(join_clauses), join_columns
+
     def query(
         self,
         condition: ConditionBuilder,
         limit: int = 100,
         reverse: bool = False,
+        join_tables: List[Dict[str, str]] | None = None,
     ) -> tuple[list[dict[str, Any]], str]:
         pk = self.get_primary_key()
-        order_by = f"{pk} DESC" if reverse else f"{pk} ASC"
+        order_by = (
+            f"{self.table_name}.{pk} DESC" if reverse else f"{self.table_name}.{pk} ASC"
+        )
 
         where_clause, params = self._build_condition(condition.build())
 
-        cols = ", ".join(self.fields.keys())
-        query = f"SELECT {cols} FROM {self.table_name} WHERE {where_clause} ORDER BY {order_by} LIMIT {limit}"
+        cols = ", ".join([f"{self.table_name}.{col}" for col in self.fields.keys()])
+
+        if join_tables:
+            join_clause, join_columns = self._build_join(join_tables)
+            if join_columns:
+                cols += ", " + ", ".join(join_columns)
+            query = f"SELECT {cols} FROM {self.table_name} {join_clause} WHERE {where_clause} ORDER BY {order_by} LIMIT {limit}"
+        else:
+            query = f"SELECT {cols} FROM {self.table_name} WHERE {where_clause} ORDER BY {order_by} LIMIT {limit}"
 
         cursor = self.connection.execute(query, params)
         res = [
@@ -386,3 +408,16 @@ class SQLiteAdapter(DatabaseAdapter):
 
         last_evaluated_key = str(res[-1].get(pk))
         return res, last_evaluated_key
+
+    def execute_sql(
+        self, sql: str, params: dict[str, Any] = {}
+    ) -> List[Dict[str, Any]]:
+        cursor = self.connection.cursor()
+        cursor.execute(sql, params)
+        if cursor.description:
+            columns = [col[0] for col in cursor.description]
+            return [
+                convert_from_sqlite_attributes(dict(zip(columns, row)), self.fields)
+                for row in cursor.fetchall()
+            ]
+        return []

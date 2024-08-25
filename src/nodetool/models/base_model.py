@@ -67,6 +67,7 @@ class DBModel(BaseModel):
         condition: ConditionBuilder,
         limit: int = 100,
         reverse: bool = False,
+        join_tables: list[dict[str, str]] | None = None,
     ):
         """
         Query the DB table for the model to retrieve a list of items.
@@ -77,6 +78,7 @@ class DBModel(BaseModel):
             condition: The condition for the query.
             limit: The maximum number of items to retrieve.
             reverse: Whether to reverse the order of the results.
+            join_tables: A list of tables to join with.
 
         Returns:
             A tuple containing a list of items that match the query conditions and the last evaluated key.
@@ -85,6 +87,7 @@ class DBModel(BaseModel):
             condition=condition,
             limit=limit,
             reverse=reverse,
+            join_tables=join_tables,
         )
         return [cls(**item) for item in items], key
 
