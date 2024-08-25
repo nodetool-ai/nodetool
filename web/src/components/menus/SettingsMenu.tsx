@@ -162,6 +162,7 @@ function SettingsMenu() {
     setButtonAppearance,
     setAlertBeforeTabClose,
     setSelectNodesOnDrag,
+    setShowWelcomeOnStartup,
   } = useSettingsStore((state) => ({
     settings: state.settings,
     setGridSnap: state.setGridSnap,
@@ -175,6 +176,7 @@ function SettingsMenu() {
     setButtonAppearance: state.setButtonAppearance,
     setAlertBeforeTabClose: state.setAlertBeforeTabClose,
     setSelectNodesOnDrag: state.setSelectNodesOnDrag,
+    setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
   }));
 
   const id = open ? "docs" : undefined;
@@ -444,6 +446,25 @@ function SettingsMenu() {
             </FormControl>
             <Typography className="description">
               Select nodes when dragging.
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <FormControl>
+              <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
+              <Switch
+                sx={{
+                  "&.MuiSwitch-root": {
+                    margin: "16px 0 0",
+                  },
+                }}
+                checked={!!settings.showWelcomeOnStartup}
+                onChange={(e) => setShowWelcomeOnStartup(e.target.checked)}
+                inputProps={{ "aria-label": id }}
+              />
+            </FormControl>
+            <Typography className="description">
+              Show the welcome screen when starting the application.
             </Typography>
           </div>
         </div>

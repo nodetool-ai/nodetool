@@ -10,7 +10,10 @@ import {
   Tabs,
   Tab,
   Box,
-  Link
+  Link,
+  Switch,
+  FormControlLabel,
+  Tooltip,
 } from "@mui/material";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -18,6 +21,8 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseButton from "../../buttons/CloseButton";
 import { overviewContents, Section } from "./OverviewContent";
 import { css } from "@emotion/react";
+import { useSettingsStore } from "../../../stores/SettingsStore";
+import WhatsNew from "./WhatsNew";
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -40,84 +45,90 @@ const welcomeStyles = (theme: any) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       overflowY: "auto",
-      border: `2px solid ${theme.palette.c_gray3}`
+      border: `2px solid ${theme.palette.c_gray3}`,
     },
     ".panel-title": {
       paddingLeft: "0",
       margin: 0,
       color: theme.palette.c_white,
-      marginBottom: "1em"
+      marginBottom: "1em",
     },
     ".summary": {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBigger,
       color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.c_gray1,
     },
     ".content": {
       padding: "1em",
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily,
-      fontSize: theme.fontSizeBigger
+      fontSize: theme.fontSizeBigger,
     },
 
     ".content ul": {
       marginLeft: "0",
-      paddingLeft: "1em"
+      paddingLeft: "1em",
     },
     ".content ul li": {
       listStyleType: "disc",
       marginLeft: "0",
       marginBottom: 0,
       fontSize: theme.fontSizeNormal,
-      fontFamily: theme.fontFamily1
+      fontFamily: theme.fontFamily1,
     },
     ".search": {
-      marginBottom: "1em"
+      marginBottom: "1em",
     },
     ".MuiAccordion-root": {
       background: "transparent",
       color: theme.palette.c_white,
-      borderBottom: `1px solid ${theme.palette.c_gray3}`
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
     },
     ".MuiAccordionSummary-content.Mui-expanded": {
-      margin: "0"
+      margin: "0",
     },
     ".MuiAccordionSummary-root": {
-      minHeight: "48px"
+      minHeight: "48px",
     },
     ".MuiAccordionSummary-content": {
-      margin: "12px 0"
+      margin: "12px 0",
     },
     ".MuiTypography-root": {
-      fontFamily: theme.fontFamily
+      fontFamily: theme.fontFamily,
     },
     "ul, ol": {
       fontFamily: theme.fontFamily1,
       paddingLeft: "1.5em",
-      marginTop: "0.5em"
+      marginTop: "0.5em",
     },
     li: {
-      marginBottom: "0.5em"
+      marginBottom: "0.5em",
     },
     ".highlight": {
       backgroundColor: theme.palette.c_hl1,
-      color: theme.palette.c_black
+      color: theme.palette.c_black,
     },
     ".tab-content": {
-      marginTop: "1em"
+      marginTop: "1em",
     },
     ".link": {
       color: theme.palette.c_attention,
       display: "block",
       marginBottom: "1em",
-      textDecoration: "none"
+      textDecoration: "none",
     },
     ".link .body": {
       fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray6,
-      margin: 0
-    }
+      margin: 0,
+    },
+    ".header-container": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "1em",
+    },
   });
 
 function TabPanel(props: TabPanelProps) {
@@ -153,8 +164,9 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
   const [tabValue, setTabValue] = useState(0);
   const sections: Section[] = overviewContents.map((section) => ({
     ...section,
-    originalContent: section.content
+    originalContent: section.content,
   }));
+  const { settings, updateSettings } = useSettingsStore();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -189,7 +201,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
         const fuseOptions = {
           keys: [
             { name: "title", weight: 0.4 },
-            { name: "content", weight: 0.6 }
+            { name: "content", weight: 0.6 },
           ],
           includeMatches: true,
           ignoreLocation: true,
@@ -200,12 +212,12 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           minMatchCharLength: 2,
           useExtendedSearch: true,
           tokenize: true,
-          matchAllTokens: false
+          matchAllTokens: false,
         };
 
         const entries = sections.map((section) => ({
           ...section,
-          content: extractText(section.content)
+          content: extractText(section.content),
         }));
 
         const fuse = new Fuse(entries, fuseOptions);
@@ -248,12 +260,35 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
     return content;
   };
 
+  const handleToggleWelcomeOnStartup = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    updateSettings({ showWelcomeOnStartup: event.target.checked });
+  };
+
   return (
     <div css={welcomeStyles}>
       <CloseButton onClick={handleClose} />
-      <Typography className="panel-title" variant="h2" gutterBottom>
-        NODETOOL
-      </Typography>
+      <div className="header-container">
+        <Typography className="panel-title" variant="h2">
+          NODETOOL
+        </Typography>
+        <Tooltip
+          title="You can always open this screen from the Nodetool logo in the top left."
+          arrow
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                checked={settings.showWelcomeOnStartup}
+                onChange={handleToggleWelcomeOnStartup}
+                name="showWelcomeOnStartup"
+              />
+            }
+            label="Show on Startup"
+          />
+        </Tooltip>
+      </div>
 
       <Tabs
         value={tabValue}
@@ -278,7 +313,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
               <InputAdornment position="start">
                 <SearchIcon />
               </InputAdornment>
-            )
+            ),
           }}
         />
 
@@ -304,20 +339,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <Typography variant="h5" color="#999">
-          nodetool 0.1.52
-        </Typography>
-        <Typography>
-          <b>Additions</b>
-          <ul>
-            <li>Welcome screen</li>
-            <li>Demucs node for audio separation</li>
-          </ul>
-          <b>Improvements</b>
-          <ul>
-            <li>Fixed copy paste between tabs</li>
-          </ul>
-        </Typography>
+        <WhatsNew />
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
