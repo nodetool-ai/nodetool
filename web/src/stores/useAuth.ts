@@ -16,7 +16,7 @@ export interface LoginStore {
   saveToStorage: (user: User | null) => void;
   readFromStorage: () => User | null;
   signout: () => Promise<void>;
-  initialize: () => Promise<undefined>;
+  initialize: () => Promise<void>;
 }
 
 export const useAuth = create<LoginStore>((set, get) => ({
