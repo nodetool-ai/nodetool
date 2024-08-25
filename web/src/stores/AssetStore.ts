@@ -267,20 +267,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   },
 
   /**
-   * Set the current folder.
-   *
-   * @param folderId The ID of the folder.
-   */
-  setCurrentFolderId: (folderId: string | null) => {
-    const setCurrentFolderId = useAssetGridStore.getState().setCurrentFolderId;
-    const setCurrentFolder = useAssetGridStore.getState().setCurrentFolder;
-    const setParentFolder = useAssetGridStore.getState().setParentFolder;
-    setCurrentFolderId(folderId);
-    setCurrentFolder(null);
-    setParentFolder(null);
-  },
-
-  /**
    * Delete an asset from the store and the server.
    *
    * @param id The ID of the asset to delete.

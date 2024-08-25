@@ -168,7 +168,6 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const setSelectedFolderIds = useAssetGridStore(
     (state) => state.setSelectedFolderIds
   );
-  const setCurrentFolderId = useAssetGridStore((state) => state.setCurrentFolderId);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {

@@ -7,6 +7,7 @@ export type OAuthProvider = "google" | "facebook";
 
 export interface LoginStore {
   user: User | null;
+  state: "init" | "loading" | "error" | "logged_in" | "logged_out";
   getUser: () => User | null;
   setUser: (user: User | null) => void;
   oauthLogin: (provider: OAuthProvider, redirect_uri?: string) => Promise<void>;
@@ -15,23 +16,18 @@ export interface LoginStore {
   saveToStorage: (user: User | null) => void;
   readFromStorage: () => User | null;
   signout: () => Promise<void>;
+  initialize: () => Promise<undefined>;
 }
 
 export const useAuth = create<LoginStore>((set, get) => ({
   user: null,
+  state: "init",
 
   /**
    * Get user
    */
   getUser: () => {
-    const user = get().user;
-    if (user) {
-      return user;
-    } else {
-      const u = get().readFromStorage();
-      set({ user: u });
-      return u;
-    }
+    return get().user;
   },
 
   /**
@@ -42,6 +38,37 @@ export const useAuth = create<LoginStore>((set, get) => ({
     get().saveToStorage(user);
   },
 
+  initialize: async () => {
+    if (get().state !== "init") {
+      return;
+    }
+    const user = get().readFromStorage();
+    if (!useRemoteAuth) {
+      set({
+        user: {
+          id: "1", email: "", auth_token: "local_token",
+        }
+      });
+    }
+    if (!user || !user.auth_token) {
+      set({ user: null, state: "logged_out" });
+      return;
+    }
+    const { data, error } = await client.POST("/api/auth/verify", {
+      body: {
+        token: user?.auth_token
+      }
+    });
+    if (error) {
+      set({ user: null, state: "error" });
+      return;
+    }
+    if (data.valid) {
+      set({ user, state: "logged_in" });
+    } else {
+      set({ user: null, state: "logged_out" });
+    }
+  },
   /**
    * Redirect the user to the OAuth provider's login page.
    *
@@ -104,13 +131,6 @@ export const useAuth = create<LoginStore>((set, get) => ({
    * Read the user from local storage.
    */
   readFromStorage: () => {
-    if (!useRemoteAuth) {
-      return {
-        id: "1",
-        email: "",
-        auth_token: "local_token"
-      };
-    }
     const user = localStorage.getItem("user");
     if (user) {
       const parsed = JSON.parse(user);

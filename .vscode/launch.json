@@ -36,6 +36,13 @@
             "name": "Launch Chrome against localhost",
             "url": "http://localhost:3000",
             "webRoot": "${workspaceFolder}/web"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome against dev.nodetool.ai",
+            "url": "http://dev.nodetool.ai:3000",
+            "webRoot": "${workspaceFolder}/web"
         }
     ]
 }

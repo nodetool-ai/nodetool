@@ -178,6 +178,7 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
+useAuth.getState().initialize();
 initKeyListeners();
 
 root.render(

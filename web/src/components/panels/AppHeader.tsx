@@ -251,9 +251,8 @@ function AppHeader() {
                 <Button
                   aria-controls="simple-menu"
                   aria-haspopup="true"
-                  className={`nav-button ${
-                    path.startsWith("/workflows") ? "active" : ""
-                  }`}
+                  className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
+                    }`}
                   onClick={() => navigate("/workflows")}
                 >
                   <WorkflowsIcon />
@@ -273,15 +272,17 @@ function AppHeader() {
                   Assets
                 </Button>
               </Tooltip>
-              <Tooltip
-                title="Open Nodetool Chat Assistant"
-                enterDelay={TOOLTIP_DELAY}
-              >
-                <Button className="action-button" onClick={toggleChat}>
-                  <ChatIcon />
-                  Chat
-                </Button>
-              </Tooltip>
+              {path.startsWith("/editor") && (
+                <Tooltip
+                  title="Open Nodetool Chat Assistant"
+                  enterDelay={TOOLTIP_DELAY}
+                >
+                  <Button className="action-button" onClick={toggleChat}>
+                    <ChatIcon />
+                    Chat
+                  </Button>
+                </Tooltip>
+              )}
             </Box>
           </div>
 
