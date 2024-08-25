@@ -105,8 +105,9 @@ def get_input_schema(graph: Graph):
                 }
 
             if node_schema:
-                input_schema["properties"][node.id] = node_schema
-                input_schema["required"].append(node.id)
+                name = node.data.get("name", node.id)
+                input_schema["properties"][name] = node_schema
+                input_schema["required"].append(name)
 
     return input_schema
 
@@ -188,7 +189,8 @@ def generate_output_schema(graph: Graph):
                 node_schema = {"type": "object", "additionalProperties": True}
 
             if node_schema:
-                output_schema["properties"][node.id] = node_schema
-                output_schema["required"].append(node.id)
+                name = node.data.get("name", node.id)
+                output_schema["properties"][name] = node_schema
+                output_schema["required"].append(name)
 
     return output_schema
