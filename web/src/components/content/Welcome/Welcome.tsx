@@ -14,6 +14,7 @@ import {
   Switch,
   FormControlLabel,
   Tooltip,
+  Checkbox,
 } from "@mui/material";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -44,8 +45,10 @@ const welcomeStyles = (theme: any) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      overflowY: "auto",
-      border: `2px solid ${theme.palette.c_gray3}`,
+      overflowY: "hidden",
+      border: `2px solid ${theme.palette.c_gray0}`,
+      display: "flex",
+      flexDirection: "column",
     },
     ".panel-title": {
       paddingLeft: "0",
@@ -127,7 +130,41 @@ const welcomeStyles = (theme: any) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: "1em",
+    },
+    ".header-right": {
+      display: "flex",
+      alignItems: "center",
+      gap: "3em",
+    },
+    ".header": {
+      position: "sticky",
+      top: 0,
+      backgroundColor: "#222",
+      zIndex: 1,
+      padding: "1em",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    ".show-on-startup-toggle": {
+      marginTop: "-1em",
+    },
+    ".content-area": {
+      display: "flex",
+      flexDirection: "column",
+      height: "calc(100% - 60px)",
+    },
+    ".tabs-and-search": {
+      position: "sticky",
+      top: 0,
+      backgroundColor: "#222",
+      zIndex: 1,
+      paddingBottom: "1em",
+    },
+    ".scrollable-content": {
+      flex: 1,
+      overflowY: "auto",
+      padding: "1em",
     },
   });
 
@@ -258,115 +295,129 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
 
   return (
     <div css={welcomeStyles}>
-      <CloseButton onClick={handleClose} />
-      <div className="header-container">
+      <div className="header">
         <Typography className="panel-title" variant="h2">
           NODETOOL
         </Typography>
-        <Tooltip
-          title="You can always open this screen from the Nodetool logo in the top left."
-          arrow
-        >
-          <FormControlLabel
-            control={
-              <Switch
-                checked={settings.showWelcomeOnStartup}
-                onChange={handleToggleWelcomeOnStartup}
-                name="showWelcomeOnStartup"
+
+        <div className="header-right">
+          <div className="show-on-startup-toggle">
+            <Tooltip
+              title="You can always open this screen from the Nodetool logo in the top left."
+              arrow
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={settings.showWelcomeOnStartup}
+                    onChange={handleToggleWelcomeOnStartup}
+                    name="showWelcomeOnStartup"
+                  />
+                }
+                label="Show on Startup"
               />
-            }
-            label="Show on Startup"
-          />
-        </Tooltip>
+            </Tooltip>
+          </div>
+          <CloseButton onClick={handleClose} />
+        </div>
       </div>
 
-      <Tabs
-        value={tabValue}
-        onChange={handleTabChange}
-        aria-label="overview tabs"
-      >
-        <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
-        <Tab label="Whats New" id="tab-1" aria-controls="tabpanel-1" />
-        <Tab label="Links" id="tab-2" aria-controls="tabpanel-2" />
-      </Tabs>
+      <div className="content-area">
+        <div className="tabs-and-search">
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            aria-label="overview tabs"
+          >
+            <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
+            <Tab label="Whats New" id="tab-1" aria-controls="tabpanel-1" />
+            <Tab label="Links" id="tab-2" aria-controls="tabpanel-2" />
+          </Tabs>
 
-      <TabPanel value={tabValue} index={0}>
-        <TextField
-          className="search"
-          fullWidth
-          variant="outlined"
-          placeholder="Search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
+          {tabValue === 0 && (
+            <TextField
+              className="search"
+              fullWidth
+              variant="outlined"
+              placeholder="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+        </div>
 
-        {(searchTerm === "" ? sections : filteredSections).map(
-          (section, index) => (
-            <Accordion key={section.id} defaultExpanded={index === 0}>
-              <AccordionSummary
-                className="summary"
-                expandIcon={<ExpandMoreIcon />}
-              >
-                <Typography>
-                  {highlightText(section.title, searchTerm)}
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails className="content">
-                {renderContent(section.originalContent)}
-              </AccordionDetails>
-            </Accordion>
-          )
-        )}
-      </TabPanel>
+        <div className="scrollable-content">
+          <TabPanel value={tabValue} index={0}>
+            {(searchTerm === "" ? sections : filteredSections).map(
+              (section, index) => (
+                <Accordion key={section.id} defaultExpanded={index === 0}>
+                  <AccordionSummary
+                    className="summary"
+                    expandIcon={<ExpandMoreIcon />}
+                  >
+                    <Typography>
+                      {highlightText(section.title, searchTerm)}
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails className="content">
+                    {renderContent(section.originalContent)}
+                  </AccordionDetails>
+                </Accordion>
+              )
+            )}
+          </TabPanel>
 
-      <TabPanel value={tabValue} index={1}>
-        <WhatsNew />
-      </TabPanel>
+          <TabPanel value={tabValue} index={1}>
+            <WhatsNew />
+          </TabPanel>
 
-      <TabPanel value={tabValue} index={2}>
-        <Typography variant="h5" color="#999">
-          Links
-        </Typography>
-        <Link
-          href="https://forum.nodetool.ai"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="link"
-        >
-          Forum
-          <div className="body">
-            Go to the NodeTool forum for help and advice or share what you made.
-          </div>
-        </Link>
-        <Link
-          href="https://github.com/nodetool-ai/nodetool"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="link"
-        >
-          GitHub
-          <div className="body">
-            Want to run Nodetool locally or contribute to its development?
-            <br />
-            Nodetool is open-source and available on GitHub.
-            <br />
-            You can customize it, add new nodes, or integrate it into your own
-            AI workflows.
-            <br />
-            Check out the repository for installation instructions and
-            documentation.
-            <br />
-            Let us know what you build!
-          </div>
-        </Link>
-      </TabPanel>
+          <TabPanel value={tabValue} index={2}>
+            <Typography variant="h5" color="#999">
+              Links
+            </Typography>
+            <Link
+              href="https://forum.nodetool.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link"
+            >
+              Forum
+              <div className="body">
+                Go to the NodeTool forum for help and advice or share what you
+                made.
+              </div>
+            </Link>
+            <Link
+              href="https://github.com/nodetool-ai/nodetool"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link"
+            >
+              GitHub
+              <div className="body">
+                Want to run Nodetool locally or contribute to its development?
+                <br />
+                Nodetool is open-source and available on GitHub.
+                <br />
+                You can customize it, add new nodes, or integrate it into your
+                own AI workflows.
+                <br />
+                Check out the repository for installation instructions and
+                documentation.
+                <br />
+                Let us know what you build!
+              </div>
+            </Link>
+          </TabPanel>
+        </div>
+      </div>
     </div>
   );
 };
