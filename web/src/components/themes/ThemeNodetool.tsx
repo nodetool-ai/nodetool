@@ -151,7 +151,7 @@ const ThemeNodetool: Theme = createTheme({
   } as any,
   typography: {
     fontFamily: "'Inter', sans-serif",
-    fontSize: 15,
+    fontSize: 14,
   },
   spacing: 4,
   shape: {
@@ -213,7 +213,8 @@ ThemeNodetool.components = {
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
         textTransform: "uppercase",
-        wordSpacing: "-.2em",
+        //fontFamily: ThemeNodetool.fontFamily2,
+        //wordSpacing: "-.2em",
       },
       body1: {
         fontSize: "0.9em",

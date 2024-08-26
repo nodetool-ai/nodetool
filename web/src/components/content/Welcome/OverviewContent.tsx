@@ -36,7 +36,7 @@ export const overviewContents: Section[] = [
           inspired.
         </b>
       </Typography>
-    )
+    ),
   },
   {
     id: "panel2",
@@ -56,7 +56,7 @@ export const overviewContents: Section[] = [
           Note that some processes may take time to complete.
         </Typography>
       </>
-    )
+    ),
   },
   {
     id: "panel3",
@@ -74,7 +74,7 @@ export const overviewContents: Section[] = [
           create nodes.
         </Typography>
       </>
-    )
+    ),
   },
   {
     id: "panel4",
@@ -98,7 +98,7 @@ export const overviewContents: Section[] = [
           </li>
         </ul>
       </>
-    )
+    ),
   },
   {
     id: "panel5",
@@ -121,7 +121,7 @@ export const overviewContents: Section[] = [
           using hotkeys 1 and 2.
         </Typography>
       </>
-    )
+    ),
   },
   {
     id: "panel6",
@@ -167,7 +167,7 @@ export const overviewContents: Section[] = [
           multiple assets)
         </li>
       </ul>
-    )
+    ),
   },
   {
     id: "panel7",
@@ -178,7 +178,7 @@ export const overviewContents: Section[] = [
         <br />
         <b>Note:</b> The settings are only saved in your browser.
       </Typography>
-    )
+    ),
   },
   {
     id: "panel8",
@@ -201,6 +201,6 @@ export const overviewContents: Section[] = [
           Click the NodeTool icon in the top left corner to open this menu again
         </li>
       </ul>
-    )
-  }
+    ),
+  },
 ];

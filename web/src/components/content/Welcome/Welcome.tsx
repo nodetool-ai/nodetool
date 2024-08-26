@@ -71,7 +71,7 @@ const welcomeStyles = (theme: any) =>
       paddingLeft: "1em",
     },
     ".content ul li": {
-      listStyleType: "disc",
+      listStyleType: "square",
       marginLeft: "0",
       marginBottom: 0,
       fontSize: theme.fontSizeNormal,
@@ -160,7 +160,6 @@ const extractText = (node: ReactNode): string => {
 
 const Welcome = ({ handleClose }: { handleClose: () => void }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
   const [tabValue, setTabValue] = useState(0);
   const sections: Section[] = overviewContents.map((section) => ({
     ...section,
@@ -171,15 +170,6 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
-
-  const handleAccordionChange = useCallback(
-    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-      setExpandedPanels((prev) =>
-        isExpanded ? [...prev, panel] : prev.filter((p) => p !== panel)
-      );
-    },
-    []
-  );
 
   const highlightText = (text: string, term: string) => {
     if (!term) return text;
@@ -318,11 +308,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
         />
 
         {(searchTerm === "" ? sections : filteredSections).map((section) => (
-          <Accordion
-            key={section.id}
-            expanded={expandedPanels.includes(section.id) || searchTerm !== ""}
-            onChange={handleAccordionChange(section.id)}
-          >
+          <Accordion key={section.id}>
             <AccordionSummary
               className="summary"
               expandIcon={<ExpandMoreIcon />}
@@ -365,7 +351,17 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
         >
           GitHub
           <div className="body">
-            The source code for NodeTool is available on GitHub.
+            Want to run Nodetool locally or contribute to its development?
+            <br />
+            Nodetool is open-source and available on GitHub.
+            <br />
+            You can customize it, add new nodes, or integrate it into your own
+            AI workflows.
+            <br />
+            Check out the repository for installation instructions and
+            documentation.
+            <br />
+            Let us know what you build!
           </div>
         </Link>
       </TabPanel>
