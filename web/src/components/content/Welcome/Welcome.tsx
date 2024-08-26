@@ -116,16 +116,28 @@ const welcomeStyles = (theme: any) =>
       marginTop: "1em",
     },
     ".link": {
-      color: theme.palette.c_attention,
-      display: "block",
-      marginBottom: "1em",
-      textDecoration: "none",
-    },
-    ".link .body": {
-      fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray6,
-      margin: 0,
+      display: "inline-block",
+      padding: "4px 8px",
+      textDecoration: "none",
+      backgroundColor: theme.palette.c_gray2,
+      borderRadius: "4px",
+      transition: "all 0.2s",
     },
+    ".link:hover": {
+      color: theme.palette.c_black,
+      backgroundColor: theme.palette.c_hl1,
+    },
+
+    ".link-body": {
+      fontSize: theme.fontSizeSmall,
+      backgroundColor: "transparent",
+      color: theme.palette.c_gray6,
+      marginTop: ".25em",
+      marginBottom: "2em",
+      display: "block",
+    },
+
     ".header-container": {
       display: "flex",
       justifyContent: "space-between",
@@ -379,9 +391,6 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           </TabPanel>
 
           <TabPanel value={tabValue} index={2}>
-            <Typography variant="h5" color="#999">
-              Links
-            </Typography>
             <Link
               href="https://forum.nodetool.ai"
               target="_blank"
@@ -389,11 +398,11 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
               className="link"
             >
               Forum
-              <div className="body">
-                Go to the NodeTool forum for help and advice or share what you
-                made.
-              </div>
             </Link>
+            <div className="link-body">
+              Go to the NodeTool forum for help and advice or share what you
+              made.
+            </div>
             <Link
               href="https://github.com/nodetool-ai/nodetool"
               target="_blank"
@@ -401,20 +410,20 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
               className="link"
             >
               GitHub
-              <div className="body">
-                Want to run Nodetool locally or contribute to its development?
-                <br />
-                Nodetool is open-source and available on GitHub.
-                <br />
-                You can customize it, add new nodes, or integrate it into your
-                own AI workflows.
-                <br />
-                Check out the repository for installation instructions and
-                documentation.
-                <br />
-                Let us know what you build!
-              </div>
             </Link>
+            <div className="link-body">
+              Want to run Nodetool locally or contribute to its development?
+              <br />
+              Nodetool is open-source and available on GitHub.
+              <br />
+              You can customize it, add new nodes, or integrate it into your own
+              AI workflows.
+              <br />
+              Check out the repository for installation instructions and
+              documentation.
+              <br />
+              Let us know what you build!
+            </div>
           </TabPanel>
         </div>
       </div>
