@@ -1,17 +1,19 @@
 import React, { ReactNode } from "react";
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 export interface Section {
   id: string;
   title: string;
   content: ReactNode;
   originalContent?: ReactNode;
+  defaultExpanded?: boolean;
 }
 
 export const overviewContents: Section[] = [
   {
     id: "panel1",
     title: "What is NodeTool?",
+    defaultExpanded: true,
     content: (
       <Typography>
         NodeTool is a no-code development environment that simplifies creating
@@ -47,13 +49,25 @@ export const overviewContents: Section[] = [
           <li>
             Click Workflows in the top panel to browse and manage projects
           </li>
-          <li>Edit the current workflow in the left panel</li>
-          <li>Save workflows using the save button in the left panel</li>
+          <li>Edit the current workflow in the Workflow panel</li>
+          <li>
+            Save workflows using the save button.
+            <br />
+            Changing the Name, Description and Tooltip will be saved
+            automatically.
+          </li>
           <li>Explore pre-built examples in the Workflow menu</li>
         </ul>
         <Typography>
           Run workflows with the Play Button in the bottom panel to see results.
-          Note that some processes may take time to complete.
+          <br />
+          Note that some processes may take time to startup or complete.
+          <br />
+          The currently processed node is being indicated by an animation in the
+          node header.
+          <br />
+          Longer running nodes have a Log at the bottom that can be expanded.
+          <br />
         </Typography>
       </>
     ),
@@ -73,6 +87,11 @@ export const overviewContents: Section[] = [
           Inside the Node Menu, read the description to learn how to browse and
           create nodes.
         </Typography>
+        <Typography>
+          Click on the namespace.name at the bottom of every node to find the
+          node in the NodeMenu - this can be useful to quickly find similar
+          nodes.
+        </Typography>
       </>
     ),
   },
@@ -90,11 +109,38 @@ export const overviewContents: Section[] = [
           <li>Reset values to default with CTRL+Right-click</li>
           <li>Adjust number values by dragging horizontally or clicking</li>
         </ul>
-        <Typography variant="h6">Connection Menu</Typography>
+        <Typography variant="h3">Connection Menu</Typography>
+        <Box sx={{ textAlign: "center", margin: "16px 0" }}>
+          <img
+            src="/images/help/connection_menu.png"
+            alt="Connection Menu"
+            style={{
+              maxWidth: "100%",
+              height: "auto",
+              borderRadius: "4px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+            }}
+          />
+        </Box>
         <ul>
           <li>
             Drag a connection from any input or output and release it on the
-            empty canvas for useful options
+            empty canvas for useful options:
+            <ul>
+              <li>Create a Preview node</li>
+              <li>
+                Create a new input or output node.
+                <br /> These nodes will be exposed to the outside world when
+                running nodetool workflows from other applications like
+                websites, mobile apps or vvvv.
+              </li>
+              <li>For inputs: Create a constant node</li>
+              <li>For outputs: Create a save node</li>
+              <li>
+                Input or Output: Open the Node Menu with filtered options to
+                only see matching nodes
+              </li>
+            </ul>
           </li>
         </ul>
       </>
@@ -116,6 +162,13 @@ export const overviewContents: Section[] = [
           <li>Node Selections</li>
           <li>Assets</li>
         </ul>
+
+        <Typography>
+          You can discover most of the keyboard shortcuts by hovering over
+          buttons and context menu entries.
+          <br />
+          Go to the Help menu for a complete list of available shortcuts.
+        </Typography>
         <Typography>
           Control the left and right panels by clicking, dragging the border, or
           using hotkeys 1 and 2.

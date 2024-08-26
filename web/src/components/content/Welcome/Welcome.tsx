@@ -307,21 +307,23 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           }}
         />
 
-        {(searchTerm === "" ? sections : filteredSections).map((section) => (
-          <Accordion key={section.id}>
-            <AccordionSummary
-              className="summary"
-              expandIcon={<ExpandMoreIcon />}
-            >
-              <Typography>
-                {highlightText(section.title, searchTerm)}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails className="content">
-              {renderContent(section.originalContent)}
-            </AccordionDetails>
-          </Accordion>
-        ))}
+        {(searchTerm === "" ? sections : filteredSections).map(
+          (section, index) => (
+            <Accordion key={section.id} defaultExpanded={index === 0}>
+              <AccordionSummary
+                className="summary"
+                expandIcon={<ExpandMoreIcon />}
+              >
+                <Typography>
+                  {highlightText(section.title, searchTerm)}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails className="content">
+                {renderContent(section.originalContent)}
+              </AccordionDetails>
+            </Accordion>
+          )
+        )}
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
