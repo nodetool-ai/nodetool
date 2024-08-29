@@ -1,15 +1,21 @@
 {
   "name": "nodetool-electron",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.3.0",
+  "description": "node-based AI development tool",
+  "homepage": "https://nodetool.ai",
   "main": "index.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "matti.georgi@gmail.com",
+  "license": "GPL-3.0-only",
   "devDependencies": {
-    "electron": "^29.4.6"
+    "electron": "29.4.6",
+    "electron-builder": "^24.13.3"
+  },
+  "optionalDependencies": {
+    "dmg-license": "^1.0.11"
   }
 }

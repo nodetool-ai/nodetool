@@ -48,8 +48,8 @@ services:
       context: .
       dockerfile: Dockerfile.api
     volumes:
-      - ${COMFY_FOLDER}:/comfy
-      - ${HF_HOME}:/app/huggingface
+      - ${COMFY_FOLDER:-./comfy}:/comfy
+      - ${HF_HOME:-./huggingface}:/app/huggingface
     command:
       [
         "uvicorn",
@@ -96,7 +96,7 @@ services:
       context: .
       dockerfile: Dockerfile.api
     volumes:
-      - ${CHROMA_PATH}:/chroma-data
+      - ${CHROMA_PATH:-./chroma-data}:/chroma-data
     command:
       [
         "chroma",
@@ -118,12 +118,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - ${POSTGRES_DATA_DIR}:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_DIR:-./postgres-data}:/var/lib/postgresql/data
   ollama:
     image: ollama/ollama
     restart: unless-stopped
     volumes:
-      - ${OLLAMA_PATH}:/root/.ollama
+      - ${OLLAMA_PATH:-./ollama-data}:/root/.ollama
     expose:
       - "11434"
     deploy:

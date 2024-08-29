@@ -44,12 +44,12 @@ export type WorkflowRunner = {
   job_id: string | null;
   current_url: string;
   state:
-    | "idle"
-    | "connecting"
-    | "connected"
-    | "running"
-    | "error"
-    | "cancelled";
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "running"
+  | "error"
+  | "cancelled";
   statusMessage: string | null;
   setStatusMessage: (message: string | null) => void;
   notifications: Notification[];

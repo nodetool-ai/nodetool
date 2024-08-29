@@ -1,0 +1,64 @@
+{
+    "appId": "ai.nodetool",
+    "productName": "Nodetool",
+    "directories": {
+        "output": "build/electron-app"
+    },
+    "files": [
+        "index.js",
+        "index.html",
+        "dist/**/*",
+        "src/**/*",
+        "python/**/*",
+        "package.json",
+        "conda-unpack.sh",
+        "conda-unpack.bat"
+    ],
+    "extraResources": [
+        {
+            "from": "python",
+            "to": "python",
+            "filter": [
+                "**/*"
+            ]
+        }
+    ],
+    "mac": {
+        "category": "public.app-category.developer-tools",
+        "target": [
+            "dmg"
+        ],
+        "extraFiles": [
+            {
+                "from": "conda-unpack.sh",
+                "to": "."
+            }
+        ]
+    },
+    "win": {
+        "target": [
+            "nsis"
+        ],
+        "extraFiles": [
+            {
+                "from": "conda-unpack.bat",
+                "to": "."
+            }
+        ]
+    },
+    "nsis": {
+        "include": "conda-unpack.nsh"
+    },
+    "linux": {
+        "target": [
+            "AppImage",
+            "deb"
+        ],
+        "extraFiles": [
+            {
+                "from": "conda-unpack.sh",
+                "to": "."
+            }
+        ]
+    }
+}

@@ -6,39 +6,58 @@ on:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
-  release:
-    runs-on: ${{ matrix.os }}
+  build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          # - os: ubuntu-latest
+          #   platform: linux
+          #   arch: x64
+          - os: macos-latest
+            platform: mac
+            arch: arm64
+          # - os: windows-latest
+          #   platform: win
+          #   arch: x64
+
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v3
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          python-version: 3.11
-          activate-environment: nodetool
+          python-version: "3.11"
 
-      - name: Install Poetry and Conda-Pack
-        shell: bash -el {0}
+      - name: Run build script
+        shell: bash -l {0}
         run: |
-          conda install -c conda-forge conda-pack
+          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
 
-      - name: Install Packages
-        shell: bash -el {0}
-        run: |
-          pip install 'nodetool[worker]'
-
-      - name: Pack Conda Environment
-        shell: bash -el {0}
-        run: |
-          conda-pack -n nodetool -o nodetool.tar.gz
-
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
         with:
-          draft: false
-          prerelease: false
-          artifacts: nodetool-${{matrix.os}}.tar.gz
+          name: nodetool-${{ matrix.platform }}-${{ matrix.arch }}
+          path: build/build/electron-app/*.{dmg,exe,AppImage,tar.gz}
+
+        # - name: Create Release
+        #   uses: ncipollo/release-action@v1
+        #   env:
+        #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        #   with:
+        #     draft: false
+        #     prerelease: false
+        #     artifacts: nodetool-${{matrix.os}}.tar.gz

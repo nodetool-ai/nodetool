@@ -42,23 +42,19 @@ RUN apt-get update && \
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 
 RUN pip3 install --upgrade pip
-RUN pip3 install poetry
 
-COPY poetry.lock pyproject.toml /app/
+COPY requirements.txt pyproject.toml /app/
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Create and activate virtual environment
-RUN python -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+# RUN python -m venv $VIRTUAL_ENV
+# ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Configure Poetry to use the virtual environment
-RUN poetry config virtualenvs.create false
-
-# Install dependencies
-RUN --mount=type=cache,target=/root/.cache poetry install --no-root
-
+# Prioritize torch installation from PyTorch
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+RUN --mount=type=cache,target=/root/.cache pip install -r reqquirements.txt
+
 RUN pip install ipython
 
 COPY src /app

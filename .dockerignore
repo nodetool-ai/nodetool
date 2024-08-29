@@ -1,5 +1,6 @@
 Dockerfile
 README.md
+electron/node_modules/
 web/node_modules/
 .venv/
 *.pyc
