@@ -90,12 +90,6 @@ folder_names_and_paths: dict[str, tuple[list[str], set[str]]] = {
     "classifiers": ([model_path("classifiers")], {""}),
 }
 
-print("Initializing comfy folder paths")
-for name in ["checkpoints", "loras"]:
-    print("Searching for ", name)
-    for file in os.listdir(folder_names_and_paths[name][0][0]):
-        print("Found ", file)
-
 
 def add_model_folder_path(folder_name: str, full_folder_path: str):
     """

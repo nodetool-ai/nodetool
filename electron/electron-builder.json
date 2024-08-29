@@ -8,57 +8,23 @@
         "index.js",
         "index.html",
         "dist/**/*",
-        "src/**/*",
-        "python/**/*",
-        "package.json",
-        "conda-unpack.sh",
-        "conda-unpack.bat"
-    ],
-    "extraResources": [
-        {
-            "from": "python",
-            "to": "python",
-            "filter": [
-                "**/*"
-            ]
-        }
+        "nodetool.tar.gz",
+        "python_env.tar.gz",
+        "package.json"
     ],
     "mac": {
         "category": "public.app-category.developer-tools",
         "target": [
-            "dmg"
+            "pkg"
         ],
-        "extraFiles": [
-            {
-                "from": "conda-unpack.sh",
-                "to": "."
-            }
+        "arch": [
+            "x64",
+            "arm64"
         ]
     },
     "win": {
         "target": [
             "nsis"
-        ],
-        "extraFiles": [
-            {
-                "from": "conda-unpack.bat",
-                "to": "."
-            }
-        ]
-    },
-    "nsis": {
-        "include": "conda-unpack.nsh"
-    },
-    "linux": {
-        "target": [
-            "AppImage",
-            "deb"
-        ],
-        "extraFiles": [
-            {
-                "from": "conda-unpack.sh",
-                "to": "."
-            }
         ]
     }
 }

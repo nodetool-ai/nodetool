@@ -59,7 +59,7 @@
             font-size: 12px;
         }
 
-        #boot {
+        #boot-message {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -68,14 +68,61 @@
             font-size: 18px;
             font-family: monospace;
         }
+
+        #boot-message::after {
+            content: '|';
+            animation: blink 0.7s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        #progress-container {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #ffffff;
+        }
+
+        #progress-bar {
+            width: 300px;
+            height: 20px;
+            background-color: #444444;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        #progress-bar-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease-out;
+        }
+
+        #progress-text {
+            font-family: monospace;
+            font-size: 14px;
+        }
     </style>
 </head>
 
 <body>
-    <div id="boot">Starting server...</div>
+    <div id="boot-message"></div>
+    <div id="progress-container">
+        <div id="progress-bar">
+            <div id="progress-bar-fill"></div>
+        </div>
+        <div id="progress-text">0% extracted</div>
+    </div>
     <iframe id="content"></iframe>
-    <div id="log-container">
-        <button id="log-toggle">Show Log</button>
+    <div id="log-container" class="expanded">
+        <button id="log-toggle">Hide Log</button>
         <div id="log"></div>
     </div>
 
@@ -86,10 +133,29 @@
         const bootElement = document.getElementById('boot');
         const logContainer = document.getElementById('log-container');
         const logToggle = document.getElementById('log-toggle');
+        const bootMessage = document.getElementById('boot-message');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        const progressText = document.getElementById('progress-text');
+        
+        ipcRenderer.on("boot-message", (event, message) => {
+            bootMessage.textContent = message;
+            if (message === 'Setting up Python environment...') {
+                progressContainer.style.display = 'block';
+            } else {
+                progressContainer.style.display = 'none';
+            }
+        });
+        
+        ipcRenderer.on('extraction-progress', (event, progress) => {
+            progressBarFill.style.width = `${progress}%`;
+            progressText.textContent = `${progress}% extracted`;
+        });
         
         ipcRenderer.on('server-started', () => {
             contentElement.src = 'http://localhost:8000';
-            bootElement.style.display = 'none';
+            bootMessage.style.display = 'none';
+            progressContainer.style.display = 'none';
         });
 
         ipcRenderer.on('server-log', (event, message) => {

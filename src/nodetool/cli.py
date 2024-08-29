@@ -1,13 +1,9 @@
-import os
 import click
 from nodetool.api.server import run_uvicorn_server
 from nodetool.common.environment import Environment
-import dotenv
 
 # silence warnings on the command line
 import warnings
-
-from nodetool.workflows.base_node import get_registered_node_classes
 
 warnings.filterwarnings("ignore")
 log = Environment.get_logger()
@@ -97,7 +93,7 @@ def serve(
     if worker_url:
         Environment.set_worker_url(worker_url)
 
-    app = "nodetool.api.dev_app:app"
+    app = "nodetool.api.app:app"
 
     run_uvicorn_server(app=app, host=host, port=port, reload=reload)
 

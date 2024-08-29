@@ -133,18 +133,11 @@ class Build:
     def pack_python_env(self):
         logger.info("Packing Python environment")
 
+        self.run_command(f"pip install conda-pack")
         self.run_command(
-            f"conda run conda-pack --ignore-editable-packages -o {self.BUILD_DIR}/python_env.tar"
+            f"conda pack -n {CONDA_ENV} -j 4 -o {self.BUILD_DIR}/python_env.tar"
         )
-        self.create_directory(self.PYTHON_DIR)
-        self.run_command(
-            f"tar -xf {self.BUILD_DIR}/python_env.tar -C {self.PYTHON_DIR}"
-        )
-        self.remove_file(f"{self.BUILD_DIR}/python_env.tar")
-
-    def add_nodetool_src(self):
-        logger.info("Adding Nodetool source code")
-        self.copy_tree(self.SRC_DIR, self.BUILD_DIR / "src")
+        self.run_command(f"tar cf {self.BUILD_DIR}/nodetool.tar src", cwd=PROJECT_ROOT)
 
     def build_react_app(self):
         logger.info("Building React app")
@@ -155,15 +148,12 @@ class Build:
 
     def build_electron_app(self):
         logger.info(f"Building Electron app for {self.platform} ({self.arch})")
-        # self.run_command("npm ci", cwd=self.ELECTRON_DIR)
         files_to_copy = [
             "package.json",
+            "package-lock.json",
             "index.html",
             "index.js",
             "electron-builder.json",
-            "conda-unpack.sh",
-            "conda-unpack.bat",
-            "conda-unpack.nsh",
         ]
         for file in files_to_copy:
             self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR)
@@ -194,13 +184,6 @@ class Build:
         self.run_command(
             f"{activate_cmd} pip install -r {PROJECT_ROOT}/requirements.txt"
         )
-        self.run_command(f"{activate_cmd} pip install conda-pack")
-
-        # Update the current process's environment to use the new conda env
-        os.environ["CONDA_DEFAULT_ENV"] = CONDA_ENV
-        os.environ["CONDA_PREFIX"] = subprocess.check_output(
-            f"{activate_cmd} echo $CONDA_PREFIX", shell=True, text=True
-        ).strip()
 
     def run_build_step(self, step_func):
         try:
@@ -217,7 +200,6 @@ class Build:
         build_steps = [
             self.setup_build_environment,
             self.pack_python_env,
-            self.add_nodetool_src,
             self.build_react_app,
             self.build_electron_app,
         ]
@@ -244,15 +226,9 @@ def main():
     """
     Main function to orchestrate the build process.
 
-    This function parses command-line arguments to determine which build steps to run.
-    It supports running individual build steps or the entire build process.
-    The function also handles cleaning the build directory if requested and
-    provides appropriate error handling and logging throughout the build process.
-
     Command-line arguments:
     - --clean: Option to clean the build directory before running
     - --docker: Option to run the build in a Docker container
-    - --init-conda: Option to initialize a clean conda environment before building
 
     Raises:
         SystemExit: If any part of the build process fails, the script will exit with status code 1.
@@ -278,11 +254,6 @@ def main():
         choices=["x64", "ia32", "armv7l", "arm64"],
         help="Target architecture for the build",
     )
-    parser.add_argument(
-        "--init-conda",
-        action="store_true",
-        help="Initialize a clean conda environment before building",
-    )
 
     args = parser.parse_args()
 
@@ -292,9 +263,6 @@ def main():
         platform=args.platform,
         arch=args.arch,
     )
-
-    if args.init_conda:
-        build.initialize_conda_env()
 
     build.run()
 

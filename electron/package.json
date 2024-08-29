@@ -17,5 +17,8 @@
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"
+  },
+  "dependencies": {
+    "tar": "^7.4.3"
   }
 }
