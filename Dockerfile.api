@@ -53,7 +53,7 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Prioritize torch installation from PyTorch
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-RUN --mount=type=cache,target=/root/.cache pip install -r reqquirements.txt
+RUN --mount=type=cache,target=/root/.cache pip install -r requirements.txt
 
 RUN pip install ipython
 
