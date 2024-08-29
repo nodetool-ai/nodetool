@@ -7,10 +7,12 @@
     "files": [
         "index.js",
         "index.html",
-        "nodetool.tar",
-        "python_env.tar",
         "package.json",
         "web/dist/**/*"
+    ],
+    "extraResources": [
+        "python_env.tar",
+        "nodetool.tar"
     ],
     "mac": {
         "category": "public.app-category.developer-tools",
