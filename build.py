@@ -188,6 +188,9 @@ class Build:
 
         # Activate environment and install required packages
         activate_cmd = f"source $(conda info --base)/etc/profile.d/conda.sh && conda activate {CONDA_ENV} &&"
+
+        # Uninstall setuptools to avoid conflicts with conda-pack
+        self.run_command(f"{activate_cmd} conda remove setuptools")
         self.run_command(
             f"{activate_cmd} pip install -r {PROJECT_ROOT}/requirements.txt"
         )
