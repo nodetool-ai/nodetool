@@ -19,8 +19,24 @@ NodeTool opens up creative and playful access to cutting-edge AI technologies, s
 
 Download the latest Release from our [Release Page](https://github.com/nodetool-ai/nodetool/releases)
 
-# Models
+# Node Overview
 
+## Node Categories
+
+NodeTool offers a diverse range of node categories to support various AI tasks:
+
+1. **Anthropic**: Text-based AI operations using Anthropic's models.
+2. **HuggingFace**: Comprehensive AI capabilities including audio, image, text, video, and multimodal processing.
+3. **NodeTool**: Core functionalities for data manipulation, I/O operations, and various media processing.
+4. **Ollama**: Text-based AI operations using Ollama models.
+5. **OpenAI**: AI operations for audio, image, and text using OpenAI's models.
+6. **Replicate**: Versatile AI capabilities for audio, image, text, and video processing.
+7. **Stable Diffusion**: Specialized image generation and manipulation.
+
+Each category contains specific nodes tailored for different AI tasks, allowing users to create complex workflows by combining nodes across these categories.
+
+
+```
 nodes
 ├── anthropic
 │   └── text
@@ -62,8 +78,40 @@ nodes
 │   └── video
 └── stable_diffusion
     └── image
+```
 
 # Architecture
+
+# Architecture Overview
+
+NodeTool's architecture is designed for flexibility. Here's a breakdown of the main components:
+
+1. **React Frontend**: The user interface built with React, providing an intuitive way for users to create and manage workflows.
+
+2. **API Server**: Handles HTTP and WebSocket connections from the frontend, managing user sessions, workflow storage, and coordination between components.
+
+3. **WebSocket Runner**: Responsible for executing workflows in real-time, maintaining the state of running workflows, and managing the communication between nodes.
+
+4. **Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability.
+
+## Key Features:
+
+- **Real-time Communication**: WebSocket connections enable live updates and interactive workflow execution.
+- **Scalable Processing**: The Worker architecture allows for distributed processing of node tasks.
+- **Flexible Node System**: Easy integration of new node types and AI services.
+- **HTTP Callbacks**: Support for asynchronous operations and integration with external services.
+
+## Data Flow:
+
+1. User interacts with the React Frontend to create or modify workflows.
+2. Frontend communicates with the API Server to save workflows and initiate execution.
+3. API Server delegates workflow execution to the WebSocket Runner.
+4. WebSocket Runner coordinates the execution of individual nodes through Workers.
+5. Results are sent back to the Frontend in real-time via WebSocket connections.
+6. HTTP Callbacks allow for asynchronous updates and integration with external services.
+
+This architecture enables NodeTool to handle complex AI workflows efficiently, providing a seamless experience for users while maintaining the flexibility to incorporate various AI services and custom nodes.
+
 
 ```
                   +-------------------+
