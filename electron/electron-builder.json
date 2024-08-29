@@ -9,7 +9,8 @@
         "index.html",
         "nodetool.tar",
         "python_env.tar",
-        "package.json"
+        "package.json",
+        "web/dist/**/*"
     ],
     "mac": {
         "category": "public.app-category.developer-tools",
