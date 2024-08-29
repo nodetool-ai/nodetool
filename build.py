@@ -195,7 +195,7 @@ class Build:
         web_dir = str(self.BUILD_DIR / "web")
         self.copy_tree(self.WEB_DIR, web_dir)
         self.run_command(["npm", "ci"], cwd=web_dir)
-        self.run_command(["npx", "vite", "build"], cwd=web_dir)
+        self.run_command(["npm", "run", "build"], cwd=web_dir)
 
     def build_electron_app(self):
         logger.info(f"Building Electron app for {self.platform} ({self.arch})")
@@ -222,7 +222,9 @@ class Build:
         logger.info("Initializing clean conda environment")
 
         # Remove existing environment if it exists
-        self.run_command(["conda", "env", "remove", "-n", CONDA_ENV, "-y"])
+        self.run_command(
+            ["conda", "env", "remove", "-n", CONDA_ENV, "-y"], ignore_error=True
+        )
 
         # Create new environment
         self.run_command(
