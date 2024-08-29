@@ -98,7 +98,7 @@ nodes
 
 NodeTool's architecture is designed for flexibility. Here's a breakdown of the main components:
 
-1. **🖥️ React Frontend**: The user interface built with React, providing an intuitive way for users to create and manage workflows.
+1. **🖥️ React Frontend**: The user interface is built with React, providing an intuitive way for users to create and manage workflows.
 
 2. **🌐 API Server**: Handles HTTP and WebSocket connections from the frontend, managing user sessions, workflow storage, and coordination between components.
 
