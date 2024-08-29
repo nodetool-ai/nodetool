@@ -112,7 +112,7 @@ def create_app(
 
             await WebSocketRunner().run(websocket)
 
-    if static_folder:
+    if static_folder and os.path.exists(static_folder):
         app.mount("/", StaticFiles(directory=static_folder, html=True), name="static")
 
     return app
