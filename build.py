@@ -221,11 +221,6 @@ class Build:
     def initialize_conda_env(self):
         logger.info("Initializing clean conda environment")
 
-        # Remove existing environment if it exists
-        self.run_command(
-            ["conda", "env", "remove", "-n", CONDA_ENV, "-y"], ignore_error=True
-        )
-
         # Create new environment
         self.run_command(
             ["conda", "create", "-n", CONDA_ENV, "python=3.11", "-y"], ignore_error=True
