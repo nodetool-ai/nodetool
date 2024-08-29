@@ -67,7 +67,7 @@ class Build:
 
         try:
             process = subprocess.Popen(
-                command,
+                " ".join(command),
                 shell=True,
                 cwd=None if should_run_in_docker else cwd,
                 stdout=subprocess.PIPE,
