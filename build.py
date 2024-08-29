@@ -213,7 +213,7 @@ class Build:
     def run(self):
         build_steps = [
             self.setup_build_environment,
-            # self.pack_python_env,
+            self.pack_python_env,
             self.add_nodetool_src,
             self.build_react_app,
             self.build_electron_app,

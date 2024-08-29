@@ -55,13 +55,13 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: nodetool-${{ matrix.platform }}-${{ matrix.arch }}
-          path: build/build/electron-app/*.{dmg,exe,AppImage,tar.gz}
+          path: build/electron-app/*
 
-        # - name: Create Release
-        #   uses: ncipollo/release-action@v1
-        #   env:
-        #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        #   with:
-        #     draft: false
-        #     prerelease: false
-        #     artifacts: nodetool-${{matrix.os}}.tar.gz
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          prerelease: false
+          artifacts: build/electron-app/*
