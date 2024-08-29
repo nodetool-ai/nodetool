@@ -16,10 +16,6 @@
         "category": "public.app-category.developer-tools",
         "target": [
             "pkg"
-        ],
-        "arch": [
-            "x64",
-            "arm64"
         ]
     },
     "win": {
