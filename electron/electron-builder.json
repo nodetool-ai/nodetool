@@ -15,7 +15,7 @@
     "mac": {
         "category": "public.app-category.developer-tools",
         "target": [
-            "pkg"
+            "dmg"
         ]
     },
     "win": {
