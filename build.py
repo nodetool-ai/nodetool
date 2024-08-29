@@ -152,9 +152,7 @@ class Build:
     def pack_python_env(self):
         logger.info("Packing Python environment")
 
-        self.run_command(
-            ["conda", "run", "-n", CONDA_ENV, "pip", "install", "conda-pack"]
-        )
+        self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack"])
 
         # Set environment variable to prevent bytecode generation
         env = os.environ.copy()
