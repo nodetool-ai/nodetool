@@ -11,18 +11,17 @@ jobs:
   build:
     strategy:
       matrix:
-        # os: [ubuntu-latest, macos-latest, windows-latest]
-        os: [macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         include:
-          # - os: ubuntu-latest
-          #   platform: linux
-          #   arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
           - os: macos-latest
             platform: mac
             arch: arm64
-          # - os: windows-latest
-          #   platform: win
-          #   arch: x64
+          - os: windows-latest
+            platform: win
+            arch: x64
 
     runs-on: ${{ matrix.os }}
 

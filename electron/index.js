@@ -103,20 +103,21 @@ function createWindow() {
 }
 
 async function startServer() {
-  // if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production') {
     await setupPythonEnvironment();
-  // }
+   }
 
-  const pythonExecutable = path.join(envDir, 'bin', 'python');
+  const pythonExecutable = process.env.NODE_ENV === 'production' ? path.join(envDir, 'bin', 'python') : "python";
+  const staticFolder = "../web/dist";
 
   // const pythonExecutable = path.join("python", 'bin', 'python');
   const env = Object.create(process.env);
   env.PYTHONUNBUFFERED = "1";
-  env.PYTHONPATH = srcDir;
+  env.PYTHONPATH = process.env.NODE_ENV === 'production' ? srcDir : "../src"
   
   mainWindow.webContents.send('boot-message', 'Starting server...');
 
-  serverProcess = spawn(pythonExecutable, ["-m", "nodetool.cli", "serve"], {
+  serverProcess = spawn(pythonExecutable, ["-m", "nodetool.cli", "serve", "--static-folder", staticFolder], {
     "env": env
   });
 
@@ -143,8 +144,8 @@ async function startServer() {
 }
 
 app.on('ready', () => {
-  startServer();
   createWindow();
+  startServer();
 });
 
 app.on('window-all-closed', function () {

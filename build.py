@@ -8,6 +8,7 @@ import platform
 import threading
 import subprocess
 import threading
+import os
 
 # Set up logging
 logging.basicConfig(
@@ -45,19 +46,29 @@ class Build:
 
         self.PYTHON_DIR = self.BUILD_DIR / "python"
 
-    def run_command(self, command, cwd=None, env=None, in_docker=None):
+    def run_command(
+        self, command, cwd=None, env=None, in_docker=None, ignore_error=False
+    ):
         should_run_in_docker = in_docker if in_docker is not None else self.in_docker
 
         if should_run_in_docker:
-            command = f"docker run --rm -w {cwd or '/app'} --mount type=bind,source=/tmp/docker-build,target=/build nodetool-builder {command}"
+            command = [
+                "docker",
+                "run",
+                "--rm",
+                "-w",
+                cwd or "/app",
+                "--mount",
+                "type=bind,source=/tmp/docker-build,target=/build",
+                "nodetool-builder",
+            ] + command
 
-        logger.info(f"Running command: {command}")
+        logger.info(" ".join(command))
 
         try:
             process = subprocess.Popen(
                 command,
                 cwd=None if should_run_in_docker else cwd,
-                shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 env=env,
@@ -84,42 +95,50 @@ class Build:
             stdout_thread.join()
             stderr_thread.join()
 
-            if return_code != 0:
+            if return_code != 0 and not ignore_error:
                 raise BuildError(
-                    f"Command failed with return code {return_code}: {command}"
+                    f"Command failed with return code {return_code}: {' '.join(command)}"
                 )
 
             return return_code
 
         except Exception as e:
             logger.error(f"Command failed with error: {e}")
-            raise BuildError(f"Command failed: {command}") from e
+            raise BuildError(f"Command failed: {' '.join(command)}") from e
 
     def create_directory(self, path):
-        self.run_command(f"mkdir -p {path}")
+        self.run_command(["mkdir", "-p", str(path)])
 
     def copy_file(self, src, dst):
-        self.run_command(f"cp {src} {dst}")
+        self.run_command(["cp", str(src), str(dst)])
 
     def copy_tree(self, src, dst):
-        self.run_command(f"cp -r {src} {dst}")
+        self.run_command(["cp", "-r", str(src), str(dst)])
 
     def move_directory(self, src, dst):
-        self.run_command(f"mv {src} {dst}")
+        self.run_command(["mv", str(src), str(dst)])
 
     def remove_directory(self, path):
-        self.run_command(f"rm -rf {path}")
+        self.run_command(["rm", "-rf", str(path)])
 
     def remove_file(self, path):
-        self.run_command(f"rm -f {path}")
+        self.run_command(["rm", "-f", str(path)])
 
     def setup_build_environment(self):
         if self.in_docker:
             logger.info("Running build in Docker container")
-            self.run_command("mkdir -p /tmp/docker-build", in_docker=False)
-            self.run_command("chmod 777 /tmp/docker-build", in_docker=False)
+            self.run_command(["mkdir", "-p", "/tmp/docker-build"], in_docker=False)
+            self.run_command(["chmod", "777", "/tmp/docker-build"], in_docker=False)
             self.run_command(
-                "docker build -t nodetool-builder -f Dockerfile.build .",
+                [
+                    "docker",
+                    "build",
+                    "-t",
+                    "nodetool-builder",
+                    "-f",
+                    "Dockerfile.build",
+                    ".",
+                ],
                 in_docker=False,
             )
         else:
@@ -131,18 +150,52 @@ class Build:
     def pack_python_env(self):
         logger.info("Packing Python environment")
 
-        self.run_command(f"pip install conda-pack")
         self.run_command(
-            f"conda pack -n {CONDA_ENV} -j 4 -o {self.BUILD_DIR}/python_env.tar"
+            ["conda", "run", "-n", CONDA_ENV, "pip", "install", "conda-pack"]
         )
-        self.run_command(f"tar cf {self.BUILD_DIR}/nodetool.tar src", cwd=PROJECT_ROOT)
+
+        # Set environment variable to prevent bytecode generation
+        env = os.environ.copy()
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+
+        # Use conda-pack with exclusions
+        self.run_command(
+            [
+                "conda",
+                "pack",
+                "-n",
+                CONDA_ENV,
+                "-j",
+                "4",
+                "--exclude",
+                "*.pyc",
+                "--exclude",
+                "__pycache__",
+                "--exclude",
+                "*.pyo",
+                "--exclude",
+                "*.pyd",
+                "--exclude",
+                "tests",
+                "--exclude",
+                "test",
+                "-o",
+                f"{self.BUILD_DIR}/python_env.tar",
+            ],
+            env=env,
+        )
+
+        # Bundle the source code
+        self.run_command(
+            ["tar", "cf", f"{self.BUILD_DIR}/nodetool.tar", "src"], cwd=PROJECT_ROOT
+        )
 
     def build_react_app(self):
         logger.info("Building React app")
         web_dir = str(self.BUILD_DIR / "web")
         self.copy_tree(self.WEB_DIR, web_dir)
-        self.run_command("npm ci", cwd=web_dir)
-        self.run_command("npx vite build", cwd=web_dir)
+        self.run_command(["npm", "ci"], cwd=web_dir)
+        self.run_command(["npx", "vite", "build"], cwd=web_dir)
 
     def build_electron_app(self):
         logger.info(f"Building Electron app for {self.platform} ({self.arch})")
@@ -156,11 +209,11 @@ class Build:
         for file in files_to_copy:
             self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR)
 
-        build_command = "npx electron-builder --config electron-builder.json"
+        build_command = ["npx", "electron-builder", "--config", "electron-builder.json"]
         if self.platform:
-            build_command += f" --{self.platform}"
+            build_command.append(f"--{self.platform}")
         if self.arch:
-            build_command += f" --{self.arch}"
+            build_command.append(f"--{self.arch}")
 
         self.run_command(build_command, cwd=self.BUILD_DIR)
         logger.info("Electron app built successfully")
@@ -169,18 +222,28 @@ class Build:
         logger.info("Initializing clean conda environment")
 
         # Remove existing environment if it exists
-        self.run_command(f"conda env remove -n {CONDA_ENV} -y")
+        self.run_command(["conda", "env", "remove", "-n", CONDA_ENV, "-y"])
 
         # Create new environment
-        self.run_command(f"conda create -n {CONDA_ENV} python=3.11 -y")
-
-        # Activate environment and install required packages
-        activate_cmd = f"source $(conda info --base)/etc/profile.d/conda.sh && conda activate {CONDA_ENV} &&"
-
-        # Uninstall setuptools to avoid conflicts with conda-pack
-        self.run_command(f"{activate_cmd} conda remove setuptools")
         self.run_command(
-            f"{activate_cmd} pip install -r {PROJECT_ROOT}/requirements.txt"
+            ["conda", "create", "-n", CONDA_ENV, "python=3.11", "-y"], ignore_error=True
+        )
+
+        # Install pip
+        # self.run_command(["conda", "install", "-n", CONDA_ENV, "pip", "-y"])
+        self.run_command(
+            [
+                "conda",
+                "run",
+                "-n",
+                CONDA_ENV,
+                "pip",
+                "install",
+                "-r",
+                f"{PROJECT_ROOT}/requirements.txt",
+                "-v",
+                "--no-cache-dir",
+            ]
         )
 
     def run_build_step(self, step_func):

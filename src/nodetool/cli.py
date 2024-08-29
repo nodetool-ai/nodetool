@@ -1,5 +1,5 @@
 import click
-from nodetool.api.server import run_uvicorn_server
+from nodetool.api.server import create_app, run_uvicorn_server
 from nodetool.common.environment import Environment
 
 # silence warnings on the command line
@@ -93,7 +93,12 @@ def serve(
     if worker_url:
         Environment.set_worker_url(worker_url)
 
-    app = "nodetool.api.app:app"
+    if not reload:
+        app = create_app(static_folder=static_folder)
+    else:
+        if static_folder:
+            raise "static folder and reload are exclusive options"
+        app = "nodetool.api.app:app"
 
     run_uvicorn_server(app=app, host=host, port=port, reload=reload)
 

@@ -32,7 +32,7 @@ click = "*"
 cryptography = "*"
 crawl4ai = { git = "https://github.com/unclecode/crawl4ai.git" }
 datasets = "*"
-diffusers = {extras = ["torch"], version = "*"}
+diffusers = { extras = ["torch"], version = "*" }
 einops = "*"
 fastapi = ">=0.109.0"
 filelock = "*"
@@ -90,6 +90,7 @@ scikit-image = "*"
 scikit-learn = "*"
 scipy = "*"
 seaborn = "*"
+setuptools = "72.1.0"
 sentence-transformers = "*"
 sentencepiece = "*"
 spandrel = "*"
