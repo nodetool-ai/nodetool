@@ -15,6 +15,7 @@ export interface Settings {
   buttonAppearance: "text" | "icon" | "both";
   alertBeforeTabClose: boolean;
   selectNodesOnDrag: boolean;
+  showWelcomeOnStartup: boolean;
 }
 
 interface SettingsStore {
@@ -33,6 +34,7 @@ interface SettingsStore {
   setButtonAppearance: (value: "text" | "icon" | "both") => void;
   setAlertBeforeTabClose: (value: boolean) => void;
   setSelectNodesOnDrag: (value: boolean) => void;
+  setShowWelcomeOnStartup: (value: boolean) => void;
 }
 
 export const defaultSettings: Settings = {
@@ -47,7 +49,8 @@ export const defaultSettings: Settings = {
   timeFormat: "12h",
   buttonAppearance: "both",
   alertBeforeTabClose: true,
-  selectNodesOnDrag: false
+  selectNodesOnDrag: false,
+  showWelcomeOnStartup: true,
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -59,77 +62,77 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            gridSnap: value || defaultSettings.gridSnap
-          }
+            gridSnap: value || defaultSettings.gridSnap,
+          },
         })),
 
       setConnectionSnap: (value: number) =>
         set((state) => ({
           settings: {
             ...state.settings,
-            connectionSnap: value || defaultSettings.connectionSnap
-          }
+            connectionSnap: value || defaultSettings.connectionSnap,
+          },
         })),
 
       setPanControls: (value: string) =>
         set((state) => ({
           settings: {
             ...state.settings,
-            panControls: value || defaultSettings.panControls
-          }
+            panControls: value || defaultSettings.panControls,
+          },
         })),
 
       setSelectionMode: (value: string) =>
         set((state) => ({
           settings: {
             ...state.settings,
-            selectionMode: value || defaultSettings.selectionMode
-          }
+            selectionMode: value || defaultSettings.selectionMode,
+          },
         })),
 
       setWorkflowLayout: (value: "grid" | "list") =>
         set((state) => ({
           settings: {
             ...state.settings,
-            workflowLayout: value || defaultSettings.workflowLayout
-          }
+            workflowLayout: value || defaultSettings.workflowLayout,
+          },
         })),
 
       setWorkflowOrder: (value: "name" | "date") =>
         set((state) => ({
           settings: {
             ...state.settings,
-            workflowOrder: value || defaultSettings.workflowOrder
-          }
+            workflowOrder: value || defaultSettings.workflowOrder,
+          },
         })),
 
       setAssetsOrder: (value: "name" | "date") =>
         set((state) => ({
           settings: {
             ...state.settings,
-            assetsOrder: value || defaultSettings.assetsOrder
-          }
+            assetsOrder: value || defaultSettings.assetsOrder,
+          },
         })),
 
       setTimeFormat: (value: "12h" | "24h") =>
         set((state) => ({
           settings: {
             ...state.settings,
-            timeFormat: value || defaultSettings.timeFormat
-          }
+            timeFormat: value || defaultSettings.timeFormat,
+          },
         })),
 
       setAssetItemSize: (value: number) =>
         set((state) => ({
           settings: {
             ...state.settings,
-            assetItemSize: value || defaultSettings.assetItemSize
-          }
+            assetItemSize: value || defaultSettings.assetItemSize,
+          },
         })),
 
       updateSettings: (newSettings: Partial<Settings>) =>
         set((state) => ({
-          settings: { ...state.settings, ...newSettings }
+          settings: { ...state.settings, ...newSettings },
         })),
 
       resetSettings: () => set({ settings: { ...defaultSettings } }),
@@ -138,28 +141,35 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => ({
           settings: {
             ...state.settings,
-            buttonAppearance: value || defaultSettings.buttonAppearance
-          }
+            buttonAppearance: value || defaultSettings.buttonAppearance,
+          },
         })),
 
       setAlertBeforeTabClose: (value: boolean) =>
         set((state) => ({
           settings: {
             ...state.settings,
-            alertBeforeTabClose: value
-          }
+            alertBeforeTabClose: value,
+          },
         })),
       setSelectNodesOnDrag: (value: boolean) =>
         set((state) => ({
           settings: {
             ...state.settings,
-            selectNodesOnDrag: value ?? defaultSettings.selectNodesOnDrag
-          }
-        }))
+            selectNodesOnDrag: value ?? defaultSettings.selectNodesOnDrag,
+          },
+        })),
+      setShowWelcomeOnStartup: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            showWelcomeOnStartup: value,
+          },
+        })),
     }),
 
     {
-      name: "settings-storage" // name of the item in the storage (must be unique)
+      name: "settings-storage", // name of the item in the storage (must be unique)
       //storage: createJSONStorage(() => sessionStorage), // this will use 'sessionStorage'. Remove this line to default to 'localStorage'.
     }
   )

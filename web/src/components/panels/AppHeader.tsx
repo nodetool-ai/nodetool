@@ -174,6 +174,16 @@ function AppHeader() {
 
   const { handlePanelToggle: toggleChat } = useResizePanel("left");
 
+  const showWelcomeOnStartup = useSettingsStore(
+    (state) => state.settings.showWelcomeOnStartup
+  );
+
+  useEffect(() => {
+    if (showWelcomeOnStartup) {
+      handleOpenWelcome();
+    }
+  }, [handleOpenWelcome, showWelcomeOnStartup]);
+
   return (
     <div css={styles(ThemeNodetool, buttonAppearance)} className="app-header">
       <AppBar position="static" className="app-bar">
@@ -251,8 +261,9 @@ function AppHeader() {
                 <Button
                   aria-controls="simple-menu"
                   aria-haspopup="true"
-                  className={`nav-button ${path.startsWith("/workflows") ? "active" : ""
-                    }`}
+                  className={`nav-button ${
+                    path.startsWith("/workflows") ? "active" : ""
+                  }`}
                   onClick={() => navigate("/workflows")}
                 >
                   <WorkflowsIcon />

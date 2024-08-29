@@ -10,7 +10,11 @@ import {
   Tabs,
   Tab,
   Box,
-  Link
+  Link,
+  Switch,
+  FormControlLabel,
+  Tooltip,
+  Checkbox,
 } from "@mui/material";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -18,6 +22,8 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseButton from "../../buttons/CloseButton";
 import { overviewContents, Section } from "./OverviewContent";
 import { css } from "@emotion/react";
+import { useSettingsStore } from "../../../stores/SettingsStore";
+import WhatsNew from "./WhatsNew";
 
 interface TabPanelProps {
   children: React.ReactNode;
@@ -39,85 +45,139 @@ const welcomeStyles = (theme: any) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      overflowY: "auto",
-      border: `2px solid ${theme.palette.c_gray3}`
+      overflowY: "hidden",
+      border: `2px solid ${theme.palette.c_gray0}`,
+      display: "flex",
+      flexDirection: "column",
     },
     ".panel-title": {
       paddingLeft: "0",
       margin: 0,
       color: theme.palette.c_white,
-      marginBottom: "1em"
+      marginBottom: "1em",
     },
     ".summary": {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBigger,
       color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray1
+      backgroundColor: theme.palette.c_gray1,
     },
     ".content": {
       padding: "1em",
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily,
-      fontSize: theme.fontSizeBigger
+      fontSize: theme.fontSizeBigger,
     },
 
     ".content ul": {
       marginLeft: "0",
-      paddingLeft: "1em"
+      paddingLeft: "1em",
     },
     ".content ul li": {
-      listStyleType: "disc",
+      listStyleType: "square",
       marginLeft: "0",
       marginBottom: 0,
       fontSize: theme.fontSizeNormal,
-      fontFamily: theme.fontFamily1
+      fontFamily: theme.fontFamily1,
     },
     ".search": {
-      marginBottom: "1em"
+      marginBottom: "1em",
     },
     ".MuiAccordion-root": {
       background: "transparent",
       color: theme.palette.c_white,
-      borderBottom: `1px solid ${theme.palette.c_gray3}`
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
     },
     ".MuiAccordionSummary-content.Mui-expanded": {
-      margin: "0"
+      margin: "0",
     },
     ".MuiAccordionSummary-root": {
-      minHeight: "48px"
+      minHeight: "48px",
     },
     ".MuiAccordionSummary-content": {
-      margin: "12px 0"
+      margin: "12px 0",
     },
     ".MuiTypography-root": {
-      fontFamily: theme.fontFamily
+      fontFamily: theme.fontFamily,
     },
     "ul, ol": {
       fontFamily: theme.fontFamily1,
       paddingLeft: "1.5em",
-      marginTop: "0.5em"
+      marginTop: "0.5em",
     },
     li: {
-      marginBottom: "0.5em"
+      marginBottom: "0.5em",
     },
     ".highlight": {
       backgroundColor: theme.palette.c_hl1,
-      color: theme.palette.c_black
+      color: theme.palette.c_black,
     },
     ".tab-content": {
-      marginTop: "1em"
+      marginTop: "1em",
     },
     ".link": {
-      color: theme.palette.c_attention,
-      display: "block",
-      marginBottom: "1em",
-      textDecoration: "none"
-    },
-    ".link .body": {
-      fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray6,
-      margin: 0
-    }
+      display: "inline-block",
+      padding: "4px 8px",
+      textDecoration: "none",
+      backgroundColor: theme.palette.c_gray2,
+      borderRadius: "4px",
+      transition: "all 0.2s",
+    },
+    ".link:hover": {
+      color: theme.palette.c_black,
+      backgroundColor: theme.palette.c_hl1,
+    },
+
+    ".link-body": {
+      fontSize: theme.fontSizeSmall,
+      backgroundColor: "transparent",
+      color: theme.palette.c_gray6,
+      marginTop: ".25em",
+      marginBottom: "2em",
+      display: "block",
+    },
+
+    ".header-container": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    ".header-right": {
+      display: "flex",
+      alignItems: "center",
+      gap: "3em",
+    },
+    ".header": {
+      position: "sticky",
+      top: 0,
+      backgroundColor: "#222",
+      zIndex: 1,
+      padding: "1em",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    ".show-on-startup-toggle": {
+      marginTop: "-1em",
+    },
+    ".content-area": {
+      display: "flex",
+      flexDirection: "column",
+      height: "calc(100% - 60px)",
+    },
+    ".tabs-and-search": {
+      position: "sticky",
+      top: 0,
+      backgroundColor: "#222",
+      zIndex: 1,
+      paddingBottom: "1em",
+    },
+    ".scrollable-content": {
+      flex: 1,
+      overflowY: "auto",
+      padding: "1em",
+    },
   });
 
 function TabPanel(props: TabPanelProps) {
@@ -149,25 +209,16 @@ const extractText = (node: ReactNode): string => {
 
 const Welcome = ({ handleClose }: { handleClose: () => void }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
   const [tabValue, setTabValue] = useState(0);
   const sections: Section[] = overviewContents.map((section) => ({
     ...section,
-    originalContent: section.content
+    originalContent: section.content,
   }));
+  const { settings, updateSettings } = useSettingsStore();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
-
-  const handleAccordionChange = useCallback(
-    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-      setExpandedPanels((prev) =>
-        isExpanded ? [...prev, panel] : prev.filter((p) => p !== panel)
-      );
-    },
-    []
-  );
 
   const highlightText = (text: string, term: string) => {
     if (!term) return text;
@@ -189,7 +240,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
         const fuseOptions = {
           keys: [
             { name: "title", weight: 0.4 },
-            { name: "content", weight: 0.6 }
+            { name: "content", weight: 0.6 },
           ],
           includeMatches: true,
           ignoreLocation: true,
@@ -200,12 +251,12 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           minMatchCharLength: 2,
           useExtendedSearch: true,
           tokenize: true,
-          matchAllTokens: false
+          matchAllTokens: false,
         };
 
         const entries = sections.map((section) => ({
           ...section,
-          content: extractText(section.content)
+          content: extractText(section.content),
         }));
 
         const fuse = new Fuse(entries, fuseOptions);
@@ -248,105 +299,134 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
     return content;
   };
 
+  const handleToggleWelcomeOnStartup = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    updateSettings({ showWelcomeOnStartup: event.target.checked });
+  };
+
   return (
     <div css={welcomeStyles}>
-      <CloseButton onClick={handleClose} />
-      <Typography className="panel-title" variant="h2" gutterBottom>
-        NODETOOL
-      </Typography>
+      <div className="header">
+        <Typography className="panel-title" variant="h2">
+          NODETOOL
+        </Typography>
 
-      <Tabs
-        value={tabValue}
-        onChange={handleTabChange}
-        aria-label="overview tabs"
-      >
-        <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
-        <Tab label="Whats New" id="tab-1" aria-controls="tabpanel-1" />
-        <Tab label="Links" id="tab-2" aria-controls="tabpanel-2" />
-      </Tabs>
-
-      <TabPanel value={tabValue} index={0}>
-        <TextField
-          className="search"
-          fullWidth
-          variant="outlined"
-          placeholder="Search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            )
-          }}
-        />
-
-        {(searchTerm === "" ? sections : filteredSections).map((section) => (
-          <Accordion
-            key={section.id}
-            expanded={expandedPanels.includes(section.id) || searchTerm !== ""}
-            onChange={handleAccordionChange(section.id)}
-          >
-            <AccordionSummary
-              className="summary"
-              expandIcon={<ExpandMoreIcon />}
+        <div className="header-right">
+          <div className="show-on-startup-toggle">
+            <Tooltip
+              title="You can always open this screen from the Nodetool logo in the top left."
+              arrow
             >
-              <Typography>
-                {highlightText(section.title, searchTerm)}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails className="content">
-              {renderContent(section.originalContent)}
-            </AccordionDetails>
-          </Accordion>
-        ))}
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={1}>
-        <Typography variant="h5" color="#999">
-          nodetool 0.1.52
-        </Typography>
-        <Typography>
-          <b>Additions</b>
-          <ul>
-            <li>Welcome screen</li>
-            <li>Demucs node for audio separation</li>
-          </ul>
-          <b>Improvements</b>
-          <ul>
-            <li>Fixed copy paste between tabs</li>
-          </ul>
-        </Typography>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={2}>
-        <Typography variant="h5" color="#999">
-          Links
-        </Typography>
-        <Link
-          href="https://forum.nodetool.ai"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="link"
-        >
-          Forum
-          <div className="body">
-            Go to the NodeTool forum for help and advice or share what you made.
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={settings.showWelcomeOnStartup}
+                    onChange={handleToggleWelcomeOnStartup}
+                    name="showWelcomeOnStartup"
+                  />
+                }
+                label="Show on Startup"
+              />
+            </Tooltip>
           </div>
-        </Link>
-        <Link
-          href="https://github.com/nodetool-ai/nodetool"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="link"
-        >
-          GitHub
-          <div className="body">
-            The source code for NodeTool is available on GitHub.
-          </div>
-        </Link>
-      </TabPanel>
+          <CloseButton onClick={handleClose} />
+        </div>
+      </div>
+
+      <div className="content-area">
+        <div className="tabs-and-search">
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            aria-label="overview tabs"
+          >
+            <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
+            <Tab label="Whats New" id="tab-1" aria-controls="tabpanel-1" />
+            <Tab label="Links" id="tab-2" aria-controls="tabpanel-2" />
+          </Tabs>
+
+          {tabValue === 0 && (
+            <TextField
+              className="search"
+              fullWidth
+              variant="outlined"
+              placeholder="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+        </div>
+
+        <div className="scrollable-content">
+          <TabPanel value={tabValue} index={0}>
+            {(searchTerm === "" ? sections : filteredSections).map(
+              (section, index) => (
+                <Accordion key={section.id} defaultExpanded={index === 0}>
+                  <AccordionSummary
+                    className="summary"
+                    expandIcon={<ExpandMoreIcon />}
+                  >
+                    <Typography>
+                      {highlightText(section.title, searchTerm)}
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails className="content">
+                    {renderContent(section.originalContent)}
+                  </AccordionDetails>
+                </Accordion>
+              )
+            )}
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={1}>
+            <WhatsNew />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={2}>
+            <Link
+              href="https://forum.nodetool.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link"
+            >
+              Forum
+            </Link>
+            <div className="link-body">
+              Go to the NodeTool forum for help and advice or share what you
+              made.
+            </div>
+            <Link
+              href="https://github.com/nodetool-ai/nodetool"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link"
+            >
+              GitHub
+            </Link>
+            <div className="link-body">
+              Want to run Nodetool locally or contribute to its development?
+              <br />
+              Nodetool is open-source and available on GitHub.
+              <br />
+              You can customize it, add new nodes, or integrate it into your own
+              AI workflows.
+              <br />
+              Check out the repository for installation instructions and
+              documentation.
+              <br />
+              Let us know what you build!
+            </div>
+          </TabPanel>
+        </div>
+      </div>
     </div>
   );
 };

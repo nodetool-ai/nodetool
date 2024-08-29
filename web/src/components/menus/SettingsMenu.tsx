@@ -61,11 +61,11 @@ const styles = (theme: any) =>
     ".settings-menu": {
       flexGrow: 1,
       backgroundColor: theme.palette.c_gray1,
-      width: "60vw",
+      width: "70vw",
       height: "65vh",
       overflowY: "auto",
       minWidth: "400px",
-      maxWidth: "800px",
+      maxWidth: "900px",
       padding: "1em",
       display: "flex",
       flexDirection: "column",
@@ -97,13 +97,13 @@ const styles = (theme: any) =>
         width: "100%",
       },
       ".MuiInput-root": {
-        minWidth: "210px",
+        minWidth: "240px",
         width: "200px",
         padding: "0.2em 0.5em",
       },
       ".MuiFormControl-root": {
         width: "auto",
-        minWidth: "200px",
+        minWidth: "240px",
         margin: 0,
         padding: "0 0 0.25em 0",
       },
@@ -162,6 +162,7 @@ function SettingsMenu() {
     setButtonAppearance,
     setAlertBeforeTabClose,
     setSelectNodesOnDrag,
+    setShowWelcomeOnStartup,
   } = useSettingsStore((state) => ({
     settings: state.settings,
     setGridSnap: state.setGridSnap,
@@ -175,6 +176,7 @@ function SettingsMenu() {
     setButtonAppearance: state.setButtonAppearance,
     setAlertBeforeTabClose: state.setAlertBeforeTabClose,
     setSelectNodesOnDrag: state.setSelectNodesOnDrag,
+    setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
   }));
 
   const id = open ? "docs" : undefined;
@@ -444,6 +446,25 @@ function SettingsMenu() {
             </FormControl>
             <Typography className="description">
               Select nodes when dragging.
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <FormControl>
+              <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
+              <Switch
+                sx={{
+                  "&.MuiSwitch-root": {
+                    margin: "16px 0 0",
+                  },
+                }}
+                checked={!!settings.showWelcomeOnStartup}
+                onChange={(e) => setShowWelcomeOnStartup(e.target.checked)}
+                inputProps={{ "aria-label": id }}
+              />
+            </FormControl>
+            <Typography className="description">
+              Show the welcome screen when starting the application.
             </Typography>
           </div>
         </div>
