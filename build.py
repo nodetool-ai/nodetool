@@ -68,12 +68,13 @@ class Build:
         try:
             process = subprocess.Popen(
                 command,
+                shell=True,
                 cwd=None if should_run_in_docker else cwd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 env=env,
                 universal_newlines=True,
-                bufsize=1,
+                bufsize=256,
             )
 
             def stream_output(pipe, log_func):
