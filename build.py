@@ -108,7 +108,7 @@ class Build:
             raise BuildError(f"Command failed: {' '.join(command)}") from e
 
     def create_directory(self, path):
-        self.run_command(["mkdir", str(path)], ignore_error=True])
+        self.run_command(["mkdir", str(path)], ignore_error=True)
 
     def copy_file(self, src, dst):
         self.run_command(["cp", str(src), str(dst)])
