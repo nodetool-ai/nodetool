@@ -19,6 +19,88 @@ NodeTool opens up creative and playful access to cutting-edge AI technologies, s
 
 Download the latest Release from our [Release Page](https://github.com/nodetool-ai/nodetool/releases)
 
+# Models
+
+nodes
+├── anthropic
+│   └── text
+├── huggingface
+│   ├── audio
+│   ├── huggingface_pipeline
+│   ├── image
+│   ├── multimodal
+│   ├── text
+│   └── video
+├── nodetool
+│   ├── agents
+│   ├── audio
+│   ├── boolean
+│   ├── constant
+│   ├── dataframe
+│   ├── dictionary
+│   ├── group
+│   ├── http
+│   ├── image
+│   ├── input
+│   ├── list
+│   ├── math
+│   ├── output
+│   ├── tensor
+│   ├── text
+│   ├── vector
+│   └── video
+├── ollama
+│   └── text
+├── openai
+│   ├── audio
+│   ├── image
+│   └── text
+├── replicate
+│   ├── audio
+│   ├── image
+│   ├── text
+│   └── video
+└── stable_diffusion
+    └── image
+
+# Architecture
+
+```
+                  +-------------------+
+                  |                   |
+                  |  React Frontend   |
+                  |                   |
+                  +--------+----------+
+                           |
+                           | HTTP/WebSocket
+                           |
+                  +--------v----------+
+                  |                   |
+         +------->|    API Server     |<------+
+         |        |                   |       |
+         |        +--------+----------+       |
+         |                 |                  |
+         |                 | Internal         |
+         |                 | Communication    |
+         |    +------------v------------+     |
+         |    |                         |     |
+         |    |   WebSocket Runner      |     |
+         |    |                         |     |
+         |    +------------+-----------+      |
+         |                 |                  |
+         |                 | WebSocket        |
+         |                 |                  |
+         |    +------------v------------+     |
+         |    |                         |     |
+         |    |        Worker           |     |
+         |    |                         |     |
+         +----+-------------------------+     |
+              |                               |
+              +-------------------------------+
+                     HTTP Callbacks
+```
+
+
 ## Implementing Custom Nodes
 
 Extend NodeTool's functionality by creating custom nodes:
@@ -32,20 +114,45 @@ class MyNode(BaseNode):
       return self.a + self.b
 ```
 
-# API Documentation
+# Development
 
-NodeTool provides a comprehensive API for various functionalities. Here are some key endpoints:
+## Requirements
 
-- Authentication: /api/auth/\*
-- Assets: /api/assets/\*
-- Jobs: /api/jobs/\*
-- Models: /api/models/\*
-- Workflows: /api/workflows/\*
+- Python 3.10+
+- NodeJS 20+
 
-For a complete list of endpoints, refer to the [API Documentation](https://nodetool-ai.github.io/nodetool/api.html)
+## Run backend
 
-## Development
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+nodetool worker
+```
 
+## Run frontend
+
+```bash
+cd web
+npm install
+npm start
+```
+
+## Build
+
+```bash
+cd web
+npm run build
+```
+
+## Run Electron App
+
+```bash
+cd electron
+npm start
+```
+
+## Sync dependencies
 Dependencies are managed in `pyproject.toml` and must be synced to `requirements.txt` using:
 
 ```
@@ -56,11 +163,11 @@ poetry export -f requirements.txt --output requirements.test.txt --without-hashe
 
 We welcome contributions from the community! To contribute to Nodetool, please adhere to our contribution guidelines. Your efforts help us improve and evolve this project.
 
-## License
+# License
 
 Nodetool is made available under the terms of the [GPL3 License](LICENSE.txt), promoting open-source collaboration and sharing.
 
-## Contact
+# Contact
 
 For inquiries, suggestions, or contributions, please reach out to the core team:
 
