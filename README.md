@@ -8,16 +8,31 @@ NodeTool is a powerful no-code development environment for Artificial Intelligen
 
 NodeTool opens up creative and playful access to cutting-edge AI technologies, supporting both beginners and experienced developers in content creation, data analysis, and automation. By visualizing workflows and simplifying complex installation requirements, NodeTool makes AI application development accessible to a broad audience..
 
-## Key Features
+# 🌟 Key Features
+* __No-Code AI Development:__ Create AI workflows without deep programming knowledge.
+* __Model Agnostic:__ Easily integrate state-of-the-art AI models from various sources.
+* __Multimedia Content Handling:__ Generate and edit images, texts, audio, video, and more within a single workflow.
 
-- No-Code AI Development: Create AI workflows without deep programming knowledge.
-- Model Agnostic: Easily integrate state-of-the-art AI models from OpenAI, Anthropic, Replicate, HuggingFace, ComfyUI, Llama, Mistral, and more.
-- Multimedia Content Handling: Generate and edit images, texts, audio, video and spreadsheets within a signle workflow.
-- Asset management: Manage and organize your assets (images, videos, audio files) within the application
+# 🎨 Exciting Use Cases
+1. __AI Muse__: Generate unique artwork inspirations by combining different styles, eras, and subjects.
+2. __Sound-to-Visual Art__: Transform audio into visual masterpieces.
+3. __Interactive Installation__: Create dynamic artworks that respond to viewer input.
+4. __Conceptual Art Generator__: Visualize abstract ideas and philosophical concepts.
+5. __Digital Sketchbook Enhancer__: Elevate rough sketches with AI-generated details and animations.
+6. __Art History Reimagined__: Reinterpret famous artworks across different periods and styles.
+7. __Multimedia Performance Tools__: Design real-time visual generators for live performances.
+8. __Sustainable Art Planner__: Conceptualize eco-friendly installations with material suggestions and impact visualization.
 
-## Installation
 
-Download the latest Release from our [Release Page](https://github.com/nodetool-ai/nodetool/releases)
+## 🚀 Quickstart
+
+📥 Download the latest Release from our [Release Page](https://github.com/nodetool-ai/nodetool/releases)
+
+## 📦 Installation
+
+1. Extract the downloaded archive.
+2. Run the installer.
+3. Follow the instructions to complete the installation.
 
 # Node Overview
 
@@ -154,12 +169,12 @@ This architecture enables NodeTool to handle complex AI workflows efficiently, p
 Extend NodeTool's functionality by creating custom nodes:
 
 ```python
-class MyNode(BaseNode):
-    a: str = ""
-    b: str = ""
-
+class MyAgent(BaseNode):
+    prompt: Field(default="Build me a website for my business.")
+    
     async def process(self, context: ProcessingContext) -> str:
-      return self.a + self.b
+        llm = MyLLM()
+        return llm.generate(self.prompt)
 ```
 
 # Development
@@ -175,7 +190,7 @@ class MyNode(BaseNode):
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-nodetool worker
+./scripts/server
 ```
 
 ## Run frontend
@@ -186,14 +201,11 @@ npm install
 npm start
 ```
 
-## Build
-
-```bash
-cd web
-npm run build
-```
+Now, open your browser and navigate to `http://localhost:3000` to access the NodeTool interface.
 
 ## Run Electron App
+
+If you want to run the Electron App, you need to install the dependencies and start the frontend and backend.
 
 ```bash
 cd electron
