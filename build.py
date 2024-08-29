@@ -108,7 +108,7 @@ class Build:
             raise BuildError(f"Command failed: {' '.join(command)}") from e
 
     def create_directory(self, path):
-        self.run_command(["mkdir", "-p", str(path)])
+        self.run_command(["mkdir", str(path)])
 
     def copy_file(self, src, dst):
         self.run_command(["cp", str(src), str(dst)])
@@ -146,7 +146,11 @@ class Build:
             logger.info("Running build locally")
             self.initialize_conda_env()
 
-        self.create_directory(self.BUILD_DIR)
+        try:
+            self.create_directory(self.BUILD_DIR)
+        except BuildError as e:
+            logger.error(f"Failed to create build directory: {e}")
+            sys.exit(1)
 
     def pack_python_env(self):
         logger.info("Packing Python environment")
