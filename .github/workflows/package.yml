@@ -2,6 +2,8 @@ name: Package and Release
 
 on:
   push:
+    main:
+      - "*"
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
 
@@ -40,6 +42,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
+          miniconda-version: "latest"
           python-version: "3.11"
 
       - name: Run build script

@@ -73,7 +73,7 @@ def main():
     update_version_in_pyproject(new_version)
     update_version_in_package_json(new_version)
     update_version_in_constants_ts(new_version)
-    run_poetry_lock()
+    # run_poetry_lock()
     git_commit_and_tag(new_version)
     print(f"Version {new_version} released successfully.")
 
