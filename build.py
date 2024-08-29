@@ -108,16 +108,13 @@ class Build:
             raise BuildError(f"Command failed: {' '.join(command)}") from e
 
     def create_directory(self, path):
-        self.run_command(["mkdir", str(path)])
+        self.run_command(["mkdir", str(path)], ignore_error=True])
 
     def copy_file(self, src, dst):
         self.run_command(["cp", str(src), str(dst)])
 
     def copy_tree(self, src, dst):
         self.run_command(["cp", "-r", str(src), str(dst)])
-
-    def move_directory(self, src, dst):
-        self.run_command(["mv", str(src), str(dst)])
 
     def remove_directory(self, path):
         self.run_command(["rm", "-rf", str(path)])
