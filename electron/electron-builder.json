@@ -2,7 +2,7 @@
     "appId": "ai.nodetool",
     "productName": "Nodetool",
     "directories": {
-        "output": "build/electron-app"
+        "output": "dist"
     },
     "files": [
         "index.js",
