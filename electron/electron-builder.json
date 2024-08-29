@@ -7,9 +7,8 @@
     "files": [
         "index.js",
         "index.html",
-        "dist/**/*",
-        "nodetool.tar.gz",
-        "python_env.tar.gz",
+        "nodetool.tar",
+        "python_env.tar",
         "package.json"
     ],
     "mac": {
