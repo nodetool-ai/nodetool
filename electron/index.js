@@ -21,17 +21,18 @@ const getPaths = (isProduction) => {
     srcTarPath: isProduction ? path.join(resourcesPath, "nodetool.tar") : null,
     webTarPath: isProduction ? path.join(resourcesPath, "web.tar") : null,
     pythonExecutable: isProduction
-      ? path.join(userDataPath, "python_env", "bin", "python")
+      ? (process.platform === "win32"
+          ? path.join(userDataPath, "python_env", "python.exe")
+          : path.join(userDataPath, "python_env", "bin", "python"))
       : "python",
   };
 };
 
-// const paths = getPaths(process.env.NODE_ENV === "production");
-const paths = getPaths(true);
+const paths = getPaths(process.env.NODE_ENV === "production");
 
 console.log("Paths:", paths);
 
-async function untarFile(tarPath, destDir, progressCallback) {
+async function untarFile(tarPath, destDir, progressCallback, useParentDir = true) {
   console.log(`Extracting ${tarPath} to ${destDir}...`);
   // Check if the destination directory already exists
   if (
@@ -51,7 +52,7 @@ async function untarFile(tarPath, destDir, progressCallback) {
 
   await tar.x({
     file: tarPath,
-    C: parentDir,
+    C: useParentDir ? parentDir : destDir,
     onentry: (entry) => {
       extractedSize += entry.size;
       const progress = Math.round((extractedSize / totalSize) * 100);
@@ -63,7 +64,12 @@ async function untarFile(tarPath, destDir, progressCallback) {
 }
 
 async function runCondaUnpack(envDir) {
-  const condaUnpack = path.join(envDir, "bin", "conda-unpack");
+  // windows location is different
+  const condaUnpack =
+    process.platform === "win32"
+      ? path.join(envDir, "Scripts", "conda-unpack.exe")
+      : path.join(envDir, "bin", "conda-unpack");
+  
   const condaUnpackProcess = spawn(condaUnpack, []);
 
   return new Promise((resolve, reject) => {
@@ -116,7 +122,8 @@ async function setupEnvironment() {
         path,
         name: "python_env",
       });
-    }
+    },
+    false // Don't use parent directory for env extraction
   );
   if (envExtracted) {
     console.log("Environment unpacked successfully");
@@ -165,9 +172,9 @@ function createWindow() {
 }
 
 async function startServer() {
-  // if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production") {
   await setupEnvironment();
-  // }
+  }
   mainWindow.webContents.send("setup-complete");
 
   const env = Object.create(process.env);
