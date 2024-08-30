@@ -5,127 +5,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workflow Runner Demo</title>
     <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --primary-color: #76e5b8;
+            --secondary-color: #2a2a2a;
+            --border-color: #333;
+            --button-bg-color: #333;
+            --input-bg: #2c2c2c;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
         }
-        h1 {
-            color: #2c3e50;
+        h1, h3 {
+            color: var(--primary-color);
+            font-weight: normal;
         }
-        form {
-            background-color: #f4f4f4;
+        .container {
+            display: flex;
+            gap: 20px;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .left-container {
+            display: flex;
+            flex-direction: column;
+            max-width: 30vw;
+            width: 100%;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .inputs-container {
+            margin-bottom: 20px;
+        }
+        .logs-container {
+            
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .results-container {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        form, #output, #wsMessages {
+            background-color: var(--secondary-color);
             padding: 20px;
-            border-radius: 5px;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
         }
         label {
             display: block;
             margin-bottom: 5px;
+            font-weight: normal;
         }
-        input[type="text"], textarea {
+        input[type="text"], textarea, select {
             width: 100%;
             padding: 8px;
             margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
         button {
-            background-color: #3498db;
-            color: white;
+            background-color: var(--button-bg-color);
+            color: var(--primary-color);
             padding: 10px 15px;
             border: none;
-            border-radius: 4px;
+            border-radius: 2px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
         button:hover {
-            background-color: #2980b9;
+            background-color: #76e5b8;
         }
-        #output {
-            margin-top: 20px;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 4px;
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        #output, #wsMessages {
+            border: 1px solid var(--border-color);
             min-height: 100px;
+            overflow-y: auto;
         }
         .progress-bar {
             width: 100%;
-            background-color: #e0e0e0;
+            background-color: var(--secondary-color);
             padding: 3px;
-            border-radius: 3px;
+            border-radius: 2px;
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, .2);
         }
         .progress-bar-fill {
             display: block;
             height: 22px;
-            background-color: #659cef;
-            border-radius: 3px;
+            background-color: var(--primary-color);
+            border-radius: 2px;
             transition: width 500ms ease-in-out;
         }
-        select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
         }
-        #wsMessages {
-            margin-top: 20px;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 4px;
-            max-height: 200px;
-            overflow-y: auto;
+        ::-webkit-scrollbar-track {
+            background: var(--border-color);
         }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-color);
         }
     </style>
 </head>
 <body>
     <h1>Workflow Runner Demo</h1>
-    <form id="tokenForm">
-        <label for="token">Auth Token:</label>
-        <input type="text" id="token" required>
-        <button type="submit" id="loadWorkflowsBtn">Load Workflows</button>
-    </form>
+    <div class="container">
+        <div class="left-container">
+            <div class="inputs-container">
+                <form id="tokenForm">
+                    <label for="token">Auth Token:</label>
+                    <input type="text" id="token" required>
+                    <button type="submit" id="loadWorkflowsBtn">Load Workflows</button>
+                </form>
 
-    <form id="workflowForm" style="display: none;">
-        <label for="workflowSelect">Select Workflow:</label>
-        <select id="workflowSelect" required></select>
-        
-        <div id="dynamicInputs"></div>
-        
-        <button type="submit" id="runWorkflowBtn">Run Workflow</button>
-    </form>
+                <form id="workflowForm" style="display: none;">
+                    <label for="workflowSelect">Select Workflow:</label>
+                    <select id="workflowSelect" required></select>
+                    
+                    <div id="dynamicInputs"></div>
+                    
+                    <button type="submit" id="runWorkflowBtn">Run Workflow</button>
+                </form>
 
-    <div id="output">
-        <h3>Output:</h3>
-        <pre id="outputContent"></pre>
-    </div>
+                <div id="progressContainer" style="display: none;">
+                    <h3>Progress:</h3>
+                    <div class="progress-bar">
+                        <span class="progress-bar-fill" style="width: 0%;"></span>
+                    </div>
+                    <p id="progressText">0%</p>
+                </div>
+            </div>
 
-    <div id="progressContainer" style="display: none;">
-        <h3>Progress:</h3>
-        <div class="progress-bar">
-            <span class="progress-bar-fill" style="width: 0%;"></span>
+            <div class="logs-container">
+                <div id="output">
+                    <h3>Output:</h3>
+                    <pre id="outputContent"></pre>
+                </div>
+
+                <div id="wsMessages">
+                    <h3>WebSocket Messages:</h3>
+                    <pre id="wsContent"></pre>
+                </div>
+            </div>
         </div>
-        <p id="progressText">0%</p>
-    </div>
-    
-    <div id="results">
-    </div>
 
-    <div id="wsMessages">
-        <h3>WebSocket Messages:</h3>
-        <pre id="wsContent"></pre>
+        <div class="results-container">
+            <h3>Results:</h3>
+            <div id="results"></div>
+        </div>
     </div>
 
     <script src="https://unpkg.com/msgpack-lite@0.1.26/dist/msgpack.min.js"></script>
     <script>
-       class WorkflowRunner {
+        class WorkflowRunner {
             constructor(apiUrl, workerUrl) {
                 this.apiUrl = apiUrl;
                 this.workerUrl = workerUrl;
