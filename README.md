@@ -193,11 +193,11 @@ NodeTool provides a powerful Workflow API that allows you to integrate and run y
 
 To retrieve available workflows:
 
-```
-const response = await fetch('https://api.nodetool.ai/api/workflows', {
-    headers: {
-        'Authorization': 'Bearer YOUR_API_TOKEN'
-    }
+```javascript
+const response = await fetch("https://api.nodetool.ai/api/workflows", {
+  headers: {
+    Authorization: "Bearer YOUR_API_TOKEN",
+  },
 });
 const workflows = await response.json();
 ```
@@ -206,7 +206,7 @@ const workflows = await response.json();
 
 Establish a connection and send the job request:
 
-```
+```javascript
 const socket = new WebSocket('wss://api.nodetool.ai/predict');
 const request = {
     type: 'run_job_request',
@@ -224,7 +224,7 @@ socket.send(msgpack.encode({
 
 While runnning handle responses:
 
-````
+````javascript
 socket.onmessage = async (event) => {
     const data = msgpack.decode(new Uint8Array(await event.data.arrayBuffer()));
     if (data.type === 'job_update' && data.status === 'completed') {
@@ -236,10 +236,94 @@ socket.onmessage = async (event) => {
     }
     // Handle other message types as needed
 };
+```
 
 ## 🧩 Example Implementation
 
 For a complete example of how to implement the Workflow API in a web application, refer to our [API Demo](api-demo.html).
+
+You can reuse the existing WorkflowRunner class:
+
+```
+javascript
+
+class WorkflowRunner {
+    constructor(apiUrl, workerUrl) {
+        this.apiUrl = apiUrl;
+        this.workerUrl = workerUrl;
+        this.socket = null;
+        this.state = 'idle';
+        this.token = '';
+    }
+
+    async connect() {
+        return new Promise((resolve, reject) => {
+            this.socket = new WebSocket(this.workerUrl);
+            this.socket.onopen = () => {
+                console.log('WebSocket connected');
+                this.state = 'connected';
+                resolve();
+            };
+            this.socket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                this.state = 'error';
+                reject(error);
+            };
+            this.socket.onmessage = (event) => {
+                const arrayBuffer = event.data;
+                const data = msgpack.decode(new Uint8Array(arrayBuffer));
+                updateWsMessages(JSON.stringify(data, null, 2));
+            };
+        });
+    }
+
+    async run(workflowId, params = {}) {
+        if (!this.socket || this.state !== 'connected') {
+            await this.connect();
+        }
+
+        this.state = 'running';
+
+        const request = {
+            type: 'run_job_request',
+            api_url: this.apiUrl,
+            workflow_id: workflowId,
+            job_type: 'workflow',
+            auth_token: this.token,
+            params: params
+        };
+
+        console.log('Sending request:', request);
+
+        this.socket.send(msgpack.encode({
+            command: 'run_job',
+            data: request,
+        }));
+
+        return new Promise((resolve, reject) => {
+            this.socket.onmessage = async (event) => {
+                const arrayBuffer = await event.data.arrayBuffer();
+                const data = msgpack.decode(new Uint8Array(arrayBuffer))
+                console.log('Received message:', data);
+                if (data.type === 'job_update' && data.status === 'completed') {
+                    this.state = 'idle';
+                    resolve(data.result);
+                } else if (data.type === 'job_update' && data.status === 'failed') {
+                    this.state = 'idle';
+                    reject(new Error(data.error));
+                } else if (data.type === 'error') {
+                    this.state = 'idle';
+                    reject(new Error(data.error));
+                } else {
+                    // Handle other updates (optional)
+                }
+            };
+        });
+    }
+}
+```
+
+
 
 ## 📊 Response Handling
 
