@@ -65,47 +65,42 @@ class Build:
 
         logger.info(" ".join(command))
 
-        try:
-            process = subprocess.Popen(
-                " ".join(command),
-                shell=True,
-                cwd=None if should_run_in_docker else cwd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                env=env,
-                universal_newlines=True,
-                bufsize=256,
+        process = subprocess.Popen(
+            " ".join(command),
+            shell=True,
+            cwd=None if should_run_in_docker else cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+            universal_newlines=True,
+            bufsize=256,
+        )
+
+        def stream_output(pipe, log_func):
+            for line in iter(pipe.readline, ""):
+                log_func(line.strip())
+
+        stdout_thread = threading.Thread(
+            target=stream_output, args=(process.stdout, logger.info)
+        )
+        stderr_thread = threading.Thread(
+            target=stream_output, args=(process.stderr, logger.info)
+        )
+
+        stdout_thread.start()
+        stderr_thread.start()
+
+        return_code = process.wait()
+
+        stdout_thread.join()
+        stderr_thread.join()
+
+        if return_code != 0 and not ignore_error:
+            raise BuildError(
+                f"Command failed with return code {return_code}: {' '.join(command)}"
             )
 
-            def stream_output(pipe, log_func):
-                for line in iter(pipe.readline, ""):
-                    log_func(line.strip())
-
-            stdout_thread = threading.Thread(
-                target=stream_output, args=(process.stdout, logger.info)
-            )
-            stderr_thread = threading.Thread(
-                target=stream_output, args=(process.stderr, logger.info)
-            )
-
-            stdout_thread.start()
-            stderr_thread.start()
-
-            return_code = process.wait()
-
-            stdout_thread.join()
-            stderr_thread.join()
-
-            if return_code != 0 and not ignore_error:
-                raise BuildError(
-                    f"Command failed with return code {return_code}: {' '.join(command)}"
-                )
-
-            return return_code
-
-        except Exception as e:
-            logger.error(f"Command failed with error: {e}")
-            raise BuildError(f"Command failed: {' '.join(command)}") from e
+        return return_code
 
     def create_directory(self, path):
         self.run_command(["mkdir", str(path)], ignore_error=True)
@@ -118,9 +113,6 @@ class Build:
 
     def remove_directory(self, path):
         self.run_command(["rm", "-rf", str(path)])
-
-    def remove_file(self, path):
-        self.run_command(["rm", "-f", str(path)])
 
     def setup_build_environment(self):
         if self.in_docker:
