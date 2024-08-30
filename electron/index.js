@@ -54,7 +54,7 @@ const getPaths = async () => {
       process.platform === "win32"
         ? path.join(envDir, "Scripts", "conda-unpack.exe")
         : path.join(envDir, "bin", "conda-unpack")
-    )
+    ),
   };
 };
 
@@ -196,14 +196,13 @@ function createWindow() {
 }
 
 async function startServer() {
-  if (process.env.NODE_ENV === "production") {
   await setupEnvironment();
-  }
   mainWindow.webContents.send("setup-complete");
 
   const env = Object.create(process.env);
   env.PYTHONUNBUFFERED = "1";
   env.PYTHONPATH = paths.srcDir;
+  env.PATH = `${process.resourcesPath}${path.delimiter}${env.PATH}`;
 
   mainWindow.webContents.send("boot-message", "Starting server...");
 
