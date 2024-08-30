@@ -1,7 +1,6 @@
 from typing import Any, List
-from nodetool.types.graph import Graph, get_input_schema
+from nodetool.types.graph import Graph, get_input_schema, get_output_schema
 from nodetool.common.environment import Environment
-from nodetool.models.asset import Asset as AssetModel
 from nodetool.models.workflow import Workflow as WorkflowModel
 
 from pydantic import BaseModel
@@ -42,7 +41,7 @@ class Workflow(BaseModel):
             thumbnail_url=find_thumbnail(workflow),
             graph=api_graph,
             input_schema=get_input_schema(api_graph),
-            output_schema=get_input_schema(api_graph),
+            output_schema=get_output_schema(api_graph),
         )
 
 
