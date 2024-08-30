@@ -7,28 +7,58 @@ const { spawn } = require("child_process");
 let mainWindow;
 let serverProcess;
 
-const getPaths = (isProduction) => {
+async function getFirstExistingPath(...paths) {
+  for (const p of paths) {
+    try {
+      await fs.access(p);
+      return p;
+    } catch (error) {
+      // Path doesn't exist, continue to next
+    }
+  }
+  return null; // Return null if no paths exist
+}
+
+const getPaths = async () => {
   const userDataPath = app.getPath("userData");
   const resourcesPath = process.resourcesPath;
 
   return {
-    envDir: isProduction ? path.join(userDataPath, "python_env") : null,
-    srcDir: isProduction ? path.join(userDataPath, "src") : "../src",
-    webDir: isProduction ? path.join(userDataPath, "web") : "../web/dist",
-    envTarPath: isProduction
-      ? path.join(resourcesPath, "python_env.tar")
-      : null,
-    srcTarPath: isProduction ? path.join(resourcesPath, "nodetool.tar") : null,
-    webTarPath: isProduction ? path.join(resourcesPath, "web.tar") : null,
-    pythonExecutable: isProduction
-      ? (process.platform === "win32"
-          ? path.join(userDataPath, "python_env", "python.exe")
-          : path.join(userDataPath, "python_env", "bin", "python"))
-      : "python",
+    envDir: await getFirstExistingPath(
+      path.join(userDataPath, "python_env"),
+    ),
+    srcDir: await getFirstExistingPath(
+      path.join(userDataPath, "src"),
+      "../src"
+    ),
+    webDir: await getFirstExistingPath(
+      path.join(userDataPath, "web"),
+      "../web/dist"
+    ),
+    envTarPath: await getFirstExistingPath(
+      path.join(resourcesPath, "python_env.tar"),
+    ),
+    srcTarPath: await getFirstExistingPath(
+      path.join(resourcesPath, "nodetool.tar"),
+    ),
+    webTarPath: await getFirstExistingPath(
+      path.join(resourcesPath, "web.tar"),
+    ),
+    pythonExecutable: await getFirstExistingPath(
+      process.platform === "win32"
+        ? path.join(userDataPath, "python_env", "python.exe")
+        : path.join(userDataPath, "python_env", "bin", "python"),
+      "python"
+    ),
+    condaUnpack: await getFirstExistingPath(
+      process.platform === "win32"
+        ? path.join(envDir, "Scripts", "conda-unpack.exe")
+        : path.join(envDir, "bin", "conda-unpack")
+    )
   };
 };
 
-const paths = getPaths(process.env.NODE_ENV === "production");
+const paths = getPaths();
 
 console.log("Paths:", paths);
 
@@ -64,13 +94,7 @@ async function untarFile(tarPath, destDir, progressCallback, useParentDir = true
 }
 
 async function runCondaUnpack(envDir) {
-  // windows location is different
-  const condaUnpack =
-    process.platform === "win32"
-      ? path.join(envDir, "Scripts", "conda-unpack.exe")
-      : path.join(envDir, "bin", "conda-unpack");
-  
-  const condaUnpackProcess = spawn(condaUnpack, []);
+  const condaUnpackProcess = spawn(paths.condaUnpack, []);
 
   return new Promise((resolve, reject) => {
     condaUnpackProcess.on("close", (code) => {
