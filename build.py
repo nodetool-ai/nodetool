@@ -9,6 +9,7 @@ import threading
 import subprocess
 import threading
 import os
+import tarfile
 
 # Set up logging
 logging.basicConfig(
@@ -178,10 +179,9 @@ class Build:
             env=env,
         )
 
-        # Bundle the source code
-        self.run_command(
-            ["tar", "cf", f"{self.BUILD_DIR}/nodetool.tar", "src"], cwd=PROJECT_ROOT
-        )
+        # Bundle the source code using tarfile
+        with tarfile.open(f"{self.BUILD_DIR}/nodetool.tar", "w") as tar:
+            tar.add(str(PROJECT_ROOT / "src"), arcname="src")
 
     def build_react_app(self):
         logger.info("Building React app")
