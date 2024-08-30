@@ -7,19 +7,23 @@ NodeTool is a powerful no-code development environment for Artificial Intelligen
 NodeTool opens up creative and playful access to cutting-edge AI technologies, supporting both beginners and experienced developers in content creation, data analysis, and automation. By visualizing workflows and simplifying complex installation requirements, NodeTool makes AI application development accessible to a broad audience.
 
 ## 🌟 Key Features
-* __No-Code AI Development:__ Create AI workflows without deep programming knowledge.
-* __Model Agnostic:__ Easily integrate state-of-the-art AI models from various sources.
-* __Multimedia Content Handling:__ Generate and edit images, texts, audio, video, and more within a single workflow.
 
-## 🎨 Exciting Use Cases
-1. __AI Muse__: Generate unique artwork inspirations by combining different styles, eras, and subjects.
-2. __Sound-to-Visual Art__: Transform audio into visual masterpieces.
-3. __Interactive Installation__: Create dynamic artworks that respond to viewer input.
-4. __Conceptual Art Generator__: Visualize abstract ideas and philosophical concepts.
-5. __Digital Sketchbook Enhancer__: Elevate rough sketches with AI-generated details and animations.
-6. __Art History Reimagined__: Reinterpret famous artworks across different periods and styles.
-7. __Multimedia Performance Tools__: Design real-time visual generators for live performances.
-8. __Sustainable Art Planner__: Conceptualize eco-friendly installations with material suggestions and impact visualization.
+- **No-Code AI Development:** Create AI workflows without deep programming knowledge.
+- **Model Agnostic:** Easily integrate state-of-the-art AI models from various sources.
+- **Multimedia Content Handling:** Generate and edit images, texts, audio, video, and more within a single workflow.
+
+## 🎨 Use Cases
+
+- **AI Muse**: Generate unique artwork inspirations by combining different styles, eras, and subjects.
+- **Sound-to-Visual Art**: Transform audio into visual masterpieces.
+- **Digital Sketchbook Enhancer**: Elevate rough sketches with AI-generated details and animations.
+- **AI-Curated Art Gallery**: Create virtual art exhibitions based on specific themes or movements.
+- **Image Inpainting and Restoration**: Repair damaged or incomplete images by intelligently filling in missing areas.
+- **Music Composition Assistant**: Generate musical ideas and compositions based on textual descriptions or themes.
+- **Audio-to-Story Generator**: Create short stories or narratives inspired by audio inputs.
+- **Image Enhancement Suite**: Improve image quality through various AI-powered enhancement techniques.
+- **Multi-lingual Content Creation**: Produce and translate content across multiple languages for global audiences.
+- **Data Visualization Tool**: Transform complex datasets into intuitive, visually appealing representations.
 
 ## 🚀 Quickstart
 
@@ -46,7 +50,6 @@ NodeTool offers a diverse range of node categories to support various AI tasks:
 7. **🎨 Stable Diffusion**: Specialized image generation and manipulation.
 
 Each category contains specific nodes tailored for different AI tasks, allowing users to create complex workflows by combining nodes across these categories.
-
 
 ```
 nodes
@@ -124,7 +127,6 @@ NodeTool's architecture is designed for flexibility. Here's a breakdown of the m
 
 This architecture enables NodeTool to handle complex AI workflows efficiently, providing a seamless experience for users while maintaining the flexibility to incorporate various AI services and custom nodes.
 
-
 ```
                   +-------------------+
                   |                   |
@@ -160,7 +162,6 @@ This architecture enables NodeTool to handle complex AI workflows efficiently, p
                      HTTP Callbacks
 ```
 
-
 ## 🛠️ Implementing Custom Nodes
 
 Extend NodeTool's functionality by creating custom nodes:
@@ -168,7 +169,7 @@ Extend NodeTool's functionality by creating custom nodes:
 ```python
 class MyAgent(BaseNode):
     prompt: Field(default="Build me a website for my business.")
-    
+
     async def process(self, context: ProcessingContext) -> str:
         llm = MyLLM()
         return llm.generate(self.prompt)
@@ -210,6 +211,7 @@ npm start
 ```
 
 ## Sync dependencies
+
 Dependencies are managed in `pyproject.toml` and must be synced to `requirements.txt` using:
 
 ```
