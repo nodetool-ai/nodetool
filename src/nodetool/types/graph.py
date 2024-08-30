@@ -112,7 +112,7 @@ def get_input_schema(graph: Graph):
     return input_schema
 
 
-def generate_output_schema(graph: Graph):
+def get_output_schema(graph: Graph):
     output_schema = {"type": "object", "properties": {}, "required": []}
 
     for node in graph.nodes:
