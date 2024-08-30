@@ -161,8 +161,7 @@ class Build:
         # Use conda-pack with exclusions
         self.run_command(
             [
-                "conda",
-                "pack",
+                "conda-pack",
                 "-n",
                 CONDA_ENV,
                 "-j",
