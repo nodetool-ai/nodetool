@@ -175,7 +175,79 @@ class MyAgent(BaseNode):
         return llm.generate(self.prompt)
 ```
 
-# 👨‍💻 Development
+# 🔌 Using the Workflow API
+
+NodeTool provides a powerful Workflow API that allows you to integrate and run your AI workflows programmatically. Here's a quick guide on how to use it:
+
+## 🚀 Getting Started
+
+1. **Obtain an API Token**: Log in to your NodeTool account and generate an API token from your user settings.
+
+2. **Connect to the API**: Use the following endpoints:
+   - API URL: `https://api.nodetool.ai/api`
+   - WebSocket URL: `wss://api.nodetool.ai/predict`
+
+## 📡 API Usage
+
+### Loading Workflows
+
+To retrieve available workflows:
+
+```
+const response = await fetch('https://api.nodetool.ai/api/workflows', {
+    headers: {
+        'Authorization': 'Bearer YOUR_API_TOKEN'
+    }
+});
+const workflows = await response.json();
+```
+
+### Running a Workflow
+
+Establish a connection and send the job request:
+
+```
+const socket = new WebSocket('wss://api.nodetool.ai/predict');
+const request = {
+    type: 'run_job_request',
+    api_url: 'https://api.nodetool.ai/api',
+    workflow_id: 'YOUR_WORKFLOW_ID',
+    job_type: 'workflow',
+    auth_token: 'YOUR_API_TOKEN',
+    params: { / workflow parameters / }
+ };
+socket.send(msgpack.encode({
+    command: 'run_job',
+    data: request,
+}));
+```
+
+While runnning handle responses:
+
+````
+socket.onmessage = async (event) => {
+    const data = msgpack.decode(new Uint8Array(await event.data.arrayBuffer()));
+    if (data.type === 'job_update' && data.status === 'completed') {
+        // Handle completed job
+        console.log('Workflow completed:', data.result);
+    } else if (data.type === 'node_progress') {
+        // Handle progress updates
+        console.log('Progress:', data.progress / data.total 100);
+    }
+    // Handle other message types as needed
+};
+
+## 🧩 Example Implementation
+
+For a complete example of how to implement the Workflow API in a web application, refer to our [API Demo](api-demo.html).
+
+## 📊 Response Handling
+
+- The API uses MessagePack for efficient data serialization.
+- Responses include various types such as job updates, node progress, and results.
+- Results may contain different data types (e.g., text, images) based on your workflow output.
+
+By leveraging this API, you can seamlessly integrate NodeTool's powerful AI workflows into your own applications, enabling advanced AI capabilities with just a few lines of code.
 
 ## Requirements
 
@@ -189,7 +261,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ./scripts/server
-```
+````
 
 ## Run frontend
 

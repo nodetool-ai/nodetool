@@ -23,6 +23,7 @@ import { useNavigate } from "react-router";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 const styles = (theme: any) =>
   css({
@@ -121,6 +122,7 @@ const styles = (theme: any) =>
         marginTop: 0,
         flexShrink: 1,
         wordSpacing: 0,
+        lineHeight: "1.5em",
       },
       ".MuiTextField-root input": {
         padding: "0.8em 0 0.2em 0",
@@ -180,6 +182,14 @@ function SettingsMenu() {
   }));
 
   const id = open ? "docs" : undefined;
+
+  // Add a function to copy the auth token to clipboard
+  const copyAuthToken = () => {
+    if (user && user.auth_token) {
+      navigator.clipboard.writeText(user.auth_token);
+      // Optionally, you can add a notification here to inform the user that the token has been copied
+    }
+  };
 
   return (
     <div className="settings">
@@ -467,6 +477,28 @@ function SettingsMenu() {
               Show the welcome screen when starting the application.
             </Typography>
           </div>
+
+          {user && user.auth_token && (
+            <div className="settings-item">
+              <FormControl>
+                <InputLabel>Auth Token:</InputLabel>
+              </FormControl>
+              <Typography className="description">
+                <span style={{ color: ThemeNodetool.palette.c_hl1 }}>Warning:</span>
+                This token is used to authenticate your account. Do not share it with anyone.
+                <Tooltip title="Copy to clipboard">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<ContentCopyIcon />}
+                    onClick={copyAuthToken}
+                  >
+                    Copy Token
+                  </Button>
+                </Tooltip>
+              </Typography>
+            </div>
+          )}
         </div>
         <div className="bottom">
           {user && (

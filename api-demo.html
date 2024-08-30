@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Runner Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        form {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #output {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            padding: 3px;
+            border-radius: 3px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, .2);
+        }
+        .progress-bar-fill {
+            display: block;
+            height: 22px;
+            background-color: #659cef;
+            border-radius: 3px;
+            transition: width 500ms ease-in-out;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #wsMessages {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Workflow Runner Demo</h1>
+    <form id="tokenForm">
+        <label for="token">Auth Token:</label>
+        <input type="text" id="token" required>
+        <button type="submit" id="loadWorkflowsBtn">Load Workflows</button>
+    </form>
+
+    <form id="workflowForm" style="display: none;">
+        <label for="workflowSelect">Select Workflow:</label>
+        <select id="workflowSelect" required></select>
+        
+        <div id="dynamicInputs"></div>
+        
+        <button type="submit" id="runWorkflowBtn">Run Workflow</button>
+    </form>
+
+    <div id="output">
+        <h3>Output:</h3>
+        <pre id="outputContent"></pre>
+    </div>
+
+    <div id="progressContainer" style="display: none;">
+        <h3>Progress:</h3>
+        <div class="progress-bar">
+            <span class="progress-bar-fill" style="width: 0%;"></span>
+        </div>
+        <p id="progressText">0%</p>
+    </div>
+    
+    <div id="results">
+    </div>
+
+    <div id="wsMessages">
+        <h3>WebSocket Messages:</h3>
+        <pre id="wsContent"></pre>
+    </div>
+
+    <script src="https://unpkg.com/msgpack-lite@0.1.26/dist/msgpack.min.js"></script>
+    <script>
+        class WorkflowRunner {
+            constructor(apiUrl, workerUrl) {
+                this.apiUrl = apiUrl;
+                this.workerUrl = workerUrl;
+                this.socket = null;
+                this.state = 'idle';
+                this.token = '';
+            }
+
+            async connect() {
+                return new Promise((resolve, reject) => {
+                    this.socket = new WebSocket(this.workerUrl);
+                    this.socket.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.state = 'connected';
+                        resolve();
+                    };
+                    this.socket.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.state = 'error';
+                        reject(error);
+                    };
+                    this.socket.onmessage = (event) => {
+                        const arrayBuffer = event.data;
+                        const data = msgpack.decode(new Uint8Array(arrayBuffer));
+                        updateWsMessages(JSON.stringify(data, null, 2));
+                    };
+                });
+            }
+
+            async loadWorkflows() {
+                const response = await fetch(`${this.apiUrl}/workflows`, {
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to load workflows');
+                }
+                return await response.json();
+            }
+
+            async run(workflowId, params = {}) {
+                if (!this.socket || this.state !== 'connected') {
+                    await this.connect();
+                }
+
+                this.state = 'running';
+
+                const request = {
+                    type: 'run_job_request',
+                    api_url: this.apiUrl,
+                    workflow_id: workflowId,
+                    job_type: 'workflow',
+                    auth_token: this.token,
+                    params: params
+                };
+                
+                console.log('Sending request:', request);
+
+                this.socket.send(msgpack.encode({
+                    command: 'run_job',
+                    data: request,
+                }));
+
+                return new Promise((resolve, reject) => {
+                    this.socket.onmessage = async (event) => {
+                        const arrayBuffer = await event.data.arrayBuffer();
+                        const data = msgpack.decode(new Uint8Array(arrayBuffer))
+                        console.log('Received message:', data);
+                        updateWsMessages(JSON.stringify(data, null, 2));
+                        if (data.type === 'job_update' && data.status === 'completed') {
+                            this.state = 'idle';
+                            resolve(data.result);
+                        } else if (data.type === 'job_update' && data.status === 'failed') {
+                            this.state = 'idle';
+                            reject(new Error(data.error));
+                        } else if (data.type === 'error') {
+                            this.state = 'idle';
+                            reject(new Error(data.error));
+                        } else {
+                            // Handle progress updates
+                            this.handleProgress(data);
+                        }
+                    };
+                });
+            }
+
+            handleProgress(data) {
+                if (data.type === 'node_progress') {
+                    const progress = (data.progress / data.total) * 100;
+                    updateProgress(progress);
+                } else if (data.type === 'node_update') {
+                    updateOutput(`Node ${data.node_id} ${data.status}`);
+                }
+            }
+        }
+
+        const workflowRunner = new WorkflowRunner('https://api.nodetool.ai/api', 'wss://api.nodetool.ai/predict');
+
+        const loadWorkflowsBtn = document.getElementById('loadWorkflowsBtn');
+        const runWorkflowBtn = document.getElementById('runWorkflowBtn');
+        let workflows = [];
+        let inputs = [];
+
+        document.getElementById('tokenForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = document.getElementById('token').value;
+            workflowRunner.token = token;
+
+            loadWorkflowsBtn.disabled = true;
+            try {
+                workflows = await workflowRunner.loadWorkflows();
+                const select = document.getElementById('workflowSelect');
+                select.innerHTML = '';
+                workflows.workflows.forEach(workflow => {
+                    const option = document.createElement('option');
+                    option.value = workflow.id;
+                    option.textContent = workflow.name;
+                    select.appendChild(option);
+                });
+                document.getElementById('workflowForm').style.display = 'block';
+            } catch (error) {
+                updateOutput('Error loading workflows: ' + error.message);
+            } finally {
+                loadWorkflowsBtn.disabled = false;
+            }
+        });
+
+        document.getElementById('workflowSelect').addEventListener('change', async (e) => {
+            const workflowId = e.target.value;
+            const workflow = workflows.workflows.find(w => w.id === workflowId);
+            try {
+                generateInputFields(workflow.input_schema);
+            } catch (error) {
+                updateOutput('Error loading input schema: ' + error.message);
+            }
+        });
+
+        document.getElementById('workflowForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const workflowId = document.getElementById('workflowSelect').value;
+            const workflow = workflows.workflows.find(w => w.id === workflowId);
+            const params = getInputValues(workflow.input_schema);
+
+            runWorkflowBtn.disabled = true;
+            try {
+                updateOutput('Running workflow...');
+                showProgressBar();
+                const result = await workflowRunner.run(workflowId, params);
+                updateOutput('Workflow completed');
+                
+                for (const key in result) {
+                    const res = result[key];
+                    if (res.type == "image") {
+                        const img = document.createElement('img');
+                        const data = new Uint8Array(res.data);
+                        const blob = new Blob([data], { type: 'image/png' });
+                        img.src = URL.createObjectURL(blob);
+                        document.getElementById('results').appendChild(img);
+                    } else {
+                        const pre = document.createElement('pre');
+                        pre.textContent = JSON.stringify(res, null, 2);
+                        document.getElementById('results').appendChild(pre);
+                    }
+                }
+            } catch (error) {
+                updateOutput('Error: ' + error.message);
+            } finally {
+                hideProgressBar();
+                runWorkflowBtn.disabled = false;
+            }
+        });
+
+        function generateInputFields(schema) {
+            const dynamicInputs = document.getElementById('dynamicInputs');
+            dynamicInputs.innerHTML = '';
+
+            for (const [key, value] of Object.entries(schema.properties)) {
+                const label = document.createElement('label');
+                label.textContent = `${value.title || key}:`;
+                label.setAttribute('for', key);
+
+                let input;
+                if (value.type === 'string') {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                } else if (value.type === 'number') {
+                    input = document.createElement('input');
+                    input.type = 'number';
+                } else if (value.type === 'boolean') {
+                    input = document.createElement('input');
+                    input.type = 'checkbox';
+                } else {
+                    input = document.createElement('textarea');
+                }
+
+                input.id = key;
+                input.name = key;
+                if (schema.required && schema.required.includes(key)) {
+                    input.required = true;
+                }
+
+                dynamicInputs.appendChild(label);
+                dynamicInputs.appendChild(input);
+            }
+        }
+
+        function getInputValues(schema) {
+            const values = {};
+            for (const [key, value] of Object.entries(schema.properties)) {
+                const input = document.getElementById(key);
+                if (input.type === 'checkbox') {
+                    values[key] = input.checked;
+                } else {
+                    values[key] = input.getAttribute('type') === 'number' ? parseFloat(input.value) : input.value;
+                }
+            }
+            return values;
+        }
+
+        function updateOutput(message) {
+            const outputContent = document.getElementById('outputContent');
+            outputContent.textContent += message + '\n';
+        }
+
+        function updateWsMessages(message) {
+            const wsContent = document.getElementById('wsContent');
+            wsContent.textContent += message + '\n\n';
+            wsContent.scrollTop = wsContent.scrollHeight;
+        }
+
+        function showProgressBar() {
+            document.getElementById('progressContainer').style.display = 'block';
+        }
+
+        function hideProgressBar() {
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+
+        function updateProgress(percentage) {
+            const progressBar = document.querySelector('.progress-bar-fill');
+            const progressText = document.getElementById('progressText');
+            progressBar.style.width = percentage + '%';
+            progressText.textContent = Math.round(percentage) + '%';
+        }
+    </script>
+</body>
+</html>
