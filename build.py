@@ -10,9 +10,9 @@ import subprocess
 import threading
 import os
 import tarfile
-import requests
 import zipfile
-import shutil
+import urllib.request
+from io import BytesIO
 
 # Set up logging
 logging.basicConfig(
@@ -49,18 +49,16 @@ class Build:
             self.SRC_DIR = PROJECT_ROOT / "src"
 
     def download_and_unzip(self, url, paths):
-        response = requests.get(url)
-        response.raise_for_status()
-        tempfile = self.BUILD_DIR / "ffmpeg_archive"
-        with open(tempfile, "wb") as f:
-            f.write(response.content)
+        import urllib.request
+        from io import BytesIO
 
-        with zipfile.ZipFile(tempfile, "r") as zip_ref:
+        with urllib.request.urlopen(url) as response:
+            archive_data = BytesIO(response.read())
+
+        with zipfile.ZipFile(archive_data) as zip_ref:
             for path in paths:
                 zip_ref.extract(path, self.BUILD_DIR)
                 self.move_file(self.BUILD_DIR / path, self.BUILD_DIR)
-
-        self.remove_file(tempfile)
 
     def ffmpeg(self):
         logger.info("Downloading FFmpeg")
@@ -255,8 +253,6 @@ class Build:
 
     def initialize_conda_env(self):
         logger.info("Initializing clean conda environment")
-
-        self.run_command(["pip", "install", "requests"])
 
         # Create new environment
         self.run_command(
