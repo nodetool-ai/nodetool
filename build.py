@@ -162,7 +162,8 @@ class Build:
         self.run_command(
             [
                 "conda",
-                "run" "-n",
+                "run",
+                "-n",
                 CONDA_ENV,
                 "conda-pack",
                 "-j",
