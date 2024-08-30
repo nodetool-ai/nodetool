@@ -1,0 +1,370 @@
+:root {
+    --bg-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --primary-color: #76e5b8;
+    --secondary-color: #2a2a2a;
+    --border-color: #333;
+    --button-bg-color: #494949;
+    --input-bg: #3e3e3e;
+    --warning-color: #ffcc00;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+h1, h3 {
+    color: var(--primary-color);
+    font-weight: normal;
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    flex-grow: 1;
+    overflow: hidden;
+    height: calc(100vh - 40px); /* Adjust based on your body padding */
+}
+
+.left-container {
+    display: flex;
+    flex-direction: column;
+    width: 30%;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.middle-container {
+    display: flex;
+    flex-direction: column;
+    width: 40%;
+    overflow-y: auto;
+}
+
+.right-container {
+    display: flex;
+    flex-direction: column;
+    width: 30%;
+    transition: width 0.3s ease-in-out;
+}
+
+.right-container.hidden {
+    width: auto;
+}
+
+.logs-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.right-container.hidden .logs-container {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.inputs-container {
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+
+.logs-container, .results-container {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+form, #output, #wsMessages {
+    background-color: var(--secondary-color);
+    padding: 20px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: normal;
+}
+
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+    width: calc(100% - 1em);
+    padding: .5em;
+    margin: .5em 0;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    font-size: 1em;
+    line-height: 1.5;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"]:focus,
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(118, 229, 184, 0.2);
+}
+
+button {
+    background-color: var(--button-bg-color);
+    color: white;
+    padding: 10px 15px;
+    margin: .5em 0;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+button:hover {
+    color: var(--primary-color);
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+#runWorkflowBtn {
+    width: 100%;
+    height: 2.5em;
+    text-transform: uppercase;
+    font-size: 1.2em;
+}
+
+#output, #wsMessages {
+    border: 1px solid var(--border-color);
+    min-height: 100px;
+    overflow-y: auto;
+}
+
+.progress-bar {
+    width: 100%;
+    background-color: var(--secondary-color);
+    padding: 3px;
+    border-radius: 2px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, .2);
+}
+
+.progress-bar-fill {
+    display: block;
+    height: 22px;
+    background-color: var(--primary-color);
+    border-radius: 2px;
+    transition: width 500ms ease-in-out;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--border-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--border-color);
+}
+
+.output-field {
+    margin-bottom: 20px;
+    background-color: var(--secondary-color);
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.output-field h4 {
+    margin-top: 0;
+    color: var(--primary-color);
+}
+
+.image-placeholder,
+.string-placeholder,
+.number-placeholder,
+.boolean-placeholder,
+.array-placeholder,
+.object-placeholder,
+.unknown-placeholder {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    padding: 10px;
+    border-radius: 3px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-style: italic;
+    position: relative;
+}
+
+.image-placeholder {
+    border: 2px dashed var(--border-color);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 48px;
+    color: transparent;
+}
+
+.image-placeholder::after {
+    content: 'Image will appear here';
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: var(--text-color);
+    font-style: italic;
+}
+
+.string-placeholder,
+.number-placeholder,
+.boolean-placeholder {
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    text-align: left;
+    padding: 20px 10px 10px;
+}
+
+.string-placeholder::before,
+.number-placeholder::before,
+.boolean-placeholder::before {
+    content: 'ABC';
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    font-size: 0.8em;
+    color: var(--primary-color);
+}
+
+.number-placeholder::before {
+    content: '123';
+}
+
+.boolean-placeholder::before {
+    content: 'T/F';
+}
+
+.array-placeholder,
+.object-placeholder {
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    text-align: left;
+}
+
+.output-field img {
+    max-width: 100%;
+    height: auto;
+}
+
+.warning-message {
+    color: var(--warning-color);
+    font-weight: normal;
+}
+
+#workflowList {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.workflow-item {
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.workflow-item:hover {
+    background-color: var(--secondary-color);
+}
+
+.workflow-item.selected {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: calc(100% - 60px);
+    height: 10px;
+    background: var(--input-bg);
+    outline: none;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.range-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.range-value {
+    width: 50px;
+    text-align: right;
+    margin-left: 10px;
+    font-family: monospace;
+}
+
+#toggleLogsBtn {
+    align-self: flex-end;
+    margin-bottom: 10px;
+}
