@@ -183,13 +183,13 @@ class Build:
 
     def react(self):
         logger.info("Building React app")
-        web_dir = str(PROJECT_ROOT / "web" / "dist")
+        web_dir = str(PROJECT_ROOT / "web")
         self.run_command(["npm", "ci"], cwd=web_dir)
         self.run_command(["npm", "run", "build"], cwd=web_dir)
 
         # Bundle the build output using tarfile
         with tarfile.open(f"{self.BUILD_DIR}/web.tar", "w") as tar:
-            tar.add(str(web_dir), arcname="web")
+            tar.add(str(PROJECT_ROOT / "web" / "dist"), arcname="web")
 
     def electron(self):
         logger.info(f"Building Electron app for {self.platform} ({self.arch})")

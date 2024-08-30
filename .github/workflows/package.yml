@@ -45,10 +45,25 @@ jobs:
           miniconda-version: "latest"
           python-version: "3.11"
 
-      - name: Run build script
+      - name: Set up build tools
         shell: bash -l {0}
         run: |
-          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step setup
+
+      - name: Package python
+        shell: bash -l {0}
+        run: |
+          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step python
+
+      - name: Package react
+        shell: bash -l {0}
+        run: |
+          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step react
+
+      - name: Package electron
+        shell: bash -l {0}
+        run: |
+          python build.py --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --step electron
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
