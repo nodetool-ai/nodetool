@@ -256,6 +256,8 @@ class Build:
     def initialize_conda_env(self):
         logger.info("Initializing clean conda environment")
 
+        self.run_command(["pip", "install", "requests"])
+
         # Create new environment
         self.run_command(
             ["conda", "create", "-n", CONDA_ENV, "python=3.11", "-y"], ignore_error=True
