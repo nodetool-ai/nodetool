@@ -6,13 +6,12 @@
     },
     "files": [
         "index.js",
-        "index.html",
-        "package.json",
-        "web/dist/**/*"
+        "index.html"
     ],
     "extraResources": [
         "python_env.tar",
-        "nodetool.tar"
+        "nodetool.tar",
+        "web.tar"
     ],
     "mac": {
         "category": "public.app-category.developer-tools",

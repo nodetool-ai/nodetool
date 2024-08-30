@@ -1,4 +1,5 @@
 import os
+from typing import Any
 import dotenv
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -118,7 +119,7 @@ def create_app(
     return app
 
 
-def run_uvicorn_server(app: str, host: str, port: int, reload: bool) -> None:
+def run_uvicorn_server(app: Any, host: str, port: int, reload: bool) -> None:
     """
     Starts api using Uvicorn with the specified configuration.
 

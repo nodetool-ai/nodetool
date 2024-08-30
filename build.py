@@ -45,8 +45,6 @@ class Build:
             self.WEB_DIR = PROJECT_ROOT / "web"
             self.SRC_DIR = PROJECT_ROOT / "src"
 
-        self.PYTHON_DIR = self.BUILD_DIR / "python"
-
     def run_command(
         self, command, cwd=None, env=None, in_docker=None, ignore_error=False
     ):
@@ -115,7 +113,7 @@ class Build:
     def remove_directory(self, path):
         self.run_command(["rm", "-rf", str(path)])
 
-    def setup_build_environment(self):
+    def setup(self):
         if self.in_docker:
             logger.info("Running build in Docker container")
             self.run_command(["mkdir", "-p", "/tmp/docker-build"], in_docker=False)
@@ -142,7 +140,7 @@ class Build:
             logger.error(f"Failed to create build directory: {e}")
             sys.exit(1)
 
-    def pack_python_env(self):
+    def python(self):
         logger.info("Packing Python environment")
 
         self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack"])
@@ -183,14 +181,17 @@ class Build:
         with tarfile.open(f"{self.BUILD_DIR}/nodetool.tar", "w") as tar:
             tar.add(str(PROJECT_ROOT / "src"), arcname="src")
 
-    def build_react_app(self):
+    def react(self):
         logger.info("Building React app")
-        web_dir = str(self.BUILD_DIR / "web")
-        self.copy_tree(self.WEB_DIR, web_dir)
+        web_dir = str(PROJECT_ROOT / "web" / "dist")
         self.run_command(["npm", "ci"], cwd=web_dir)
         self.run_command(["npm", "run", "build"], cwd=web_dir)
 
-    def build_electron_app(self):
+        # Bundle the build output using tarfile
+        with tarfile.open(f"{self.BUILD_DIR}/web.tar", "w") as tar:
+            tar.add(str(web_dir), arcname="web")
+
+    def electron(self):
         logger.info(f"Building Electron app for {self.platform} ({self.arch})")
         files_to_copy = [
             "package.json",
@@ -219,8 +220,6 @@ class Build:
             ["conda", "create", "-n", CONDA_ENV, "python=3.11", "-y"], ignore_error=True
         )
 
-        # Install pip
-        # self.run_command(["conda", "install", "-n", CONDA_ENV, "pip", "-y"])
         self.run_command(
             [
                 "conda",
@@ -249,10 +248,10 @@ class Build:
 
     def run(self):
         build_steps = [
-            self.setup_build_environment,
-            self.pack_python_env,
-            self.build_react_app,
-            self.build_electron_app,
+            self.setup,
+            self.python,
+            self.react,
+            self.electron,
         ]
         try:
             if self.clean_build:
@@ -274,16 +273,6 @@ class Build:
 
 
 def main():
-    """
-    Main function to orchestrate the build process.
-
-    Command-line arguments:
-    - --clean: Option to clean the build directory before running
-    - --docker: Option to run the build in a Docker container
-
-    Raises:
-        SystemExit: If any part of the build process fails, the script will exit with status code 1.
-    """
     parser = argparse.ArgumentParser(
         description="Build script for Nodetool Electron app and installer"
     )
@@ -305,6 +294,11 @@ def main():
         choices=["x64", "ia32", "armv7l", "arm64"],
         help="Target architecture for the build",
     )
+    parser.add_argument(
+        "--step",
+        choices=["setup", "python", "react", "electron"],
+        help="Run a specific build step",
+    )
 
     args = parser.parse_args()
 
@@ -315,7 +309,15 @@ def main():
         arch=args.arch,
     )
 
-    build.run()
+    if args.step:
+        step_method = getattr(build, args.step, None)
+        if step_method:
+            build.run_build_step(step_method)
+        else:
+            logger.error(f"Invalid build step: {args.step}")
+            sys.exit(1)
+    else:
+        build.run()
 
 
 if __name__ == "__main__":

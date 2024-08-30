@@ -97,7 +97,7 @@ def serve(
         app = create_app(static_folder=static_folder)
     else:
         if static_folder:
-            raise "static folder and reload are exclusive options"
+            raise Exception("static folder and reload are exclusive options")
         app = "nodetool.api.app:app"
 
     run_uvicorn_server(app=app, host=host, port=port, reload=reload)

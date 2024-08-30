@@ -60,18 +60,16 @@
         }
 
         #boot-message {
-            display: flex;
+            display: block;
             justify-content: center;
-            align-items: center;
-            height: 100%;
+            position: fixed;
             color: #ffffff;
-            font-size: 18px;
-            font-family: monospace;
-        }
-
-        #boot-message::after {
-            content: '|';
-            animation: blink 0.7s infinite;
+            font-size: 24px;
+            font-family: Arial, sans-serif;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: blink 3s infinite;
         }
 
         @keyframes blink {
@@ -88,10 +86,20 @@
             text-align: center;
             color: #ffffff;
         }
+        
+        #progress-path {
+            font-family: monospace;
+            font-size: 10px;
+            margin-top: 10px;
+            width: 600px;
+            height: 100px;
+            overflow: scroll;
+            text-align: left;
+        }
 
         #progress-bar {
-            width: 300px;
-            height: 20px;
+            width: 600px;
+            height: 40px;
             background-color: #444444;
             border-radius: 10px;
             overflow: hidden;
@@ -119,6 +127,7 @@
             <div id="progress-bar-fill"></div>
         </div>
         <div id="progress-text">0% extracted</div>
+        <div id="progress-path"></div>
     </div>
     <iframe id="content"></iframe>
     <div id="log-container" class="expanded">
@@ -137,19 +146,23 @@
         const progressContainer = document.getElementById('progress-container');
         const progressBarFill = document.getElementById('progress-bar-fill');
         const progressText = document.getElementById('progress-text');
+        const progressPath = document.getElementById('progress-path');
         
         ipcRenderer.on("boot-message", (event, message) => {
             bootMessage.textContent = message;
-            if (message === 'Setting up Python environment...') {
-                progressContainer.style.display = 'block';
-            } else {
-                progressContainer.style.display = 'none';
-            }
+        });
+        
+        ipcRenderer.on('setup-complete', () => {
+            progressContainer.style.display = 'none';
+            bootMessage.style.display = 'block';
         });
         
         ipcRenderer.on('extraction-progress', (event, progress) => {
-            progressBarFill.style.width = `${progress}%`;
-            progressText.textContent = `${progress}% extracted`;
+            progressContainer.style.display = 'block';
+            progressBarFill.style.width = `${progress.progress}%`;
+            progressText.textContent = `${progress.progress}% of ${progress.name} extracted`;
+            // progressPath.textContent += progress.path.split('/').slice(-2).join('/');
+            // progressPath.scrollTop = progressPath.scrollHeight;
         });
         
         ipcRenderer.on('server-started', () => {
