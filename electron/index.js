@@ -6,6 +6,7 @@ const { spawn } = require("child_process");
 
 let mainWindow;
 let serverProcess;
+let paths
 
 async function getFirstExistingPath(...paths) {
   for (const p of paths) {
@@ -22,7 +23,11 @@ async function getFirstExistingPath(...paths) {
 const getPaths = async () => {
   const userDataPath = app.getPath("userData");
   const resourcesPath = process.resourcesPath;
-
+  const pythonExecutable = await getFirstExistingPath(
+    process.platform === "win32"
+      ? path.join(userDataPath, "python_env", "python.exe")
+      : path.join(userDataPath, "python_env", "bin", "python"),
+    );
   return {
     envDir: await getFirstExistingPath(
       path.join(userDataPath, "python_env"),
@@ -44,26 +49,24 @@ const getPaths = async () => {
     webTarPath: await getFirstExistingPath(
       path.join(resourcesPath, "web.tar"),
     ),
-    pythonExecutable: await getFirstExistingPath(
-      process.platform === "win32"
-        ? path.join(userDataPath, "python_env", "python.exe")
-        : path.join(userDataPath, "python_env", "bin", "python"),
-      "python"
-    ),
+    pythonExecutable: pythonExecutable ? pythonExecutable : "python",
     condaUnpack: await getFirstExistingPath(
       process.platform === "win32"
-        ? path.join(envDir, "Scripts", "conda-unpack.exe")
-        : path.join(envDir, "bin", "conda-unpack")
+        ? path.join(userDataPath, "python_env", "Scripts", "conda-unpack.exe")
+        : path.join(userDataPath, "python_env", "bin", "conda-unpack")
     ),
   };
 };
 
-const paths = getPaths();
-
-console.log("Paths:", paths);
-
 async function untarFile(tarPath, destDir, progressCallback, useParentDir = true) {
   console.log(`Extracting ${tarPath} to ${destDir}...`);
+  
+  // Check if the tar file exists
+  if (!(await fs.access(tarPath).catch(() => false))) {
+    console.log(`File ${tarPath} does not exist.`);
+    return false;
+  }
+
   // Check if the destination directory already exists
   if (
     await fs
@@ -196,6 +199,9 @@ function createWindow() {
 }
 
 async function startServer() {
+  paths = await getPaths();
+  console.log("Paths:", paths);
+
   await setupEnvironment();
   mainWindow.webContents.send("setup-complete");
 
