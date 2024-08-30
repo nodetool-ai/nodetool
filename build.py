@@ -10,6 +10,9 @@ import subprocess
 import threading
 import os
 import tarfile
+import zipfile
+import urllib.request
+from io import BytesIO
 
 # Set up logging
 logging.basicConfig(
@@ -44,6 +47,36 @@ class Build:
             self.ELECTRON_DIR = PROJECT_ROOT / "electron"
             self.WEB_DIR = PROJECT_ROOT / "web"
             self.SRC_DIR = PROJECT_ROOT / "src"
+
+    def download_and_unzip(self, url, paths):
+        import urllib.request
+        from io import BytesIO
+
+        with urllib.request.urlopen(url) as response:
+            archive_data = BytesIO(response.read())
+
+        with zipfile.ZipFile(archive_data) as zip_ref:
+            for path in paths:
+                zip_ref.extract(path, self.BUILD_DIR)
+                self.move_file(self.BUILD_DIR / path, self.BUILD_DIR)
+
+    def ffmpeg(self):
+        logger.info("Downloading FFmpeg")
+        system = platform.system().lower()
+
+        if system == "windows":
+            url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+            paths = [
+                "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
+                "ffmpeg-master-latest-win64-gpl/bin/ffprobe.exe",
+            ]
+            self.download_and_unzip(url, paths)
+        elif system == "darwin":
+            self.download_and_unzip(
+                "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["bin/ffmpeg"]
+            )
+        else:
+            raise BuildError(f"Unsupported platform: {system}")
 
     def run_command(
         self, command, cwd=None, env=None, in_docker=None, ignore_error=False
@@ -112,6 +145,12 @@ class Build:
 
     def remove_directory(self, path):
         self.run_command(["rm", "-rf", str(path)])
+
+    def remove_file(self, path):
+        self.run_command(["rm", "-f", str(path)])
+
+    def move_file(self, src, dst):
+        self.run_command(["mv", str(src), str(dst)])
 
     def setup(self):
         if self.in_docker:
@@ -251,6 +290,7 @@ class Build:
             self.setup,
             self.python,
             self.react,
+            self.ffmpeg,
             self.electron,
         ]
         try:
@@ -296,7 +336,7 @@ def main():
     )
     parser.add_argument(
         "--step",
-        choices=["setup", "python", "react", "electron"],
+        choices=["setup", "python", "react", "electron", "ffmpeg"],
         help="Run a specific build step",
     )
 

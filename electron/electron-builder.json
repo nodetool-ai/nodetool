@@ -11,7 +11,11 @@
     "extraResources": [
         "python_env.tar",
         "nodetool.tar",
-        "web.tar"
+        "web.tar",
+        "ffmpeg.exe",
+        "ffprobe.exe",
+        "ffmpeg",
+        "ffprobe"
     ],
     "mac": {
         "category": "public.app-category.developer-tools",
