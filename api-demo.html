@@ -140,6 +140,9 @@
                 </form>
 
                 <form id="workflowForm" style="display: none;">
+                    <label for="workflowSearch">Search Workflows:</label>
+                    <input type="text" id="workflowSearch" placeholder="Type to search...">
+                    
                     <label for="workflowSelect">Select Workflow:</label>
                     <select id="workflowSelect" required></select>
                     
@@ -220,6 +223,18 @@
                 return await response.json();
             }
 
+            async getWorkflowDetails(workflowId) {
+                const response = await fetch(`${this.apiUrl}/workflows/${workflowId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to load workflow details');
+                }
+                return await response.json();
+            }
+
             async run(workflowId, params = {}) {
                 if (!this.socket || this.state !== 'connected') {
                     await this.connect();
@@ -290,15 +305,9 @@
 
             loadWorkflowsBtn.disabled = true;
             try {
-                workflows = await workflowRunner.loadWorkflows();
-                const select = document.getElementById('workflowSelect');
-                select.innerHTML = '';
-                workflows.workflows.forEach(workflow => {
-                    const option = document.createElement('option');
-                    option.value = workflow.id;
-                    option.textContent = workflow.name;
-                    select.appendChild(option);
-                });
+                const response = await workflowRunner.loadWorkflows();
+                workflows = response.workflows.sort((a, b) => a.name.localeCompare(b.name));
+                populateWorkflowSelect(workflows);
                 document.getElementById('workflowForm').style.display = 'block';
             } catch (error) {
                 updateOutput('Error loading workflows: ' + error.message);
@@ -307,20 +316,44 @@
             }
         });
 
+        function populateWorkflowSelect(workflowList) {
+            const select = document.getElementById('workflowSelect');
+            select.innerHTML = '';
+            workflowList.forEach(workflow => {
+                const option = document.createElement('option');
+                option.value = workflow.id;
+                option.textContent = workflow.name;
+                select.appendChild(option);
+            });
+        }
+
+        document.getElementById('workflowSearch').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredWorkflows = workflows.filter(workflow => 
+                workflow.name.toLowerCase().includes(searchTerm)
+            );
+            populateWorkflowSelect(filteredWorkflows);
+        });
+
         document.getElementById('workflowSelect').addEventListener('change', async (e) => {
             const workflowId = e.target.value;
-            const workflow = workflows.workflows.find(w => w.id === workflowId);
             try {
-                generateInputFields(workflow.input_schema);
+                console.log('Fetching workflow details for ID:', workflowId);
+                const workflowDetails = await workflowRunner.getWorkflowDetails(workflowId);
+                
+                generateInputFields(workflowDetails.input_schema);
+                const warningMessage = checkWorkflowIO(workflowDetails);
+                displayWarning(warningMessage);
             } catch (error) {
-                updateOutput('Error loading input schema: ' + error.message);
+                console.error('Error loading workflow details:', error);
+                updateOutput('Error loading workflow details: ' + error.message);
             }
         });
 
         document.getElementById('workflowForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const workflowId = document.getElementById('workflowSelect').value;
-            const workflow = workflows.workflows.find(w => w.id === workflowId);
+            const workflow = workflows.find(w => w.id === workflowId);
             const params = getInputValues(workflow.input_schema);
 
             runWorkflowBtn.disabled = true;
@@ -356,6 +389,13 @@
             const dynamicInputs = document.getElementById('dynamicInputs');
             dynamicInputs.innerHTML = '';
 
+            if (!schema || !schema.properties || Object.keys(schema.properties).length === 0) {
+                const noInputsMessage = document.createElement('p');
+                noInputsMessage.textContent = 'This workflow has no input fields.';
+                dynamicInputs.appendChild(noInputsMessage);
+                return;
+            }
+
             for (const [key, value] of Object.entries(schema.properties)) {
                 const label = document.createElement('label');
                 label.textContent = `${value.title || key}:`;
@@ -365,9 +405,12 @@
                 if (value.type === 'string') {
                     input = document.createElement('input');
                     input.type = 'text';
-                } else if (value.type === 'number') {
+                } else if (value.type === 'integer' || value.type === 'number') {
                     input = document.createElement('input');
                     input.type = 'number';
+                    if (value.type === 'integer') {
+                        input.step = '1';
+                    }
                 } else if (value.type === 'boolean') {
                     input = document.createElement('input');
                     input.type = 'checkbox';
@@ -392,8 +435,11 @@
                 const input = document.getElementById(key);
                 if (input.type === 'checkbox') {
                     values[key] = input.checked;
+                } else if (input.type === 'number') {
+                    // Convert number inputs to strings
+                    values[key] = input.value.toString();
                 } else {
-                    values[key] = input.getAttribute('type') === 'number' ? parseFloat(input.value) : input.value;
+                    values[key] = input.value;
                 }
             }
             return values;
@@ -423,6 +469,39 @@
             const progressText = document.getElementById('progressText');
             progressBar.style.width = percentage + '%';
             progressText.textContent = Math.round(percentage) + '%';
+        }
+
+        function checkWorkflowIO(workflow) {
+            console.log('Checking workflow IO:', workflow);
+            
+            const hasInputs = workflow.input_schema && Object.keys(workflow.input_schema.properties).length > 0;
+            const hasOutputs = workflow.output_schema && Object.keys(workflow.output_schema.properties).length > 0;
+            
+            console.log('Has inputs:', hasInputs);
+            console.log('Has outputs:', hasOutputs);
+            
+            let warningMessage = '';
+            if (!hasInputs && !hasOutputs) {
+                warningMessage = 'This workflow has no inputs or outputs.';
+            } else if (!hasInputs) {
+                warningMessage = 'This workflow has no inputs.';
+            } else if (!hasOutputs) {
+                warningMessage = 'This workflow has no outputs.';
+            }
+            
+            return warningMessage;
+        }
+
+        function displayWarning(message) {
+            let warningElement = document.getElementById('workflowWarning');
+            if (!warningElement) {
+                warningElement = document.createElement('div');
+                warningElement.id = 'workflowWarning';
+                document.getElementById('workflowForm').insertBefore(warningElement, document.getElementById('dynamicInputs'));
+            }
+            
+            warningElement.textContent = message;
+            warningElement.style.display = message ? 'block' : 'none';
         }
     </script>
 </body>
