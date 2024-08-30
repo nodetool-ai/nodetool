@@ -19,6 +19,7 @@ dist/
 package/
 postgres_data/
 .ipynb_checkpoints
+.huggingface
 
 .bin
 .vite

@@ -7,13 +7,10 @@ import msgpack
 from typing import Any
 from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
-from queue import Queue
 from nodetool.common.environment import Environment
-from nodetool.types.job import JobUpdate
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.run_job_request import RunJobRequest
-from nodetool.workflows.types import BinaryUpdate
 from nodetool.workflows.workflow_runner import WorkflowRunner
 from nodetool.api.types.wrap_primitive_types import wrap_primitive_types
 

@@ -45,12 +45,6 @@ async def run_workflow(
             workflow_id=req.workflow_id,
         )
 
-    if req.graph is None:
-        workflow = await context.get_workflow(req.workflow_id)
-        req.graph = workflow.graph
-
-    # TODO: Create a job model and save it to the database
-
     if runner is None:
         runner = WorkflowRunner(job_id=uuid4().hex)
 
@@ -58,6 +52,12 @@ async def run_workflow(
 
     async def run():
         try:
+            # Load the workflow graph if not already loaded
+            # Must be done in the same event loop as the runner
+            # TODO: Create a job model and save it to the database
+            if req.graph is None:
+                workflow = await context.get_workflow(req.workflow_id)
+                req.graph = workflow.graph
             await runner.run(req, context)
         except Exception as e:
             log.exception(e)
