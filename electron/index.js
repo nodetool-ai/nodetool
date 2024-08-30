@@ -6,7 +6,6 @@ const { spawn } = require("child_process");
 
 let mainWindow;
 let serverProcess;
-let paths
 
 async function getFirstExistingPath(...paths) {
   for (const p of paths) {
@@ -20,18 +19,23 @@ async function getFirstExistingPath(...paths) {
   return null; // Return null if no paths exist
 }
 
+const getTarPaths = async () => {
+  const resourcesPath = process.resourcesPath;
+  const userDataPath = app.getPath("userData");
+  return {
+    envTarPath: path.join(resourcesPath, "python_env.tar"),
+    srcTarPath: path.join(resourcesPath, "nodetool.tar"),
+    webTarPath: path.join(resourcesPath, "web.tar"),
+    srcDir: path.join(userDataPath, "src"),
+    webDir: path.join(userDataPath, "web"),
+    envDir: path.join(userDataPath, "python_env"),
+  };
+};
+
 const getPaths = async () => {
   const userDataPath = app.getPath("userData");
-  const resourcesPath = process.resourcesPath;
-  const pythonExecutable = await getFirstExistingPath(
-    process.platform === "win32"
-      ? path.join(userDataPath, "python_env", "python.exe")
-      : path.join(userDataPath, "python_env", "bin", "python"),
-    );
   return {
-    envDir: await getFirstExistingPath(
-      path.join(userDataPath, "python_env"),
-    ),
+    envDir: await getFirstExistingPath(path.join(userDataPath, "python_env")),
     srcDir: await getFirstExistingPath(
       path.join(userDataPath, "src"),
       "../src"
@@ -40,27 +44,17 @@ const getPaths = async () => {
       path.join(userDataPath, "web"),
       "../web/dist"
     ),
-    envTarPath: await getFirstExistingPath(
-      path.join(resourcesPath, "python_env.tar"),
-    ),
-    srcTarPath: await getFirstExistingPath(
-      path.join(resourcesPath, "nodetool.tar"),
-    ),
-    webTarPath: await getFirstExistingPath(
-      path.join(resourcesPath, "web.tar"),
-    ),
-    pythonExecutable: pythonExecutable ? pythonExecutable : "python",
-    condaUnpack: await getFirstExistingPath(
-      process.platform === "win32"
-        ? path.join(userDataPath, "python_env", "Scripts", "conda-unpack.exe")
-        : path.join(userDataPath, "python_env", "bin", "conda-unpack")
-    ),
   };
 };
 
-async function untarFile(tarPath, destDir, progressCallback, useParentDir = true) {
+async function untarFile(
+  tarPath,
+  destDir,
+  progressCallback,
+  useParentDir = true
+) {
   console.log(`Extracting ${tarPath} to ${destDir}...`);
-  
+
   // Check if the tar file exists
   if (!(await fs.access(tarPath).catch(() => false))) {
     console.log(`File ${tarPath} does not exist.`);
@@ -96,8 +90,13 @@ async function untarFile(tarPath, destDir, progressCallback, useParentDir = true
   return true;
 }
 
-async function runCondaUnpack(envDir) {
-  const condaUnpackProcess = spawn(paths.condaUnpack, []);
+async function runCondaUnpack() {
+  const executable =
+    process.platform === "win32"
+      ? path.join(userDataPath, "python_env", "Scripts", "conda-unpack.exe")
+      : path.join(userDataPath, "python_env", "bin", "conda-unpack");
+
+  const condaUnpackProcess = spawn(executable, []);
 
   return new Promise((resolve, reject) => {
     condaUnpackProcess.on("close", (code) => {
@@ -113,6 +112,8 @@ async function runCondaUnpack(envDir) {
 
 async function setupEnvironment() {
   console.log("Resources path:", process.resourcesPath);
+
+  const paths = await getTarPaths();
 
   console.log("Unpacking nodetool code...");
   mainWindow.webContents.send("boot-message", "Unpacking nodetool code...");
@@ -169,14 +170,12 @@ async function setupEnvironment() {
       console.error("Error running conda-unpack:", error);
       mainWindow.webContents.send("boot-message", "Error running conda-unpack");
     }
-  } else {
-    console.log("Python environment already exists");
-  }
 
-  mainWindow.webContents.send(
-    "boot-message",
-    "Environment initialized successfully"
-  );
+    mainWindow.webContents.send(
+      "boot-message",
+      "Environment initialized successfully"
+    );
+  }
 }
 
 module.exports = setupEnvironment;
@@ -199,11 +198,18 @@ function createWindow() {
 }
 
 async function startServer() {
-  paths = await getPaths();
+  const userDataPath = app.getPath("userData");
+  const paths = await getPaths();
   console.log("Paths:", paths);
 
-  await setupEnvironment();
-  mainWindow.webContents.send("setup-complete");
+  try {
+    await setupEnvironment();
+    mainWindow.webContents.send("setup-complete");
+  } catch (error) {
+    console.error("Setup failed:", error);
+    mainWindow.webContents.send("boot-message", "Setup failed");
+    return;
+  }
 
   const env = Object.create(process.env);
   env.PYTHONUNBUFFERED = "1";
@@ -211,9 +217,14 @@ async function startServer() {
   env.PATH = `${process.resourcesPath}${path.delimiter}${env.PATH}`;
 
   mainWindow.webContents.send("boot-message", "Starting server...");
+  const pythonEnvExecutable = await getFirstExistingPath(
+    process.platform === "win32"
+      ? path.join(userDataPath, "python_env", "python.exe")
+      : path.join(userDataPath, "python_env", "bin", "python")
+  );
 
   serverProcess = spawn(
-    paths.pythonExecutable,
+    pythonEnvExecutable ? pythonEnvExecutable : "python",
     ["-m", "nodetool.cli", "serve", "--static-folder", paths.webDir],
     {
       env: env,
