@@ -89,44 +89,50 @@ class WorkflowRunner {
       await this.connect();
     }
 
-    const request = {
-      type: "run_job_request",
-      api_url: this.apiUrl,
-      workflow_id: workflowId,
-      job_type: "workflow",
-      auth_token: this.token,
-      params: params,
-    };
+    return new Promise((resolve, reject) => {
+      const request = {
+        type: "run_job_request",
+        api_url: this.apiUrl,
+        workflow_id: workflowId,
+        job_type: "workflow",
+        auth_token: this.token,
+        params: params,
+      };
 
-    console.log("Sending request:", request);
+      console.log("Sending request:", request);
 
-    this.socket.send(
-      msgpack.encode({
-        command: "run_job",
-        data: request,
-      })
-    );
+      this.socket.send(
+        msgpack.encode({
+          command: "run_job",
+          data: request,
+        })
+      );
 
-    this.state = "running";
+      this.state = "running";
+      this.resolveRun = resolve;
+      this.rejectRun = reject;
+
+      // Add a timeout to reject the promise if no response is received
+      this.runTimeout = setTimeout(() => {
+        this.rejectRun(new Error("Workflow execution timed out"));
+      }, 60000);
+    });
   }
 
   handleMessage(data) {
     console.log("Received message:", data);
     if (data.type === "job_update" && data.status === "completed") {
       this.state = "idle";
-      if (this.onComplete) {
-        this.onComplete(data.result);
-      }
+      clearTimeout(this.runTimeout);
+      this.resolveRun(data.result);
     } else if (data.type === "job_update" && data.status === "failed") {
       this.state = "idle";
-      if (this.onError) {
-        this.onError(new Error(data.error));
-      }
+      clearTimeout(this.runTimeout);
+      this.rejectRun(new Error(data.error));
     } else if (data.type === "error") {
       this.state = "idle";
-      if (this.onError) {
-        this.onError(new Error(data.error));
-      }
+      clearTimeout(this.runTimeout);
+      this.rejectRun(new Error(data.error));
     } else {
       this.handleProgress(data);
     }

@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Add event listener for the runWorkflowBtn
-  runWorkflowBtn.addEventListener("click", runWorkflow);
+  runWorkflowBtn.addEventListener("click", runSelectedWorkflow);
 });
 
 document
@@ -126,6 +126,43 @@ async function runWorkflow() {
     updateOutput("Error: " + error.message);
   } finally {
     hideProgressBar();
+    runWorkflowBtn.disabled = false;
+  }
+}
+
+async function runSelectedWorkflow() {
+  const selectedWorkflow = document.querySelector(".workflow-item.selected");
+  if (!selectedWorkflow) {
+    updateOutput("Please select a workflow before running.");
+    return;
+  }
+
+  const workflowId = selectedWorkflow.dataset.id;
+  const workflow = window.workflows.find((w) => w.id === workflowId);
+  if (!workflow) {
+    updateOutput("Selected workflow not found.");
+    return;
+  }
+
+  const params = getInputValues(workflow.input_schema);
+  if (!params) {
+    updateOutput("Failed to retrieve input values.");
+    return;
+  }
+
+  runWorkflowBtn.disabled = true;
+
+  try {
+    updateOutput("Running workflow...");
+    const result = await runWorkflow(workflowRunner, workflowId, params);
+    if (result === undefined) {
+      throw new Error("Workflow returned undefined result");
+    }
+    handleResult(result);
+  } catch (error) {
+    console.error("Error running workflow:", error);
+    updateOutput("Error: " + error.message);
+  } finally {
     runWorkflowBtn.disabled = false;
   }
 }

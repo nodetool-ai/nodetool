@@ -6,7 +6,52 @@ function updateOutput(message) {
 
 function updateWsMessages(message) {
   const wsContent = document.getElementById("wsContent");
-  wsContent.textContent += message + "\n\n";
+  let displayMessage;
+
+  if (typeof message === "string") {
+    displayMessage =
+      message.length > 100 ? message.slice(0, 100) + "..." : message;
+  } else if (message instanceof ArrayBuffer || message instanceof Uint8Array) {
+    displayMessage = "[Binary data]";
+  } else if (typeof message === "object") {
+    try {
+      const stringified = JSON.stringify(
+        message,
+        (key, value) => {
+          if (value instanceof ArrayBuffer || value instanceof Uint8Array) {
+            return "[Binary data]";
+          }
+          if (typeof value === "object" && value !== null) {
+            if (value.type === "Buffer" && Array.isArray(value.data)) {
+              return "[Binary Buffer]";
+            }
+            return Object.keys(value).reduce((acc, k) => {
+              acc[k] =
+                value[k] && typeof value[k] === "object"
+                  ? "[Object]"
+                  : value[k];
+              return acc;
+            }, {});
+          }
+          return value;
+        },
+        2
+      );
+      displayMessage =
+        stringified.length > 200
+          ? stringified.slice(0, 200) + "..."
+          : stringified;
+    } catch (error) {
+      displayMessage = "[Unserializable object]";
+    }
+  } else {
+    displayMessage =
+      String(message).length > 100
+        ? String(message).slice(0, 100) + "..."
+        : String(message);
+  }
+
+  wsContent.textContent += displayMessage + "\n\n";
   wsContent.scrollTop = wsContent.scrollHeight;
 }
 
@@ -72,6 +117,33 @@ function displayWarning(message) {
 
   warningElement.textContent = message;
   warningElement.style.display = message ? "block" : "none";
+
+  // Create custom tooltip
+  let tooltip = warningElement.querySelector(".custom-tooltip");
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.className = "custom-tooltip";
+    tooltip.innerHTML = `
+    <ul>
+      <li><strong>Workflows without inputs:</strong><br/> Will use default input values.</li>
+      <li><strong>Workflows without outputs:</strong><br/> Results will not be visible here.<br/>
+      Useful in some cases, but usually not.
+      </li>      
+    </ul>
+  `;
+    warningElement.appendChild(tooltip);
+  }
+
+  // Add tooltip functionality
+  warningElement.addEventListener("mouseover", function () {
+    tooltip.style.visibility = "visible";
+    tooltip.style.opacity = "1";
+  });
+
+  warningElement.addEventListener("mouseout", function () {
+    tooltip.style.visibility = "hidden";
+    tooltip.style.opacity = "0";
+  });
 }
 
 function getInputValues(schema) {
@@ -100,16 +172,72 @@ async function runWorkflow(workflowRunner, workflowId, params) {
       !workflowRunner.socket ||
       workflowRunner.socket.readyState !== WebSocket.OPEN
     ) {
+      updateOutput("Connecting to WebSocket...");
       await workflowRunner.connect();
+      updateOutput("WebSocket connected.");
     }
 
+    updateOutput("Sending workflow run request...");
     const result = await workflowRunner.run(workflowId, params);
+    updateOutput("Workflow request sent. Waiting for response...");
+
+    // Add a timeout to prevent hanging indefinitely
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Workflow execution timed out")), 60000)
+    );
+
+    const workflowResult = await Promise.race([result, timeoutPromise]);
     updateOutput("Workflow completed");
-    return result;
+    return workflowResult;
   } catch (error) {
     updateOutput("Error: " + error.message);
     throw error;
   } finally {
     hideProgressBar();
   }
+}
+
+function handleResult(result) {
+  const resultsContainer = document.getElementById("results");
+  const outputFields = resultsContainer.querySelectorAll(".output-field");
+
+  if (!result || typeof result !== "object") {
+    console.error("Invalid result:", result);
+    updateOutput("Error: Received invalid result from the workflow");
+    outputFields.forEach((field) => {
+      const placeholder = field.querySelector('[class$="-placeholder"]');
+      placeholder.textContent = "No data available";
+    });
+    return;
+  }
+
+  outputFields.forEach((field) => {
+    const label = field.querySelector("h4").textContent;
+    const placeholder = field.querySelector('[class$="-placeholder"]');
+
+    let outputValue = result[label];
+
+    if (outputValue === undefined || outputValue === null) {
+      placeholder.textContent = "No data available";
+      return;
+    }
+
+    if (typeof outputValue === "object") {
+      if (outputValue.type === "image" && outputValue.data) {
+        const img = document.createElement("img");
+        const data = new Uint8Array(outputValue.data);
+        const blob = new Blob([data], { type: "image/png" });
+        img.src = URL.createObjectURL(blob);
+        placeholder.innerHTML = "";
+        placeholder.appendChild(img);
+      } else {
+        placeholder.textContent = JSON.stringify(outputValue, null, 2);
+      }
+    } else {
+      placeholder.textContent = String(outputValue);
+    }
+  });
+
+  console.log("Full result object:", result);
+  updateOutput("Workflow completed successfully");
 }

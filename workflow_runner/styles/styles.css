@@ -310,7 +310,6 @@ button:disabled {
 }
 
 .image-placeholder::after {
-    content: 'Image will appear here';
     position: absolute;
     bottom: 10px;
     left: 0;
@@ -373,6 +372,8 @@ button:disabled {
     text-align: center;
     box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.5);
+    position: relative;
+    cursor: help;
 }
 
 #workflowSelectContainer {
@@ -459,4 +460,40 @@ input[type="range"]::-moz-range-thumb {
     margin-top: 1em;
     border-top: 1px solid var(--border-color);
     padding-top: 1em;
+}
+
+.warning-message {
+    position: relative;
+    cursor: help;
+}
+
+.custom-tooltip {
+    visibility: hidden;
+    width: 450px;
+    background-color: #555;
+    color: #fff;
+    text-align: left;
+    border-radius: .1em;
+    padding: .5em;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-weight: normal;    
+}
+.custom-tooltip ul {
+list-style-type: square;
+}
+
+.custom-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
 }

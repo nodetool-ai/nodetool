@@ -146,27 +146,27 @@ function generateOutputFields(outputSchema, resultsContainer) {
     } else if (value.type === "string") {
       placeholder = document.createElement("pre");
       placeholder.className = "string-placeholder";
-      placeholder.textContent = "String output will appear here";
+      placeholder.textContent = "String";
     } else if (value.type === "number" || value.type === "integer") {
       placeholder = document.createElement("pre");
       placeholder.className = "number-placeholder";
-      placeholder.textContent = "Numeric output will appear here";
+      placeholder.textContent = "Numeric";
     } else if (value.type === "boolean") {
       placeholder = document.createElement("pre");
       placeholder.className = "boolean-placeholder";
-      placeholder.textContent = "Boolean output will appear here";
+      placeholder.textContent = "Boolean";
     } else if (value.type === "array") {
       placeholder = document.createElement("pre");
       placeholder.className = "array-placeholder";
-      placeholder.textContent = "Array output will appear here";
+      placeholder.textContent = "Array";
     } else if (value.type === "object") {
       placeholder = document.createElement("pre");
       placeholder.className = "object-placeholder";
-      placeholder.textContent = "Object output will appear here";
+      placeholder.textContent = "Object";
     } else {
       placeholder = document.createElement("pre");
       placeholder.className = "unknown-placeholder";
-      placeholder.textContent = "Output will appear here";
+      placeholder.textContent = "Output";
     }
     outputDiv.appendChild(placeholder);
 
@@ -249,4 +249,5 @@ function handleResult(result) {
   });
 
   console.log("Full result object:", result);
+  updateOutput("Workflow completed successfully");
 }
