@@ -24,9 +24,14 @@ const styles = (theme: any) =>
       minHeight: "2em",
     },
     ".panel-tabs button": {
-      padding: "0 .5em",
+      display: "flex",
+      alignItems: "flex-start",
+      padding: "0 0 0 .5em",
       minWidth: "unset",
       minHeight: "unset",
+      marginRight: "4px",
+      textAlign: "left",
+      fontSize: "12px",
     },
   });
 
