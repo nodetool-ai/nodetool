@@ -85,7 +85,6 @@ class IPAdapter_SDXL_Model(str, Enum):
 
 
 class StableDiffusionModelId(str, Enum):
-    SD_V1_5 = "runwayml/stable-diffusion-v1-5"
     REALISTIC_VISION = "SG161222/Realistic_Vision_V6.0_B1_noVAE"
     DREAMSHAPER = "Lykon/DreamShaper"
     DREAMLIKE_V1 = "dreamlike-art/dreamlike-diffusion-1.0"
@@ -2024,7 +2023,7 @@ class StableCascade(BaseNode):
 
 class StableDiffusionBaseNode(BaseNode):
     model: StableDiffusionModelId = Field(
-        default=StableDiffusionModelId.SD_V1_5,
+        default=StableDiffusionModelId.REALISTIC_VISION,
         description="The Stable Diffusion model to use for generation.",
     )
 
@@ -2669,7 +2668,7 @@ class StableDiffusionUpscale(BaseNode):
             image=input_image,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
-            callback=progress_callback(self.id, self.num_inference_steps, context), # type: ignore
+            callback=progress_callback(self.id, self.num_inference_steps, context),  # type: ignore
         ).images[  # type: ignore
             0
         ]

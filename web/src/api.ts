@@ -205,6 +205,20 @@ export interface paths {
     /** Function Model */
     get: operations["function_model_api_models_function_models_get"];
   };
+  "/api/models/huggingface_models": {
+    /** Get Huggingface Models */
+    get: operations["get_huggingface_models_api_models_huggingface_models_get"];
+  };
+  "/api/models/huggingface_model": {
+    /** Get Huggingface Model */
+    get: operations["get_huggingface_model_api_models_huggingface_model_get"];
+    /** Delete Huggingface Model */
+    delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
+  };
+  "/api/models/download": {
+    /** Download Model */
+    get: operations["download_model_api_models_download_get"];
+  };
   "/api/models/{folder}": {
     /** Index */
     get: operations["index_api_models__folder__get"];
@@ -318,6 +332,15 @@ export interface components {
       file?: string | null;
       /** Json */
       json?: string | null;
+    };
+    /** CachedModel */
+    CachedModel: {
+      /** Repo Id */
+      repo_id: string;
+      /** Repo Type */
+      repo_type: string;
+      /** Size On Disk */
+      size_on_disk: number;
     };
     /** ColumnDef */
     ColumnDef: {
@@ -2497,6 +2520,103 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["FunctionModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Huggingface Models */
+  get_huggingface_models_api_models_huggingface_models_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CachedModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Huggingface Model */
+  get_huggingface_model_api_models_huggingface_model_get: {
+    parameters: {
+      query: {
+        repo_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["CachedModel"] | null;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Delete Huggingface Model */
+  delete_huggingface_model_api_models_huggingface_model_delete: {
+    parameters: {
+      query: {
+        repo_id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": boolean;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Download Model */
+  download_model_api_models_download_get: {
+    parameters: {
+      query: {
+        repo_id: string;
+      };
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

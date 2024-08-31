@@ -11,6 +11,7 @@ import Inspector from "../Inspector";
 // hooks
 import { useHotkeys } from "react-hotkeys-hook";
 import WorkflowForm from "../workflows/WorkflowForm";
+import HuggingFaceModelList from "../HuggingFaceModelList";
 // import AssetRenameConfirmation from "../assets/AssetRenameConfirmation";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
@@ -103,6 +104,7 @@ function PanelRight() {
           <Tab label="Assets" />
           <Tab label="Inspector" />
           <Tab label="Workflow" />
+          <Tab label="Models" />
         </Tabs>
         {tabIndex === 0 && (
           <Box
@@ -114,6 +116,7 @@ function PanelRight() {
         )}
         {tabIndex === 1 && <Inspector />}
         {tabIndex === 2 && <WorkflowForm />}
+        {tabIndex === 3 && <HuggingFaceModelList />}
       </Drawer>
     </div>
   );
