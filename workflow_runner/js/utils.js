@@ -133,16 +133,37 @@ function displayWarning(message) {
   `;
     warningElement.appendChild(tooltip);
   }
-
-  // Add tooltip functionality
-  warningElement.addEventListener("mouseover", function () {
+  // Add tooltip functionality for both desktop and mobile
+  const showTooltip = () => {
     tooltip.style.visibility = "visible";
     tooltip.style.opacity = "1";
-  });
+  };
 
-  warningElement.addEventListener("mouseout", function () {
+  const hideTooltip = () => {
     tooltip.style.visibility = "hidden";
     tooltip.style.opacity = "0";
+  };
+
+  // For desktop
+  warningElement.addEventListener("mouseover", showTooltip);
+  warningElement.addEventListener("mouseout", hideTooltip);
+
+  // For mobile
+  warningElement.addEventListener("touchstart", (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    showTooltip();
+  });
+
+  warningElement.addEventListener("touchend", (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    hideTooltip();
+  });
+
+  // Close tooltip when tapping outside
+  document.addEventListener("touchstart", (e) => {
+    if (!warningElement.contains(e.target)) {
+      hideTooltip();
+    }
   });
 }
 
