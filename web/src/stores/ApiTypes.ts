@@ -43,6 +43,7 @@ export type JobUpdate = components["schemas"]["JobUpdate"];
 export type FunctionModel = components["schemas"]["FunctionModel"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type Task = components["schemas"]["Task"];
+export type CachedModel = components["schemas"]["CachedModel"];
 
 // a type that allows arbitrary members
 export type TypeName = string;

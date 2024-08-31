@@ -11,6 +11,9 @@ import Inspector from "../Inspector";
 // hooks
 import { useHotkeys } from "react-hotkeys-hook";
 import WorkflowForm from "../workflows/WorkflowForm";
+import HuggingFaceModelList from "../HuggingFaceModelList";
+import HuggingFaceModelDownloader from "../HuggingFaceModelDownloader";
+import { isProduction } from "../../stores/ApiClient";
 // import AssetRenameConfirmation from "../assets/AssetRenameConfirmation";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
@@ -18,14 +21,23 @@ import WorkflowForm from "../workflows/WorkflowForm";
 const styles = (theme: any) =>
   css({
     ".panel-tabs ": {
-      minHeight: "2em"
+      minHeight: "2em",
     },
     ".panel-tabs button": {
       padding: "0 .5em",
       minWidth: "unset",
-      minHeight: "unset"
-    }
+      minHeight: "unset",
+    },
   });
+
+function HuggingFacePanel() {
+  return (
+    <Box>
+      <HuggingFaceModelDownloader />
+      <HuggingFaceModelList />
+    </Box>
+  );
+}
 
 function PanelRight() {
   const {
@@ -33,7 +45,7 @@ function PanelRight() {
     size: panelSize,
     isDragging,
     handleMouseDown,
-    handlePanelToggle
+    handlePanelToggle,
   } = useResizePanel("right");
 
   useHotkeys("2", () => {
@@ -88,7 +100,7 @@ function PanelRight() {
         PaperProps={{
           ref: panelRef,
           className: `panel panel-right ${isDragging ? "dragging" : ""}`,
-          style: { width: `${panelSize}px` }
+          style: { width: `${panelSize}px` },
         }}
         variant="persistent"
         anchor="left"
@@ -103,6 +115,7 @@ function PanelRight() {
           <Tab label="Assets" />
           <Tab label="Inspector" />
           <Tab label="Workflow" />
+          {!isProduction && <Tab label="Models" />}
         </Tabs>
         {tabIndex === 0 && (
           <Box
@@ -114,6 +127,7 @@ function PanelRight() {
         )}
         {tabIndex === 1 && <Inspector />}
         {tabIndex === 2 && <WorkflowForm />}
+        {tabIndex === 3 && <HuggingFacePanel />}
       </Drawer>
     </div>
   );
