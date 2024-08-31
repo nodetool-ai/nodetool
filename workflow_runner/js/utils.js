@@ -11,18 +11,20 @@ function updateWsMessages(message) {
 }
 
 function showProgressBar() {
-  document.getElementById("progressContainer").style.display = "block";
+  document.getElementById("progressContainer").style.opacity = 1;
 }
 
 function hideProgressBar() {
-  document.getElementById("progressContainer").style.display = "none";
+  document.getElementById("progressContainer").style.opacity = "0.6";
 }
 
 function updateProgress(percentage) {
   const progressBar = document.querySelector(".progress-bar-fill");
   const progressText = document.getElementById("progressText");
-  progressBar.style.width = percentage + "%";
-  progressText.textContent = Math.round(percentage) + "%";
+  if (progressBar && progressText) {
+    progressBar.style.width = `${percentage}%`;
+    progressText.textContent = `${Math.round(percentage)}%`;
+  }
 }
 
 function checkWorkflowIO(workflow) {
