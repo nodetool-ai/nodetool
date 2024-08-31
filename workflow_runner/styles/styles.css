@@ -10,7 +10,8 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 16px;
     line-height: 1.6;
     color: var(--text-color);
     background-color: var(--bg-color);
@@ -24,16 +25,46 @@ body {
 }
 
 h1, h3 {
-    color: var(--primary-color);
+    /* color: var(--primary-color); */
+    color: var(--text-color);
     font-weight: normal;
+    margin: 0 0 1em;
 }
-
+.logo-container {
+    position: absolute;
+    top: 20px;
+    left: .5em;
+    display: flex;
+    align-items: flex-start;
+}
+.logo { 
+    /* small logo top left */
+    width: 100px;
+    height: auto;
+    max-height: 50px;
+    object-fit: contain;
+    margin: 0 -.5em 0 0;
+    padding: 0;
+}
+.logo-container span {
+    font-size: 1.5em;
+    font-weight: normal;
+    color: var(--text-color);
+}
+.main-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+    height: calc(100vh - 40px);
+    padding: 5em 1em 1em 1em;
+}
 .container {
     display: flex;
     gap: 20px;
     flex-grow: 1;
     overflow: hidden;
-    height: calc(100vh - 40px); /* Adjust based on your body padding */
+    height: calc(100vh - 40px);
 }
 
 .left-container {
@@ -49,17 +80,22 @@ h1, h3 {
     flex-direction: column;
     width: 40%;
     overflow-y: auto;
+    transition: width 0.3s ease-in-out;
+}
+
+.middle-container.expanded {
+    width: 70%;
 }
 
 .right-container {
     display: flex;
     flex-direction: column;
     width: 30%;
-    transition: width 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
 }
 
 .right-container.hidden {
-    width: auto;
+    width: 30px;
 }
 
 .logs-container {
@@ -67,7 +103,7 @@ h1, h3 {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    transition: opacity 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
 }
 
 .right-container.hidden .logs-container {
@@ -87,7 +123,7 @@ h1, h3 {
 
 form, #output, #wsMessages {
     background-color: var(--secondary-color);
-    padding: 20px;
+    padding: 1em;
     border-radius: 2px;
     margin-bottom: 20px;
     border: 1px solid var(--border-color);
@@ -207,7 +243,8 @@ button:disabled {
 
 .output-field h4 {
     margin-top: 0;
-    color: var(--primary-color);
+    color: var(--text-color);
+    font-weight: normal;
 }
 
 .image-placeholder,
@@ -219,14 +256,14 @@ button:disabled {
 .unknown-placeholder {
     background-color: var(--input-bg);
     color: var(--text-color);
-    padding: 10px;
+    padding: .5em 1em;
     border-radius: 3px;
-    min-height: 100px;
+    min-height: 50px;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-style: italic;
+    align-items: flex-start;
+    justify-content: flex-start;
     position: relative;
+    font-size: 1em;
 }
 
 .image-placeholder {
@@ -296,6 +333,12 @@ button:disabled {
     font-weight: normal;
 }
 
+#workflowSelectContainer {
+    margin-bottom: 2em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1em;
+}
+
 #workflowList {
     max-height: 200px;
     overflow-y: auto;
@@ -315,8 +358,8 @@ button:disabled {
 }
 
 .workflow-item.selected {
-    background-color: var(--primary-color);
-    color: var(--bg-color);
+    background-color: var(--bg-color);
+    color: var(--primary-color);
 }
 
 textarea {
@@ -365,6 +408,14 @@ input[type="range"]::-moz-range-thumb {
 }
 
 #toggleLogsBtn {
+    position: absolute;
+    top: 1em;
+    width: 10em;
+    text-transform: uppercase;
     align-self: flex-end;
-    margin-bottom: 10px;
+    padding: 1em;
+}
+
+#dynamicInputs {
+    margin-top: 1em;
 }

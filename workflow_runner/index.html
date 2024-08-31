@@ -9,19 +9,25 @@
 </head>
 
 <body>
-    <h1>Workflow Runner Demo</h1>
+    <!-- add ./nodetool-logo.png img -->
+    <div class="main-container">
+        <div class="logo-container">
+            <img src="./nodetool_logo.png" alt="NodeTool" class="logo">
+            <span>nodetool</span>
+        </div>
+        <h1>Workflow Runner Demo</h1>
     <div class="container">
         <div class="left-container">
             <div class="inputs-container">
                 <form id="tokenForm">
-                    <label for="token">Auth Token:</label>
+                    <label for="token">Auth Token</label>
                     <input type="text" id="token" required>
                     <button type="submit" id="loadWorkflowsBtn">Load Workflows</button>
                 </form>
 
                 <form id="workflowForm" style="display: none;">
                     <div id="workflowSelectContainer">
-                        <label for="workflowSearch">Search Workflows:</label>
+                        <label for="workflowSearch">Search Workflows</label>
                         <input type="text" id="workflowSearch" placeholder="Type to search...">
                         <div id="workflowList"></div>
                     </div>
@@ -32,7 +38,7 @@
                 </form>
 
                 <div id="progressContainer" style="display: none;">
-                    <h3>Progress:</h3>
+                    <h3>Progress</h3>
                     <div class="progress-bar">
                         <span class="progress-bar-fill" style="width: 0%;"></span>
                     </div>
@@ -51,19 +57,22 @@
             <button id="toggleLogsBtn">Hide Logs</button>
             <div class="logs-container">
                 <div id="output">
-                    <h3>Output:</h3>
+                    <h3>Output</h3>
                     <pre id="outputContent"></pre>
                 </div>
 
                 <div id="wsMessages">
-                    <h3>WebSocket Messages:</h3>
+                    <h3>WebSocket Messages</h3>
                     <pre id="wsContent"></pre>
                 </div>
             </div>
         </div>
+        </div>
     </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack5/5.3.2/msgpack5.min.js"></script>
+    <script>
+        const msgpack = msgpack5();
+    </script>
     <script src="./js/utils.js"></script>
     <script src="./js/ui.js"></script>
     <script src="./js/workflow-runner.js"></script>

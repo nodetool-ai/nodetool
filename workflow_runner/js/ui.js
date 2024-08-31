@@ -55,7 +55,7 @@ function generateInputFields(schema, container) {
 
   for (const [key, value] of Object.entries(schema.properties)) {
     const label = document.createElement("label");
-    label.textContent = `${value.title || key}:`;
+    label.textContent = value.title || key;
     label.setAttribute("for", key);
 
     let input;
@@ -72,6 +72,9 @@ function generateInputFields(schema, container) {
         input.min = value.minimum;
         input.max = value.maximum;
         input.step = value.type === "integer" ? "1" : "any";
+        input.value =
+          value.default ||
+          ((parseFloat(input.max) + parseFloat(input.min)) / 2).toString();
 
         const valueDisplay = document.createElement("span");
         valueDisplay.className = "range-value";

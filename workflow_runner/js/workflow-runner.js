@@ -11,22 +11,36 @@ class WorkflowRunner {
 
   async connect() {
     return new Promise((resolve, reject) => {
-      this.socket = new WebSocket(this.workerUrl);
-      this.socket.onopen = () => {
-        console.log("WebSocket connected");
-        this.state = "connected";
-        resolve();
+      const connectWebSocket = () => {
+        this.socket = new WebSocket(this.workerUrl);
+        this.socket.binaryType = "arraybuffer";
+
+        this.socket.onopen = () => {
+          console.log("WebSocket connected");
+          this.state = "connected";
+          resolve();
+        };
+
+        this.socket.onerror = (error) => {
+          console.error("WebSocket error:", error);
+          this.state = "error";
+          reject(error);
+        };
+
+        this.socket.onclose = () => {
+          console.log("WebSocket closed, attempting to reconnect...");
+          this.state = "idle";
+          setTimeout(connectWebSocket, 5000); // Attempt to reconnect after 5 seconds
+        };
+
+        this.socket.onmessage = (event) => {
+          const arrayBuffer = event.data;
+          const data = msgpack.decode(new Uint8Array(arrayBuffer));
+          this.handleMessage(data);
+        };
       };
-      this.socket.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        this.state = "error";
-        reject(error);
-      };
-      this.socket.onmessage = (event) => {
-        const arrayBuffer = event.data;
-        const data = msgpack.decode(new Uint8Array(arrayBuffer));
-        this.handleMessage(data);
-      };
+
+      connectWebSocket();
     });
   }
 
@@ -69,33 +83,41 @@ class WorkflowRunner {
   }
 
   async run(workflowId, params = {}) {
-    if (!this.socket || this.state !== "connected") {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       await this.connect();
     }
 
-    this.state = "running";
-
-    const request = {
-      type: "run_job_request",
-      api_url: this.apiUrl,
-      workflow_id: workflowId,
-      job_type: "workflow",
-      auth_token: this.token,
-      params: params,
-    };
-
-    console.log("Sending request:", request);
-
-    this.socket.send(
-      msgpack.encode({
-        command: "run_job",
-        data: request,
-      })
-    );
-
     return new Promise((resolve, reject) => {
-      this.resolveRun = resolve;
-      this.rejectRun = reject;
+      const sendRequest = () => {
+        this.state = "running";
+
+        const request = {
+          type: "run_job_request",
+          api_url: this.apiUrl,
+          workflow_id: workflowId,
+          job_type: "workflow",
+          auth_token: this.token,
+          params: params,
+        };
+
+        console.log("Sending request:", request);
+
+        this.socket.send(
+          msgpack.encode({
+            command: "run_job",
+            data: request,
+          })
+        );
+
+        this.resolveRun = resolve;
+        this.rejectRun = reject;
+      };
+
+      if (this.socket.readyState === WebSocket.OPEN) {
+        sendRequest();
+      } else {
+        this.socket.addEventListener("open", sendRequest, { once: true });
+      }
     });
   }
 

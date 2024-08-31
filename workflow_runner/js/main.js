@@ -5,7 +5,7 @@ const workflowRunner = new WorkflowRunner(apiUrl, workerUrl);
 
 const loadWorkflowsBtn = document.getElementById("loadWorkflowsBtn");
 const runWorkflowBtn = document.getElementById("runWorkflowBtn");
-let workflows = [];
+window.workflows = [];
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM fully loaded");
@@ -13,9 +13,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const toggleLogsBtn = document.getElementById("toggleLogsBtn");
   const rightContainer = document.querySelector(".right-container");
+  const middleContainer = document.querySelector(".middle-container");
 
   toggleLogsBtn.addEventListener("click", () => {
     rightContainer.classList.toggle("hidden");
+    middleContainer.classList.toggle("expanded");
     toggleLogsBtn.textContent = rightContainer.classList.contains("hidden")
       ? "Show Logs"
       : "Hide Logs";
@@ -34,9 +36,12 @@ document
 async function loadWorkflows() {
   updateOutput("Loading workflows...");
   try {
-    workflows = await workflowRunner.loadWorkflows();
+    const response = await workflowRunner.loadWorkflows();
+    window.workflows = Array.isArray(response)
+      ? response
+      : response.workflows || [];
     updateOutput("Workflows loaded successfully");
-    createWorkflowSelectionWidget(workflows);
+    createWorkflowSelectionWidget(window.workflows);
     document.getElementById("workflowForm").style.display = "block";
   } catch (error) {
     updateOutput("Error loading workflows: " + error.message);
@@ -78,9 +83,21 @@ document
   .getElementById("workflowForm")
   .addEventListener("submit", async (e) => {
     e.preventDefault();
-    const workflowId = document.querySelector(".workflow-item.selected").dataset
-      .id;
-    const workflow = workflows.find((w) => w.id === workflowId);
+    const selectedWorkflowElement = document.querySelector(
+      ".workflow-item.selected"
+    );
+    if (!selectedWorkflowElement) {
+      updateOutput("Please select a workflow before running.");
+      return;
+    }
+    const workflowId = selectedWorkflowElement.dataset.id;
+    const workflow = window.workflows.find((w) => w.id === workflowId);
+    if (!workflow) {
+      updateOutput(
+        "Selected workflow not found. Please try reloading the workflows."
+      );
+      return;
+    }
     const params = getInputValues(workflow.input_schema);
 
     runWorkflowBtn.disabled = true;
@@ -98,7 +115,7 @@ document
         const placeholder = field.querySelector('[class$="-placeholder"]');
         const outputValue = result[label];
 
-        if (outputValue.type === "image") {
+        if (outputValue && outputValue.type === "image") {
           const img = document.createElement("img");
           const data = new Uint8Array(outputValue.data);
           const blob = new Blob([data], { type: "image/png" });
@@ -130,8 +147,15 @@ document.addEventListener("DOMContentLoaded", () => {
       logsContainer.style.display = "block";
       toggleLogsBtn.textContent = "Hide Logs";
     } else {
-      logsContainer.style.display = "none";
       toggleLogsBtn.textContent = "Show Logs";
     }
   });
 });
+
+workflowRunner.socket.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === "progress_update") {
+    updateProgress(data.progress);
+  }
+  // ... handle other message types
+};
