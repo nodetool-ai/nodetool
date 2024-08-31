@@ -11,11 +11,17 @@ function updateWsMessages(message) {
 }
 
 function showProgressBar() {
-  document.getElementById("progressContainer").style.opacity = 1;
+  const progressContainer = document.getElementById("progressContainer");
+  if (progressContainer) {
+    progressContainer.style.display = "flex";
+  }
 }
 
 function hideProgressBar() {
-  document.getElementById("progressContainer").style.opacity = "0.6";
+  const progressContainer = document.getElementById("progressContainer");
+  if (progressContainer) {
+    progressContainer.style.display = "none";
+  }
 }
 
 function updateProgress(percentage) {
@@ -83,4 +89,27 @@ function getInputValues(schema) {
     }
   }
   return values;
+}
+
+async function runWorkflow(workflowRunner, workflowId, params) {
+  try {
+    updateOutput("Running workflow...");
+    showProgressBar();
+
+    if (
+      !workflowRunner.socket ||
+      workflowRunner.socket.readyState !== WebSocket.OPEN
+    ) {
+      await workflowRunner.connect();
+    }
+
+    const result = await workflowRunner.run(workflowId, params);
+    updateOutput("Workflow completed");
+    return result;
+  } catch (error) {
+    updateOutput("Error: " + error.message);
+    throw error;
+  } finally {
+    hideProgressBar();
+  }
 }

@@ -7,6 +7,8 @@ class WorkflowRunner {
     this.token = "";
     this.onMessage = null;
     this.onProgress = null;
+    this.onComplete = null;
+    this.onError = null;
   }
 
   async connect() {
@@ -30,7 +32,7 @@ class WorkflowRunner {
         this.socket.onclose = () => {
           console.log("WebSocket closed, attempting to reconnect...");
           this.state = "idle";
-          setTimeout(connectWebSocket, 5000); // Attempt to reconnect after 5 seconds
+          setTimeout(connectWebSocket, 5000);
         };
 
         this.socket.onmessage = (event) => {
@@ -87,51 +89,44 @@ class WorkflowRunner {
       await this.connect();
     }
 
-    return new Promise((resolve, reject) => {
-      const sendRequest = () => {
-        this.state = "running";
+    const request = {
+      type: "run_job_request",
+      api_url: this.apiUrl,
+      workflow_id: workflowId,
+      job_type: "workflow",
+      auth_token: this.token,
+      params: params,
+    };
 
-        const request = {
-          type: "run_job_request",
-          api_url: this.apiUrl,
-          workflow_id: workflowId,
-          job_type: "workflow",
-          auth_token: this.token,
-          params: params,
-        };
+    console.log("Sending request:", request);
 
-        console.log("Sending request:", request);
+    this.socket.send(
+      msgpack.encode({
+        command: "run_job",
+        data: request,
+      })
+    );
 
-        this.socket.send(
-          msgpack.encode({
-            command: "run_job",
-            data: request,
-          })
-        );
-
-        this.resolveRun = resolve;
-        this.rejectRun = reject;
-      };
-
-      if (this.socket.readyState === WebSocket.OPEN) {
-        sendRequest();
-      } else {
-        this.socket.addEventListener("open", sendRequest, { once: true });
-      }
-    });
+    this.state = "running";
   }
 
   handleMessage(data) {
     console.log("Received message:", data);
     if (data.type === "job_update" && data.status === "completed") {
       this.state = "idle";
-      this.resolveRun(data.result);
+      if (this.onComplete) {
+        this.onComplete(data.result);
+      }
     } else if (data.type === "job_update" && data.status === "failed") {
       this.state = "idle";
-      this.rejectRun(new Error(data.error));
+      if (this.onError) {
+        this.onError(new Error(data.error));
+      }
     } else if (data.type === "error") {
       this.state = "idle";
-      this.rejectRun(new Error(data.error));
+      if (this.onError) {
+        this.onError(new Error(data.error));
+      }
     } else {
       this.handleProgress(data);
     }

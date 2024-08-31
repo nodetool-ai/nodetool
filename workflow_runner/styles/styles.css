@@ -33,17 +33,18 @@ h1, h3 {
 .logo-container {
     position: absolute;
     top: 20px;
-    left: .5em;
+    left: 2em;
     display: flex;
     align-items: flex-start;
+    gap: .3em;
 }
 .logo { 
     /* small logo top left */
-    width: 100px;
-    height: auto;
+    height: 40px;
+    width: auto;
     max-height: 50px;
     object-fit: contain;
-    margin: 0 -.5em 0 0;
+    margin: 0;
     padding: 0;
 }
 .logo-container > span {
@@ -81,43 +82,37 @@ h1, h3 {
     background-color: var(--primary-color);
     color: var(--bg-color);
 }
+#runWorkflowBtn:disabled {
+    background-color: var(--button-bg-color);
+    color: var(--text-color);
+}
 
- #progressContainer {
+#progressContainer {
     display: flex;
     align-items: center;
-    gap: .5em;
-    position: relative;
-    width: 200px;
+    gap: 1em;
+    margin-left: 20px;
 }
-#progressContainer span.progress-label {
-    position: absolute;
-    top: 0;
-    left: 0;
-    font-size: 1em;
-    text-transform: uppercase;
-    opacity: 0.5;
-    padding: .2em .5em;
-}
-#progressContainer span.progress-value {
-    font-size: 1.2em;
-    opacity: 0.5;
-}
+
 .progress-bar {
-    width: 100%;
-    height: 2px;
+    width: 200px;
+    height: 20px;
     background-color: var(--secondary-color);
-    padding: 10px;
-    border-radius: 2px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, .2);
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .progress-bar-fill {
-    display: block;
-    height: 22px;
+    height: 100%;
     background-color: var(--primary-color);
-    border-radius: 2px;
-    transition: width 500ms ease-in-out;
+    transition: width 0.3s ease-in-out;
 }
+
+#progressText {
+    font-size: 14px;
+    color: var(--text-color);
+}
+
 .container {
     display: flex;
     gap: 20px;
@@ -295,6 +290,7 @@ button:disabled {
     background-color: var(--input-bg);
     color: var(--text-color);
     padding: .5em 1em;
+    word-break: normal;
     border-radius: 3px;
     min-height: 50px;
     display: flex;
@@ -329,7 +325,7 @@ button:disabled {
 .boolean-placeholder {
     font-family: monospace;
     white-space: pre-wrap;
-    word-break: break-all;
+    word-break: normal;
     text-align: left;
     padding: 20px 10px 10px;
 }
@@ -367,20 +363,25 @@ button:disabled {
 }
 
 .warning-message {
-    color: var(--warning-color);
-    font-weight: normal;
+    background: var(--warning-color);
+    border-radius: .1em;
+    color: black;
+    font-weight: bold;
+    margin: 1.5em 0 0;
+    padding: .25em;
+    padding-left: .5em;
+    text-align: center;
+    box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 #workflowSelectContainer {
-    margin-bottom: 2em;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 1em;
+    padding-bottom: .5em;
 }
 
 #workflowList {
     max-height: 200px;
     overflow-y: auto;
-    border: 1px solid var(--border-color);
     border-radius: 4px;
     margin-top: 10px;
 }
@@ -456,4 +457,6 @@ input[type="range"]::-moz-range-thumb {
 
 #dynamicInputs {
     margin-top: 1em;
+    border-top: 1px solid var(--border-color);
+    padding-top: 1em;
 }

@@ -1,10 +1,9 @@
 function createWorkflowSelectionWidget(data) {
   const workflowList = document.getElementById("workflowList");
-  workflowList.innerHTML = "";
+  const searchInput = document.getElementById("workflowSearch");
+  let allWorkflows = Array.isArray(data) ? data : data.workflows;
 
-  let workflows = Array.isArray(data) ? data : data.workflows;
-
-  if (!Array.isArray(workflows)) {
+  if (!Array.isArray(allWorkflows)) {
     console.error("Invalid data structure:", data);
     workflowList.textContent = "Error: Invalid workflow data structure.";
     return;
@@ -28,14 +27,15 @@ function createWorkflowSelectionWidget(data) {
     });
   }
 
-  renderWorkflows(workflows);
+  renderWorkflows(allWorkflows);
 
-  const searchInput = document.getElementById("workflowSearch");
   searchInput.addEventListener("input", (e) => {
     const searchTerm = e.target.value.toLowerCase();
-    const filteredWorkflows = workflows.filter((workflow) =>
-      workflow.name.toLowerCase().includes(searchTerm)
-    );
+    const filteredWorkflows = searchTerm
+      ? allWorkflows.filter((workflow) =>
+          workflow.name.toLowerCase().includes(searchTerm)
+        )
+      : allWorkflows;
     renderWorkflows(filteredWorkflows);
   });
 
@@ -178,46 +178,75 @@ document
   .getElementById("workflowForm")
   .addEventListener("submit", async (e) => {
     e.preventDefault();
+
     const selectedWorkflow = document.querySelector(".workflow-item.selected");
     if (!selectedWorkflow) {
       updateOutput("Please select a workflow before running.");
       return;
     }
+
     const workflowId = selectedWorkflow.dataset.id;
     const workflow = workflows.find((w) => w.id === workflowId);
+    if (!workflow) {
+      updateOutput("Selected workflow not found.");
+      return;
+    }
+
     const params = getInputValues(workflow.input_schema);
+    if (!params) {
+      updateOutput("Failed to retrieve input values.");
+      return;
+    }
 
+    const runWorkflowBtn = document.getElementById("runWorkflowBtn");
     runWorkflowBtn.disabled = true;
+
     try {
-      updateOutput("Running workflow...");
-      showProgressBar();
-      const result = await workflowRunner.run(workflowId, params);
-      updateOutput("Workflow completed");
-
-      const resultsContainer = document.getElementById("results");
-      const outputFields = resultsContainer.querySelectorAll(".output-field");
-
-      outputFields.forEach((field) => {
-        const label = field.querySelector("h4").textContent;
-        const placeholder = field.querySelector('[class$="-placeholder"]');
-        const outputValue = result[label];
-
-        if (outputValue.type === "image") {
-          const img = document.createElement("img");
-          const data = new Uint8Array(outputValue.data);
-          const blob = new Blob([data], { type: "image/png" });
-          img.src = URL.createObjectURL(blob);
-          placeholder.replaceWith(img);
-        } else if (typeof outputValue === "object") {
-          placeholder.textContent = JSON.stringify(outputValue, null, 2);
-        } else {
-          placeholder.textContent = String(outputValue);
-        }
-      });
+      const result = await runWorkflow(workflowRunner, workflowId, params);
+      handleResult(result);
     } catch (error) {
-      updateOutput("Error: " + error.message);
+      console.error("Error running workflow:", error);
     } finally {
-      hideProgressBar();
       runWorkflowBtn.disabled = false;
     }
   });
+
+function handleResult(result) {
+  const resultsContainer = document.getElementById("results");
+  const outputFields = resultsContainer.querySelectorAll(".output-field");
+
+  if (!result || typeof result !== "object") {
+    console.error("Invalid result:", result);
+    updateOutput("Error: Received invalid result from the workflow");
+    return;
+  }
+
+  outputFields.forEach((field) => {
+    const label = field.querySelector("h4").textContent;
+    const placeholder = field.querySelector('[class$="-placeholder"]');
+
+    let outputValue = result[label];
+
+    if (outputValue === undefined || outputValue === null) {
+      placeholder.textContent = "No data available";
+      return;
+    }
+
+    if (typeof outputValue === "object") {
+      if (outputValue.type === "image" && outputValue.data) {
+        const img = document.createElement("img");
+        const data = new Uint8Array(outputValue.data);
+        const blob = new Blob([data], { type: "image/png" });
+        img.src = URL.createObjectURL(blob);
+        placeholder.innerHTML = "";
+        placeholder.appendChild(img);
+      } else {
+        placeholder.textContent = JSON.stringify(outputValue, null, 2);
+      }
+    } else {
+      placeholder.textContent = String(outputValue);
+    }
+  });
+
+  console.log("Full result object:", result);
+}
