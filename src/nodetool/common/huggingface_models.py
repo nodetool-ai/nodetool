@@ -7,6 +7,7 @@ import os
 import json
 import shutil
 from huggingface_hub import HfFolder
+import subprocess
 
 
 class CachedModel(BaseModel):
@@ -94,61 +95,38 @@ class CustomTqdm(std_tqdm):
 
 
 async def download_huggingface_model(repo_id: str):
-    process = await asyncio.create_subprocess_exec(
-        sys.executable,
-        __file__,
-        repo_id,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+    command = [sys.executable, __file__, repo_id]
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        universal_newlines=True,
     )
 
     assert process.stdout is not None
     assert process.stderr is not None
 
-    stdout_queue = asyncio.Queue()
-    stderr_queue = asyncio.Queue()
-
-    async def read_stream(stream, queue):
-        while True:
-            line = await stream.readline()
-            if not line:
-                break
-            await queue.put(line)
-
-    stdout_task = asyncio.create_task(read_stream(process.stdout, stdout_queue))
-    stderr_task = asyncio.create_task(read_stream(process.stderr, stderr_queue))
-
-    while (
-        not stdout_task.done()
-        or not stderr_task.done()
-        or not stdout_queue.empty()
-        or not stderr_queue.empty()
-    ):
-        try:
-            line = stdout_queue.get_nowait()
+    def read_stream(stream):
+        for line in stream:
             try:
-                decoded_line = json.loads(line.decode())
-                yield decoded_line
+                decoded_line = json.loads(line)
+                yield json.dumps(decoded_line)
             except json.JSONDecodeError:
                 pass
-        except asyncio.QueueEmpty:
-            pass
 
-        try:
-            line = stderr_queue.get_nowait()
-            try:
-                decoded_line = json.loads(line.decode())
-                yield decoded_line
-            except json.JSONDecodeError:
-                pass
-        except asyncio.QueueEmpty:
-            pass
-
+    while process.poll() is None:
+        for line in read_stream(process.stdout):
+            yield line
+        for line in read_stream(process.stderr):
+            yield line
         await asyncio.sleep(0.1)
 
-    await stdout_task
-    await stderr_task
-    await process.wait()
+    # Read any remaining output after the process has finished
+    for line in read_stream(process.stdout):
+        yield line
+    for line in read_stream(process.stderr):
+        yield line
 
 
 if __name__ == "__main__":

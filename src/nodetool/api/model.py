@@ -48,7 +48,7 @@ async def delete_huggingface_model(repo_id: str) -> bool:
     return delete_cached_model(repo_id)
 
 
-@router.get("/download")
+@router.post("/download")
 async def download_model(repo_id: str, user: User = Depends(current_user)):
     if Environment.is_production():
         log.warning("Cannot download models in production")

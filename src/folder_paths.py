@@ -23,7 +23,7 @@ from nodetool.common.environment import Environment
 
 supported_pt_extensions = set([".ckpt", ".pt", ".bin", ".pth", ".safetensors", ".sft"])
 filename_list_cache: dict[str, tuple[list[str], dict[str, float], float]] = {}
-data_dir = Environment.get_comfy_folder()
+data_dir = Environment.get_comfy_folder() or ".data"
 models_dir = os.path.join(data_dir, "models")
 
 custom_nodes_directory = os.path.join(

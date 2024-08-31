@@ -217,7 +217,7 @@ export interface paths {
   };
   "/api/models/download": {
     /** Download Model */
-    get: operations["download_model_api_models_download_get"];
+    post: operations["download_model_api_models_download_post"];
   };
   "/api/models/{folder}": {
     /** Index */
@@ -2600,7 +2600,7 @@ export interface operations {
     };
   };
   /** Download Model */
-  download_model_api_models_download_get: {
+  download_model_api_models_download_post: {
     parameters: {
       query: {
         repo_id: string;
