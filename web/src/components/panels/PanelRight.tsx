@@ -14,7 +14,6 @@ import WorkflowForm from "../workflows/WorkflowForm";
 import HuggingFaceModelList from "../HuggingFaceModelList";
 import HuggingFaceModelDownloader from "../HuggingFaceModelDownloader";
 import { isProduction } from "../../stores/ApiClient";
-import HuggingFaceSearch from "../HuggingFaceSearch";
 // import AssetRenameConfirmation from "../assets/AssetRenameConfirmation";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
