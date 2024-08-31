@@ -7,6 +7,7 @@ import {
   LinearProgress,
   Typography,
   Box,
+  Autocomplete,
 } from "@mui/material";
 
 interface DownloadProgress {
@@ -17,10 +18,10 @@ interface DownloadProgress {
 }
 
 const HuggingFaceModelDownloader: React.FC = () => {
-  const [repoId, setRepoId] = useState("");
-  const [downloads, setDownloads] = useState<Record<string, DownloadProgress>>(
-    {}
-  );
+  const [repoId, setRepoId] = useState<string | null>(null);
+  const [downloads, setDownloads] = useState<Record<string, DownloadProgress>>({});
+  const [options, setOptions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const downloadMutation = useMutation({
     mutationFn: async (repoId: string) => {
@@ -60,6 +61,19 @@ const HuggingFaceModelDownloader: React.FC = () => {
     },
   });
 
+  const searchModels = async (query: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`https://huggingface.co/api/models?search=${query}`);
+      const data = await response.json();
+      setOptions(data.map((model: any) => model.id));
+    } catch (error) {
+      console.error("Error fetching models:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (repoId && !downloads[repoId]) {
@@ -71,13 +85,30 @@ const HuggingFaceModelDownloader: React.FC = () => {
   return (
     <Box>
       <form onSubmit={handleSubmit}>
-        <TextField
+        <Autocomplete
           value={repoId}
-          onChange={(e) => setRepoId(e.target.value)}
-          label="Hugging Face Repo ID to download"
-          variant="outlined"
-          fullWidth
-          margin="normal"
+          onChange={(event, newValue) => {
+            setRepoId(newValue);
+          }}
+          onInputChange={(event, newInputValue) => {
+            setRepoId(newInputValue);
+            if (newInputValue.length > 2) {
+              searchModels(newInputValue);
+            }
+          }}
+          options={options}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Hugging Face Repo ID to download"
+              variant="outlined"
+              fullWidth
+              margin="normal"
+            />
+          )}
+          freeSolo
+          loading={isLoading}
+          loadingText="Searching..."
         />
         <Button
           type="submit"
@@ -89,7 +120,7 @@ const HuggingFaceModelDownloader: React.FC = () => {
         </Button>
       </form>
 
-      {downloads[repoId] && (
+      {repoId && downloads[repoId] && (
         <Box key={repoId} mt={2}>
           <Typography variant="subtitle1">{repoId}</Typography>
           <LinearProgress
