@@ -5,6 +5,7 @@
 
 .range-wrapper {
     display: flex;
+    position: relative;
     align-items: center;
     gap: 1em;
 }

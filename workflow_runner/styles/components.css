@@ -73,7 +73,7 @@ select {
 /* Range input */
 input[type="range"] {
     -webkit-appearance: none;
-    width: calc(100% - 60px);
+    width: 100%;
     height: 10px;
     background: var(--input-bg);
     outline: none;
@@ -103,12 +103,18 @@ input[type="number"] {
     max-width: 100px;
     min-width: 50px;
 }
+.slider-wrapper {
+    position: relative;
+    display: block;
+    flex-grow: 1;
+}
 .range-min, .range-max {
     position: absolute;
+    top: 1.8em;
     left: 0;
     bottom: 0;
-    font-size: .8em;
-    color: var(--text-color);
+    font-size: .75em;
+    color: var(--text-gray-color);
 }
 .range-max {
     right: 0;
@@ -137,17 +143,12 @@ input[type="number"] {
 
 /* Output fields */
 .output-field {
-    margin-bottom: 20px;
+    margin-bottom: 1em;
     background-color: var(--secondary-color);
-    padding: 15px;
+    padding: .5em;
     border-radius: 5px;
 }
 
-.output-field h4 {
-    margin-top: 0;
-    color: var(--text-color);
-    font-weight: normal;
-}
 
 /* Placeholders */
 .image-placeholder,
@@ -159,6 +160,7 @@ input[type="number"] {
 .unknown-placeholder {
     background-color: var(--input-bg);
     color: var(--text-color);
+    margin: .25em 0;
     padding: .5em 1em;
     word-break: normal;
     border-radius: 3px;
@@ -168,6 +170,71 @@ input[type="number"] {
     justify-content: flex-start;
     position: relative;
     font-size: 1em;
+}
+.image-placeholder {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+}
+
+.image-placeholder {
+    border: 4px dashed var(--border-color);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23777" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 48px;
+    color: transparent;
+}
+
+.image-placeholder::after {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: var(--text-color);
+    font-style: italic;
+}
+
+.string-placeholder,
+.number-placeholder,
+.boolean-placeholder {
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: normal;
+    text-align: left;
+    padding: 20px 10px 10px;
+}
+
+.string-placeholder::before,
+.number-placeholder::before,
+.boolean-placeholder::before {
+    content: 'ABC';
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    font-size: 0.8em;
+    color: var(--primary-color);
+}
+
+.number-placeholder::before {
+    content: '123';
+}
+
+.boolean-placeholder::before {
+    content: 'T/F';
+}
+
+.array-placeholder,
+.object-placeholder {
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    text-align: left;
+}
+
+.output-field img {
+    max-width: 100%;
+    height: auto;
 }
 
 /* Warning message */
@@ -188,20 +255,22 @@ input[type="number"] {
 
 /* Tooltip */
 .custom-tooltip {
+    position: absolute;
     visibility: hidden;
-    width: 450px;
+    opacity: 0;
+    left: 0;
+    padding: .5em;
+    padding-right: 2em;
+    bottom: 125%;
+    width: auto;
     background-color: #555;
     color: #fff;
     text-align: left;
-    border-radius: .1em;
-    padding: .5em;
-    position: absolute;
+    border-radius: .5em .5em 0 0;
+    border: 1px solid var(--border-color);
     z-index: 1;
-    bottom: 125%;
-    left: 0;
-    opacity: 0;
+    font-weight: normal;
     transition: opacity 0.3s;
-    font-weight: normal;    
 }
 
 .custom-tooltip ul {
@@ -254,11 +323,22 @@ form, #output, #wsMessages {
 
 label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: -.25em;
     font-weight: normal;
 }
 
 textarea {
     resize: vertical;
     min-height: 60px;
+}
+
+.audio-placeholder,
+.video-placeholder {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 10px;
+}
+
+.video-placeholder {
+  max-height: 300px;
 }

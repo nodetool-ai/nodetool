@@ -1,4 +1,9 @@
 /* General styles and typography */
+
+*::selection {
+    background-color: var(--selection-color);
+}
+
 body {
     font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 16px;
@@ -13,6 +18,7 @@ body {
     overflow: hidden;
     box-sizing: border-box;
 }
+
 
 h1, h3 {
     color: var(--text-color);

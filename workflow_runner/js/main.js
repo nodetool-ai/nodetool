@@ -16,7 +16,6 @@ const runWorkflowBtn = document.getElementById("runWorkflowBtn");
 window.workflows = [];
 
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM fully loaded");
   document.getElementById("workflowForm").style.display = "none";
 
   const toggleLogsBtn = document.getElementById("toggleLogsBtn");

@@ -100,7 +100,21 @@ function generateInputFields(schema, container) {
           console.log("Number input value changed:", event.target.value);
         });
 
-        wrapper.appendChild(rangeInput);
+        const sliderWrapper = document.createElement("div");
+        sliderWrapper.className = "slider-wrapper";
+
+        const min = document.createElement("span");
+        min.textContent = value.minimum;
+        min.className = "range-min";
+        const max = document.createElement("span");
+        max.textContent = value.maximum;
+        max.className = "range-max";
+
+        sliderWrapper.appendChild(min);
+        sliderWrapper.appendChild(rangeInput);
+        sliderWrapper.appendChild(max);
+
+        wrapper.appendChild(sliderWrapper);
         wrapper.appendChild(numberInput);
         input = wrapper;
       } else {
@@ -168,7 +182,7 @@ function generateOutputFields(outputSchema, resultsContainer) {
     const outputDiv = document.createElement("div");
     outputDiv.className = "output-field";
 
-    const label = document.createElement("h4");
+    const label = document.createElement("label");
     label.textContent = key;
     outputDiv.appendChild(label);
 
@@ -176,14 +190,28 @@ function generateOutputFields(outputSchema, resultsContainer) {
     if (value.type === "object" && value.properties.type?.const === "image") {
       placeholder = document.createElement("div");
       placeholder.className = "image-placeholder";
+    } else if (
+      value.type === "object" &&
+      value.properties.type?.const === "audio"
+    ) {
+      placeholder = document.createElement("audio");
+      placeholder.className = "audio-placeholder";
+      placeholder.controls = true;
+    } else if (
+      value.type === "object" &&
+      value.properties.type?.const === "video"
+    ) {
+      placeholder = document.createElement("video");
+      placeholder.className = "video-placeholder";
+      placeholder.controls = true;
     } else if (value.type === "string") {
       placeholder = document.createElement("pre");
       placeholder.className = "string-placeholder";
-      placeholder.textContent = "String";
+      placeholder.textContent = "";
     } else if (value.type === "number" || value.type === "integer") {
       placeholder = document.createElement("pre");
       placeholder.className = "number-placeholder";
-      placeholder.textContent = "Numeric";
+      placeholder.textContent = "Number";
     } else if (value.type === "boolean") {
       placeholder = document.createElement("pre");
       placeholder.className = "boolean-placeholder";
@@ -192,14 +220,10 @@ function generateOutputFields(outputSchema, resultsContainer) {
       placeholder = document.createElement("pre");
       placeholder.className = "array-placeholder";
       placeholder.textContent = "Array";
-    } else if (value.type === "object") {
+    } else {
       placeholder = document.createElement("pre");
       placeholder.className = "object-placeholder";
       placeholder.textContent = "Object";
-    } else {
-      placeholder = document.createElement("pre");
-      placeholder.className = "unknown-placeholder";
-      placeholder.textContent = "Output";
     }
     outputDiv.appendChild(placeholder);
 
@@ -255,7 +279,7 @@ function handleResult(result) {
   }
 
   outputFields.forEach((field) => {
-    const label = field.querySelector("h4").textContent;
+    const label = field.querySelector("label").textContent;
     const placeholder = field.querySelector('[class$="-placeholder"]');
 
     let outputValue = result[label];
@@ -273,6 +297,16 @@ function handleResult(result) {
         img.src = URL.createObjectURL(blob);
         placeholder.innerHTML = "";
         placeholder.appendChild(img);
+      } else if (outputValue.type === "audio" && outputValue.data) {
+        const audio = placeholder;
+        const data = new Uint8Array(outputValue.data);
+        const blob = new Blob([data], { type: "audio/mpeg" });
+        audio.src = URL.createObjectURL(blob);
+      } else if (outputValue.type === "video" && outputValue.data) {
+        const video = placeholder;
+        const data = new Uint8Array(outputValue.data);
+        const blob = new Blob([data], { type: "video/mp4" });
+        video.src = URL.createObjectURL(blob);
       } else {
         placeholder.textContent = JSON.stringify(outputValue, null, 2);
       }

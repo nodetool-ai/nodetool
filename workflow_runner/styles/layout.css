@@ -111,4 +111,11 @@
 .results-container {
     flex-grow: 1;
     overflow-y: auto;
+    height: auto;
+}
+#results {
+    background-color: var(--secondary-color);
+    height: auto;
+    min-height: 8em;
+    padding: 1em;
 }

@@ -233,7 +233,7 @@ function handleResult(result) {
   }
 
   outputFields.forEach((field) => {
-    const label = field.querySelector("h4").textContent;
+    const label = field.querySelector("label").textContent;
     const placeholder = field.querySelector('[class$="-placeholder"]');
 
     let outputValue = result[label];
@@ -251,6 +251,16 @@ function handleResult(result) {
         img.src = URL.createObjectURL(blob);
         placeholder.innerHTML = "";
         placeholder.appendChild(img);
+      } else if (outputValue.type === "audio" && outputValue.data) {
+        const audio = placeholder;
+        const data = new Uint8Array(outputValue.data);
+        const blob = new Blob([data], { type: "audio/mpeg" });
+        audio.src = URL.createObjectURL(blob);
+      } else if (outputValue.type === "video" && outputValue.data) {
+        const video = placeholder;
+        const data = new Uint8Array(outputValue.data);
+        const blob = new Blob([data], { type: "video/mp4" });
+        video.src = URL.createObjectURL(blob);
       } else {
         placeholder.textContent = JSON.stringify(outputValue, null, 2);
       }
