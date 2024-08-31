@@ -67,25 +67,41 @@ function generateInputFields(schema, container) {
         const wrapper = document.createElement("div");
         wrapper.className = "range-wrapper";
 
-        input = document.createElement("input");
-        input.type = "range";
-        input.min = value.minimum;
-        input.max = value.maximum;
-        input.step = value.type === "integer" ? "1" : "any";
-        input.value =
+        const rangeInput = document.createElement("input");
+        rangeInput.type = "range";
+        rangeInput.min = value.minimum;
+        rangeInput.max = value.maximum;
+        rangeInput.step = determineStepSize(
+          value.minimum,
+          value.maximum,
+          value.type
+        );
+        rangeInput.value =
           value.default ||
-          ((parseFloat(input.max) + parseFloat(input.min)) / 2).toString();
+          (
+            (parseFloat(rangeInput.max) + parseFloat(rangeInput.min)) /
+            2
+          ).toString();
 
-        const valueDisplay = document.createElement("span");
-        valueDisplay.className = "range-value";
-        valueDisplay.textContent = input.value;
+        const numberInput = document.createElement("input");
+        numberInput.type = "number";
+        numberInput.min = value.minimum;
+        numberInput.max = value.maximum;
+        numberInput.step = rangeInput.step;
+        numberInput.value = rangeInput.value;
 
-        input.addEventListener("input", () => {
-          valueDisplay.textContent = input.value;
+        rangeInput.addEventListener("input", (event) => {
+          numberInput.value = event.target.value;
+          console.log("Slider value changed:", event.target.value);
         });
 
-        wrapper.appendChild(input);
-        wrapper.appendChild(valueDisplay);
+        numberInput.addEventListener("input", (event) => {
+          rangeInput.value = event.target.value;
+          console.log("Number input value changed:", event.target.value);
+        });
+
+        wrapper.appendChild(rangeInput);
+        wrapper.appendChild(numberInput);
         input = wrapper;
       } else {
         input = document.createElement("input");
@@ -116,6 +132,23 @@ function generateInputFields(schema, container) {
 
     container.appendChild(label);
     container.appendChild(input);
+  }
+}
+
+function determineStepSize(min, max, type) {
+  const range = max - min;
+  if (type === "integer") {
+    return "1";
+  } else {
+    if (range <= 1) {
+      return "0.01";
+    } else if (range <= 10) {
+      return "0.1";
+    } else if (range <= 100) {
+      return "1";
+    } else {
+      return Math.pow(10, Math.floor(Math.log10(range)) - 2).toString();
+    }
   }
 }
 

@@ -1,0 +1,27 @@
+/* Utility classes and helper styles */
+.workflow-runner {
+    color: var(--primary-color);
+}
+
+.range-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+}
+
+.range-value {
+    width: 50px;
+    text-align: right;
+    margin-left: 10px;
+    font-family: monospace;
+}
+
+#workflowSelectContainer {
+    padding-bottom: .5em;
+}
+
+#dynamicInputs {
+    margin-top: 1em;
+    border-top: 1px solid var(--border-color);
+    padding-top: 1em;
+}

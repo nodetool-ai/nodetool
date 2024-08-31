@@ -1,0 +1,264 @@
+/* UI Components */
+
+/* Buttons */
+button {
+    background-color: var(--button-bg-color);
+    color: white;
+    padding: 10px 15px;
+    margin: .5em 0;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+button:hover {
+    color: var(--primary-color);
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+/* Run Workflow Button */
+#runWorkflowBtn {
+    width: calc(30% - 1.2rem);
+
+    height: 2.5em;
+    padding: 0;
+    text-transform: uppercase;
+    font-size: 1.2em;
+}
+
+#runWorkflowBtn:hover {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
+#runWorkflowBtn:disabled {
+    background-color: var(--button-bg-color);
+    color: var(--text-color);
+}
+
+/* Toggle Logs Button */
+#toggleLogsBtn {
+    position: absolute;
+    top: 1em;
+    width: 10em;
+    text-transform: uppercase;
+    align-self: flex-end;
+    padding: 1em;
+}
+
+/* Forms */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+    width: calc(100% - 1em);
+    padding: .5em;
+    margin: .5em 0;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    font-size: 1em;
+    line-height: 1.5;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+/* Range input */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: calc(100% - 60px);
+    height: 10px;
+    background: var(--input-bg);
+    outline: none;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--primary-color);
+    cursor: pointer;
+    border-radius: 50%;
+}
+input[type="number"] {
+    width: 20%;
+    max-width: 100px;
+    min-width: 50px;
+}
+.range-min, .range-max {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    font-size: .8em;
+    color: var(--text-color);
+}
+.range-max {
+    right: 0;
+    left: unset;    
+}
+
+/* Progress bar */
+.progress-bar {
+    width: 200px;
+    height: 20px;
+    background-color: var(--secondary-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease-in-out;
+}
+
+#progressText {
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+/* Output fields */
+.output-field {
+    margin-bottom: 20px;
+    background-color: var(--secondary-color);
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.output-field h4 {
+    margin-top: 0;
+    color: var(--text-color);
+    font-weight: normal;
+}
+
+/* Placeholders */
+.image-placeholder,
+.string-placeholder,
+.number-placeholder,
+.boolean-placeholder,
+.array-placeholder,
+.object-placeholder,
+.unknown-placeholder {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    padding: .5em 1em;
+    word-break: normal;
+    border-radius: 3px;
+    min-height: 50px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    position: relative;
+    font-size: 1em;
+}
+
+/* Warning message */
+.warning-message {
+    background: var(--warning-color);
+    border-radius: .1em;
+    color: black;
+    font-weight: bold;
+    margin: 1.5em 0 0;
+    padding: .25em;
+    padding-left: .5em;
+    text-align: center;
+    box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    position: relative;
+    cursor: help;
+}
+
+/* Tooltip */
+.custom-tooltip {
+    visibility: hidden;
+    width: 450px;
+    background-color: #555;
+    color: #fff;
+    text-align: left;
+    border-radius: .1em;
+    padding: .5em;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-weight: normal;    
+}
+
+.custom-tooltip ul {
+    list-style-type: square;
+}
+
+.custom-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+/* Workflow List */
+#workflowList {
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+/* Workflow item styles */
+.workflow-item {
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.workflow-item:hover {
+    background-color: var(--secondary-color);
+}
+
+.workflow-item.selected {
+    background-color: var(--bg-color);
+    color: var(--primary-color);
+}
+
+/* Form elements */
+form, #output, #wsMessages {
+    background-color: var(--secondary-color);
+    padding: 1em;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: normal;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 60px;
+}
