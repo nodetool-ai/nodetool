@@ -71,7 +71,8 @@ const styles = (theme: any) =>
     },
     ".node-property label": {
       fontSize: theme.fontSizeNormal,
-      fontFamily: theme.fontFamily1
+      fontFamily: theme.fontFamily1,
+      userSelect: "none"
     },
     ".node-property.enum .mui-select": {
       height: "2em",
@@ -131,8 +132,8 @@ const styles = (theme: any) =>
   });
 
 const Inspector: React.FC = () => {
-  const [lastSelectedNode, setLastSelectedNode] = useState<Node | null>(null);
   const selectedNodes = useSessionStateStore((state) => state.selectedNodes);
+  const getNode = useNodeStore((state) => state.findNode);
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const setHighlightedNamespaces = useNodeMenuStore(
@@ -141,48 +142,12 @@ const Inspector: React.FC = () => {
   const setSelectedPath = useNodeMenuStore((state) => state.setSelectedPath);
   const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
 
-  useEffect(() => {
-    if (selectedNodes.length) {
-      setLastSelectedNode(selectedNodes[0]);
-    }
-  }, [selectedNodes]);
+  const selectedNodeId = selectedNodes[0]?.id;
+  const selectedNode = selectedNodeId ? getNode(selectedNodeId) : null;
+  const metadata = useMetadataOrNull(selectedNode?.type ?? "");
 
-  const metadata: NodeMetadata | undefined = useMetadataOrNull(
-    lastSelectedNode?.type ?? ""
-  );
-
-  if (!lastSelectedNode) {
-    return (
-      <Typography
-        variant="h5"
-        style={{ color: ThemeNodetool.palette.c_gray4, padding: "1em" }}
-      >
-        select a node to edit
-      </Typography>
-    );
-  }
-
-  if (lastSelectedNode.type === "nodetool.workflows.base_node.Comment") {
-    return (
-      <Typography
-        variant="h5"
-        style={{ color: ThemeNodetool.palette.c_gray4, padding: "1em" }}
-      >
-        comment
-      </Typography>
-    );
-  }
-  if (!metadata) {
-    return (
-      <div>
-        <Typography
-          variant="h5"
-          style={{ color: ThemeNodetool.palette.c_gray4, padding: "1em" }}
-        >
-          Unsupported node type
-        </Typography>
-      </div>
-    );
+  if (!selectedNode || !metadata) {
+    return <Typography>Select a node to edit</Typography>;
   }
 
   const handleOpenNodeMenu = () => {
@@ -202,20 +167,18 @@ const Inspector: React.FC = () => {
         </div>
         {metadata.properties.map((property, index) => (
           <PropertyField
-            key={"inspector-" + property.name + lastSelectedNode.id}
-            id={lastSelectedNode.id}
-            data={lastSelectedNode.data}
+            key={`inspector-${property.name}-${selectedNodeId}`}
+            id={selectedNodeId}
+            data={selectedNode.data}
             property={property}
             propertyIndex={index.toString()}
             onlyInput={true}
             isInspector={true}
             nodeType="inspector"
             layout=""
-            edgeConnected={
-              getInputEdges(lastSelectedNode.id).find(
-                (edge) => edge.targetHandle === property.name
-              ) !== undefined
-            }
+            edgeConnected={getInputEdges(selectedNodeId).some(
+              (edge) => edge.targetHandle === property.name
+            )}
           />
         ))}
       </div>

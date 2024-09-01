@@ -26,18 +26,18 @@ const styles = (theme: any) =>
         minWidth: "150px",
         maxWidth: "1000px",
         minHeight: "150px",
-        borderRadius: "2px",
+        borderRadius: "2px"
       },
       "&.preview-node": {
         padding: 0,
         backgroundColor: "transparent",
         margin: 0,
         "&.collapsed": {
-          maxHeight: "60px",
+          maxHeight: "60px"
         },
         label: {
-          display: "none",
-        },
+          display: "none"
+        }
       },
       ".node-header": {
         width: "100%",
@@ -48,17 +48,17 @@ const styles = (theme: any) =>
         margin: 0,
         padding: 0,
         backgroundColor: theme.palette.c_gray1,
-        border: 0,
+        border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {
         opacity: 0,
         position: "absolute",
         right: "-8px",
         bottom: "-9px",
-        transition: "opacity 0.2s",
+        transition: "opacity 0.2s"
       },
       "&:hover .react-flow__resize-control.handle.bottom.right": {
-        opacity: 1,
+        opacity: 1
       },
       ".description": {
         position: "absolute",
@@ -69,17 +69,17 @@ const styles = (theme: any) =>
         zIndex: 0,
         fontFamily: theme.fontFamily2,
         width: "100%",
-        color: theme.palette.c_gray5,
+        color: theme.palette.c_gray5
       },
       // tensor
       "& .tensor": {
         width: "100%",
         maxHeight: "500px",
         overflowY: "auto",
-        padding: "1em",
-      },
+        padding: "1em"
+      }
     },
-    tableStyles(theme),
+    tableStyles(theme)
   ]);
 
 interface PreviewNodeProps extends NodeProps<NodeData> {}

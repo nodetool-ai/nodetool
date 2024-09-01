@@ -56,10 +56,14 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           data-microtip-position="bottom"
           role="tooltip"
         >
-          <InputLabel htmlFor={id}>{name.replaceAll("_", " ")}</InputLabel>
+          <InputLabel draggable={false} htmlFor={id}>
+            {name.replaceAll("_", " ")}
+          </InputLabel>
         </div>
       ) : (
-        <InputLabel htmlFor={id}>{name.replaceAll("_", " ")}</InputLabel>
+        <InputLabel draggable={false} htmlFor={id}>
+          {name.replaceAll("_", " ")}
+        </InputLabel>
       )}
     </div>
   );
