@@ -9,7 +9,6 @@ from fastapi.responses import StreamingResponse
 from nodetool.common.huggingface_models import (
     CachedModel,
     delete_cached_model,
-    download_huggingface_model,
     read_all_cached_models,
     read_cached_model,
 )
@@ -46,16 +45,6 @@ async def delete_huggingface_model(repo_id: str) -> bool:
         log.warning("Cannot delete models in production")
         return False
     return delete_cached_model(repo_id)
-
-
-@router.post("/download")
-async def download_model(repo_id: str, user: User = Depends(current_user)):
-    if Environment.is_production():
-        log.warning("Cannot download models in production")
-        return False
-    return StreamingResponse(
-        download_huggingface_model(repo_id), media_type="text/plain"
-    )
 
 
 @router.get("/{folder}")

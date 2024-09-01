@@ -8,7 +8,8 @@ import {
   TextField,
   Typography,
   Box,
-  Autocomplete
+  Autocomplete,
+  LinearProgress,
 } from "@mui/material";
 import { useHuggingFaceStore } from "../stores/HuggingFaceStore";
 
@@ -35,28 +36,8 @@ const HuggingFaceModelDownloader: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const downloads = useHuggingFaceStore((state) => state.downloads);
-  const addDownload = useHuggingFaceStore((state) => state.addDownload);
-  const updateDownload = useHuggingFaceStore((state) => state.updateDownload);
-
-  const startDownload = useCallback(
-    (repoId: string) => {
-      const ws = new WebSocket(`${BASE_URL}/hf/download?repo_id=${repoId}`);
-      addDownload(repoId, { ws, output: "" });
-
-      ws.onmessage = (event: MessageEvent) => {
-        updateDownload(repoId, event.data);
-      };
-
-      ws.onerror = () => {
-        setError("WebSocket connection error");
-      };
-
-      ws.onclose = () => {
-        console.log("WebSocket connection closed");
-      };
-    },
-    [addDownload, updateDownload]
-  );
+  const startDownload = useHuggingFaceStore((state) => state.startDownload);
+  const cancelDownload = useHuggingFaceStore((state) => state.cancelDownload);
 
   const searchModels = async (query: string) => {
     setIsLoading(true);
@@ -105,7 +86,7 @@ const HuggingFaceModelDownloader: React.FC = () => {
               label="Search HuggingFace by Repo ID"
               variant="filled"
               fullWidth
-              /* margin="filled" */
+            /* margin="filled" */
             />
           )}
           freeSolo
@@ -137,25 +118,29 @@ const HuggingFaceModelDownloader: React.FC = () => {
         )}
       </form>
 
-      {Object.keys(downloads).length > 0 && (
-        <Typography variant="h5">Downloads</Typography>
-      )}
-
-      {Object.keys(downloads).map((name) => (
-        <Box key={name} mt={2} style={{ overflow: "scroll" }}>
+      {Object.entries(downloads).map(([name, download]) => (
+        <Box key={name} mt={2}>
           <Typography variant="subtitle1">{name}</Typography>
-          <pre
-            style={{
-              padding: "5px",
-              whiteSpace: "pre-wrap",
-              fontFamily: "monospace",
-              fontSize: "9px",
-              border: "1px solid grey",
-              background: "black"
-            }}
-          >
-            {downloads[name].output}
-          </pre>
+          <LinearProgress
+            variant="determinate"
+            value={(download.downloadedBytes * 1.0 / download.totalBytes) * 100}
+          />
+          <Typography variant="body2">
+            {download.totalFiles && download.downloadedFiles && (
+              <> | Files: {download.downloadedFiles} / {download.totalFiles}</>
+            )}
+            {download.downloadedBytes && download.totalBytes && (
+              <> | Size: {(download.downloadedBytes / 1024 / 1024).toFixed(2)} MB / {(download.totalBytes / 1024 / 1024).toFixed(2)} MB</>
+            )}
+          </Typography>
+          {download.message && (
+            <Typography variant="body2">Message: {download.message}</Typography>
+          )}
+          {download.status === 'running' && (
+            <Button onClick={() => cancelDownload(name)} variant="outlined" color="secondary" size="small">
+              Cancel
+            </Button>
+          )}
         </Box>
       ))}
     </Box>
