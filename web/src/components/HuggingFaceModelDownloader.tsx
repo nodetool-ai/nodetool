@@ -1,3 +1,6 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React, { useCallback, useState } from "react";
 import { BASE_URL } from "../stores/ApiClient";
 import {
@@ -8,6 +11,23 @@ import {
   Autocomplete
 } from "@mui/material";
 import { useHuggingFaceStore } from "../stores/HuggingFaceStore";
+
+const styles = (theme: any) =>
+  css({
+    "&": {
+      backgroundColor: theme.palette.c_gray1,
+      padding: theme.spacing(2),
+      marginBottom: "1em"
+    },
+    ".download-button": {
+      margin: ".1em 0 1em 0",
+      lineHeight: "1.2em",
+      color: theme.palette.c_gray0
+    },
+    ".download-info": {
+      color: theme.palette.c_warning
+    }
+  });
 
 const HuggingFaceModelDownloader: React.FC = () => {
   const [repoId, setRepoId] = useState<string | null>(null);
@@ -63,7 +83,8 @@ const HuggingFaceModelDownloader: React.FC = () => {
   };
 
   return (
-    <Box className="huggingface-model-downloader">
+    <Box className="huggingface-model-downloader" css={styles}>
+      <Typography variant="h5">Download Models</Typography>
       {error && <Typography color="error">{error}</Typography>}
       <form onSubmit={handleSubmit}>
         <Autocomplete
@@ -81,7 +102,7 @@ const HuggingFaceModelDownloader: React.FC = () => {
           renderInput={(params) => (
             <TextField
               {...params}
-              label="Hugging Face Repo ID to download"
+              label="Search HuggingFace by Repo ID"
               variant="filled"
               fullWidth
               /* margin="filled" */
@@ -91,9 +112,29 @@ const HuggingFaceModelDownloader: React.FC = () => {
           loading={isLoading}
           loadingText="Searching..."
         />
-        <Button type="submit" variant="contained" color="primary">
-          Start Downloading this model
+        <Button
+          className="download-button"
+          type="submit"
+          variant="contained"
+          color="primary"
+          disabled={!repoId}
+        >
+          {repoId ? (
+            <>
+              Download
+              <br />
+              {repoId}
+            </>
+          ) : (
+            "Download selected model"
+          )}
         </Button>
+        {repoId && (
+          <Typography className="download-info" variant="body2">
+            The model will be downloaded to your HuggingFace cache folder in the
+            background.
+          </Typography>
+        )}
       </form>
 
       {Object.keys(downloads).length > 0 && (

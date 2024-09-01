@@ -27,9 +27,10 @@ const styles = (theme: any) =>
       height: "70vh",
       overflow: "auto",
       backgroundColor: theme.palette.c_gray1,
-      padding: 0
+      padding: theme.spacing(2)
     },
     ".model-item": {
+      padding: 0,
       borderBottom: `1px solid ${theme.palette.c_gray0}`,
       marginBottom: theme.spacing(1),
       "&:hover": {
@@ -138,6 +139,7 @@ const HuggingFaceModelList: React.FC = () => {
 
   return (
     <Box className="huggingface-model-list" css={styles}>
+      <Typography variant="h5">Existing Models</Typography>
       {mutation.isPending && <CircularProgress />}
       {mutation.isError && (
         <Typography color="error">{mutation.error.message}</Typography>
