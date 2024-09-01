@@ -1,13 +1,23 @@
+import threading
 from huggingface_hub import scan_cache_dir, snapshot_download
+import websockets
+import json
+import sys
 from typing import List, Optional, Any
 from pydantic import BaseModel
 import asyncio
 import sys
 import os
-import json
 import shutil
 from huggingface_hub import HfFolder
 import subprocess
+from fastapi import FastAPI, WebSocket
+from fastapi.responses import JSONResponse
+from typing import AsyncGenerator
+from huggingface_hub import snapshot_download, HfApi
+from huggingface_hub.utils import RepositoryNotFoundError
+
+app = FastAPI()
 
 
 class CachedModel(BaseModel):
@@ -73,67 +83,73 @@ def delete_cached_model(model_id: str) -> bool:
     return False
 
 
-from tqdm.std import tqdm as std_tqdm
+async def download_huggingface_model(
+    repo_id: str, websocket: WebSocket, cancel_event: asyncio.Event
+):
+    try:
+        script = f"""
+import sys
+from huggingface_hub import snapshot_download
+snapshot_download('{repo_id}')
+"""
 
-
-class CustomTqdm(std_tqdm):
-
-    def update(self, n):
-        self.n = n
-        progress = min(100, int(self.n / self.total * 100))
-        print(
-            json.dumps(
-                {
-                    "progress": progress,
-                    "desc": self.desc,
-                    "current": self.n,
-                    "total": self.total,
-                }
-            ),
-            flush=True,
+        process = await asyncio.create_subprocess_shell(
+            f'{sys.executable} -c "{script}"',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env={**os.environ, "PYTHONUNBUFFERED": "1"},
         )
 
+        async def read_stream(stream):
+            while True:
+                if cancel_event.is_set():
+                    break
+                line = await stream.readline()
+                if not line:
+                    break
+                line = line.decode().strip()
+                print(line)
+                await websocket.send_text(line)
 
-async def download_huggingface_model(repo_id: str):
-    command = [sys.executable, __file__, repo_id]
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        universal_newlines=True,
-    )
+        await asyncio.gather(
+            read_stream(process.stdout),
+            read_stream(process.stderr),
+        )
 
-    assert process.stdout is not None
-    assert process.stderr is not None
+        if cancel_event.is_set():
+            process.terminate()
+            await websocket.send_text("Download cancelled")
+        else:
+            await process.wait()
 
-    def read_stream(stream):
-        for line in stream:
+            if process.returncode == 0:
+                await websocket.send_text("Download completed")
+            else:
+                await websocket.send_text(f"Download failed")
+
+    except Exception as e:
+        error_message = str(e)
+        await websocket.send_json({"status": "error", "message": error_message})
+        print("An error occurred during download:")
+        import traceback
+
+        traceback.print_exc()
+
+
+async def test_hf_download(repo_id):
+    uri = f"ws://localhost:8000/hf/download?repo_id={repo_id}"
+
+    async with websockets.connect(uri) as websocket:
+        print(f"Connected to WebSocket. Downloading {repo_id}...")
+
+        while True:
             try:
-                decoded_line = json.loads(line)
-                yield json.dumps(decoded_line)
-            except json.JSONDecodeError:
-                pass
-
-    while process.poll() is None:
-        for line in read_stream(process.stdout):
-            yield line
-        for line in read_stream(process.stderr):
-            yield line
-        await asyncio.sleep(0.1)
-
-    # Read any remaining output after the process has finished
-    for line in read_stream(process.stdout):
-        yield line
-    for line in read_stream(process.stderr):
-        yield line
+                message = await websocket.recv()
+                print(message)
+            except websockets.exceptions.ConnectionClosed:
+                print("Connection closed unexpectedly")
+                break
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python huggingface_models.py <repo_id>")
-        sys.exit(1)
-
-    repo_id = sys.argv[1]
-
-    snapshot_download(repo_id, tqdm_class=CustomTqdm)  # type: ignore
+    asyncio.run(test_hf_download(sys.argv[1]))
