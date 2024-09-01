@@ -96,6 +96,7 @@ const OutputContextMenu: React.FC = () => {
         devLog("Metadata is undefined, cannot create node.");
         return;
       }
+
       const newNode = createNode(
         metadata,
         reactFlowInstance.screenToFlowPosition({
@@ -103,16 +104,31 @@ const OutputContextMenu: React.FC = () => {
           y: position.y
         })
       );
+
+      if (metadata.style) {
+        newNode.style = metadata.style;
+      }
+
+      // Assign a default size if specific dimensions were not provided
       newNode.data.size = {
-        width: 200,
-        height: 200
+        width:
+          typeof newNode.style?.width === "number"
+            ? newNode.style.width
+            : parseInt(newNode.style?.width as string, 10) || 200,
+        height:
+          typeof newNode.style?.height === "number"
+            ? newNode.style.height
+            : parseInt(newNode.style?.height as string, 10) || 200
       };
+
+      // Assign a unique name to the node
       newNode.data.properties.name =
         sourceType?.type +
           "_" +
           sourceHandle +
           "_" +
           getTimestampForFilename(false) || "";
+
       addNode(newNode);
       const targetHandle = getTargetHandle(type || "", nodeType);
       addEdge({
@@ -145,12 +161,19 @@ const OutputContextMenu: React.FC = () => {
       if (!metadata) {
         return;
       }
+      const position = {
+        x: event.clientX - 150,
+        y: event.clientY - 150
+      };
       createNodeWithEdge(
-        metadata,
         {
-          x: event.clientX - 150,
-          y: event.clientY - 150
+          ...metadata,
+          style: {
+            width: "160px",
+            height: "160px"
+          }
         },
+        position,
         "preview"
       );
     },
