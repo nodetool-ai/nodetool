@@ -28,34 +28,38 @@ const HelpChat: React.FC = () => {
   return (
     <div className="help-chat" style={{ margin: ".5em" }}>
       <Typography variant="h4">Hello</Typography>
-      <Typography>
-        <Box>
-          I&apos;m your experimental AI assistant!
-          <br />
-          <br />
+      <Box sx={{ mb: 2 }}>
+        <Typography>I&apos;m your experimental AI assistant!</Typography>
+        <Typography sx={{ mt: 2 }}>
           Ask me anything about Nodetool&apos;s features, like:
-        </Box>
-        <Box
-          sx={{
-            paddingLeft: "1em",
-            margin: ".5em 0 1em 0",
-            listStyleType: "square",
-          }}
-        >
-          <ul
-            style={{
-              padding: 0,
-              margin: 0,
-            }}
-          >
-            <Typography component="li">Getting started</Typography>
-            <Typography component="li">Managing assets</Typography>
-            <Typography component="li">Working with nodes</Typography>
-            <Typography component="li">Shortcuts</Typography>
-            <Typography component="li">Settings</Typography>
-          </ul>
-        </Box>
-        <Box>You can even ask me to try and build a workflow.</Box>
+        </Typography>
+      </Box>
+      <Box
+        sx={{
+          paddingLeft: "1em",
+          margin: ".5em 0 1em 0",
+        }}
+      >
+        <List sx={{ listStyleType: "square", pl: 2 }}>
+          <ListItem sx={{ display: "list-item", p: 0 }}>
+            <ListItemText primary="Getting started" />
+          </ListItem>
+          <ListItem sx={{ display: "list-item", p: 0 }}>
+            <ListItemText primary="Managing assets" />
+          </ListItem>
+          <ListItem sx={{ display: "list-item", p: 0 }}>
+            <ListItemText primary="Working with nodes" />
+          </ListItem>
+          <ListItem sx={{ display: "list-item", p: 0 }}>
+            <ListItemText primary="Shortcuts" />
+          </ListItem>
+          <ListItem sx={{ display: "list-item", p: 0 }}>
+            <ListItemText primary="Settings" />
+          </ListItem>
+        </List>
+      </Box>
+      <Typography sx={{ mb: 2 }}>
+        You can even ask me to try and build a workflow.
       </Typography>
       <ChatView
         isLoading={isLoading}
