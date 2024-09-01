@@ -18,11 +18,10 @@ import { isProduction } from "../../stores/ApiClient";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
 
-/* const styles = (theme: any) => */
-const styles = () =>
+const styles = (theme: any) =>
   css({
     ".panel-tabs ": {
-      minHeight: "2em",
+      minHeight: "2em"
     },
     ".panel-tabs button": {
       display: "flex",
@@ -32,8 +31,11 @@ const styles = () =>
       minHeight: "unset",
       marginRight: "4px",
       textAlign: "left",
-      fontSize: "12px",
+      fontSize: "12px"
     },
+    ".panel-tabs button:hover:not(.Mui-selected)": {
+      color: theme.palette.c_gray6
+    }
   });
 
 function HuggingFacePanel() {
@@ -51,7 +53,7 @@ function PanelRight() {
     size: panelSize,
     isDragging,
     handleMouseDown,
-    handlePanelToggle,
+    handlePanelToggle
   } = useResizePanel("right");
 
   useHotkeys("2", () => {
@@ -106,7 +108,7 @@ function PanelRight() {
         PaperProps={{
           ref: panelRef,
           className: `panel panel-right ${isDragging ? "dragging" : ""}`,
-          style: { width: `${panelSize}px` },
+          style: { width: `${panelSize}px` }
         }}
         variant="persistent"
         anchor="left"
