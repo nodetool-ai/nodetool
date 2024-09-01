@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
-import React from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../stores/ApiClient";
 import {
   Box,
@@ -11,7 +10,7 @@ import {
   List,
   ListItem,
   ListItemText,
-  Typography,
+  Typography
 } from "@mui/material";
 import DeleteButton from "./buttons/DeleteButton";
 
@@ -21,37 +20,40 @@ const styles = (theme: any) =>
       height: "70vh",
       overflow: "auto",
       backgroundColor: theme.palette.c_gray1,
-      padding: 0,
+      padding: 0
     },
     ".model-item": {
       borderBottom: `1px solid ${theme.palette.c_gray0}`,
       marginBottom: theme.spacing(1),
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
-      },
+        backgroundColor: theme.palette.c_gray2
+      }
     },
     ".model-text": {
       wordBreak: "break-word",
       maxHeight: "3.5em",
-      overflow: "hidden",
+      overflow: "hidden"
     },
     ".model-text span": {
       maxHeight: "2.5em",
-      overflow: "hidden",
+      overflow: "hidden"
     },
     ".model-text p": {
-      paddingTop: theme.spacing(1),
+      paddingTop: theme.spacing(1)
     },
     button: {
-      color: theme.palette.c_gray5,
-    },
+      color: theme.palette.c_gray5
+    }
   });
 
 const HuggingFaceModelList: React.FC = () => {
+  const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
+
   const {
     data: models,
     isLoading,
-    error,
+    error
   } = useQuery({
     queryKey: ["huggingFaceModels"],
     queryFn: async () => {
@@ -61,18 +63,31 @@ const HuggingFaceModelList: React.FC = () => {
       );
       if (error) throw error;
       return data;
-    },
+    }
   });
 
   // delete mutation
   const deleteModel = async (repoId: string) => {
-    const { error } = await client.DELETE("/api/models/huggingface_model", {
-      params: { query: { repo_id: repoId } },
-    });
-    if (error) throw error;
+    setDeletingModels((prev) => new Set(prev).add(repoId));
+    try {
+      const { error } = await client.DELETE("/api/models/huggingface_model", {
+        params: { query: { repo_id: repoId } }
+      });
+      if (error) throw error;
+      queryClient.setQueryData(["huggingFaceModels"], (oldData: any) =>
+        oldData.filter((model: any) => model.repo_id !== repoId)
+      );
+    } finally {
+      setDeletingModels((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(repoId);
+        return newSet;
+      });
+    }
   };
+
   const mutation = useMutation({
-    mutationFn: deleteModel,
+    mutationFn: deleteModel
   });
 
   if (isLoading) {
@@ -90,9 +105,14 @@ const HuggingFaceModelList: React.FC = () => {
         primary={model.repo_id}
         secondary={`${(model.size_on_disk / 1024 / 1024).toFixed(2)} MB`}
       />
-      <DeleteButton onClick={(e) => mutation.mutate(model.repo_id)} />
+      {deletingModels.has(model.repo_id) ? (
+        <CircularProgress size={24} />
+      ) : (
+        <DeleteButton onClick={() => mutation.mutate(model.repo_id)} />
+      )}
     </ListItem>
   ));
+
   return (
     <Box className="huggingface-model-list" css={styles}>
       {mutation.isPending && <CircularProgress />}

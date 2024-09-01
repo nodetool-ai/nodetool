@@ -1,67 +1,42 @@
-import React, { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import React, { useCallback, useState } from "react";
 import { BASE_URL } from "../stores/ApiClient";
 import {
   Button,
   TextField,
-  LinearProgress,
   Typography,
   Box,
-  Autocomplete,
+  Autocomplete
 } from "@mui/material";
-
-interface DownloadProgress {
-  progress: number;
-  desc: string;
-  current: number;
-  total: number;
-}
+import { useHuggingFaceStore } from "../stores/HuggingFaceStore";
 
 const HuggingFaceModelDownloader: React.FC = () => {
   const [repoId, setRepoId] = useState<string | null>(null);
-  const [downloads, setDownloads] = useState<Record<string, DownloadProgress>>(
-    {}
-  );
   const [options, setOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const downloads = useHuggingFaceStore((state) => state.downloads);
+  const addDownload = useHuggingFaceStore((state) => state.addDownload);
+  const updateDownload = useHuggingFaceStore((state) => state.updateDownload);
 
-  const downloadMutation = useMutation({
-    mutationFn: async (repoId: string) => {
-      const response = await fetch(
-        BASE_URL + "/api/models/download?repo_id=" + repoId,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+  const startDownload = useCallback(
+    (repoId: string) => {
+      const ws = new WebSocket(`${BASE_URL}/hf/download?repo_id=${repoId}`);
+      addDownload(repoId, { ws, output: "" });
 
-      if (!response.ok) {
-        throw new Error("Download failed");
-      }
+      ws.onmessage = (event: MessageEvent) => {
+        updateDownload(repoId, event.data);
+      };
 
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
+      ws.onerror = () => {
+        setError("WebSocket connection error");
+      };
 
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const lines = decoder.decode(value).split("\n");
-        for (const line of lines) {
-          if (line.trim()) {
-            const progress: DownloadProgress = JSON.parse(line);
-            setDownloads((prevDownloads) => {
-              return {
-                ...prevDownloads,
-                repoId: progress,
-              };
-            });
-          }
-        }
-      }
+      ws.onclose = () => {
+        console.log("WebSocket connection closed");
+      };
     },
-  });
+    [addDownload, updateDownload]
+  );
 
   const searchModels = async (query: string) => {
     setIsLoading(true);
@@ -72,7 +47,7 @@ const HuggingFaceModelDownloader: React.FC = () => {
       const data = await response.json();
       setOptions(data.map((model: any) => model.id));
     } catch (error) {
-      console.error("Error fetching models:", error);
+      setError("Error searching models");
     } finally {
       setIsLoading(false);
     }
@@ -80,14 +55,16 @@ const HuggingFaceModelDownloader: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (repoId && !downloads[repoId]) {
-      downloadMutation.mutate(repoId);
-      setRepoId("");
+    if (repoId && !(repoId in downloads)) {
+      startDownload(repoId);
+      setRepoId(null);
+      setError(null);
     }
   };
 
   return (
     <Box className="huggingface-model-downloader">
+      {error && <Typography color="error">{error}</Typography>}
       <form onSubmit={handleSubmit}>
         <Autocomplete
           value={repoId}
@@ -114,35 +91,32 @@ const HuggingFaceModelDownloader: React.FC = () => {
           loading={isLoading}
           loadingText="Searching..."
         />
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          disabled={downloadMutation.isPending || !repoId}
-        >
+        <Button type="submit" variant="contained" color="primary">
           Start Downloading this model
         </Button>
       </form>
 
-      {repoId && downloads[repoId] && (
-        <Box key={repoId} mt={2}>
-          <Typography variant="subtitle1">{repoId}</Typography>
-          <LinearProgress
-            variant="determinate"
-            value={downloads[repoId].progress}
-          />
-          <Typography variant="body2">
-            {downloads[repoId].desc} - {downloads[repoId].current} /{" "}
-            {downloads[repoId].total}
-          </Typography>
-        </Box>
+      {Object.keys(downloads).length > 0 && (
+        <Typography variant="h5">Downloads</Typography>
       )}
 
-      {downloadMutation.isError && (
-        <Typography color="error" mt={2}>
-          Error: {downloadMutation.error.message}
-        </Typography>
-      )}
+      {Object.keys(downloads).map((name) => (
+        <Box key={name} mt={2} style={{ overflow: "scroll" }}>
+          <Typography variant="subtitle1">{name}</Typography>
+          <pre
+            style={{
+              padding: "5px",
+              whiteSpace: "pre-wrap",
+              fontFamily: "monospace",
+              fontSize: "9px",
+              border: "1px solid grey",
+              background: "black"
+            }}
+          >
+            {downloads[name].output}
+          </pre>
+        </Box>
+      ))}
     </Box>
   );
 };
