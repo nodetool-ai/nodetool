@@ -181,7 +181,7 @@ const OpenOrCreateDialog = () => {
     queryKey: ["workflows"],
     queryFn: async () => {
       return loadWorkflows("");
-    },
+    }
   });
 
   // CREATE NEW WORKFLOW
@@ -229,9 +229,9 @@ const OpenOrCreateDialog = () => {
   // List view
   const renderListView = (workflows: any) => (
     <Box className="container list" css={listStyles}>
-      {workflows.map((workflow: Workflow) => (
+      {workflows.map((workflow: Workflow, index: number) => (
         <Box
-          key={workflow.id}
+          key={`${workflow.id}-${index}`}
           className="workflow list"
           onClick={() => onClickWorkflow(workflow)}
         >
