@@ -6,25 +6,25 @@ import Button from "@mui/material/Button";
 import ClearIcon from "@mui/icons-material/Clear";
 
 interface DeleteButtonProps<T> {
-  item: T;
+  item?: T;
   className?: string;
   onClick: (event: React.MouseEvent<HTMLButtonElement>, item: T) => void;
 }
 
 const styles = (theme: any) =>
   css({
-    "button:hover": {
-      color: theme.palette.c_delete
+    "button:hover svg": {
+      color: theme.palette.c_delete,
     },
     button: {
-      color: theme.palette.c_gray5
-    }
+      color: theme.palette.c_gray5,
+    },
   });
 
 function DeleteButton<T>({
   item,
   className = "",
-  onClick
+  onClick,
 }: DeleteButtonProps<T>): JSX.Element {
   return (
     <Button
@@ -32,7 +32,7 @@ function DeleteButton<T>({
       className={`${className} delete-button`}
       onClick={(e) => {
         e.stopPropagation();
-        onClick(e, item);
+        onClick(e, item ? item : ({} as T));
       }}
     >
       <ClearIcon />

@@ -19,7 +19,9 @@ interface DownloadProgress {
 
 const HuggingFaceModelDownloader: React.FC = () => {
   const [repoId, setRepoId] = useState<string | null>(null);
-  const [downloads, setDownloads] = useState<Record<string, DownloadProgress>>({});
+  const [downloads, setDownloads] = useState<Record<string, DownloadProgress>>(
+    {}
+  );
   const [options, setOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -64,7 +66,9 @@ const HuggingFaceModelDownloader: React.FC = () => {
   const searchModels = async (query: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`https://huggingface.co/api/models?search=${query}`);
+      const response = await fetch(
+        `https://huggingface.co/api/models?search=${query}`
+      );
       const data = await response.json();
       setOptions(data.map((model: any) => model.id));
     } catch (error) {
@@ -83,7 +87,7 @@ const HuggingFaceModelDownloader: React.FC = () => {
   };
 
   return (
-    <Box>
+    <Box className="huggingface-model-downloader">
       <form onSubmit={handleSubmit}>
         <Autocomplete
           value={repoId}
@@ -101,9 +105,9 @@ const HuggingFaceModelDownloader: React.FC = () => {
             <TextField
               {...params}
               label="Hugging Face Repo ID to download"
-              variant="outlined"
+              variant="filled"
               fullWidth
-              margin="normal"
+              /* margin="filled" */
             />
           )}
           freeSolo

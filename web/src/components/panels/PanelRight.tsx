@@ -18,7 +18,8 @@ import { isProduction } from "../../stores/ApiClient";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
 
-const styles = (theme: any) =>
+/* const styles = (theme: any) => */
+const styles = () =>
   css({
     ".panel-tabs ": {
       minHeight: "2em",
@@ -37,7 +38,7 @@ const styles = (theme: any) =>
 
 function HuggingFacePanel() {
   return (
-    <Box>
+    <Box className="huggingface-panel">
       <HuggingFaceModelDownloader />
       <HuggingFaceModelList />
     </Box>

@@ -3,7 +3,6 @@ import ChatView from "./ChatView";
 import { MessageCreateRequest } from "../../stores/ApiTypes";
 import { useChatStore } from "../../stores/ChatStore";
 import { Box, List, ListItem, ListItemText, Typography } from "@mui/material";
-import SquareIcon from "@mui/icons-material/CheckBoxOutlineBlank"; // Example icon
 
 const HelpChat: React.FC = () => {
   const { threadId, messages, isLoading, fetchMessages, sendMessage } =
