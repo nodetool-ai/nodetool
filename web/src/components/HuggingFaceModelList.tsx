@@ -13,6 +13,13 @@ import {
   Typography
 } from "@mui/material";
 import DeleteButton from "./buttons/DeleteButton";
+import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle
+} from "@mui/material";
 
 const styles = (theme: any) =>
   css({
@@ -48,6 +55,7 @@ const styles = (theme: any) =>
 
 const HuggingFaceModelList: React.FC = () => {
   const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
+  const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const {
@@ -90,6 +98,21 @@ const HuggingFaceModelList: React.FC = () => {
     mutationFn: deleteModel
   });
 
+  const handleDeleteClick = (repoId: string) => {
+    setModelToDelete(repoId);
+  };
+
+  const handleConfirmDelete = () => {
+    if (modelToDelete) {
+      mutation.mutate(modelToDelete);
+      setModelToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setModelToDelete(null);
+  };
+
   if (isLoading) {
     return <CircularProgress />;
   }
@@ -108,7 +131,7 @@ const HuggingFaceModelList: React.FC = () => {
       {deletingModels.has(model.repo_id) ? (
         <CircularProgress size={24} />
       ) : (
-        <DeleteButton onClick={() => mutation.mutate(model.repo_id)} />
+        <DeleteButton onClick={() => handleDeleteClick(model.repo_id)} />
       )}
     </ListItem>
   ));
@@ -123,6 +146,25 @@ const HuggingFaceModelList: React.FC = () => {
         <Typography color="success">Model deleted successfully</Typography>
       )}
       <List>{modelList}</List>
+      <Dialog
+        open={!!modelToDelete}
+        onClose={handleCancelDelete}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Confirm Deletion"}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Delete "{modelToDelete}"?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
