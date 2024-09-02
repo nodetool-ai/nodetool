@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch: Python Script",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "justMyCode": false,
+        },
+        {
             "name": "Debug: Server",
             "type": "debugpy",
             "request": "launch",

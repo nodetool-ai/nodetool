@@ -8,6 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from nodetool.api import prediction
 from nodetool.api.websocket_proxy import WebSocketProxy
 from nodetool.common.environment import Environment
+from nodetool.common.huggingface_cache import (
+    websocket_endpoint as hf_websocket_endpoint,
+)
 
 from fastapi import APIRouter, FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,17 +18,7 @@ from uvicorn import run as uvicorn
 
 from nodetool.common.huggingface_models import download_huggingface_model
 
-from . import (
-    asset,
-    job,
-    auth,
-    message,
-    node,
-    storage,
-    task,
-    workflow,
-    model,
-)
+from . import asset, job, auth, message, node, storage, task, workflow, model, settings
 
 DEFAULT_ROUTERS = [
     asset.router,
@@ -38,6 +31,7 @@ DEFAULT_ROUTERS = [
     storage.router,
     task.router,
     model.router,
+    settings.router,
 ]
 
 
@@ -82,26 +76,7 @@ def create_app(
     worker_url = Environment.get_worker_url()
 
     if not Environment.is_production():
-
-        @app.websocket("/hf/download")
-        async def hf_websocket_endpoint(websocket: WebSocket, repo_id: str):
-            await websocket.accept()
-            cancel_event = asyncio.Event()
-
-            async def cancel_listener():
-                while True:
-                    message = await websocket.receive_text()
-                    if message == "cancel":
-                        cancel_event.set()
-                        break
-
-            download_task = asyncio.create_task(
-                download_huggingface_model(repo_id, websocket, cancel_event)
-            )
-
-            cancel_task = asyncio.create_task(cancel_listener())
-
-            await asyncio.gather(download_task, cancel_task)
+        app.add_websocket_route("/hf/download", hf_websocket_endpoint)
 
     if worker_url:
         ws_proxy = WebSocketProxy(worker_url=worker_url)

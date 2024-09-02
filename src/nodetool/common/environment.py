@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 from nodetool.common.nodetool_api_client import (
     NodetoolAPIClient,
@@ -8,63 +8,28 @@ from nodetool.common.nodetool_api_client import (
 )
 from nodetool.models.database_adapter import DatabaseAdapter
 from nodetool.storage.abstract_node_cache import AbstractNodeCache
+from nodetool.common.settings import (
+    load_settings,
+    save_settings,
+    setup_settings,
+    get_value,
+    get_system_file_path,
+    SETTINGS_FILE,
+    SECRETS_FILE,
+)
 
-
-def get_data_path(filename: str):
-    """
-    Get the default database path.
-    """
-    import platform
-    from pathlib import Path
-
-    os_name = platform.system()
-    if os_name == "Linux" or os_name == "Darwin":
-        return Path.home() / ".local" / "share" / "nodetool" / filename
-    elif os_name == "Windows":
-        appdata = os.getenv("APPDATA")
-        if appdata is not None:
-            return Path(appdata) / "nodetool" / filename
-        else:
-            return Path("data") / filename
-    else:
-        return Path("data") / filename
-
-
-def get_system_file_path(filename: str):
-    """
-    Returns the path to the settings file for the current OS.
-    """
-    import platform
-    from pathlib import Path
-
-    os_name = platform.system()
-    if os_name == "Linux" or os_name == "Darwin":
-        return Path.home() / ".config" / "nodetool" / filename
-    elif os_name == "Windows":
-        appdata = os.getenv("APPDATA")
-        if appdata is not None:
-            return Path(appdata) / "nodetool" / filename
-        else:
-            return Path("data") / filename
-    else:
-        return Path("data") / filename
-
-
-MISSING_MESSAGE = "Missing required environment variable: {}"
-
-# Default values for environment variables
 DEFAULT_ENV = {
     "ASSET_BUCKET": "images",
     "TEMP_BUCKET": "temp",
     "ASSET_DOMAIN": None,
     "TEMP_DOMAIN": None,
     "CHROMA_URL": None,
-    "CHROMA_PATH": str(get_data_path("chroma")),
+    "CHROMA_PATH": str(get_system_file_path("chroma")),
     "COMFY_FOLDER": None,
-    "ASSET_FOLDER": str(get_data_path("assets")),
+    "ASSET_FOLDER": str(get_system_file_path("assets")),
     "MEMCACHE_HOST": None,
     "MEMCACHE_PORT": None,
-    "DB_PATH": str(get_data_path("nodetool.sqlite3")),
+    "DB_PATH": str(get_system_file_path("nodetool.sqlite3")),
     "REPLICATE_API_TOKEN": None,
     "OPENAI_API_KEY": None,
     "OLLAMA_API_URL": "http://localhost:11434",
@@ -77,25 +42,6 @@ DEFAULT_ENV = {
     "AWS_REGION": "us-east-1",
     "NODETOOL_API_URL": None,
 }
-
-SETTINGS_FILE = "settings.yaml"
-SECRETS_FILE = "secrets.yaml"
-
-SETTINGS_SETUP = [
-    {
-        "key": "COMFY_FOLDER",
-        "prompt": "Location of ComfyUI folder (optional)",
-    },
-]
-
-SECRETS_SETUP = [
-    {"key": "OPENAI_API_KEY", "prompt": "OpenAI API key (optional)"},
-    {"key": "HF_TOKEN", "prompt": "Hugging Face Token (optional)"},
-    {
-        "key": "REPLICATE_API_TOKEN",
-        "prompt": "Replicate API Token (optional)",
-    },
-]
 
 NOT_GIVEN = object()
 
@@ -124,135 +70,42 @@ class Environment(object):
     remote_auth: bool = True
 
     @classmethod
-    def get_aws_execution_env(cls):
-        return os.getenv("AWS_EXECUTION_ENV", None)
-
-    @classmethod
-    def has_settings(cls):
-        """
-        Returns True if the settings file exists.
-        """
-        return get_system_file_path(SETTINGS_FILE).exists()
-
-    @classmethod
-    def has_secrets(cls):
-        """
-        Returns True if the secrets file exists.
-        """
-        return get_system_file_path(SECRETS_FILE).exists()
-
-    @classmethod
     def load_settings(cls):
-        """
-        Load the settings from the settings file.
-        Loas the secrets from the secrets file.
-        """
-        import yaml
-
-        settings_file = get_system_file_path(SETTINGS_FILE)
-        secrets_file = get_system_file_path(SECRETS_FILE)
-
-        if settings_file.exists():
-            with open(settings_file, "r") as f:
-                cls.settings = yaml.safe_load(f)  # type: ignore
-
-        if secrets_file.exists():
-            with open(secrets_file, "r") as f:
-                cls.secrets = yaml.safe_load(f)  # type: ignore
-
-        if cls.settings is None:
-            cls.settings = {}
-
-        if cls.secrets is None:
-            cls.secrets = {}
+        cls.settings, cls.secrets = load_settings()
 
     @classmethod
     def save_settings(cls):
-        """
-        Save the user settings to the settings file.
-        Save the user secrets to the secrets file.
-        """
-        import yaml
-
-        settings_file = get_system_file_path(SETTINGS_FILE)
-        secrets_file = get_system_file_path(SECRETS_FILE)
-
-        print()
-        print(f"Saving settings to {settings_file}")
-        print(f"Saving secrets to {secrets_file}")
-
-        os.makedirs(os.path.dirname(settings_file), exist_ok=True)
-        os.makedirs(os.path.dirname(secrets_file), exist_ok=True)
-
-        with open(settings_file, "w") as f:
-            yaml.dump(cls.settings, f)
-
-        with open(secrets_file, "w") as f:
-            yaml.dump(cls.secrets, f)
-
-    @classmethod
-    def get_settings(cls):
-        """
-        Returns a dictionary of settings.
-        """
-        if cls.settings is None:
-            cls.load_settings()
-        assert cls.settings is not None
-        return cls.settings
-
-    @classmethod
-    def get_secrets(cls):
-        """
-        Returns a dictionary of secrets.
-        """
-        if cls.secrets is None:
-            cls.load_settings()
-        assert cls.secrets is not None
-        return cls.secrets
+        assert cls.settings is not None and cls.secrets is not None
+        save_settings(cls.settings, cls.secrets)
 
     @classmethod
     def setup(cls):
-        """
-        Runs the configuration wizard to set up the environment.
-        """
-
-        # Initialize the settings and secrets
         cls.load_settings()
-        assert cls.settings is not None
-        assert cls.secrets is not None
-
-        print("Setting up Nodetool environment")
-        print("Press enter to use the default value")
-        print("Press ctrl-c to exit")
-        print()
-
-        for step in SETTINGS_SETUP:
-            default_value = cls.get(step["key"])
-            default_prompt = f" [{default_value}]: " if default_value else ": "
-            value = input(step["prompt"] + default_prompt).strip()
-            cls.settings[step["key"]] = default_value if value == "" else value
-
-        def mask_secret(prompt: str, num_chars: int = 8) -> str:
-            return "*" * num_chars + prompt[num_chars:]
-
-        for step in SECRETS_SETUP:
-            default_value = cls.secrets.get(step["key"])
-            default_prompt = (
-                f" [{mask_secret(default_value)}]: " if default_value else ": "
-            )
-            value = input(step["prompt"] + default_prompt).strip()
-            cls.secrets[step["key"]] = default_value if value == "" else value
-
+        assert cls.settings is not None and cls.secrets is not None
+        cls.settings, cls.secrets = setup_settings(
+            cls.settings, cls.secrets, DEFAULT_ENV
+        )
         cls.save_settings()
-
-        print()
-        print("Initializing database")
-        cls.initialize_database()
 
         print()
         print("Environment setup complete!")
         print("You can now run the Nodetool server using the 'nodetool serve' command")
         print()
+
+    @classmethod
+    def get(cls, key: str, default: Any = ...):
+        if cls.settings is None or cls.secrets is None:
+            cls.load_settings()
+        assert cls.settings is not None and cls.secrets is not None
+        return get_value(key, cls.settings, cls.secrets, DEFAULT_ENV, default)
+
+    @classmethod
+    def has_settings(cls):
+        return get_system_file_path(SETTINGS_FILE).exists()
+
+    @classmethod
+    def has_secrets(cls):
+        return get_system_file_path(SECRETS_FILE).exists()
 
     @classmethod
     def initialize_database(cls):
@@ -264,26 +117,8 @@ class Environment(object):
         create_all_tables()
 
     @classmethod
-    def get(cls, key: str, default: Any = NOT_GIVEN):
-        """
-        Get the value of an environment variable, or a default value.
-
-        If the environment variable is not set, and the key is not in the
-        default values, raise an exception.
-        """
-
-        if key in os.environ:
-            return os.environ[key]
-        elif key in cls.get_settings():
-            return cls.get_settings()[key]
-        elif key in cls.get_secrets():
-            return cls.get_secrets()[key]
-        elif key in DEFAULT_ENV:
-            return DEFAULT_ENV[key]
-        elif default is not NOT_GIVEN:
-            return default
-        else:
-            raise Exception(MISSING_MESSAGE.format(key))
+    def get_aws_execution_env(cls):
+        return os.getenv("AWS_EXECUTION_ENV", None)
 
     @classmethod
     def get_aws_region(cls):
