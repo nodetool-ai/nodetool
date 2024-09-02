@@ -6,7 +6,8 @@ from fastapi import FastAPI, WebSocket
 from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.hf_api import RepoFile
 import huggingface_hub.file_download
-from multiprocessing import Queue, Manager, freeze_support
+from multiprocessing import Manager
+from queue import Empty
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import threading
 
@@ -17,7 +18,14 @@ class DownloadManager:
     downloaded_bytes: int = 0
     total_bytes: int = 0
     repo_id: str = ""
-    status: Literal["idle"] | Literal["running"]
+    status: (
+        Literal["idle"]
+        | Literal["progress"]
+        | Literal["start"]
+        | Literal["error"]
+        | Literal["completed"]
+        | Literal["cancelled"]
+    ) = "idle"
 
     def __init__(self):
         self.api = HfApi()
@@ -36,43 +44,69 @@ class DownloadManager:
         self.process_pool = ProcessPoolExecutor()
         self.manager = Manager()
         self.queue = self.manager.Queue()
-        self.status = "running"
+        self.status = "start"
         self.cancel = asyncio.Event()
         self.repo_id = repo_id
         self.downloaded_bytes = 0
+        self.downloaded_files = []
+        self.current_file = ""
+        self.total_files = 0
+        self.total_bytes = 0
         self.websocket = websocket
+        self.progress_running = True
 
         # Start the progress updates in a separate thread
         self.progress_thread = threading.Thread(target=self.run_progress_updates)
         self.progress_thread.start()
 
-        await self.download_huggingface_repo(repo_id)
+        try:
+            await self.download_huggingface_repo(repo_id)
+        except Exception as e:
+            print(f"Error in download: {e}")
+            self.status = "error"
+            await self.send_update()
+        finally:
+            self.process_pool.shutdown()
+            self.manager.shutdown()
+            self.progress_running = False
 
     async def cancel_download(self):
-        if self.status == "running":
-            self.cancel.set()
-            return True
-        return False
+        self.cancel.set()
 
     def run_progress_updates(self):
         asyncio.run(self.send_progress_updates())
 
+    async def send_update(self):
+        await self.websocket.send_json(
+            {
+                "status": self.status,
+                "repo_id": self.repo_id,
+                "downloaded_bytes": self.downloaded_bytes,
+                "total_bytes": self.total_bytes,
+                "downloaded_files": len(self.downloaded_files),
+                "current_file": self.current_file,
+                "total_files": self.total_files,
+            }
+        )
+
     async def send_progress_updates(self):
-        while not self.cancel.is_set():
+        while self.progress_running:
             try:
                 message = self.queue.get(timeout=0.1)
                 if message:
+                    self.status = "progress"
                     self.downloaded_bytes += message["n"]
-                    await self.websocket.send_json(
-                        {
-                            "status": "progress",
-                            "repo_id": self.repo_id,
-                            "downloaded_bytes": self.downloaded_bytes,
-                            "total_bytes": self.total_bytes,
-                        }
-                    )
-            except Exception:
-                pass  # Handle timeout or other exceptions
+                    await self.send_update()
+            except TimeoutError:
+                pass
+            except Empty:
+                pass
+            except EOFError:
+                pass
+            except Exception as e:
+                import traceback
+
+                traceback.print_exc()
 
     async def download_huggingface_repo(self, repo_id):
         files = self.api.list_repo_files(repo_id)
@@ -82,24 +116,14 @@ class DownloadManager:
             for file in self.api.list_repo_tree(repo_id, recursive=True)
             if isinstance(file, RepoFile)
         )
-
-        await self.websocket.send_json(
-            {
-                "status": "start",
-                "repo_id": self.repo_id,
-                "total_files": self.total_files,
-                "total_bytes": self.total_bytes,
-            }
-        )
-
-        # Remove the progress_task creation and cancellation
-        # progress_task = asyncio.create_task(self.send_progress_updates())
+        await self.send_update()
 
         loop = asyncio.get_running_loop()
-        downloaded_files = []
         for file in files:
             if self.cancel.is_set():
                 break
+            self.current_file = file
+            await self.send_update()
             filename, local_path = await loop.run_in_executor(
                 self.process_pool,
                 download_file,
@@ -107,34 +131,18 @@ class DownloadManager:
                 file,
                 self.queue,
             )
+            print(filename, local_path)
             if local_path:
-                downloaded_files.append(filename)
+                self.downloaded_files.append(filename)
 
-            await self.websocket.send_json(
-                {
-                    "status": "progress",
-                    "repo_id": self.repo_id,
-                    "downloaded_bytes": self.downloaded_bytes,
-                    "total_bytes": self.total_bytes,
-                }
-            )
+            await self.send_update()
 
         self.status = "idle"
-        self.cancel.set()  # Signal the progress thread to stop
-        self.progress_thread.join()  # Wait for the progress thread to finish
 
         if self.cancel.is_set():
-            await self.websocket.send_json(
-                {"status": "cancelled", "repo_id": self.repo_id}
-            )
-        else:
-            await self.websocket.send_json(
-                {
-                    "status": "completed",
-                    "repo_id": self.repo_id,
-                    "downloaded_files": len(downloaded_files),
-                }
-            )
+            self.status = "cancelled"
+
+        await self.send_update()
 
 
 # This will be used to send progress updates to the client
@@ -176,15 +184,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if command == "start_download":
                 await download_manager.start_download(repo_id, websocket)
             elif command == "cancel_download":
-                success = await download_manager.cancel_download()
-                await websocket.send_json(
-                    {
-                        "status": "cancelled" if success else "error",
-                        "message": (
-                            "Download cancelled" if success else "Download not found"
-                        ),
-                    }
-                )
+                await download_manager.cancel_download()
             else:
                 await websocket.send_json(
                     {"status": "error", "message": "Unknown command"}

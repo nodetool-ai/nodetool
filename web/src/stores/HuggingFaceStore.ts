@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 
 interface Download {
-    status: 'idle' | 'running' | 'completed' | 'cancelled' | 'error';
+    status: 'idle' | 'running' | 'completed' | 'cancelled' | 'error' | 'start' | 'progress';
     repoId: string;
     downloadedBytes: number;
     totalBytes: number;
     totalFiles?: number;
     downloadedFiles?: number;
+    currentFile?: string;
     message?: string;
 }
 
@@ -41,6 +42,7 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            console.log('ws message', data);
             if (data.repo_id) {
                 get().updateDownload(data.repo_id, {
                     status: data.status,
@@ -49,6 +51,7 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
                     totalBytes: data.total_bytes,
                     totalFiles: data.total_files,
                     downloadedFiles: data.downloaded_files,
+                    currentFile: data.current_file,
                     message: data.message,
                 });
             }
