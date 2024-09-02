@@ -42,7 +42,6 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            console.log('ws message', data);
             if (data.repo_id) {
                 get().updateDownload(data.repo_id, {
                     status: data.status,

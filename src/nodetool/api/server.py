@@ -18,17 +18,7 @@ from uvicorn import run as uvicorn
 
 from nodetool.common.huggingface_models import download_huggingface_model
 
-from . import (
-    asset,
-    job,
-    auth,
-    message,
-    node,
-    storage,
-    task,
-    workflow,
-    model,
-)
+from . import asset, job, auth, message, node, storage, task, workflow, model, settings
 
 DEFAULT_ROUTERS = [
     asset.router,
@@ -41,6 +31,7 @@ DEFAULT_ROUTERS = [
     storage.router,
     task.router,
     model.router,
+    settings.router,
 ]
 
 

@@ -215,13 +215,15 @@ export interface paths {
     /** Delete Huggingface Model */
     delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
   };
-  "/api/models/download": {
-    /** Download Model */
-    post: operations["download_model_api_models_download_post"];
-  };
   "/api/models/{folder}": {
     /** Index */
     get: operations["index_api_models__folder__get"];
+  };
+  "/api/settings/": {
+    /** Get Settings */
+    get: operations["get_settings_api_settings__get"];
+    /** Update Settings */
+    put: operations["update_settings_api_settings__put"];
   };
   "/health": {
     /** Health Check */
@@ -967,6 +969,42 @@ export interface components {
        * @default false
        */
       explicit_types?: boolean;
+    };
+    /** SecretsModel */
+    SecretsModel: {
+      /**
+       * Openai Api Key
+       * @description OpenAI API key
+       */
+      OPENAI_API_KEY?: string | null;
+      /**
+       * Hf Token
+       * @description Hugging Face Token
+       */
+      HF_TOKEN?: string | null;
+      /**
+       * Replicate Api Token
+       * @description Replicate API Token
+       */
+      REPLICATE_API_TOKEN?: string | null;
+    };
+    /** SettingsModel */
+    SettingsModel: {
+      /**
+       * Comfy Folder
+       * @description Location of ComfyUI folder
+       */
+      COMFY_FOLDER?: string | null;
+    };
+    /** SettingsResponse */
+    SettingsResponse: {
+      settings: components["schemas"]["SettingsModel"];
+      secrets: components["schemas"]["SecretsModel"];
+    };
+    /** SettingsUpdateRequest */
+    SettingsUpdateRequest: {
+      settings: components["schemas"]["SettingsModel"];
+      secrets: components["schemas"]["SecretsModel"];
     };
     /** Task */
     Task: {
@@ -2599,34 +2637,6 @@ export interface operations {
       };
     };
   };
-  /** Download Model */
-  download_model_api_models_download_post: {
-    parameters: {
-      query: {
-        repo_id: string;
-      };
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
   /** Index */
   index_api_models__folder__get: {
     parameters: {
@@ -2645,6 +2655,61 @@ export interface operations {
       200: {
         content: {
           "application/json": string[];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Settings */
+  get_settings_api_settings__get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SettingsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Update Settings */
+  update_settings_api_settings__put: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SettingsUpdateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SettingsResponse"];
         };
       };
       /** @description Validation Error */

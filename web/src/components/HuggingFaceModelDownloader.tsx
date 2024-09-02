@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useState } from "react";
-import { BASE_URL } from "../stores/ApiClient";
+import React, { useState } from "react";
 import {
   Button,
   TextField,

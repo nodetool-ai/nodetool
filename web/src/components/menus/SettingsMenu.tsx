@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useEffect, useState } from "react";
 
 import { VERSION } from "../../config/constants";
 import Menu from "@mui/material/Menu";
@@ -16,14 +17,17 @@ import {
 } from "@mui/material";
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { useState } from "react";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useNavigate } from "react-router";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { useQuery } from "@tanstack/react-query";
+import { isProduction } from "../../stores/ApiClient";
+import RemoteSettingsMenu from "./RemoteSettingsMenu";
 
 const styles = (theme: any) =>
   css({
@@ -152,7 +156,6 @@ function SettingsMenu() {
   };
 
   const {
-    settings,
     setGridSnap,
     setConnectionSnap,
     setPanControls,
@@ -165,8 +168,8 @@ function SettingsMenu() {
     setAlertBeforeTabClose,
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
+    settings,
   } = useSettingsStore((state) => ({
-    settings: state.settings,
     setGridSnap: state.setGridSnap,
     setConnectionSnap: state.setConnectionSnap,
     setPanControls: state.setPanControls,
@@ -179,6 +182,7 @@ function SettingsMenu() {
     setAlertBeforeTabClose: state.setAlertBeforeTabClose,
     setSelectNodesOnDrag: state.setSelectNodesOnDrag,
     setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
+    settings: state.settings,
   }));
 
   const id = open ? "docs" : undefined;
@@ -190,7 +194,6 @@ function SettingsMenu() {
       // Optionally, you can add a notification here to inform the user that the token has been copied
     }
   };
-
   return (
     <div className="settings">
       <Tooltip title="Settings" enterDelay={TOOLTIP_DELAY}>
@@ -228,6 +231,9 @@ function SettingsMenu() {
           <Typography variant="h4">Settings</Typography>
         </div>
         <div className="settings-menu">
+          {!isProduction && (
+            <RemoteSettingsMenu />
+          )}
           <div className="settings-item">
             <FormControl>
               <InputLabel htmlFor={id}>Pan Controls</InputLabel>
