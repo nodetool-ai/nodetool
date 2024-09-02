@@ -5,11 +5,13 @@ import {
   isComfyWorkflowJson,
   isNodetoolWorkflowJson
 } from "./dropHandlerUtils";
+import { useWorkflowStore } from "../../stores/WorkflowStore";
+import { useNodeStore } from "../../stores/NodeStore";
 
-export const useComfyFileProcessor = (
-  createWorkflow: any,
-  setWorkflow: any
-) => {
+export const useCreateWorkflowFromFiles = () => {
+  const createWorkflow = useWorkflowStore((state) => state.create);
+  const setWorkflow = useNodeStore((state) => state.setWorkflow);
+
   return useCallback(
     async (files: File[]) => {
       const nonJsonFiles: File[] = [];

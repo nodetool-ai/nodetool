@@ -1,3 +1,5 @@
+// - create DataFrame nodes from CSV files
+
 import { useCallback } from "react";
 import { XYPosition } from "reactflow";
 import Papa from "papaparse";
@@ -9,7 +11,7 @@ interface ParsedCSV {
   meta: Papa.ParseMeta;
 }
 
-export const useFileEmbedder = (
+export const useCreateDataframe = (
   createNode: any,
   addNode: any,
   metadata: any

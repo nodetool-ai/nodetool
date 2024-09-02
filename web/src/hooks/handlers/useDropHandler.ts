@@ -3,15 +3,13 @@ import { useReactFlow } from "reactflow";
 import { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useAssetStore } from "../../stores/AssetStore";
-import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import { useComfyFileProcessor } from "./useComfyFileProcessor";
-import { useFileEmbedder } from "./useFileEmbedder";
+import { useCreateWorkflowFromFiles } from "./useCreateWorkflowFromFiles";
+import { useCreateDataframe } from "./useCreateDataframe";
 import { useAddNodeFromAsset } from "./addNodeFromAsset";
 import { useMetadata } from "../../serverState/useMetadata";
-/* import { useNotificationStore } from "../../stores/NotificationStore"; */
 
 interface DropHandler {
   onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -22,18 +20,13 @@ export const useDropHandler = (): DropHandler => {
   const addNode = useNodeStore((state) => state.addNode);
   const createNode = useNodeStore((state) => state.createNode);
   const workflow = useNodeStore((state) => state.workflow);
-  const createWorkflow = useWorkflowStore((state) => state.create);
-  const setWorkflow = useNodeStore((state) => state.setWorkflow);
   const getAsset = useAssetStore((state) => state.get);
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const { uploadAsset } = useAssetUpload();
   const { user } = useAuth();
-  /*   const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  ); */
   const { data: metadata } = useMetadata();
-  const processComfyFiles = useComfyFileProcessor(createWorkflow, setWorkflow);
-  const embedAssetsFromFiles = useFileEmbedder(createNode, addNode, metadata);
+  const tryCreateWorkflow = useCreateWorkflowFromFiles();
+  const tryCreateDataframe = useCreateDataframe(createNode, addNode, metadata);
 
   const addNodeFromAsset = useAddNodeFromAsset();
 
@@ -69,12 +62,9 @@ export const useDropHandler = (): DropHandler => {
       // Create nodes on file drop
       const files = Array.from(event.dataTransfer?.files);
       if (files.length > 0 && user) {
-        processComfyFiles(files).then((nonComfyFiles) => {
-          const nonEmbeddedFiles = embedAssetsFromFiles(
-            nonComfyFiles,
-            position
-          );
-          nonEmbeddedFiles.forEach((file: File, index: number) => {
+        tryCreateWorkflow(files).then((nonWorkflowFiles) => {
+          const assetNodeFiles = tryCreateDataframe(nonWorkflowFiles, position);
+          assetNodeFiles.forEach((file: File, index: number) => {
             uploadAsset({
               file,
               workflow_id: workflow.id,
@@ -98,8 +88,8 @@ export const useDropHandler = (): DropHandler => {
       addNode,
       getAsset,
       addNodeFromAsset,
-      processComfyFiles,
-      embedAssetsFromFiles,
+      tryCreateWorkflow,
+      tryCreateDataframe,
       workflow.id,
       currentFolderId,
       user,

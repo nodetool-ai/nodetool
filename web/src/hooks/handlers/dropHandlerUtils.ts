@@ -1,3 +1,7 @@
+// - get node type from mime type
+// - test if json is comfy or nodetool workflow
+// - get workflow data from png
+
 import { TypeName } from "../../stores/ApiTypes";
 
 export const nodeTypeFor = (contentType: string): TypeName | null => {
