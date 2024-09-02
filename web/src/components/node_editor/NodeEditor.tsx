@@ -11,7 +11,7 @@ import ReactFlow, {
   Edge,
   Connection,
   SelectionMode,
-  ConnectionMode,
+  ConnectionMode
 } from "reactflow";
 
 import { CircularProgress, Grid } from "@mui/material";
@@ -19,7 +19,7 @@ import { CircularProgress, Grid } from "@mui/material";
 import {
   NodeStore,
   useNodeStore,
-  useTemporalStore,
+  useTemporalStore
 } from "../../stores/NodeStore";
 import { HistoryManager } from "../../HistoryManager";
 // store
@@ -53,6 +53,7 @@ import "reactflow/dist/style.css";
 // import "../../styles/node_editor.css";
 import "../../styles/base.css";
 import "../../styles/nodes.css";
+import "../../styles/collapsed.css";
 import "../../styles/properties.css";
 import "../../styles/interactions.css";
 import "../../styles/special_nodes.css";
@@ -87,7 +88,7 @@ const NodeEditor: React.FC<unknown> = () => {
     onEdgesChange,
     onEdgeUpdate,
     updateNodeData,
-    getWorkflowIsDirty,
+    getWorkflowIsDirty
   } = useNodeStore(
     (state) => ({
       nodes: state.nodes,
@@ -97,7 +98,7 @@ const NodeEditor: React.FC<unknown> = () => {
       onEdgesChange: state.onEdgesChange,
       onEdgeUpdate: state.onEdgeUpdate,
       updateNodeData: state.updateNodeData,
-      getWorkflowIsDirty: state.getWorkflowIsDirty,
+      getWorkflowIsDirty: state.getWorkflowIsDirty
     }),
     shallow
   );
@@ -107,7 +108,7 @@ const NodeEditor: React.FC<unknown> = () => {
   /* OPTIONS */
   const proOptions = {
     //https://reactflow.dev/docs/guides/remove-attribution/
-    hideAttribution: true,
+    hideAttribution: true
   };
 
   const triggerOnConnect = useCallback(
@@ -160,7 +161,7 @@ const NodeEditor: React.FC<unknown> = () => {
   useOnSelectionChange({
     onChange: ({ nodes }) => {
       setSelectedNodes(nodes);
-    },
+    }
   });
 
   /* DUPLICATE SELECTION */
@@ -189,7 +190,7 @@ const NodeEditor: React.FC<unknown> = () => {
     (state) => ({
       openNodeMenu: state.openNodeMenu,
       closeNodeMenu: state.closeNodeMenu,
-      isMenuOpen: state.isMenuOpen,
+      isMenuOpen: state.isMenuOpen
     })
   );
 
@@ -324,7 +325,7 @@ const NodeEditor: React.FC<unknown> = () => {
     onEdgeMouseLeave,
     onEdgeContextMenu,
     onEdgeUpdateEnd,
-    onEdgeUpdateStart,
+    onEdgeUpdateStart
   } = useEdgeHandlers(resumeHistoryAndSave);
 
   // DRAG HANDLER
@@ -337,7 +338,7 @@ const NodeEditor: React.FC<unknown> = () => {
     onNodeDragStop,
     panOnDrag,
     onNodeDrag,
-    onDragOver,
+    onDragOver
   } = useDragHandlers(resumeHistoryAndSave);
 
   /* COLLAPSE NODE */
@@ -348,7 +349,7 @@ const NodeEditor: React.FC<unknown> = () => {
         updateNodeData(node.id, {
           properties: { ...node.data.properties },
           workflow_id: node.data.workflow_id || "",
-          collapsed: !node.data.collapsed,
+          collapsed: !node.data.collapsed
         });
       }
     },
@@ -367,14 +368,14 @@ const NodeEditor: React.FC<unknown> = () => {
   const fitViewOptions: FitViewOptions = {
     maxZoom: MAX_ZOOM,
     minZoom: MIN_ZOOM,
-    padding: 0.6,
+    padding: 0.6
   };
 
   const fitScreen = useCallback(() => {
     const fitOptions: FitViewOptions = {
       maxZoom: 2,
       minZoom: 0.5,
-      padding: 0.6,
+      padding: 0.6
     };
 
     if (reactFlowInstance) {
@@ -424,7 +425,7 @@ const NodeEditor: React.FC<unknown> = () => {
             margin: "8px",
             height: "calc(100vh - 80px)",
             width: "calc(100vw - 10px)",
-            overflow: "hidden",
+            overflow: "hidden"
           }}
         >
           {isUploading && (
