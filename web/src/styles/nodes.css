@@ -101,62 +101,7 @@
 
 /* ZOOM-RELATED STYLES */
 
-.node-content-hidden {
-  opacity: 0;
-  height: 0;
-}
-
-.react-flow.zoomed-out .node-content-hidden {
-  visibility: hidden;
-}
-
 .react-flow.zoomed-out .react-flow__node {
   background-color: var(--c_gray1);
-  min-width: 150px;
-}
-
-.react-flow .node-title.big {
-  opacity: 0;
-  font-size: 0;
-  margin: 5px 0 0 -5px;
-  padding: 0;
-  top: -0.1em;
-  left: 0.5em;
-  position: absolute;
-  width: calc(100% - 20px);
-  min-height: 20px;
-  height: auto;
-  line-height: 1em;
-  background-color: transparent;
-  transition: opacity 0.8s;
-}
-
-.react-flow.zoomed-out .node-header .node-title.big {
-  font-size: 24px;
-  opacity: 1;
-}
-
-.react-flow.zoomed-out .node-body .icon-bg,
-.react-flow.zoomed-out .node-body .audio-controls,
-.react-flow.zoomed-out .node-header .node-title {
-  opacity: 0;
-}
-
-.react-flow.zoomed-out .node-body .node-error {
-  height: 60px;
-  color: transparent;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.react-flow.zoomed-out .node-header button {
-  opacity: 0;
-}
-
-.react-flow.zoomed-out .node-header svg {
-  display: hidden;
-}
-
-.react-flow.zoomed-out .namespace {
-  display: none;
+  min-width: 100px;
 }

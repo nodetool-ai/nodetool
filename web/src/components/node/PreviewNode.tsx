@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import { memo } from "react";
-import { NodeProps, NodeResizeControl } from "reactflow";
+import { NodeProps, NodeResizeControl, useStore } from "reactflow";
 import { Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
@@ -12,6 +12,7 @@ import OutputRenderer from "./OutputRenderer";
 import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "reactflow";
 import { tableStyles } from "../../styles/TableStyles";
+import { MIN_ZOOM } from "../../config/constants";
 
 const styles = (theme: any) =>
   css([
@@ -85,6 +86,8 @@ const styles = (theme: any) =>
 interface PreviewNodeProps extends NodeProps<NodeData> { }
 
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
+  const currentZoom = useStore((state) => state.transform[2]);
+  const isMinZoom = currentZoom === MIN_ZOOM;
   const result = useResultsStore((state) =>
     state.getResult(props.data.workflow_id, props.id)
   );
@@ -98,16 +101,20 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         position={Position.Left}
         isConnectable={true}
       />
-      <NodeResizeControl
-        style={{ background: "red", border: "none" }}
-        minWidth={150}
-        minHeight={150}
-        maxWidth={1000}
-        maxHeight={1000}
-      >
-        <SouthEastIcon />
-      </NodeResizeControl>
-      <NodeHeader id={props.id} nodeTitle="Preview" isLoading={false} />
+      {!isMinZoom && (
+        <>
+          <NodeResizeControl
+            style={{ background: "red", border: "none" }}
+            minWidth={150}
+            minHeight={150}
+            maxWidth={1000}
+            maxHeight={1000}
+          >
+            <SouthEastIcon />
+          </NodeResizeControl>
+          <NodeHeader id={props.id} nodeTitle="Preview" isLoading={false} />
+        </>
+      )}
 
       {!result?.output && (
         <Typography className="description">Preview any output</Typography>

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
-import { NodeProps } from "reactflow";
+import { NodeProps, useStore } from "reactflow";
 import { isEqual } from "lodash";
 import { Button, Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -23,6 +23,7 @@ import useResultsStore from "../../stores/ResultsStore";
 import OutputRenderer from "./OutputRenderer";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { MIN_ZOOM } from "../../config/constants";
 
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
@@ -45,6 +46,9 @@ export function titleize(str: string) {
 
 export default memo(
   function BaseNode(props: NodeProps<NodeData>) {
+    const currentZoom = useStore((state) => state.transform[2]);
+    const isMinZoom = currentZoom === MIN_ZOOM;
+
     const {
       data: metadata,
       isLoading: metadataLoading,
@@ -177,33 +181,34 @@ export default memo(
             : ThemeNodes.palette.c_node_bg,
         }}
       >
-        <>
-          <NodeHeader
-            id={props.id}
-            nodeTitle={node_title}
-            isLoading={isLoading}
-            hasParent={hasParent}
-          />
-          <div className="node-content-hidden" />
-          <NodeErrors id={props.id} />
-          {status == "booting" && (
-            <Typography className="node-status">
-              Model is booting, taking minutes.
-            </Typography>
-          )}
-          {missingAPIKeys && (
-            <Typography className="node-status">
-              {missingAPIKeys} is missing!
-              <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                onClick={() => {
-                  setMenuOpen(true);
-                }}>Add key in Settings</Button>
-            </Typography>
-          )}
-        </>
+        {!isMinZoom && (
+          <>
+            <NodeHeader
+              id={props.id}
+              nodeTitle={node_title}
+              isLoading={isLoading}
+              hasParent={hasParent}
+            />
+            <NodeErrors id={props.id} />
+            {status == "booting" && (
+              <Typography className="node-status">
+                Model is booting, taking minutes.
+              </Typography>
+            )}
+            {missingAPIKeys && (
+              <Typography className="node-status">
+                {missingAPIKeys} is missing!
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  onClick={() => {
+                    setMenuOpen(true);
+                  }}>Add key in Settings</Button>
+              </Typography>
+            )}
+          </>
+        )}
         <NodeInputs
           id={props.id}
           layout={nodeMetadata.layout}
@@ -218,7 +223,7 @@ export default memo(
           <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
         )}
         {renderedResult}
-        {nodeMetadata.layout === "default" && (
+        {nodeMetadata.layout === "default" && (!isMinZoom) && (
           <>
             <ProcessTimer status={status} />
             {status === "running" && (
