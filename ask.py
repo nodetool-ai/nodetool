@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import anthropic
 import dotenv
@@ -30,6 +31,28 @@ Note: You need to have the `ANTHROPIC_API_KEY` environment variable set.
 dotenv.load_dotenv()
 
 
+async def get_answer(system_prompt, prompt):
+    client = Environment.get_anthropic_client()
+    message = await client.messages.create(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens=4000,
+        temperature=1.0,
+        system=system_prompt,
+        messages=[
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": prompt}],
+            },
+        ],
+    )
+
+    for m in message.content:
+        if isinstance(m, anthropic.types.text_block.TextBlock):
+            print(m.text)
+        else:
+            print(m.to_json())
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate text using Anthropic model")
 
@@ -51,22 +74,4 @@ if __name__ == "__main__":
 
     print("Number of characters in the combined content:", len(combined))
 
-    client = Environment.get_anthropic_client()
-    message = client.messages.create(
-        model="claude-3-5-sonnet-20240620",
-        max_tokens=4000,
-        temperature=1.0,
-        system=system_prompt,
-        messages=[
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": combined}],
-            },
-        ],
-    )
-
-    for m in message.content:
-        if isinstance(m, anthropic.types.text_block.TextBlock):
-            print(m.text)
-        else:
-            print(m.to_json())
+    asyncio.run(get_answer(system_prompt, combined))
