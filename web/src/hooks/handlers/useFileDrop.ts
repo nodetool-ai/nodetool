@@ -1,3 +1,6 @@
+// useFileDrop hook: Handles file drag and drop functionality for various file types,
+// with optional asset uploading
+
 import { Asset } from "../../stores/ApiTypes";
 import { DragEventHandler, useCallback, DragEvent, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";

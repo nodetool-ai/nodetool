@@ -137,6 +137,7 @@
 }
 
 .react-flow__node.react-flow__node-default .placeholder-node {
+  min-width: 150px;
   color: var(--c_white);
   border: 0 !important;
   padding: 0 !important;
