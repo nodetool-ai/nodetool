@@ -12,8 +12,6 @@ import useAuth from "../../stores/useAuth";
 import { useMetadata } from "../../serverState/useMetadata";
 import { Asset } from "../../stores/ApiTypes";
 
-import Papa from "papaparse";
-
 export type FileHandlerResult = {
   success: boolean;
   data?: any;
@@ -127,12 +125,6 @@ export const isNodetoolWorkflowJson = (json: any): boolean => {
   return json.graph && json.name && json.description;
 };
 
-interface ParsedCSV {
-  data: string[][];
-  errors: Papa.ParseError[];
-  meta: Papa.ParseMeta;
-}
-
 export const useFileHandlers = () => {
   const workflow = useNodeStore((state) => state.workflow);
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
@@ -147,19 +139,14 @@ export const useFileHandlers = () => {
 
   const handleGenericFile = useCallback(
     async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
-      console.log("Handling generic file:", file.name, "Type:", file.type);
       try {
         await uploadAsset({
           file,
           workflow_id: workflow.id,
           parent_id: currentFolderId || user?.id,
           onCompleted: (uploadedAsset: Asset) => {
-            console.log("Uploaded asset:", uploadedAsset);
-
             const assetType = nodeTypeFor(file.type);
-            console.log("Asset type:", assetType);
             const nodeType = constantForType(assetType || "");
-            console.log("Node type:", nodeType);
 
             if (nodeType === null) {
               addNotification({
@@ -174,10 +161,7 @@ export const useFileHandlers = () => {
               throw new Error("metadata is undefined");
             }
             const nodeMetadata = metadata.metadataByType[nodeType];
-            console.log("Node metadata:", nodeMetadata);
-
             const newNode = createNode(nodeMetadata, position);
-            console.log("Created node:", newNode);
 
             // Set the node's value to the uploaded asset
             newNode.data.properties.value = {
@@ -186,15 +170,12 @@ export const useFileHandlers = () => {
               asset_id: uploadedAsset.id,
               temp_id: null
             };
-
             addNode(newNode);
-            console.log("Added node to graph");
           }
         });
 
         return { success: true };
       } catch (error: any) {
-        console.error("Error in handleGenericFile:", error);
         return {
           success: false,
           error: error.message || "Failed to upload file as asset"
@@ -215,13 +196,10 @@ export const useFileHandlers = () => {
 
   const handlePngFile = useCallback(
     async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
-      console.log("444 Handling PNG file:", file.name);
       try {
         const workflow = await extractWorkflowFromPng(file);
-        console.log("Extracted workflow from PNG:", workflow);
 
         if (workflow) {
-          console.log("Workflow found in PNG, creating workflow");
           const createdWorkflow = await createWorkflow({
             name: file.name,
             description: "created from comfy",
@@ -231,11 +209,9 @@ export const useFileHandlers = () => {
           setWorkflow(createdWorkflow);
           return { success: true, data: createdWorkflow };
         } else {
-          console.log("No workflow found in PNG, handling as generic file");
           return await handleGenericFile(file, position);
         }
       } catch (error: any) {
-        console.error("Error handling PNG file:", error);
         return {
           success: false,
           error: error.message || "Failed to process PNG file"
