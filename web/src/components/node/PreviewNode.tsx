@@ -82,9 +82,9 @@ const styles = (theme: any) =>
     tableStyles(theme)
   ]);
 
-interface PreviewNodeProps extends NodeProps<NodeData> {}
+interface PreviewNodeProps extends NodeProps<NodeData> { }
 
-const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
+const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const result = useResultsStore((state) =>
     state.getResult(props.data.workflow_id, props.id)
   );
@@ -122,7 +122,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = memo((props) => {
       {result?.output && <OutputRenderer value={result?.output} />}
     </Container>
   );
-});
+};
 
 PreviewNode.displayName = "PreviewNode";
 export default PreviewNode;
