@@ -21,6 +21,8 @@ import {
   DialogTitle
 } from "@mui/material";
 
+const modelSize = (model: any) => (model.size_on_disk / 1024 / 1024).toFixed(2).toString() + " MB";
+
 const styles = (theme: any) =>
   css({
     "&.huggingface-model-list": {
@@ -121,13 +123,12 @@ const HuggingFaceModelList: React.FC = () => {
   if (error) {
     return <Typography color="error"> {error.message} </Typography>;
   }
-
   const modelList = models?.map((model) => (
     <ListItem className="model-item" key={model.repo_id}>
       <ListItemText
         className="model-text"
         primary={model.repo_id}
-        secondary={`${(model.size_on_disk / 1024 / 1024).toFixed(2)} MB`}
+        secondary={modelSize(model) + ` | ${model.pipeline_tag}`}
       />
       {deletingModels.has(model.repo_id) ? (
         <CircularProgress size={24} />
@@ -157,7 +158,7 @@ const HuggingFaceModelList: React.FC = () => {
         <DialogTitle id="alert-dialog-title">{"Confirm Deletion"}</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            Delete "{modelToDelete}"?
+            Delete {modelToDelete}?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
