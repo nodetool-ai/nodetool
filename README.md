@@ -100,6 +100,7 @@ nodes
 # 🏗️ Architecture
 
 ```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'edgeLabelBackground': '#0d1117', 'lineColor': '#a0a0a0', 'edgeLabelColor': '#a0a0a0' }}}%%
 graph TD
 A([React Frontend]) -->|HTTP/WebSocket| B([API Server])
 A <-->|WebSocket| C([WebSocket Runner])
@@ -113,15 +114,14 @@ D -->|API Calls| G[Replicate API]
 D -->|API Calls| H[Other Provider APIs]
 
 
-    classDef default fill:#e0e0e0,stroke:#333,stroke-width:2px,color:#000;
+    classDef default fill:#e0eee0,stroke:#333,stroke-width:2px,color:#000;
     classDef frontend fill:#ffcccc,stroke:#333,stroke-width:2px,color:#000;
     classDef server fill:#cce5ff,stroke:#333,stroke-width:2px,color:#000;
     classDef runner fill:#ccffe5,stroke:#333,stroke-width:2px,color:#000;
     classDef worker fill:#ccf2ff,stroke:#333,stroke-width:2px,color:#000;
     classDef api fill:#e0e0e0,stroke:#333,stroke-width:2px,color:#000;
     classDef darkgray fill:#a9a9a9,stroke:#333,stroke-width:2px,color:#000;
-    classDef transparent fill:transparent,stroke:transparent;
-    classDef small width:100px,height:40px;
+
 
     class A frontend;
     class B server;
