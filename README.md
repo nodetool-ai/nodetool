@@ -112,11 +112,10 @@ NodeTool's architecture is designed for flexibility. Here's a breakdown of the m
 4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability.
 
 ## Key Features:
-
+- **Build anything, run from anywhere**: Create your AI workflows in a node-based editor, then run them from anywhere using the API
 - **Real-time Communication**: WebSocket connections enable live updates and interactive workflow execution.
 - **Scalable Processing**: The Worker architecture allows for distributed processing of node tasks.
 - **Flexible Node System**: Easy integration of new node types and AI services.
-- **HTTP Callbacks**: Support for asynchronous operations and integration with external services.
 
 ## Data Flow:
 
@@ -125,7 +124,7 @@ NodeTool's architecture is designed for flexibility. Here's a breakdown of the m
 3. API Server delegates workflow execution to the WebSocket Runner.
 4. WebSocket Runner coordinates the execution of individual nodes through Workers.
 5. Results are sent back to the Frontend in real-time via WebSocket connections.
-6. HTTP Callbacks allow for asynchronous updates and integration with external services.
+
 
 This architecture enables NodeTool to handle complex AI workflows efficiently, providing a seamless experience for users while maintaining the flexibility to incorporate various AI services and custom nodes.
 
