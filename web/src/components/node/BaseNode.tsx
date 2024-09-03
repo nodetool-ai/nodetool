@@ -5,7 +5,7 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
 import { NodeProps } from "reactflow";
 import { isEqual } from "lodash";
-import { Container, Typography } from "@mui/material";
+import { Button, Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
 
@@ -21,6 +21,8 @@ import { NodeErrors } from "./NodeErrors";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import OutputRenderer from "./OutputRenderer";
+import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
@@ -48,6 +50,8 @@ export default memo(
       isLoading: metadataLoading,
       error: metadataError,
     } = useMetadata();
+    const secrets = useRemoteSettingsStore((state) => state.secrets)
+    const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
     const nodedata = useNodeStore(
       useCallback((state) => state.findNode(props.id)?.data, [props.id])
     );
@@ -119,28 +123,47 @@ export default memo(
         metadata.metadataByType[props.type]?.outputs.length || 0;
       return BASE_HEIGHT + outputCount * INCREMENT_PER_OUTPUT;
     }, [metadata, props.type]);
-    if (!metadata) {
-      return (
-        <Container className={className}>
-          {metadataLoading && <span>Loading...</span>}
-          {metadataError !== undefined && (
-            <span>{metadataError?.toString()}</span>
-          )}
-        </Container>
-      );
-    }
-    const nodeMetadata = metadata.metadataByType[props.type];
-    const node_title = titleize(nodeMetadata.title || "");
-    const node_namespace = nodeMetadata.namespace || "";
+
+    const nodeMetadata = metadata?.metadataByType[props.type];
+    const node_title = titleize(nodeMetadata?.title || "");
+    const node_namespace = nodeMetadata?.namespace || "";
+    const node_outputs = nodeMetadata?.outputs || [];
     const firstOutput =
-      nodeMetadata.outputs.length > 0
-        ? nodeMetadata.outputs[0]
+      node_outputs.length > 0
+        ? node_outputs[0]
         : {
           name: "output",
           type: {
             type: "string",
           },
         };
+
+    const missingAPIKeys = useMemo(() => {
+      if (node_namespace.startsWith("openai.")) {
+        if ((secrets.OPENAI_API_KEY || "").length === 0) {
+          return "OpenAI API Key";
+        }
+      }
+      if (node_namespace.startsWith("replicate.")) {
+        if ((secrets.REPLICATE_API_TOKEN || "").length === 0) {
+          return "Replicate API Token";
+        }
+      }
+      if (node_namespace.startsWith("anthropic.")) {
+        if ((secrets.ANTHROPIC_API_KEY || "").length === 0) {
+          return "Anthropic API Key";
+        }
+      }
+      return null;
+    }, [node_namespace, secrets.OPENAI_API_KEY, secrets.REPLICATE_API_TOKEN, secrets.ANTHROPIC_API_KEY]);
+
+    if (!nodeMetadata || metadataLoading || metadataError) {
+      return (
+        <Container className={className} style={{ minHeight: `${minHeight}px` }}>
+          <NodeHeader id={props.id} nodeTitle={node_title} isLoading={true} />
+        </Container>
+      );
+    }
 
     return (
       <Container
@@ -166,6 +189,18 @@ export default memo(
           {status == "booting" && (
             <Typography className="node-status">
               Model is booting, taking minutes.
+            </Typography>
+          )}
+          {missingAPIKeys && (
+            <Typography className="node-status">
+              {missingAPIKeys} is missing!
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                onClick={() => {
+                  setMenuOpen(true);
+                }}>Add key in Settings</Button>
             </Typography>
           )}
         </>

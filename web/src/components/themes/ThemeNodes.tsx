@@ -153,7 +153,6 @@ ThemeNodes.components = {
         fontSize: ThemeNodes.fontSizeSmall,
         minWidth: "20px",
         backgroundColor: "#333",
-        wordSpacing: "-2px",
 
         "&:hover": {
           backgroundColor: ThemeNodes.palette.c_gray3,

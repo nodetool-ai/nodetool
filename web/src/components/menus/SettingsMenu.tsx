@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { VERSION } from "../../config/constants";
 import Menu from "@mui/material/Menu";
@@ -18,14 +18,12 @@ import {
 import Select from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useNavigate } from "react-router";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
 import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { useQuery } from "@tanstack/react-query";
 import { isProduction } from "../../stores/ApiClient";
 import RemoteSettingsMenu from "./RemoteSettingsMenu";
 
@@ -146,16 +144,9 @@ function SettingsMenu() {
   const { user, signout } = useAuth();
   const navigate = useNavigate();
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
   const {
+    isMenuOpen,
+    setMenuOpen,
     setGridSnap,
     setConnectionSnap,
     setPanControls,
@@ -169,23 +160,17 @@ function SettingsMenu() {
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
     settings,
-  } = useSettingsStore((state) => ({
-    setGridSnap: state.setGridSnap,
-    setConnectionSnap: state.setConnectionSnap,
-    setPanControls: state.setPanControls,
-    setSelectionMode: state.setSelectionMode,
-    setWorkflowLayout: state.setWorkflowLayout,
-    setWorkflowOrder: state.setWorkflowOrder,
-    setAssetItemSize: state.setAssetItemSize,
-    setTimeFormat: state.setTimeFormat,
-    setButtonAppearance: state.setButtonAppearance,
-    setAlertBeforeTabClose: state.setAlertBeforeTabClose,
-    setSelectNodesOnDrag: state.setSelectNodesOnDrag,
-    setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
-    settings: state.settings,
-  }));
+  } = useSettingsStore();
 
-  const id = open ? "docs" : undefined;
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setMenuOpen(!isMenuOpen);
+  };
+
+  const handleClose = () => {
+    setMenuOpen(false);
+  };
+
+  const id = isMenuOpen ? "docs" : undefined;
 
   // Add a function to copy the auth token to clipboard
   const copyAuthToken = () => {
@@ -198,9 +183,9 @@ function SettingsMenu() {
     <div className="settings">
       <Tooltip title="Settings" enterDelay={TOOLTIP_DELAY}>
         <Button
-          aria-controls={open ? "basic-menu" : undefined}
+          aria-controls={isMenuOpen ? "basic-menu" : undefined}
           aria-haspopup="true"
-          aria-expanded={open ? "true" : undefined}
+          aria-expanded={isMenuOpen ? "true" : undefined}
           onClick={handleClick}
         >
           <SettingsIcon />
@@ -210,7 +195,7 @@ function SettingsMenu() {
       <Menu
         css={styles}
         className="settings-menu-container"
-        open={open}
+        open={isMenuOpen}
         onContextMenu={(event) => event.preventDefault()}
         onClose={handleClose}
         MenuListProps={{

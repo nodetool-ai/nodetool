@@ -41,12 +41,17 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { initSentry } from "./utils/sentry";
 import { RouteObject } from "@sentry/react/types/types";
 import useAuth from "./stores/useAuth";
-import { pingWorker } from "./stores/ApiClient";
+import { isProduction, pingWorker } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
+import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 
 initSentry();
 
 pingWorker();
+
+if (!isProduction) {
+  useRemoteSettingsStore.getState().fetchSettings();
+}
 
 const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);

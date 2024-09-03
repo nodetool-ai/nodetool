@@ -1,4 +1,3 @@
-import { set } from "lodash";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -20,6 +19,8 @@ export interface Settings {
 
 interface SettingsStore {
   settings: Settings;
+  isMenuOpen: boolean;
+  setMenuOpen: (value: boolean) => void;
   setGridSnap: (value: number) => void;
   setConnectionSnap: (value: number) => void;
   setPanControls: (value: string) => void;
@@ -55,9 +56,10 @@ export const defaultSettings: Settings = {
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       settings: { ...defaultSettings },
-
+      isMenuOpen: false,
+      setMenuOpen: (value: boolean) => set({ isMenuOpen: value }),
       setGridSnap: (value: number) =>
         set((state) => ({
           settings: {
@@ -167,10 +169,12 @@ export const useSettingsStore = create<SettingsStore>()(
           },
         })),
     }),
-
     {
-      name: "settings-storage", // name of the item in the storage (must be unique)
-      //storage: createJSONStorage(() => sessionStorage), // this will use 'sessionStorage'. Remove this line to default to 'localStorage'.
+      name: "settings-storage",
+      partialize: (state) => ({
+        settings: state.settings,
+        // Don't persist menuAnchorEl state
+      }),
     }
   )
 );
