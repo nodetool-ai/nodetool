@@ -99,7 +99,25 @@ nodes
 
 # 🏗️ Architecture
 
-# Architecture Overview
+```mermaid
+graph TD
+    A[React Frontend] -->|HTTP/WebSocket| B(API Server)
+    A -->|HTTP/WebSocket| C(WebSocket Runner)
+    B <-->|Internal Communication| C
+    C <-->|WebSocket| D[Worker]
+    D -->|HTTP Callbacks| B
+
+    classDef default fill:#333,stroke:#fff,stroke-width:2px;
+    classDef frontend fill:#900;
+    classDef server fill:#009;
+    classDef runner fill:#090;
+    classDef worker fill:#099;
+
+    class A frontend;
+    class B server;
+    class C runner;
+    class D worker;
+```
 
 NodeTool's architecture is designed for flexibility. Here's a breakdown of the main components:
 
@@ -128,25 +146,6 @@ NodeTool's architecture is designed for flexibility. Here's a breakdown of the m
 
 This architecture enables NodeTool to handle complex AI workflows efficiently, providing a seamless experience for users while maintaining the flexibility to incorporate various AI services and custom nodes.
 
-```mermaid
-graph TD
-    A[React Frontend] -->|HTTP/WebSocket| B(API Server)
-    A -->|HTTP/WebSocket| C(WebSocket Runner)
-    B <-->|Internal Communication| C
-    C <-->|WebSocket| D[Worker]
-    D -->|HTTP Callbacks| B
-
-    classDef default fill:#333,stroke:#fff,stroke-width:2px;
-    classDef frontend fill:#900;
-    classDef server fill:#009;
-    classDef runner fill:#090;
-    classDef worker fill:#099;
-
-    class A frontend;
-    class B server;
-    class C runner;
-    class D worker;
-```
 
 ## 🛠️ Implementing Custom Nodes
 
