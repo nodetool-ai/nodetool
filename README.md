@@ -1,4 +1,6 @@
-# 🛠️ nodetool
+<img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="nodetool_logo" width="60" height="auto">
+# nodetool
+
 
 NodeTool is a powerful no-code development environment for Artificial Intelligence, enabling intuitive creation of complex AI workflows and seamless integration into existing applications. With its node-based user interface, users can construct sophisticated, multimodal applications without deep programming knowledge.
 
