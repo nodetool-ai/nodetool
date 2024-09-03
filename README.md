@@ -14,16 +14,15 @@ NodeTool opens up creative and playful access to cutting-edge AI technologies, s
 
 ## 🎨 Use Cases
 
-- **AI Muse**: Generate unique artwork inspirations by combining different styles, eras, and subjects.
+- **Combine AI**: Explore hundreds of ML models and combine them creatively.
+- **Stable Diffusion**: Generate custom image generation pipelines from the ground up.
+- **Run Anywhere**: Create AI tools and run them from your website or mobile app.
+- **Music**: Generate musical ideas and compositions based on textual descriptions or themes.
 - **Sound-to-Visual Art**: Transform audio into visual masterpieces.
-- **Digital Sketchbook Enhancer**: Elevate rough sketches with AI-generated details and animations.
-- **AI-Curated Art Gallery**: Create virtual art exhibitions based on specific themes or movements.
-- **Image Inpainting and Restoration**: Repair damaged or incomplete images by intelligently filling in missing areas.
-- **Music Composition Assistant**: Generate musical ideas and compositions based on textual descriptions or themes.
 - **Audio-to-Story Generator**: Create short stories or narratives inspired by audio inputs.
-- **Image Enhancement Suite**: Improve image quality through various AI-powered enhancement techniques.
-- **Multi-lingual Content Creation**: Produce and translate content across multiple languages for global audiences.
-- **Data Visualization Tool**: Transform complex datasets into intuitive, visually appealing representations.
+- **Image Enhancement**: Improve image quality through various AI-powered enhancement techniques.
+- **Multi-lingual Content Creation**: Produce and translate content across multiple languages.
+- **Data Visualization**: Transform complex datasets into intuitive, visually appealing representations.
 
 ## 🚀 Quickstart
 
