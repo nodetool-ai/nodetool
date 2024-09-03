@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, createElement } from "react";
+import React, { useCallback, createElement, useMemo } from "react";
 import { NodeData } from "../../stores/NodeData";
 import { Property, TypeName } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -149,7 +149,7 @@ export type PropertyInputProps = {
   hideLabel: boolean;
 };
 
-const PropertyInput: React.FC<PropertyInputProps> = ({
+const PropertyInput: React.FC<PropertyInputProps> = React.memo(({
   id,
   nodeType,
   data,
@@ -170,13 +170,13 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     [id, property.name, updateNodeProperties]
   );
 
-  const propertyProps = {
+  const propertyProps = useMemo(() => ({
     property: property,
     value: value,
     propertyIndex: propertyIndex || "",
     nodeType: nodeType,
     onChange: onChange
-  };
+  }), [property, value, propertyIndex, nodeType, onChange]);
 
   // Property Context Menu
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -196,14 +196,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
 
   // Reset property to default value
-  const onContextMenu: React.MouseEventHandler<HTMLDivElement> = (event) => {
+  const onContextMenu = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     if (controlKeyPressed) {
       onChange(property.default);
     } else {
       handlePropertyContextMenu(event, property);
     }
-  };
+  }, [controlKeyPressed, onChange, property, handlePropertyContextMenu]);
 
   if (hideInput) {
     return (
@@ -232,6 +232,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       {inputField}
     </div>
   );
-};
+});
+
+PropertyInput.displayName = "PropertyInput";
 
 export default PropertyInput;

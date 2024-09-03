@@ -32,7 +32,6 @@ import { useMetadata } from "../../serverState/useMetadata";
 import { isUrlAccessible } from "../../utils/isUrlAccessible";
 
 const NodeContextMenu: React.FC = () => {
-  const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -155,7 +154,7 @@ const NodeContextMenu: React.FC = () => {
     }
   };
 
-  if (openMenuType !== "node-context-menu" || !menuPosition) {
+  if (!menuPosition) {
     return null;
   }
   return (

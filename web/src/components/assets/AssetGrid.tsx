@@ -23,6 +23,7 @@ import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAuth from "../../stores/useAuth";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 
 const styles = (theme: any) =>
   css({
@@ -75,6 +76,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const setRenameDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
   const currentAudioAsset = useAssetGridStore((state) => state.currentAudioAsset);
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
+  const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const handleDoubleClick = (asset: Asset) => {
     setOpenAsset(asset);
   };
@@ -196,7 +198,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           playOnLoad={spaceKeyPressed}
         />
       )}
-      <AssetItemContextMenu />
+      {openMenuType === "asset-item-context-menu" && <AssetItemContextMenu />}
       <AssetDeleteConfirmation
         assets={selectedAssetIds}
       />

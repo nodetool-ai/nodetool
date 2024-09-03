@@ -21,7 +21,6 @@ import { TypeMetadata } from "../../stores/ApiTypes";
 import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 
 const OutputContextMenu: React.FC = () => {
-  const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -124,10 +123,10 @@ const OutputContextMenu: React.FC = () => {
       // Assign a unique name to the node
       newNode.data.properties.name =
         sourceType?.type +
-          "_" +
-          sourceHandle +
-          "_" +
-          getTimestampForFilename(false) || "";
+        "_" +
+        sourceHandle +
+        "_" +
+        getTimestampForFilename(false) || "";
 
       addNode(newNode);
       const targetHandle = getTargetHandle(type || "", nodeType);
@@ -256,7 +255,7 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
-  if (openMenuType !== "output-context-menu" || !menuPosition) return null;
+  if (!menuPosition) return null;
   return (
     <Menu
       className="context-menu output-context-menu"
@@ -298,13 +297,12 @@ const OutputContextMenu: React.FC = () => {
       {saveNodeMetadata && (
         <ContextMenuItem
           onClick={handleCreateSaveNode}
-          label={`Create Save${
-            type === "string"
-              ? "Text"
-              : type
+          label={`Create Save${type === "string"
+            ? "Text"
+            : type
               ? type.charAt(0).toUpperCase() + type.slice(1)
               : ""
-          } Node`}
+            } Node`}
           addButtonClassName="create-save-node"
           IconComponent={<SaveAltIcon />}
           tooltip={"..."}

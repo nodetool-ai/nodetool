@@ -27,7 +27,6 @@ const InputContextMenu: React.FC = () => {
   const generateEdgeId = useNodeStore((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
 
-  const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -164,7 +163,7 @@ const InputContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
-  if (openMenuType !== "input-context-menu" || !menuPosition) return null;
+  if (!menuPosition) return null;
   return (
     <Menu
       className="context-menu input-context-menu"

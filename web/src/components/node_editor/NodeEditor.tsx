@@ -71,7 +71,6 @@ import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 // constants
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
-import { initKeyListeners } from "../../stores/KeyPressedStore";
 
 declare global {
   interface Window {
@@ -180,10 +179,6 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* LOADING*/
   const showLoading = loadingMetadata || metadata?.length === 0;
-  const workflowIsDirty = useMemo(
-    () => getWorkflowIsDirty(),
-    [getWorkflowIsDirty]
-  );
 
   // OPEN NODE MENU
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
@@ -224,6 +219,7 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* CONTEXT MENUS */
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -293,6 +289,8 @@ const NodeEditor: React.FC<unknown> = () => {
   // copy paste
   useHotkeys("Shift+c", () => handleCopy());
   useHotkeys("Shift+v", () => handlePaste());
+  useHotkeys("Meta+c", () => handleCopy());  // for mac
+  useHotkeys("Meta+v", () => handlePaste()); // for mac
   // duplicate
   useHotkeys("Space+d", handleDuplicate);
   // history
@@ -358,18 +356,18 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* VIEWPORT */
   const currentZoom = useStore((state) => state.transform[2]);
-  const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
+  const defaultViewport = useMemo(() => ({ x: 0, y: 0, zoom: 1.5 }), []);
 
   /* ZOOM BOUNDS */
   // const isMaxZoom = currentZoom === MAX_ZOOM;
   const isMinZoom = currentZoom === MIN_ZOOM;
 
   // FIT SCREEN
-  const fitViewOptions: FitViewOptions = {
+  const fitViewOptions = useMemo<FitViewOptions>(() => ({
     maxZoom: MAX_ZOOM,
     minZoom: MIN_ZOOM,
     padding: 0.6
-  };
+  }), []);
 
   const fitScreen = useCallback(() => {
     const fitOptions: FitViewOptions = {
@@ -407,7 +405,6 @@ const NodeEditor: React.FC<unknown> = () => {
       </div>
     );
   }
-
   return (
     <>
       <CommandMenu
@@ -507,13 +504,12 @@ const NodeEditor: React.FC<unknown> = () => {
                 variant={BackgroundVariant.Cross}
               />
               {reactFlowInstance && <AxisMarker />}
-
-              <NodeContextMenu />
-              <PaneContextMenu />
-              <PropertyContextMenu />
-              <SelectionContextMenu />
-              <OutputContextMenu />
-              <InputContextMenu />
+              {openMenuType === 'node-context-menu' && <NodeContextMenu />}
+              {openMenuType === 'pane-context-menu' && <PaneContextMenu />}
+              {openMenuType === 'property-context-menu' && <PropertyContextMenu />}
+              {openMenuType === 'selection-context-menu' && <SelectionContextMenu />}
+              {openMenuType === 'output-context-menu' && <OutputContextMenu />}
+              {openMenuType === 'input-context-menu' && <InputContextMenu />}
             </ReactFlow>
           </div>
         </Grid>

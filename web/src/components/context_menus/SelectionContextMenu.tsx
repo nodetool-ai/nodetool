@@ -29,10 +29,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const findNode = useNodeStore((state) => state.findNode);
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
-  const { openMenuType, menuPosition } = useContextMenuStore((state) => ({
-    openMenuType: state.openMenuType,
-    menuPosition: state.menuPosition
-  }));
+  const menuPosition = useContextMenuStore((state) => state.menuPosition);
 
   const selectedNodeIds = useSessionStateStore(
     (state) => state.selectedNodeIds
@@ -103,7 +100,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     },
     [selectedNodeIds, alignNodes, findNode, updateNodeData]
   );
-  if (openMenuType !== "selection-context-menu" || !menuPosition) return null;
+  if (!menuPosition) return null;
   return (
     <Menu
       className="context-menu selection-context-menu"
@@ -158,9 +155,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         label="Align"
         IconComponent={<FormatAlignLeftIcon />}
         tooltip=""
-        addButtonClassName={`action ${
-          (selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
-        }`}
+        addButtonClassName={`action ${(selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
+          }`}
       />
       <ContextMenuItem
         onClick={() => {
@@ -169,9 +165,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         label="Arrange"
         IconComponent={<FormatAlignLeftIcon />}
         tooltip=""
-        addButtonClassName={`action ${
-          (selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
-        }`}
+        addButtonClassName={`action ${(selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
+          }`}
       />
       <Divider />
       <ContextMenuItem

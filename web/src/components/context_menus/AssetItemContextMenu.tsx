@@ -12,7 +12,6 @@ import { devLog } from "../../utils/DevLog";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 const AssetItemContextMenu = () => {
-  const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const setRenameDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
   const setMoveToFolderDialogOpen = useAssetGridStore((state) => state.setMoveToFolderDialogOpen);
@@ -27,7 +26,7 @@ const AssetItemContextMenu = () => {
     download(selectedAssetIds);
   };
 
-  if (openMenuType !== "asset-item-context-menu" || !menuPosition) return null;
+  if (!menuPosition) return null;
   return (
     <>
       <Menu

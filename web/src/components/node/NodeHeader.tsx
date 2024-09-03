@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { ArrowDropDown } from "@mui/icons-material";
-import { css, keyframes, ThemeContext } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useStore } from "reactflow";
-import { useEffect } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 
 export interface NodeHeaderProps {
@@ -87,7 +87,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
     }
   });
 
-export const NodeHeader = ({
+export const NodeHeader = memo(({
   id,
   nodeTitle,
   isLoading,
@@ -96,25 +96,36 @@ export const NodeHeader = ({
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const { data } = useMetadata();
   const findNode = useNodeStore((state) => state.findNode);
-  const node = findNode(id);
-  const metadata = node?.type ? data?.metadataByType[node?.type] : null;
-  const description = metadata?.description.split("\n")[0] || "";
   const currentZoom = useStore((state) => state.transform[2]);
 
-  useEffect(() => {}, [currentZoom]);
+  const node = useMemo(() => findNode(id), [findNode, id]);
+  const metadata = useMemo(() => node?.type ? data?.metadataByType[node?.type] : null, [node, data]);
+  const description = useMemo(() => metadata?.description.split("\n")[0] || "", [metadata]);
 
-  const tooltipStyle = () =>
-    css({
-      '[role~="tooltip"][data-microtip-position|="top"]::after': {
-        fontSize: currentZoom < 1.5 ? "1em" : ".7em",
-        maxWidth: "250px",
-        padding: "1em",
-        textAlign: "left",
-        transform: "translate3d(-90%, -5px, 0)"
-      }
-    });
+  useEffect(() => { }, [currentZoom]);
 
-  const handleOpenContextMenu = (
+  const tooltipStyle = useMemo(() => css({
+    '[role~="tooltip"][data-microtip-position|="top"]::after': {
+      fontSize: currentZoom < 1.5 ? "1em" : ".7em",
+      maxWidth: "250px",
+      padding: "1em",
+      textAlign: "left",
+      transform: "translate3d(-90%, -5px, 0)"
+    }
+  }), [currentZoom]);
+
+  const tooltipAttributes = useMemo(() => description
+    ? {
+      "aria-label": description,
+      "data-microtip-position": "top",
+      "data-microtip-size": "medium",
+      role: "tooltip"
+    }
+    : {}, [description]);
+
+  const memoizedHeaderStyle = useMemo(() => headerStyle(ThemeNodes, hasParent || false), [hasParent]);
+
+  const handleOpenContextMenu = useCallback((
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
     event.preventDefault();
@@ -125,26 +136,14 @@ export const NodeHeader = ({
       event.clientY,
       "node-header"
     );
-  };
+  }, [id, openContextMenu]);
 
-  const tooltipAttributes = description
-    ? {
-        "aria-label": description,
-        "data-microtip-position": "top",
-        "data-microtip-size": "medium",
-        role: "tooltip"
-      }
-    : {};
+  const headerClassName = useMemo(() => `node-header ${isLoading ? "loading" : ""}`, [isLoading]);
 
   return (
     <div
-      className={`node-header ${isLoading ? "loading" : ""}`}
-      css={headerStyle(ThemeNodes, hasParent || false)}
-      // style={{
-      //   backgroundColor: hasParent
-      //     ? ThemeNodes.palette.c_node_header_bg_group
-      //     : ThemeNodes.palette.c_node_header_bg
-      // }}
+      className={headerClassName}
+      css={memoizedHeaderStyle}
     >
       <span className="node-title">{nodeTitle}</span>
       <div className="menu-button" css={tooltipStyle}>
@@ -159,4 +158,6 @@ export const NodeHeader = ({
       <span className="node-title big">{nodeTitle}</span>
     </div>
   );
-};
+});
+
+NodeHeader.displayName = 'NodeHeader';

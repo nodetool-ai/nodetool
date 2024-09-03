@@ -41,20 +41,6 @@ export function titleize(str: string) {
  * @param props
  */
 
-const styles = (theme: any) =>
-  css({
-    ".node-status": {
-      maxWidth: "180px",
-      padding: "10px",
-      color: "red",
-      fontFamily: theme.fontFamily1,
-    },
-    "&.node-body": {
-      display: "flex",
-      flexDirection: "column",
-    },
-  });
-
 export default memo(
   function BaseNode(props: NodeProps<NodeData>) {
     const {
@@ -125,7 +111,7 @@ export default memo(
           <OutputRenderer key={key} value={value} />
         ));
       }
-    }, [isOutputNode, result]);
+    }, [result]);
 
     const minHeight = useMemo(() => {
       if (!metadata) return BASE_HEIGHT;
@@ -159,7 +145,7 @@ export default memo(
     return (
       <Container
         className={className}
-        css={styles}
+        // css={styles}
         style={{
           display: parentIsCollapsed ? "none" : "flex",
           minHeight: `${minHeight}px`,

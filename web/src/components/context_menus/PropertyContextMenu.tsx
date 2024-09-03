@@ -15,10 +15,8 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 // import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 
 const PropertyContextMenu: React.FC = () => {
-  // const { openMenuType, menuPosition, closeContextMenu, nodeId } =
-  const { openMenuType, menuPosition, closeContextMenu } = useContextMenuStore(
+  const { menuPosition, closeContextMenu } = useContextMenuStore(
     (state) => ({
-      openMenuType: state.openMenuType,
       menuPosition: state.menuPosition,
       closeContextMenu: state.closeContextMenu
     })
@@ -34,7 +32,7 @@ const PropertyContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
-  if (openMenuType !== "property-context-menu" || !menuPosition) return null;
+  if (!menuPosition) return null;
   return (
     <Menu
       className="context-menu property-context-menu"

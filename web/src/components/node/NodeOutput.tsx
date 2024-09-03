@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { Handle, Position } from "reactflow";
 import { Tooltip } from "@mui/material";
 import Zoom from "@mui/material/Zoom";
@@ -29,14 +29,14 @@ const tooltipStyles = css({
   }
 });
 
-const NodeOutput = ({ id, output }: NodeOutputProps) => {
+const NodeOutput = React.memo(({ id, output }: NodeOutputProps) => {
   const connectType = useConnectionStore((state) => state.connectType);
-  const connectDirection = useConnectionStore(
-    (state) => state.connectDirection
-  );
+  const connectDirection = useConnectionStore((state) => state.connectDirection);
   const connectNodeId = useConnectionStore((state) => state.connectNodeId);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const outputContextMenu = (event: any, id: string, output: OutputSlot) => {
+
+  const outputContextMenu = useCallback((event: React.MouseEvent, id: string, output: OutputSlot) => {
+    event.preventDefault();
     setTimeout(() => {
       openContextMenu(
         "output-context-menu",
@@ -48,18 +48,29 @@ const NodeOutput = ({ id, output }: NodeOutputProps) => {
         output.name
       );
     }, 0);
-  };
+  }, [openContextMenu]);
 
   const classConnectable = useMemo(() => {
-    const outputType = output.type;
-
     return connectType !== null &&
-      isConnectable(connectType, outputType) &&
+      isConnectable(connectType, output.type) &&
       connectNodeId !== id &&
       connectDirection === "target"
       ? "is-connectable"
       : "not-connectable";
   }, [output.type, connectType, connectNodeId, id, connectDirection]);
+
+  const tooltipTitle = useMemo(() => (
+    <span
+      style={{
+        backgroundColor: colorForType(output.type.type),
+        color: textColorForType(output.type.type),
+        borderRadius: ".5em",
+        fontSize: ThemeNodetool.fontSizeSmall
+      }}
+    >
+      {output.name} :{typeToString(output.type)}
+    </span>
+  ), [output.name, output.type]);
 
   return (
     <Tooltip
@@ -70,25 +81,13 @@ const NodeOutput = ({ id, output }: NodeOutputProps) => {
           }
         }
       }}
-      title={
-        <span
-          style={{
-            backgroundColor: colorForType(output.type.type),
-            color: textColorForType(output.type.type),
-            borderRadius: ".5em",
-            fontSize: ThemeNodetool.fontSizeSmall
-          }}
-          // className={Slugify(output.type.type)}
-        >
-          {output.name} :{typeToString(output.type)}
-        </span>
-      }
+      title={tooltipTitle}
       enterDelay={TOOLTIP_ENTER_DELAY}
       leaveDelay={TOOLTIP_LEAVE_DELAY}
       enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
       placement="right"
       TransitionComponent={Zoom}
-      className={classConnectable + " " + Slugify(output.type.type)}
+      className={`${classConnectable} ${Slugify(output.type.type)}`}
       css={tooltipStyles}
     >
       <Handle
@@ -100,6 +99,8 @@ const NodeOutput = ({ id, output }: NodeOutputProps) => {
       />
     </Tooltip>
   );
-};
+});
+
+NodeOutput.displayName = "NodeOutput";
 
 export default NodeOutput;

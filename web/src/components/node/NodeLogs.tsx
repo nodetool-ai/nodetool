@@ -8,7 +8,7 @@ import {
   AccordionSummary,
   Typography
 } from "@mui/material";
-import useLogsStore, { hashKey } from "../../stores/LogStore";
+import useLogsStore from "../../stores/LogStore";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 type NodeLogsProps = {

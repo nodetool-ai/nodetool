@@ -4,8 +4,34 @@ import { iconForType, datatypeByName } from "../../config/data_types";
 import { Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
+
+const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
+  const parts = namespace.split(".");
+  return (
+    <div className="pretty-namespace">
+      {parts.map((part, index) => (
+        <Typography
+          key={index}
+          component="span"
+          style={{
+            fontWeight: index === parts.length - 1 ? "500" : "300",
+            color:
+              index === parts.length - 1
+                ? ThemeNodes.palette.c_gray6
+                : "inherit",
+          }}
+        >
+          {part}
+          {index < parts.length - 1 && "."}
+        </Typography>
+      ))}
+    </div>
+  );
+});
+
+PrettyNamespace.displayName = "PrettyNamespace";
 
 export interface NodeFooterProps {
   nodeNamespace: string;
@@ -51,7 +77,7 @@ export const footerStyles = (theme: any) =>
 
 export const NodeFooter = memo<NodeFooterProps>(
   ({ nodeNamespace, type, metadata }) => {
-    const datatype = datatypeByName(type);
+    const datatype = useMemo(() => datatypeByName(type), [type]);
     const {
       openNodeMenu,
       setHighlightedNamespaces,
@@ -64,38 +90,35 @@ export const NodeFooter = memo<NodeFooterProps>(
       setHoveredNode: state.setHoveredNode,
     }));
 
-    const handleOpenNodeMenu = () => {
+    const handleOpenNodeMenu = useMemo(() => () => {
       openNodeMenu(500, 200, false, metadata.namespace);
       requestAnimationFrame(() => {
         setSelectedPath(metadata.namespace.split("."));
         setHoveredNode(metadata);
         setHighlightedNamespaces(metadata.namespace.split("."));
       });
-    };
-
-    const prettyNamespace = (namespace: string) => {
-      const parts = namespace.split(".");
-      return (
-        <div className="pretty-namespace">
-          {parts.map((part, index) => (
-            <Typography
-              key={index}
-              component="span"
-              style={{
-                fontWeight: index === parts.length - 1 ? "500" : "300",
-                color:
-                  index === parts.length - 1
-                    ? ThemeNodes.palette.c_gray6
-                    : "inherit",
-              }}
-            >
-              {part}
-              {index < parts.length - 1 && "."}
-            </Typography>
-          ))}
-        </div>
-      );
-    };
+    }, [metadata, openNodeMenu, setSelectedPath, setHoveredNode, setHighlightedNamespaces]);
+    const memoizedIcon = useMemo(() =>
+      datatype && iconForType(datatype.value, {
+        fill: datatype.textColor,
+        containerStyle: {
+          borderRadius: "0 0 3px 0",
+          marginLeft: "0.1em",
+          marginTop: "0",
+        },
+        bgStyle: {
+          backgroundColor: datatype.color,
+          margin: "0",
+          padding: "1px",
+          borderRadius: "0 0 3px 0",
+          boxShadow: "inset 1px 1px 2px #00000044",
+          width: "15px",
+          height: "15px",
+        },
+        width: "10px",
+        height: "10px",
+      }),
+      [datatype]);
 
     return (
       <div className="node-footer" css={footerStyles}>
@@ -108,30 +131,11 @@ export const NodeFooter = memo<NodeFooterProps>(
             size="small"
             onClick={handleOpenNodeMenu}
           >
-            {prettyNamespace(nodeNamespace)}
+            <PrettyNamespace namespace={nodeNamespace} />
           </Button>
         </Tooltip>
         <div className="icon">
-          {datatype &&
-            iconForType(datatype.value, {
-              fill: datatype.textColor,
-              containerStyle: {
-                borderRadius: "0 0 3px 0",
-                marginLeft: "0.1em",
-                marginTop: "0",
-              },
-              bgStyle: {
-                backgroundColor: datatype.color,
-                margin: "0",
-                padding: "1px",
-                borderRadius: "0 0 3px 0",
-                boxShadow: "inset 1px 1px 2px #00000044",
-                width: "15px",
-                height: "15px",
-              },
-              width: "10px",
-              height: "10px",
-            })}
+          {memoizedIcon}
         </div>
       </div>
     );

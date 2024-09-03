@@ -1,14 +1,17 @@
+import React, { useMemo } from 'react';
 import { Select, FormControl } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 
-export default function EnumProperty(props: PropertyProps) {
-  const id = `enum-${props.property.name}-${props.propertyIndex}`;
-  const values =
-    props.property.type.type === "enum"
+const EnumProperty: React.FC<PropertyProps> = React.memo((props) => {
+  const id = useMemo(() => `enum-${props.property.name}-${props.propertyIndex}`, [props.property.name, props.propertyIndex]);
+
+  const values = useMemo(() => {
+    return props.property.type.type === "enum"
       ? props.property.type.values
       : props.property.type.type_args?.[0].values;
+  }, [props.property.type]);
 
   return (
     <>
@@ -47,4 +50,8 @@ export default function EnumProperty(props: PropertyProps) {
       </FormControl>
     </>
   );
-}
+});
+
+EnumProperty.displayName = "EnumProperty";
+
+export default EnumProperty;

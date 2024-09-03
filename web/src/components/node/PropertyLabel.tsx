@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import React, { useMemo } from "react";
 import { css } from "@emotion/react";
-
-import React from "react";
 import InputLabel from "@mui/material/InputLabel";
 // import Tooltip from "@mui/material/Tooltip";
 // import {
@@ -43,11 +42,13 @@ const labelStyles = (theme: any) =>
     }
   });
 
-const PropertyLabel: React.FC<PropertyLabelProps> = ({
+const PropertyLabel: React.FC<PropertyLabelProps> = React.memo(({
   id,
   name,
   description
 }) => {
+  const formattedName = useMemo(() => name.replaceAll("_", " "), [name]);
+
   return (
     <div className="property-label" css={labelStyles}>
       {description ? (
@@ -57,16 +58,18 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           role="tooltip"
         >
           <InputLabel draggable={false} htmlFor={id}>
-            {name.replaceAll("_", " ")}
+            {formattedName}
           </InputLabel>
         </div>
       ) : (
         <InputLabel draggable={false} htmlFor={id}>
-          {name.replaceAll("_", " ")}
+          {formattedName}
         </InputLabel>
       )}
     </div>
   );
-};
+});
+
+PropertyLabel.displayName = 'PropertyLabel';
 
 export default PropertyLabel;
