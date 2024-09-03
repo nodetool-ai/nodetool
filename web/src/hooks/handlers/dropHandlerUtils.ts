@@ -1,8 +1,24 @@
-// - get node type from mime type
-// - test if json is comfy or nodetool workflow
-// - get workflow data from png
-
+import { useCallback } from "react";
+import { XYPosition } from "reactflow";
 import { TypeName } from "../../stores/ApiTypes";
+import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useWorkflowStore } from "../../stores/WorkflowStore";
+import { useNodeStore } from "../../stores/NodeStore";
+import { useCreateDataframe } from "./useCreateDataframe";
+import { constantForType } from "./useConnectionHandlers";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import useAuth from "../../stores/useAuth";
+import { useMetadata } from "../../serverState/useMetadata";
+import { Asset } from "../../stores/ApiTypes";
+
+import Papa from "papaparse";
+
+export type FileHandlerResult = {
+  success: boolean;
+  data?: any;
+  error?: string;
+};
 
 export const nodeTypeFor = (contentType: string): TypeName | null => {
   switch (contentType) {
@@ -109,4 +125,188 @@ export const isComfyWorkflowJson = (json: any): boolean => {
 
 export const isNodetoolWorkflowJson = (json: any): boolean => {
   return json.graph && json.name && json.description;
+};
+
+interface ParsedCSV {
+  data: string[][];
+  errors: Papa.ParseError[];
+  meta: Papa.ParseMeta;
+}
+
+export const useFileHandlers = () => {
+  const workflow = useNodeStore((state) => state.workflow);
+  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
+  const { uploadAsset } = useAssetUpload();
+  const createWorkflow = useWorkflowStore((state) => state.create);
+  const setWorkflow = useNodeStore((state) => state.setWorkflow);
+  const { createNode, addNode } = useNodeStore();
+  const { addNotification } = useNotificationStore();
+  const { user } = useAuth();
+  const { data: metadata } = useMetadata();
+  const createDataframe = useCreateDataframe(createNode, addNode, metadata);
+
+  const handleGenericFile = useCallback(
+    async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
+      console.log("Handling generic file:", file.name, "Type:", file.type);
+      try {
+        await uploadAsset({
+          file,
+          workflow_id: workflow.id,
+          parent_id: currentFolderId || user?.id,
+          onCompleted: (uploadedAsset: Asset) => {
+            console.log("Uploaded asset:", uploadedAsset);
+
+            const assetType = nodeTypeFor(file.type);
+            console.log("Asset type:", assetType);
+            const nodeType = constantForType(assetType || "");
+            console.log("Node type:", nodeType);
+
+            if (nodeType === null) {
+              addNotification({
+                type: "warning",
+                alert: true,
+                content: "Unsupported file type: " + file.type
+              });
+              return;
+            }
+
+            if (metadata === undefined) {
+              throw new Error("metadata is undefined");
+            }
+            const nodeMetadata = metadata.metadataByType[nodeType];
+            console.log("Node metadata:", nodeMetadata);
+
+            const newNode = createNode(nodeMetadata, position);
+            console.log("Created node:", newNode);
+
+            // Set the node's value to the uploaded asset
+            newNode.data.properties.value = {
+              type: assetType,
+              uri: uploadedAsset.get_url,
+              asset_id: uploadedAsset.id,
+              temp_id: null
+            };
+
+            addNode(newNode);
+            console.log("Added node to graph");
+          }
+        });
+
+        return { success: true };
+      } catch (error: any) {
+        console.error("Error in handleGenericFile:", error);
+        return {
+          success: false,
+          error: error.message || "Failed to upload file as asset"
+        };
+      }
+    },
+    [
+      uploadAsset,
+      workflow.id,
+      currentFolderId,
+      user?.id,
+      metadata,
+      createNode,
+      addNode,
+      addNotification
+    ]
+  );
+
+  const handlePngFile = useCallback(
+    async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
+      console.log("444 Handling PNG file:", file.name);
+      try {
+        const workflow = await extractWorkflowFromPng(file);
+        console.log("Extracted workflow from PNG:", workflow);
+
+        if (workflow) {
+          console.log("Workflow found in PNG, creating workflow");
+          const createdWorkflow = await createWorkflow({
+            name: file.name,
+            description: "created from comfy",
+            access: "private",
+            comfy_workflow: workflow
+          });
+          setWorkflow(createdWorkflow);
+          return { success: true, data: createdWorkflow };
+        } else {
+          console.log("No workflow found in PNG, handling as generic file");
+          return await handleGenericFile(file, position);
+        }
+      } catch (error: any) {
+        console.error("Error handling PNG file:", error);
+        return {
+          success: false,
+          error: error.message || "Failed to process PNG file"
+        };
+      }
+    },
+    [createWorkflow, setWorkflow, handleGenericFile]
+  );
+
+  const handleJsonFile = useCallback(
+    async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
+      try {
+        const jsonContent = await file.text();
+        const jsonData = JSON.parse(jsonContent);
+        if (isComfyWorkflowJson(jsonData)) {
+          const createdWorkflow = await createWorkflow({
+            name: file.name,
+            description: "created from comfy",
+            access: "private",
+            comfy_workflow: jsonData
+          });
+          setWorkflow(createdWorkflow);
+          return { success: true, data: createdWorkflow };
+        } else if (isNodetoolWorkflowJson(jsonData)) {
+          const createdWorkflow = await createWorkflow({
+            name: jsonData.name,
+            description: "created from json",
+            access: "private",
+            graph: jsonData.graph
+          });
+          setWorkflow(createdWorkflow);
+          return { success: true, data: createdWorkflow };
+        } else {
+          // Handle as regular JSON file
+          return await handleGenericFile(file, position);
+        }
+      } catch (error: any) {
+        return {
+          success: false,
+          error: error.message || "Failed to process JSON file"
+        };
+      }
+    },
+    [createWorkflow, setWorkflow, handleGenericFile]
+  );
+
+  const handleCsvFile = useCallback(
+    async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
+      try {
+        const remainingFiles = createDataframe([file], position);
+        if (remainingFiles.length === 0) {
+          return { success: true, data: null };
+        } else {
+          // If createDataframe didn't handle the file, treat it as a generic file
+          return await handleGenericFile(file, position);
+        }
+      } catch (error: any) {
+        return {
+          success: false,
+          error: error.message || "Failed to process CSV file"
+        };
+      }
+    },
+    [createDataframe, handleGenericFile]
+  );
+
+  return {
+    handleGenericFile,
+    handlePngFile,
+    handleJsonFile,
+    handleCsvFile,
+    createDataframe
+  };
 };
