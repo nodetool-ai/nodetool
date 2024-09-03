@@ -101,7 +101,6 @@ nodes
 
 ```mermaid
 graph TD
-graph TD
 A([React Frontend]) -->|HTTP/WebSocket| B([API Server])
 A <-->|WebSocket| C([WebSocket Runner])
 B <-->|Internal Communication| C
@@ -130,9 +129,6 @@ D -->|API Calls| H[Other Provider APIs]
     class D worker;
     class E other;
     class F,G,H api;
-
-
-
 ```
 
 NodeTool's architecture is designed for flexibility. Here's a breakdown of the main components:
