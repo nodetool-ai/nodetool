@@ -101,29 +101,38 @@ nodes
 
 ```mermaid
 graph TD
-    A[React Frontend] -->|HTTP/WebSocket| B(API Server)
-    A -->|HTTP/WebSocket| C(WebSocket Runner)
-    B <-->|Internal Communication| C
-    C <-->|WebSocket| D[Worker]
-    D -->|HTTP Callbacks| B
-    E[External API Client] -->|HTTP| B
-    E -.->|WebSocket| C
-    D -->|API Calls| F[OpenAI API]
-    D -->|API Calls| G[Replicate API]
-    D -->|API Calls| H[Other Provider APIs]
-    classDef default fill:#333,stroke:#fff,stroke-width:2px;
-    classDef frontend fill:#900;
-    classDef server fill:#009;
-    classDef runner fill:#090;
-    classDef worker fill:#099;
-    classDef external fill:#909;
-    classDef provider fill:#609;
+graph TD
+A([React Frontend]) -->|HTTP/WebSocket| B([API Server])
+A <-->|WebSocket| C([WebSocket Runner])
+B <-->|Internal Communication| C
+C <-->|WebSocket| D([GPU Worker<br>local / cloud])
+D <-->|HTTP Callbacks| B
+E[Other Apps/Websites] -->|HTTP| B
+E <-->|WebSocket| C
+D -->|API Calls| F[OpenAI]
+D -->|API Calls| G[Replicate API]
+D -->|API Calls| H[Other Provider APIs]
+
+
+    classDef default fill:#e0e0e0,stroke:#333,stroke-width:2px,color:#000;
+    classDef frontend fill:#ffcccc,stroke:#333,stroke-width:2px,color:#000;
+    classDef server fill:#cce5ff,stroke:#333,stroke-width:2px,color:#000;
+    classDef runner fill:#ccffe5,stroke:#333,stroke-width:2px,color:#000;
+    classDef worker fill:#ccf2ff,stroke:#333,stroke-width:2px,color:#000;
+    classDef api fill:#e0e0e0,stroke:#333,stroke-width:2px,color:#000;
+    classDef darkgray fill:#a9a9a9,stroke:#333,stroke-width:2px,color:#000;
+    classDef transparent fill:transparent,stroke:transparent;
+    classDef small width:100px,height:40px;
+
     class A frontend;
     class B server;
     class C runner;
     class D worker;
-    class E external;
-    class F,G,H provider;
+    class E other;
+    class F,G,H api;
+
+
+
 ```
 
 NodeTool's architecture is designed for flexibility. Here's a breakdown of the main components:
