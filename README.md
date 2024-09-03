@@ -108,17 +108,22 @@ graph TD
     D -->|HTTP Callbacks| B
     E[External API Client] -->|HTTP| B
     E -.->|WebSocket| C
+    D -->|API Calls| F[OpenAI API]
+    D -->|API Calls| G[Replicate API]
+    D -->|API Calls| H[Other Provider APIs]
     classDef default fill:#333,stroke:#fff,stroke-width:2px;
     classDef frontend fill:#900;
     classDef server fill:#009;
     classDef runner fill:#090;
     classDef worker fill:#099;
     classDef external fill:#909;
+    classDef provider fill:#609;
     class A frontend;
     class B server;
     class C runner;
     class D worker;
     class E external;
+    class F,G,H provider;
 ```
 
 NodeTool's architecture is designed for flexibility. Here's a breakdown of the main components:
