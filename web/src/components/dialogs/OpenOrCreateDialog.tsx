@@ -133,7 +133,6 @@ const listStyles = () =>
     },
     ".name": {
       fontSize: ThemeNodetool.fontSizeNormal,
-      wordSpacing: "-3px",
       margin: "0",
       lineHeight: "1em",
       color: ThemeNodetool.palette.c_hl1

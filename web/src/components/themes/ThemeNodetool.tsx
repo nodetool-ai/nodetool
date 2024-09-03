@@ -132,31 +132,31 @@ const ThemeNodetool: Theme = createTheme({
     mode: "dark",
     primary: {
       main: "#76e5b8",
-      contrastText: "#FFFFFF",
+      contrastText: "#FFFFFF"
     },
     secondary: {
       main: "#757575",
-      contrastText: "#FFFFFF",
+      contrastText: "#FFFFFF"
     },
     tertiary: {
       light: "#a7d0c3",
       main: "#68a89a",
       dark: "#387c6d",
-      contrastText: "#fff",
+      contrastText: "#fff"
     },
     background: {
       default: "#202020",
-      paper: "#252525",
-    },
+      paper: "#252525"
+    }
   } as any,
   typography: {
     fontFamily: "'Inter', sans-serif",
-    fontSize: 14,
+    fontSize: 14
   },
   spacing: 4,
   shape: {
-    borderRadius: 4,
-  },
+    borderRadius: 4
+  }
 });
 
 ThemeNodetool.components = {
@@ -169,20 +169,20 @@ ThemeNodetool.components = {
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
         fontFamily: ThemeNodetool.fontFamily2,
-        wordSpacing: "-3px",
+        wordSpacing: "-3px"
       },
       h2: {
         cursor: "default",
         fontSize: "1.3em",
         marginTop: ThemeNodetool.spacing(4),
-        marginBottom: ThemeNodetool.spacing(2),
+        marginBottom: ThemeNodetool.spacing(2)
       },
       h3: {
         cursor: "default",
         fontSize: "1.1em",
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
-        fontFamily: ThemeNodetool.fontFamily1,
+        fontFamily: ThemeNodetool.fontFamily1
       },
       h4: {
         cursor: "default",
@@ -195,7 +195,7 @@ ThemeNodetool.components = {
         wordSpacing: "-3px",
         color: ThemeNodetool.palette.c_hl1,
         lineHeight: "1.1em",
-        wordBreak: "break-word",
+        wordBreak: "break-word"
       },
       h5: {
         cursor: "default",
@@ -205,16 +205,14 @@ ThemeNodetool.components = {
         textTransform: "uppercase",
         fontWeight: 600,
         fontFamily: ThemeNodetool.fontFamily2,
-        wordSpacing: "-3px",
+        wordSpacing: "-3px"
       },
       h6: {
         cursor: "default",
         fontSize: "0.8em",
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2),
-        textTransform: "uppercase",
-        //fontFamily: ThemeNodetool.fontFamily2,
-        //wordSpacing: "-.2em",
+        textTransform: "uppercase"
       },
       body1: {
         fontSize: "0.9em",
@@ -223,23 +221,23 @@ ThemeNodetool.components = {
         wordSpacing: "0",
         lineHeight: 1.2,
         marginTop: ThemeNodetool.spacing(0),
-        marginBottom: ThemeNodetool.spacing(0),
+        marginBottom: ThemeNodetool.spacing(0)
       },
       body2: {
         fontSize: "0.8em",
         lineHeight: 1.1,
         fontFamily: ThemeNodetool.fontFamily2,
-        wordSpacing: "-2px",
-      },
-    },
+        wordSpacing: "-2px"
+      }
+    }
   },
 
   MuiButton: {
     styleOverrides: {
       root: {
-        minWidth: 36,
-      },
-    },
+        minWidth: 36
+      }
+    }
   },
 
   MuiFormLabel: {
@@ -251,29 +249,29 @@ ThemeNodetool.components = {
         padding: ThemeNodetool.spacing(0, 0, 2, 0),
         color: ThemeNodetool.palette.c_hl1,
         "&.Mui-focused": {
-          color: ThemeNodetool.palette.primary.main,
-        },
-      },
-    },
+          color: ThemeNodetool.palette.primary.main
+        }
+      }
+    }
   },
 
   MuiFormControl: {
     styleOverrides: {
       root: {
         margin: ThemeNodetool.spacing(0, 0, 5, 0),
-        width: "100%",
-      },
-    },
+        width: "100%"
+      }
+    }
   },
   MuiPopover: {
     styleOverrides: {
-      root: { zIndex: 10000 },
-    },
+      root: { zIndex: 10000 }
+    }
   },
   MuiModal: {
     styleOverrides: {
-      root: { zIndex: 10000 },
-    },
+      root: { zIndex: 10000 }
+    }
   },
   MuiToolbar: {
     styleOverrides: {
@@ -282,10 +280,10 @@ ThemeNodetool.components = {
         minHeight: "50px",
         height: "50px",
         display: "flex",
-        justifyContent: "space-between",
-      },
-    },
-  },
+        justifyContent: "space-between"
+      }
+    }
+  }
 
   // List
   // MuiList: {
