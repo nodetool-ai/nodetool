@@ -14,9 +14,12 @@ import LastWorkflowButton from "./LastWorkflowButton";
 
 // mui icons
 import WorkflowsIcon from "@mui/icons-material/ListAlt";
-import AssetIcon from "@mui/icons-material/ImageSharp";
+// import AssetIcon from "@mui/icons-material/ImageSharp";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import ChatIcon from "@mui/icons-material/Chat";
+
+// nodetool icons
+import { iconForType } from "../../config/data_types";
 
 // mui
 import {
@@ -26,7 +29,7 @@ import {
   Tooltip,
   Toolbar,
   Typography,
-  Box,
+  Box
 } from "@mui/material";
 
 // hooks and stores
@@ -44,16 +47,16 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
     "&": {
       width: "100%",
       backgroundColor: theme.palette.c_gray0,
-      overflow: "visible",
+      overflow: "visible"
     },
     ".app-bar": {
-      overflow: "visible",
+      overflow: "visible"
     },
     ".toolbar": {
-      overflow: "visible",
+      overflow: "visible"
     },
     ".nodetool-logo": {
-      margin: "0 2em 0 0em",
+      margin: "0 2em 0 0em"
     },
     button: {
       fontSize:
@@ -62,8 +65,8 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
           : "0",
       color: theme.palette.c_white,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
-      },
+        backgroundColor: theme.palette.c_gray2
+      }
     },
     ".icon-container svg": {
       display:
@@ -72,10 +75,12 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
           : "none",
       minWidth: "25px",
       minHeight: "25px",
+      width: "100%",
+      height: "100%",
       fontSize:
         buttonAppearance === "icon" || buttonAppearance === "both"
           ? theme.fontSizeSmall
-          : "0",
+          : "0"
     },
     "button svg": {
       display:
@@ -83,25 +88,25 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
           ? "block"
           : "none",
       padding: "0.1em",
-      marginRight: "0.2em",
+      marginRight: "0.2em"
       // marginRight: "0.4em",
     },
     "button.logo:hover": {
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
     },
     ".nav-buttons": {
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-start",
       alignItems: "center",
-      gap: "0.5em",
+      gap: "0.5em"
     },
     "nav-button": {
       flexShrink: 0,
       minWidth: "5em",
       "&.active": {
-        color: theme.palette.c_hl1,
-      },
+        color: theme.palette.c_hl1
+      }
     },
 
     ".status-message": {
@@ -118,15 +123,15 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       backgroundColor: "#6f6f6fb5",
       padding: ".2em 1em",
       color: "black",
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeSmall
     },
     ".buttons-right": {
       display: "flex",
       flexDirection: "row",
       justifyContent: "flex-end",
       alignItems: "center",
-      gap: "0",
-    },
+      gap: "0"
+    }
   });
 
 function AppHeader() {
@@ -169,7 +174,7 @@ function AppHeader() {
     handleCloseHelp,
     handleOpenHelp,
     handleCloseWelcome,
-    handleOpenWelcome,
+    handleOpenWelcome
   } = useAppHeaderStore();
 
   const { handlePanelToggle: toggleChat } = useResizePanel("left");
@@ -205,7 +210,7 @@ function AppHeader() {
               }}
               sx={{
                 lineHeight: "1em",
-                display: { xs: "none", sm: "block" },
+                display: { xs: "none", sm: "block" }
               }}
             >
               <Logo
@@ -226,7 +231,7 @@ function AppHeader() {
               position: "fixed",
               width: "100%",
               height: "100%",
-              top: "50%",
+              top: "50%"
             }}
             slotProps={{
               root: {
@@ -234,18 +239,18 @@ function AppHeader() {
                   top: "60px !important",
                   "& .MuiBackdrop-root": {
                     top: "60px !important",
-                    position: "fixed",
-                  },
-                },
+                    position: "fixed"
+                  }
+                }
               },
               paper: {
                 sx: {
                   position: "absolute",
                   top: "60px",
                   left: "50%",
-                  transform: "translate(-50%, 0)",
-                },
-              },
+                  transform: "translate(-50%, 0)"
+                }
+              }
             }}
           >
             <Welcome handleClose={handleCloseWelcome} />
@@ -265,6 +270,11 @@ function AppHeader() {
                     path.startsWith("/workflows") ? "active" : ""
                   }`}
                   onClick={() => navigate("/workflows")}
+                  style={{
+                    color: path.startsWith("/workflows")
+                      ? ThemeNodetool.palette.c_hl1
+                      : ThemeNodetool.palette.c_white
+                  }}
                 >
                   <WorkflowsIcon />
                   Workflows
@@ -278,8 +288,32 @@ function AppHeader() {
                 <Button
                   className={`nav-button ${path === "/assets" ? "active" : ""}`}
                   onClick={() => navigate("/assets")}
+                  style={{
+                    color: path.startsWith("/assets")
+                      ? ThemeNodetool.palette.c_hl1
+                      : ThemeNodetool.palette.c_white
+                  }}
                 >
-                  <AssetIcon />
+                  {iconForType(
+                    "asset",
+                    {
+                      fill: path.startsWith("/assets")
+                        ? ThemeNodetool.palette.c_hl1
+                        : ThemeNodetool.palette.c_white,
+
+                      containerStyle: {
+                        borderRadius: "0 0 3px 0",
+                        marginLeft: "0.1em",
+                        marginTop: "0"
+                      },
+                      bgStyle: {
+                        backgroundColor: "#333",
+                        width: "30px",
+                        height: "20px"
+                      }
+                    },
+                    false
+                  )}
                   Assets
                 </Button>
               </Tooltip>
@@ -302,6 +336,32 @@ function AppHeader() {
           <Alert />
 
           <Box className="buttons-right">
+            <Tooltip title="Model Manager" enterDelay={TOOLTIP_DELAY}>
+              <Button
+                className="action-button"
+                onClick={() => navigate("/models")}
+                style={{
+                  color: path.startsWith("/models")
+                    ? ThemeNodetool.palette.c_hl1
+                    : ThemeNodetool.palette.c_white
+                }}
+              >
+                {iconForType("model", {
+                  fill: path.startsWith("/models")
+                    ? ThemeNodetool.palette.c_hl1
+                    : "#fff",
+                  bgStyle: {
+                    backgroundColor: "transparent",
+                    width: "28px",
+                    marginRight: ".5em"
+                  },
+                  width: "15px",
+                  height: "15px"
+                })}
+                Models
+              </Button>
+            </Tooltip>
+
             <Popover
               open={helpOpen}
               onClose={handleCloseHelp}
@@ -312,7 +372,7 @@ function AppHeader() {
                 height: "100%",
                 top: "50%",
                 left: "50%",
-                transform: "translate(-50%, -50%)",
+                transform: "translate(-50%, -50%)"
               }}
             >
               <Help handleClose={handleCloseHelp} />
