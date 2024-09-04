@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useState } from "react";
 
 import { VERSION } from "../../config/constants";
 import Menu from "@mui/material/Menu";
@@ -31,9 +30,9 @@ const styles = (theme: any) =>
   css({
     ".MuiPaper-root": {
       backgroundColor: theme.palette.c_gray0,
-      border: `2px solid ${theme.palette.c_gray3}`,
+      border: `2px solid ${theme.palette.c_gray0}`,
       borderRadius: "1em",
-      height: "80vh",
+      height: "90vh",
       overflow: "hidden"
     },
     ".settings": {
@@ -65,21 +64,21 @@ const styles = (theme: any) =>
       flexGrow: 1,
       backgroundColor: theme.palette.c_gray1,
       width: "70vw",
-      height: "65vh",
+      height: "75vh",
       overflowY: "auto",
       minWidth: "400px",
-      maxWidth: "900px",
+      maxWidth: "1000px",
       padding: "1em",
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
-      gap: "1em",
+      gap: "2em",
       ".settings-item": {
         display: "flex",
         flexDirection: "row",
         alignItems: "flex-start",
-        borderTop: `1px solid ${theme.palette.c_gray0}`,
-        backgroundColor: theme.palette.c_gray0,
+        borderBottom: `1px solid ${theme.palette.c_gray0}`,
+        backgroundColor: theme.palette.c_gray1,
         padding: ".5em .2em",
         width: "100%",
         gap: "1.5em"
@@ -130,12 +129,17 @@ const styles = (theme: any) =>
         padding: "0.8em 0 0.2em 0"
       },
       ul: {
-        paddingLeft: "1em",
+        paddingLeft: ".5em",
         fontSize: theme.fontSizeNormal,
         fontFamily: theme.fontFamily1,
-        color: theme.palette.gray3,
+        color: theme.palette.c_gray5,
+        lineHeight: "1.25em",
         margin: "0.25em 0 0",
-        listStyleType: "disc"
+        listStyleType: "square"
+      },
+      h3: {
+        color: theme.palette.c_gray5,
+        margin: "0"
       }
     }
   });
@@ -156,10 +160,10 @@ function SettingsMenu() {
     setAssetItemSize,
     setTimeFormat,
     setButtonAppearance,
-    setAlertBeforeTabClose,
     setSelectNodesOnDrag,
     setShowWelcomeOnStartup,
     settings
+    // setAlertBeforeTabClose,
   } = useSettingsStore();
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -213,10 +217,52 @@ function SettingsMenu() {
       >
         <div className="top">
           <CloseButton onClick={handleClose} />
-          <Typography variant="h4">Settings</Typography>
+          <Typography variant="h3">Settings</Typography>
         </div>
         <div className="settings-menu">
           {!isProduction && <RemoteSettingsMenu />}
+          <Typography variant="h3">Editor</Typography>
+
+          <div className="settings-item">
+            <FormControl>
+              <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
+              <Switch
+                sx={{
+                  "&.MuiSwitch-root": {
+                    margin: "16px 0 0"
+                  }
+                }}
+                checked={!!settings.showWelcomeOnStartup}
+                onChange={(e) => setShowWelcomeOnStartup(e.target.checked)}
+                inputProps={{ "aria-label": id }}
+              />
+            </FormControl>
+            <Typography className="description">
+              Show the welcome screen when starting the application.
+            </Typography>
+          </div>
+
+          <div className="settings-item">
+            <FormControl>
+              <InputLabel htmlFor={id}>Select Nodes On Drag</InputLabel>
+              <Switch
+                sx={{
+                  "&.MuiSwitch-root": {
+                    margin: "16px 0 0"
+                  }
+                }}
+                checked={!!settings.selectNodesOnDrag}
+                onChange={(e) =>
+                  setSelectNodesOnDrag(e.target.checked ?? false)
+                }
+                inputProps={{ "aria-label": id }}
+              />
+            </FormControl>
+            <Typography className="description">
+              Select nodes when dragging.
+            </Typography>
+          </div>
+
           <div className="settings-item">
             <FormControl>
               <InputLabel htmlFor={id}>Pan Controls</InputLabel>
@@ -299,7 +345,7 @@ function SettingsMenu() {
               Snap distance for connecting nodes.
             </Typography>
           </div>
-
+          <Typography variant="h3">Workflows</Typography>
           <div className="settings-item">
             <FormControl>
               <InputLabel htmlFor={id}>Workflow Menu Layout</InputLabel>
@@ -342,7 +388,7 @@ function SettingsMenu() {
               Sort <Link to="/workflows"> Workflows</Link> by name or date.
             </Typography>
           </div>
-
+          <Typography variant="h3">Assets</Typography>
           <div className="settings-item">
             <TextField
               type="number"
@@ -357,10 +403,11 @@ function SettingsMenu() {
               }}
             />
             <Typography className="description">
-              Default size for assets in the asset browser.
+              Default size for items in the asset browser.
             </Typography>
           </div>
 
+          <Typography variant="h3">Appearance</Typography>
           <div className="settings-item">
             <FormControl>
               <InputLabel htmlFor={id}>Time Format</InputLabel>
@@ -427,46 +474,6 @@ function SettingsMenu() {
             </Typography>
           </div> */}
 
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Select Nodes On Drag</InputLabel>
-              <Switch
-                sx={{
-                  "&.MuiSwitch-root": {
-                    margin: "16px 0 0"
-                  }
-                }}
-                checked={!!settings.selectNodesOnDrag}
-                onChange={(e) =>
-                  setSelectNodesOnDrag(e.target.checked ?? false)
-                }
-                inputProps={{ "aria-label": id }}
-              />
-            </FormControl>
-            <Typography className="description">
-              Select nodes when dragging.
-            </Typography>
-          </div>
-
-          <div className="settings-item">
-            <FormControl>
-              <InputLabel htmlFor={id}>Show Welcome Screen</InputLabel>
-              <Switch
-                sx={{
-                  "&.MuiSwitch-root": {
-                    margin: "16px 0 0"
-                  }
-                }}
-                checked={!!settings.showWelcomeOnStartup}
-                onChange={(e) => setShowWelcomeOnStartup(e.target.checked)}
-                inputProps={{ "aria-label": id }}
-              />
-            </FormControl>
-            <Typography className="description">
-              Show the welcome screen when starting the application.
-            </Typography>
-          </div>
-
           {user && user.auth_token && (
             <div
               className="settings-item"
@@ -488,7 +495,7 @@ function SettingsMenu() {
                 <br />
                 <Tooltip title="Copy to clipboard">
                   <Button
-                    style={{ margin: "1em 0 0" }}
+                    style={{ margin: ".5em 0" }}
                     size="small"
                     variant="outlined"
                     startIcon={<ContentCopyIcon />}
