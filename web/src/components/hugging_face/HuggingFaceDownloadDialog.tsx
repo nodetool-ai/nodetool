@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -14,8 +14,8 @@ const HuggingFaceDownloadDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useHuggingFaceStore();
 
   return (
-    <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="md" fullWidth>
-      <DialogTitle>Download HuggingFace Models</DialogTitle>
+    <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
+      <DialogTitle>Download Progress</DialogTitle>
       <DialogContent>
         <Box mt={2}>
           {Object.keys(downloads).map((name) => (
@@ -24,7 +24,9 @@ const HuggingFaceDownloadDialog: React.FC = () => {
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={closeDialog}>Close</Button>
+        <Button onClick={closeDialog} variant="contained">
+          Close
+        </Button>
       </DialogActions>
     </Dialog>
   );

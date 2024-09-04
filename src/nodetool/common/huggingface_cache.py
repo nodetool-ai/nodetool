@@ -213,13 +213,12 @@ class DownloadManager:
                 file,
                 self.queue,
             )
-            print(filename, local_path)
             if local_path:
                 self.downloaded_files.append(filename)
 
             await self.send_update()
 
-        self.status = "idle"
+        self.status = "completed"
 
         if self.cancel.is_set():
             self.status = "cancelled"

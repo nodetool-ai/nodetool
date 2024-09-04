@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 interface Download {
   status:
+  | "pending"
   | "idle"
   | "running"
   | "completed"
@@ -95,7 +96,7 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
       downloads: {
         ...state.downloads,
         [repoId]: {
-          status: "idle",
+          status: "pending",
           repoId,
           downloadedBytes: 0,
           totalBytes: 0
