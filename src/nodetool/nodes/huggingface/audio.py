@@ -1,6 +1,15 @@
 from typing import Any
 from pydantic import Field
-from nodetool.metadata.types import AudioRef
+from nodetool.metadata.types import (
+    AudioRef,
+    HFAudioClassification,
+    HFAutomaticSpeechRecognition,
+    HFTextToAudio,
+    HFTextToSpeech,
+    HFZeroShotAudioClassification,
+    HFZeroShotClassification,
+    HuggingFaceModel,
+)
 from nodetool.metadata.types import ImageRef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
@@ -37,18 +46,14 @@ class AudioClassifier(HuggingFacePipelineNode):
     - Detect speech vs. non-speech audio
     - Identify environmental sounds
     - Emotion recognition in speech
+
+    Recommended models
+    - MIT/ast-finetuned-audioset-10-10-0.4593
+    - ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition
     """
 
-    class AudioClassifierModelId(str, Enum):
-        MIT_AST_FINETUNED_AUDIOSET_10_10_0_BALANCED = (
-            "MIT/ast-finetuned-audioset-10-10-0.4593"
-        )
-        EHCALABRES_WAV2VEC2_LG_XLSR_EN_SPEECH_EMOTION_RECOGNITION = (
-            "ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition"
-        )
-
-    model: AudioClassifierModelId = Field(
-        default=AudioClassifierModelId.MIT_AST_FINETUNED_AUDIOSET_10_10_0_BALANCED,
+    model: HFAudioClassification = Field(
+        default=HFAudioClassification(),
         title="Model ID on Huggingface",
         description="The model ID to use for audio classification",
     )
@@ -58,6 +63,19 @@ class AudioClassifier(HuggingFacePipelineNode):
         description="The input audio to classify",
     )
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFAudioClassification(
+                repo_id="MIT/ast-finetuned-audioset-10-10-0.4593",
+                allow_patterns=["*.safetensors", "*.json"],
+            ),
+            HFAudioClassification(
+                repo_id="ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition",
+                allow_patterns=["pytorch_model.bin", "*.json"],
+            ),
+        ]
+
     def required_inputs(self):
         return ["inputs"]
 
@@ -65,7 +83,7 @@ class AudioClassifier(HuggingFacePipelineNode):
         return torch.float32
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @property
     def pipeline_task(self) -> str:
@@ -100,12 +118,8 @@ class Bark(HuggingFacePipelineNode):
     - Generate automated announcements for public spaces
     """
 
-    class TTSModelId(str, Enum):
-        SUNO_BARK = "suno/bark"
-        SUNO_BARK_SMALL = "suno/bark-small"
-
-    model: TTSModelId = Field(
-        default=TTSModelId.SUNO_BARK,
+    model: HFTextToSpeech = Field(
+        default=HFTextToSpeech(),
         title="Model ID on Huggingface",
         description="The model ID to use for the image generation",
     )
@@ -115,11 +129,24 @@ class Bark(HuggingFacePipelineNode):
         description="The input text to the model",
     )
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToSpeech(
+                repo_id="suno/bark",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+            HFTextToSpeech(
+                repo_id="suno/bark-small",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+        ]
+
     async def get_inputs(self, context: ProcessingContext):
         return self.prompt
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @property
     def pipeline_task(self) -> str:
@@ -152,16 +179,8 @@ class MusicGen(HuggingfaceNode):
     - Prototype musical ideas quickly
     """
 
-    class MusicGenModelId(str, Enum):
-        MUSICGEN_SMALL = "facebook/musicgen-small"
-        MUSICGEN_MEDIUM = "facebook/musicgen-medium"
-        MUSICGEN_LARGE = "facebook/musicgen-large"
-        MUSICGEN_MELODY = "facebook/musicgen-melody"
-        MUSICGEN_STEREO_SMALL = "facebook/musicgen-stereo-small"
-        MUSICGEN_STEREO_LARGE = "facebook/musicgen-stereo-large"
-
-    model: MusicGenModelId = Field(
-        default=MusicGenModelId.MUSICGEN_SMALL,
+    model: HFTextToAudio = Field(
+        default=HFTextToAudio(),
         title="Model ID on Huggingface",
         description="The model ID to use for the audio generation",
     )
@@ -179,12 +198,46 @@ class MusicGen(HuggingfaceNode):
     _processor: AutoProcessor | None = None
     _model: MusicgenForConditionalGeneration | None = None
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToAudio(
+                repo_id="facebook/musicgen-small",
+                allow_patterns=["*.safetensors", "*.json", "*.model"],
+            ),
+            HFTextToAudio(
+                repo_id="facebook/musicgen-medium",
+                allow_patterns=["*.safetensors", "*.json", "*.model"],
+            ),
+            HFTextToAudio(
+                repo_id="facebook/musicgen-large",
+                allow_patterns=["*.safetensors", "*.json", "*.model"],
+            ),
+            HFTextToAudio(
+                repo_id="facebook/musicgen-melody",
+                allow_patterns=["*.safetensors", "*.json", "*.model"],
+            ),
+            HFTextToAudio(
+                repo_id="facebook/musicgen-stereo-small",
+                allow_patterns=["*.safetensors", "*.json", "*.model"],
+            ),
+            HFTextToAudio(
+                repo_id="facebook/musicgen-stereo-large",
+                allow_patterns=["*.safetensors", "*.json", "*.model"],
+            ),
+        ]
+
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     async def initialize(self, context: ProcessingContext):
-        self._processor = AutoProcessor.from_pretrained(self.model.value)  # type: ignore
-        self._model = MusicgenForConditionalGeneration.from_pretrained(self.model.value)  # type: ignore
+        if not context.is_huggingface_model_cached(self.model.repo_id):
+            raise ValueError(f"Download the model {self.model.repo_id} first")
+
+        self._processor = AutoProcessor.from_pretrained(self.model.repo_id)  # type: ignore
+        self._model = MusicgenForConditionalGeneration.from_pretrained(
+            self.model.repo_id, torch_dtype=torch.float16, local_files_only=True
+        )  # type: ignore
 
     async def move_to_device(self, device: str):
         if self._model is not None:
@@ -200,8 +253,8 @@ class MusicGen(HuggingfaceNode):
             return_tensors="pt",
         )  # type: ignore
 
-        inputs["input_ids"] = inputs["input_ids"].to(torch.device("cuda"))
-        inputs["attention_mask"] = inputs["attention_mask"].to(torch.device("cuda"))
+        inputs["input_ids"] = inputs["input_ids"].to(context.device)
+        inputs["attention_mask"] = inputs["attention_mask"].to(context.device)
 
         audio_values = self._model.generate(**inputs, max_new_tokens=256)
         sampling_rate = self._model.config.audio_encoder.sampling_rate
@@ -220,7 +273,16 @@ class MusicLDM(HuggingFacePipelineNode):
     - Create custom background music for videos or games
     - Generate sound effects based on textual descriptions
     - Prototype musical ideas quickly
+
+    Recommended models:
+    - ucsd-reach/musicldm
     """
+
+    model: HFTextToAudio = Field(
+        default=HFTextToAudio(),
+        title="Model ID on Huggingface",
+        description="The model ID to use for the audio generation",
+    )
 
     prompt: str = Field(
         default="",
@@ -240,10 +302,18 @@ class MusicLDM(HuggingFacePipelineNode):
 
     _pipeline: MusicLDMPipeline | None = None
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToAudio(
+                repo_id="ucsd-reach/musicldm",
+                allow_patterns=["*.safetensors", "*.json", "*.txt"],
+            ),
+        ]
+
     async def initialize(self, context: ProcessingContext):
-        repo_id = "ucsd-reach/musicldm"
         self._pipeline = MusicLDMPipeline.from_pretrained(
-            repo_id, torch_dtype=torch.float16
+            self.model.repo_id, torch_dtype=torch.float16, local_files_only=True
         )  # type: ignore
 
     async def move_to_device(self, device: str):
@@ -299,10 +369,22 @@ class AudioLDM(BaseNode):
 
     _pipeline: AudioLDMPipeline | None = None
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToAudio(
+                repo_id="cvssp/audioldm-s-full-v2",
+                allow_patterns=["*.safetensors", "*.json", "*.txt"],
+            ),
+        ]
+
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached("cvssp/audioldm-s-full-v2"):
+            raise ValueError("Download the model cvssp/audioldm-s-full-v2 first")
         self._pipeline = AudioLDMPipeline.from_pretrained(
             "cvssp/audioldm-s-full-v2",
             torch_dtype=torch.float16,
+            local_files_only=True,
         )  # type: ignore
 
     async def move_to_device(self, device: str):
@@ -313,7 +395,7 @@ class AudioLDM(BaseNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        generator = torch.Generator("cuda")
+        generator = torch.Generator(context.device)
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
@@ -388,10 +470,22 @@ class AudioLDM2(BaseNode):
 
     _pipeline: AudioLDM2Pipeline | None = None
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToAudio(
+                repo_id="cvssp/audioldm2",
+                allow_patterns=["*.safetensors", "*.json", "*.txt"],
+            ),
+        ]
+
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached("cvssp/audioldm2"):
+            raise ValueError("Download the model cvssp/audioldm2 first")
         self._pipeline = AudioLDM2Pipeline.from_pretrained(
             "cvssp/audioldm2",
             torch_dtype=torch.float16,
+            local_files_only=True,
         )  # type: ignore
 
     async def move_to_device(self, device: str):
@@ -402,7 +496,7 @@ class AudioLDM2(BaseNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        generator = torch.Generator("cuda")
+        generator = torch.Generator(context.device)
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
@@ -465,8 +559,21 @@ class DanceDiffusion(BaseNode):
 
     _pipeline: DiffusionPipeline | None = None
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToAudio(
+                repo_id="harmonai/maestro-150k",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+        ]
+
     async def initialize(self, context: ProcessingContext):
-        self._pipeline = DiffusionPipeline.from_pretrained("harmonai/maestro-150k")
+        if not context.is_huggingface_model_cached("harmonai/maestro-150k"):
+            raise ValueError("Download the model harmonai/maestro-150k first")
+        self._pipeline = DiffusionPipeline.from_pretrained(
+            "harmonai/maestro-150k", torch_dtype=torch.float16, local_files_only=True
+        )
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -476,7 +583,7 @@ class DanceDiffusion(BaseNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        generator = torch.Generator("cuda")
+        generator = torch.Generator(context.device)
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
@@ -530,10 +637,24 @@ class StableAudioNode(BaseNode):
 
     _pipeline: StableAudioPipeline | None = None
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToAudio(
+                repo_id="stabilityai/stable-audio-open-1.0",
+                allow_patterns=["*.safetensors", "*.json", "*.txt"],
+            ),
+        ]
+
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached("stabilityai/stable-audio-open-1.0"):
+            raise ValueError(
+                "Download the model stabilityai/stable-audio-open-1.0 first"
+            )
         self._pipeline = StableAudioPipeline.from_pretrained(
             "stabilityai/stable-audio-open-1.0",
             torch_dtype=torch.float16,
+            local_files_only=True,
         )  # type: ignore
 
     async def move_to_device(self, device: str):
@@ -544,7 +665,10 @@ class StableAudioNode(BaseNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        generator = torch.Generator("cuda").manual_seed(0)
+        generator = torch.Generator(context.device)
+
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
 
         def progress_callback(
             step: int, timestep: int, latents: torch.FloatTensor
@@ -586,13 +710,8 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
     - Implement voice commands in applications
     """
 
-    class ASRModelId(str, Enum):
-        OPENAI_WHISPER_LARGE_V3 = "openai/whisper-large-v3"
-        OPENAI_WHISPER_LARGE_V2 = "openai/whisper-large-v2"
-        OPENAI_WHISPER_SMALL = "openai/whisper-small"
-
-    model: ASRModelId = Field(
-        default=ASRModelId.OPENAI_WHISPER_LARGE_V3,
+    model: HFAutomaticSpeechRecognition = Field(
+        default=HFAutomaticSpeechRecognition(),
         title="Model ID on Huggingface",
         description="The model ID to use for the speech recognition",
     )
@@ -602,11 +721,28 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         description="The input audio to transcribe",
     )
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFAutomaticSpeechRecognition(
+                repo_id="openai/whisper-large-v3",
+                allow_patterns=["model.safetensors", "*.json", "*.txt"],
+            ),
+            HFAutomaticSpeechRecognition(
+                repo_id="openai/whisper-large-v2",
+                allow_patterns=["model.safetensors", "*.json", "*.txt"],
+            ),
+            HFAutomaticSpeechRecognition(
+                repo_id="openai/whisper-small",
+                allow_patterns=["model.safetensors", "*.json", "*.txt"],
+            ),
+        ]
+
     def required_inputs(self):
         return ["inputs"]
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @property
     def pipeline_task(self) -> str:
@@ -638,11 +774,8 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
     - Automate audio tagging for large datasets
     """
 
-    class ZeroShotAudioClassifierModelId(str, Enum):
-        LAION_CLAP_HTSAT_UNFUSED = "laion/clap-htsat-unfused"
-
-    model: ZeroShotAudioClassifierModelId = Field(
-        default=ZeroShotAudioClassifierModelId.LAION_CLAP_HTSAT_UNFUSED,
+    model: HFZeroShotAudioClassification = Field(
+        default=HFZeroShotAudioClassification(),
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
@@ -657,11 +790,20 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
         description="The candidate labels to classify the audio against, separated by commas",
     )
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFZeroShotAudioClassification(
+                repo_id="laion/clap-htsat-unfused",
+                allow_patterns=["model.safetensors", "*.json", "*.txt"],
+            ),
+        ]
+
     def required_inputs(self):
         return ["inputs"]
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @property
     def pipeline_task(self) -> str:

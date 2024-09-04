@@ -5,7 +5,17 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
 import { NodeProps, useStore } from "reactflow";
 import { isEqual } from "lodash";
-import { Button, Container, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Container,
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  SelectChangeEvent
+} from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
 
@@ -24,6 +34,7 @@ import OutputRenderer from "./OutputRenderer";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { MIN_ZOOM } from "../../config/constants";
+import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
 
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
@@ -52,9 +63,9 @@ export default memo(
     const {
       data: metadata,
       isLoading: metadataLoading,
-      error: metadataError,
+      error: metadataError
     } = useMetadata();
-    const secrets = useRemoteSettingsStore((state) => state.secrets)
+    const secrets = useRemoteSettingsStore((state) => state.secrets);
     const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
     const nodedata = useNodeStore(
       useCallback((state) => state.findNode(props.id)?.data, [props.id])
@@ -79,8 +90,10 @@ export default memo(
     const isLoading =
       status === "running" || status === "starting" || status === "booting";
     const isConstantNode = props.type.startsWith("nodetool.constant");
+    const { startDownload, openDialog } = useHuggingFaceStore();
 
     const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
+    const [showModelDownload, setShowModelDownload] = useState(false);
     useEffect(() => {
       // Set parentIsCollapsed state based on parent node
       if (hasParent) {
@@ -107,7 +120,7 @@ export default memo(
         hasParent,
         isInputNode,
         isOutputNode,
-        props.data.dirty,
+        props.data.dirty
       ]
     );
     const result = useResultsStore((state) =>
@@ -136,11 +149,11 @@ export default memo(
       node_outputs.length > 0
         ? node_outputs[0]
         : {
-          name: "output",
-          type: {
-            type: "string",
-          },
-        };
+            name: "output",
+            type: {
+              type: "string"
+            }
+          };
 
     const missingAPIKeys = useMemo(() => {
       if (node_namespace.startsWith("openai.")) {
@@ -159,16 +172,40 @@ export default memo(
         }
       }
       return null;
-    }, [node_namespace, secrets.OPENAI_API_KEY, secrets.REPLICATE_API_TOKEN, secrets.ANTHROPIC_API_KEY]);
+    }, [
+      node_namespace,
+      secrets.OPENAI_API_KEY,
+      secrets.REPLICATE_API_TOKEN,
+      secrets.ANTHROPIC_API_KEY
+    ]);
+
+    const recommendedModels = nodeMetadata?.recommended_models || [];
+
+    const handleModelChange = (event: SelectChangeEvent) => {
+      const selectedRepoId = event.target.value;
+      const selectedModelData = recommendedModels.find(
+        (model) => model.repo_id === selectedRepoId
+      );
+      if (selectedModelData) {
+        startDownload(
+          selectedRepoId,
+          selectedModelData.allow_patterns || null,
+          selectedModelData.ignore_patterns || null
+        );
+        openDialog();
+      }
+    };
 
     if (!nodeMetadata || metadataLoading || metadataError) {
       return (
-        <Container className={className} style={{ minHeight: `${minHeight}px` }}>
+        <Container
+          className={className}
+          style={{ minHeight: `${minHeight}px` }}
+        >
           <NodeHeader id={props.id} nodeTitle={node_title} isLoading={true} />
         </Container>
       );
     }
-
     return (
       <Container
         className={className}
@@ -178,7 +215,7 @@ export default memo(
           minHeight: `${minHeight}px`,
           backgroundColor: hasParent
             ? ThemeNodes.palette.c_node_bg_group
-            : ThemeNodes.palette.c_node_bg,
+            : ThemeNodes.palette.c_node_bg
         }}
       >
         {!isMinZoom && (
@@ -195,6 +232,40 @@ export default memo(
                 Model is booting, taking minutes.
               </Typography>
             )}
+
+            {recommendedModels.length > 0 && (
+              <Box sx={{ margin: "1em" }}>
+                <Typography
+                  variant="body2"
+                  sx={{ cursor: "pointer" }}
+                  onClick={() => setShowModelDownload(!showModelDownload)}
+                >
+                  Download recommended models
+                </Typography>
+                {showModelDownload && (
+                  <Box sx={{ mb: 1 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel id="model-select-label">
+                        Select model to download
+                      </InputLabel>
+                      <Select
+                        labelId="model-select-label"
+                        onChange={handleModelChange}
+                        label="Download Model"
+                        value={""}
+                      >
+                        {recommendedModels.map((model) => (
+                          <MenuItem key={model.repo_id} value={model.repo_id}>
+                            {model.repo_id}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                )}
+              </Box>
+            )}
+
             {missingAPIKeys && (
               <Typography className="node-status">
                 {missingAPIKeys} is missing!
@@ -204,7 +275,10 @@ export default memo(
                   size="small"
                   onClick={() => {
                     setMenuOpen(true);
-                  }}>Add key in Settings</Button>
+                  }}
+                >
+                  Add key in Settings
+                </Button>
               </Typography>
             )}
           </>
@@ -223,7 +297,7 @@ export default memo(
           <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
         )}
         {renderedResult}
-        {nodeMetadata.layout === "default" && (!isMinZoom) && (
+        {nodeMetadata.layout === "default" && !isMinZoom && (
           <>
             <ProcessTimer status={status} />
             {status === "running" && (

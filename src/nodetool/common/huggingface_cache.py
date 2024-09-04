@@ -1,7 +1,8 @@
 import asyncio
+from fnmatch import fnmatch
 import sys
 import json
-from typing import Literal
+from typing import Callable, Iterable, List, Literal, Optional, Union
 from fastapi import FastAPI, WebSocket
 from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.hf_api import RepoFile
@@ -10,6 +11,73 @@ from multiprocessing import Manager
 from queue import Empty
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import threading
+
+from torch import Generator
+
+from nodetool.workflows.base_node import get_node_class
+
+
+def filter_repo_paths(
+    items: list[str],
+    allow_patterns: list[str] | None = None,
+    ignore_patterns: list[str] | None = None,
+) -> list[str]:
+    """Filter repo objects based on an allowlist and a denylist.
+
+    Input must be a list of paths (`str` or `Path`) or a list of arbitrary objects.
+
+    Patterns are Unix shell-style wildcards which are NOT regular expressions. See
+    https://docs.python.org/3/library/fnmatch.html for more details.
+
+    Args:
+        items (`Iterable`):
+            List of items to filter.
+        allow_patterns (`str` or `List[str]`, *optional*):
+            Patterns constituting the allowlist. If provided, item paths must match at
+            least one pattern from the allowlist.
+        ignore_patterns (`str` or `List[str]`, *optional*):
+            Patterns constituting the denylist. If provided, item paths must not match
+            any patterns from the denylist.
+
+    Returns:
+        Filtered list of paths
+
+    ```
+    """
+    if isinstance(allow_patterns, str):
+        allow_patterns = [allow_patterns]
+
+    if isinstance(ignore_patterns, str):
+        ignore_patterns = [ignore_patterns]
+
+    if allow_patterns is not None:
+        allow_patterns = [_add_wildcard_to_directories(p) for p in allow_patterns]
+    if ignore_patterns is not None:
+        ignore_patterns = [_add_wildcard_to_directories(p) for p in ignore_patterns]
+
+    filtered_paths = []
+    for path in items:
+        # Skip if there's an allowlist and path doesn't match any
+        if allow_patterns is not None and not any(
+            fnmatch(path, r) for r in allow_patterns
+        ):
+            continue
+
+        # Skip if there's a denylist and path matches any
+        if ignore_patterns is not None and any(
+            fnmatch(path, r) for r in ignore_patterns
+        ):
+            continue
+
+        filtered_paths.append(path)
+
+    return filtered_paths
+
+
+def _add_wildcard_to_directories(pattern: str) -> str:
+    if pattern[-1] == "/":
+        return pattern + "*"
+    return pattern
 
 
 class DownloadManager:
@@ -35,6 +103,8 @@ class DownloadManager:
         self,
         repo_id: str,
         websocket: WebSocket,
+        allow_patterns: list[str] | None = None,
+        ignore_patterns: list[str] | None = None,
     ):
         if self.status == "running":
             await websocket.send_json(
@@ -60,7 +130,11 @@ class DownloadManager:
         self.progress_thread.start()
 
         try:
-            await self.download_huggingface_repo(repo_id)
+            await self.download_huggingface_repo(
+                repo_id=repo_id,
+                allow_patterns=allow_patterns,
+                ignore_patterns=ignore_patterns,
+            )
         except Exception as e:
             print(f"Error in download: {e}")
             self.status = "error"
@@ -103,13 +177,21 @@ class DownloadManager:
                 pass
             except EOFError:
                 pass
+            except BrokenPipeError:
+                pass
             except Exception as e:
                 import traceback
 
                 traceback.print_exc()
 
-    async def download_huggingface_repo(self, repo_id):
+    async def download_huggingface_repo(
+        self,
+        repo_id: str,
+        allow_patterns: list[str] | None = None,
+        ignore_patterns: list[str] | None = None,
+    ):
         files = self.api.list_repo_files(repo_id)
+        files = filter_repo_paths(files, allow_patterns, ignore_patterns)
         self.total_files = len(files)
         self.total_bytes = sum(
             file.size
@@ -180,9 +262,16 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_json()
             command = data.get("command")
             repo_id = data.get("repo_id")
+            allow_patterns = data.get("allow_patterns")
+            ignore_patterns = data.get("ignore_patterns")
 
             if command == "start_download":
-                await download_manager.start_download(repo_id, websocket)
+                await download_manager.start_download(
+                    repo_id=repo_id,
+                    websocket=websocket,
+                    allow_patterns=allow_patterns,
+                    ignore_patterns=ignore_patterns,
+                )
             elif command == "cancel_download":
                 await download_manager.cancel_download()
             else:

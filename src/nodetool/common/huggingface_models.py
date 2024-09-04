@@ -25,6 +25,7 @@ class CachedModel(BaseModel):
     repo_type: str
     size_on_disk: int
     pipeline_tag: Optional[str] = None
+    model_type: Optional[str] = None
 
 
 def read_all_cached_models() -> List[CachedModel]:

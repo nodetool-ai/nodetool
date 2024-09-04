@@ -21,7 +21,8 @@ const defaultMetadata: Record<string, NodeMetadata> = {
       }
     ],
     outputs: [],
-    model_info: {}
+    model_info: {},
+    recommended_models: []
   }
 };
 

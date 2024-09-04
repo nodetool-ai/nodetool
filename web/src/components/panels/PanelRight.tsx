@@ -3,7 +3,15 @@ import { css } from "@emotion/react";
 
 import React, { useState } from "react";
 import AssetGrid from "../assets/AssetGrid";
-import { IconButton, Box, Tooltip, Drawer, Tabs, Tab } from "@mui/material";
+import {
+  IconButton,
+  Box,
+  Tooltip,
+  Drawer,
+  Tabs,
+  Tab,
+  Button
+} from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
@@ -11,9 +19,11 @@ import Inspector from "../Inspector";
 // hooks
 import { useHotkeys } from "react-hotkeys-hook";
 import WorkflowForm from "../workflows/WorkflowForm";
-import HuggingFaceModelList from "../HuggingFaceModelList";
-import HuggingFaceModelDownloader from "../HuggingFaceModelDownloader";
+import HuggingFaceModelList from "../hugging_face/HuggingFaceModelList";
 import { isProduction } from "../../stores/ApiClient";
+import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
+import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
+import HuggingFaceModelSearch from "../hugging_face/HuggingFaceModelSearch";
 // import AssetRenameConfirmation from "../assets/AssetRenameConfirmation";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
@@ -39,9 +49,11 @@ const styles = (theme: any) =>
   });
 
 function HuggingFacePanel() {
+  const { openDialog } = useHuggingFaceStore();
   return (
     <Box className="huggingface-panel">
-      <HuggingFaceModelDownloader />
+      <HuggingFaceModelSearch />
+      <Button onClick={openDialog}>Download Models</Button>
       <HuggingFaceModelList />
     </Box>
   );

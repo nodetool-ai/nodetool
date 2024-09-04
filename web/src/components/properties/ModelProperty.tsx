@@ -1,20 +1,16 @@
-import { useCallback } from "react";
-import { Select } from "@mui/material";
+import { useCallback, useMemo } from "react";
+import { Box, Button, Select, SelectChangeEvent } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import PropertyLabel from "../node/PropertyLabel";
 import useModelStore from "../../stores/ModelStore";
 import { PropertyProps } from "../node/PropertyInput";
-import { FunctionModel, LlamaModel, TypeName } from "../../stores/ApiTypes";
+import { FunctionModel, TypeName } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
+import { useMetadata } from "../../serverState/useMetadata";
+import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
 
-export function modelFolder(type: TypeName) {
+export function comfyModelToFolder(type: TypeName) {
   switch (type) {
-    case "function_model":
-      return "function_model";
-    case "language_model":
-      return "language_model";
-    case "llama_model":
-      return "llama_model";
     case "comfy.checkpoint_file":
       return "checkpoints";
     case "comfy.vae_file":
@@ -38,43 +34,80 @@ export function modelFolder(type: TypeName) {
     case "comfy.instant_id_file":
       return "instantid";
     default:
-      return undefined;
+      return type;
   }
 }
-
 export default function ModelProperty(props: PropertyProps) {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const loadModelFiles = useModelStore((state) => state.loadFiles);
   const functionModels = useModelStore((state) => state.functionModels);
   const loadFunctionModels = useModelStore((state) => state.loadFunctionModels);
   const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
-  const folder = modelFolder(props.property.type.type);
-
+  const loadHuggingFaceModels = useModelStore(
+    (state) => state.loadHuggingFaceModels
+  );
+  const startDownload = useHuggingFaceStore((state) => state.startDownload);
+  const openDialog = useHuggingFaceStore((state) => state.openDialog);
+  const modelType = props.property.type.type;
   const { data, isError } = useQuery({
-    queryKey: ["models", folder],
+    queryKey: ["models", modelType],
     queryFn: async () => {
-      if (folder === undefined) return [];
-      if (folder === "function_model") return loadFunctionModels();
-      if (folder === "llama_model") return loadLlamaModels();
-      return loadModelFiles(folder);
+      if (modelType === undefined) return [];
+      if (modelType === "function_model") {
+        const models = await loadFunctionModels();
+        return models.map((model) => model.name);
+      }
+      if (modelType === "llama_model") {
+        const models = await loadLlamaModels();
+        return models.map((model) => model.name);
+      }
+      if (modelType.startsWith("hf.")) {
+        const models = await loadHuggingFaceModels();
+        return models
+          .filter((model) => model.model_type === modelType)
+          .map((model) => model.repo_id);
+      }
+      if (modelType === "comfy.model") {
+        const models = await loadModelFiles(comfyModelToFolder(modelType));
+        return models;
+      }
+      return await loadModelFiles(modelType);
     }
   });
 
-  const modelNames =
-    data?.map((model: FunctionModel | LlamaModel | string) =>
-      typeof model === "string" ? model : model.name
-    ) || [];
-
-  const providerFor = useCallback(
-    (name: string) => {
-      return functionModels.find((model: FunctionModel) => model.name === name)
-        ?.provider;
+  const onModelChange = useCallback(
+    (e: SelectChangeEvent) => {
+      const modelName = e.target.value;
+      if (modelType === "function_model") {
+        const provider = functionModels.find(
+          (model: FunctionModel) => model.name === name
+        )?.provider;
+        props.onChange({
+          type: props.property.type.type,
+          name: modelName,
+          provider: provider
+        });
+      } else if (modelType === "llama_model") {
+        props.onChange({
+          type: props.property.type.type,
+          name: modelName
+        });
+      } else if (modelType.startsWith("hf.")) {
+        props.onChange({
+          type: props.property.type.type,
+          repo_id: modelName
+        });
+      } else {
+        props.onChange({
+          type: props.property.type.type,
+          name: modelName
+        });
+      }
     },
-    [functionModels]
+    [modelType, functionModels, props]
   );
 
-  const selectValue = props.value?.name || "";
-
+  const selectValue = props.value?.name || props.value?.repo_id || "";
   return (
     <>
       <PropertyLabel
@@ -88,13 +121,7 @@ export default function ModelProperty(props: PropertyProps) {
         name=""
         value={selectValue}
         variant="standard"
-        onChange={(e) =>
-          props.onChange({
-            type: props.property.type.type,
-            name: e.target.value,
-            provider: providerFor(e.target.value)
-          })
-        }
+        onChange={onModelChange}
         className="mui-select nodrag"
         disableUnderline={true}
         MenuProps={{
@@ -109,10 +136,10 @@ export default function ModelProperty(props: PropertyProps) {
         }}
       >
         {isError && <MenuItem value="">Error loading models</MenuItem>}
-        {folder === undefined && (
+        {modelType === undefined && (
           <MenuItem value="">No models available</MenuItem>
         )}
-        {modelNames.map((modelName) => (
+        {data?.map((modelName) => (
           <MenuItem key={modelName} value={modelName}>
             {modelName}
           </MenuItem>

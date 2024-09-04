@@ -2,13 +2,13 @@ import { create } from "zustand";
 
 interface Download {
   status:
-    | "idle"
-    | "running"
-    | "completed"
-    | "cancelled"
-    | "error"
-    | "start"
-    | "progress";
+  | "idle"
+  | "running"
+  | "completed"
+  | "cancelled"
+  | "error"
+  | "start"
+  | "progress";
   repoId: string;
   downloadedBytes: number;
   totalBytes: number;
@@ -26,8 +26,15 @@ interface HuggingFaceStore {
   addDownload: (repoId: string) => void;
   updateDownload: (repoId: string, update: Partial<Download>) => void;
   removeDownload: (repoId: string) => void;
-  startDownload: (repoId: string) => void;
+  startDownload: (
+    repoId: string,
+    allowPatterns: string[] | null,
+    ignorePatterns: string[] | null
+  ) => void;
   cancelDownload: (repoId: string) => void;
+  isDialogOpen: boolean;
+  openDialog: () => void;
+  closeDialog: () => void;
 }
 
 export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
@@ -113,14 +120,31 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
       return { downloads: rest };
     }),
 
-  startDownload: async (repoId) => {
+  startDownload: async (
+    repoId: string,
+    allowPatterns: string[] | null,
+    ignorePatterns: string[] | null
+  ) => {
     const ws = await get().connectWebSocket();
-    ws.send(JSON.stringify({ command: "start_download", repo_id: repoId }));
     get().addDownload(repoId);
+    ws.send(
+      JSON.stringify({
+        command: "start_download",
+        repo_id: repoId,
+        allow_patterns: allowPatterns,
+        ignore_patterns: ignorePatterns
+      })
+    );
   },
 
   cancelDownload: async (repoId) => {
     const ws = await get().connectWebSocket();
     ws.send(JSON.stringify({ command: "cancel_download", repo_id: repoId }));
-  }
+  },
+
+  isDialogOpen: false,
+
+  openDialog: () => set({ isDialogOpen: true }),
+
+  closeDialog: () => set({ isDialogOpen: false })
 }));

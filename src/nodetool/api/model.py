@@ -4,7 +4,11 @@ import asyncio
 import httpx
 from nodetool.common.environment import Environment
 from nodetool.api.utils import current_user
-from nodetool.metadata.types import FunctionModel, LlamaModel
+from nodetool.metadata.types import (
+    FunctionModel,
+    LlamaModel,
+    pipeline_tag_to_model_type,
+)
 from nodetool.models.user import User
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -35,6 +39,8 @@ async def augment_model_info(model: CachedModel) -> CachedModel:
         return model
     model_info = res.json()
     model.pipeline_tag = model_info.get("pipeline_tag", None)
+    if model.pipeline_tag is not None:
+        model.model_type = pipeline_tag_to_model_type(model.pipeline_tag)
     return model
 
 

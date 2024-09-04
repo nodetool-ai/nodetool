@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { client } from "../../stores/ApiClient";
 import {
   Box,
   Button,
@@ -12,7 +12,7 @@ import {
   ListItemText,
   Typography
 } from "@mui/material";
-import DeleteButton from "./buttons/DeleteButton";
+import DeleteButton from "../buttons/DeleteButton";
 import {
   Dialog,
   DialogActions,

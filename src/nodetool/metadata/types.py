@@ -197,13 +197,254 @@ class LlamaModel(BaseType):
     details: dict = Field(default_factory=dict)
 
 
+class HuggingFaceModel(BaseType):
+    repo_id: str = ""
+    allow_patterns: list[str] = []
+    ignore_patterns: list[str] = []
+
+
+class HFImageTextToText(HuggingFaceModel):
+    type: Literal["hf.image_text_to_text"] = "hf.image_text_to_text"
+
+
+class HFVisualQuestionAnswering(HuggingFaceModel):
+    type: Literal["hf.visual_question_answering"] = "hf.visual_question_answering"
+
+
+class HFDocumentQuestionAnswering(HuggingFaceModel):
+    type: Literal["hf.document_question_answering"] = "hf.document_question_answering"
+
+
+class HFVideoTextToText(HuggingFaceModel):
+    type: Literal["hf.video_text_to_text"] = "hf.video_text_to_text"
+
+
+class HFComputerVision(HuggingFaceModel):
+    type: Literal["hf.computer_vision"] = "hf.computer_vision"
+
+
+class HFDepthEstimation(HuggingFaceModel):
+    type: Literal["hf.depth_estimation"] = "hf.depth_estimation"
+
+
+class HFImageClassification(HuggingFaceModel):
+    type: Literal["hf.image_classification"] = "hf.image_classification"
+
+
+class HFObjectDetection(HuggingFaceModel):
+    type: Literal["hf.object_detection"] = "hf.object_detection"
+
+
+class HFImageSegmentation(HuggingFaceModel):
+    type: Literal["hf.image_segmentation"] = "hf.image_segmentation"
+
+
+class HFTextToImage(HuggingFaceModel):
+    type: Literal["hf.text_to_image"] = "hf.text_to_image"
+
+
+class HFStableDiffusionBase(HuggingFaceModel):
+    type: Literal["hf.stable_diffusion_base"] = "hf.stable_diffusion_base"
+
+
+class HFStableDiffusionXL(HuggingFaceModel):
+    type: Literal["hf.stable_diffusion_xl"] = "hf.stable_diffusion_xl"
+
+
+class HFImageToText(HuggingFaceModel):
+    type: Literal["hf.image_to_text"] = "hf.image_to_text"
+
+
+class HFImageToImage(HuggingFaceModel):
+    type: Literal["hf.image_to_image"] = "hf.image_to_image"
+
+
+class HFImageToVideo(HuggingFaceModel):
+    type: Literal["hf.image_to_video"] = "hf.image_to_video"
+
+
+class HFUnconditionalImageGeneration(HuggingFaceModel):
+    type: Literal["hf.unconditional_image_generation"] = (
+        "hf.unconditional_image_generation"
+    )
+
+
+class HFVideoClassification(HuggingFaceModel):
+    type: Literal["hf.video_classification"] = "hf.video_classification"
+
+
+class HFTextToVideo(HuggingFaceModel):
+    type: Literal["hf.text_to_video"] = "hf.text_to_video"
+
+
+class HFZeroShotImageClassification(HuggingFaceModel):
+    type: Literal["hf.zero_shot_image_classification"] = (
+        "hf.zero_shot_image_classification"
+    )
+
+
+class HFMaskGeneration(HuggingFaceModel):
+    type: Literal["hf.mask_generation"] = "hf.mask_generation"
+
+
+class HFZeroShotObjectDetection(HuggingFaceModel):
+    type: Literal["hf.zero_shot_object_detection"] = "hf.zero_shot_object_detection"
+
+
+class HFTextTo3D(HuggingFaceModel):
+    type: Literal["hf.text_to_3d"] = "hf.text_to_3d"
+
+
+class HFImageTo3D(HuggingFaceModel):
+    type: Literal["hf.image_to_3d"] = "hf.image_to_3d"
+
+
+class HFImageFeatureExtraction(HuggingFaceModel):
+    type: Literal["hf.image_feature_extraction"] = "hf.image_feature_extraction"
+
+
+class HFNaturalLanguageProcessing(HuggingFaceModel):
+    type: Literal["hf.natural_language_processing"] = "hf.natural_language_processing"
+
+
+class HFTextClassification(HuggingFaceModel):
+    type: Literal["hf.text_classification"] = "hf.text_classification"
+
+
+class HFTokenClassification(HuggingFaceModel):
+    type: Literal["hf.token_classification"] = "hf.token_classification"
+
+
+class HFTableQuestionAnswering(HuggingFaceModel):
+    type: Literal["hf.table_question_answering"] = "hf.table_question_answering"
+
+
+class HFQuestionAnswering(HuggingFaceModel):
+    type: Literal["hf.question_answering"] = "hf.question_answering"
+
+
+class HFZeroShotClassification(HuggingFaceModel):
+    type: Literal["hf.zero_shot_classification"] = "hf.zero_shot_classification"
+
+
+class HFTranslation(HuggingFaceModel):
+    type: Literal["hf.translation"] = "hf.translation"
+
+
+class HFSummarization(HuggingFaceModel):
+    type: Literal["hf.summarization"] = "hf.summarization"
+
+
+class HFFeatureExtraction(HuggingFaceModel):
+    type: Literal["hf.feature_extraction"] = "hf.feature_extraction"
+
+
+class HFTextGeneration(HuggingFaceModel):
+    type: Literal["hf.text_generation"] = "hf.text_generation"
+
+
+class HFText2TextGeneration(HuggingFaceModel):
+    type: Literal["hf.text2text_generation"] = "hf.text2text_generation"
+
+
+class HFFillMask(HuggingFaceModel):
+    type: Literal["hf.fill_mask"] = "hf.fill_mask"
+
+
+class HFSentenceSimilarity(HuggingFaceModel):
+    type: Literal["hf.sentence_similarity"] = "hf.sentence_similarity"
+
+
+class HFTextToSpeech(HuggingFaceModel):
+    type: Literal["hf.text_to_speech"] = "hf.text_to_speech"
+
+
+class HFTextToAudio(HuggingFaceModel):
+    type: Literal["hf.text_to_audio"] = "hf.text_to_audio"
+
+
+class HFAutomaticSpeechRecognition(HuggingFaceModel):
+    type: Literal["hf.automatic_speech_recognition"] = "hf.automatic_speech_recognition"
+
+
+class HFAudioToAudio(HuggingFaceModel):
+    type: Literal["hf.audio_to_audio"] = "hf.audio_to_audio"
+
+
+class HFAudioClassification(HuggingFaceModel):
+    type: Literal["hf.audio_classification"] = "hf.audio_classification"
+
+
+class HFZeroShotAudioClassification(HuggingFaceModel):
+    type: Literal["hf.zero_shot_audio_classification"] = (
+        "hf.zero_shot_audio_classification"
+    )
+
+
+class HFVoiceActivityDetection(HuggingFaceModel):
+    type: Literal["hf.voice_activity_detection"] = "hf.voice_activity_detection"
+
+
+PIPELINE_TAGS = {
+    "hf.audio_classification": ["audio-classification"],
+    "hf.audio_to_audio": ["audio-to-audio"],
+    "hf.automatic_speech_recognition": ["automatic-speech-recognition"],
+    "hf.computer_vision": ["computer-vision"],
+    "hf.depth_estimation": ["depth-estimation"],
+    "hf.document_question_answering": ["document-question-answering"],
+    "hf.feature_extraction": ["feature-extraction"],
+    "hf.fill_mask": ["fill-mask"],
+    "hf.image_classification": ["image-classification"],
+    "hf.image_feature_extraction": ["image-feature-extraction"],
+    "hf.image_segmentation": ["image-segmentation"],
+    "hf.image_text_to_text": ["image-text-to-text"],
+    "hf.image_to_3d": ["image-to-3d"],
+    "hf.image_to_image": ["image-to-image"],
+    "hf.image_to_video": ["image-to-video"],
+    "hf.mask_generation": ["mask-generation"],
+    "hf.natural_language_processing": ["natural-language-processing"],
+    "hf.object_detection": ["object-detection"],
+    "hf.question_answering": ["question-answering"],
+    "hf.sentence_similarity": ["sentence-similarity"],
+    "hf.stable_diffusion_xl": ["stable-diffusion-xl"],
+    "hf.stable_diffusion": ["stable-diffusion"],
+    "hf.summarization": ["summarization"],
+    "hf.table_question_answering": ["table-question-answering"],
+    "hf.text_classification": ["text-classification"],
+    "hf.text_generation": ["text-generation"],
+    "hf.text_to_3d": ["text-to-3d"],
+    "hf.text_to_audio": ["text-to-audio"],
+    "hf.text_to_image": ["text-to-image"],
+    "hf.text_to_speech": ["text-to-speech"],
+    "hf.text_to_video": ["text-to-video"],
+    "hf.text2text_generation": ["text2text-generation"],
+    "hf.token_classification": ["token-classification"],
+    "hf.translation": ["translation"],
+    "hf.unconditional_image_generation": ["unconditional-image-generation"],
+    "hf.video_classification": ["video-classification"],
+    "hf.video_text_to_text": ["video-text-to-text"],
+    "hf.visual_question_answering": ["visual-question-answering"],
+    "hf.voice_activity_detection": ["voice-activity-detection"],
+    "hf.zero_shot_audio_classification": ["zero-shot-audio-classification"],
+    "hf.zero_shot_classification": ["zero-shot-classification"],
+    "hf.zero_shot_image_classification": ["zero-shot-image-classification"],
+    "hf.zero_shot_object_detection": ["zero-shot-object-detection"],
+}
+
+
+def pipeline_tag_to_model_type(tag: str) -> str | None:
+    for model_type, tags in PIPELINE_TAGS.items():
+        if tag in tags:
+            return model_type
+    return None
+
+
 model_file_types = set()
 
 
 class ModelFile(BaseType):
     name: str = ""
 
-    @classmethod
     def __init_subclass__(cls):
         super().__init_subclass__()
         if hasattr(cls, "type"):

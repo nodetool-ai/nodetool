@@ -31,6 +31,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             model=self.get_model_id(),
             device=context.device,
             torch_dtype=self.get_torch_dtype(),
+            local_files_only=True,
         )
 
     async def move_to_device(self, device: str):

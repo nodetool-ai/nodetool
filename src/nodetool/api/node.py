@@ -9,6 +9,7 @@ from nodetool.types.prediction import Prediction
 from nodetool.metadata.node_metadata import NodeMetadata
 from nodetool.metadata.types import (
     AssetRef,
+    HuggingFaceModel,
     NodeRef,
     WorkflowRef,
     AudioRef,
@@ -19,6 +20,50 @@ from nodetool.metadata.types import (
     Tensor,
     TextRef,
     VideoRef,
+    HFImageTextToText,
+    HFVisualQuestionAnswering,
+    HFDocumentQuestionAnswering,
+    HFVideoTextToText,
+    HFComputerVision,
+    HFDepthEstimation,
+    HFImageClassification,
+    HFObjectDetection,
+    HFImageSegmentation,
+    HFTextToImage,
+    HFStableDiffusionBase,
+    HFStableDiffusionXL,
+    HFImageToText,
+    HFImageToImage,
+    HFImageToVideo,
+    HFUnconditionalImageGeneration,
+    HFVideoClassification,
+    HFTextToVideo,
+    HFZeroShotImageClassification,
+    HFMaskGeneration,
+    HFZeroShotObjectDetection,
+    HFTextTo3D,
+    HFImageTo3D,
+    HFImageFeatureExtraction,
+    HFNaturalLanguageProcessing,
+    HFTextClassification,
+    HFTokenClassification,
+    HFTableQuestionAnswering,
+    HFQuestionAnswering,
+    HFZeroShotClassification,
+    HFTranslation,
+    HFSummarization,
+    HFFeatureExtraction,
+    HFTextGeneration,
+    HFText2TextGeneration,
+    HFFillMask,
+    HFSentenceSimilarity,
+    HFTextToSpeech,
+    HFTextToAudio,
+    HFAutomaticSpeechRecognition,
+    HFAudioToAudio,
+    HFAudioClassification,
+    HFZeroShotAudioClassification,
+    HFVoiceActivityDetection,
 )
 from nodetool.workflows.base_node import get_registered_node_classes
 from nodetool.common.environment import Environment
@@ -45,6 +90,51 @@ UnionType = (
     | JobUpdate
     | NodeUpdate
     | NodeProgress
+    | HuggingFaceModel
+    | HFImageTextToText
+    | HFVisualQuestionAnswering
+    | HFDocumentQuestionAnswering
+    | HFVideoTextToText
+    | HFComputerVision
+    | HFDepthEstimation
+    | HFImageClassification
+    | HFObjectDetection
+    | HFImageSegmentation
+    | HFTextToImage
+    | HFStableDiffusionBase
+    | HFStableDiffusionXL
+    | HFImageToText
+    | HFImageToImage
+    | HFImageToVideo
+    | HFUnconditionalImageGeneration
+    | HFVideoClassification
+    | HFTextToVideo
+    | HFZeroShotImageClassification
+    | HFMaskGeneration
+    | HFZeroShotObjectDetection
+    | HFTextTo3D
+    | HFImageTo3D
+    | HFImageFeatureExtraction
+    | HFNaturalLanguageProcessing
+    | HFTextClassification
+    | HFTokenClassification
+    | HFTableQuestionAnswering
+    | HFQuestionAnswering
+    | HFZeroShotClassification
+    | HFTranslation
+    | HFSummarization
+    | HFFeatureExtraction
+    | HFTextGeneration
+    | HFText2TextGeneration
+    | HFFillMask
+    | HFSentenceSimilarity
+    | HFTextToSpeech
+    | HFTextToAudio
+    | HFAutomaticSpeechRecognition
+    | HFAudioToAudio
+    | HFAudioClassification
+    | HFZeroShotAudioClassification
+    | HFVoiceActivityDetection
     | dict
 )
 

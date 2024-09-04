@@ -46,7 +46,7 @@ export type Task = components["schemas"]["Task"];
 export type CachedModel = components["schemas"]["CachedModel"];
 export type SettingsModel = components["schemas"]["SettingsModel"];
 export type SecretsModel = components["schemas"]["SecretsModel"];
-
+export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
 // a type that allows arbitrary members
 export type TypeName = string;
 export type WorkflowAttributes = Omit<Workflow, "graph">;

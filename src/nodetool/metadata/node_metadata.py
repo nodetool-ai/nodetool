@@ -1,6 +1,6 @@
 from typing import Any
 from nodetool.workflows.property import Property
-from nodetool.metadata.types import OutputSlot
+from nodetool.metadata.types import OutputSlot, HuggingFaceModel
 
 
 from pydantic import BaseModel
@@ -19,3 +19,4 @@ class NodeMetadata(BaseModel):
     properties: list[Property]
     outputs: list[OutputSlot]
     model_info: dict[str, Any]
+    recommended_models: list[HuggingFaceModel]

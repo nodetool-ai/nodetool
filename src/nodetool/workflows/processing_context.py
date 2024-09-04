@@ -16,6 +16,7 @@ import pandas as pd
 from pydub import AudioSegment
 import torch
 
+from nodetool.common.huggingface_models import read_all_cached_models
 from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.types.asset import Asset, AssetCreateRequest, AssetList
 from nodetool.types.chat import (
@@ -1472,3 +1473,17 @@ class ProcessingContext:
                 tenant=DEFAULT_TENANT,
                 database=DEFAULT_DATABASE,
             )
+
+    def get_cached_huggingface_models(self):
+        if not hasattr(self, "cached_huggingface_models"):
+            self.cached_huggingface_models = read_all_cached_models()
+            read_all_cached_models()
+        return self.cached_huggingface_models
+
+    def is_huggingface_model_cached(self, repo_id: str):
+        models = self.get_cached_huggingface_models()
+        for model in models:
+            print(model.repo_id, repo_id)
+            if model.repo_id == repo_id:
+                return True
+        return False

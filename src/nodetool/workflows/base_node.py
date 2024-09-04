@@ -14,9 +14,8 @@ from nodetool.types.graph import Edge
 from nodetool.common.environment import Environment
 from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.metadata.types import (
-    AssetRef,
     ComfyData,
-    ImageRef,
+    HuggingFaceModel,
     NameToType,
     TypeToName,
 )
@@ -334,6 +333,10 @@ class BaseNode(BaseModel):
         return text.strip()
 
     @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return []
+
+    @classmethod
     def metadata(cls: Type["BaseNode"]):
         """
         Generate comprehensive metadata for the node class.
@@ -354,6 +357,7 @@ class BaseNode(BaseModel):
             outputs=cls.outputs(),
             model_info=cls.model_info(),
             layout=cls.layout(),
+            recommended_models=cls.get_recommended_models(),
         )
 
     @classmethod

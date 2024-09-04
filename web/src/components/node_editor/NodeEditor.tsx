@@ -71,6 +71,7 @@ import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 // constants
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
+import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
 
 declare global {
   interface Window {
@@ -289,7 +290,7 @@ const NodeEditor: React.FC<unknown> = () => {
   // copy paste
   useHotkeys("Shift+c", () => handleCopy());
   useHotkeys("Shift+v", () => handlePaste());
-  useHotkeys("Meta+c", () => handleCopy());  // for mac
+  useHotkeys("Meta+c", () => handleCopy()); // for mac
   useHotkeys("Meta+v", () => handlePaste()); // for mac
   // duplicate
   useHotkeys("Space+d", handleDuplicate);
@@ -363,11 +364,14 @@ const NodeEditor: React.FC<unknown> = () => {
   const isMinZoom = currentZoom === MIN_ZOOM;
 
   // FIT SCREEN
-  const fitViewOptions = useMemo<FitViewOptions>(() => ({
-    maxZoom: MAX_ZOOM,
-    minZoom: MIN_ZOOM,
-    padding: 0.6
-  }), []);
+  const fitViewOptions = useMemo<FitViewOptions>(
+    () => ({
+      maxZoom: MAX_ZOOM,
+      minZoom: MIN_ZOOM,
+      padding: 0.6
+    }),
+    []
+  );
 
   const fitScreen = useCallback(() => {
     const fitOptions: FitViewOptions = {
@@ -504,12 +508,17 @@ const NodeEditor: React.FC<unknown> = () => {
                 variant={BackgroundVariant.Cross}
               />
               {reactFlowInstance && <AxisMarker />}
-              {openMenuType === 'node-context-menu' && <NodeContextMenu />}
-              {openMenuType === 'pane-context-menu' && <PaneContextMenu />}
-              {openMenuType === 'property-context-menu' && <PropertyContextMenu />}
-              {openMenuType === 'selection-context-menu' && <SelectionContextMenu />}
-              {openMenuType === 'output-context-menu' && <OutputContextMenu />}
-              {openMenuType === 'input-context-menu' && <InputContextMenu />}
+              {openMenuType === "node-context-menu" && <NodeContextMenu />}
+              {openMenuType === "pane-context-menu" && <PaneContextMenu />}
+              {openMenuType === "property-context-menu" && (
+                <PropertyContextMenu />
+              )}
+              {openMenuType === "selection-context-menu" && (
+                <SelectionContextMenu />
+              )}
+              {openMenuType === "output-context-menu" && <OutputContextMenu />}
+              {openMenuType === "input-context-menu" && <InputContextMenu />}
+              <HuggingFaceDownloadDialog />
             </ReactFlow>
           </div>
         </Grid>

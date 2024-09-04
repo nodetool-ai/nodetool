@@ -6,6 +6,12 @@ from nodetool.common.comfy_node import ComfyNode
 from nodetool.metadata.types import (
     BoundingBox,
     DataframeRef,
+    HFImageClassification,
+    HFZeroShotImageClassification,
+    HFDepthEstimation,
+    HFImageSegmentation,
+    HFObjectDetection,
+    HFZeroShotObjectDetection,
     ImageRef,
     ImageSegmentationResult,
     ObjectDetectionResult,
@@ -176,21 +182,19 @@ class ImageClassifier(HuggingFacePipelineNode):
     Use cases:
     - Content moderation by detecting inappropriate images
     - Organizing photo libraries by automatically tagging images
-    - Visual quality control in manufacturing to identify defective products
-    - Medical image analysis to assist in diagnosing conditions
+
+    Recommended models:
+    - google/vit-base-patch16-224
+    - microsoft/resnet-50
+    - microsoft/resnet-18
+    - apple/mobilevit-small
+    - nateraw/vit-age-classifier
+    - Falconsai/nsfw_image_detection
+    - rizvandwiki/gender-classification-2
     """
 
-    class ImageClassifierModelId(str, Enum):
-        GOOGLE_VIT_BASE_PATCH16_224 = "google/vit-base-patch16-224"
-        MICROSOFT_RESNET_50 = "microsoft/resnet-50"
-        MICROSOFT_RESNET_18 = "microsoft/resnet-18"
-        APPLE_MOBILEVIT_SMALL = "apple/mobilevit-small"
-        NATERAW_VIT_AGE_CLASSIFIER = "nateraw/vit-age-classifier"
-        FALCONSAI_NSFW_IMAGE_DETECTION = "Falconsai/nsfw_image_detection"
-        RIZVANDWIKI_GENDER_CLASSIFICATION_2 = "rizvandwiki/gender-classification-2"
-
-    model: ImageClassifierModelId = Field(
-        default=ImageClassifierModelId.GOOGLE_VIT_BASE_PATCH16_224,
+    model: HFImageClassification = Field(
+        default=HFImageClassification(),
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
@@ -200,11 +204,48 @@ class ImageClassifier(HuggingFacePipelineNode):
         description="The input image to classify",
     )
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HFImageClassification]:
+        return [
+            HFImageClassification(
+                repo_id="google/vit-base-patch16-224",
+                allow_patterns=["*.safetensors", "*.json"],
+            ),
+            HFImageClassification(
+                repo_id="microsoft/resnet-50",
+                allow_patterns=["*.safetensors", "*.json"],
+            ),
+            HFImageClassification(
+                repo_id="microsoft/resnet-18",
+                allow_patterns=["*.safetensors", "*.json"],
+            ),
+            HFImageClassification(
+                repo_id="apple/mobilevit-small",
+                allow_patterns=["*.bin", "*.json"],
+            ),
+            HFImageClassification(
+                repo_id="apple/mobilevit-xx-small",
+                allow_patterns=["*.bin", "*.json"],
+            ),
+            HFImageClassification(
+                repo_id="nateraw/vit-age-classifier",
+                allow_patterns=["*.safetensors", "*.json"],
+            ),
+            HFImageClassification(
+                repo_id="Falconsai/nsfw_image_detection",
+                allow_patterns=["*.safetensors", "*.json"],
+            ),
+            HFImageClassification(
+                repo_id="rizvandwiki/gender-classification-2",
+                allow_patterns=["*.safetensors", "*.json"],
+            ),
+        ]
+
     def required_inputs(self):
         return ["inputs"]
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @classmethod
     def get_title(cls) -> str:
@@ -240,18 +281,18 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
     - Quickly categorize images without training data
     - Identify objects in images without predefined labels
     - Automate image tagging for large datasets
+
+    Recommended models:
+    - openai/clip-vit-large-patch14
+    - google/siglip-so400m-patch14-384
+    - openai/clip-vit-base-patch16
+    - openai/clip-vit-base-patch32
+    - patrickjohncyh/fashion-clip
+    - laion/CLIP-ViT-H-14-laion2B-s32B-b79K
     """
 
-    class ZeroShotImageClassifierModelId(str, Enum):
-        OPENAI_CLIP_VIT_LARGE_PATCH14 = "openai/clip-vit-large-patch14"
-        GOOGLE_SIGLIP_SO400M_PATCH14_384 = "google/siglip-so400m-patch14-384"
-        OPENAI_CLIP_VIT_BASE_PATCH16 = "openai/clip-vit-base-patch16"
-        OPENAI_CLIP_VIT_BASE_PATCH32 = "openai/clip-vit-base-patch32"
-        PATRICKJOHNCYH_FASHION_CLIP = "patrickjohncyh/fashion-clip"
-        LAION_CLIP_VIT_H_14_LAION2B_S32B_B79K = "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
-
-    model: ZeroShotImageClassifierModelId = Field(
-        default=ZeroShotImageClassifierModelId.OPENAI_CLIP_VIT_LARGE_PATCH14,
+    model: HFZeroShotImageClassification = Field(
+        default=HFZeroShotImageClassification(),
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
@@ -274,7 +315,7 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
         return "Zero-Shot Image Classifier"
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @property
     def pipeline_task(self) -> str:
@@ -441,16 +482,16 @@ class Segmentation(HuggingFacePipelineNode):
     Use cases:
     - Segmenting objects in images
     - Segmenting facial features in images
+
+    Recommended models:
+    - nvidia/segformer-b3-finetuned-ade-512-512
+    - mattmdjaga/segformer_b2_clothes
     """
 
-    class SegmentationModelId(str, Enum):
-        NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512 = (
-            "nvidia/segformer-b3-finetuned-ade-512-512"
-        )
-        NVIDIA_SEGFORMER_B3_FINETUNED_COCO_512_512 = "mattmdjaga/segformer_b2_clothes"
-
-    model: SegmentationModelId = Field(
-        default=SegmentationModelId.NVIDIA_SEGFORMER_B3_FINETUNED_ADE_512_512,
+    model: HFImageSegmentation = Field(
+        default=HFImageSegmentation(
+            repo_id="nvidia/segformer-b3-finetuned-ade-512-512"
+        ),
         title="Model ID on Huggingface",
         description="The model ID to use for the segmentation",
     )
@@ -464,7 +505,7 @@ class Segmentation(HuggingFacePipelineNode):
         return ["image"]
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @property
     def pipeline_task(self) -> str:
@@ -529,13 +570,13 @@ class ObjectDetection(HuggingFacePipelineNode):
     - Locate specific items in complex scenes
     - Assist in autonomous vehicle vision systems
     - Enhance security camera footage analysis
+
+    Recommended models:
+    - facebook/detr-resnet-50
     """
 
-    class ObjectDetectionModelId(str, Enum):
-        FACEBOOK_DETR_RESNET_50 = "facebook/detr-resnet-50"
-
-    model: ObjectDetectionModelId = Field(
-        default=ObjectDetectionModelId.FACEBOOK_DETR_RESNET_50,
+    model: HFObjectDetection = Field(
+        default=HFObjectDetection(repo_id="facebook/detr-resnet-50"),
         title="Model ID on Huggingface",
         description="The model ID to use for object detection",
     )
@@ -563,7 +604,7 @@ class ObjectDetection(HuggingFacePipelineNode):
         return "Object Detection"
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @property
     def pipeline_task(self) -> str:
@@ -684,40 +725,36 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
     - Quickly detect objects in images without training data
     - Identify objects in images without predefined labels
     - Automate object detection for large datasets
+
+    Recommended models:
+    - google/owlvit-base-patch32
+    - google/owlvit-large-patch14
+    - google/owlvit-base-patch16
+    - google/owlv2-base-patch16
+    - google/owlv2-base-patch16-ensemble
+    - IDEA-Research/grounding-dino-tiny
     """
 
-    class ZeroShotObjectDetectionModelId(str, Enum):
-        GOOGLE_OWL_VIT_BASE_PATCH32 = "google/owlvit-base-patch32"
-        GOOGLE_OWL_VIT_LARGE_PATCH14 = "google/owlvit-large-patch14"
-        GOOGLE_OWL_VIT_BASE_PATCH16 = "google/owlvit-base-patch16"
-        GOOGLE_OWL_V2_BASE_PATCH16 = "google/owlv2-base-patch16"
-        GOOGLE_OWL_VIT_BASE_PATCH16_ENSEMBLE = "google/owlv2-base-patch16-ensemble"
-        IDEA_RESEARCH_GROUNDING_DINO_TINY = "IDEA-Research/grounding-dino-tiny"
-
-    model: ZeroShotObjectDetectionModelId = Field(
-        default=ZeroShotObjectDetectionModelId.GOOGLE_OWL_V2_BASE_PATCH16,
+    model: HFZeroShotObjectDetection = Field(
+        default=HFZeroShotObjectDetection(repo_id="google/owlv2-base-patch16"),
         title="Model ID on Huggingface",
         description="The model ID to use for object detection",
     )
-
     inputs: ImageRef = Field(
         default=ImageRef(),
         title="Inputs",
         description="The input image for object detection",
     )
-
     threshold: float = Field(
         default=0.1,
         title="Confidence Threshold",
         description="Minimum confidence score for detected objects",
     )
-
     top_k: int = Field(
         default=5,
         title="Top K",
         description="The number of top predictions to return",
     )
-
     candidate_labels: str = Field(
         default="",
         title="Candidate Labels",
@@ -732,7 +769,7 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
         return "Zero-Shot Object Detection"
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @property
     def pipeline_task(self) -> str:
@@ -778,14 +815,14 @@ class DepthEstimation(HuggingFacePipelineNode):
     - Assist in augmented reality applications
     - Enhance computer vision systems for robotics
     - Improve scene understanding in autonomous vehicles
+
+    Recommended models:
+    - LiheYoung/depth-anything-base-hf
+    - Intel/dpt-large
     """
 
-    class DepthEstimationModelId(str, Enum):
-        DEPTH_ANYTHING = "LiheYoung/depth-anything-base-hf"
-        INTEL_DPT_LARGE = "Intel/dpt-large"
-
-    model: DepthEstimationModelId = Field(
-        default=DepthEstimationModelId.DEPTH_ANYTHING,
+    model: HFDepthEstimation = Field(
+        default=HFDepthEstimation(repo_id="LiheYoung/depth-anything-base-hf"),
         title="Model ID on Huggingface",
         description="The model ID to use for depth estimation",
     )
@@ -803,7 +840,7 @@ class DepthEstimation(HuggingFacePipelineNode):
         return "Depth Estimation"
 
     def get_model_id(self):
-        return self.model.value
+        return self.model.repo_id
 
     @property
     def pipeline_task(self) -> str:
@@ -1065,10 +1102,16 @@ class PixArtAlpha(BaseNode):
 
     _pipeline: PixArtAlphaPipeline | None = None
 
+    def get_model_id(self):
+        return "PixArt-alpha/PixArt-XL-2-1024-MS"
+
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached(self.get_model_id()):
+            raise ValueError(f"Model {self.get_model_id()} must be downloaded first")
         self._pipeline = PixArtAlphaPipeline.from_pretrained(
-            "PixArt-alpha/PixArt-XL-2-1024-MS",
+            self.get_model_id(),
             torch_dtype=torch.float16,
+            local_files_only=True,
         )  # type: ignore
 
     async def move_to_device(self, device: str):
@@ -1163,9 +1206,14 @@ class PixArtSigma(BaseNode):
 
     _pipeline: PixArtAlphaPipeline | None = None
 
+    def get_model_id(self):
+        return "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS"
+
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached(self.get_model_id()):
+            raise ValueError(f"Model {self.get_model_id()} must be downloaded first")
         self._pipeline = PixArtSigmaPipeline.from_pretrained(
-            "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS", torch_dtype=torch.float16
+            self.get_model_id(), torch_dtype=torch.float16, local_files_only=True
         )  # type: ignore
 
     async def move_to_device(self, device: str):
@@ -1257,12 +1305,16 @@ class WuerstchenImageGeneration(BaseNode):
     _decoder_pipeline: WuerstchenDecoderPipeline | None = None
 
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached("warp-ai/wuerstchen-prior"):
+            raise ValueError(f"Model warp-ai/wuerstchen-prior must be downloaded first")
+        if not context.is_huggingface_model_cached("warp-ai/wuerstchen"):
+            raise ValueError(f"Model warp-ai/wuerstchen must be downloaded first")
         dtype = torch.float16
         self._prior_pipeline = WuerstchenPriorPipeline.from_pretrained(
-            "warp-ai/wuerstchen-prior", torch_dtype=dtype
+            "warp-ai/wuerstchen-prior", torch_dtype=dtype, local_files_only=True
         )  # type: ignore
         self._decoder_pipeline = WuerstchenDecoderPipeline.from_pretrained(
-            "warp-ai/wuerstchen", torch_dtype=dtype
+            "warp-ai/wuerstchen", torch_dtype=dtype, local_files_only=True
         )  # type: ignore
 
     async def move_to_device(self, device: str):
@@ -1643,10 +1695,15 @@ class Kandinsky3(BaseNode):
         return "Kandinsky 3"
 
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached("kandinsky-community/kandinsky-3"):
+            raise ValueError(
+                f"Model kandinsky-community/kandinsky-3 must be downloaded first"
+            )
         self._pipeline = AutoPipelineForText2Image.from_pretrained(
             "kandinsky-community/kandinsky-3",
             variant="fp16",
             torch_dtype=torch.float16,
+            local_files_only=True,
         )
 
     async def move_to_device(self, device: str):
@@ -1726,9 +1783,14 @@ class Kandinsky3Img2Img(BaseNode):
     def get_title(cls) -> str:
         return "Kandinsky 3 Image-to-Image"
 
+    def get_model_id(self) -> str:
+        return "kandinsky-community/kandinsky-3"
+
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached(self.get_model_id()):
+            raise ValueError(f"Model {self.get_model_id()} must be downloaded first")
         self._pipeline = AutoPipelineForImage2Image.from_pretrained(
-            "kandinsky-community/kandinsky-3",
+            self.get_model_id(),
             variant="fp16",
             torch_dtype=torch.float16,
         )
@@ -1806,6 +1868,12 @@ class PlaygroundV2(BaseNode):
         return "Playground v2.5"
 
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached(
+            "playgroundai/playground-v2.5-1024px-aesthetic"
+        ):
+            raise ValueError(
+                f"Model playgroundai/playground-v2.5-1024px-aesthetic must be downloaded first"
+            )
         self._pipeline = DiffusionPipeline.from_pretrained(
             "playgroundai/playground-v2.5-1024px-aesthetic",
             torch_dtype=torch.float16,
@@ -1879,6 +1947,10 @@ class OpenDalleV1_1(BaseNode):
         return "OpenDalle V1.1"
 
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached("dataautogpt3/OpenDalleV1.1"):
+            raise ValueError(
+                f"Model dataautogpt3/OpenDalleV1.1 must be downloaded first"
+            )
         self._pipeline = AutoPipelineForText2Image.from_pretrained(
             "dataautogpt3/OpenDalleV1.1",
             torch_dtype=torch.float16,
@@ -1967,6 +2039,16 @@ class StableCascade(BaseNode):
         return "Stable Cascade"
 
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached("stabilityai/stable-cascade-prior"):
+            raise ValueError(
+                f"Model stabilityai/stable-cascade-prior must be downloaded first"
+            )
+        if not context.is_huggingface_model_cached(
+            "stabilityai/stable-cascade-decoder"
+        ):
+            raise ValueError(
+                f"Model stabilityai/stable-cascade-decoder must be downloaded first"
+            )
         self._prior_pipeline = StableCascadePriorPipeline.from_pretrained(
             "stabilityai/stable-cascade-prior",
             variant="bf16",
@@ -2164,8 +2246,13 @@ class StableDiffusion(StableDiffusionBaseNode):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
+            if not context.is_huggingface_model_cached(self.model.value):
+                raise ValueError(f"Model {self.model.value} must be downloaded first")
             self._pipeline = StableDiffusionPipeline.from_pretrained(
-                self.model.value, torch_dtype=torch.float16, safety_checker=None
+                self.model.value,
+                torch_dtype=torch.float16,
+                safety_checker=None,
+                local_files_only=True,
             )  # type: ignore
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
@@ -2238,11 +2325,21 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
         return "Stable Diffusion ControlNet"
 
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached(self.controlnet.value):
+            raise ValueError(
+                f"ControlNet model {self.controlnet.value} must be downloaded first"
+            )
+        if not context.is_huggingface_model_cached(self.model.value):
+            raise ValueError(f"Model {self.model.value} must be downloaded first")
+
         controlnet = ControlNetModel.from_pretrained(
-            self.controlnet.value, torch_dtype=torch.float16
+            self.controlnet.value, torch_dtype=torch.float16, local_files_only=True
         )
         self._pipeline = StableDiffusionControlNetPipeline.from_pretrained(
-            self.model.value, controlnet=controlnet, torch_dtype=torch.float16
+            self.model.value,
+            controlnet=controlnet,
+            torch_dtype=torch.float16,
+            local_files_only=True,
         )  # type: ignore
         self._pipeline.enable_model_cpu_offload()  # type: ignore
 
@@ -2308,8 +2405,13 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
+            if not context.is_huggingface_model_cached(self.model.value):
+                raise ValueError(f"Model {self.model.value} must be downloaded first")
             self._pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(
-                self.model.value, torch_dtype=torch.float16, safety_checker=None
+                self.model.value,
+                torch_dtype=torch.float16,
+                safety_checker=None,
+                local_files_only=True,
             )  # type: ignore
             self._set_scheduler(self.scheduler)
 
@@ -2389,11 +2491,21 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
         return "Stable Diffusion ControlNet Inpaint"
 
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached(self.controlnet.value):
+            raise ValueError(
+                f"ControlNet model {self.controlnet.value} must be downloaded first"
+            )
+        if not context.is_huggingface_model_cached(self.model.value):
+            raise ValueError(f"Model {self.model.value} must be downloaded first")
+
         controlnet = ControlNetModel.from_pretrained(
-            self.controlnet.value, torch_dtype=torch.float16
+            self.controlnet.value, torch_dtype=torch.float16, local_files_only=True
         )
         self._pipeline = StableDiffusionControlNetInpaintPipeline.from_pretrained(
-            self.model.value, controlnet=controlnet, torch_dtype=torch.float16
+            self.model.value,
+            controlnet=controlnet,
+            torch_dtype=torch.float16,
+            local_files_only=True,
         )  # type: ignore
         self._pipeline.enable_model_cpu_offload()  # type: ignore
 
@@ -2466,10 +2578,13 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
+            if not context.is_huggingface_model_cached(self.model.value):
+                raise ValueError(f"Model {self.model.value} must be downloaded first")
             self._pipeline = StableDiffusionInpaintPipeline.from_pretrained(
                 "runwayml/stable-diffusion-inpainting",
                 torch_dtype=torch.float16,
                 safety_checker=None,
+                local_files_only=True,
             )  # type: ignore
             self._load_ip_adapter()
             self._set_scheduler(self.scheduler)
@@ -2541,10 +2656,13 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
 
     async def initialize(self, context: ProcessingContext):
         controlnet = ControlNetModel.from_pretrained(
-            self.controlnet.value, torch_dtype=torch.float16
+            self.controlnet.value, torch_dtype=torch.float16, local_files_only=True
         )
         self._pipeline = StableDiffusionControlNetImg2ImgPipeline.from_pretrained(
-            self.model.value, controlnet=controlnet, torch_dtype=torch.float16
+            self.model.value,
+            controlnet=controlnet,
+            torch_dtype=torch.float16,
+            local_files_only=True,
         )  # type: ignore
         self._pipeline.enable_model_cpu_offload()  # type: ignore
         self._set_scheduler(self.scheduler)
@@ -2638,6 +2756,7 @@ class StableDiffusionUpscale(BaseNode):
             "stabilityai/stable-diffusion-x4-upscaler",
             torch_dtype=torch.float16,
             variant="fp16",
+            local_files_only=True,
         )  # type: ignore
         self._set_scheduler(self.scheduler)
 
@@ -2812,6 +2931,8 @@ class StableDiffusionXL(StableDiffusionXLBase):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
+            if not context.is_huggingface_model_cached(self.model.value):
+                raise ValueError(f"Model {self.model.value} must be downloaded first")
             self._pipeline = StableDiffusionXLPipeline.from_pretrained(
                 self.model.value,
                 torch_dtype=torch.float16,
@@ -2868,15 +2989,20 @@ class StableDiffusionXLLightning(StableDiffusionXLBase):
         return "Stable Diffusion XL Lightning"
 
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached(self.model.value):
+            raise ValueError(f"Model {self.model.value} must be downloaded first")
         base = self.model.value
         self._unet = UNet2DConditionModel.from_config(base, subfolder="unet")  # type: ignore
-        repo = "ByteDance/SDXL-Lightning"
         ckpt = "sdxl_lightning_4step_unet.safetensors"
         self._unet.load_state_dict(  # type: ignore
-            load_file(hf_hub_download(repo, ckpt))
+            load_file(hf_hub_download("ByteDance/SDXL-Lightning", ckpt))
         )
         self._pipeline = StableDiffusionXLPipeline.from_pretrained(
-            base, unet=self._unet, torch_dtype=torch.float16, variant="fp16"
+            base,
+            unet=self._unet,
+            torch_dtype=torch.float16,
+            variant="fp16",
+            local_files_only=True,
         )
 
         self._set_scheduler(self.scheduler)
@@ -2945,6 +3071,8 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
+            if not context.is_huggingface_model_cached(self.model.value):
+                raise ValueError(f"Model {self.model.value} must be downloaded first")
             self._pipeline = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                 self.model.value,
                 torch_dtype=torch.float16,
@@ -3016,6 +3144,8 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
+            if not context.is_huggingface_model_cached(self.model.value):
+                raise ValueError(f"Model {self.model.value} must be downloaded first")
             self._pipeline = AutoPipelineForInpainting.from_pretrained(
                 "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
                 torch_dtype=torch.float16,
@@ -3102,6 +3232,8 @@ class SDXLTurbo(BaseNode):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipe is None:
+            if not context.is_huggingface_model_cached(self.model.value):
+                raise ValueError(f"Model {self.model.value} must be downloaded first")
             self._pipe = AutoPipelineForText2Image.from_pretrained(
                 self.model.value, torch_dtype=torch.float16, variant="fp16"
             )
@@ -3190,6 +3322,8 @@ class SDXLTurboImg2Img(BaseNode):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipe is None:
+            if not context.is_huggingface_model_cached(self.model.value):
+                raise ValueError(f"Model {self.model.value} must be downloaded first")
             self._pipe = AutoPipelineForImage2Image.from_pretrained(
                 self.model.value,
                 torch_dtype=torch.float16,
@@ -3268,6 +3402,13 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
     _pipeline: StableDiffusionXLControlNetPipeline | None = None
 
     async def initialize(self, context: ProcessingContext):
+        if not context.is_huggingface_model_cached(self.control_model.value):
+            raise ValueError(
+                f"ControlNet model {self.control_model.value} must be downloaded first"
+            )
+        if not context.is_huggingface_model_cached(self.model.value):
+            raise ValueError(f"Model {self.model.value} must be downloaded first")
+
         controlnet = ControlNetModel.from_pretrained(
             self.control_model.value, torch_dtype=torch.float16
         )

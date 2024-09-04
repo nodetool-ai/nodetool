@@ -20,7 +20,6 @@ import ThreadMessageProperty from "../properties/ThreadMessageProperty";
 import FileProperty from "../properties/FileProperty";
 import AssetProperty from "../properties/AssetProperty";
 import FolderProperty from "../properties/FolderProperty";
-import ModelProperty from "../properties/ModelProperty";
 import WorkflowProperty from "../properties/WorkflowProperty";
 import NodeListProperty from "../properties/NodeListProperty";
 import WorkflowListProperty from "../properties/WorkflowListProperty";
@@ -28,6 +27,7 @@ import NonEditableProperty from "../properties/NonEditableProperty";
 import DataframeProperty from "../properties/DataframeProperty";
 import DictProperty from "../properties/DictProperty";
 import RecordTypeProperty from "../properties/RecordTypeProperty";
+import ModelProperty from "../properties/ModelProperty";
 
 export type PropertyProps = {
   property: Property;
@@ -91,7 +91,51 @@ const componentTypeMap: Record<string, React.ComponentType<PropertyProps>> = {
   "comfy.upscale_model_file": ModelProperty,
   "comfy.lora_file": ModelProperty,
   "comfy.unet_file": ModelProperty,
-  "comfy.instant_id_file": ModelProperty
+  "comfy.instant_id_file": ModelProperty,
+  "hf.image_text_to_text": ModelProperty,
+  "hf.visual_question_answering": ModelProperty,
+  "hf.document_question_answering": ModelProperty,
+  "hf.video_text_to_text": ModelProperty,
+  "hf.computer_vision": ModelProperty,
+  "hf.depth_estimation": ModelProperty,
+  "hf.image_classification": ModelProperty,
+  "hf.object_detection": ModelProperty,
+  "hf.image_segmentation": ModelProperty,
+  "hf.text_to_image": ModelProperty,
+  "hf.stable_diffusion_base": ModelProperty,
+  "hf.stable_diffusion_xl": ModelProperty,
+  "hf.image_to_text": ModelProperty,
+  "hf.image_to_image": ModelProperty,
+  "hf.image_to_video": ModelProperty,
+  "hf.unconditional_image_generation": ModelProperty,
+  "hf.video_classification": ModelProperty,
+  "hf.text_to_video": ModelProperty,
+  "hf.zero_shot_image_classification": ModelProperty,
+  "hf.mask_generation": ModelProperty,
+  "hf.zero_shot_object_detection": ModelProperty,
+  "hf.text_to_3d": ModelProperty,
+  "hf.image_to_3d": ModelProperty,
+  "hf.image_feature_extraction": ModelProperty,
+  "hf.natural_language_processing": ModelProperty,
+  "hf.text_classification": ModelProperty,
+  "hf.token_classification": ModelProperty,
+  "hf.table_question_answering": ModelProperty,
+  "hf.question_answering": ModelProperty,
+  "hf.zero_shot_classification": ModelProperty,
+  "hf.translation": ModelProperty,
+  "hf.summarization": ModelProperty,
+  "hf.feature_extraction": ModelProperty,
+  "hf.text_generation": ModelProperty,
+  "hf.text2text_generation": ModelProperty,
+  "hf.fill_mask": ModelProperty,
+  "hf.sentence_similarity": ModelProperty,
+  "hf.text_to_speech": ModelProperty,
+  "hf.text_to_audio": ModelProperty,
+  "hf.automatic_speech_recognition": ModelProperty,
+  "hf.audio_to_audio": ModelProperty,
+  "hf.audio_classification": ModelProperty,
+  "hf.zero_shot_audio_classification": ModelProperty,
+  "hf.voice_activity_detection": ModelProperty,
 };
 
 /**

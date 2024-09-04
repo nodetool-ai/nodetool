@@ -210,8 +210,6 @@ export interface paths {
     get: operations["get_huggingface_models_api_models_huggingface_models_get"];
   };
   "/api/models/huggingface_model": {
-    /** Get Huggingface Model */
-    get: operations["get_huggingface_model_api_models_huggingface_model_get"];
     /** Delete Huggingface Model */
     delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
   };
@@ -345,6 +343,8 @@ export interface components {
       size_on_disk: number;
       /** Pipeline Tag */
       pipeline_tag?: string | null;
+      /** Model Type */
+      model_type?: string | null;
     };
     /** ColumnDef */
     ColumnDef: {
@@ -451,10 +451,1130 @@ export interface components {
       /** Edges */
       edges: components["schemas"]["Edge"][];
     };
+    /** HFAudioClassification */
+    HFAudioClassification: {
+      /**
+       * Type
+       * @default hf.audio_classification
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.audio_classification";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFAudioToAudio */
+    HFAudioToAudio: {
+      /**
+       * Type
+       * @default hf.audio_to_audio
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.audio_to_audio";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFAutomaticSpeechRecognition */
+    HFAutomaticSpeechRecognition: {
+      /**
+       * Type
+       * @default hf.automatic_speech_recognition
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.automatic_speech_recognition";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFComputerVision */
+    HFComputerVision: {
+      /**
+       * Type
+       * @default hf.computer_vision
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.computer_vision";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFDepthEstimation */
+    HFDepthEstimation: {
+      /**
+       * Type
+       * @default hf.depth_estimation
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.depth_estimation";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFDocumentQuestionAnswering */
+    HFDocumentQuestionAnswering: {
+      /**
+       * Type
+       * @default hf.document_question_answering
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.document_question_answering";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFFeatureExtraction */
+    HFFeatureExtraction: {
+      /**
+       * Type
+       * @default hf.feature_extraction
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.feature_extraction";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFFillMask */
+    HFFillMask: {
+      /**
+       * Type
+       * @default hf.fill_mask
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.fill_mask";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFImageClassification */
+    HFImageClassification: {
+      /**
+       * Type
+       * @default hf.image_classification
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.image_classification";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFImageFeatureExtraction */
+    HFImageFeatureExtraction: {
+      /**
+       * Type
+       * @default hf.image_feature_extraction
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.image_feature_extraction";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFImageSegmentation */
+    HFImageSegmentation: {
+      /**
+       * Type
+       * @default hf.image_segmentation
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.image_segmentation";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFImageTextToText */
+    HFImageTextToText: {
+      /**
+       * Type
+       * @default hf.image_text_to_text
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.image_text_to_text";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFImageTo3D */
+    HFImageTo3D: {
+      /**
+       * Type
+       * @default hf.image_to_3d
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.image_to_3d";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFImageToImage */
+    HFImageToImage: {
+      /**
+       * Type
+       * @default hf.image_to_image
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.image_to_image";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFImageToText */
+    HFImageToText: {
+      /**
+       * Type
+       * @default hf.image_to_text
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.image_to_text";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFImageToVideo */
+    HFImageToVideo: {
+      /**
+       * Type
+       * @default hf.image_to_video
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.image_to_video";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFMaskGeneration */
+    HFMaskGeneration: {
+      /**
+       * Type
+       * @default hf.mask_generation
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.mask_generation";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFNaturalLanguageProcessing */
+    HFNaturalLanguageProcessing: {
+      /**
+       * Type
+       * @default hf.natural_language_processing
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.natural_language_processing";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFObjectDetection */
+    HFObjectDetection: {
+      /**
+       * Type
+       * @default hf.object_detection
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.object_detection";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFQuestionAnswering */
+    HFQuestionAnswering: {
+      /**
+       * Type
+       * @default hf.question_answering
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.question_answering";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFSentenceSimilarity */
+    HFSentenceSimilarity: {
+      /**
+       * Type
+       * @default hf.sentence_similarity
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.sentence_similarity";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFStableDiffusionBase */
+    HFStableDiffusionBase: {
+      /**
+       * Type
+       * @default hf.stable_diffusion_base
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.stable_diffusion_base";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFStableDiffusionXL */
+    HFStableDiffusionXL: {
+      /**
+       * Type
+       * @default hf.stable_diffusion_xl
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.stable_diffusion_xl";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFSummarization */
+    HFSummarization: {
+      /**
+       * Type
+       * @default hf.summarization
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.summarization";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTableQuestionAnswering */
+    HFTableQuestionAnswering: {
+      /**
+       * Type
+       * @default hf.table_question_answering
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.table_question_answering";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFText2TextGeneration */
+    HFText2TextGeneration: {
+      /**
+       * Type
+       * @default hf.text2text_generation
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.text2text_generation";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTextClassification */
+    HFTextClassification: {
+      /**
+       * Type
+       * @default hf.text_classification
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.text_classification";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTextGeneration */
+    HFTextGeneration: {
+      /**
+       * Type
+       * @default hf.text_generation
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.text_generation";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTextTo3D */
+    HFTextTo3D: {
+      /**
+       * Type
+       * @default hf.text_to_3d
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.text_to_3d";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTextToAudio */
+    HFTextToAudio: {
+      /**
+       * Type
+       * @default hf.text_to_audio
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.text_to_audio";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTextToImage */
+    HFTextToImage: {
+      /**
+       * Type
+       * @default hf.text_to_image
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.text_to_image";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTextToSpeech */
+    HFTextToSpeech: {
+      /**
+       * Type
+       * @default hf.text_to_speech
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.text_to_speech";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTextToVideo */
+    HFTextToVideo: {
+      /**
+       * Type
+       * @default hf.text_to_video
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.text_to_video";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTokenClassification */
+    HFTokenClassification: {
+      /**
+       * Type
+       * @default hf.token_classification
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.token_classification";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFTranslation */
+    HFTranslation: {
+      /**
+       * Type
+       * @default hf.translation
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.translation";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFUnconditionalImageGeneration */
+    HFUnconditionalImageGeneration: {
+      /**
+       * Type
+       * @default hf.unconditional_image_generation
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.unconditional_image_generation";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFVideoClassification */
+    HFVideoClassification: {
+      /**
+       * Type
+       * @default hf.video_classification
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.video_classification";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFVideoTextToText */
+    HFVideoTextToText: {
+      /**
+       * Type
+       * @default hf.video_text_to_text
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.video_text_to_text";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFVisualQuestionAnswering */
+    HFVisualQuestionAnswering: {
+      /**
+       * Type
+       * @default hf.visual_question_answering
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.visual_question_answering";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFVoiceActivityDetection */
+    HFVoiceActivityDetection: {
+      /**
+       * Type
+       * @default hf.voice_activity_detection
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.voice_activity_detection";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFZeroShotAudioClassification */
+    HFZeroShotAudioClassification: {
+      /**
+       * Type
+       * @default hf.zero_shot_audio_classification
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.zero_shot_audio_classification";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFZeroShotClassification */
+    HFZeroShotClassification: {
+      /**
+       * Type
+       * @default hf.zero_shot_classification
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.zero_shot_classification";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFZeroShotImageClassification */
+    HFZeroShotImageClassification: {
+      /**
+       * Type
+       * @default hf.zero_shot_image_classification
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.zero_shot_image_classification";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
+    /** HFZeroShotObjectDetection */
+    HFZeroShotObjectDetection: {
+      /**
+       * Type
+       * @default hf.zero_shot_object_detection
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.zero_shot_object_detection";
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /** HuggingFaceModel */
+    HuggingFaceModel: {
+      /** Type */
+      type: string;
+      /**
+       * Repo Id
+       * @default
+       */
+      repo_id?: string;
+      /**
+       * Allow Patterns
+       * @default []
+       */
+      allow_patterns?: string[];
+      /**
+       * Ignore Patterns
+       * @default []
+       */
+      ignore_patterns?: string[];
     };
     /**
      * ImageRef
@@ -729,6 +1849,8 @@ export interface components {
       outputs: components["schemas"]["OutputSlot"][];
       /** Model Info */
       model_info: Record<string, never>;
+      /** Recommended Models */
+      recommended_models: components["schemas"]["HuggingFaceModel"][];
     };
     /** NodeProgress */
     NodeProgress: {
@@ -1906,7 +3028,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | Record<string, never>;
+          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusionBase"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | Record<string, never>;
         };
       };
     };
@@ -2590,28 +3712,6 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["CachedModel"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Get Huggingface Model */
-  get_huggingface_model_api_models_huggingface_model_get: {
-    parameters: {
-      query: {
-        repo_id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["CachedModel"] | null;
         };
       };
       /** @description Validation Error */
