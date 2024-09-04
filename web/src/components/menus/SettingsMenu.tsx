@@ -129,18 +129,23 @@ const styles = (theme: any) =>
         padding: "0.8em 0 0.2em 0"
       },
       ul: {
-        paddingLeft: ".5em",
+        paddingLeft: "1em",
         fontSize: theme.fontSizeNormal,
         fontFamily: theme.fontFamily1,
         color: theme.palette.c_gray5,
         lineHeight: "1.25em",
         margin: "0.25em 0 0",
         listStyleType: "square"
-      },
-      h3: {
-        color: theme.palette.c_gray5,
-        margin: "0"
       }
+    },
+    h2: {
+      color: theme.palette.c_gray6,
+      margin: "0",
+      padding: "0"
+    },
+    h3: {
+      color: theme.palette.c_gray5,
+      margin: "0"
     }
   });
 
@@ -217,7 +222,7 @@ function SettingsMenu() {
       >
         <div className="top">
           <CloseButton onClick={handleClose} />
-          <Typography variant="h3">Settings</Typography>
+          <Typography variant="h2">Settings</Typography>
         </div>
         <div className="settings-menu">
           {!isProduction && <RemoteSettingsMenu />}
@@ -283,11 +288,11 @@ function SettingsMenu() {
               <br />
               With RightMouseButton selected, you can also pan with:
               <br />
+              <ul>
+                <li> Space + LeftClick </li>
+                <li> Middle Mouse Button</li>
+              </ul>
             </Typography>
-            <ul>
-              <li> Space + LeftClick </li>
-              <li> Middle Mouse Button</li>
-            </ul>
           </div>
 
           <div className="settings-item">
@@ -538,7 +543,7 @@ function SettingsMenu() {
           <Typography
             variant="body2"
             style={{
-              color: "#666",
+              color: ThemeNodetool.palette.c_gray6,
               marginTop: "2em",
               fontSize: ThemeNodetool.fontSizeSmaller
             }}

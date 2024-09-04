@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import { useEffect, useState } from "react";
-import { TextField, Typography } from "@mui/material";
+import { Button, TextField, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 
@@ -14,7 +14,10 @@ const styles = (theme: any) =>
       width: "100%",
       gap: ".5em"
     },
-
+    ".description": {
+      display: "block",
+      marginBottom: "1em"
+    },
     ".description a": {
       display: "block",
       color: theme.palette.c_hl1,
@@ -28,6 +31,18 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmall,
       padding: "0 0 0 .5em",
       marginBottom: "1em"
+    },
+    button: {
+      backgroundColor: theme.palette.c_gray2,
+      padding: ".5em 1em"
+    },
+    "button a": {
+      color: theme.palette.c_gray6,
+      textDecoration: "none"
+    },
+    ".text-and-button p": {
+      margin: "0 0 0.5em 0",
+      padding: "0"
     }
   });
 
@@ -64,6 +79,7 @@ const RemoteSettings = () => {
       {isSuccess ? (
         <div className="remote-settings" css={styles}>
           <Typography variant="h3">External Services</Typography>
+
           <div className="settings-item">
             <TextField
               id="comfy-folder-input"
@@ -91,16 +107,20 @@ const RemoteSettings = () => {
               }
               variant="standard"
             />
-            <Typography className="description">
-              Your OpenAI API key.
-              <a
-                href="https://platform.openai.com/account/api-keys"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                LINK
-              </a>
-            </Typography>
+            <div className="text-and-button">
+              <Typography className="description">
+                Get your OpenAI API key
+              </Typography>
+              <Button size="small">
+                <a
+                  href="https://platform.openai.com/account/api-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  OpenAI Settings
+                </a>
+              </Button>
+            </div>
           </div>
 
           <div className="settings-item">
@@ -114,37 +134,46 @@ const RemoteSettings = () => {
               }
               variant="standard"
             />
-            <Typography className="description">
-              Your Anthropic API key.
-              <a
-                href="https://console.anthropic.com/account/keys"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                LINK
-              </a>
-            </Typography>
+
+            <div className="text-and-button">
+              <Typography className="description">
+                Get your Anthropic API key
+              </Typography>
+              <Button size="small">
+                <a
+                  href="https://console.anthropic.com/account/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Anthropic Settings
+                </a>
+              </Button>
+            </div>
           </div>
 
           <div className="settings-item">
             <TextField
               id="hf-token-input"
-              label="Hugging Face Token"
+              label="HuggingFace Token"
               value={hfToken}
               onChange={(e) => setHfToken(e.target.value)}
               onBlur={() => updateRemoteSettings({}, { HF_TOKEN: hfToken })}
               variant="standard"
             />
-            <Typography className="description">
-              Your Hugging Face token.
-              <a
-                href="https://huggingface.co/settings/tokens"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                LINK
-              </a>
-            </Typography>
+            <div className="text-and-button">
+              <Typography className="description">
+                Get your HuggingFace Access Token
+              </Typography>
+              <Button size="small">
+                <a
+                  href="https://huggingface.co/settings/tokens"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  HuggingFace Settings
+                </a>
+              </Button>
+            </div>
           </div>
 
           <div className="settings-item">
@@ -161,17 +190,22 @@ const RemoteSettings = () => {
               }
               variant="standard"
             />
-            <Typography className="description">
-              Your Replicate API token.
-              <a
-                href="https://replicate.com/account/api-tokens"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                LINK
-              </a>
-            </Typography>
+            <div className="text-and-button">
+              <Typography className="description">
+                Get your Replicate API token
+              </Typography>
+              <Button size="small">
+                <a
+                  href="https://replicate.com/account/api-tokens"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Replicate Settings
+                </a>
+              </Button>
+            </div>
           </div>
+
           <Typography className="secrets">
             Keep your keys and tokens secure and do not share them publicly
           </Typography>
