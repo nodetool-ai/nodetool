@@ -479,13 +479,12 @@ function SettingsMenu() {
                 <InputLabel>Nodetool Auth Token</InputLabel>
               </FormControl>
               <Typography className="description">
-                <span style={{ color: ThemeNodetool.palette.c_warning }}>
-                  WARNING
-                  <br />
-                </span>
                 This token is used to authenticate your account with the
-                Nodetool API.
-                <br /> Do not share it with anyone.
+                Nodetool API. <br />
+                <span style={{ color: ThemeNodetool.palette.c_warning }}>
+                  WARNING:&nbsp;
+                </span>
+                Do not share it with anyone.
                 <br />
                 <Tooltip title="Copy to clipboard">
                   <Button
