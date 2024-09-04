@@ -103,7 +103,7 @@ nodes
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'edgeLabelBackground': '#0d1117', 'lineColor': '#777', 'edgeLabelColor': '#777' }}}%%
 
 graph TD
-A([React Frontend]) -->|HTTP/WebSocket| B([API Server])
+A([Nodetool Editor<br>ReactJS]) -->|HTTP/WebSocket| B([API Server])
 A <-->|WebSocket| C([WebSocket Runner])
 B <-->|Internal Communication| C
 C <-->|WebSocket| D([Worker with ML Models<br> CPU+GPU <br>local / cloud])
