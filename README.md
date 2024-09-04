@@ -104,7 +104,7 @@ nodes
 
 graph TD
 A([React Frontend]) -->|HTTP/WebSocket| B([API Server])
- <-->|WebSocket| C([WebSocket Runner])
+A <-->|WebSocket| C([WebSocket Runner])
 B <-->|Internal Communication| C
 C <-->|WebSocket| D([Worker with ML Models<br> CPU+GPU <br>local / cloud])
 D <-->|HTTP Callbacks| B
