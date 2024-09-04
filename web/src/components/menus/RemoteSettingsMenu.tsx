@@ -16,6 +16,7 @@ const RemoteSettings = () => {
 
     const [comfyFolder, setComfyFolder] = useState("");
     const [openaiApiKey, setOpenaiApiKey] = useState("");
+    const [anthropicApiKey, setAnthropicApiKey] = useState("");
     const [hfToken, setHfToken] = useState("");
     const [replicateApiToken, setReplicateApiToken] = useState("");
 
@@ -58,6 +59,20 @@ const RemoteSettings = () => {
                         />
                         <Typography className="description">
                             Your OpenAI API key.
+                        </Typography>
+                    </div>
+
+                    <div className="settings-item">
+                        <TextField
+                            id="anthropic-api-key-input"
+                            label="Anthropic API Key"
+                            value={anthropicApiKey}
+                            onChange={(e) => setAnthropicApiKey(e.target.value)}
+                            onBlur={() => updateRemoteSettings({}, { ANTHROPIC_API_KEY: anthropicApiKey })}
+                            variant="standard"
+                        />
+                        <Typography className="description">
+                            Your Anthropic API key.
                         </Typography>
                     </div>
 

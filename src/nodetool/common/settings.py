@@ -19,6 +19,7 @@ SETTINGS_SETUP = [
 
 SECRETS_SETUP = [
     {"key": "OPENAI_API_KEY", "prompt": "OpenAI API key (optional)"},
+    {"key": "ANTHROPIC_API_KEY", "prompt": "ANTHROPIC API key (optional)"},
     {"key": "HF_TOKEN", "prompt": "Hugging Face Token (optional)"},
     {
         "key": "REPLICATE_API_TOKEN",
@@ -35,6 +36,7 @@ class SettingsModel(BaseModel):
 
 class SecretsModel(BaseModel):
     OPENAI_API_KEY: str | None = Field(default=None, description="OpenAI API key")
+    ANTHROPIC_API_KEY: str | None = Field(default=None, description="ANTHROPIC API key")
     HF_TOKEN: str | None = Field(default=None, description="Hugging Face Token")
     REPLICATE_API_TOKEN: str | None = Field(
         default=None, description="Replicate API Token"

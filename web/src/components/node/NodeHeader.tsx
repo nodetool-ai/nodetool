@@ -155,7 +155,6 @@ export const NodeHeader = memo(({
           <ArrowDropDown />
         </button>
       </div>
-      <span className="node-title big">{nodeTitle}</span>
     </div>
   );
 });

@@ -167,7 +167,7 @@ def get_collection(name):
         context: The processing context.
         name: The name of the collection to get or create.
     """
-    from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+    from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction  # type: ignore
     from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
 
     client = chromadb.PersistentClient(

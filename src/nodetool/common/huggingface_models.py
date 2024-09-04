@@ -24,6 +24,7 @@ class CachedModel(BaseModel):
     repo_id: str
     repo_type: str
     size_on_disk: int
+    pipeline_tag: Optional[str] = None
 
 
 def read_all_cached_models() -> List[CachedModel]:
@@ -44,27 +45,6 @@ def read_all_cached_models() -> List[CachedModel]:
         if repo.repo_type == "model"
     ]
     return models
-
-
-def read_cached_model(model_id: str) -> Optional[CachedModel]:
-    """
-    Reads information about a specific model from the Hugging Face cache.
-
-    Args:
-        model_id (str): The ID of the model to look for.
-
-    Returns:
-        Optional[CachedModel]: A CachedModel object containing model information if found, None otherwise.
-    """
-    cache_info = scan_cache_dir()
-    for repo in cache_info.repos:
-        if repo.repo_type == "model" and repo.repo_id == model_id:
-            return CachedModel(
-                repo_id=repo.repo_id,
-                repo_type=repo.repo_type,
-                size_on_disk=repo.size_on_disk,
-            )
-    return None
 
 
 def delete_cached_model(model_id: str) -> bool:

@@ -343,6 +343,8 @@ export interface components {
       repo_type: string;
       /** Size On Disk */
       size_on_disk: number;
+      /** Pipeline Tag */
+      pipeline_tag?: string | null;
     };
     /** ColumnDef */
     ColumnDef: {
@@ -977,6 +979,11 @@ export interface components {
        * @description OpenAI API key
        */
       OPENAI_API_KEY?: string | null;
+      /**
+       * Anthropic Api Key
+       * @description ANTHROPIC API key
+       */
+      ANTHROPIC_API_KEY?: string | null;
       /**
        * Hf Token
        * @description Hugging Face Token

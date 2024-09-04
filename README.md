@@ -1,4 +1,7 @@
-# 🛠️ nodetool
+<img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="nodetool_logo" width="32" height="auto">
+
+## nodetool
+
 
 NodeTool is a powerful no-code development environment for Artificial Intelligence, enabling intuitive creation of complex AI workflows and seamless integration into existing applications. With its node-based user interface, users can construct sophisticated, multimodal applications without deep programming knowledge.
 
@@ -14,16 +17,15 @@ NodeTool opens up creative and playful access to cutting-edge AI technologies, s
 
 ## 🎨 Use Cases
 
-- **AI Muse**: Generate unique artwork inspirations by combining different styles, eras, and subjects.
+- **Combine AI**: Explore hundreds of ML models and combine them creatively.
+- **Stable Diffusion**: Generate custom image generation pipelines from the ground up.
+- **Run Anywhere**: Create AI tools and run them from your website or mobile app.
+- **Music**: Generate musical ideas and compositions based on textual descriptions or themes.
 - **Sound-to-Visual Art**: Transform audio into visual masterpieces.
-- **Digital Sketchbook Enhancer**: Elevate rough sketches with AI-generated details and animations.
-- **AI-Curated Art Gallery**: Create virtual art exhibitions based on specific themes or movements.
-- **Image Inpainting and Restoration**: Repair damaged or incomplete images by intelligently filling in missing areas.
-- **Music Composition Assistant**: Generate musical ideas and compositions based on textual descriptions or themes.
 - **Audio-to-Story Generator**: Create short stories or narratives inspired by audio inputs.
-- **Image Enhancement Suite**: Improve image quality through various AI-powered enhancement techniques.
-- **Multi-lingual Content Creation**: Produce and translate content across multiple languages for global audiences.
-- **Data Visualization Tool**: Transform complex datasets into intuitive, visually appealing representations.
+- **Image Enhancement**: Improve image quality through various AI-powered enhancement techniques.
+- **Multi-lingual Content Creation**: Produce and translate content across multiple languages.
+- **Data Visualization**: Transform complex datasets into intuitive, visually appealing representations.
 
 ## 🚀 Quickstart
 
@@ -97,7 +99,35 @@ nodes
 
 # 🏗️ Architecture
 
-# Architecture Overview
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'edgeLabelBackground': '#0d1117', 'lineColor': '#777', 'edgeLabelColor': '#777' }}}%%
+
+graph TD
+A([React Frontend]) -->|HTTP/WebSocket| B([API Server])
+A <-->|WebSocket| C([WebSocket Runner])
+B <-->|Internal Communication| C
+C <-->|WebSocket| D([Worker with ML Models<br> CPU+GPU <br>local / cloud])
+D <-->|HTTP Callbacks| B
+E[Other Apps/Websites] -->|HTTP| B
+E <-->|WebSocket| C
+D -->|Optional API Calls| F[OpenAI / Replicate / Others]
+
+    classDef default fill:#e0eee0,stroke:#333,stroke-width:2px,color:#000;
+    classDef frontend fill:#ffcccc,stroke:#333,stroke-width:2px,color:#000;
+    classDef server fill:#cce5ff,stroke:#333,stroke-width:2px,color:#000;
+    classDef runner fill:#ccffe5,stroke:#333,stroke-width:2px,color:#000;
+    classDef worker fill:#ccf2ff,stroke:#333,stroke-width:2px,color:#000;
+    classDef api fill:#e0e0e0,stroke:#333,stroke-width:2px,color:#000;
+    classDef darkgray fill:#a9a9a9,stroke:#333,stroke-width:2px,color:#000;
+
+
+    class A frontend;
+    class B server;
+    class C runner;
+    class D worker;
+    class E other;
+    class F,G,H api;
+```
 
 NodeTool's architecture is designed for flexibility. Here's a breakdown of the main components:
 
@@ -107,14 +137,13 @@ NodeTool's architecture is designed for flexibility. Here's a breakdown of the m
 
 3. **🔌 WebSocket Runner**: Responsible for executing workflows in real-time, maintaining the state of running workflows, and managing the communication between nodes.
 
-4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability.
+4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability. Can also call external APIs like OpenAI, Replicate, and others.
 
 ## Key Features:
-
+- **Build anything, run from anywhere**: Create your AI workflows in a node-based editor, then run them from anywhere using the API
 - **Real-time Communication**: WebSocket connections enable live updates and interactive workflow execution.
 - **Scalable Processing**: The Worker architecture allows for distributed processing of node tasks.
 - **Flexible Node System**: Easy integration of new node types and AI services.
-- **HTTP Callbacks**: Support for asynchronous operations and integration with external services.
 
 ## Data Flow:
 
@@ -123,44 +152,10 @@ NodeTool's architecture is designed for flexibility. Here's a breakdown of the m
 3. API Server delegates workflow execution to the WebSocket Runner.
 4. WebSocket Runner coordinates the execution of individual nodes through Workers.
 5. Results are sent back to the Frontend in real-time via WebSocket connections.
-6. HTTP Callbacks allow for asynchronous updates and integration with external services.
+
 
 This architecture enables NodeTool to handle complex AI workflows efficiently, providing a seamless experience for users while maintaining the flexibility to incorporate various AI services and custom nodes.
 
-```
-                  +-------------------+
-                  |                   |
-                  |  React Frontend   |
-                  |                   |
-                  +--------+----------+
-                           |
-                           | HTTP/WebSocket
-                           |
-                  +--------v----------+
-                  |                   |
-         +------->|    API Server     |<------+
-         |        |                   |       |
-         |        +--------+----------+       |
-         |                 |                  |
-         |                 | Internal         |
-         |                 | Communication    |
-         |    +------------v------------+     |
-         |    |                         |     |
-         |    |   WebSocket Runner      |     |
-         |    |                         |     |
-         |    +------------+-----------+      |
-         |                 |                  |
-         |                 | WebSocket        |
-         |                 |                  |
-         |    +------------v------------+     |
-         |    |                         |     |
-         |    |        Worker           |     |
-         |    |                         |     |
-         +----+-------------------------+     |
-              |                               |
-              +-------------------------------+
-                     HTTP Callbacks
-```
 
 ## 🛠️ Implementing Custom Nodes
 

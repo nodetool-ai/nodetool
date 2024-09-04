@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import asyncio
+import httpx
 from nodetool.common.environment import Environment
 from nodetool.api.utils import current_user
 from nodetool.metadata.types import FunctionModel, LlamaModel
@@ -10,7 +12,6 @@ from nodetool.common.huggingface_models import (
     CachedModel,
     delete_cached_model,
     read_all_cached_models,
-    read_cached_model,
 )
 
 log = Environment.get_logger()
@@ -27,16 +28,23 @@ async def function_model(user: User = Depends(current_user)) -> list[FunctionMod
     return Environment.get_function_models()
 
 
+async def augment_model_info(model: CachedModel) -> CachedModel:
+    client = httpx.AsyncClient()
+    res = await client.get(f"https://huggingface.co/api/models/{model.repo_id}")
+    if res.status_code != 200:
+        return model
+    model_info = res.json()
+    model.pipeline_tag = model_info.get("pipeline_tag", None)
+    return model
+
+
 @router.get("/huggingface_models")
 async def get_huggingface_models(
     user: User = Depends(current_user),
 ) -> list[CachedModel]:
-    return read_all_cached_models()
-
-
-@router.get("/huggingface_model")
-async def get_huggingface_model(repo_id: str) -> CachedModel | None:
-    return read_cached_model(repo_id)
+    models = read_all_cached_models()
+    models = await asyncio.gather(*[augment_model_info(model) for model in models])
+    return models
 
 
 @router.delete("/huggingface_model")
