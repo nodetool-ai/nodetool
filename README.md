@@ -140,7 +140,7 @@ NodeTool's architecture is designed for flexibility. Here's a breakdown of the m
 
 3. **🔌 WebSocket Runner**: Responsible for executing workflows in real-time, maintaining the state of running workflows, and managing the communication between nodes.
 
-4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability.
+4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability. Can also call external APIs like OpenAI, Replicate, and others.
 
 ## Key Features:
 - **Build anything, run from anywhere**: Create your AI workflows in a node-based editor, then run them from anywhere using the API
