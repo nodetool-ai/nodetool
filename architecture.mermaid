@@ -1,0 +1,27 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'edgeLabelBackground': '#0d1117', 'lineColor': '#777', 'edgeLabelColor': '#777' }}}%%
+
+graph TD
+A([Nodetool Editor<br>ReactJS]) -->|HTTP/WebSocket| B([API Server])
+A <-->|WebSocket| C([WebSocket Runner])
+B <-->|Internal Communication| C
+C <-->|WebSocket| D([Worker with ML Models<br> CPU+GPU <br>local / cloud])
+D <-->|HTTP Callbacks| B
+E[Other Apps/Websites] -->|HTTP| B
+E <-->|WebSocket| C
+D -->|Optional API Calls| F[OpenAI / Replicate / Others]
+
+    classDef default fill:#e0eee0,stroke:#333,stroke-width:2px,color:#000;
+    classDef frontend fill:#ffcccc,stroke:#333,stroke-width:2px,color:#000;
+    classDef server fill:#cce5ff,stroke:#333,stroke-width:2px,color:#000;
+    classDef runner fill:#ccffe5,stroke:#333,stroke-width:2px,color:#000;
+    classDef worker fill:#ccf2ff,stroke:#333,stroke-width:2px,color:#000;
+    classDef api fill:#e0e0e0,stroke:#333,stroke-width:2px,color:#000;
+    classDef darkgray fill:#a9a9a9,stroke:#333,stroke-width:2px,color:#000;
+
+
+    class A frontend;
+    class B server;
+    class C runner;
+    class D worker;
+    class E other;
+    class F,G,H api;
