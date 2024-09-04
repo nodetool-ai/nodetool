@@ -106,14 +106,11 @@ graph TD
 A([React Frontend]) -->|HTTP/WebSocket| B([API Server])
  <-->|WebSocket| C([WebSocket Runner])
 B <-->|Internal Communication| C
-C <-->|WebSocket| D([GPU Worker<br>local / cloud])
+C <-->|WebSocket| D([Worker with ML Models<br> CPU+GPU <br>local / cloud])
 D <-->|HTTP Callbacks| B
 E[Other Apps/Websites] -->|HTTP| B
 E <-->|WebSocket| C
-D -->|API Calls| F[OpenAI]
-D -->|API Calls| G[Replicate API]
-D -->|API Calls| H[Other Provider APIs]
-
+D -->|Optional API Calls| F[OpenAI / Replicate / Others]
 
     classDef default fill:#e0eee0,stroke:#333,stroke-width:2px,color:#000;
     classDef frontend fill:#ffcccc,stroke:#333,stroke-width:2px,color:#000;
