@@ -44,9 +44,6 @@ import useAuth from "./stores/useAuth";
 import { isProduction, pingWorker } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
-import HuggingFaceModelList from "./components/hugging_face/HuggingFaceModelList";
-import HuggingFaceModelSearch from "./components/hugging_face/HuggingFaceModelSearch";
-import HuggingFaceDownloadDialog from "./components/hugging_face/HuggingFaceDownloadDialog";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 
 initSentry();
