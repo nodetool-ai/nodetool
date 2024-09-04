@@ -100,10 +100,11 @@ nodes
 # 🏗️ Architecture
 
 ```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'edgeLabelBackground': '#0d1117', 'lineColor': '#a0a0a0', 'edgeLabelColor': '#a0a0a0' }}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'edgeLabelBackground': '#0d1117', 'lineColor': '#777', 'edgeLabelColor': '#777' }}}%%
+
 graph TD
 A([React Frontend]) -->|HTTP/WebSocket| B([API Server])
-A <-->|WebSocket| C([WebSocket Runner])
+ <-->|WebSocket| C([WebSocket Runner])
 B <-->|Internal Communication| C
 C <-->|WebSocket| D([GPU Worker<br>local / cloud])
 D <-->|HTTP Callbacks| B
