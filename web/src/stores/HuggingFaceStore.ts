@@ -1,15 +1,21 @@
 import { create } from "zustand";
+import useModelStore from "./ModelStore";
+
+interface SpeedDataPoint {
+  bytes: number;
+  timestamp: number;
+}
 
 interface Download {
   status:
-    | "pending"
-    | "idle"
-    | "running"
-    | "completed"
-    | "cancelled"
-    | "error"
-    | "start"
-    | "progress";
+  | "pending"
+  | "idle"
+  | "running"
+  | "completed"
+  | "cancelled"
+  | "error"
+  | "start"
+  | "progress";
   repoId: string;
   downloadedBytes: number;
   totalBytes: number;
@@ -17,6 +23,8 @@ interface Download {
   downloadedFiles?: number;
   currentFile?: string;
   message?: string;
+  speed: number | null;
+  speedHistory: SpeedDataPoint[];
 }
 
 interface HuggingFaceStore {
@@ -37,6 +45,15 @@ interface HuggingFaceStore {
   openDialog: () => void;
   closeDialog: () => void;
 }
+
+const calculateSpeed = (speedHistory: SpeedDataPoint[]): number | null => {
+  if (speedHistory.length < 2) return null;
+  const oldestPoint = speedHistory[0];
+  const newestPoint = speedHistory[speedHistory.length - 1];
+  const bytesDiff = newestPoint.bytes - oldestPoint.bytes;
+  const timeDiff = newestPoint.timestamp - oldestPoint.timestamp;
+  return timeDiff > 0 ? (bytesDiff / timeDiff) * 1000 : null;
+};
 
 export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
   downloads: {},
@@ -73,6 +90,9 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
             currentFile: data.current_file,
             message: data.message
           });
+          if (data.status === "completed") {
+            useModelStore.getState().invalidate();
+          }
         }
       };
 
@@ -99,21 +119,37 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
           status: "pending",
           repoId,
           downloadedBytes: 0,
-          totalBytes: 0
+          totalBytes: 0,
+          speed: null,
+          speedHistory: []
         }
       }
     })),
 
   updateDownload: (repoId, update) =>
-    set((state) => ({
-      downloads: {
-        ...state.downloads,
-        [repoId]: {
-          ...state.downloads[repoId],
-          ...update
+    set((state) => {
+      const currentDownload = state.downloads[repoId];
+      if (!currentDownload) return state;
+
+      const newSpeedHistory = [
+        ...currentDownload.speedHistory,
+        { bytes: update.downloadedBytes || currentDownload.downloadedBytes, timestamp: Date.now() }
+      ].slice(-10);  // Keep only the last 10 data points
+
+      const newSpeed = calculateSpeed(newSpeedHistory);
+
+      return {
+        downloads: {
+          ...state.downloads,
+          [repoId]: {
+            ...currentDownload,
+            ...update,
+            speedHistory: newSpeedHistory,
+            speed: newSpeed
+          }
         }
-      }
-    })),
+      };
+    }),
 
   removeDownload: (repoId) =>
     set((state) => {
