@@ -1,23 +1,26 @@
-import React from "react";
-import {
-  Typography,
-  Box,
-  LinearProgress,
-  Button,
-  CircularProgress
-} from "@mui/material";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Typography, Box, Button, CircularProgress } from "@mui/material";
 import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
 import { keyframes } from "@emotion/react";
 
 const pulse = keyframes`
   0% {
-    opacity: 1;
+    opacity: 0.8;
   }
   50% {
-    opacity: 0.5;
+    opacity: 1;
   }
   100% {
-    opacity: 1;
+    opacity: 0.8;
+  }
+`;
+
+const moveRight = keyframes`
+  0% {
+    background-position: 0% 0;
+  }
+  100% {
+    background-position: 100% 0;
   }
 `;
 
@@ -72,27 +75,48 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
       )}
       {download.status === "progress" && (
         <>
-          <LinearProgress
-            variant="determinate"
-            value={(download.downloadedBytes / download.totalBytes) * 100}
+          <Box
             sx={{
-              color: "white",
-              animation: `${pulse} 2s ease-in-out infinite`,
-              "& .MuiLinearProgress-bar": {
-                transition: "transform 0.2s linear"
-              }
+              height: "6px",
+              borderRadius: "3px",
+              overflow: "hidden",
+              position: "relative",
+              background: "#555",
+              marginTop: "1em"
             }}
-          />
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: `${
+                  (download.downloadedBytes / download.totalBytes) * 100
+                }%`,
+                background: "linear-gradient(90deg, #3a6ba5, #5a9bd5)",
+                backgroundSize: "200% 100%",
+                animation: `${pulse} 3s ease-in-out infinite, ${moveRight} 8s linear infinite`,
+                transformOrigin: "right center"
+              }}
+            />
+          </Box>
           <Typography variant="body2" style={{ marginTop: "1em" }}>
             Size: {(download.downloadedBytes / 1024 / 1024).toFixed(2)} MB /{" "}
             {(download.totalBytes / 1024 / 1024).toFixed(2)} MB
           </Typography>
-          <Typography variant="body2" style={{ marginTop: "1em" }}>
+          <Typography variant="body2" style={{ marginTop: "0.5em" }}>
             Files: {download.downloadedFiles} / {download.totalFiles}
           </Typography>
-          <Typography variant="body2" style={{ marginTop: "1em" }}>
+          <Typography variant="body2" style={{ marginTop: "0.5em" }}>
             Current: {download.currentFile}
           </Typography>
+          {download.speed !== null && (
+            <Typography variant="body2" style={{ marginTop: "0.5em" }}>
+              Speed: {(download.speed / 1024 / 1024).toFixed(2)} MB/s
+            </Typography>
+          )}
           <Button
             onClick={() => cancelDownload(name)}
             variant="outlined"

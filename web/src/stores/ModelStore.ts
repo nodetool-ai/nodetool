@@ -1,11 +1,15 @@
 import { create } from "zustand";
 import { client } from "./ApiClient";
 import { CachedModel, FunctionModel, LlamaModel } from "./ApiTypes";
+import { QueryClient } from "@tanstack/react-query";
 
 type ModelStore = {
+  queryClient: QueryClient | null;
+  setQueryClient(queryClient: QueryClient): unknown;
   modelFiles: Record<string, string[]>;
   functionModels: FunctionModel[];
   llamaModels: LlamaModel[];
+  invalidate: () => void;
   huggingFaceModels: CachedModel[];
   loadFunctionModels: () => Promise<FunctionModel[]>;
   loadLlamaModels: () => Promise<LlamaModel[]>;
@@ -14,10 +18,17 @@ type ModelStore = {
 };
 
 const useModelStore = create<ModelStore>((set, get) => ({
+  queryClient: null,
   modelFiles: {},
   functionModels: [],
   llamaModels: [],
   huggingFaceModels: [],
+  setQueryClient: (queryClient: QueryClient) => {
+    set({ queryClient });
+  },
+  invalidate: () => {
+    get().queryClient?.invalidateQueries();
+  },
   loadHuggingFaceModels: async () => {
     const { error, data } = await client.GET("/api/models/huggingface_models", {});
     if (error) {
