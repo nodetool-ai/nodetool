@@ -239,6 +239,7 @@ export default memo(
                       margin: "0",
                       padding: "0 1em",
                       position: "absolute",
+                      zIndex: 10,
                       top: "25px",
                       lineHeight: "1em"
                     }}

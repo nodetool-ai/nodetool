@@ -32,7 +32,13 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   openDialog
 }) => {
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog
+      className="recommended-models-dialog"
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+    >
       <DialogTitle>Recommended Models</DialogTitle>
       <DialogContent>
         <Grid container spacing={2}>
