@@ -346,18 +346,22 @@ function AppHeader() {
                     : ThemeNodetool.palette.c_white
                 }}
               >
-                {iconForType("model", {
-                  fill: path.startsWith("/models")
-                    ? ThemeNodetool.palette.c_hl1
-                    : "#fff",
-                  bgStyle: {
-                    backgroundColor: "transparent",
-                    width: "28px",
-                    marginRight: ".5em"
+                {iconForType(
+                  "model",
+                  {
+                    fill: path.startsWith("/models")
+                      ? ThemeNodetool.palette.c_hl1
+                      : "#fff",
+                    bgStyle: {
+                      backgroundColor: "transparent",
+                      width: "28px",
+                      marginRight: ".5em"
+                    },
+                    width: "15px",
+                    height: "15px"
                   },
-                  width: "15px",
-                  height: "15px"
-                })}
+                  false
+                )}
                 Models
               </Button>
             </Tooltip>
