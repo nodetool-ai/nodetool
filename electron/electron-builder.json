@@ -9,9 +9,9 @@
         "index.html"
     ],
     "extraResources": [
-        "python_env.tar",
-        "nodetool.tar",
-        "web.tar",
+        "python_env",
+        "src",
+        "web",
         "ffmpeg.exe",
         "ffprobe.exe",
         "ffmpeg",

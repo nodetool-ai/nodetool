@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from fastapi import APIRouter
-import httpx
 from nodetool.types.job import (
     JobUpdate,
 )
@@ -30,7 +29,7 @@ from nodetool.metadata.types import (
     HFObjectDetection,
     HFImageSegmentation,
     HFTextToImage,
-    HFStableDiffusionBase,
+    HFStableDiffusion,
     HFStableDiffusionXL,
     HFImageToText,
     HFImageToImage,
@@ -101,7 +100,7 @@ UnionType = (
     | HFObjectDetection
     | HFImageSegmentation
     | HFTextToImage
-    | HFStableDiffusionBase
+    | HFStableDiffusion
     | HFStableDiffusionXL
     | HFImageToText
     | HFImageToImage

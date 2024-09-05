@@ -182,7 +182,7 @@ class Build:
     def python(self):
         logger.info("Packing Python environment")
 
-        self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack"])
+        self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack", "-y"])
 
         # Set environment variable to prevent bytecode generation
         env = os.environ.copy()
@@ -211,14 +211,21 @@ class Build:
                 "--exclude",
                 "test",
                 "-o",
-                f"{self.BUILD_DIR}/python_env.tar",
+                str(self.BUILD_DIR / "python_env.tar"),
             ],
             env=env,
         )
 
+        # Unpack the tar file
+        with tarfile.open(str(self.BUILD_DIR / "python_env.tar")) as tar:
+            tar.extractall(self.BUILD_DIR / "python_env")
+
         # Bundle the source code using tarfile
-        with tarfile.open(f"{self.BUILD_DIR}/nodetool.tar", "w") as tar:
-            tar.add(str(PROJECT_ROOT / "src"), arcname="src")
+        # with tarfile.open(f"{self.BUILD_DIR}/nodetool.tar", "w") as tar:
+        #     tar.add(str(PROJECT_ROOT / "src"), arcname="src")
+
+        # copy the src folder into the build dir
+        self.copy_tree(self.SRC_DIR, self.BUILD_DIR / "src")
 
     def react(self):
         logger.info("Building React app")
@@ -227,8 +234,7 @@ class Build:
         self.run_command(["npm", "run", "build"], cwd=web_dir)
 
         # Bundle the build output using tarfile
-        with tarfile.open(f"{self.BUILD_DIR}/web.tar", "w") as tar:
-            tar.add(str(PROJECT_ROOT / "web" / "dist"), arcname="web")
+        self.copy_tree(self.WEB_DIR / "dist", self.BUILD_DIR / "web")
 
     def electron(self):
         logger.info(f"Building Electron app for {self.platform} ({self.arch})")

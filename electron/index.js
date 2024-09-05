@@ -54,6 +54,7 @@ async function untarFile(
   useParentDir = true
 ) {
   console.log(`Extracting ${tarPath} to ${destDir}...`);
+  mainWindow.webContents.send("boot-message", `Extracting ${tarPath} to ${destDir}...`);
 
   // Check if the tar file exists
   if (!(await fs.access(tarPath).catch(() => false))) {
