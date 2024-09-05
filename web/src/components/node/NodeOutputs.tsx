@@ -6,7 +6,7 @@ import { Typography } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 export const NodeOutputs = memo(function NodeOutputs({
   id,
-  outputs,
+  outputs
 }: {
   id: string;
   outputs: Property[];
@@ -19,12 +19,12 @@ export const NodeOutputs = memo(function NodeOutputs({
             style={{
               fontSize: ThemeNodes.fontSizeTinyer,
               position: "absolute",
-              top: ".1em",
-              left: "1.4em",
+              top: ".5em",
+              right: "1.4em",
               color: ThemeNodes.palette.c_gray3,
               textTransform: "uppercase",
               margin: 0,
-              padding: 0,
+              padding: 0
             }}
             variant="h6"
           >
