@@ -21,7 +21,7 @@ interface Download {
   totalBytes: number;
   totalFiles?: number;
   downloadedFiles?: number;
-  currentFile?: string;
+  currentFiles?: string[];
   message?: string;
   speed: number | null;
   speedHistory: SpeedDataPoint[];
@@ -87,7 +87,7 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
             totalBytes: data.total_bytes,
             totalFiles: data.total_files,
             downloadedFiles: data.downloaded_files,
-            currentFile: data.current_file,
+            currentFiles: data.current_files,
             message: data.message
           });
           if (data.status === "completed") {

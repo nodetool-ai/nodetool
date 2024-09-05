@@ -11,6 +11,7 @@ import Logo from "../Logo";
 import Welcome from "../content/Welcome/Welcome";
 import AppHeaderActions from "./AppHeaderActions";
 import LastWorkflowButton from "./LastWorkflowButton";
+import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 
 // mui icons
 import WorkflowsIcon from "@mui/icons-material/ListAlt";
@@ -336,6 +337,7 @@ function AppHeader() {
           <Alert />
 
           <Box className="buttons-right">
+            <OverallDownloadProgress />
             <Tooltip title="Model Manager" enterDelay={TOOLTIP_DELAY}>
               <Button
                 className="action-button"

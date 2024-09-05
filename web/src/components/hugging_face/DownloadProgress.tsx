@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React from "react";
 import { Typography, Box, Button, CircularProgress } from "@mui/material";
 import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
 import { keyframes } from "@emotion/react";
@@ -110,7 +110,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
             Files: {download.downloadedFiles} / {download.totalFiles}
           </Typography>
           <Typography variant="body2" style={{ marginTop: "0.5em" }}>
-            Current: {download.currentFile}
+            Downloading: {download.currentFiles?.join(", ")}
           </Typography>
           {download.speed !== null && (
             <Typography variant="body2" style={{ marginTop: "0.5em" }}>

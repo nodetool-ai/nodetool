@@ -107,7 +107,7 @@ class DownloadManager:
         self.repo_id = repo_id
         self.downloaded_bytes = 0
         self.downloaded_files = []
-        self.current_file = ""
+        self.current_files = []
         self.total_files = 0
         self.total_bytes = 0
         self.websocket = websocket
@@ -148,7 +148,7 @@ class DownloadManager:
                 "downloaded_bytes": self.downloaded_bytes,
                 "total_bytes": self.total_bytes,
                 "downloaded_files": len(self.downloaded_files),
-                "current_file": self.current_file,
+                "current_files": self.current_files,
                 "total_files": self.total_files,
             }
         )
@@ -183,27 +183,42 @@ class DownloadManager:
         files = self.api.list_repo_tree(repo_id, recursive=True)
         files = [file for file in files if isinstance(file, RepoFile)]
         files = filter_repo_paths(files, allow_patterns, ignore_patterns)
-        print(files)
         self.total_files = len(files)
         self.total_bytes = sum(file.size for file in files)
         await self.send_update()
 
         loop = asyncio.get_running_loop()
+        tasks = []
         for file in files:
             if self.cancel.is_set():
                 break
-            self.current_file = file.path
+            self.current_files.append(file.path)
             await self.send_update()
-            filename, local_path = await loop.run_in_executor(
+            task = loop.run_in_executor(
                 self.process_pool,
                 download_file,
                 repo_id,
                 file.path,
                 self.queue,
             )
-            if local_path:
-                self.downloaded_files.append(filename)
+            tasks.append(task)
 
+            # Schedule 2 download processes in parallel
+            if len(tasks) == 2:
+                completed_tasks = await asyncio.gather(*tasks)
+                for filename, local_path in completed_tasks:
+                    if local_path:
+                        self.downloaded_files.append(filename)
+                    self.current_files.remove(filename)
+                await self.send_update()
+
+        # Handle any remaining tasks
+        if tasks:
+            completed_tasks = await asyncio.gather(*tasks)
+            for filename, local_path in completed_tasks:
+                if local_path:
+                    self.downloaded_files.append(filename)
+                self.current_files.remove(filename)
             await self.send_update()
 
         self.status = "completed"
