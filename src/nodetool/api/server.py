@@ -1,4 +1,3 @@
-import asyncio
 import os
 from typing import Any
 import dotenv
@@ -15,8 +14,6 @@ from nodetool.common.huggingface_cache import (
 from fastapi import APIRouter, FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run as uvicorn
-
-from nodetool.common.huggingface_models import download_huggingface_model
 
 from . import asset, job, auth, message, node, storage, task, workflow, model, settings
 
@@ -88,12 +85,14 @@ def create_app(
     else:
         # if we don't run the worker, we need to initialize nodes
         import nodetool.nodes.anthropic
-        import nodetool.nodes.comfy
+
+        # import nodetool.nodes.comfy
         import nodetool.nodes.huggingface
         import nodetool.nodes.nodetool
         import nodetool.nodes.openai
         import nodetool.nodes.replicate
-        import nodetool.nodes.stable_diffusion
+
+        # import nodetool.nodes.stable_diffusion
         import nodetool.nodes.ollama
 
         if Environment.get_comfy_folder():
