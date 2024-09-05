@@ -111,7 +111,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
             Files: {download.downloadedFiles} / {download.totalFiles}
           </Typography>
           <Typography variant="body2" style={{ marginTop: "0.5em" }}>
-            Current: {download.currentFile}
+            Downloading: {download.currentFiles?.join(", ")}
           </Typography>
           {download.speed !== null && (
             <Typography variant="body2" style={{ marginTop: "0.5em" }}>

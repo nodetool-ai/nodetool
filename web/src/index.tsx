@@ -45,6 +45,7 @@ import { isProduction, pingWorker } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
+import useModelStore from "./stores/ModelStore";
 
 initSentry();
 
@@ -57,6 +58,7 @@ if (!isProduction) {
 const queryClient = new QueryClient();
 useAssetStore.getState().setQueryClient(queryClient);
 useWorkflowStore.getState().setQueryClient(queryClient);
+useModelStore.getState().setQueryClient(queryClient);
 
 const NavigateToStart = () => {
   const { getUser } = useAuth();
