@@ -3,10 +3,10 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
 import { NodeProps, useStore } from "reactflow";
 import { isEqual } from "lodash";
-import { Box, Button, Container, Typography } from "@mui/material";
+import { Box, Button, Container, Tooltip, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
-
+import useModelStore from "../../stores/ModelStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { NodeHeader } from "./NodeHeader";
 import { NodeFooter } from "./NodeFooter";
@@ -24,6 +24,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { MIN_ZOOM } from "../../config/constants";
 import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
 import RecommendedModelsDialog from "../RecommendedModelsDialog";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
@@ -134,10 +135,18 @@ export default memo(
       return BASE_HEIGHT + outputCount * INCREMENT_PER_OUTPUT;
     }, [metadata, props.type]);
 
+    const hasInstalledModels = useModelStore(
+      (state) => state.hasInstalledModels
+    );
+
     const nodeMetadata = metadata?.metadataByType[props.type];
     const node_title = titleize(nodeMetadata?.title || "");
     const node_namespace = nodeMetadata?.namespace || "";
     const node_outputs = nodeMetadata?.outputs || [];
+    const recommendedModels = nodeMetadata?.recommended_models || [];
+    const modelType = nodeMetadata?.properties.find((p) =>
+      p.type.type.includes("model")
+    )?.type.type;
     const firstOutput =
       node_outputs.length > 0
         ? node_outputs[0]
@@ -147,6 +156,9 @@ export default memo(
               type: "string"
             }
           };
+    const hasRelevantInstalledModels = modelType
+      ? hasInstalledModels(modelType)
+      : false;
 
     const missingAPIKeys = useMemo(() => {
       if (node_namespace.startsWith("openai.")) {
@@ -171,8 +183,6 @@ export default memo(
       secrets.REPLICATE_API_TOKEN,
       secrets.ANTHROPIC_API_KEY
     ]);
-
-    const recommendedModels = nodeMetadata?.recommended_models || [];
 
     if (!nodeMetadata || metadataLoading || metadataError) {
       return (
@@ -213,13 +223,30 @@ export default memo(
 
             {recommendedModels.length > 0 && (
               <Box sx={{ margin: "1em" }}>
-                <Typography
-                  variant="body2"
-                  sx={{ cursor: "pointer", textDecoration: "underline" }}
-                  onClick={handleOpenModelDialog}
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  title="Find models to download."
                 >
-                  View recommended models
-                </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    sx={{
+                      fontSize: ThemeNodetool.fontSizeTiny,
+                      color: hasRelevantInstalledModels
+                        ? ThemeNodetool.palette.c_gray5
+                        : ThemeNodetool.palette.c_attention,
+                      margin: "0",
+                      padding: "0 1em",
+                      position: "absolute",
+                      top: "25px",
+                      lineHeight: "1em"
+                    }}
+                    onClick={handleOpenModelDialog}
+                  >
+                    Recommended models
+                  </Button>
+                </Tooltip>
               </Box>
             )}
 

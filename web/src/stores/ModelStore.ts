@@ -15,6 +15,7 @@ type ModelStore = {
   loadLlamaModels: () => Promise<LlamaModel[]>;
   loadHuggingFaceModels: () => Promise<CachedModel[]>;
   loadFiles: (folder: string) => Promise<string[]>;
+  hasInstalledModels: (modelType: string) => boolean;
 };
 
 const useModelStore = create<ModelStore>((set, get) => ({
@@ -30,7 +31,10 @@ const useModelStore = create<ModelStore>((set, get) => ({
     get().queryClient?.invalidateQueries();
   },
   loadHuggingFaceModels: async () => {
-    const { error, data } = await client.GET("/api/models/huggingface_models", {});
+    const { error, data } = await client.GET(
+      "/api/models/huggingface_models",
+      {}
+    );
     if (error) {
       throw new Error("Failed to fetch models: " + error);
     }
@@ -74,6 +78,20 @@ const useModelStore = create<ModelStore>((set, get) => ({
       }
     });
     return data;
+  },
+  hasInstalledModels: (modelType: string) => {
+    const state = get();
+    switch (modelType) {
+      case "function_model":
+        return state.functionModels.length > 0;
+      case "llama_model":
+        return state.llamaModels.length > 0;
+      case "huggingface_model":
+        return state.huggingFaceModels.length > 0;
+      default:
+        // For other types, check if there are any files in the corresponding folder
+        return state.modelFiles[modelType]?.length > 0 || false;
+    }
   }
 }));
 
