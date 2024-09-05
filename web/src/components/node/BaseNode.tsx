@@ -1,21 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
 import { NodeProps, useStore } from "reactflow";
 import { isEqual } from "lodash";
-import {
-  Box,
-  Button,
-  Container,
-  Typography,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  SelectChangeEvent
-} from "@mui/material";
+import { Box, Button, Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
 
@@ -35,6 +23,7 @@ import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { MIN_ZOOM } from "../../config/constants";
 import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
+import RecommendedModelsDialog from "../RecommendedModelsDialog";
 
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
@@ -93,7 +82,11 @@ export default memo(
     const { startDownload, openDialog } = useHuggingFaceStore();
 
     const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
-    const [showModelDownload, setShowModelDownload] = useState(false);
+    const [openModelDialog, setOpenModelDialog] = useState(false);
+
+    const handleOpenModelDialog = () => setOpenModelDialog(true);
+    const handleCloseModelDialog = () => setOpenModelDialog(false);
+
     useEffect(() => {
       // Set parentIsCollapsed state based on parent node
       if (hasParent) {
@@ -181,21 +174,6 @@ export default memo(
 
     const recommendedModels = nodeMetadata?.recommended_models || [];
 
-    const handleModelChange = (event: SelectChangeEvent) => {
-      const selectedRepoId = event.target.value;
-      const selectedModelData = recommendedModels.find(
-        (model) => model.repo_id === selectedRepoId
-      );
-      if (selectedModelData) {
-        startDownload(
-          selectedRepoId,
-          selectedModelData.allow_patterns || null,
-          selectedModelData.ignore_patterns || null
-        );
-        openDialog();
-      }
-    };
-
     if (!nodeMetadata || metadataLoading || metadataError) {
       return (
         <Container
@@ -237,34 +215,21 @@ export default memo(
               <Box sx={{ margin: "1em" }}>
                 <Typography
                   variant="body2"
-                  sx={{ cursor: "pointer" }}
-                  onClick={() => setShowModelDownload(!showModelDownload)}
+                  sx={{ cursor: "pointer", textDecoration: "underline" }}
+                  onClick={handleOpenModelDialog}
                 >
-                  Download recommended models
+                  View recommended models
                 </Typography>
-                {showModelDownload && (
-                  <Box sx={{ mb: 1 }}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel id="model-select-label">
-                        Select model to download
-                      </InputLabel>
-                      <Select
-                        labelId="model-select-label"
-                        onChange={handleModelChange}
-                        label="Download Model"
-                        value={""}
-                      >
-                        {recommendedModels.map((model) => (
-                          <MenuItem key={model.repo_id} value={model.repo_id}>
-                            {model.repo_id}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                )}
               </Box>
             )}
+
+            <RecommendedModelsDialog
+              open={openModelDialog}
+              onClose={handleCloseModelDialog}
+              recommendedModels={recommendedModels}
+              startDownload={startDownload}
+              openDialog={openDialog}
+            />
 
             {missingAPIKeys && (
               <Typography className="node-status">
