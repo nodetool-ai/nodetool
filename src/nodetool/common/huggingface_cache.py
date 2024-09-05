@@ -18,19 +18,17 @@ from nodetool.workflows.base_node import get_node_class
 
 
 def filter_repo_paths(
-    items: list[str],
+    items: list[RepoFile],
     allow_patterns: list[str] | None = None,
     ignore_patterns: list[str] | None = None,
-) -> list[str]:
+) -> list[RepoFile]:
     """Filter repo objects based on an allowlist and a denylist.
-
-    Input must be a list of paths (`str` or `Path`) or a list of arbitrary objects.
 
     Patterns are Unix shell-style wildcards which are NOT regular expressions. See
     https://docs.python.org/3/library/fnmatch.html for more details.
 
     Args:
-        items (`Iterable`):
+        items (list[RepoFile]):
             List of items to filter.
         allow_patterns (`str` or `List[str]`, *optional*):
             Patterns constituting the allowlist. If provided, item paths must match at
@@ -50,13 +48,9 @@ def filter_repo_paths(
     if isinstance(ignore_patterns, str):
         ignore_patterns = [ignore_patterns]
 
-    if allow_patterns is not None:
-        allow_patterns = [_add_wildcard_to_directories(p) for p in allow_patterns]
-    if ignore_patterns is not None:
-        ignore_patterns = [_add_wildcard_to_directories(p) for p in ignore_patterns]
-
     filtered_paths = []
-    for path in items:
+    for file in items:
+        path = file.path
         # Skip if there's an allowlist and path doesn't match any
         if allow_patterns is not None and not any(
             fnmatch(path, r) for r in allow_patterns
@@ -69,15 +63,9 @@ def filter_repo_paths(
         ):
             continue
 
-        filtered_paths.append(path)
+        filtered_paths.append(file)
 
     return filtered_paths
-
-
-def _add_wildcard_to_directories(pattern: str) -> str:
-    if pattern[-1] == "/":
-        return pattern + "*"
-    return pattern
 
 
 class DownloadManager:
@@ -146,6 +134,8 @@ class DownloadManager:
 
     async def cancel_download(self):
         self.cancel.set()
+        self.process_pool.shutdown()
+        self.manager.shutdown()
 
     def run_progress_updates(self):
         asyncio.run(self.send_progress_updates())
@@ -190,27 +180,25 @@ class DownloadManager:
         allow_patterns: list[str] | None = None,
         ignore_patterns: list[str] | None = None,
     ):
-        files = self.api.list_repo_files(repo_id)
+        files = self.api.list_repo_tree(repo_id, recursive=True)
+        files = [file for file in files if isinstance(file, RepoFile)]
         files = filter_repo_paths(files, allow_patterns, ignore_patterns)
+        print(files)
         self.total_files = len(files)
-        self.total_bytes = sum(
-            file.size
-            for file in self.api.list_repo_tree(repo_id, recursive=True)
-            if isinstance(file, RepoFile)
-        )
+        self.total_bytes = sum(file.size for file in files)
         await self.send_update()
 
         loop = asyncio.get_running_loop()
         for file in files:
             if self.cancel.is_set():
                 break
-            self.current_file = file
+            self.current_file = file.path
             await self.send_update()
             filename, local_path = await loop.run_in_executor(
                 self.process_pool,
                 download_file,
                 repo_id,
-                file,
+                file.path,
                 self.queue,
             )
             if local_path:
