@@ -46,9 +46,8 @@ export default function ModelProperty(props: PropertyProps) {
   const loadHuggingFaceModels = useModelStore(
     (state) => state.loadHuggingFaceModels
   );
-  const startDownload = useHuggingFaceStore((state) => state.startDownload);
-  const openDialog = useHuggingFaceStore((state) => state.openDialog);
   const modelType = props.property.type.type;
+  console.log(modelType);
   const { data, isError } = useQuery({
     queryKey: ["models", modelType],
     queryFn: async () => {

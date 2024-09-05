@@ -80,11 +80,12 @@ class OpenposePreprocessor(PreprocessImage):
     )
 
 
-class MediaPipeFaceMeshPreprocessor(PreprocessImage):
-    _comfy_class = "MediaPipe-FaceMeshPreprocessor"
-    max_faces: int = Field(
-        default=10, description="The maximum number of faces to detect."
-    )
-    min_confidence: float = Field(
-        default=0.5, description="The minimum confidence for face detection."
-    )
+# dependency problems
+# class MediaPipeFaceMeshPreprocessor(PreprocessImage):
+#     _comfy_class = "MediaPipe-FaceMeshPreprocessor"
+#     max_faces: int = Field(
+#         default=10, description="The maximum number of faces to detect."
+#     )
+#     min_confidence: float = Field(
+#         default=0.5, description="The minimum confidence for face detection."
+#     )

@@ -6,6 +6,7 @@ from nodetool.common.environment import Environment
 from nodetool.api.utils import current_user
 from nodetool.metadata.types import (
     FunctionModel,
+    HuggingFaceModel,
     LlamaModel,
     pipeline_tag_to_model_type,
 )
@@ -17,6 +18,7 @@ from nodetool.common.huggingface_models import (
     delete_cached_model,
     read_all_cached_models,
 )
+from nodetool.workflows.base_node import get_registered_node_classes
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/models", tags=["models"])
@@ -32,15 +34,30 @@ async def function_model(user: User = Depends(current_user)) -> list[FunctionMod
     return Environment.get_function_models()
 
 
-async def augment_model_info(model: CachedModel) -> CachedModel:
+def get_recommended_models() -> list[HuggingFaceModel]:
+    node_classes = get_registered_node_classes()
+    return [
+        model
+        for node_class in node_classes
+        for model in node_class.get_recommended_models()
+    ]
+
+
+async def augment_model_info(
+    model: CachedModel, models: dict[str, HuggingFaceModel]
+) -> CachedModel:
     client = httpx.AsyncClient()
     res = await client.get(f"https://huggingface.co/api/models/{model.repo_id}")
     if res.status_code != 200:
         return model
     model_info = res.json()
     model.pipeline_tag = model_info.get("pipeline_tag", None)
-    if model.pipeline_tag is not None:
+    if model.pipeline_tag is None:
+        if model.repo_id in models:
+            model.model_type = models[model.repo_id].type
+    else:
         model.model_type = pipeline_tag_to_model_type(model.pipeline_tag)
+
     return model
 
 
@@ -49,7 +66,10 @@ async def get_huggingface_models(
     user: User = Depends(current_user),
 ) -> list[CachedModel]:
     models = read_all_cached_models()
-    models = await asyncio.gather(*[augment_model_info(model) for model in models])
+    recommended_models = get_recommended_models()
+    models = await asyncio.gather(
+        *[augment_model_info(model, recommended_models) for model in models]
+    )
     return models
 
 

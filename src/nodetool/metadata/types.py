@@ -198,6 +198,7 @@ class LlamaModel(BaseType):
 
 
 class HuggingFaceModel(BaseType):
+    type: Literal["hf.model"] = "hf.model"
     repo_id: str = ""
     allow_patterns: list[str] = []
     ignore_patterns: list[str] = []
@@ -243,12 +244,44 @@ class HFTextToImage(HuggingFaceModel):
     type: Literal["hf.text_to_image"] = "hf.text_to_image"
 
 
-class HFStableDiffusionBase(HuggingFaceModel):
-    type: Literal["hf.stable_diffusion_base"] = "hf.stable_diffusion_base"
+class HFStableDiffusion(HuggingFaceModel):
+    type: Literal["hf.stable_diffusion"] = "hf.stable_diffusion"
 
 
 class HFStableDiffusionXL(HuggingFaceModel):
     type: Literal["hf.stable_diffusion_xl"] = "hf.stable_diffusion_xl"
+
+
+class HFControlNet(HuggingFaceModel):
+    type: Literal["hf.controlnet"] = "hf.controlnet"
+
+
+class HFControlNetSDXL(HuggingFaceModel):
+    type: Literal["hf.controlnet_sdxl"] = "hf.controlnet_sdxl"
+
+
+class HFIPAdapter(HuggingFaceModel):
+    type: Literal["hf.ip_adapter"] = "hf.ip_adapter"
+    file_name: str = ""
+
+
+class HFIPAdapterSDXL(HuggingFaceModel):
+    type: Literal["hf.ip_adapter_sdxl"] = "hf.ip_adapter_sdxl"
+    file_name: str = ""
+
+
+class HFLora(HuggingFaceModel):
+    type: Literal["hf.lora"] = "hf.lora"
+    file_name: str = ""
+
+
+class HFLoraSDXL(HuggingFaceModel):
+    type: Literal["hf.lora_sdxl"] = "hf.lora_sdxl"
+    file_name: str = ""
+
+
+class HFStableDiffusionXLTurbo(HuggingFaceModel):
+    type: Literal["hf.stable_diffusion_xl_turbo"] = "hf.stable_diffusion_xl_turbo"
 
 
 class HFImageToText(HuggingFaceModel):
