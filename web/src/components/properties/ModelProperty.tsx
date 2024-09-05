@@ -1,13 +1,11 @@
-import { useCallback, useMemo } from "react";
-import { Box, Button, Select, SelectChangeEvent } from "@mui/material";
+import { useCallback } from "react";
+import { Select, SelectChangeEvent } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import PropertyLabel from "../node/PropertyLabel";
 import useModelStore from "../../stores/ModelStore";
 import { PropertyProps } from "../node/PropertyInput";
 import { FunctionModel, TypeName } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
-import { useMetadata } from "../../serverState/useMetadata";
-import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
 
 export function comfyModelToFolder(type: TypeName) {
   switch (type) {
@@ -47,7 +45,6 @@ export default function ModelProperty(props: PropertyProps) {
     (state) => state.loadHuggingFaceModels
   );
   const modelType = props.property.type.type;
-  console.log(modelType);
   const { data, isError } = useQuery({
     queryKey: ["models", modelType],
     queryFn: async () => {

@@ -61,6 +61,13 @@ async def augment_model_info(
     return model
 
 
+@router.get("/recommended_models")
+async def recommended_models(
+    user: User = Depends(current_user),
+) -> list[HuggingFaceModel]:
+    return get_recommended_models()
+
+
 @router.get("/huggingface_models")
 async def get_huggingface_models(
     user: User = Depends(current_user),
