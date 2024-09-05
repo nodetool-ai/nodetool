@@ -6,7 +6,7 @@
   "name": "Segmentation",
   "description": "Segment images and visualize the segments",
   "thumbnail": "",
-  "thumbnail_url": "/examples/segmentation.png",
+  "thumbnail_url": "/examples/segmentation.jpg",
   "graph": {
     "edges": [
       {
@@ -66,7 +66,7 @@
         "type": "nodetool.constant.Image",
         "data": {
           "value": {
-            "uri": "https://app.nodetool.ai/examples/abandoned_places.png",
+            "uri": "https://app.nodetool.ai/examples/abandoned_places.jpg",
             "type": "image"
           }
         },

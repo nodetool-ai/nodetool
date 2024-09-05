@@ -6,7 +6,7 @@
   "name": "Object Detection",
   "description": "Detect objects in an image and visualize the detections",
   "thumbnail": "",
-  "thumbnail_url": "/examples/object_detection.png",
+  "thumbnail_url": "/examples/object_detection.jpg",
   "graph": {
     "edges": [
       {
@@ -74,7 +74,7 @@
         "type": "nodetool.constant.Image",
         "data": {
           "value": {
-            "uri": "https://app.nodetool.ai/examples/flux_schnell_example.png",
+            "uri": "https://app.nodetool.ai/examples/flux_schnell_example.jpg",
             "type": "image"
           }
         },

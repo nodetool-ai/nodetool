@@ -6,7 +6,7 @@
   "name": "High Resolution in Comfy",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": "/examples/latent_upscale_different_prompt_model.png",
+  "thumbnail_url": "/examples/latent_upscale_different_prompt_model.jpg",
   "graph": {
     "edges": [
       {

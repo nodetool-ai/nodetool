@@ -6,7 +6,7 @@
   "name": "Movie Posters",
   "description": "Generate movie posters from a list of movie titles",
   "thumbnail": "",
-  "thumbnail_url": "/examples/movie_posters.png",
+  "thumbnail_url": "/examples/movie_posters.jpg",
   "graph": {
     "nodes": [
       {
@@ -132,7 +132,7 @@
           },
           "image": {
             "type": "image",
-            "uri": "https://replicate.delivery/pbxt/9JfeWOT7UeQTXooIjFfwrhmuLKpaTnwWUlnyS14YH7rsNwYMB/out-0.png",
+            "uri": "",
             "asset_id": null,
             "temp_id": null
           },
@@ -241,7 +241,7 @@
         "data": {
           "input": {
             "type": "image",
-            "uri": "https://replicate.delivery/pbxt/9JfeWOT7UeQTXooIjFfwrhmuLKpaTnwWUlnyS14YH7rsNwYMB/out-0.png",
+            "uri": "",
             "asset_id": null,
             "temp_id": null
           }

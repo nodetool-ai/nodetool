@@ -6,7 +6,7 @@
   "name": "Stable Diffusion XL in Comfy",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": "/examples/stable_diffusion_xl.png",
+  "thumbnail_url": "/examples/stable_diffusion_xl.jpg",
   "graph": {
     "edges": [
       {

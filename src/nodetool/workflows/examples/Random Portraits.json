@@ -6,7 +6,7 @@
   "name": "Random Portraits",
   "description": "Use DataframeAgent and Loop node to create random portraits.",
   "thumbnail": "",
-  "thumbnail_url": "/examples/random_images.png",
+  "thumbnail_url": "/examples/random_images.jpg",
   "graph": {
     "edges": [
       {

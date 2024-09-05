@@ -6,7 +6,7 @@
   "name": "Scribble Controlnet in Comfy",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": "/examples/input_scribble_example.png",
+  "thumbnail_url": "/examples/input_scribble_example.jpg",
   "graph": {
     "edges": [
       {

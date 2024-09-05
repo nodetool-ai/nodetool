@@ -6,7 +6,7 @@
   "name": "IP Adapter in Comfy",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": "/examples/ip_adapter.png",
+  "thumbnail_url": "/examples/ip_adapter.jpg",
   "graph": {
     "edges": [
       {
@@ -283,7 +283,7 @@
         "type": "nodetool.constant.Image",
         "data": {
           "value": {
-            "uri": "https://app.nodetool.ai/examples/phantasy_animals.png",
+            "uri": "https://app.nodetool.ai/examples/phantasy_animals.jpg",
             "type": "image"
           }
         },

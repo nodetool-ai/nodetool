@@ -6,7 +6,7 @@
   "name": "Transcribe Audio",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": "/examples/transcribe_audio.png",
+  "thumbnail_url": "/examples/transcribe_audio.jpg",
   "graph": {
     "nodes": [
       {

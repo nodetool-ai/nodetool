@@ -8,7 +8,7 @@ import {
   Navigate,
   RouterProvider,
   createBrowserRouter,
-  useRouteError,
+  useRouteError
 } from "react-router-dom";
 
 import NodeEditor from "./components/node_editor/NodeEditor";
@@ -44,6 +44,7 @@ import useAuth from "./stores/useAuth";
 import { isProduction, pingWorker } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
+import ModelsManager from "./components/hugging_face/ModelsManager";
 
 initSentry();
 
@@ -76,11 +77,11 @@ function getRoutes() {
   const routes: RouteObject[] = [
     {
       path: "/",
-      element: <NavigateToStart />,
+      element: <NavigateToStart />
     },
     {
       path: "/oauth/callback",
-      element: <OAuthCallback />,
+      element: <OAuthCallback />
     },
     {
       path: "/login",
@@ -89,11 +90,11 @@ function getRoutes() {
           <CssBaseline />
           <Login />
         </ThemeProvider>
-      ),
+      )
     },
     {
       path: "/editor",
-      element: <NavigateToStart />,
+      element: <NavigateToStart />
     },
     {
       path: "assets",
@@ -105,7 +106,7 @@ function getRoutes() {
             <AssetExplorer />
           </ThemeProvider>
         </ProtectedRoute>
-      ),
+      )
     },
     {
       path: "examples",
@@ -117,7 +118,7 @@ function getRoutes() {
             <ExampleGrid />
           </ThemeProvider>
         </ProtectedRoute>
-      ),
+      )
     },
     {
       path: "workflows",
@@ -129,7 +130,19 @@ function getRoutes() {
             <WorkflowGrid />
           </ThemeProvider>
         </ProtectedRoute>
-      ),
+      )
+    },
+    {
+      path: "models",
+      element: (
+        <ProtectedRoute>
+          <ThemeProvider theme={ThemeNodetool}>
+            <CssBaseline />
+            <AppHeader />
+            <ModelsManager />
+          </ThemeProvider>
+        </ProtectedRoute>
+      )
     },
     {
       path: "editor/:workflow",
@@ -152,7 +165,7 @@ function getRoutes() {
         </ProtectedRoute>
       ),
       loader: async ({ params }: LoaderFunctionArgs) =>
-        await initiateEditor(params.workflow),
+        await initiateEditor(params.workflow)
     },
     {
       path: "editor/start",
@@ -167,8 +180,8 @@ function getRoutes() {
             <NodeEditor />
           </ThemeProvider>
         </ProtectedRoute>
-      ),
-    },
+      )
+    }
   ];
 
   routes.forEach((route) => {

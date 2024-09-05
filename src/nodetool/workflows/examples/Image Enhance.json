@@ -6,7 +6,7 @@
   "name": "Image Enhance",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": "/examples/image_enhance.png",
+  "thumbnail_url": "/examples/image_enhance.jpg",
   "graph": {
     "nodes": [
       {

@@ -103,14 +103,15 @@ nodes
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'edgeLabelBackground': '#0d1117', 'lineColor': '#777', 'edgeLabelColor': '#777' }}}%%
 
 graph TD
-A([React Frontend]) -->|HTTP/WebSocket| B([API Server])
+A([Nodetool Editor<br>ReactJS]) -->|HTTP/WebSocket| B([API Server])
 A <-->|WebSocket| C([WebSocket Runner])
 B <-->|Internal Communication| C
 C <-->|WebSocket| D([Worker with ML Models<br> CPU+GPU <br>local / cloud])
 D <-->|HTTP Callbacks| B
 E[Other Apps/Websites] -->|HTTP| B
 E <-->|WebSocket| C
-D -->|Optional API Calls| F[OpenAI / Replicate / Others]
+D -->|Optional API Calls| F[OpenAI, Replicate, Others]
+
 
     classDef default fill:#e0eee0,stroke:#333,stroke-width:2px,color:#000;
     classDef frontend fill:#ffcccc,stroke:#333,stroke-width:2px,color:#000;

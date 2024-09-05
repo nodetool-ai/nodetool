@@ -6,7 +6,7 @@
   "name": "Style Transfer",
   "description": "Apply the style of an image to another image",
   "thumbnail": "",
-  "thumbnail_url": "/examples/style_transfer.png",
+  "thumbnail_url": "/examples/style_transfer.jpg",
   "graph": {
     "edges": [
       {

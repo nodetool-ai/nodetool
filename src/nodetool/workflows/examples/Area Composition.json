@@ -6,7 +6,7 @@
   "name": "Comfy Area Composition",
   "description": "Compose an image with different areas of prompts",
   "thumbnail": "",
-  "thumbnail_url": "/examples/area_composition.png",
+  "thumbnail_url": "/examples/area_composition.jpg",
   "graph": {
     "edges": [
       {

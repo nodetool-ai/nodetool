@@ -6,7 +6,7 @@
   "name": "Depth Controlnet in Comfy",
   "description": "",
   "thumbnail": "",
-  "thumbnail_url": "/examples/depth_controlnet.png",
+  "thumbnail_url": "/examples/depth_controlnet.jpg",
   "graph": {
     "edges": [
       {
@@ -175,7 +175,7 @@
         "type": "comfy.image.LoadImage",
         "data": {
           "image": {
-            "uri": "https://comfyanonymous.github.io/ComfyUI_examples/controlnet/shark_depthmap.png",
+            "uri": "https://comfyanonymous.github.io/ComfyUI_examples/controlnet/shark_depthmap.jpg",
             "type": "image"
           }
         },

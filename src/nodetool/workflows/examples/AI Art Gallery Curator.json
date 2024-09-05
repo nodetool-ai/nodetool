@@ -6,7 +6,7 @@
   "name": "AI Art Gallery Curator",
   "description": "Create an AI-curated art gallery based on famous art movements",
   "thumbnail": "",
-  "thumbnail_url": "/examples/ai_art_gallery.png",
+  "thumbnail_url": "/examples/ai_art_gallery.jpg",
   "graph": {
     "nodes": [
       {

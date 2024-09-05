@@ -2,14 +2,14 @@ import { create } from "zustand";
 
 interface Download {
   status:
-  | "pending"
-  | "idle"
-  | "running"
-  | "completed"
-  | "cancelled"
-  | "error"
-  | "start"
-  | "progress";
+    | "pending"
+    | "idle"
+    | "running"
+    | "completed"
+    | "cancelled"
+    | "error"
+    | "start"
+    | "progress";
   repoId: string;
   downloadedBytes: number;
   totalBytes: number;
@@ -123,8 +123,8 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
 
   startDownload: async (
     repoId: string,
-    allowPatterns: string[] | null,
-    ignorePatterns: string[] | null
+    allowPatterns?: string[] | null,
+    ignorePatterns?: string[] | null
   ) => {
     const ws = await get().connectWebSocket();
     get().addDownload(repoId);
