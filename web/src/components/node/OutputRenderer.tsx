@@ -5,7 +5,6 @@ import { Asset, DataframeRef, Message, Tensor } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
-import { useState } from "react";
 import ThreadMessageList from "./ThreadMessageList";
 import { Button, ButtonGroup, Container } from "@mui/material";
 import { useClipboard } from "../../hooks/browser/useClipboard";
@@ -14,14 +13,13 @@ import ListTable from "./DataTable/ListTable";
 import DictTable from "./DataTable/DictTable";
 import TaskTable from "./DataTable/TaskTable";
 import ImageView from "./ImageView";
-import AssetGrid from "../assets/AssetGrid";
 import AssetGridContent from "../assets/AssetGridContent";
 import { uint8ArrayToDataUri } from "../../utils/binary";
 
-interface SortedAssetsByType {
-  assetsByType: Record<string, Asset[]>;
-  totalCount: number;
-}
+// interface SortedAssetsByType {
+//   assetsByType: Record<string, Asset[]>;
+//   totalCount: number;
+// }
 
 export type OutputRendererProps = {
   value: any;
@@ -67,12 +65,8 @@ function generateAssetGridContent(value: any) {
     } as Asset;
   });
 
-  return (
-    <AssetGridContent assets={assets} />
-  );
+  return <AssetGridContent assets={assets} />;
 }
-
-
 
 const styles = (theme: any) =>
   css({
@@ -157,7 +151,6 @@ const typeFor = (value: any): string => {
 };
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
-  const [openViewer, setOpenViewer] = useState(false);
   const { writeClipboard } = useClipboard();
   const type = typeFor(value);
 
@@ -189,8 +182,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   switch (type) {
     case "image":
       if (Array.isArray(value.data)) {
-        console.log("value", value.data);
-
         return value.data.map((v: any, i: number) => (
           <ImageView key={i} source={v} />
         ));
@@ -258,10 +249,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               return "float";
             }
             return "object";
-          }
+          };
           const df = {
             data: value.map((v: any) => Object.values(v)),
-            columns: Object.entries(value[0]).map(i => {
+            columns: Object.entries(value[0]).map((i) => {
               return { name: i[0], data_type: columnType(i[1]) };
             })
           };
