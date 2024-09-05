@@ -2,6 +2,7 @@ import React from "react";
 import { Typography, Box, Button, CircularProgress } from "@mui/material";
 import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
 import { keyframes } from "@emotion/react";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 const pulse = keyframes`
   0% {
@@ -59,17 +60,17 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
         </Box>
       )}
       {download.status === "completed" && (
-        <Typography variant="body2" color="success">
+        <Typography variant="body2" color={ThemeNodetool.palette.c_success}>
           Download completed
         </Typography>
       )}
       {download.status === "cancelled" && (
-        <Typography variant="body2" color="error">
+        <Typography variant="body2" color={ThemeNodetool.palette.c_error}>
           Download cancelled
         </Typography>
       )}
       {download.status === "error" && (
-        <Typography variant="body2" color="error">
+        <Typography variant="body2" color={ThemeNodetool.palette.c_error}>
           Download error
         </Typography>
       )}
@@ -119,10 +120,10 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           )}
           <Button
             onClick={() => cancelDownload(name)}
-            variant="outlined"
+            variant="contained"
             color="secondary"
             size="small"
-            style={{ marginTop: "1em" }}
+            style={{ padding: "1em", marginTop: "1em" }}
           >
             Cancel
           </Button>

@@ -129,7 +129,7 @@
 
 ul.multi-outputs {
   position: relative;
-  padding: .75em 0 0 1em;
+  padding: 1.5em 0 0 .5em;
   border-top: 1px solid var(--c_gray2);
   background-color: var(--c_gray1);
   margin: .5em 0 0;
@@ -137,7 +137,7 @@ ul.multi-outputs {
 }
 ul.multi-outputs li {
   position: relative;
-  padding: 0 1em .75em 0;
+  padding: 0 .75em .75em 0;
   color: var(--c_gray5);
   text-transform: uppercase;
   text-align: right;

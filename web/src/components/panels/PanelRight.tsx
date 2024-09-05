@@ -3,15 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { useState } from "react";
 import AssetGrid from "../assets/AssetGrid";
-import {
-  IconButton,
-  Box,
-  Tooltip,
-  Drawer,
-  Tabs,
-  Tab,
-  Button
-} from "@mui/material";
+import { IconButton, Box, Tooltip, Drawer, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
@@ -19,11 +11,6 @@ import Inspector from "../Inspector";
 // hooks
 import { useHotkeys } from "react-hotkeys-hook";
 import WorkflowForm from "../workflows/WorkflowForm";
-import HuggingFaceModelList from "../hugging_face/HuggingFaceModelList";
-import { isProduction } from "../../stores/ApiClient";
-import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
-import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
-import HuggingFaceModelSearch from "../hugging_face/HuggingFaceModelSearch";
 // import AssetRenameConfirmation from "../assets/AssetRenameConfirmation";
 // import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
 // import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
@@ -47,17 +34,6 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray6
     }
   });
-
-function HuggingFacePanel() {
-  const { openDialog } = useHuggingFaceStore();
-  return (
-    <Box className="huggingface-panel">
-      <HuggingFaceModelSearch />
-      <Button onClick={openDialog}>Download Models</Button>
-      <HuggingFaceModelList />
-    </Box>
-  );
-}
 
 function PanelRight() {
   const {
@@ -126,28 +102,30 @@ function PanelRight() {
         anchor="left"
         open={true}
       >
-        <Tabs
-          className="panel-tabs"
-          value={tabIndex}
-          onChange={handleTabChange}
-          aria-label="Panel tabs"
-        >
-          <Tab label="Assets" />
-          <Tab label="Inspector" />
-          <Tab label="Workflow" />
-          {!isProduction && <Tab label="Models" />}
-        </Tabs>
-        {tabIndex === 0 && (
-          <Box
-            className="assets-container"
-            sx={{ width: "100%", height: "100%" }}
-          >
-            <AssetGrid maxItemSize={5} />
-          </Box>
+        {panelSize > 40 && (
+          <>
+            <Tabs
+              className="panel-tabs"
+              value={tabIndex}
+              onChange={handleTabChange}
+              aria-label="Panel tabs"
+            >
+              <Tab label="Assets" />
+              <Tab label="Inspector" />
+              <Tab label="Workflow" />
+            </Tabs>
+            {tabIndex === 0 && (
+              <Box
+                className="assets-container"
+                sx={{ width: "100%", height: "100%" }}
+              >
+                <AssetGrid maxItemSize={5} />
+              </Box>
+            )}
+            {tabIndex === 1 && <Inspector />}
+            {tabIndex === 2 && <WorkflowForm />}
+          </>
         )}
-        {tabIndex === 1 && <Inspector />}
-        {tabIndex === 2 && <WorkflowForm />}
-        {tabIndex === 3 && <HuggingFacePanel />}
       </Drawer>
     </div>
   );

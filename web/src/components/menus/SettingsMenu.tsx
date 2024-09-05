@@ -25,6 +25,7 @@ import CloseButton from "../buttons/CloseButton";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isProduction } from "../../stores/ApiClient";
 import RemoteSettingsMenu from "./RemoteSettingsMenu";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 const styles = (theme: any) =>
   css({
@@ -99,8 +100,8 @@ const styles = (theme: any) =>
         width: "100%"
       },
       ".MuiInput-root": {
-        minWidth: "240px",
-        width: "200px",
+        minWidth: "260px",
+        width: "100%",
         padding: "0.2em 0.5em"
       },
       ".MuiFormControl-root": {
@@ -136,6 +137,17 @@ const styles = (theme: any) =>
         lineHeight: "1.25em",
         margin: "0.25em 0 0",
         listStyleType: "square"
+      },
+      ".folder-path": {
+        flexDirection: "column",
+        gap: ".5em "
+      },
+      ".folder-path .MuiFormControl-root": {
+        width: "calc(100% - 2em)"
+      },
+      ".folder-path p": {
+        fontSize: ".8em",
+        padding: "0 0 0 .5em"
       }
     },
     h2: {
@@ -172,20 +184,26 @@ function SettingsMenu() {
   } = useSettingsStore();
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
     setMenuOpen(!isMenuOpen);
   };
-
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const handleClose = () => {
     setMenuOpen(false);
   };
 
   const id = isMenuOpen ? "docs" : undefined;
 
-  // Add a function to copy the auth token to clipboard
   const copyAuthToken = () => {
     if (user && user.auth_token) {
       navigator.clipboard.writeText(user.auth_token);
-      // Optionally, you can add a notification here to inform the user that the token has been copied
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "Nodetool Auth Token copied to Clipboard!"
+      });
     }
   };
   return (

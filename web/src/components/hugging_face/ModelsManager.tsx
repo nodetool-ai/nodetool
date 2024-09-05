@@ -10,6 +10,18 @@ const styles = (theme: any) =>
   css({
     "&.models-manager": {
       display: "flex",
+      gap: "1em",
+      padding: "1em"
+    },
+    ".download-models-section": {
+      display: "flex",
+      width: "70%",
+      flexDirection: "column",
+      gap: "1em",
+      padding: "1em"
+    },
+    ".existing-models-section": {
+      display: "flex",
       flexDirection: "column",
       gap: "1em",
       padding: "1em"
@@ -32,14 +44,18 @@ const styles = (theme: any) =>
 const ModelsManager: React.FC = () => {
   return (
     <div className="models-manager" css={styles}>
-      <div className="models-search">
-        <HuggingFaceModelSearch />
+      <div className="download-models-section">
+        <div className="models-search">
+          <HuggingFaceModelSearch />
+        </div>
+        <div className="models-download-dialog">
+          <HuggingFaceDownloadDialog />
+        </div>
       </div>
-      <div className="models-download-dialog">
-        <HuggingFaceDownloadDialog />
-      </div>
-      <div className="models-list">
-        <HuggingFaceModelList />
+      <div className="existing-models-section">
+        <div className="models-list">
+          <HuggingFaceModelList />
+        </div>
       </div>
     </div>
   );
