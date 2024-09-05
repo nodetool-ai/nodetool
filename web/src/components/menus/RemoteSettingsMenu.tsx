@@ -26,9 +26,12 @@ const styles = (theme: any) =>
     ".description a:hover": {
       color: theme.palette.c_gray6
     },
+    "& input": {
+      fontSize: theme.fontSizeSmaller
+    },
     ".secrets": {
       color: theme.palette.c_warning,
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeSmaller,
       padding: "0 0 0 .5em",
       marginBottom: "1em"
     },

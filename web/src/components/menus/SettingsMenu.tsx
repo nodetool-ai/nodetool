@@ -99,8 +99,8 @@ const styles = (theme: any) =>
         width: "100%"
       },
       ".MuiInput-root": {
-        minWidth: "240px",
-        width: "200px",
+        minWidth: "260px",
+        width: "100%",
         padding: "0.2em 0.5em"
       },
       ".MuiFormControl-root": {
