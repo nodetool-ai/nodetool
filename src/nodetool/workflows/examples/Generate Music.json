@@ -6,7 +6,7 @@
   "name": "Generate Music",
   "description": "Generate 3 musical ideas and generate audio for each idea.",
   "thumbnail": "",
-  "thumbnail_url": "/examples/generate_music.png",
+  "thumbnail_url": "/examples/generate_music.jpg",
   "graph": {
     "edges": [
       {

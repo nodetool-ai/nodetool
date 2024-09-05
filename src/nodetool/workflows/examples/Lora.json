@@ -6,7 +6,7 @@
   "name": "LoRA in Comfy",
   "description": "Stable Diffusion with LoRA",
   "thumbnail": "",
-  "thumbnail_url": "/examples/lora.png",
+  "thumbnail_url": "/examples/lora.jpg",
   "graph": {
     "edges": [
       {

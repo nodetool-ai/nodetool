@@ -6,7 +6,7 @@
   "name": "Comfy Upscale",
   "description": "How to upscale an image using Comfy nodes",
   "thumbnail": "",
-  "thumbnail_url": "/examples/upscale.png",
+  "thumbnail_url": "/examples/upscale.jpg",
   "graph": {
     "edges": [
       {

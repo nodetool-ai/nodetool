@@ -6,7 +6,7 @@
   "name": "Remove Silence and Transcribe Speech",
   "description": "Remove silence from audio files.",
   "thumbnail": "",
-  "thumbnail_url": "/examples/remove_silence.png",
+  "thumbnail_url": "/examples/remove_silence.jpg",
   "graph": {
     "nodes": [
       {

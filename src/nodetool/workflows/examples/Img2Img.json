@@ -6,7 +6,7 @@
   "name": "Image to Image in Comfy",
   "description": "Learn how to convert an image to another image using Comfy nodes",
   "thumbnail": "",
-  "thumbnail_url": "/examples/image_to_image.png",
+  "thumbnail_url": "/examples/image_to_image.jpg",
   "graph": {
     "edges": [
       {
@@ -165,7 +165,7 @@
         "type": "comfy.image.LoadImage",
         "data": {
           "image": {
-            "uri": "https://app.nodetool.ai/examples/phantasy_animals.png",
+            "uri": "https://app.nodetool.ai/examples/phantasy_animals.jpg",
             "type": "image"
           }
         },

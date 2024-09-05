@@ -6,7 +6,7 @@
   "name": "Inpainting in Comfy",
   "description": "Replace the face of an image with a new face",
   "thumbnail": "",
-  "thumbnail_url": "/examples/inpainting.png",
+  "thumbnail_url": "/examples/inpainting.jpg",
   "graph": {
     "edges": [
       {
@@ -240,7 +240,7 @@
         "type": "comfy.image.LoadImage",
         "data": {
           "image": {
-            "uri": "http://app.nodetool.ai/examples/inpainting_input.png",
+            "uri": "http://app.nodetool.ai/examples/inpainting_input.jpg",
             "type": "image"
           }
         },

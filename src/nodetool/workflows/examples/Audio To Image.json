@@ -6,7 +6,7 @@
   "name": "Audio To Image",
   "description": "Convert any audio speech into an image",
   "thumbnail": "",
-  "thumbnail_url": "/examples/audio_to_image.png",
+  "thumbnail_url": "/examples/audio_to_image.jpg",
   "graph": {
     "edges": [
       {

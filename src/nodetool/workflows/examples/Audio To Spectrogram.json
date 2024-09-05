@@ -6,7 +6,7 @@
   "name": "Audio To Spectrogram",
   "description": "Ceate a spectrogram from an audio file and use creative upscaling, then hang it on your wall.",
   "thumbnail": "",
-  "thumbnail_url": "/examples/audio_to_spectrogram.png",
+  "thumbnail_url": "/examples/audio_to_spectrogram.jpg",
   "graph": {
     "nodes": [
       {

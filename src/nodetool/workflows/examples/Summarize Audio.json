@@ -6,7 +6,7 @@
   "name": "Summarize Audio",
   "description": "Transcribe an audio file and summarize the text.",
   "thumbnail": "",
-  "thumbnail_url": "/examples/summarize_audio.png",
+  "thumbnail_url": "/examples/summarize_audio.jpg",
   "graph": {
     "edges": [
       {

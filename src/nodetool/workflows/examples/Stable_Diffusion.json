@@ -6,7 +6,7 @@
   "name": "Stable Diffusion in Comfy",
   "description": "Stable Diffusion Image Generation",
   "thumbnail": "",
-  "thumbnail_url": "/examples/stable_diffusion.png",
+  "thumbnail_url": "/examples/stable_diffusion.jpg",
   "graph": {
     "edges": [
       {
