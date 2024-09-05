@@ -137,6 +137,17 @@ const styles = (theme: any) =>
         lineHeight: "1.25em",
         margin: "0.25em 0 0",
         listStyleType: "square"
+      },
+      ".folder-path": {
+        flexDirection: "column",
+        gap: ".5em "
+      },
+      ".folder-path .MuiFormControl-root": {
+        width: "calc(100% - 2em)"
+      },
+      ".folder-path p": {
+        fontSize: ".8em",
+        padding: "0 0 0 .5em"
       }
     },
     h2: {

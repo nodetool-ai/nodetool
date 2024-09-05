@@ -8,12 +8,11 @@ import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 
 const styles = (theme: any) =>
   css({
-    "&.remote-settings": {
-      display: "flex",
-      flexDirection: "column",
-      width: "100%",
-      gap: ".5em"
-    },
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    gap: ".5em",
+
     ".description": {
       display: "block",
       marginBottom: "1em"
@@ -78,12 +77,12 @@ const RemoteSettings = () => {
 
   return (
     <>
-      {isLoading && <Typography>Loading...</Typography>}
+      {isLoading && <Typography>Loading External Services...</Typography>}
       {isSuccess ? (
         <div className="remote-settings" css={styles}>
           <Typography variant="h3">External Services</Typography>
 
-          <div className="settings-item">
+          <div className="settings-item folder-path">
             <TextField
               id="comfy-folder-input"
               label="Comfy Folder"
