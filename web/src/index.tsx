@@ -41,7 +41,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { initSentry } from "./utils/sentry";
 import { RouteObject } from "@sentry/react/types/types";
 import useAuth from "./stores/useAuth";
-import { isProduction, pingWorker } from "./stores/ApiClient";
+import { isProduction, pingWorker, useRemoteAuth } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
@@ -62,7 +62,9 @@ useModelStore.getState().setQueryClient(queryClient);
 
 const NavigateToStart = () => {
   const { state } = useAuth();
-  if (state === "init") {
+  if (useRemoteAuth === false) {
+    return <Navigate to={"/editor/start"} replace={true} />;
+  } else if (state === "init") {
     return <div>Loading...</div>;
   } else if (state === "logged_in") {
     return <Navigate to={"/editor/start"} replace={true} />;
