@@ -3,8 +3,11 @@
   visibility: hidden;
 }
 
+a {
+  color: var(--c_link);
+}
 a:visited {
-  color: var(--c_hl2);
+  color: var(--c_link_visited);
 }
 
 hr {
