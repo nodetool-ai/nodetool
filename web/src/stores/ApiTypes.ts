@@ -51,3 +51,13 @@ export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
 export type TypeName = string;
 export type WorkflowAttributes = Omit<Workflow, "graph">;
 export type MessageContent = MessageTextContent | MessageImageContent;
+
+export interface UnifiedModel {
+  id: string;
+  type: string;
+  name: string;
+  repo_id?: string;
+  allow_patterns?: string[];
+  ignore_patterns?: string[];
+  description?: string;
+}

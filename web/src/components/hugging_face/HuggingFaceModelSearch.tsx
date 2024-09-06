@@ -11,7 +11,7 @@ import {
   Box
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 interface HuggingFaceModelSearchProps {}
 
@@ -71,7 +71,7 @@ const styles = (theme: any) =>
 const HuggingFaceModelSearch: React.FC<HuggingFaceModelSearchProps> = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const { startDownload, openDialog } = useHuggingFaceStore();
+  const { startDownload, openDialog } = useModelDownloadStore();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["huggingface-models", searchQuery],
@@ -81,7 +81,7 @@ const HuggingFaceModelSearch: React.FC<HuggingFaceModelSearchProps> = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedModel) {
-      startDownload(selectedModel, null, null);
+      startDownload(selectedModel, "hf.model");
       openDialog();
     }
   };

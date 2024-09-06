@@ -1,6 +1,6 @@
 import React from "react";
 import { Typography, Box, Button, CircularProgress } from "@mui/material";
-import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
@@ -26,9 +26,11 @@ const moveRight = keyframes`
 `;
 
 export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
-  const downloads = useHuggingFaceStore((state) => state.downloads);
-  const cancelDownload = useHuggingFaceStore((state) => state.cancelDownload);
+  const downloads = useModelDownloadStore((state) => state.downloads);
+  const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const download = downloads[name];
+
+  console.log("download", download);
 
   if (!download) return null;
 

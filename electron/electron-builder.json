@@ -12,6 +12,7 @@
         "python_env",
         "src",
         "web",
+        "ollama",	
         "ffmpeg.exe",
         "ffprobe.exe",
         "ffmpeg",

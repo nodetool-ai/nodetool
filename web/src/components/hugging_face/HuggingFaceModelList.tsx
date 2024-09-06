@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { Box, Button, CircularProgress, Grid, Typography } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
-import ModelCard from "./ModelCard";
+import HuggingFaceModelCard from "./HuggingFaceModelCard";
 import {
   Dialog,
   DialogActions,
@@ -135,7 +135,7 @@ const HuggingFaceModelList: React.FC = () => {
           <Grid item xs={12} sm={12} md={6} lg={4} xl={3} key={model.repo_id}>
             {model.repo_id !== "" && (
               <>
-                <ModelCard
+                <HuggingFaceModelCard
                   repoId={model.repo_id}
                   modelSize={modelSize(model)}
                   handleDelete={handleDeleteClick}

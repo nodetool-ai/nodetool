@@ -1,6 +1,6 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
-import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
+import { Box } from "@mui/material";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
 
 const pulse = keyframes`
@@ -25,7 +25,7 @@ const moveRight = keyframes`
 `;
 
 const OverallDownloadProgress: React.FC = () => {
-  const { downloads, openDialog } = useHuggingFaceStore((state) => ({
+  const { downloads, openDialog } = useModelDownloadStore((state) => ({
     downloads: state.downloads,
     openDialog: state.openDialog
   }));

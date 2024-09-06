@@ -48,6 +48,8 @@ async function startServer() {
   const resourcesPath = process.resourcesPath;
   const env = Object.create(process.env);
   let webDir;
+  
+  console.log("resourcesPath", resourcesPath);
 
   mainWindow.webContents.send("boot-message", "Initializing NodeTool");
 
@@ -95,6 +97,19 @@ async function startServer() {
       [];
       mainWindow.webContents.send("server-log", data.toString());
     }
+  });
+  
+  ollamaProcess = spawn(
+    path.join(resourcesPath, "ollama", "ollama.exe"),
+    ["serve"],
+  );
+  
+  ollamaProcess.stdout.on("data", (data) => {
+    console.log(data.toString());
+  });
+
+  ollamaProcess.stderr.on("data", (data) => {
+    console.log(data.toString());
   });
 }
 

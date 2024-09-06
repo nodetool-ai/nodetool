@@ -7,16 +7,14 @@ import {
   DialogTitle,
   DialogContent,
   Grid,
-  DialogContentText,
   Tooltip,
   IconButton,
   Typography
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { HuggingFaceModel } from "../../stores/ApiTypes";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { UnifiedModel } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
-import ModelCard from "./ModelCard";
+import HuggingFaceModelCard from "./HuggingFaceModelCard";
 
 const styles = css({
   ".recommended-models-grid": {
@@ -29,9 +27,10 @@ const styles = css({
 interface RecommendedModelsDialogProps {
   open: boolean;
   onClose: () => void;
-  recommendedModels: HuggingFaceModel[];
+  recommendedModels: UnifiedModel[];
   startDownload: (
     repoId: string,
+    modelType: string,
     allowPatterns: string[] | null,
     ignorePatterns: string[] | null
   ) => void;
@@ -76,26 +75,26 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
         <>
           <Grid container spacing={3} className="recommended-models-grid">
             {recommendedModels.map((model) => (
-              <Grid item xs={12} sm={6} md={4} key={model.repo_id}>
-                {model.repo_id && (
-                  <ModelCard
-                    repoId={model.repo_id}
-                    onDownload={() => {
-                      startDownload(
-                        model.repo_id || "",
-                        model.allow_patterns ?? null,
-                        model.ignore_patterns ?? null
-                      );
-                      openDialog();
-                      onClose();
-                    }}
-                  />
-                )}
+              <Grid item xs={12} sm={6} md={4} key={model.id}>
+                <HuggingFaceModelCard
+                  repoId={model.repo_id ?? ""}
+                  onDownload={() => {
+                    startDownload(
+                      model.id,
+                      model.type,
+                      model.allow_patterns ?? null,
+                      model.ignore_patterns ?? null
+                    );
+                    openDialog();
+                    onClose();
+                  }}
+                />
               </Grid>
             ))}
           </Grid>
           <Typography variant="body1" sx={{ marginTop: "1em" }}>
-            Models will be downloaded to your local HuggingFace .cache folder.
+            Models will be downloaded to your local cache folder in the standard
+            location for Huggingface and Ollama.
           </Typography>
         </>
       </DialogContent>
