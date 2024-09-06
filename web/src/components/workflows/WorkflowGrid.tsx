@@ -373,7 +373,6 @@ const WorkflowGrid = () => {
       workflowsToDelete = [workflow];
     }
     setWorkflowsToDelete(workflowsToDelete);
-    setSelectedWorkflows([]);
     setIsDeleteDialogOpen(true);
   };
 
@@ -385,7 +384,6 @@ const WorkflowGrid = () => {
         setIsDeleteDialogOpen(false);
         setWorkflowsToDelete([]);
         setSelectedWorkflows([]);
-
         queryClient.invalidateQueries({ queryKey: ["workflows"] });
       })
       .catch((error) => {
