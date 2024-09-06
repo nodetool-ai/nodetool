@@ -197,7 +197,6 @@ export default memo(
     return (
       <Container
         className={className}
-        // css={styles}
         style={{
           display: parentIsCollapsed ? "none" : "flex",
           minHeight: `${minHeight}px`,
