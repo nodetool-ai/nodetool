@@ -53,6 +53,8 @@ declare module "@mui/material/styles" {
     c_hl1_1?: string;
     c_hl2?: string;
     c_selection?: string;
+    c_link?: string;
+    c_link_visited?: string;
     c_input?: string;
     c_output?: string;
 
@@ -83,7 +85,7 @@ const ThemeNodes: Theme = createTheme({
     c_black: "#000000",
     c_white: "#ffffff",
     c_gray0: "#0E0E0E",
-    c_gray1: "#282828",
+    c_gray1: "#242424",
     c_gray2: "#444444",
     c_gray3: "#6d6d6d",
     c_gray4: "#959595",
@@ -97,6 +99,8 @@ const ThemeNodes: Theme = createTheme({
     c_selection: "#8EACA777",
     c_input: "#374f4f",
     c_output: "#493f4d",
+    c_link: "#d8f85f",
+    c_link_visited: "#fffeea",
 
     c_success: "#50fa7b",
     c_attention: "#e35bff",
@@ -112,31 +116,31 @@ const ThemeNodes: Theme = createTheme({
     mode: "dark",
     primary: {
       main: "#424242",
-      contrastText: "#FFFFFF",
+      contrastText: "#FFFFFF"
     },
     secondary: {
       main: "#757575",
-      contrastText: "#FFFFFF",
+      contrastText: "#FFFFFF"
     },
     tertiary: {
       light: "#a7d0c3",
       main: "#68a89a",
       dark: "#387c6d",
-      contrastText: "#fff",
+      contrastText: "#fff"
     },
     background: {
       default: "#202020",
-      paper: "#252525",
-    },
+      paper: "#252525"
+    }
   } as any,
   typography: {
     fontFamily: "'Inter', sans-serif",
-    fontSize: 15,
+    fontSize: 15
   },
   spacing: 4,
   shape: {
-    borderRadius: 4,
-  },
+    borderRadius: 4
+  }
 });
 
 ThemeNodes.components = {
@@ -144,7 +148,7 @@ ThemeNodes.components = {
   MuiButton: {
     styleOverrides: {
       root: {
-        minWidth: 36,
+        minWidth: 36
       },
       sizeSmall: {
         margin: "2px",
@@ -155,19 +159,19 @@ ThemeNodes.components = {
         backgroundColor: "#333",
 
         "&:hover": {
-          backgroundColor: ThemeNodes.palette.c_gray3,
-        },
-      },
+          backgroundColor: ThemeNodes.palette.c_gray3
+        }
+      }
     },
     variants: [
       {
         props: { variant: "medium" },
         style: {
           padding: "0.2em 0.4em",
-          lineHeight: "1.1em",
-        },
-      },
-    ],
+          lineHeight: "1.1em"
+        }
+      }
+    ]
   },
 
   MuiTypography: {
@@ -176,28 +180,28 @@ ThemeNodes.components = {
         display: "block",
         fontSize: ".55em",
         fontFamily: ThemeNodes.fontFamily1,
-        marginTop: "-0.5em",
+        marginTop: "-0.5em"
       },
       h1: {
         fontSize: "2em",
         marginTop: ThemeNodes.spacing(4),
         marginBottom: ThemeNodes.spacing(2),
         fontFamily: ThemeNodes.fontFamily2,
-        wordSpacing: "-3px",
+        wordSpacing: "-3px"
       },
       h2: {
         fontSize: "1.75em",
         marginTop: ThemeNodes.spacing(4),
         marginBottom: ThemeNodes.spacing(2),
         fontFamily: ThemeNodes.fontFamily2,
-        wordSpacing: "-3px",
+        wordSpacing: "-3px"
       },
       h3: {
         fontSize: "1.5em",
         marginTop: ThemeNodes.spacing(4),
         marginBottom: ThemeNodes.spacing(2),
         fontFamily: ThemeNodes.fontFamily2,
-        wordSpacing: "-3px",
+        wordSpacing: "-3px"
       },
       h4: {
         fontSize: "1.25em",
@@ -206,7 +210,7 @@ ThemeNodes.components = {
         textTransform: "uppercase",
         fontWeight: 300,
         fontFamily: ThemeNodes.fontFamily2,
-        wordSpacing: "-3px",
+        wordSpacing: "-3px"
       },
       h5: {
         fontSize: "0.8em",
@@ -215,7 +219,7 @@ ThemeNodes.components = {
         textTransform: "uppercase",
         fontWeight: 600,
         fontFamily: ThemeNodes.fontFamily2,
-        wordSpacing: "-3px",
+        wordSpacing: "-3px"
       },
       h6: {
         fontSize: "0.8em",
@@ -223,7 +227,7 @@ ThemeNodes.components = {
         marginBottom: ThemeNodes.spacing(2),
         fontFamily: ThemeNodes.fontFamily2,
         textTransform: "uppercase",
-        wordSpacing: "-3px",
+        wordSpacing: "-3px"
       },
       body1: {
         fontSize: "0.8em",
@@ -232,15 +236,15 @@ ThemeNodes.components = {
         wordSpacing: "0",
         lineHeight: 1.1,
         marginTop: ThemeNodes.spacing(0),
-        marginBottom: ThemeNodes.spacing(0),
+        marginBottom: ThemeNodes.spacing(0)
       },
       body2: {
         fontSize: "0.8em",
         lineHeight: 1.1,
         fontFamily: ThemeNodes.fontFamily2,
-        wordSpacing: "-2px",
-      },
-    },
+        wordSpacing: "-2px"
+      }
+    }
   },
 
   MuiInputBase: {
@@ -256,26 +260,26 @@ ThemeNodes.components = {
         maxWidth: "300px",
         "&::placeholder": {
           opacity: 0,
-          visibility: "hidden",
+          visibility: "hidden"
         },
         "&.MuiInput-root:hover:not(&.Mui-disabled, &.Mui-error)::before": {
-          border: "0",
-        },
+          border: "0"
+        }
       },
       inputMultiline: {
         margin: "5px 0",
         padding: "2px 8px 0px 4px !important",
         backgroundColor: "#4b4b4b",
-        resize: "vertical",
+        resize: "vertical"
       },
       input: {
         margin: ThemeNodes.spacing(0.5, 0),
         marginTop: ThemeNodes.spacing(0.5),
         padding: "0px",
         maxHeight: "40em",
-        minHeight: "1.22em",
-      },
-    },
+        minHeight: "1.22em"
+      }
+    }
   },
   // TEXT FIELD
   MuiTextField: {
@@ -291,36 +295,36 @@ ThemeNodes.components = {
         resize: "vertical",
 
         "& .MuiInput-underline:before": {
-          borderBottom: "0",
+          borderBottom: "0"
         },
         "& .MuiInput-underline:after": {
-          borderBottom: "0",
+          borderBottom: "0"
         },
         // TEXTAREA
         "& .MuiInputBase-inputMultiline": {
           fontFamily: ThemeNodes.fontFamily1,
           fontSize: ThemeNodes.fontSizeSmaller,
           lineHeight: "1.1em",
-          cursor: "auto",
+          cursor: "auto"
         },
         "& .MuiInputBase-inputMultiline.edit-value": {
-          fontFamily: ThemeNodes.fontFamily1,
+          fontFamily: ThemeNodes.fontFamily1
         },
         // hide legend
         "& .MuiOutlinedInput-notchedOutline legend": {
-          display: "none",
-        },
-      },
-    },
+          display: "none"
+        }
+      }
+    }
   },
 
   MuiLink: {
     styleOverrides: {
       root: {
         marginLeft: "0.6em !important",
-        marginRight: "0.6em !important",
-      },
-    },
+        marginRight: "0.6em !important"
+      }
+    }
   },
 
   MuiInputLabel: {
@@ -339,10 +343,10 @@ ThemeNodes.components = {
         minHeight: "1.2em",
         margin: " 0",
         "&.Mui-focused": {
-          color: ThemeNodes.palette.c_white,
-        },
-      },
-    },
+          color: ThemeNodes.palette.c_white
+        }
+      }
+    }
   },
   MuiFormControl: {
     styleOverrides: {
@@ -350,17 +354,17 @@ ThemeNodes.components = {
         margin: 0,
         display: "block",
         width: "100%",
-        fontSize: ThemeNodes.fontSizeSmall,
-      },
-    },
+        fontSize: ThemeNodes.fontSizeSmall
+      }
+    }
   },
 
   MuiFormControlLabel: {
     styleOverrides: {
       root: {
-        width: "100%",
-      },
-    },
+        width: "100%"
+      }
+    }
   },
 
   MuiButtonBase: {
@@ -368,9 +372,9 @@ ThemeNodes.components = {
       root: {
         padding: ThemeNodes.spacing(1),
         marginRight: ThemeNodes.spacing(1),
-        marginBottom: ThemeNodes.spacing(1),
-      },
-    },
+        marginBottom: ThemeNodes.spacing(1)
+      }
+    }
   },
 
   MuiSwitch: {
@@ -380,30 +384,30 @@ ThemeNodes.components = {
         padding: "0",
         width: "2.4em",
         height: "1em",
-        overflow: "visible",
+        overflow: "visible"
       },
       thumb: {
         width: "1em !important",
         height: "1em !important",
         borderRadius: "0.25em",
         margin: "0",
-        padding: "0",
+        padding: "0"
       },
       track: {
-        borderRadius: ".25em",
+        borderRadius: ".25em"
       },
       switchBase: {
         margin: "0",
         padding: "0 !important",
         color: ThemeNodes.palette.c_gray4,
         "&.Mui-checked": {
-          color: ThemeNodes.palette.c_hl1,
+          color: ThemeNodes.palette.c_hl1
         },
         "&.Mui-checked + .MuiSwitch-track": {
-          backgroundColor: ThemeNodes.palette.c_gray6,
-        },
-      },
-    },
+          backgroundColor: ThemeNodes.palette.c_gray6
+        }
+      }
+    }
   },
   MuiMenuItem: {
     styleOverrides: {
@@ -414,22 +418,22 @@ ThemeNodes.components = {
         "&:nth-of-type(odd)": {
           backgroundColor: "#363636",
           "&:hover": {
-            backgroundColor: "#444",
+            backgroundColor: "#444"
           },
           "&:selected": {
-            backgroundColor: "#333",
-          },
+            backgroundColor: "#333"
+          }
         },
         "&.Mui-hover": {
           color: ThemeNodes.palette.c_hl1_1,
-          backgroundColor: "#444",
+          backgroundColor: "#444"
         },
         "&.Mui-selected": {
           color: ThemeNodes.palette.c_hl1,
-          backgroundColor: "#333",
-        },
-      },
-    },
+          backgroundColor: "#333"
+        }
+      }
+    }
   },
   MuiCheckbox: {
     styleOverrides: {
@@ -437,10 +441,10 @@ ThemeNodes.components = {
         padding: "0px 4px",
         color: ThemeNodes.palette.text.secondary,
         "&.Mui-checked": {
-          color: ThemeNodes.palette.primary.main,
-        },
-      },
-    },
+          color: ThemeNodes.palette.primary.main
+        }
+      }
+    }
   },
   MuiSelect: {
     styleOverrides: {
@@ -451,43 +455,43 @@ ThemeNodes.components = {
         fontFamily: ThemeNodes.fontFamily1,
         fontSize: ThemeNodes.fontSizeSmaller,
         backgroundColor: ThemeNodes.palette.c_gray2,
-        margin: "0",
+        margin: "0"
       },
       icon: {
         color: ThemeNodes.palette.c_white,
         width: ".5em",
         height: "1em",
-        fontSize: "3em",
+        fontSize: "3em"
       },
       filled: {},
-      outlined: {},
-    },
+      outlined: {}
+    }
   },
   MuiRadio: {
     styleOverrides: {
       root: {
         color: ThemeNodes.palette.text.secondary,
         "&.Mui-checked": {
-          color: ThemeNodes.palette.primary.main,
-        },
-      },
-    },
+          color: ThemeNodes.palette.primary.main
+        }
+      }
+    }
   },
   MuiFab: {
     styleOverrides: {
       root: {
-        margin: ThemeNodes.spacing(4, 4),
-      },
-    },
+        margin: ThemeNodes.spacing(4, 4)
+      }
+    }
   },
   MuiSnackbar: {
     styleOverrides: {
       root: {
         fontSize: ThemeNodes.fontSizeSmall,
-        padding: "4px",
+        padding: "4px"
       },
-      anchorOriginTopRight: {},
-    },
+      anchorOriginTopRight: {}
+    }
   },
 
   MuiSnackbarContent: {
@@ -500,9 +504,9 @@ ThemeNodes.components = {
         backgroundColor: "#333",
         color: "#eee",
         cursor: "default",
-        userSelect: "text",
-      },
-    },
+        userSelect: "text"
+      }
+    }
   },
 
   MuiToggleButton: {
@@ -511,50 +515,58 @@ ThemeNodes.components = {
         fontFamily: ThemeNodes.fontFamily2,
         "&.MuiToggleButton-sizeSmall.Mui-selected": {
           color: ThemeNodes.palette.c_white,
-          backgroundColor: ThemeNodes.palette.c_gray1,
+          backgroundColor: ThemeNodes.palette.c_gray1
         },
         "&.MuiToggleButton-sizeSmall": {
           fontSize: "12px",
           color: ThemeNodes.palette.c_gray4,
           padding: "0 4px",
           margin: 0,
-          border: 0,
-        },
-      },
-    },
+          border: 0
+        }
+      }
+    }
   },
   MuiBackdrop: {
     styleOverrides: {
       root: {
-        backgroundColor: "rgba(25, 25, 25, 0.1)",
-      },
-    },
+        backgroundColor: "rgba(25, 25, 25, 0.1)"
+      }
+    }
   },
   MuiToggleButtonGroup: {
     styleOverrides: {
       root: {
-        marginLeft: "10px",
-      },
-    },
+        marginLeft: "10px"
+      }
+    }
   },
   MuiPopover: {
     styleOverrides: {
-      root: { zIndex: 10000 },
-    },
+      root: { zIndex: 10000 }
+    }
   },
   MuiTabs: {
     styleOverrides: {
       flexContainer: {
-        alignItems: "flex-start",
-      },
-    },
+        alignItems: "flex-start"
+      }
+    }
   },
   MuiTab: {
     styleOverrides: {
       root: {
-        alignItems: "flex-start",
-      },
-    },
+        alignItems: "flex-start"
+      }
+    }
   },
+  MuiDialogTitle: {
+    styleOverrides: {
+      root: {
+        fontFamily: ThemeNodes.fontFamily2,
+        fontSize: ThemeNodes.fontSizeBig
+      }
+    }
+  }
 };
 export default ThemeNodes;

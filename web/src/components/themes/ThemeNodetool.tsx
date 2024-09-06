@@ -72,6 +72,8 @@ declare module "@mui/material/styles" {
     c_success?: string;
     c_warn?: string;
     c_warning?: string;
+    c_link?: string;
+    c_link_visited?: string;
     /* Scrollbar*/
     c_scroll_bg?: string;
     c_scroll_hover?: string;
@@ -124,6 +126,8 @@ const ThemeNodetool: Theme = createTheme({
     c_success: "#50FA7B",
     c_warn: "#FFB86C",
     c_warning: "#FFB86C",
+    c_link: "#d8f85f",
+    c_link_visited: "#e9ffc0",
     /* Scrollbar*/
     c_scroll_bg: "#484848",
     c_scroll_hover: "#383838",
@@ -173,7 +177,7 @@ ThemeNodetool.components = {
       },
       h2: {
         cursor: "default",
-        fontSize: "1.3em",
+        fontSize: "1.5em",
         marginTop: ThemeNodetool.spacing(4),
         marginBottom: ThemeNodetool.spacing(2)
       },
@@ -281,6 +285,14 @@ ThemeNodetool.components = {
         height: "50px",
         display: "flex",
         justifyContent: "space-between"
+      }
+    }
+  },
+  MuiDialogTitle: {
+    styleOverrides: {
+      root: {
+        fontFamily: ThemeNodetool.fontFamily2,
+        fontSize: ThemeNodetool.fontSizeBig
       }
     }
   }
