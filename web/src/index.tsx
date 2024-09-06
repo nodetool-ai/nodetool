@@ -61,10 +61,14 @@ useWorkflowStore.getState().setQueryClient(queryClient);
 useModelStore.getState().setQueryClient(queryClient);
 
 const NavigateToStart = () => {
-  const { getUser } = useAuth();
-  if (getUser()) {
+  const { state } = useAuth();
+  if (state === "init") {
+    return <div>Loading...</div>;
+  } else if (state === "logged_in") {
     return <Navigate to={"/editor/start"} replace={true} />;
-  } else {
+  } else if (state === "logged_out") {
+    return <Navigate to={"/login"} replace={true} />;
+  } else if (state === "error") {
     return <Navigate to={"/login"} replace={true} />;
   }
 };
