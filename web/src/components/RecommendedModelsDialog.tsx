@@ -50,6 +50,17 @@ const styles = (theme: any) =>
     ".model-name": {
       marginTop: "0"
     },
+    ".pipeline-tag": {
+      fontFamily: theme.fontFamily2,
+      width: "fit-content",
+      color: theme.palette.c_gray0,
+      backgroundColor: theme.palette.c_gray5,
+      padding: "0.2em 0.4em",
+      borderRadius: 5,
+      textTransform: "uppercase",
+      fontWeight: "bold",
+      fontSize: theme.fontSizeSmall
+    },
     ".tag": {
       fontFamily: theme.fontFamily2,
       color: theme.palette.c_gray6,
@@ -191,6 +202,11 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
                       {model.cardData.base_model && (
                         <Typography variant="body2" color="text.secondary">
                           Base Model: {model.cardData.base_model || "N/A"}
+                        </Typography>
+                      )}
+                      {model.cardData.pipeline_tag && (
+                        <Typography variant="body2" className="pipeline-tag">
+                          {model.cardData.pipeline_tag || ""}
                         </Typography>
                       )}
                       {model.cardData.tags && (
