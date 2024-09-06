@@ -28,11 +28,12 @@ const styles = (theme: any) =>
       position: "relative",
       height: "300px",
       width: "100%",
+      marginTop: ".5em",
       maxWidth: "370px",
       display: "flex",
       flexDirection: "column",
       boxShadow:
-        "3px 3px 6px rgba(0, 0, 0, 0.35), -1px -1px 3px rgba(200, 200, 100, 0.1)",
+        "3px 3px 6px rgba(0, 0, 0, 0.35), -1px -2px 3px rgba(200, 200, 100, 0.1)",
       border: "4px solid rgba(0, 0, 0, .2)",
       borderRadius: "10px",
       outline: "2px solid #111",
@@ -43,7 +44,7 @@ const styles = (theme: any) =>
     },
     "&.model-card:hover": {
       boxShadow:
-        "2px 2px 3px rgba(0, 0, 0, 0.2), -1px -1px 2px rgba(180, 200, 200, 0.35)",
+        "2px 2px 3px rgba(0, 0, 0, 0.2), -1px -2px 2px rgba(180, 200, 200, 0.35)",
       background: "linear-gradient(55deg, #333, #393939 65%, #393939 75%, #333)"
     },
     "&.missing": {
