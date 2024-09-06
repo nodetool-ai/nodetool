@@ -1,15 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
+import { Box, Button, CircularProgress, Grid, Typography } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
-import { HuggingFaceModel } from "../../stores/ApiTypes";
-import { fetchModelInfo } from "../../utils/huggingFaceUtils";
-import ThemeNodetool from "../themes/ThemeNodetool";
-
 import ModelCard from "./ModelCard";
-import { Box, Button, CircularProgress, List, Typography } from "@mui/material";
-import DeleteButton from "../buttons/DeleteButton";
 import {
   Dialog,
   DialogActions,
@@ -17,6 +13,7 @@ import {
   DialogContentText,
   DialogTitle
 } from "@mui/material";
+import { devError } from "../../utils/DevLog";
 
 const modelSize = (model: any) =>
   (model.size_on_disk / 1024 / 1024).toFixed(2).toString() + " MB";
@@ -24,8 +21,8 @@ const modelSize = (model: any) =>
 const styles = (theme: any) =>
   css({
     "&.huggingface-model-list": {
-      height: "70vh",
-      overflow: "auto",
+      height: "80vh",
+      overflowY: "auto",
       backgroundColor: theme.palette.c_gray1,
       padding: theme.spacing(2)
     },
@@ -55,11 +52,6 @@ const styles = (theme: any) =>
   });
 
 const HuggingFaceModelList: React.FC = () => {
-  const [modelsWithInfo, setModelsWithInfo] = useState<
-    (HuggingFaceModel & {
-      cardData?: string | undefined;
-    })[]
-  >([]);
   const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -76,7 +68,7 @@ const HuggingFaceModelList: React.FC = () => {
         {}
       );
       if (error) throw error;
-      console.log("models", data);
+      devError("HuggingfaceModelList: models", data);
       return data;
     }
   });
@@ -120,25 +112,6 @@ const HuggingFaceModelList: React.FC = () => {
     setModelToDelete(null);
   };
 
-  useEffect(() => {
-    const fetchInfo = async () => {
-      if (models) {
-        const updatedModels = await Promise.all(
-          models.map(async (model) => {
-            if (model.repo_id) {
-              const info = await fetchModelInfo(model.repo_id);
-              return { ...model, ...info };
-            }
-            return model;
-          })
-        );
-
-        setModelsWithInfo(updatedModels);
-      }
-    };
-    fetchInfo();
-  }, [models]);
-
   if (isLoading) {
     return <CircularProgress />;
   }
@@ -146,25 +119,6 @@ const HuggingFaceModelList: React.FC = () => {
   if (error) {
     return <Typography color="error"> {error.message} </Typography>;
   }
-
-  const modelList = modelsWithInfo?.map((model) => (
-    <>
-      <ModelCard key={model.repo_id} huggingfaceJson={model.cardData || ""} />
-      <DeleteButton onClick={() => handleDeleteClick(model.repo_id || "")} />
-    </>
-    // <ListItem className="model-item" key={model.repo_id}>
-    //   <ListItemText
-    //     className="model-text"
-    //     primary={model.repo_id}
-    //     secondary={modelSize(model) + ` | ${model.pipeline_tag}`}
-    //   />
-    //   {deletingModels.has(model.repo_id) ? (
-    //     <CircularProgress size={24} />
-    //   ) : (
-    //     <DeleteButton onClick={() => handleDeleteClick(model.repo_id)} />
-    //   )}
-    // </ListItem>
-  ));
 
   return (
     <Box className="huggingface-model-list" css={styles}>
@@ -176,7 +130,22 @@ const HuggingFaceModelList: React.FC = () => {
       {mutation.isSuccess && (
         <Typography color="success">Model deleted successfully</Typography>
       )}
-      <List>{modelList}</List>
+      <Grid container spacing={3}>
+        {models?.map((model) => (
+          <Grid item xs={12} sm={12} md={6} lg={4} xl={3} key={model.repo_id}>
+            {model.repo_id !== "" && (
+              <>
+                <ModelCard
+                  repoId={model.repo_id}
+                  modelSize={modelSize(model)}
+                  handleDelete={handleDeleteClick}
+                />
+              </>
+            )}
+          </Grid>
+        ))}
+      </Grid>
+
       <Dialog
         open={!!modelToDelete}
         onClose={handleCancelDelete}

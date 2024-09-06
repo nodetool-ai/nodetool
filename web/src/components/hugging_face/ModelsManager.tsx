@@ -15,7 +15,7 @@ const styles = (theme: any) =>
     },
     ".download-models-section": {
       display: "flex",
-      width: "70%",
+      width: "50%",
       flexDirection: "column",
       gap: "1em",
       padding: "1em"
@@ -34,7 +34,6 @@ const styles = (theme: any) =>
     },
 
     ".models-list": {
-      maxWidth: "600px",
       overflow: "hidden",
       backgroundColor: "transparent",
       padding: theme.spacing(2)
