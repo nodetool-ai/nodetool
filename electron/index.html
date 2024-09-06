@@ -9,7 +9,7 @@
             margin: 0;
             display: flex;
             flex-direction: column;
-            background-color: #222222;
+            background-color: #000;
             font-family: Arial, sans-serif;
         }
 
@@ -23,10 +23,11 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background-color: #333333;
+            background-color: #000;
             transition: height 0.3s ease-out;
             height: 30px;
             overflow: hidden;
+            z-index: 1000;
         }
 
         #log-container.expanded {
@@ -36,7 +37,7 @@
         #log-toggle {
             width: 100%;
             height: 30px;
-            background-color: #444444;
+            background-color: #111;
             color: #ffffff;
             border: none;
             cursor: pointer;
@@ -49,89 +50,108 @@
         #log-toggle:hover {
             background-color: #555555;
         }
-
+        
         #log {
             height: 170px;
-            overflow-y: scroll;
-            color: #ffffff;
+            overflow-y: auto;
+            color: #00ff00;
             padding: 10px;
-            font-family: monospace;
-            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            background-color: #000000;
+        }
+
+        .log-line {
+            overflow: hidden;
+            white-space: nowrap;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .log-line.last::after {
+            content: '█';
+            animation: blink 0.7s infinite;
         }
 
         #boot-message {
-            display: block;
+            display: flex;
             justify-content: center;
+            align-items: center;
             position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #000;
             color: #ffffff;
-            font-size: 24px;
-            font-family: Arial, sans-serif;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            animation: blink 3s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-
-        #progress-container {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            font-size: 36px;
+            font-family: 'Arial Black', sans-serif;
             text-align: center;
-            color: #ffffff;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .boot-text {
+            position: relative;
+            animation: zoomInOut 4s infinite, glowPulse 2s infinite;
+        }
+
+        .boot-text::before,
+        .boot-text::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 100vw;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #4CAF50, transparent);
+            transform: translateY(-50%);
+            animation: lineExpand 2s ease-in-out infinite;
+        }
+
+        .boot-text::before {
+            right: 100%;
+            margin-right: 20px;
+        }
+
+        .boot-text::after {
+            left: 100%;
+            margin-left: 20px;
+        }
+
+        @keyframes zoomInOut {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { text-shadow: 0 0 5px #4CAF50, 0 0 10px #4CAF50, 0 0 15px #4CAF50; }
+            50% { text-shadow: 0 0 10px #4CAF50, 0 0 20px #4CAF50, 0 0 30px #4CAF50; }
+        }
+
+        @keyframes lineExpand {
+            0%, 100% { width: 0; opacity: 0; }
+            50% { width: 100vw; opacity: 1; }
         }
         
-        #progress-path {
-            font-family: monospace;
-            font-size: 10px;
-            margin-top: 10px;
-            width: 600px;
-            height: 100px;
-            overflow: scroll;
-            text-align: left;
+        @keyframes blink {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
         }
 
-        #progress-bar {
-            width: 600px;
-            height: 40px;
-            background-color: #444444;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-
-        #progress-bar-fill {
-            height: 100%;
-            background-color: #4CAF50;
-            width: 0%;
-            transition: width 0.3s ease-out;
-        }
-
-        #progress-text {
-            font-family: monospace;
-            font-size: 14px;
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
         }
     </style>
 </head>
 
 <body>
-    <div id="boot-message"></div>
-    <div id="progress-container">
-        <div id="progress-bar">
-            <div id="progress-bar-fill"></div>
-        </div>
-        <div id="progress-text">0% extracted</div>
-        <div id="progress-path"></div>
+    <div id="boot-message">
+        <div class="boot-text"></div>
     </div>
     <iframe id="content"></iframe>
     <div id="log-container" class="expanded">
-        <button id="log-toggle">Hide Log</button>
+        <button id="log-toggle" style="display: none;">Hide Log</button>
         <div id="log"></div>
     </div>
 
@@ -148,38 +168,62 @@
         const progressText = document.getElementById('progress-text');
         const progressPath = document.getElementById('progress-path');
         
+        function createMatrixLogger(logElement) {
+            let lastLogLine = null;
+            let typingTimeout = null;
+
+            function finishTyping(logLine) {
+                logLine.style.width = '100%';
+                logLine.style.animation = 'none';
+                logLine.classList.remove('last');
+            }
+
+            function log(message) {
+                if (lastLogLine) {
+                    clearTimeout(typingTimeout);
+                    finishTyping(lastLogLine);
+                }
+
+                const logLine = document.createElement('p');
+                logLine.className = 'log-line last';
+                logLine.textContent = message;
+                logElement.appendChild(logLine);
+                logElement.scrollTop = logElement.scrollHeight;
+
+                // Animate the new log line
+                logLine.style.width = '0';
+                const duration = Math.min(message.length * 2, 500); // Cap at 500ms
+                logLine.style.animation = `typing ${duration}ms steps(${message.length}, end)`;
+                
+                lastLogLine = logLine;
+                typingTimeout = setTimeout(() => finishTyping(logLine), duration);
+            }
+
+            return { log };
+        }
+        function toggleLog() {
+            logContainer.classList.toggle('expanded');
+            logToggle.textContent = logContainer.classList.contains('expanded') ? 'Hide Log' : 'Show Log';
+        }
+        
         ipcRenderer.on("boot-message", (event, message) => {
-            bootMessage.textContent = message;
-        });
-        
-        ipcRenderer.on('setup-complete', () => {
-            progressContainer.style.display = 'none';
-            bootMessage.style.display = 'block';
-        });
-        
-        ipcRenderer.on('extraction-progress', (event, progress) => {
-            progressContainer.style.display = 'block';
-            progressBarFill.style.width = `${progress.progress}%`;
-            progressText.textContent = `${progress.progress}% of ${progress.name} extracted`;
-            // progressPath.textContent += progress.path.split('/').slice(-2).join('/');
-            // progressPath.scrollTop = progressPath.scrollHeight;
+            const bootTextElement = document.querySelector('.boot-text');
+            bootTextElement.textContent = message;
         });
         
         ipcRenderer.on('server-started', () => {
+            toggleLog();
             contentElement.src = 'http://localhost:8000';
             bootMessage.style.display = 'none';
-            progressContainer.style.display = 'none';
+            logToggle.style.display = 'block';
         });
 
+        const matrixLogger = createMatrixLogger(logElement);
         ipcRenderer.on('server-log', (event, message) => {
-            logElement.innerHTML += message + '<br>';
-            logElement.scrollTop = logElement.scrollHeight;
+            matrixLogger.log(message);
         });
 
-        logToggle.addEventListener('click', () => {
-            logContainer.classList.toggle('expanded');
-            logToggle.textContent = logContainer.classList.contains('expanded') ? 'Hide Log' : 'Show Log';
-        });
+        logToggle.addEventListener('click', toggleLog);
     </script>
 </body>
 
