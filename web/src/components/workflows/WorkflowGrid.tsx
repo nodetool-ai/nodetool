@@ -518,7 +518,7 @@ const WorkflowGrid = () => {
             </Button>
           )}
         </div>
-        {workflowCategory === "user" && (
+        {workflowCategory === "user" && !isLoading && (
           <div className="explanations">
             <Typography>
               Select multiple workflows for deletion by holding SHIFT or CONTROL
@@ -528,7 +528,12 @@ const WorkflowGrid = () => {
         )}
 
         <div className="status">
-          {isLoading && <CircularProgress />}
+          {isLoading && (
+            <>
+              <CircularProgress />
+              <Typography variant="h4">Loading Workflows</Typography>
+            </>
+          )}
           {isError && (
             <div style={{ display: "flex", gap: "1em", alignItems: "center" }}>
               <ErrorOutlineRounded>

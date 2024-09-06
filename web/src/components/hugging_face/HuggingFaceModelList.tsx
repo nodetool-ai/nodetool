@@ -24,7 +24,8 @@ const styles = (theme: any) =>
       height: "80vh",
       overflowY: "auto",
       backgroundColor: theme.palette.c_gray1,
-      padding: theme.spacing(2)
+      padding: theme.spacing(2),
+      paddingBottom: "4em"
     },
     ".model-item": {
       padding: 0,
@@ -113,11 +114,23 @@ const HuggingFaceModelList: React.FC = () => {
   };
 
   if (isLoading) {
-    return <CircularProgress />;
+    return (
+      <>
+        <CircularProgress />
+        <Typography variant="h4">Loading local models</Typography>
+      </>
+    );
   }
 
   if (error) {
-    return <Typography color="error"> {error.message} </Typography>;
+    return (
+      <>
+        <Typography variant="h3">Could not load local models.</Typography>
+        <Typography variant="body2" color="error">
+          {error.message}{" "}
+        </Typography>
+      </>
+    );
   }
 
   return (

@@ -53,10 +53,18 @@ const styles = (theme: any) =>
     "&.missing:hover": {
       background: ThemeNodetool.palette.c_gray1
     },
-    ".model-name": {
-      margin: "0"
+    ".repo-name": {
+      width: "calc(100% - 1em)",
+      padding: "0",
+      margin: "0 0 .5em 0",
+      fontSize: "1em"
     },
-    "&.missing .model-name": {
+    ".repo-name .owner": {
+      fontSize: ".8em",
+      color: theme.palette.c_info,
+      padding: "0 "
+    },
+    "&.missing .repo-name": {
       color: theme.palette.c_warning
     },
     ".tags-container": {
@@ -82,6 +90,7 @@ const styles = (theme: any) =>
       width: "100%",
       height: "auto",
       maxHeight: "115px",
+      paddingBottom: "1em",
       top: "40px",
       left: "0",
       flexWrap: "wrap",
@@ -99,7 +108,7 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1,
       padding: "0 0.1em",
       borderRadius: 8,
-      border: "1px solid" + theme.palette.c_gray4,
+      border: "1px solid" + theme.palette.c_gray3,
       fontSize: theme.fontSizeSmaller
     },
     ".text-license": {
@@ -113,6 +122,11 @@ const styles = (theme: any) =>
       margin: 0,
       padding: 0,
       fontSize: theme.fontSizeSmaller
+    },
+    ".text-model-size": {
+      margin: 0,
+      padding: 0,
+      color: theme.palette.c_warning
     },
     ".download": {
       boxShadow: "none",
@@ -192,6 +206,19 @@ const ModelCard: React.FC<ModelCardProps> = ({
     setTagsExpanded(!tagsExpanded);
   };
 
+  const formatRepoId = (repoId: string) => {
+    const [owner, repo] = repoId.split("/");
+    return (
+      <React.Fragment>
+        <span className="repo">
+          {repo}
+          <br />
+        </span>
+        <span className="owner">{owner}/</span>
+      </React.Fragment>
+    );
+  };
+
   if (isLoading) {
     return (
       <Card className="model-card" css={styles}>
@@ -217,12 +244,12 @@ const ModelCard: React.FC<ModelCardProps> = ({
         )}
         <CardContent sx={{ flexGrow: 1 }}>
           <Typography
-            className="model-name"
+            className="repo-name"
             variant="h4"
             component="div"
             gutterBottom
           >
-            {repoId}
+            {formatRepoId(repoId)}
           </Typography>
           <Typography
             variant="h3"
@@ -245,6 +272,15 @@ const ModelCard: React.FC<ModelCardProps> = ({
             {repoId}
           </Button>
         </CardContent>
+        <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
+          {modelSize && (
+            <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
+              <Typography variant="body2" className="text-model-size">
+                {modelSize}
+              </Typography>
+            </Tooltip>
+          )}
+        </CardActions>
       </Card>
     );
   }
@@ -256,12 +292,12 @@ const ModelCard: React.FC<ModelCardProps> = ({
       )}
       <CardContent sx={{ flexGrow: 1 }}>
         <Typography
-          className="model-name"
+          className="repo-name"
           variant="h4"
           component="div"
           gutterBottom
         >
-          {repoId}
+          {formatRepoId(repoId)}
         </Typography>
 
         {modelData.cardData?.license && (
@@ -344,7 +380,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
         )}
         {modelSize && (
           <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" className="text-model-size">
               {modelSize}
             </Typography>
           </Tooltip>
