@@ -95,10 +95,10 @@ sentencepiece = "*"
 spandrel = "*"
 svglib = "*"
 tiktoken = "*"
-torch = ">=2.4"
+torch = { version = ">=2.4", source = "pytorch" }
 torchsde = "*"
-torchaudio = "*"
-torchvision = "*"
+torchaudio = { version = "*", source = "pytorch" }
+torchvision = { version = "*", source = "pytorch" }
 tqdm = "*"
 transformers = "*"
 trimesh = "*"
@@ -120,3 +120,8 @@ pytest-xdist = "*"
 
 [tool.poetry.scripts]
 nodetool = "nodetool.cli:cli"
+
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu121"
+priority = "explicit"

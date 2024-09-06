@@ -1515,9 +1515,7 @@ class PixArtAlpha(BaseNode):
         # Set up the generator for reproducibility
         generator = None
         if self.seed != -1:
-            generator = torch.Generator(device=self._pipeline.device).manual_seed(
-                self.seed
-            )
+            generator = torch.Generator(device="cpu").manual_seed(self.seed)
 
         def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
             context.post_message(
@@ -1625,9 +1623,7 @@ class PixArtSigma(BaseNode):
         # Set up the generator for reproducibility
         generator = None
         if self.seed != -1:
-            generator = torch.Generator(device=self._pipeline.device).manual_seed(
-                self.seed
-            )
+            generator = torch.Generator(device="cpu").manual_seed(self.seed)
 
         def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
             context.post_message(
@@ -2310,7 +2306,7 @@ class Proteus(BaseNode):
             raise ValueError("Pipeline not initialized")
 
         # Set up the generator for reproducibility
-        generator = torch.Generator(device="cuda")
+        generator = torch.Generator(device="cpu")
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
@@ -2390,6 +2386,7 @@ class StableDiffusionBaseNode(BaseNode):
                     "**/*.fp16.safetensors",
                     "**/*.json",
                     "**/*.txt",
+                    "*.json",
                 ],
             ),
             HFIPAdapter(
@@ -2450,7 +2447,7 @@ class StableDiffusionBaseNode(BaseNode):
             self._pipeline.to(device)
 
     def _setup_generator(self):
-        generator = torch.Generator(device="cuda")
+        generator = torch.Generator(device="cpu")
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
         return generator
@@ -2504,6 +2501,7 @@ class StableDiffusion(StableDiffusionBaseNode):
                 torch_dtype=torch.float16,
                 safety_checker=None,
                 local_files_only=True,
+                variant="fp16",
             )  # type: ignore
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
@@ -2988,7 +2986,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         ip_adapter_image = await self._setup_ip_adapter(context)
         self._load_lora()
 
-        generator = torch.Generator(device="cuda").manual_seed(self.seed)
+        generator = torch.Generator(device="cpu").manual_seed(self.seed)
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -3180,19 +3178,39 @@ class StableDiffusionXLBase(BaseNode):
         return [
             HFStableDiffusionXL(
                 repo_id="stabilityai/stable-diffusion-xl-base-1.0",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             ),
             HFStableDiffusionXL(
                 repo_id="stabilityai/stable-diffusion-xl-refiner-1.0",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             ),
             HFStableDiffusionXL(
                 repo_id="RunDiffusion/Juggernaut-XL-v9",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             ),
             HFStableDiffusionXL(
                 repo_id="fofr/sdxl-emoji",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             ),
             HFIPAdapter(
                 repo_id="h94/IP-Adapter",
@@ -3714,11 +3732,21 @@ class SDXLTurbo(BaseNode):
         return [
             HFStableDiffusionXLTurbo(
                 repo_id="stabilityai/sdxl-turbo",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             ),
             HFStableDiffusionXLTurbo(
                 repo_id="Lykon/dreamshaper-xl-v2-turbo",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             ),
         ]
 
@@ -3813,11 +3841,21 @@ class SDXLTurboImg2Img(BaseNode):
         return [
             HFStableDiffusionXLTurbo(
                 repo_id="stabilityai/sdxl-turbo",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             ),
             HFStableDiffusionXLTurbo(
                 repo_id="Lykon/dreamshaper-xl-v2-turbo",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             ),
         ]
 
@@ -3999,7 +4037,12 @@ class LatentConsistencyModel(StableDiffusionXLBase):
         return [
             HFStableDiffusionXLTurbo(
                 repo_id="latent-consistency/lcm-sdxl",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             )
         ]
 

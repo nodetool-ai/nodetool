@@ -4,13 +4,14 @@ import sys
 import json
 from typing import Callable, Iterable, List, Literal, Optional, Union
 from fastapi import FastAPI, WebSocket
-from huggingface_hub import HfApi, hf_hub_download
+from huggingface_hub import HfApi, hf_hub_download, try_to_load_from_cache
 from huggingface_hub.hf_api import RepoFile
 import huggingface_hub.file_download
 from multiprocessing import Manager
 from queue import Empty
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import threading
+import os
 
 from torch import Generator
 
@@ -183,13 +184,23 @@ class DownloadManager:
         files = self.api.list_repo_tree(repo_id, recursive=True)
         files = [file for file in files if isinstance(file, RepoFile)]
         files = filter_repo_paths(files, allow_patterns, ignore_patterns)
-        self.total_files = len(files)
-        self.total_bytes = sum(file.size for file in files)
+
+        # Filter out files that already exist in the cache
+        files_to_download = []
+        for file in files:
+            cache_path = try_to_load_from_cache(repo_id, file.path)
+            if cache_path is None or not os.path.exists(cache_path):
+                files_to_download.append(file)
+            else:
+                self.downloaded_files.append(file.path)
+
+        self.total_files = len(files_to_download)
+        self.total_bytes = sum(file.size for file in files_to_download)
         await self.send_update()
 
         loop = asyncio.get_running_loop()
         tasks = []
-        for file in files:
+        for file in files_to_download:
             if self.cancel.is_set():
                 break
             self.current_files.append(file.path)
