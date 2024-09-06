@@ -126,10 +126,12 @@ const WorkflowGrid = () => {
   );
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore((state) => ({
-    shiftKeyPressed: state.isKeyPressed("Shift"),
-    controlKeyPressed: state.isKeyPressed("Control")
-  }));
+  const { shiftKeyPressed, controlKeyPressed } = useKeyPressedStore(
+    (state) => ({
+      shiftKeyPressed: state.isKeyPressed("Shift"),
+      controlKeyPressed: state.isKeyPressed("Control")
+    })
+  );
   const loadMyWorkflows = useWorkflowStore((state) => state.load);
   const loadExampleWorkflows = useWorkflowStore((state) => state.loadExamples);
   const createNewWorkflow = useWorkflowStore((state) => state.createNew);
@@ -360,19 +362,36 @@ const WorkflowGrid = () => {
   // DELETE WORKFLOW
   const onDelete = (e: any, workflow: Workflow) => {
     e.stopPropagation();
-    setWorkflowsToDelete([workflow]);
+    let workflowsToDelete;
+    if (selectedWorkflows.includes(workflow.id)) {
+      // delete all selected workflows if the delete button is clicked on a selected workflow
+      workflowsToDelete = (data?.workflows || []).filter((w) =>
+        selectedWorkflows.includes(w.id)
+      );
+    } else {
+      // only delete one to prevent accidental deletion of multiple workflows
+      workflowsToDelete = [workflow];
+    }
+    setWorkflowsToDelete(workflowsToDelete);
+    setSelectedWorkflows([]);
     setIsDeleteDialogOpen(true);
   };
 
   const handleDelete = useCallback(() => {
-    workflowsToDelete.forEach((workflow) => {
-      deleteWorkflow(workflow.id);
-    });
+    Promise.all(
+      workflowsToDelete.map((workflow) => deleteWorkflow(workflow.id))
+    )
+      .then(() => {
+        setIsDeleteDialogOpen(false);
+        setWorkflowsToDelete([]);
+        setSelectedWorkflows([]);
 
-    setIsDeleteDialogOpen(false);
-    setWorkflowsToDelete([]);
-    setSelectedWorkflows([]);
-  }, [deleteWorkflow, workflowsToDelete]);
+        queryClient.invalidateQueries({ queryKey: ["workflows"] });
+      })
+      .catch((error) => {
+        console.error("Error deleting workflows:", error);
+      });
+  }, [deleteWorkflow, workflowsToDelete, queryClient]);
 
   // FILTER AND SORT WORKFLOWS
   const filteredAndSortedWorkflows =
