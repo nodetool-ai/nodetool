@@ -46,16 +46,27 @@ function createWindow() {
 
 async function startServer() {
   const resourcesPath = process.resourcesPath;
-  const webDir = path.join(resourcesPath, "web");
   const env = Object.create(process.env);
-  env.PYTHONUNBUFFERED = "1";
-  env.PYTHONPATH = path.join(resourcesPath, "src");
-  env.PATH = `${resourcesPath};${env.PATH}`;
+  let webDir;
 
-  mainWindow.webContents.send("boot-message", "Starting server...");
+  mainWindow.webContents.send("boot-message", "Initializing NodeTool");
+
   const pythonEnvExecutable = path.join(resourcesPath, "python_env", "python.exe");
   const pythonEnvExists = await fs.stat(pythonEnvExecutable).catch(() => false);
+
+  env.PYTHONUNBUFFERED = "1";
   
+  if (pythonEnvExists) {
+    // this is the case when the app is run from a built state
+    env.PYTHONPATH = path.join(resourcesPath, "src");
+    env.PATH = `${resourcesPath};${env.PATH}`;
+    webDir = path.join(resourcesPath, "web");
+  } else {
+    // this is the case when the app is run from source
+    env.PYTHONPATH = path.join("..", "src");
+    webDir = path.join("..", "web", "dist");
+  }
+
   serverProcess = spawn(
     pythonEnvExists ? pythonEnvExecutable : "python",
     ["-m", "nodetool.cli", "serve", "--static-folder", webDir],

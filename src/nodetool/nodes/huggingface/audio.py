@@ -395,7 +395,7 @@ class AudioLDM(BaseNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        generator = torch.Generator(context.device)
+        generator = torch.Generator(device="cpu")
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
@@ -496,7 +496,7 @@ class AudioLDM2(BaseNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        generator = torch.Generator(context.device)
+        generator = torch.Generator(device="cpu")
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
@@ -583,7 +583,7 @@ class DanceDiffusion(BaseNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        generator = torch.Generator(context.device)
+        generator = torch.Generator(device="cpu")
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
@@ -665,7 +665,7 @@ class StableAudioNode(BaseNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        generator = torch.Generator(context.device)
+        generator = torch.Generator(device="cpu")
 
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)

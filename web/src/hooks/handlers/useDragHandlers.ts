@@ -44,7 +44,8 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
           model_info: {},
           primary_field: "",
           secondary_field: "",
-          layout: "comment"
+          layout: "comment",
+          recommended_models: []
         };
         const newNode = createNode(metadata, {
           x: startPos.x,

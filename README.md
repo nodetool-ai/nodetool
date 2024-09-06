@@ -365,7 +365,7 @@ npm start
 Dependencies are managed in `pyproject.toml` and must be synced to `requirements.txt` using:
 
 ```
-poetry export -f requirements.txt --output requirements.test.txt --without-hashes
+poetry export -f requirements.txt --output requirements.txt --without-hashes
 ```
 
 ## Contribution
