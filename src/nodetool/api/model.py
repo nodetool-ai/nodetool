@@ -34,13 +34,13 @@ async def function_model(user: User = Depends(current_user)) -> list[FunctionMod
     return Environment.get_function_models()
 
 
-def get_recommended_models() -> list[HuggingFaceModel]:
+def get_recommended_models() -> dict[str, HuggingFaceModel]:
     node_classes = get_registered_node_classes()
-    return [
-        model
+    return {
+        model.repo_id: model
         for node_class in node_classes
         for model in node_class.get_recommended_models()
-    ]
+    }
 
 
 async def augment_model_info(
@@ -52,9 +52,8 @@ async def augment_model_info(
         return model
     model_info = res.json()
     model.pipeline_tag = model_info.get("pipeline_tag", None)
-    if model.pipeline_tag is None:
-        if model.repo_id in models:
-            model.model_type = models[model.repo_id].type
+    if model.repo_id in models:
+        model.model_type = models[model.repo_id].type
     else:
         model.model_type = pipeline_tag_to_model_type(model.pipeline_tag)
 
