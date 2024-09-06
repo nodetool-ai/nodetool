@@ -55,7 +55,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       model_info: {},
       primary_field: "",
       secondary_field: "",
-      layout: "default"
+      layout: "default",
+      recommended_models: []
     };
     const newNode = createNode(
       metadata,
