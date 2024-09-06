@@ -23,7 +23,7 @@ import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { MIN_ZOOM } from "../../config/constants";
 import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
-import RecommendedModelsDialog from "../RecommendedModelsDialog";
+import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 export const TOOLTIP_ENTER_DELAY = 650;
