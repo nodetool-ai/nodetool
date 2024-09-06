@@ -174,33 +174,40 @@ interface ModelCardProps {
   modelSize?: string;
   handleDelete?: (repoId: string) => void;
   onDownload?: () => void;
+  modelType?: string;
 }
 
-const ModelCard: React.FC<ModelCardProps> = ({
+const HuggingFaceModelCard: React.FC<ModelCardProps> = ({
   repoId,
   modelSize,
   onDownload,
-
-  handleDelete
+  handleDelete,
+  modelType
 }) => {
   const [modelData, setModelData] = useState<any>(null);
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isOllama = modelType?.startsWith("ollama");
+
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
+    if (isOllama) {
+      setIsLoading(false);
+    } else {
+      const fetchData = async () => {
+        setIsLoading(true);
+      };
       try {
-        const info = await fetchModelInfo(repoId);
+        const info = fetchModelInfo(repoId);
         setModelData(info);
       } catch (error) {
         devError("ModelCard:Error fetching model info:", error);
       } finally {
         setIsLoading(false);
       }
-    };
-    fetchData();
-  }, [repoId]);
+      fetchData();
+    }
+  }, [isOllama, repoId]);
 
   const toggleTags = () => {
     setTagsExpanded(!tagsExpanded);
@@ -300,14 +307,14 @@ const ModelCard: React.FC<ModelCardProps> = ({
           {formatRepoId(repoId)}
         </Typography>
 
-        {modelData.cardData?.license && (
+        {!isOllama && modelData.cardData?.license && (
           <Typography className="text-license" variant="body2">
             {modelData.cardData.license.toUpperCase()}
           </Typography>
         )}
 
         <Box>
-          {modelData.model_type && (
+          {!isOllama && modelData.model_type && (
             <Typography
               className="text-model-type"
               variant="body2"
@@ -317,50 +324,54 @@ const ModelCard: React.FC<ModelCardProps> = ({
             </Typography>
           )}
 
-          <Box className="tags-container">
-            <Button
-              className="pipeline-tag"
-              onClick={toggleTags}
-              endIcon={tagsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            >
-              {modelData.cardData?.pipeline_tag ||
-                (tagsExpanded ? "Hide Tags" : "Show Tags")}
-            </Button>
+          {!isOllama && (
+            <Box className="tags-container">
+              <Button
+                className="pipeline-tag"
+                onClick={toggleTags}
+                endIcon={tagsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              >
+                {modelData.cardData?.pipeline_tag ||
+                  (tagsExpanded ? "Hide Tags" : "Show Tags")}
+              </Button>
 
-            <Box className={`tags-list ${tagsExpanded ? "expanded" : ""}`}>
-              {(modelData.cardData?.tags || modelData.tags) && (
-                <Box mt={1}>
-                  {(modelData.cardData?.tags || modelData.tags).map(
-                    (tag: string) => (
-                      <Chip
-                        className="tag"
-                        key={tag}
-                        label={tag}
-                        size="small"
-                        sx={{ margin: "2px" }}
-                      />
-                    )
-                  )}
-                </Box>
-              )}
+              <Box className={`tags-list ${tagsExpanded ? "expanded" : ""}`}>
+                {(modelData.cardData?.tags || modelData.tags) && (
+                  <Box mt={1}>
+                    {(modelData.cardData?.tags || modelData.tags).map(
+                      (tag: string) => (
+                        <Chip
+                          className="tag"
+                          key={tag}
+                          label={tag}
+                          size="small"
+                          sx={{ margin: "2px" }}
+                        />
+                      )
+                    )}
+                  </Box>
+                )}
+              </Box>
             </Box>
-          </Box>
+          )}
         </Box>
 
-        <div
-          style={{
-            position: "absolute",
-            backgroundColor: "transparent",
-            top: "120px",
-            left: 0,
-            width: "100%",
-            height: "120px",
-            backgroundImage: `url(${modelData.cardData?.thumbnail})`,
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "center"
-          }}
-        ></div>
+        {!isOllama && (
+          <div
+            style={{
+              position: "absolute",
+              backgroundColor: "transparent",
+              top: "120px",
+              left: 0,
+              width: "100%",
+              height: "120px",
+              backgroundImage: `url(${modelData.cardData?.thumbnail})`,
+              backgroundSize: "contain",
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "center"
+            }}
+          ></div>
+        )}
       </CardContent>
       <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
         {onDownload && (
@@ -385,58 +396,62 @@ const ModelCard: React.FC<ModelCardProps> = ({
             </Typography>
           </Tooltip>
         )}
-        <Box className="model-stats">
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            style={{ display: "flex", alignItems: "center", gap: 5 }}
-          >
-            <Tooltip title="Downloads last month">
-              <CloudDownloadIcon
+        {!isOllama && (
+          <Box className="model-stats">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              style={{ display: "flex", alignItems: "center", gap: 5 }}
+            >
+              <Tooltip title="Downloads last month">
+                <CloudDownloadIcon
+                  fontSize="small"
+                  sx={{
+                    color: ThemeNodetool.palette.c_gray3,
+                    marginRight: ".1em"
+                  }}
+                />
+              </Tooltip>
+              <Typography variant="body2">
+                {modelData.downloads?.toLocaleString() || "N/A"}
+              </Typography>
+              <FavoriteIcon
                 fontSize="small"
-                sx={{
-                  color: ThemeNodetool.palette.c_gray3,
-                  marginRight: ".1em"
+                sx={{ ml: 2, color: ThemeNodetool.palette.c_gray3 }}
+              />{" "}
+              {modelData.likes?.toLocaleString() || "N/A"}
+            </Typography>
+          </Box>
+        )}
+        {!isOllama && (
+          <Tooltip
+            enterDelay={TOOLTIP_ENTER_DELAY * 2}
+            title="View on HuggingFace"
+          >
+            <Button
+              className="view-on-huggingface"
+              size="small"
+              variant="contained"
+              href={`https://huggingface.co/${modelData.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
+                alt="Hugging Face"
+                style={{
+                  cursor: "pointer",
+                  width: "1.5em",
+                  height: "auto",
+                  verticalAlign: "middle"
                 }}
               />
-            </Tooltip>
-            <Typography variant="body2">
-              {modelData.downloads?.toLocaleString() || "N/A"}
-            </Typography>
-            <FavoriteIcon
-              fontSize="small"
-              sx={{ ml: 2, color: ThemeNodetool.palette.c_gray3 }}
-            />{" "}
-            {modelData.likes?.toLocaleString() || "N/A"}
-          </Typography>
-        </Box>
-        <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY * 2}
-          title="View on HuggingFace"
-        >
-          <Button
-            className="view-on-huggingface"
-            size="small"
-            variant="contained"
-            href={`https://huggingface.co/${modelData.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img
-              src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
-              alt="Hugging Face"
-              style={{
-                cursor: "pointer",
-                width: "1.5em",
-                height: "auto",
-                verticalAlign: "middle"
-              }}
-            />
-          </Button>
-        </Tooltip>
+            </Button>
+          </Tooltip>
+        )}
       </CardActions>
     </Card>
   );
 };
 
-export default ModelCard;
+export default HuggingFaceModelCard;

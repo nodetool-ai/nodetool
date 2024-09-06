@@ -179,6 +179,19 @@ class Build:
             logger.error(f"Failed to create build directory: {e}")
             sys.exit(1)
 
+    def ollama(self):
+        logger.info("Downloading Ollama")
+        self.run_command(
+            [
+                "curl",
+                "-L",
+                "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip",
+                "-o",
+                "ollama.zip",
+            ]
+        )
+        self.run_command(["unzip", "ollama.zip", "-d", "ollama"])
+
     def python(self):
         logger.info("Packing Python environment")
 
@@ -265,6 +278,8 @@ class Build:
                 f"{PROJECT_ROOT}/requirements.txt",
                 "-v",
                 "--no-cache-dir",
+                "--extra-index-url",
+                "https://download.pytorch.org/whl/cu121",
             ]
         )
 

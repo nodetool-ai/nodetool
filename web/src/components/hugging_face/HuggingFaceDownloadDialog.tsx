@@ -8,12 +8,12 @@ import {
   Box,
   Typography
 } from "@mui/material";
-import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 const HuggingFaceDownloadDialog: React.FC = () => {
-  const { isDialogOpen, closeDialog, downloads } = useHuggingFaceStore();
+  const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
 
   return (
     <Dialog open={isDialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>

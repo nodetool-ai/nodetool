@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import useModelStore from "./ModelStore";
+import axios, { CancelTokenSource } from 'axios';
 
 interface SpeedDataPoint {
   bytes: number;
@@ -16,7 +17,7 @@ interface Download {
   | "error"
   | "start"
   | "progress";
-  repoId: string;
+  id: string;
   downloadedBytes: number;
   totalBytes: number;
   totalFiles?: number;
@@ -25,22 +26,24 @@ interface Download {
   message?: string;
   speed: number | null;
   speedHistory: SpeedDataPoint[];
+  cancelTokenSource?: CancelTokenSource;
 }
 
-interface HuggingFaceStore {
+interface ModelDownloadStore {
   downloads: Record<string, Download>;
   ws: WebSocket | null;
   connectWebSocket: () => Promise<WebSocket>;
   disconnectWebSocket: () => void;
-  addDownload: (repoId: string) => void;
-  updateDownload: (repoId: string, update: Partial<Download>) => void;
-  removeDownload: (repoId: string) => void;
+  addDownload: (id: string, additionalProps?: Partial<Download>) => void;
+  updateDownload: (id: string, update: Partial<Download>) => void;
+  removeDownload: (id: string) => void;
   startDownload: (
-    repoId: string,
-    allowPatterns: string[] | null,
-    ignorePatterns: string[] | null
+    id: string,
+    modelType: string,
+    allowPatterns?: string[] | null,
+    ignorePatterns?: string[] | null
   ) => void;
-  cancelDownload: (repoId: string) => void;
+  cancelDownload: (id: string) => void;
   isDialogOpen: boolean;
   openDialog: () => void;
   closeDialog: () => void;
@@ -55,7 +58,7 @@ const calculateSpeed = (speedHistory: SpeedDataPoint[]): number | null => {
   return timeDiff > 0 ? (bytesDiff / timeDiff) * 1000 : null;
 };
 
-export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
+export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   downloads: {},
   ws: null,
 
@@ -79,10 +82,11 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
     if (ws) {
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log("data", data);
         if (data.repo_id) {
           get().updateDownload(data.repo_id, {
             status: data.status,
-            repoId: data.repo_id,
+            id: data.repo_id,
             downloadedBytes: data.downloaded_bytes,
             totalBytes: data.total_bytes,
             totalFiles: data.total_files,
@@ -111,24 +115,25 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
     }
   },
 
-  addDownload: (repoId) =>
+  addDownload: (id: string, additionalProps?: Partial<Download>) =>
     set((state) => ({
       downloads: {
         ...state.downloads,
-        [repoId]: {
+        [id]: {
           status: "pending",
-          repoId,
           downloadedBytes: 0,
           totalBytes: 0,
+          id: id,
           speed: null,
-          speedHistory: []
-        }
+          speedHistory: [],
+          ...additionalProps,
+        } as Download
       }
     })),
 
-  updateDownload: (repoId, update) =>
+  updateDownload: (id: string, update: Partial<Download>) =>
     set((state) => {
-      const currentDownload = state.downloads[repoId];
+      const currentDownload = state.downloads[id];
       if (!currentDownload) return state;
 
       const newSpeedHistory = [
@@ -141,7 +146,7 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
       return {
         downloads: {
           ...state.downloads,
-          [repoId]: {
+          [id]: {
             ...currentDownload,
             ...update,
             speedHistory: newSpeedHistory,
@@ -151,32 +156,82 @@ export const useHuggingFaceStore = create<HuggingFaceStore>((set, get) => ({
       };
     }),
 
-  removeDownload: (repoId) =>
+  removeDownload: (id) =>
     set((state) => {
-      const { [repoId]: _, ...rest } = state.downloads;
+      const { [id]: _, ...rest } = state.downloads;
       return { downloads: rest };
     }),
 
   startDownload: async (
-    repoId: string,
+    id: string,
+    modelType: string,
     allowPatterns?: string[] | null,
     ignorePatterns?: string[] | null
   ) => {
-    const ws = await get().connectWebSocket();
-    get().addDownload(repoId);
-    ws.send(
-      JSON.stringify({
-        command: "start_download",
-        repo_id: repoId,
-        allow_patterns: allowPatterns,
-        ignore_patterns: ignorePatterns
-      })
-    );
+    const cancelTokenSource = axios.CancelToken.source();
+    get().addDownload(id, { cancelTokenSource });
+    if (modelType.startsWith("hf.")) {
+      const ws = await get().connectWebSocket();
+      get().addDownload(id);
+      ws.send(
+        JSON.stringify({
+          command: "start_download",
+          repo_id: id,
+          allow_patterns: allowPatterns,
+          ignore_patterns: ignorePatterns
+        })
+      );
+    } else if (modelType === 'llama_model') {
+      try {
+        const response = await axios.post('http://localhost:11434/api/pull', {
+          name: id,
+          stream: true,
+        }, {
+          responseType: 'stream',
+          cancelToken: cancelTokenSource.token,
+        });
+
+        response.data.on('data', (chunk: Buffer) => {
+          const data = JSON.parse(chunk.toString());
+          get().updateDownload(id, {
+            status: data.status === "success" ? "completed" : "running",
+            message: data.status,
+            downloadedBytes: data.completed || 0,
+            totalBytes: data.total || 0,
+          });
+        });
+
+        response.data.on('end', () => {
+          get().updateDownload(id, { status: "completed" });
+          useModelStore.getState().invalidate();
+        });
+
+        response.data.on('error', (error: Error) => {
+          if (axios.isCancel(error)) {
+            get().updateDownload(id, { status: "cancelled" });
+          } else {
+            get().updateDownload(id, { status: "error" });
+          }
+        });
+      } catch (error) {
+        if (axios.isCancel(error)) {
+          get().updateDownload(id, { status: "cancelled" });
+        } else {
+          get().updateDownload(id, { status: "error", message: "Failed to start download" });
+        }
+      }
+    }
   },
 
-  cancelDownload: async (repoId) => {
-    const ws = await get().connectWebSocket();
-    ws.send(JSON.stringify({ command: "cancel_download", repo_id: repoId }));
+  cancelDownload: async (id) => {
+    const download = get().downloads[id];
+    if (download && download.cancelTokenSource) {
+      download.cancelTokenSource.cancel('Download cancelled by user');
+      get().updateDownload(id, { status: "cancelled" });
+    } else {
+      const ws = await get().connectWebSocket();
+      ws.send(JSON.stringify({ command: "cancel_download", repo_id: id }));
+    }
   },
 
   isDialogOpen: false,

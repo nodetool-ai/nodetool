@@ -43,16 +43,6 @@ class Ollama(BaseNode):
         description="The cumulative probability cutoff for nucleus/top-p sampling.",
     )
 
-    @validator("model", pre=True)
-    def validate_model(cls, v):
-        if isinstance(v, str):
-            v = LlamaModel(name=v)
-        if isinstance(v, dict):
-            v = LlamaModel(**v)
-        if v.name == "":
-            raise ValueError("The model cannot be empty.")
-        return v
-
     async def process(self, context: ProcessingContext) -> str:
         res = await context.run_prediction(
             node_id=self._id,

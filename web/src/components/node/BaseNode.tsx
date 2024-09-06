@@ -22,9 +22,9 @@ import OutputRenderer from "./OutputRenderer";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { MIN_ZOOM } from "../../config/constants";
-import { useHuggingFaceStore } from "../../stores/HuggingFaceStore";
-import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import ModelRecommendations from "./ModelRecommendations";
+import { UnifiedModel } from "../../stores/ApiTypes";
 
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
@@ -38,6 +38,24 @@ export function titleize(str: string) {
   const s = str.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
   return s.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
+
+const llama_models: UnifiedModel[] = [
+  {
+    id: "llama3.1",
+    name: "Llama 3.1",
+    type: "llama_model"
+  },
+  {
+    id: "gemma2",
+    name: "gemma2",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2",
+    name: "qwen2",
+    type: "llama_model"
+  }
+];
 
 /**
  * BaseNode renders a single node in the workflow
@@ -80,7 +98,7 @@ export default memo(
     const isLoading =
       status === "running" || status === "starting" || status === "booting";
     const isConstantNode = props.type.startsWith("nodetool.constant");
-    const { startDownload, openDialog } = useHuggingFaceStore();
+    const { startDownload, openDialog } = useModelDownloadStore();
 
     const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
     const [openModelDialog, setOpenModelDialog] = useState(false);
@@ -143,7 +161,19 @@ export default memo(
     const node_title = titleize(nodeMetadata?.title || "");
     const node_namespace = nodeMetadata?.namespace || "";
     const node_outputs = nodeMetadata?.outputs || [];
-    const recommendedModels = nodeMetadata?.recommended_models || [];
+    const recommendedModels: UnifiedModel[] = useMemo(
+      () =>
+        node_namespace.startsWith("huggingface.")
+          ? (nodeMetadata?.recommended_models || []).map((model) => ({
+              id: model.repo_id || "",
+              name: model.repo_id || "",
+              ...model
+            }))
+          : node_namespace.startsWith("ollama.")
+          ? llama_models
+          : [],
+      [nodeMetadata?.recommended_models, node_namespace]
+    );
     const modelType = nodeMetadata?.properties.find((p) =>
       p.type.type.includes("model")
     )?.type.type;
@@ -220,40 +250,12 @@ export default memo(
               </Typography>
             )}
 
-            {recommendedModels.length > 0 && (
-              <Box sx={{ margin: "1em" }}>
-                <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
-                  title="Find models to download."
-                >
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    sx={{
-                      fontSize: ThemeNodetool.fontSizeTiny,
-                      color: hasRelevantInstalledModels
-                        ? ThemeNodetool.palette.c_gray5
-                        : ThemeNodetool.palette.c_attention,
-                      margin: "0",
-                      padding: "0 1em",
-                      position: "absolute",
-                      zIndex: 10,
-                      top: "25px",
-                      lineHeight: "1em"
-                    }}
-                    onClick={handleOpenModelDialog}
-                  >
-                    Recommended models
-                  </Button>
-                </Tooltip>
-              </Box>
-            )}
-
-            <RecommendedModelsDialog
-              open={openModelDialog}
-              onClose={handleCloseModelDialog}
+            <ModelRecommendations
               recommendedModels={recommendedModels}
+              hasRelevantInstalledModels={hasRelevantInstalledModels}
+              openModelDialog={openModelDialog}
+              handleOpenModelDialog={handleOpenModelDialog}
+              handleCloseModelDialog={handleCloseModelDialog}
               startDownload={startDownload}
               openDialog={openDialog}
             />
