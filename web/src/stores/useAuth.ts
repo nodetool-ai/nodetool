@@ -20,8 +20,10 @@ export interface LoginStore {
 }
 
 export const useAuth = create<LoginStore>((set, get) => ({
-  user: null,
-  state: "init",
+  user: useRemoteAuth ? null : {
+    id: "1", email: "", auth_token: "local_token",
+  },
+  state: useRemoteAuth ? "logged_in" : "init",
 
   /**
    * Get user
@@ -46,16 +48,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
    * If there is an error, it will set the state to "error".
    */
   initialize: async () => {
-    if (!useRemoteAuth) {
-      set({
-        user: {
-          id: "1", email: "", auth_token: "local_token",
-        },
-        state: "logged_in"
-      });
-      return;
-    }
-    if (get().state !== "init") {
+    if (!useRemoteAuth || get().state !== "init") {
       return;
     }
     const user = get().readFromStorage();
