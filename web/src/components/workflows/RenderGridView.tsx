@@ -133,7 +133,7 @@ export const RenderGridView: React.FC<RenderGridViewProps> = ({
     <Box className="container grid" css={gridStyles}>
       {workflows.map((workflow: Workflow) => (
         <Box
-          key={workflow.id}
+          key={`workflow-${workflow.id}-${workflow.created_at}`}
           onDoubleClick={() => onDoubleClickWorkflow(workflow)}
           onClick={() => onSelect(workflow)}
           className={
