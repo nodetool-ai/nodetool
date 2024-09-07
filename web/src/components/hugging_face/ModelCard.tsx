@@ -285,7 +285,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
                 variant="h5"
                 style={{ color: ThemeNodetool.palette.c_gray5 }}
               >
-                Failed to find ollama model: {model.id}
+                Model not downloaded.
               </Typography>
             </>
           )}
@@ -310,15 +310,47 @@ const ModelCard: React.FC<ModelCardProps> = ({
             </>
           )}
         </CardContent>
-        {model.size_on_disk && (
-          <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
+        <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
+          {isOllama && onDownload && (
+            <Button
+              className="download"
+              size="small"
+              variant="contained"
+              sx={{
+                padding: "1em .5em ",
+                color: ThemeNodetool.palette.c_hl1,
+                backgroundColor: "transparent"
+              }}
+              onClick={onDownload}
+            >
+              Download
+            </Button>
+          )}
+          {isOllama && (
+            <Tooltip
+              enterDelay={TOOLTIP_ENTER_DELAY * 2}
+              title="View on Ollama"
+            >
+              <Button
+                className="view-on-ollama"
+                size="small"
+                variant="contained"
+                href={`https://ollama.com/library/${model.id.split(":")[0]}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img src="/ollama.png" alt="Ollama" width={16} />
+              </Button>
+            </Tooltip>
+          )}
+          {model.size_on_disk && (
             <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
               <Typography variant="body2" className="text-model-size">
                 {modelSize(model)}
               </Typography>
             </Tooltip>
-          </CardActions>
-        )}
+          )}
+        </CardActions>
       </Card>
     );
   }
@@ -435,7 +467,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
         ></div>
       </CardContent>
       <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
-        {onDownload && (
+        {onDownload && !isOllama && (
           <Button
             className="download"
             size="small"

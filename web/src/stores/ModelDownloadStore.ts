@@ -183,41 +183,49 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       );
     } else if (modelType === 'llama_model') {
       try {
-        const response = await axios.post('http://localhost:11434/api/pull', {
-          name: id,
-          stream: true,
-        }, {
-          responseType: 'stream',
-          cancelToken: cancelTokenSource.token,
+        const response = await fetch('http://localhost:11434/api/pull', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name: id }),
         });
 
-        response.data.on('data', (chunk: Buffer) => {
-          const data = JSON.parse(chunk.toString());
-          get().updateDownload(id, {
-            status: data.status === "success" ? "completed" : "running",
-            message: data.status,
-            downloadedBytes: data.completed || 0,
-            totalBytes: data.total || 0,
-          });
-        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-        response.data.on('end', () => {
-          get().updateDownload(id, { status: "completed" });
-          useModelStore.getState().invalidate();
-        });
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-        response.data.on('error', (error: Error) => {
-          if (axios.isCancel(error)) {
-            get().updateDownload(id, { status: "cancelled" });
-          } else {
-            get().updateDownload(id, { status: "error" });
+        while (true) {
+          const { done, value } = await reader?.read() || { done: true, value: undefined };
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          let newlineIndex;
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
+            const data = JSON.parse(line);
+            console.log("data", data);
+            get().updateDownload(id, {
+              status: data.status === "success" ? "completed" : "running",
+              message: data.status,
+              downloadedBytes: data.completed || 0,
+              totalBytes: data.total || 0,
+            });
           }
-        });
+        }
+
+        get().updateDownload(id, { status: "completed" });
+        useModelStore.getState().invalidate();
       } catch (error) {
         if (axios.isCancel(error)) {
           get().updateDownload(id, { status: "cancelled" });
         } else {
-          get().updateDownload(id, { status: "error", message: "Failed to start download" });
+          get().updateDownload(id, { status: "error" });
         }
       }
     }

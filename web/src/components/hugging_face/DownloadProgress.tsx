@@ -30,8 +30,6 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
   const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const download = downloads[name];
 
-  console.log("download", download);
-
   if (!download) return null;
 
   return (
@@ -76,7 +74,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           Download error
         </Typography>
       )}
-      {download.status === "progress" && (
+      {download.totalBytes > 0 && (
         <>
           <Box
             sx={{
