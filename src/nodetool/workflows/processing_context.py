@@ -413,7 +413,6 @@ class ProcessingContext:
             params = {}
 
         if self.api_client.auth_token != "notoken":
-            # used for help endpoint
             req = PredictionCreateRequest(
                 provider=provider,
                 model=model,
@@ -427,9 +426,22 @@ class ProcessingContext:
                 json=req.model_dump(),
             )
 
-        prediction = Prediction(**res.json())
-        prediction.params = params
-        prediction.data = data
+            prediction = Prediction(**res.json())
+            prediction.params = params
+            prediction.data = data
+        else:
+            # used for help endpoint
+            prediction = Prediction(
+                id="",
+                user_id="",
+                status="",
+                provider=provider,
+                model=model,
+                node_id=node_id,
+                workflow_id=self.workflow_id if self.workflow_id else "",
+                params=params,
+                data=data,
+            )
 
         async for msg in run_prediction(prediction):
             if isinstance(msg, PredictionResult):
