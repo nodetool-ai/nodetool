@@ -199,6 +199,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         const decoder = new TextDecoder();
         let buffer = '';
 
+        // eslint-disable-next-line no-constant-condition
         while (true) {
           const { done, value } = await reader?.read() || { done: true, value: undefined };
           if (done) break;
@@ -209,7 +210,6 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             const line = buffer.slice(0, newlineIndex);
             buffer = buffer.slice(newlineIndex + 1);
             const data = JSON.parse(line);
-            console.log("data", data);
             get().updateDownload(id, {
               status: data.status === "success" ? "completed" : "running",
               message: data.status,
