@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { Box, Button, CircularProgress, Grid, Typography } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
-import HuggingFaceModelCard from "./HuggingFaceModelCard";
+import ModelCard from "./ModelCard";
 import {
   Dialog,
   DialogActions,
@@ -14,9 +14,22 @@ import {
   DialogTitle
 } from "@mui/material";
 import { devError } from "../../utils/DevLog";
+import axios from "axios";
 
-const modelSize = (model: any) =>
-  (model.size_on_disk / 1024 / 1024).toFixed(2).toString() + " MB";
+// Add this new type definition
+type OllamaModel = {
+  name: string;
+  modified_at: string;
+  size: number;
+  digest: string;
+  details: {
+    format: string;
+    family: string;
+    families: string[] | null;
+    parameter_size: string;
+    quantization_level: string;
+  };
+};
 
 const styles = (theme: any) =>
   css({
@@ -52,15 +65,15 @@ const styles = (theme: any) =>
     }
   });
 
-const HuggingFaceModelList: React.FC = () => {
+const ModelList: React.FC = () => {
   const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const {
-    data: models,
-    isLoading,
-    error
+    data: hfModels,
+    isLoading: hfLoading,
+    error: hfError
   } = useQuery({
     queryKey: ["huggingFaceModels"],
     queryFn: async () => {
@@ -69,13 +82,25 @@ const HuggingFaceModelList: React.FC = () => {
         {}
       );
       if (error) throw error;
-      devError("HuggingfaceModelList: models", data);
       return data;
     }
   });
 
+  // Add this new query for Ollama models
+  const {
+    data: ollamaModels,
+    isLoading: ollamaLoading,
+    error: ollamaError
+  } = useQuery({
+    queryKey: ["ollamaModels"],
+    queryFn: async () => {
+      const response = await axios.get("http://localhost:11434/api/tags");
+      return response.data.models as OllamaModel[];
+    }
+  });
+
   // delete mutation
-  const deleteModel = async (repoId: string) => {
+  const deleteHFModel = async (repoId: string) => {
     setDeletingModels((prev) => new Set(prev).add(repoId));
     try {
       const { error } = await client.DELETE("/api/models/huggingface_model", {
@@ -94,8 +119,8 @@ const HuggingFaceModelList: React.FC = () => {
     }
   };
 
-  const mutation = useMutation({
-    mutationFn: deleteModel
+  const deleteHFModelMutation = useMutation({
+    mutationFn: deleteHFModel
   });
 
   const handleDeleteClick = (repoId: string) => {
@@ -104,7 +129,7 @@ const HuggingFaceModelList: React.FC = () => {
 
   const handleConfirmDelete = () => {
     if (modelToDelete) {
-      mutation.mutate(modelToDelete);
+      deleteHFModelMutation.mutate(modelToDelete);
       setModelToDelete(null);
     }
   };
@@ -113,22 +138,29 @@ const HuggingFaceModelList: React.FC = () => {
     setModelToDelete(null);
   };
 
-  if (isLoading) {
+  if (hfLoading || ollamaLoading) {
     return (
       <>
         <CircularProgress />
-        <Typography variant="h4">Loading local models</Typography>
+        <Typography variant="h4">Loading models</Typography>
       </>
     );
   }
 
-  if (error) {
+  if (hfError || ollamaError) {
     return (
       <>
-        <Typography variant="h3">Could not load local models.</Typography>
-        <Typography variant="body2" color="error">
-          {error.message}{" "}
-        </Typography>
+        <Typography variant="h3">Could not load models.</Typography>
+        {hfError && (
+          <Typography variant="body2" color="error">
+            HuggingFace Error: {hfError.message}
+          </Typography>
+        )}
+        {ollamaError && (
+          <Typography variant="body2" color="error">
+            Ollama Error: {(ollamaError as Error).message}
+          </Typography>
+        )}
       </>
     );
   }
@@ -136,25 +168,45 @@ const HuggingFaceModelList: React.FC = () => {
   return (
     <Box className="huggingface-model-list" css={styles}>
       <Typography variant="h5">Existing Models</Typography>
-      {mutation.isPending && <CircularProgress />}
-      {mutation.isError && (
-        <Typography color="error">{mutation.error.message}</Typography>
+      {deleteHFModelMutation.isPending && <CircularProgress />}
+      {deleteHFModelMutation.isError && (
+        <Typography color="error">
+          {deleteHFModelMutation.error.message}
+        </Typography>
       )}
-      {mutation.isSuccess && (
+      {deleteHFModelMutation.isSuccess && (
         <Typography color="success">Model deleted successfully</Typography>
       )}
       <Grid container spacing={3}>
-        {models?.map((model) => (
+        {hfModels?.map((model) => (
           <Grid item xs={12} sm={12} md={6} lg={4} xl={3} key={model.repo_id}>
             {model.repo_id !== "" && (
               <>
-                <HuggingFaceModelCard
-                  repoId={model.repo_id}
-                  modelSize={modelSize(model)}
+                <ModelCard
+                  model={{
+                    id: model.repo_id,
+                    type: "hf.model",
+                    name: model.repo_id,
+                    description: "",
+                    size_on_disk: model.size_on_disk
+                  }}
                   handleDelete={handleDeleteClick}
                 />
               </>
             )}
+          </Grid>
+        ))}
+        {ollamaModels?.map((model) => (
+          <Grid item xs={12} sm={12} md={6} lg={4} xl={3} key={model.name}>
+            <ModelCard
+              model={{
+                id: model.name,
+                type: "llama_model",
+                name: `${model.details.family} - ${model.details.parameter_size}`,
+                size_on_disk: model.size
+              }}
+              handleDelete={() => {}} // Implement delete functionality for Ollama models if needed
+            />
           </Grid>
         ))}
       </Grid>
@@ -182,4 +234,4 @@ const HuggingFaceModelList: React.FC = () => {
   );
 };
 
-export default HuggingFaceModelList;
+export default ModelList;

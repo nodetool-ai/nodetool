@@ -14,7 +14,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
-import HuggingFaceModelCard from "./HuggingFaceModelCard";
+import ModelCard from "./ModelCard";
 
 const styles = css({
   ".recommended-models-grid": {
@@ -76,8 +76,8 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
           <Grid container spacing={3} className="recommended-models-grid">
             {recommendedModels.map((model) => (
               <Grid item xs={12} sm={6} md={4} key={model.id}>
-                <HuggingFaceModelCard
-                  repoId={model.repo_id ?? ""}
+                <ModelCard
+                  model={model}
                   onDownload={() => {
                     startDownload(
                       model.id,

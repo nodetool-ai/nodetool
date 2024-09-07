@@ -42,6 +42,7 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
 import { useEffect, useState } from "react";
+import { isProduction } from "../../stores/ApiClient";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -337,36 +338,40 @@ function AppHeader() {
           <Alert />
 
           <Box className="buttons-right">
-            <OverallDownloadProgress />
-            <Tooltip title="Model Manager" enterDelay={TOOLTIP_DELAY}>
-              <Button
-                className="action-button"
-                onClick={() => navigate("/models")}
-                style={{
-                  color: path.startsWith("/models")
-                    ? ThemeNodetool.palette.c_hl1
-                    : ThemeNodetool.palette.c_white
-                }}
-              >
-                {iconForType(
-                  "model",
-                  {
-                    fill: path.startsWith("/models")
-                      ? ThemeNodetool.palette.c_hl1
-                      : "#fff",
-                    bgStyle: {
-                      backgroundColor: "transparent",
-                      width: "28px",
-                      marginRight: ".5em"
-                    },
-                    width: "15px",
-                    height: "15px"
-                  },
-                  false
-                )}
-                Models
-              </Button>
-            </Tooltip>
+            {!isProduction && (
+              <>
+                <OverallDownloadProgress />
+                <Tooltip title="Model Manager" enterDelay={TOOLTIP_DELAY}>
+                  <Button
+                    className="action-button"
+                    onClick={() => navigate("/models")}
+                    style={{
+                      color: path.startsWith("/models")
+                        ? ThemeNodetool.palette.c_hl1
+                        : ThemeNodetool.palette.c_white
+                    }}
+                  >
+                    {iconForType(
+                      "model",
+                      {
+                        fill: path.startsWith("/models")
+                          ? ThemeNodetool.palette.c_hl1
+                          : "#fff",
+                        bgStyle: {
+                          backgroundColor: "transparent",
+                          width: "28px",
+                          marginRight: ".5em"
+                        },
+                        width: "15px",
+                        height: "15px"
+                      },
+                      false
+                    )}
+                    Models
+                  </Button>
+                </Tooltip>
+              </>
+            )}
 
             <Popover
               open={helpOpen}

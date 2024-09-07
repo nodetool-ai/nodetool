@@ -25,6 +25,7 @@ import { MIN_ZOOM } from "../../config/constants";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import ModelRecommendations from "./ModelRecommendations";
 import { UnifiedModel } from "../../stores/ApiTypes";
+import { isProduction } from "../../stores/ApiClient";
 
 export const TOOLTIP_ENTER_DELAY = 650;
 export const TOOLTIP_LEAVE_DELAY = 200;
@@ -41,18 +42,28 @@ export function titleize(str: string) {
 
 const llama_models: UnifiedModel[] = [
   {
-    id: "llama3.1",
-    name: "Llama 3.1",
+    id: "llama3.1:8B",
+    name: "Llama 3.1 - 8B",
     type: "llama_model"
   },
   {
-    id: "gemma2",
-    name: "gemma2",
+    id: "gemma2:2B",
+    name: "gemma2 - 2B",
     type: "llama_model"
   },
   {
-    id: "qwen2",
-    name: "qwen2",
+    id: "qwen2:0.5B",
+    name: "qwen2 - 0.5B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2:1.5B",
+    name: "qwen2 - 1.5B",
+    type: "llama_model"
+  },
+  {
+    id: "phi3:3B",
+    name: "phi3 - 3B",
     type: "llama_model"
   }
 ];
@@ -250,15 +261,17 @@ export default memo(
               </Typography>
             )}
 
-            <ModelRecommendations
-              recommendedModels={recommendedModels}
-              hasRelevantInstalledModels={hasRelevantInstalledModels}
-              openModelDialog={openModelDialog}
-              handleOpenModelDialog={handleOpenModelDialog}
-              handleCloseModelDialog={handleCloseModelDialog}
-              startDownload={startDownload}
-              openDialog={openDialog}
-            />
+            {!isProduction && (
+              <ModelRecommendations
+                recommendedModels={recommendedModels}
+                hasRelevantInstalledModels={hasRelevantInstalledModels}
+                openModelDialog={openModelDialog}
+                handleOpenModelDialog={handleOpenModelDialog}
+                handleCloseModelDialog={handleCloseModelDialog}
+                startDownload={startDownload}
+                openDialog={openDialog}
+              />
+            )}
 
             {missingAPIKeys && (
               <Typography className="node-status">

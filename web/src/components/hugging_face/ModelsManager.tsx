@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React from "react";
 import HuggingFaceModelSearch from "../hugging_face/HuggingFaceModelSearch";
 import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
-import HuggingFaceModelList from "../hugging_face/HuggingFaceModelList";
+import ModelList from "./ModelList";
 
 const styles = (theme: any) =>
   css({
@@ -53,7 +53,7 @@ const ModelsManager: React.FC = () => {
       </div>
       <div className="existing-models-section">
         <div className="models-list">
-          <HuggingFaceModelList />
+          <ModelList />
         </div>
       </div>
     </div>
