@@ -24,7 +24,7 @@ export type Property = components["schemas"]["Property"];
 export type OutputSlot = components["schemas"]["OutputSlot"];
 export type NodeMetadata = components["schemas"]["NodeMetadata"];
 export type TypeMetadata = components["schemas"]["TypeMetadata"];
-export type Message = components["schemas"]["Message"];
+export type Message = components["schemas"]["Message-Output"];
 export type Prediction = components["schemas"]["Prediction"];
 export type MessageCreateRequest = components["schemas"]["MessageCreateRequest"];
 export type MessageList = components["schemas"]["MessageList"];
@@ -47,6 +47,7 @@ export type CachedModel = components["schemas"]["CachedModel"];
 export type SettingsModel = components["schemas"]["SettingsModel"];
 export type SecretsModel = components["schemas"]["SecretsModel"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
+export type ToolCall = components["schemas"]["ToolCall"];
 // a type that allows arbitrary members
 export type TypeName = string;
 export type WorkflowAttributes = Omit<Workflow, "graph">;

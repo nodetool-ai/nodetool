@@ -205,6 +205,10 @@ export interface paths {
     /** Function Model */
     get: operations["function_model_api_models_function_models_get"];
   };
+  "/api/models/recommended_models": {
+    /** Recommended Models */
+    get: operations["recommended_models_api_models_recommended_models_get"];
+  };
   "/api/models/huggingface_models": {
     /** Get Huggingface Models */
     get: operations["get_huggingface_models_api_models_huggingface_models_get"];
@@ -976,15 +980,15 @@ export interface components {
        */
       ignore_patterns?: string[];
     };
-    /** HFStableDiffusionBase */
-    HFStableDiffusionBase: {
+    /** HFStableDiffusion */
+    HFStableDiffusion: {
       /**
        * Type
-       * @default hf.stable_diffusion_base
+       * @default hf.stable_diffusion
        * @constant
        * @enum {string}
        */
-      type?: "hf.stable_diffusion_base";
+      type?: "hf.stable_diffusion";
       /**
        * Repo Id
        * @default
@@ -1556,10 +1560,20 @@ export interface components {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
     };
+    /** HelpRequest */
+    HelpRequest: {
+      /** Messages */
+      messages: components["schemas"]["Message-Input"][];
+    };
     /** HuggingFaceModel */
     HuggingFaceModel: {
-      /** Type */
-      type: string;
+      /**
+       * Type
+       * @default hf.model
+       * @constant
+       * @enum {string}
+       */
+      type?: "hf.model";
       /**
        * Repo Id
        * @default
@@ -1692,7 +1706,43 @@ export interface components {
      * @description Abstract representation for a chat message.
      * Independent of the underlying chat system, such as OpenAI or Anthropic.
      */
-    Message: {
+    "Message-Input": {
+      /**
+       * Type
+       * @default message
+       */
+      type?: string;
+      /** Id */
+      id?: string | null;
+      /** Thread Id */
+      thread_id?: string | null;
+      /** User Id */
+      user_id?: string | null;
+      /** Tool Call Id */
+      tool_call_id?: string | null;
+      /**
+       * Role
+       * @default
+       */
+      role?: string;
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+      /** Content */
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      /** Tool Calls */
+      tool_calls?: components["schemas"]["ToolCall"][] | null;
+      /** Created At */
+      created_at?: string | null;
+    };
+    /**
+     * Message
+     * @description Abstract representation for a chat message.
+     * Independent of the underlying chat system, such as OpenAI or Anthropic.
+     */
+    "Message-Output": {
       /**
        * Type
        * @default message
@@ -1770,7 +1820,7 @@ export interface components {
       /** Next */
       next: string | null;
       /** Messages */
-      messages: components["schemas"]["Message"][];
+      messages: components["schemas"]["Message-Output"][];
     };
     /** MessageTextContent */
     MessageTextContent: {
@@ -2950,7 +3000,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["Message"];
+          "application/json": components["schemas"]["Message-Output"];
         };
       };
       /** @description Validation Error */
@@ -2973,14 +3023,14 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["MessageCreateRequest"];
+        "application/json": components["schemas"]["HelpRequest"];
       };
     };
     responses: {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["Message"][];
+          "application/json": components["schemas"]["Message-Output"][];
         };
       };
       /** @description Validation Error */
@@ -3008,7 +3058,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["Message"];
+          "application/json": components["schemas"]["Message-Output"];
         };
       };
       /** @description Validation Error */
@@ -3028,7 +3078,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusionBase"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | Record<string, never>;
+          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | Record<string, never>;
         };
       };
     };
@@ -3687,6 +3737,31 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["FunctionModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Recommended Models */
+  recommended_models_api_models_recommended_models_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["HuggingFaceModel"][];
         };
       };
       /** @description Validation Error */

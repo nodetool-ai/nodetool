@@ -58,7 +58,7 @@ class AddNodeTool(Tool):
         self.input_schema = node_class.get_json_schema()
         validate_schema(self.input_schema)
 
-    async def process(self, context: ProcessingContext, thread_id: str, params: dict):
+    async def process(self, context: ProcessingContext, params: dict):
         params["type"] = self.node_class.get_node_type()
         return params
 
@@ -127,7 +127,7 @@ class WorkflowTool(Tool):
             },
         }
 
-    async def process(self, context: ProcessingContext, thread_id: str, params: dict):
+    async def process(self, context: ProcessingContext, params: dict):
         """
         Create a workflow
 
@@ -235,7 +235,8 @@ def search_examples(query: str, n_results: int = 3):
 
 
 def system_prompt_for(
-    docs: list[str], examples: list[str], workflow: Workflow | None = None
+    docs: list[str],
+    examples: list[str],
 ) -> str:
     return f"""
 You are an AI assistant specialized in the Nodetool platform - a 
@@ -527,27 +528,25 @@ Example Workflows:
 """
 
 
-async def create_help_answer(
-    user: User, req: MessageCreateRequest, messages: list[Message]
-) -> list[Message]:
-    assert user.auth_token is not None
+async def create_help_answer(messages: list[Message]) -> Message:
     assert len(messages) > 0
-
-    thread_id = req.thread_id or messages[-1].thread_id or ""
 
     prompt = str(messages[-1].content)
 
     node_types, docs = search_documentation(prompt)
     _, examples = search_examples(prompt)
 
-    system_message = Message(
-        role="system",
-        content=system_prompt_for(docs, examples, req.workflow),
-    )
+    system_message = Message(role="system", content=system_prompt_for(docs, examples))
     tools: list[Tool] = [WorkflowTool("workflow_tool")]
     classes = [
         c for c in get_registered_node_classes() if c.get_node_type() in node_types
     ]
+    model = FunctionModel(
+        # provider=Provider.Anthropic,
+        # name="claude-3-5-sonnet-20240620",
+        provider=Provider.OpenAI,
+        name="gpt-4o-mini",
+    )
 
     for node_class in classes[:128]:
         try:
@@ -558,70 +557,15 @@ async def create_help_answer(
             log.error(f"Error creating node tool: {e}")
             log.exception(e)
 
-    context = ProcessingContext(user.id, user.auth_token)
+    context = ProcessingContext("", "notoken")
     answer = await process_messages(
         context=context,
         messages=[system_message] + messages,
-        model=FunctionModel(
-            # provider=Provider.Anthropic,
-            # name="claude-3-5-sonnet-20240620",
-            provider=Provider.OpenAI,
-            name="gpt-4o-mini",
-        ),
+        model=model,
         node_id="",
         tools=tools,
     )
-    MessageModel.create(
-        user_id=user.id,
-        thread_id=thread_id,
-        role=answer.role,
-        content=answer.content,
-        tool_calls=answer.tool_calls,
-        created_at=datetime.now(),
-    )
-    if answer.tool_calls is None:
-        return [answer]
-
-    try:
-        for tool_call in answer.tool_calls:
-            if tool_call.name.startswith("add_node_"):
-                # Tool names are not allowed to contain dots
-                tool_call.name = tool_call.name.replace(".", "__")
-        tool_calls = await process_tool_calls(
-            context=context,
-            thread_id=thread_id,
-            tool_calls=answer.tool_calls,
-            tools=tools,
-        )
-        for tool_call in tool_calls:
-            MessageModel.create(
-                user_id=user.id,
-                thread_id=thread_id,
-                role="tool",
-                tool_call_id=tool_call.id,
-                tool_calls=tool_calls,
-                created_at=datetime.now(),
-            )
-        tool_messages = [
-            Message(
-                role="tool",
-                thread_id=thread_id,
-                tool_call_id=tool_call.id,
-                tool_calls=tool_calls,
-            )
-            for tool_call in tool_calls
-        ]
-    except Exception as e:
-        log.error(f"Error processing tool calls: {e}")
-        log.exception(e)
-        tool_messages = [
-            Message(
-                role="system",
-                content=f"An error occurred: {e}",
-            )
-        ]
-
-    return [answer] + tool_messages
+    return answer
 
 
 if __name__ == "__main__":

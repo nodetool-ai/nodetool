@@ -47,9 +47,7 @@ class Tool:
         )
         return ChatToolParam(function=function_definition, type="function")
 
-    async def process(
-        self, context: ProcessingContext, thread_id: str, params: dict
-    ) -> Any:
+    async def process(self, context: ProcessingContext, params: dict) -> Any:
         return params
 
 
@@ -69,9 +67,7 @@ class ProcessNodeTool(Tool):
         self.node_type = node_type
         self.input_schema = self.node_type.get_json_schema()
 
-    async def process(
-        self, context: ProcessingContext, thread_id: str, params: dict
-    ) -> Any:
+    async def process(self, context: ProcessingContext, params: dict) -> Any:
         node = self.node_type(id="")
 
         for key, value in params.items():

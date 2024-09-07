@@ -489,7 +489,6 @@ def message_param(message: Message) -> ChatMessageParam:
 
 async def run_tool(
     context: ProcessingContext,
-    thread_id: str,
     tool_call: ToolCall,
     tools: Sequence[Tool],
 ) -> ToolCall:
@@ -518,13 +517,12 @@ async def run_tool(
 
     assert tool is not None, f"Tool {tool_call.name} not found"
 
-    result = await tool.process(context, thread_id, tool_call.args)
+    result = await tool.process(context, tool_call.args)
 
     content = json.dumps(result, default=default_serializer)
     message = await context.create_message(
         MessageCreateRequest(
             role="tool",
-            thread_id=thread_id,
             user_id=context.user_id,
             tool_call_id=tool_call.id,
             name=tool_call.name,
@@ -544,7 +542,6 @@ async def run_tool(
 
 async def process_tool_calls(
     context: ProcessingContext,
-    thread_id: str,
     tool_calls: Sequence[ToolCall],
     tools: Sequence[Tool],
 ) -> list[ToolCall]:
@@ -555,7 +552,6 @@ async def process_tool_calls(
 
     Args:
         context (ProcessingContext): The processing context.
-        thread_id (str): The thread ID.
         tool_calls (list[ToolCall]): The list of tool calls.
         columns (list[ColumnDef] | None, optional): The list of column definitions for the create_record tool. Defaults to None.
 
@@ -567,7 +563,6 @@ async def process_tool_calls(
         *[
             run_tool(
                 context=context,
-                thread_id=thread_id,
                 tool_call=tool_call,
                 tools=tools,
             )

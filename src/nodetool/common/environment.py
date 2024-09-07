@@ -415,11 +415,15 @@ class Environment(object):
     def get_openai_client(cls):
         from openai import AsyncClient
 
+        assert cls.get_openai_api_key() is not None, "OpenAI API key is not set"
+
         return AsyncClient(api_key=cls.get_openai_api_key())
 
     @classmethod
     def get_anthropic_client(cls, use_async=True):
         from anthropic import AsyncAnthropic
+
+        assert cls.get_anthropic_api_key() is not None, "Anthropic API key is not set"
 
         return AsyncAnthropic(
             api_key=cls.get_anthropic_api_key(),

@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
 from nodetool.api.utils import current_user, User
 from nodetool.chat.help import create_help_answer
@@ -54,32 +55,15 @@ def ensure_alternating_roles(messages):
     return corrected_messages
 
 
+class HelpRequest(BaseModel):
+    messages: list[Message]
+
+
 @router.post("/help")
-async def help(
-    req: MessageCreateRequest, user: User = Depends(current_user)
-) -> list[Message]:
-    if req.thread_id is None:
-        thread_id = Thread.create(user_id=user.id).id
-    else:
-        thread_id = req.thread_id
-
-    history, _ = MessageModel.paginate(thread_id=thread_id)
-    user_message = MessageModel.create(
-        user_id=user.id,
-        thread_id=thread_id,
-        tool_call_id=req.tool_call_id,
-        role=req.role,
-        name=req.name,
-        content=req.content,
-        tool_calls=req.tool_calls,
-        created_at=datetime.now(),
-    )
-    history.append(user_message)
-    messages = [Message.from_model(message) for message in history]
-    messages = ensure_alternating_roles(messages)
-    answer = await create_help_answer(user, req, messages)
-
-    return [Message.from_model(user_message)] + answer
+async def help(req: HelpRequest) -> list[Message]:
+    messages = ensure_alternating_roles(req.messages)
+    answer = await create_help_answer(messages)
+    return [answer]
 
 
 @router.get("/{message_id}")
