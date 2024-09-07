@@ -29,10 +29,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         const messages = get().messages.concat(message);
         get().addMessages([message]);
         try {
-            const { data, error } = await client.POST('/api/messages/help', { body: { messages } });
-            if (error) {
-                throw error;
+            const response = await fetch('https://api.nodetool.ai/api/messages/help', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ messages }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const data = await response.json();
             get().addMessages(data);
 
             // Check for workflow tool calls

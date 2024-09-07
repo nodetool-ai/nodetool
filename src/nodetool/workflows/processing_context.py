@@ -412,18 +412,20 @@ class ProcessingContext:
         if params is None:
             params = {}
 
-        req = PredictionCreateRequest(
-            provider=provider,
-            model=model,
-            node_id=node_id,
-            workflow_id=self.workflow_id if self.workflow_id else "",
-            params=params,
-        )
+        if self.api_client.auth_token != "notoken":
+            # used for help endpoint
+            req = PredictionCreateRequest(
+                provider=provider,
+                model=model,
+                node_id=node_id,
+                workflow_id=self.workflow_id if self.workflow_id else "",
+                params=params,
+            )
 
-        res = await self.api_client.post(
-            "api/predictions/",
-            json=req.model_dump(),
-        )
+            res = await self.api_client.post(
+                "api/predictions/",
+                json=req.model_dump(),
+            )
 
         prediction = Prediction(**res.json())
         prediction.params = params
