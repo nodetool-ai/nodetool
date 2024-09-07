@@ -95,10 +95,6 @@ def serve(
     if worker_url:
         Environment.set_worker_url(worker_url)
 
-    # index documentation and examples in the background
-    threading.Thread(target=index_documentation).start()
-    threading.Thread(target=index_examples).start()
-
     if not reload:
         app = create_app(static_folder=static_folder)
     else:

@@ -3066,7 +3066,12 @@ class StableDiffusionUpscale(BaseNode):
         return [
             HFStableDiffusionXL(
                 repo_id="stabilityai/stable-diffusion-x4-upscaler",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             )
         ]
 
@@ -3223,6 +3228,18 @@ class StableDiffusionXLBase(BaseNode):
                 allow_patterns=[
                     "models/*.safetensors",
                 ],
+            ),
+            HFControlNet(
+                repo_id="diffusers/controlnet-canny-sdxl-1.0",
+                allow_patterns=["*.fp16.safetensors"],
+            ),
+            HFControlNet(
+                repo_id="diffusers/controlnet-depth-sdxl-1.0",
+                allow_patterns=["*.fp16.safetensors"],
+            ),
+            HFControlNet(
+                repo_id="diffusers/controlnet-zoe-depth-sdxl-1.0",
+                allow_patterns=["*.fp16.safetensors"],
             ),
         ]
 
@@ -3611,23 +3628,6 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
         return "Stable Diffusion XL ControlNet"
 
     _pipeline: StableDiffusionXLControlNetPipeline | None = None
-
-    @classmethod
-    def get_recommended_models(cls) -> list[str]:
-        return [
-            HFControlNet(
-                repo_id="diffusers/controlnet-canny-sdxl-1.0",
-                allow_patterns=["*.fp16.safetensors"],
-            ),
-            HFControlNet(
-                repo_id="diffusers/controlnet-depth-sdxl-1.0",
-                allow_patterns=["*.fp16.safetensors"],
-            ),
-            HFControlNet(
-                repo_id="diffusers/controlnet-zoe-depth-sdxl-1.0",
-                allow_patterns=["*.fp16.safetensors"],
-            ),
-        ]
 
     async def initialize(self, context: ProcessingContext):
         if not context.is_huggingface_model_cached(self.control_model.value):
