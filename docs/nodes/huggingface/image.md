@@ -1,36 +1,5 @@
 # nodetool.nodes.huggingface.image
 
-## AuraFlow
-
-Generates images using the AuraFlow pipeline.
-
-Use cases:
-- Create unique images from text descriptions
-- Generate illustrations for creative projects
-- Produce visual content for digital media
-
-**Tags:** image, generation, AI, text-to-image
-
-**Fields:**
-- **prompt**: A text prompt describing the desired image. (str)
-- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
-- **guidance_scale**: The guidance scale for the transformation. (float)
-- **num_inference_steps**: The number of denoising steps. (int)
-- **width**: The width of the generated image. (int)
-- **height**: The height of the generated image. (int)
-- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
-
-### initialize
-
-**Args:**
-- **context (ProcessingContext)**
-
-### move_to_device
-
-**Args:**
-- **device (str)**
-
-
 ## BaseImageToImage
 
 Base class for image-to-image transformation tasks.
@@ -50,7 +19,7 @@ Base class for image-to-image transformation tasks.
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** ImageRef
 
@@ -58,9 +27,13 @@ Base class for image-to-image transformation tasks.
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** ImageRef
+
+### required_inputs
+
+**Args:**
 
 
 ## DepthEstimation
@@ -73,10 +46,14 @@ Use cases:
 - Enhance computer vision systems for robotics
 - Improve scene understanding in autonomous vehicles
 
+Recommended models:
+- LiheYoung/depth-anything-base-hf
+- Intel/dpt-large
+
 **Tags:** image, depth estimation, 3D, huggingface
 
 **Fields:**
-- **model**: The model ID to use for depth estimation (DepthEstimationModelId)
+- **model**: The model ID to use for depth estimation (HFDepthEstimation)
 - **inputs**: The input image for depth estimation (ImageRef)
 
 ### get_inputs
@@ -92,7 +69,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** ImageRef
 
@@ -100,9 +77,13 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** ImageRef
+
+### required_inputs
+
+**Args:**
 
 
 ## FindSegment
@@ -110,17 +91,17 @@ Use cases:
 Extracts a specific segment from a list of segmentation masks.
 
 **Fields:**
-- **segments**: The segmentation masks to search (list)
+- **segments**: The segmentation masks to search (list[nodetool.metadata.types.ImageSegmentationResult])
 - **segment_label**: The label of the segment to extract (str)
+
+### required_inputs
+
+**Args:**
 
 
 ## IPAdapter_SD15_Model
 
-An enumeration.
-
 ## IPAdapter_SDXL_Model
-
-An enumeration.
 
 ## ImageClassifier
 
@@ -129,13 +110,11 @@ Classifies images into predefined categories.
 Use cases:
 - Content moderation by detecting inappropriate images
 - Organizing photo libraries by automatically tagging images
-- Visual quality control in manufacturing to identify defective products
-- Medical image analysis to assist in diagnosing conditions
 
 **Tags:** image, classification, labeling, categorization
 
 **Fields:**
-- **model**: The model ID to use for the classification (ImageClassifierModelId)
+- **model**: The model ID to use for the classification (HFImageClassification)
 - **inputs**: The input image to classify (ImageRef)
 
 ### get_inputs
@@ -151,126 +130,21 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, float]
 
 ### process_remote_result
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, float]
 
-
-## InstructPix2Pix
-
-Performs image editing based on text instructions using the InstructPix2Pix model.
-
-Use cases:
-- Apply specific edits to images based on text instructions
-- Modify image content or style guided by text prompts
-- Create variations of existing images with controlled changes
-
-**Tags:** image, editing, transformation, huggingface
-
-**Fields:**
-- **inputs**: The input image to transform (ImageRef)
-- **prompt**: The text prompt to guide the image transformation. (str)
-- **negative_prompt**: The negative text prompt to avoid in the transformation. (str)
-- **num_inference_steps**: The number of denoising steps. (int)
-- **guidance_scale**: The guidance scale for the transformation. (float)
-- **image_guidance_scale**: The image guidance scale for the transformation. (float)
-
-### get_model_id
+### required_inputs
 
 **Args:**
-
-### get_params
-
-**Args:**
-
-
-## Kandinsky2
-
-Generates images using the Kandinsky 2.2 model from text prompts.
-
-Use cases:
-- Create high-quality images from text descriptions
-- Generate detailed illustrations for creative projects
-- Produce visual content for digital media and art
-- Explore AI-generated imagery for concept development
-
-**Tags:** image, generation, AI, text-to-image
-
-**Fields:**
-- **prompt**: A text prompt describing the desired image. (str)
-- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
-- **num_inference_steps**: The number of denoising steps. (int)
-- **width**: The width of the generated image. (int)
-- **height**: The height of the generated image. (int)
-- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
-
-### initialize
-
-**Args:**
-- **context (ProcessingContext)**
-
-
-## Kandinsky2ControlNet
-
-Transforms existing images based on text prompts and control images using the Kandinsky 2.2 model with ControlNet.
-
-Use cases:
-- Transform existing images based on text prompts with precise control
-- Apply specific styles or concepts to existing images guided by control images
-- Modify photographs or artworks with AI-generated elements while maintaining specific structures
-- Create variations of existing visual content with controlled transformations
-
-**Tags:** image, generation, AI, image-to-image, controlnet
-
-**Fields:**
-- **prompt**: The prompt to guide the image generation. (str)
-- **negative_prompt**: The prompt not to guide the image generation. (str)
-- **hint**: The controlnet condition image. (ImageRef)
-- **height**: The height in pixels of the generated image. (int)
-- **width**: The width in pixels of the generated image. (int)
-- **num_inference_steps**: The number of denoising steps. (int)
-- **guidance_scale**: Guidance scale as defined in Classifier-Free Diffusion Guidance. (float)
-- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
-- **output_type**: The output format of the generated image. (str)
-
-### initialize
-
-**Args:**
-- **context (ProcessingContext)**
-
-
-## Kandinsky2Img2Img
-
-Transforms existing images based on text prompts using the Kandinsky 2.2 model.
-
-Use cases:
-- Transform existing images based on text prompts
-- Apply specific styles or concepts to existing images
-- Modify photographs or artworks with AI-generated elements
-- Create variations of existing visual content
-
-**Tags:** image, generation, AI, image-to-image
-
-**Fields:**
-- **prompt**: A text prompt describing the desired image transformation. (str)
-- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
-- **num_inference_steps**: The number of denoising steps. (int)
-- **strength**: The strength of the transformation. Use a value between 0.0 and 1.0. (float)
-- **image**: The input image to transform (ImageRef)
-- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
-
-### initialize
-
-**Args:**
-- **context (ProcessingContext)**
 
 
 ## Kandinsky3
@@ -322,6 +196,59 @@ Use cases:
 - **image**: The input image to transform (ImageRef)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 
+### get_model_id
+
+**Args:**
+
+**Returns:** str
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+### required_inputs
+
+**Args:**
+
+
+## LORA_Model
+
+## LORA_SDXL_Model
+
+## LatentConsistencyModel
+
+Generates images using the Latent Consistency Model.
+
+Use cases:
+- Create AI-generated art and illustrations
+- Produce concept art for creative projects
+- Generate visual content for various applications
+- Explore AI-assisted image creation
+
+**Tags:** image, generation, AI, diffusion
+
+**Fields:**
+- **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
+- **prompt**: The prompt for image generation. (str)
+- **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
+- **seed**: Seed for the random number generator. (int)
+- **num_inference_steps**: Number of denoising steps. LCM supports fast inference even with <=4 steps. Recommended: 1-8 steps. (int)
+- **guidance_scale**: Guidance scale for generation. (float)
+- **width**: Width of the generated image. (int)
+- **height**: Height of the generated image (int)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **lora_model**: The LORA model to use for image processing (LORA_SDXL_Model)
+- **lora_scale**: Strength of the LORA image (float)
+- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SDXL_Model)
+- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
+- **ip_adapter_scale**: Strength of the IP adapter image (float)
+
 ### initialize
 
 **Args:**
@@ -333,10 +260,6 @@ Use cases:
 - **device (str)**
 
 
-## LORA_SDXL_Model
-
-An enumeration.
-
 ## ObjectDetection
 
 Detects and localizes objects in images.
@@ -347,10 +270,13 @@ Use cases:
 - Assist in autonomous vehicle vision systems
 - Enhance security camera footage analysis
 
+Recommended models:
+- facebook/detr-resnet-50
+
 **Tags:** image, object detection, bounding boxes, huggingface
 
 **Fields:**
-- **model**: The model ID to use for object detection (ObjectDetectionModelId)
+- **model**: The model ID to use for object detection (HFObjectDetection)
 - **inputs**: The input image for object detection (ImageRef)
 - **threshold**: Minimum confidence score for detected objects (float)
 - **top_k**: The number of top predictions to return (int)
@@ -372,9 +298,13 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.ObjectDetectionResult]
+
+### required_inputs
+
+**Args:**
 
 
 ## PixArtAlpha
@@ -391,10 +321,111 @@ Use cases:
 
 **Fields:**
 - **prompt**: A text prompt describing the desired image. (str)
+- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
 - **num_inference_steps**: The number of denoising steps. (int)
 - **guidance_scale**: The scale for classifier-free guidance. (float)
 - **width**: The width of the generated image. (int)
 - **height**: The height of the generated image. (int)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### get_model_id
+
+**Args:**
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+
+## PixArtSigma
+
+Generates images from text prompts using the PixArt-Sigma model.
+
+Use cases:
+- Create unique images from detailed text descriptions
+- Generate concept art for creative projects
+- Produce visual content for digital media and marketing
+- Explore AI-generated imagery for artistic inspiration
+
+**Tags:** image, generation, AI, text-to-image
+
+**Fields:**
+- **prompt**: A text prompt describing the desired image. (str)
+- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **guidance_scale**: The scale for classifier-free guidance. (float)
+- **width**: The width of the generated image. (int)
+- **height**: The height of the generated image. (int)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### get_model_id
+
+**Args:**
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+
+## PlaygroundV2
+
+Playground v2.5 is the state-of-the-art open-source model in aesthetic quality.
+
+Use cases:
+- Create detailed images from text descriptions
+- Generate unique illustrations for creative projects
+- Produce visual content for digital media and art
+- Explore AI-generated imagery for concept development
+
+**Tags:** image, generation, AI, text-to-image
+
+**Fields:**
+- **prompt**: A text prompt describing the desired image. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **guidance_scale**: The scale for classifier-free guidance. (float)
+- **width**: The width of the generated image. (int)
+- **height**: The height of the generated image. (int)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### move_to_device
+
+**Args:**
+- **device (str)**
+
+
+## Proteus
+
+Proteus is an open-source text-to-image generation model.
+
+Use cases:
+- Generate images from textual descriptions
+- Create unique visual content for creative projects
+- Explore AI-generated imagery for concept development
+- Produce illustrations for various applications
+
+**Tags:** image, generation, AI, text-to-image
+
+**Fields:**
+- **prompt**: A text prompt describing the desired image. (str)
+- **num_inference_steps**: The number of denoising steps. (int)
+- **guidance_scale**: The scale for classifier-free guidance. (float)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 
 ### initialize
@@ -421,7 +452,7 @@ Use cases:
 **Tags:** image, generation, AI, text-to-image, fast
 
 **Fields:**
-- **model**: The SDXL Turbo model to use for generation. (SDXLTurboModelId)
+- **model**: The SDXL Turbo model to use for generation. (HFStableDiffusionXLTurbo)
 - **prompt**: The prompt for image generation. (str)
 - **seed**: Seed for the random number generator. (int)
 - **num_inference_steps**: Number of inference steps. (int)
@@ -453,7 +484,7 @@ Use cases:
 **Tags:** image, generation, AI, image-to-image
 
 **Fields:**
-- **model**: The SDXL Turbo model to use for generation. (SDXLTurboModelId)
+- **model**: The SDXL Turbo model to use for generation. (HFStableDiffusionXLTurbo)
 - **prompt**: The prompt for image generation. (str)
 - **init_image**: The initial image for Image-to-Image generation. (ImageRef)
 - **seed**: Seed for the random number generator. (int)
@@ -473,10 +504,10 @@ Use cases:
 **Args:**
 - **device (str)**
 
+### required_inputs
 
-## SDXLTurboModelId
+**Args:**
 
-An enumeration.
 
 ## Segmentation
 
@@ -486,10 +517,14 @@ Use cases:
 - Segmenting objects in images
 - Segmenting facial features in images
 
+Recommended models:
+- nvidia/segformer-b3-finetuned-ade-512-512
+- mattmdjaga/segformer_b2_clothes
+
 **Tags:** image, segmentation, object detection, scene parsing
 
 **Fields:**
-- **model**: The model ID to use for the segmentation (SegmentationModelId)
+- **model**: The model ID to use for the segmentation (HFImageSegmentation)
 - **image**: The input image to segment (ImageRef)
 
 ### get_inputs
@@ -505,42 +540,13 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.ImageSegmentationResult]
 
-
-## StableCascade
-
-Generates images using the Stable Cascade model, which involves a two-stage process with a prior and a decoder.
-
-Use cases:
-- Create high-quality images from text descriptions
-- Generate detailed illustrations for creative projects
-- Produce visual content for digital media and art
-
-**Tags:** image, generation, AI, text-to-image
-
-**Fields:**
-- **prompt**: A text prompt describing the desired image. (str)
-- **negative_prompt**: A text prompt describing what to avoid in the image. (str)
-- **width**: The width of the generated image. (int)
-- **height**: The height of the generated image. (int)
-- **prior_num_inference_steps**: The number of denoising steps for the prior. (int)
-- **decoder_num_inference_steps**: The number of denoising steps for the decoder. (int)
-- **prior_guidance_scale**: Guidance scale for the prior. (float)
-- **decoder_guidance_scale**: Guidance scale for the decoder. (float)
-- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
-
-### initialize
+### required_inputs
 
 **Args:**
-- **context (ProcessingContext)**
-
-### move_to_device
-
-**Args:**
-- **device (str)**
 
 
 ## StableDiffusion
@@ -556,13 +562,15 @@ Use cases:
 **Tags:** image, generation, AI, text-to-image
 
 **Fields:**
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **model**: The model to use for image generation. (HFStableDiffusion)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **lora_model**: The LORA model to use for image processing (LORA_Model)
+- **lora_scale**: Strength of the LORA image (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: Strength of the IP adapter image (float)
@@ -585,46 +593,18 @@ Use cases:
 - **context (ProcessingContext)**
 
 
-## StableDiffusion3ControlNetNode
-
-Generates images using Stable Diffusion 3 with ControlNet.
-
-Use cases:
-- Generate images with precise control over composition and structure
-- Create variations of existing images while maintaining specific features
-- Artistic image generation with guided outputs
-
-**Tags:** image, generation, AI, text-to-image, controlnet
-
-**Fields:**
-- **prompt**: A text prompt describing the desired image. (str)
-- **control_model**: The ControlNet model to use for image generation. (StableDiffusion3ControlNetModelId)
-- **control_image**: The control image to guide the generation process. (ImageRef)
-- **controlnet_conditioning_scale**: The scale of the ControlNet conditioning. (float)
-- **num_inference_steps**: The number of denoising steps. (int)
-- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
-
-### initialize
-
-**Args:**
-- **context (ProcessingContext)**
-
-### move_to_device
-
-**Args:**
-- **device (str)**
-
-
 ## StableDiffusionBaseNode
 
 **Fields:**
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **model**: The model to use for image generation. (HFStableDiffusion)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **lora_model**: The LORA model to use for image processing (LORA_Model)
+- **lora_scale**: Strength of the LORA image (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: Strength of the IP adapter image (float)
@@ -658,17 +638,19 @@ Use cases:
 **Tags:** image, generation, AI, image-to-image, controlnet
 
 **Fields:**
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **model**: The model to use for image generation. (HFStableDiffusion)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **lora_model**: The LORA model to use for image processing (LORA_Model)
+- **lora_scale**: Strength of the LORA image (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: Strength of the IP adapter image (float)
-- **controlnet**: The ControlNet model to use for guidance. (StableDiffusionControlNetModel)
+- **controlnet**: The ControlNet model to use for guidance. (HFControlNet)
 - **image**: The input image to be transformed. (ImageRef)
 - **control_image**: The control image to guide the transformation. (ImageRef)
 
@@ -676,6 +658,10 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
+
+### required_inputs
+
+**Args:**
 
 
 ## StableDiffusionControlNetInpaintNode
@@ -690,13 +676,15 @@ Use cases:
 **Tags:** image, inpainting, AI, controlnet
 
 **Fields:**
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **model**: The model to use for image generation. (HFStableDiffusion)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **lora_model**: The LORA model to use for image processing (LORA_Model)
+- **lora_scale**: Strength of the LORA image (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: Strength of the IP adapter image (float)
@@ -711,10 +699,10 @@ Use cases:
 **Args:**
 - **context (ProcessingContext)**
 
+### required_inputs
 
-## StableDiffusionControlNetModel
+**Args:**
 
-An enumeration.
 
 ## StableDiffusionControlNetNode
 
@@ -728,17 +716,19 @@ Use cases:
 **Tags:** image, generation, AI, text-to-image, controlnet
 
 **Fields:**
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **model**: The model to use for image generation. (HFStableDiffusion)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **lora_model**: The LORA model to use for image processing (LORA_Model)
+- **lora_scale**: Strength of the LORA image (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: Strength of the IP adapter image (float)
-- **controlnet**: The ControlNet model to use for guidance. (StableDiffusionControlNetModel)
+- **controlnet**: The ControlNet model to use for guidance. (HFControlNet)
 - **control_image**: The control image to guide the generation process. (ImageRef)
 - **controlnet_conditioning_scale**: The scale for ControlNet conditioning. (float)
 
@@ -746,6 +736,10 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
+
+### required_inputs
+
+**Args:**
 
 
 ## StableDiffusionImg2ImgNode
@@ -761,13 +755,15 @@ Use cases:
 **Tags:** image, generation, AI, image-to-image
 
 **Fields:**
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **model**: The model to use for image generation. (HFStableDiffusion)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **lora_model**: The LORA model to use for image processing (LORA_Model)
+- **lora_scale**: Strength of the LORA image (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: Strength of the IP adapter image (float)
@@ -778,6 +774,10 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
+
+### required_inputs
+
+**Args:**
 
 
 ## StableDiffusionInpaintNode
@@ -792,13 +792,15 @@ Use cases:
 **Tags:** image, inpainting, AI
 
 **Fields:**
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
+- **model**: The model to use for image generation. (HFStableDiffusion)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of denoising steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
 - **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **lora_model**: The LORA model to use for image processing (LORA_Model)
+- **lora_scale**: Strength of the LORA image (float)
 - **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: Strength of the IP adapter image (float)
@@ -811,18 +813,16 @@ Use cases:
 **Args:**
 - **context (ProcessingContext)**
 
+### required_inputs
 
-## StableDiffusionModelId
+**Args:**
 
-An enumeration.
 
 ## StableDiffusionScheduler
 
-An enumeration.
-
 ## StableDiffusionUpscale
 
-Upscales an image using Stable Diffusion upscaler model.
+Upscales an image using Stable Diffusion 4x upscaler.
 
 Use cases:
 - Enhance low-resolution images
@@ -832,17 +832,13 @@ Use cases:
 **Tags:** image, upscaling, AI, stable-diffusion
 
 **Fields:**
-- **model**: The Stable Diffusion model to use for generation. (StableDiffusionModelId)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
-- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 - **num_inference_steps**: Number of upscaling steps. (int)
 - **guidance_scale**: Guidance scale for generation. (float)
-- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
-- **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SD15_Model)
-- **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
-- **ip_adapter_scale**: Strength of the IP adapter image (float)
 - **image**: The initial image for Image-to-Image generation. (ImageRef)
+- **scheduler**: The scheduler to use for the diffusion process. (StableDiffusionScheduler)
+- **seed**: Seed for the random number generator. Use -1 for a random seed. (int)
 
 ### initialize
 
@@ -853,6 +849,10 @@ Use cases:
 
 **Args:**
 - **device (str)**
+
+### required_inputs
+
+**Args:**
 
 
 ## StableDiffusionXL
@@ -868,7 +868,7 @@ Use cases:
 **Tags:** image, generation, AI, text-to-image
 
 **Fields:**
-- **model**: The Stable Diffusion XL model to use for generation. (StableDiffusionXLModelId)
+- **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. (int)
@@ -902,7 +902,7 @@ Use cases:
 ## StableDiffusionXLBase
 
 **Fields:**
-- **model**: The Stable Diffusion XL model to use for generation. (StableDiffusionXLModelId)
+- **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. (int)
@@ -940,7 +940,7 @@ Use cases:
 **Tags:** image, generation, AI, text-to-image, controlnet
 
 **Fields:**
-- **model**: The Stable Diffusion XL model to use for generation. (StableDiffusionXLModelId)
+- **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. (int)
@@ -954,6 +954,8 @@ Use cases:
 - **ip_adapter_model**: The IP adapter model to use for image processing (IPAdapter_SDXL_Model)
 - **ip_adapter_image**: When provided the image will be fed into the IP adapter (ImageRef)
 - **ip_adapter_scale**: Strength of the IP adapter image (float)
+- **init_image**: The initial image for Image-to-Image generation. (ImageRef)
+- **strength**: Strength for Image-to-Image generation. (float)
 - **control_image**: The control image to guide the generation process (already processed). (ImageRef)
 - **control_model**: The type of ControlNet model to use. (StableDiffusionXLControlNetModel)
 - **controlnet_conditioning_scale**: The scale of the ControlNet conditioning. (float)
@@ -963,10 +965,9 @@ Use cases:
 **Args:**
 - **context (ProcessingContext)**
 
-### move_to_device
+### required_inputs
 
 **Args:**
-- **device (str)**
 
 
 ## StableDiffusionXLImg2Img
@@ -982,7 +983,7 @@ Use cases:
 **Tags:** image, generation, AI, image-to-image
 
 **Fields:**
-- **model**: The Stable Diffusion XL model to use for generation. (StableDiffusionXLModelId)
+- **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. (int)
@@ -1004,6 +1005,10 @@ Use cases:
 **Args:**
 - **context (ProcessingContext)**
 
+### required_inputs
+
+**Args:**
+
 
 ## StableDiffusionXLInpainting
 
@@ -1018,7 +1023,7 @@ Use cases:
 **Tags:** image, inpainting, AI, image-editing
 
 **Fields:**
-- **model**: The Stable Diffusion XL model to use for generation. (StableDiffusionXLModelId)
+- **model**: The Stable Diffusion XL model to use for generation. (HFStableDiffusionXL)
 - **prompt**: The prompt for image generation. (str)
 - **negative_prompt**: The negative prompt to guide what should not appear in the generated image. (str)
 - **seed**: Seed for the random number generator. (int)
@@ -1041,10 +1046,10 @@ Use cases:
 **Args:**
 - **context (ProcessingContext)**
 
+### required_inputs
 
-## StableDiffusionXLModelId
+**Args:**
 
-An enumeration.
 
 ## Swin2SR
 
@@ -1060,6 +1065,7 @@ Use cases:
 **Fields:**
 - **inputs**: The input image to transform (ImageRef)
 - **prompt**: The text prompt to guide the image transformation (if applicable) (str)
+- **model**: The model ID to use for image super-resolution (HFImageToImage)
 
 ### get_model_id
 
@@ -1076,7 +1082,11 @@ Visualizes object detection results on images.
 
 **Fields:**
 - **image**: The input image to visualize (ImageRef)
-- **objects**: The detected objects to visualize (list)
+- **objects**: The detected objects to visualize (list[nodetool.metadata.types.ObjectDetectionResult])
+
+### required_inputs
+
+**Args:**
 
 
 ## VisualizeSegmentation
@@ -1092,13 +1102,17 @@ Use cases:
 
 **Fields:**
 - **image**: The input image to visualize (ImageRef)
-- **segments**: The segmentation masks to visualize (list)
+- **segments**: The segmentation masks to visualize (list[nodetool.metadata.types.ImageSegmentationResult])
 
 ### generate_color_map
 
 Generate a list of distinct colors.
 **Args:**
 - **num_colors**
+
+### required_inputs
+
+**Args:**
 
 
 ## ZeroShotImageClassifier
@@ -1110,10 +1124,17 @@ Use cases:
 - Identify objects in images without predefined labels
 - Automate image tagging for large datasets
 
+Recommended models:
+- openai/clip-vit-large-patch14
+- openai/clip-vit-base-patch16
+- openai/clip-vit-base-patch32
+- patrickjohncyh/fashion-clip
+- laion/CLIP-ViT-H-14-laion2B-s32B-b79K
+
 **Tags:** image, classification, labeling, categorization
 
 **Fields:**
-- **model**: The model ID to use for the classification (ZeroShotImageClassifierModelId)
+- **model**: The model ID to use for the classification (HFZeroShotImageClassification)
 - **inputs**: The input image to classify (ImageRef)
 - **candidate_labels**: The candidate labels to classify the image against, separated by commas (str)
 
@@ -1134,17 +1155,21 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, float]
 
 ### process_remote_result
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, float]
+
+### required_inputs
+
+**Args:**
 
 
 ## ZeroShotObjectDetection
@@ -1156,10 +1181,18 @@ Use cases:
 - Identify objects in images without predefined labels
 - Automate object detection for large datasets
 
+Recommended models:
+- google/owlvit-base-patch32
+- google/owlvit-large-patch14
+- google/owlvit-base-patch16
+- google/owlv2-base-patch16
+- google/owlv2-base-patch16-ensemble
+- IDEA-Research/grounding-dino-tiny
+
 **Tags:** image, object detection, bounding boxes, zero-shot
 
 **Fields:**
-- **model**: The model ID to use for object detection (ZeroShotObjectDetectionModelId)
+- **model**: The model ID to use for object detection (HFZeroShotObjectDetection)
 - **inputs**: The input image for object detection (ImageRef)
 - **threshold**: Minimum confidence score for detected objects (float)
 - **top_k**: The number of top predictions to return (int)
@@ -1182,20 +1215,17 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.ObjectDetectionResult]
+
+### required_inputs
+
+**Args:**
 
 
 ### get_scheduler_class
 
 **Args:**
 - **scheduler (StableDiffusionScheduler)**
-
-### make_hint
-
-**Args:**
-- **image (Image)**
-
-**Returns:** Tensor
 

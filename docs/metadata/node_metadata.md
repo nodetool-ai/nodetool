@@ -10,8 +10,9 @@ Metadata for a node.
 - **namespace** (str)
 - **node_type** (str)
 - **layout** (str)
-- **properties** (list)
-- **outputs** (list)
-- **model_info** (dict)
+- **properties** (list[nodetool.workflows.property.Property])
+- **outputs** (list[nodetool.metadata.types.OutputSlot])
+- **model_info** (dict[str, typing.Any])
+- **recommended_models** (list[nodetool.metadata.types.HuggingFaceModel])
 
 

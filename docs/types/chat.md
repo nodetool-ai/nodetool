@@ -11,13 +11,14 @@
 - **content** (str | list[nodetool.models.message.MessageTextContent | nodetool.models.message.MessageImageContent] | None)
 - **tool_calls** (list[nodetool.models.message.ToolCall] | None)
 - **created_at** (str | None)
+- **workflow** (nodetool.models.workflow.Workflow | None)
 
 
 ## MessageList
 
 **Fields:**
 - **next** (str | None)
-- **messages** (list)
+- **messages** (list[nodetool.metadata.types.Message])
 
 
 ## TaskCreateRequest
@@ -27,14 +28,14 @@
 - **thread_id** (str)
 - **name** (str)
 - **instructions** (str)
-- **dependencies** (list)
+- **dependencies** (list[str])
 
 
 ## TaskList
 
 **Fields:**
 - **next** (str | None)
-- **tasks** (list)
+- **tasks** (list[nodetool.metadata.types.Task])
 
 
 ## TaskUpdateRequest

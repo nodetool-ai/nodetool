@@ -24,9 +24,19 @@
 - **id** (str)
 - **parent_id** (str | None)
 - **type** (str)
-- **data** (typing.Any)
-- **ui_properties** (typing.Any)
+- **data** (Any)
+- **ui_properties** (Any)
 
+
+### get_input_schema
+
+**Args:**
+- **graph (Graph)**
+
+### get_output_schema
+
+**Args:**
+- **graph (Graph)**
 
 ### remove_connected_slots
 

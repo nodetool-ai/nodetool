@@ -20,10 +20,10 @@ Deserialize JSON strings to lists and dicts.
 - ****: param py_type: The Python type of the value.
 - ****: return: The value converted to a Python type.
 **Args:**
-- **value (typing.Any)**
+- **value (Any)**
 - **py_type (typing.Type)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### convert_to_sqlite_attributes
 
@@ -43,7 +43,7 @@ Serialize lists and dicts to JSON strings. Encode bytes using base64.
 - ****: param py_type: The Python type of the value.
 - ****: return: The value converted to a SQLite-compatible format.
 **Args:**
-- **value (typing.Any)**
+- **value (Any)**
 - **py_type (typing.Type)**
 
 **Returns:** typing.Union[int, float, str, bytes, NoneType]
@@ -51,7 +51,7 @@ Serialize lists and dicts to JSON strings. Encode bytes using base64.
 ### get_sqlite_type
 
 **Args:**
-- **field_type (typing.Any)**
+- **field_type (Any)**
 
 **Returns:** str
 

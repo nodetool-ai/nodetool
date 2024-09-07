@@ -21,9 +21,9 @@ Get or create a collection with the given name.
 
 **Args:**
 - **context (ProcessingContext)**
-- **ids (list)**
+- **ids (list[str])**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.AssetRef]
 
 
 ## IndexFolder
@@ -39,7 +39,7 @@ Index all the assets in a folder.
 Stores input embeddings in a database and retrieves the nearest neighbors for a query embedding.
 
 **Fields:**
-- **documents**: The list of documents to search (list)
+- **documents**: The list of documents to search (list[nodetool.metadata.types.Tensor])
 - **query**: The query to search for (Tensor)
 - **n_neighbors**: The number of neighbors to return (int)
 

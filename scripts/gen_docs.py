@@ -187,7 +187,7 @@ def process_module(
     os.makedirs(os.path.dirname(module_path), exist_ok=True)
     print(f"Processing {module_name} -> {module_path}")
 
-    with open(module_path, "w") as file:
+    with open(module_path, "w", encoding="utf-8") as file:
         file.write(f"# {module.__name__}\n\n")
         if module.__doc__:
             file.write(f"{module.__doc__.strip()}\n\n")

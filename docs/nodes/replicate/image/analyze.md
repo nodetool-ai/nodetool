@@ -1,29 +1,5 @@
 # nodetool.nodes.replicate.image.analyze
 
-## Blip
-
-Generate image captions
-
-**Fields:**
-- **task**: Choose a task. (Task)
-- **image**: Input image (ImageRef)
-- **caption**: Type caption for the input image for image text matching task. (str | None)
-- **question**: Type question for the input image for visual question answering task. (str | None)
-
-
-## Blip2
-
-Answers questions about images
-
-**Fields:**
-- **image**: Input image to query or caption (ImageRef)
-- **caption**: Select if you want to generate image captions instead of asking questions (bool)
-- **context**: Optional - previous questions and answers to be used as context for answering current question (str | None)
-- **question**: Question to ask about this image. Leave blank for captioning (str)
-- **temperature**: Temperature for use with nucleus sampling (float)
-- **use_nucleus_sampling**: Toggles the model using nucleus sampling to generate responses (bool)
-
-
 ## ClipFeatures
 
 Return CLIP features for the clip-vit-large-patch14 model
@@ -79,7 +55,7 @@ LLaVA v1.6: Large Language and Vision Assistant (Nous-Hermes-2-34B)
 - **image**: Input image (ImageRef)
 - **top_p**: When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens (float)
 - **prompt**: Prompt to use for text generation (str | None)
-- **history**: List of earlier chat messages, alternating roles, starting with user input. Include <image> to specify which message to attach the image to. (list | None)
+- **history**: List of earlier chat messages, alternating roles, starting with user input. Include <image> to specify which message to attach the image to. (list)
 - **max_tokens**: Maximum number of tokens to generate. A word is generally 2-3 tokens (int)
 - **temperature**: Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic (float)
 

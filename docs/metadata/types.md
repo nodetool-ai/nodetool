@@ -2,8 +2,6 @@
 
 ## AnthropicModel
 
-An enumeration.
-
 ## AssetRef
 
 **Fields:**
@@ -99,7 +97,7 @@ It is used to create a mapping of type names to their corresponding classes.
 The result of a chat conversation.
 
 **Fields:**
-- **messages**: The messages in the conversation (list)
+- **messages**: The messages in the conversation (list[str])
 - **response**: The response from the chat system (str)
 
 
@@ -121,7 +119,7 @@ The result of a chat conversation.
 
 **Fields:**
 - **role** (typing.Literal['tool'])
-- **content** (typing.Any)
+- **content** (Any)
 - **tool_call_id** (str)
 
 
@@ -159,7 +157,7 @@ The result of a chat conversation.
 
 **Fields:**
 - **type** (str)
-- **data** (typing.Any)
+- **data** (Any)
 
 ### serialize
 
@@ -177,7 +175,7 @@ The result of a chat conversation.
 
 **Fields:**
 - **type** (typing.Literal['comfy.conditioning'])
-- **data** (typing.Any)
+- **data** (Any)
 
 
 ## ControlNet
@@ -217,7 +215,21 @@ This class represents a dataset, which includes a dataframe of features and a da
 
 **Fields:**
 - **type** (typing.Literal['comfy.embeds'])
-- **data** (typing.Any)
+- **data** (Any)
+
+
+## FaceAnalysis
+
+**Fields:**
+- **type** (typing.Literal['comfy.face_analysis'])
+- **data** (Any)
+
+
+## FaceEmbeds
+
+**Fields:**
+- **type** (typing.Literal['comfy.face_embeds'])
+- **data** (Any)
 
 
 ## FolderRef
@@ -234,7 +246,7 @@ This class represents a dataset, which includes a dataframe of features and a da
 **Fields:**
 - **name** (str)
 - **description** (str)
-- **parameters** (typing.Any)
+- **parameters** (Any)
 
 
 ## FunctionModel
@@ -264,13 +276,483 @@ This class represents a dataset, which includes a dataframe of features and a da
 
 ## GPTModel
 
-An enumeration.
-
 ## Guider
 
 **Fields:**
 - **type** (typing.Literal['comfy.guider'])
-- **data** (typing.Any)
+- **data** (Any)
+
+
+## HFAudioClassification
+
+**Fields:**
+- **type** (typing.Literal['hf.audio_classification'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFAudioToAudio
+
+**Fields:**
+- **type** (typing.Literal['hf.audio_to_audio'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFAutomaticSpeechRecognition
+
+**Fields:**
+- **type** (typing.Literal['hf.automatic_speech_recognition'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFComputerVision
+
+**Fields:**
+- **type** (typing.Literal['hf.computer_vision'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFControlNet
+
+**Fields:**
+- **type** (typing.Literal['hf.controlnet'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFControlNetSDXL
+
+**Fields:**
+- **type** (typing.Literal['hf.controlnet_sdxl'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFDepthEstimation
+
+**Fields:**
+- **type** (typing.Literal['hf.depth_estimation'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFDocumentQuestionAnswering
+
+**Fields:**
+- **type** (typing.Literal['hf.document_question_answering'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFFeatureExtraction
+
+**Fields:**
+- **type** (typing.Literal['hf.feature_extraction'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFFillMask
+
+**Fields:**
+- **type** (typing.Literal['hf.fill_mask'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFIPAdapter
+
+**Fields:**
+- **type** (typing.Literal['hf.ip_adapter'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+- **file_name** (str)
+
+
+## HFIPAdapterSDXL
+
+**Fields:**
+- **type** (typing.Literal['hf.ip_adapter_sdxl'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+- **file_name** (str)
+
+
+## HFImageClassification
+
+**Fields:**
+- **type** (typing.Literal['hf.image_classification'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFImageFeatureExtraction
+
+**Fields:**
+- **type** (typing.Literal['hf.image_feature_extraction'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFImageSegmentation
+
+**Fields:**
+- **type** (typing.Literal['hf.image_segmentation'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFImageTextToText
+
+**Fields:**
+- **type** (typing.Literal['hf.image_text_to_text'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFImageTo3D
+
+**Fields:**
+- **type** (typing.Literal['hf.image_to_3d'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFImageToImage
+
+**Fields:**
+- **type** (typing.Literal['hf.image_to_image'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFImageToText
+
+**Fields:**
+- **type** (typing.Literal['hf.image_to_text'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFImageToVideo
+
+**Fields:**
+- **type** (typing.Literal['hf.image_to_video'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFLora
+
+**Fields:**
+- **type** (typing.Literal['hf.lora'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+- **file_name** (str)
+
+
+## HFLoraSDXL
+
+**Fields:**
+- **type** (typing.Literal['hf.lora_sdxl'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+- **file_name** (str)
+
+
+## HFMaskGeneration
+
+**Fields:**
+- **type** (typing.Literal['hf.mask_generation'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFNaturalLanguageProcessing
+
+**Fields:**
+- **type** (typing.Literal['hf.natural_language_processing'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFObjectDetection
+
+**Fields:**
+- **type** (typing.Literal['hf.object_detection'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFQuestionAnswering
+
+**Fields:**
+- **type** (typing.Literal['hf.question_answering'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFSentenceSimilarity
+
+**Fields:**
+- **type** (typing.Literal['hf.sentence_similarity'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFStableDiffusion
+
+**Fields:**
+- **type** (typing.Literal['hf.stable_diffusion'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFStableDiffusionXL
+
+**Fields:**
+- **type** (typing.Literal['hf.stable_diffusion_xl'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFStableDiffusionXLTurbo
+
+**Fields:**
+- **type** (typing.Literal['hf.stable_diffusion_xl_turbo'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFSummarization
+
+**Fields:**
+- **type** (typing.Literal['hf.summarization'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTableQuestionAnswering
+
+**Fields:**
+- **type** (typing.Literal['hf.table_question_answering'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFText2TextGeneration
+
+**Fields:**
+- **type** (typing.Literal['hf.text2text_generation'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTextClassification
+
+**Fields:**
+- **type** (typing.Literal['hf.text_classification'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTextGeneration
+
+**Fields:**
+- **type** (typing.Literal['hf.text_generation'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTextTo3D
+
+**Fields:**
+- **type** (typing.Literal['hf.text_to_3d'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTextToAudio
+
+**Fields:**
+- **type** (typing.Literal['hf.text_to_audio'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTextToImage
+
+**Fields:**
+- **type** (typing.Literal['hf.text_to_image'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTextToSpeech
+
+**Fields:**
+- **type** (typing.Literal['hf.text_to_speech'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTextToVideo
+
+**Fields:**
+- **type** (typing.Literal['hf.text_to_video'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTokenClassification
+
+**Fields:**
+- **type** (typing.Literal['hf.token_classification'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFTranslation
+
+**Fields:**
+- **type** (typing.Literal['hf.translation'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFUnconditionalImageGeneration
+
+**Fields:**
+- **type** (typing.Literal['hf.unconditional_image_generation'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFVideoClassification
+
+**Fields:**
+- **type** (typing.Literal['hf.video_classification'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFVideoTextToText
+
+**Fields:**
+- **type** (typing.Literal['hf.video_text_to_text'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFVisualQuestionAnswering
+
+**Fields:**
+- **type** (typing.Literal['hf.visual_question_answering'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFVoiceActivityDetection
+
+**Fields:**
+- **type** (typing.Literal['hf.voice_activity_detection'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFZeroShotAudioClassification
+
+**Fields:**
+- **type** (typing.Literal['hf.zero_shot_audio_classification'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFZeroShotClassification
+
+**Fields:**
+- **type** (typing.Literal['hf.zero_shot_classification'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFZeroShotImageClassification
+
+**Fields:**
+- **type** (typing.Literal['hf.zero_shot_image_classification'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HFZeroShotObjectDetection
+
+**Fields:**
+- **type** (typing.Literal['hf.zero_shot_object_detection'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
+
+
+## HuggingFaceModel
+
+**Fields:**
+- **type** (typing.Literal['hf.model'])
+- **repo_id** (str)
+- **allow_patterns** (list[str])
+- **ignore_patterns** (list[str])
 
 
 ## IPAdapter
@@ -310,14 +792,28 @@ A reference to an image asset.
 
 **Fields:**
 - **type** (typing.Literal['comfy.image_tensor'])
-- **data** (typing.Any)
+- **data** (Any)
 
 
 ## InsightFace
 
 **Fields:**
 - **type** (typing.Literal['comfy.insight_face'])
-- **data** (typing.Any)
+- **data** (Any)
+
+
+## InstantID
+
+**Fields:**
+- **type** (typing.Literal['comfy.instant_id'])
+- **name** (str)
+
+
+## InstantIDFile
+
+**Fields:**
+- **type** (typing.Literal['comfy.instant_id_file'])
+- **name** (str)
 
 
 ## LORA
@@ -338,7 +834,7 @@ A reference to an image asset.
 
 **Fields:**
 - **type** (typing.Literal['comfy.latent'])
-- **data** (typing.Any)
+- **data** (Any)
 
 
 ## LlamaModel
@@ -357,7 +853,7 @@ A reference to an image asset.
 
 **Fields:**
 - **type** (typing.Literal['comfy.mask'])
-- **data** (typing.Any)
+- **data** (Any)
 
 
 ## Message
@@ -422,7 +918,7 @@ Convert a Model object to a Message object.
 
 **Fields:**
 - **type** (typing.Literal['comfy.noise'])
-- **data** (typing.Any)
+- **data** (Any)
 
 
 ## ObjectDetectionResult
@@ -455,7 +951,12 @@ This is the base class for all strucutred output types when a node
 
 ## Provider
 
-An enumeration.
+## REMBGSession
+
+**Fields:**
+- **type** (typing.Literal['comfy.rembg_session'])
+- **data** (Any)
+
 
 ## RankingResult
 
@@ -469,21 +970,21 @@ An enumeration.
 
 **Fields:**
 - **type** (typing.Literal['record_type'])
-- **columns** (list)
+- **columns** (list[nodetool.metadata.types.ColumnDef])
 
 
 ## Sampler
 
 **Fields:**
 - **type** (typing.Literal['comfy.sampler'])
-- **data** (typing.Any)
+- **data** (Any)
 
 
 ## Sigmas
 
 **Fields:**
 - **type** (typing.Literal['comfy.sigmas'])
-- **data** (typing.Any)
+- **data** (Any)
 
 
 ## Task
@@ -497,7 +998,7 @@ An enumeration.
 - **status** (str)
 - **name** (str)
 - **instructions** (str)
-- **dependencies** (list)
+- **dependencies** (list[str])
 - **started_at** (str)
 - **finished_at** (str | None)
 - **error** (str | None)
@@ -509,7 +1010,7 @@ An enumeration.
 
 **Fields:**
 - **type** (typing.Literal['tensor'])
-- **value** (list)
+- **value** (list[typing.Any])
 - **dtype** (typing.Optional[str])
 
 ### from_list
@@ -637,6 +1138,13 @@ Add type names to the TypeToEnum and EnumToType mappings.
 
 **Args:**
 - **type**
+
+### pipeline_tag_to_model_type
+
+**Args:**
+- **tag (str)**
+
+**Returns:** str | None
 
 ### to_numpy
 

@@ -55,7 +55,7 @@ Use cases:
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
-- **value**: The messages to display in the chat. (list)
+- **value**: The messages to display in the chat. (list[nodetool.metadata.types.Message])
 
 ### get_json_schema
 
@@ -95,7 +95,7 @@ Use cases:
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
-- **value** (dict)
+- **value** (dict[str, typing.Any])
 
 
 ## FloatOutput
@@ -132,7 +132,7 @@ Use cases:
 **Tags:** group, composite, multi-output
 
 **Fields:**
-- **input** (typing.Any)
+- **input** (Any)
 
 
 ## ImageListOutput
@@ -149,7 +149,7 @@ Use cases:
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
-- **value**: The images to display. (list)
+- **value**: The images to display. (list[nodetool.metadata.types.ImageRef])
 
 ### get_json_schema
 
@@ -214,7 +214,7 @@ Use cases:
 - **label**: The label for this output node. (str)
 - **name**: The parameter name for the workflow. (str)
 - **description**: The description for this output node. (str)
-- **value** (list)
+- **value** (list[typing.Any])
 
 ### get_json_schema
 

@@ -133,7 +133,7 @@ Use cases:
 **Tags:** text, join, combine
 
 **Fields:**
-- **strings** (list)
+- **strings** (list[str | nodetool.metadata.types.TextRef])
 - **separator** (str)
 
 
@@ -234,7 +234,7 @@ Returns the asset id.
 
 **Args:**
 - **context (ProcessingContext)**
-- **input (list)**
+- **input (list[nodetool.metadata.types.TextRef | str])**
 - **result (str)**
 
 **Returns:** nodetool.metadata.types.TextRef | str

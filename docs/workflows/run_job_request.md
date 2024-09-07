@@ -5,7 +5,7 @@
 **Fields:**
 - **type** (typing.Literal['run_job_request'])
 - **job_type** (str)
-- **params** (typing.Optional[typing.Any])
+- **params** (typing.Any | None)
 - **workflow_id** (str)
 - **user_id** (str)
 - **auth_token** (str)

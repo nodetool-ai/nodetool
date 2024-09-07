@@ -34,3 +34,10 @@
 - **comfy_workflow** (dict[str, typing.Any] | None)
 
 
+### find_thumbnail
+
+**Args:**
+- **workflow (Workflow)**
+
+**Returns:** str | None
+

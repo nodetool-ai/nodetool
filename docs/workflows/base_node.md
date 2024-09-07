@@ -39,15 +39,15 @@ Assign a value to a node property, performing type checking and conversion.
 This method handles type conversion for enums, lists, and objects with 'model_validate' method.
 **Args:**
 - **name (str)**
-- **value (typing.Any)**
+- **value (Any)**
 
 ### convert_output
 
 **Args:**
-- **context (typing.Any)**
-- **output (typing.Any)**
+- **context (Any)**
+- **output (Any)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### finalize
 
@@ -72,7 +72,7 @@ Create a Node object from a dictionary representation.
 
 - **Node**: The created Node object.
 **Args:**
-- **node (dict)**
+- **node (dict[str, typing.Any])**
 - **skip_errors (bool) (default: False)**
 
 **Returns:** BaseNode
@@ -81,7 +81,7 @@ Create a Node object from a dictionary representation.
 
 Includes all properties in the update message.
 **Args:**
-- **names (list)**
+- **names (list[str])**
 
 ### has_parent
 
@@ -93,7 +93,7 @@ Initialize the node when workflow starts.
 
 Responsible for setting up the node, including loading any necessary GPU models.
 **Args:**
-- **context (typing.Any)**
+- **context (Any)**
 
 ### move_to_device
 
@@ -116,9 +116,9 @@ Pre-process the node before processing.
 This will be called before cache key is computed.
 Default implementation generates a seed for any field named seed.
 **Args:**
-- **context (typing.Any)**
+- **context (Any)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### properties_for_client
 
@@ -136,9 +136,9 @@ Prepares the node result for inclusion in a NodeUpdate message.
 
 This method is used when the node is sending updates for all outputs.
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 ### result_for_client
 
@@ -161,9 +161,9 @@ Prepares the node result for inclusion in a NodeUpdate message.
 - Converts Pydantic models to dictionaries.
 - Serializes binary data to base64.
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 ### send_update
 
@@ -176,7 +176,7 @@ Send a status update for the node to the client.
 - **status (str)**: The status of the node.
 - **result (dict[str, Any], optional)**: The result of the node's processing. Defaults to {}.
 **Args:**
-- **context (typing.Any)**
+- **context (Any)**
 - **status (str)**
 - **result (dict[str, typing.Any] | None) (default: None)**
 
@@ -200,14 +200,14 @@ Set multiple node properties at once.
 
 Errors during property assignment are printed regardless of the skip_errors flag.
 **Args:**
-- **properties (dict)**
+- **properties (dict[str, typing.Any])**
 - **skip_errors (bool) (default: False)**
 
 ### to_dict
 
 **Args:**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 ### validate
 
@@ -223,7 +223,7 @@ Validate the node's inputs before processing.
 
 - **ValueError**: If any input is missing or invalid.
 **Args:**
-- **input_edges (list)**
+- **input_edges (list[nodetool.types.graph.Edge])**
 
 
 ## Comment
@@ -236,7 +236,7 @@ comment (list[Any]): The content of the comment, stored as a list of elements.
 
 **Fields:**
 - **headline**: The headline for this comment. (str)
-- **comment**: The comment for this node. (list)
+- **comment**: The comment for this node. (list[typing.Any])
 - **comment_color**: The color for the comment. (str)
 
 
@@ -284,9 +284,9 @@ description (str): A detailed description of the output.
 ### result_for_client
 
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
 ## Preview
@@ -298,15 +298,15 @@ value (Any): The value to be previewed.
 **Tags:** 
 
 **Fields:**
-- **value**: The value to preview. (typing.Any)
+- **value**: The value to preview. (Any)
 - **name**: The name of the preview node. (str)
 
 ### result_for_client
 
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
 ### add_comfy_classname
@@ -325,7 +325,7 @@ To avoid name conflicts, we store comfy classes in a separate dictionary.
 If the node class has a 'comfy_class' attribute, it uses that as the class name.
 Otherwise, it uses the actual class name.
 **Args:**
-- **node_class (type)**
+- **node_class (type['BaseNode'])**
 
 **Returns:** None
 
@@ -339,7 +339,7 @@ Add a node type to the registry.
 - **node_type (str)**: The node_type of the node.
 - **node_class (type[Node])**: The class of the node.
 **Args:**
-- **node_class (type)**
+- **node_class (type['BaseNode'])**
 
 **Returns:** None
 
@@ -371,7 +371,7 @@ If no exact match is found, it attempts to find a match by removing hyphens from
 **Args:**
 - **class_name (str)**
 
-**Returns:** type
+**Returns:** type[nodetool.workflows.base_node.BaseNode]
 
 ### get_node_class
 
@@ -404,6 +404,11 @@ Retrieve all registered and visible node classes.
 A decorator that implements memoization for class methods using a functional approach.
 **Args:**
 - **func (typing.Callable[..., ~T])**
+
+### split_camel_case
+
+**Args:**
+- **text**
 
 ### type_metadata
 

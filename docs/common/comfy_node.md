@@ -46,7 +46,7 @@ Comfy data types are wrapped with their respective classes.
 - **Any**: The converted output value.
 **Args:**
 - **context (ProcessingContext)**
-- **value (typing.Any)**
+- **value (Any)**
 
 ### get_comfy_class_name
 
@@ -61,11 +61,7 @@ Comfy data types are wrapped with their respective classes.
 
 ## DensePoseModel
 
-An enumeration.
-
 ## EnableDisable
-
-An enumeration.
 
 ### resolve_comfy_class
 

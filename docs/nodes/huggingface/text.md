@@ -34,7 +34,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** DataframeRef
 
@@ -42,7 +42,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** DataframeRef
 
@@ -77,17 +77,17 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 ### process_remote_result
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
 ## Summarize
@@ -97,6 +97,11 @@ Use cases:
 - **inputs**: The input text to the model (str)
 - **max_length**: The maximum length of the generated text (int)
 - **do_sample**: Whether to sample from the model (bool)
+
+### get_inputs
+
+**Args:**
+- **context (ProcessingContext)**
 
 ### get_model_id
 
@@ -110,7 +115,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
 
@@ -118,7 +123,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
 
@@ -153,17 +158,17 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 ### process_remote_result
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
 ## TextClassifier
@@ -171,6 +176,11 @@ Use cases:
 **Fields:**
 - **model**: The model ID to use for the classification (TextClassifierModelId)
 - **inputs**: The input text to the model (str)
+
+### get_inputs
+
+**Args:**
+- **context (ProcessingContext)**
 
 ### get_model_id
 
@@ -180,17 +190,17 @@ Use cases:
 
 **Args:**
 - **contex (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, float]
 
 ### process_remote_result
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, float]
 
 
 ## TextGeneration
@@ -230,7 +240,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
 
@@ -238,7 +248,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
 
@@ -279,17 +289,17 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** list
+**Returns:** list[str]
 
 ### process_remote_result
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** list
+**Returns:** list[str]
 
 
 ## TokenClassification
@@ -326,7 +336,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** DataframeRef
 
@@ -334,7 +344,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** DataframeRef
 
@@ -368,13 +378,13 @@ Use cases:
 ### initialize
 
 **Args:**
-- **context (typing.Any)**
+- **context (Any)**
 
 ### process_local_result
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
 
@@ -382,7 +392,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
 
@@ -422,16 +432,16 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, float]
 
 ### process_remote_result
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** dict
+**Returns:** dict[str, float]
 
 

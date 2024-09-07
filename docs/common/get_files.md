@@ -15,8 +15,8 @@ Retrieves the content of files with specified extensions in the given paths.
 
 - **str**: The concatenated content of all the files found.
 **Args:**
-- **paths (list)**
-- **extensions (list) (default: ['.py', '.js', '.ts', '.jsx', '.tsx', '.md'])**
+- **paths (list[str])**
+- **extensions (list[str]) (default: ['.py', '.js', '.ts', '.jsx', '.tsx', '.md'])**
 
 ### get_files
 
@@ -34,5 +34,5 @@ Recursively retrieves all files with specified extensions in the given path.
 - **list[str]**: A list of file paths matching the specified extensions.
 **Args:**
 - **path (str)**
-- **extensions (list) (default: ['.py', '.js', '.ts', '.jsx', '.tsx', '.md'])**
+- **extensions (list[str]) (default: ['.py', '.js', '.ts', '.jsx', '.tsx', '.md'])**
 

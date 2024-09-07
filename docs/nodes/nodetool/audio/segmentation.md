@@ -28,7 +28,7 @@ Use cases:
 **Tags:** audio, save, export
 
 **Fields:**
-- **segments**: The list of audio segments to save. (list)
+- **segments**: The list of audio segments to save. (list[nodetool.metadata.types.AudioRef])
 - **output_folder**: The folder to save the audio segments in. (FolderRef)
 - **name_prefix**: Prefix for the saved audio file names. (str)
 

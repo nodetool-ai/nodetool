@@ -66,7 +66,7 @@ Creates an anthropic completion by sending messages to the anthropic client.
 - **node_id (str)**
 - **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
-- **tool_choice (dict) (default: {})**
+- **tool_choice (dict[str, typing.Any]) (default: {})**
 - **kwargs**
 
 **Returns:** Message
@@ -76,11 +76,6 @@ Creates an anthropic completion by sending messages to the anthropic client.
 **Args:**
 - **context (ProcessingContext)**
 - **model (FunctionModel)**
-- **node_id (str)**
-- **thread_id (str)**
-- **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
-- **tools (typing.Sequence[nodetool.chat.tools.Tool])**
-- **tool_choice (dict)**
 - **kwargs**
 
 **Returns:** Message
@@ -115,7 +110,7 @@ Creates an Ollama completion by sending messages to the Ollama client.
 - **node_id (str)**
 - **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
-- **tool_choice (dict) (default: {})**
+- **tool_choice (dict[str, typing.Any]) (default: {})**
 - **kwargs**
 
 **Returns:** Message
@@ -145,7 +140,7 @@ Creates an OpenAI completion using the provided messages.
 - **node_id (str)**
 - **messages (typing.Sequence[nodetool.metadata.types.ChatMessageParam])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
-- **tool_choice (dict) (default: {})**
+- **tool_choice (dict[str, typing.Any]) (default: {})**
 - **kwargs**
 
 **Returns:** Message
@@ -153,7 +148,7 @@ Creates an OpenAI completion using the provided messages.
 ### default_serializer
 
 **Args:**
-- **obj (typing.Any)**
+- **obj (Any)**
 
 **Returns:** dict
 
@@ -228,7 +223,7 @@ Parse a tool call from a string.
 **Args:**
 - **s**
 
-**Returns:** list
+**Returns:** list[nodetool.models.message.ToolCall]
 
 ### process_messages
 
@@ -257,10 +252,9 @@ Use process_tool_calls to execute the tool calls if needed.
 - **context (ProcessingContext)**
 - **messages (typing.Sequence[nodetool.metadata.types.Message])**
 - **model (FunctionModel)**
-- **thread_id (str)**
 - **node_id (str)**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool]) (default: [])**
-- **tool_choice (dict) (default: {})**
+- **tool_choice (dict[str, str]) (default: {})**
 - **kwargs**
 
 **Returns:** Message
@@ -275,7 +269,6 @@ It is required to call process_tool_responses if you want the chat model to resp
 **Args:**
 
 - **context (ProcessingContext)**: The processing context.
-- **thread_id (str)**: The thread ID.
 - **tool_calls (list[ToolCall])**: The list of tool calls.
 - **columns (list[ColumnDef] | None, optional)**: The list of column definitions for the create_record tool. Defaults to None.
 
@@ -285,11 +278,10 @@ It is required to call process_tool_responses if you want the chat model to resp
 - **Message**: The assistant message.
 **Args:**
 - **context (ProcessingContext)**
-- **thread_id (str)**
 - **tool_calls (typing.Sequence[nodetool.models.message.ToolCall])**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool])**
 
-**Returns:** list
+**Returns:** list[nodetool.models.message.ToolCall]
 
 ### process_tool_responses
 
@@ -316,7 +308,7 @@ The completion created.
 - **model (FunctionModel)**
 - **node_id (str)**
 - **thread_id (str)**
-- **messages (list)**
+- **messages (list[nodetool.metadata.types.Message])**
 - **tool_responses (typing.Sequence[nodetool.models.message.ToolCall])**
 - **kwargs**
 
@@ -338,7 +330,6 @@ Executes a tool call requested by the chat model.
 - **ToolCall**: The tool call object containing the function name, arguments, and response.
 **Args:**
 - **context (ProcessingContext)**
-- **thread_id (str)**
 - **tool_call (ToolCall)**
 - **tools (typing.Sequence[nodetool.chat.tools.Tool])**
 

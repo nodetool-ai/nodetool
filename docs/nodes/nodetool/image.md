@@ -115,9 +115,9 @@ Use cases:
 ### result_for_client
 
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
 - [nodetool.nodes.nodetool.image.enhance](image/enhance.md)

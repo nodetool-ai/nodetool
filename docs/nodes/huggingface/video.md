@@ -30,3 +30,32 @@ Use cases:
 - **device (str)**
 
 
+## StableVideoDiffusion
+
+Generates a video from a single image using the Stable Video Diffusion model.
+
+Use cases:
+- Create short animations from static images
+- Generate dynamic content for presentations or social media
+- Prototype video ideas from still concept art
+
+**Tags:** video, generation, AI, image-to-video, stable-diffusion
+
+**Fields:**
+- **input_image**: The input image to generate the video from, resized to 1024x576. (ImageRef)
+- **num_frames**: Number of frames to generate. (int)
+- **num_inference_steps**: Number of steps per generated frame (int)
+- **fps**: Frames per second for the output video. (int)
+- **decode_chunk_size**: Number of frames to decode at once. (int)
+- **seed**: Random seed for generation. (int)
+
+### initialize
+
+**Args:**
+- **context (ProcessingContext)**
+
+### required_inputs
+
+**Args:**
+
+

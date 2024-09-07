@@ -12,8 +12,8 @@ Use cases:
 **Tags:** list, add, insert, extend
 
 **Fields:**
-- **values** (list)
-- **value** (typing.Any)
+- **values** (list[typing.Any])
+- **value** (Any)
 
 
 ## Dedupe
@@ -28,7 +28,7 @@ Use cases:
 **Tags:** list, unique, distinct, deduplicate
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 
 
 ## Extend
@@ -42,8 +42,8 @@ Use cases:
 **Tags:** list, merge, concatenate, combine
 
 **Fields:**
-- **values** (list)
-- **other_values** (list)
+- **values** (list[typing.Any])
+- **other_values** (list[typing.Any])
 
 
 ## GenerateSequence
@@ -75,7 +75,7 @@ Use cases:
 **Tags:** list, get, extract, value
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 - **index** (int)
 
 
@@ -91,7 +91,7 @@ Use cases:
 **Tags:** list, count, size
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 
 
 ## Randomize
@@ -106,7 +106,7 @@ Use cases:
 **Tags:** list, shuffle, random, order
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 
 
 ## Reverse
@@ -119,7 +119,7 @@ Use cases:
 **Tags:** list, reverse, invert, flip
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 
 
 ## SaveList
@@ -134,7 +134,7 @@ Use cases:
 **Tags:** list, save, file, serialize
 
 **Fields:**
-- **values**: The list to save. (list)
+- **values**: The list to save. (list[typing.Any])
 - **name** (str)
 
 
@@ -150,8 +150,8 @@ Use cases:
 **Tags:** list, select, index, extract
 
 **Fields:**
-- **values** (list)
-- **indices** (list)
+- **values** (list[typing.Any])
+- **indices** (list[int])
 
 
 ## Slice
@@ -166,7 +166,7 @@ Use cases:
 **Tags:** list, slice, subset, extract
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 - **start** (int)
 - **stop** (int)
 - **step** (int)
@@ -184,7 +184,7 @@ Use cases:
 **Tags:** list, sort, order, arrange
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 - **order** (SortOrder)
 
 

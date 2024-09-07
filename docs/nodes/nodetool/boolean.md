@@ -12,12 +12,10 @@ Use cases:
 **Tags:** boolean, all, check
 
 **Fields:**
-- **values**: List of boolean values to check (list)
+- **values**: List of boolean values to check (list[bool])
 
 
 ## BooleanOperation
-
-An enumeration.
 
 ## Compare
 
@@ -31,14 +29,12 @@ Use cases:
 **Tags:** compare, condition, logic
 
 **Fields:**
-- **a**: First value to compare (typing.Any)
-- **b**: Second value to compare (typing.Any)
+- **a**: First value to compare (Any)
+- **b**: Second value to compare (Any)
 - **comparison**: Comparison operator to use (Comparison)
 
 
 ## Comparison
-
-An enumeration.
 
 ## If
 
@@ -53,8 +49,8 @@ Use cases:
 
 **Fields:**
 - **condition**: The condition to evaluate (bool)
-- **if_true**: Value to return if the condition is true (typing.Any)
-- **if_false**: Value to return if the condition is false (typing.Any)
+- **if_true**: Value to return if the condition is true (Any)
+- **if_false**: Value to return if the condition is false (Any)
 
 
 ## IsIn
@@ -69,8 +65,8 @@ Use cases:
 **Tags:** membership, contains, check
 
 **Fields:**
-- **value**: The value to check for membership (typing.Any)
-- **options**: The list of options to check against (list)
+- **value**: The value to check for membership (Any)
+- **options**: The list of options to check against (list[typing.Any])
 
 
 ## IsNone
@@ -85,7 +81,7 @@ Use cases:
 **Tags:** null, none, check
 
 **Fields:**
-- **value**: The value to check for None (typing.Any)
+- **value**: The value to check for None (Any)
 
 
 ## LogicalOperator
@@ -132,6 +128,6 @@ Use cases:
 **Tags:** boolean, any, check
 
 **Fields:**
-- **values**: List of boolean values to check (list)
+- **values**: List of boolean values to check (list[bool])
 
 

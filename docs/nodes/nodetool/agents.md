@@ -1,6 +1,6 @@
 # nodetool.nodes.nodetool.agents
 
-## AgentNode
+## Agent
 
 Agent node to plan tasks to achieve a goal.
 
@@ -12,46 +12,10 @@ Use cases:
 **Tags:** task planning, goal decomposition, workflow generation
 
 **Fields:**
-- **model**: The language model to use. (FunctionModel)
 - **goal**: The user prompt (str)
 - **max_tokens**: The maximum number of tokens to generate. (int)
 - **temperature**: The temperature to use for sampling. (float)
-- **top_k**: The number of tokens to sample from. (int)
-- **top_p**: The cumulative probability for sampling. (float)
 
-
-## CreateImageTaskTool
-
-Tool for creating image generation tasks.
-
-Use cases:
-- Creating detailed instructions for image generation models
-- Defining dependencies between image generation tasks
-- Crafting specific prompts for image generation models
-
-**Tags:** task creation, image generation, prompt engineering
-
-## CreateRecordTool
-
-Tool for creating data records with specified columns.
-
-Use cases:
-- Creating structured data entries from user input
-- Validating and coercing data to match a predefined schema
-- Building datasets with consistent structure
-
-**Tags:** data creation, schema validation, type coercion
-
-## CreateTextTaskTool
-
-Tool for creating text generation tasks.
-
-Use cases:
-- Creating detailed instructions for text generation models
-- Defining dependencies between text generation tasks
-- Crafting specific prompts for language models
-
-**Tags:** task creation, text generation, prompt engineering
 
 ## DataframeAgent
 
@@ -65,19 +29,41 @@ Use cases:
 **Tags:** llm, dataframe creation, data structuring
 
 **Fields:**
-- **model**: The language model to use. (FunctionModel)
 - **prompt**: The user prompt (str)
+- **input_text**: The input text to be analyzed by the agent. (str)
 - **image**: The image to use in the prompt. (ImageRef)
-- **tool_name**: The name of the tool to use. (str)
-- **tool_description**: The description of the tool to use. (str)
 - **max_tokens**: The maximum number of tokens to generate. (int)
 - **temperature**: The temperature to use for sampling. (float)
-- **top_k**: The number of tokens to sample from. (int)
-- **top_p**: The cumulative probability for sampling. (float)
 - **columns**: The columns to use in the dataframe. (RecordType)
 
 
-## ProcessTask
+## ImageDownloader
+
+Download images from URLs in a dataframe and return a list of ImageRefs.
+
+Use cases:
+- Prepare image datasets for machine learning tasks
+- Archive images from web pages
+- Process and analyze images extracted from websites
+
+**Tags:** image download, web scraping, data processing
+
+**Fields:**
+- **images**: Dataframe containing image URLs and alt text. (DataframeRef)
+- **base_url**: Base URL to prepend to relative image URLs. (str)
+- **max_concurrent_downloads**: Maximum number of concurrent image downloads. (int)
+
+### download_image
+
+**Args:**
+- **session (ClientSession)**
+- **url (str)**
+- **context (ProcessingContext)**
+
+**Returns:** nodetool.metadata.types.ImageRef | None
+
+
+## RunTasks
 
 Process a task using specified models and tools.
 
@@ -89,12 +75,49 @@ Use cases:
 **Tags:** task execution, model integration, tool coordination
 
 **Fields:**
-- **model**: The language model to use. (FunctionModel)
-- **task**: The task to process. (Task)
-- **image_nodes**: The image generation nodes to use. (list)
+- **tasks**: The task to process. (list[nodetool.metadata.types.Task])
+- **image_nodes**: The image generation nodes to use. (list[nodetool.metadata.types.NodeRef])
 - **max_tokens**: The maximum number of tokens to generate. (int)
 - **temperature**: The temperature to use for sampling. (float)
-- **top_k**: The number of tokens to sample from. (int)
-- **top_p**: The cumulative probability for sampling. (float)
 
+### process_task
+
+**Args:**
+- **thread_id (str)**
+- **task (Task)**
+- **tasks_by_name (dict[str, nodetool.metadata.types.Task])**
+- **context (ProcessingContext)**
+
+**Returns:** str
+
+### topological_sort
+
+Perform a topological sort on the tasks to determine the order of execution.
+**Args:**
+- **tasks (list[nodetool.metadata.types.Task])**
+
+**Returns:** list[nodetool.metadata.types.Task]
+
+
+## WebsiteContentExtractor
+
+Extract main content from a website, removing navigation, ads, and other non-essential elements.
+
+Use cases:
+- Clean web content for further analysis
+- Extract article text from news websites
+- Prepare web content for summarization
+
+**Tags:** web scraping, content extraction, text analysis
+
+**Fields:**
+- **html_content**: The raw HTML content of the website. (str)
+
+
+### extract_content
+
+**Args:**
+- **html_content (str)**
+
+**Returns:** str
 

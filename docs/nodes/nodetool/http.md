@@ -1,11 +1,105 @@
 # nodetool.nodes.nodetool.http
 
+## ExtractAudio
+
+Extract audio elements from HTML content.
+
+Use cases:
+- Collect audio sources from web pages
+- Analyze audio usage on websites
+- Create audio playlists
+
+**Tags:** extract, audio, src
+
+**Fields:**
+- **html**: The HTML content to extract audio from. (str)
+- **base_url**: The base URL of the page, used to resolve relative audio URLs. (str)
+
+
+## ExtractImages
+
+Extract images from HTML content.
+
+Use cases:
+- Collect images from web pages
+- Analyze image usage on websites
+- Create image galleries
+
+**Tags:** extract, images, src
+
+**Fields:**
+- **html**: The HTML content to extract images from. (str)
+- **base_url**: The base URL of the page, used to resolve relative image URLs. (str)
+
+
+## ExtractLinks
+
+Extract links from HTML content.
+
+Use cases:
+- Analyze website structure
+- Discover related content
+- Build sitemaps
+
+**Tags:** extract, links, urls
+
+**Fields:**
+- **html**: The HTML content to extract links from. (str)
+- **base_url**: The base URL of the page, used to determine internal/external links. (str)
+
+
+## ExtractMetadata
+
+Extract metadata from HTML content.
+
+Use cases:
+- Analyze SEO elements
+- Gather page information
+- Extract structured data
+
+**Tags:** extract, metadata, seo
+
+**Fields:**
+- **html**: The HTML content to extract metadata from. (str)
+
+
+## ExtractVideos
+
+Extract videos from HTML content.
+
+Use cases:
+- Collect video sources from web pages
+- Analyze video usage on websites
+- Create video playlists
+
+**Tags:** extract, videos, src
+
+**Fields:**
+- **html**: The HTML content to extract videos from. (str)
+- **base_url**: The base URL of the page, used to resolve relative video URLs. (str)
+
+
+## FetchPage
+
+Fetch a web page using Selenium and return its content.
+
+Use cases:
+- Retrieve content from dynamic websites
+- Capture JavaScript-rendered content
+- Interact with web applications
+
+**Tags:** selenium, fetch, webpage, http
+
+**Fields:**
+- **url**: The URL to fetch the page from. (str)
+- **wait_time**: Maximum time to wait for page load (in seconds). (int)
+
+
 ## HTTPBaseNode
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict)
-- **allow_redirects**: Whether to follow redirects. (bool)
+- **headers**: Optional headers to include in the request. (dict[str, str])
 - **auth**: Authentication credentials. (str | None)
 
 ### get_request_kwargs
@@ -27,8 +121,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict)
-- **allow_redirects**: Whether to follow redirects. (bool)
+- **headers**: Optional headers to include in the request. (dict[str, str])
 - **auth**: Authentication credentials. (str | None)
 
 
@@ -46,8 +139,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict)
-- **allow_redirects**: Whether to follow redirects. (bool)
+- **headers**: Optional headers to include in the request. (dict[str, str])
 - **auth**: Authentication credentials. (str | None)
 
 
@@ -64,8 +156,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict)
-- **allow_redirects**: Whether to follow redirects. (bool)
+- **headers**: Optional headers to include in the request. (dict[str, str])
 - **auth**: Authentication credentials. (str | None)
 
 
@@ -83,8 +174,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict)
-- **allow_redirects**: Whether to follow redirects. (bool)
+- **headers**: Optional headers to include in the request. (dict[str, str])
 - **auth**: Authentication credentials. (str | None)
 - **data**: The data to send in the POST request. (str)
 
@@ -103,8 +193,7 @@ Use cases:
 
 **Fields:**
 - **url**: The URL to make the request to. (str)
-- **headers**: Optional headers to include in the request. (dict)
-- **allow_redirects**: Whether to follow redirects. (bool)
+- **headers**: Optional headers to include in the request. (dict[str, str])
 - **auth**: Authentication credentials. (str | None)
 - **data**: The data to send in the PUT request. (str)
 

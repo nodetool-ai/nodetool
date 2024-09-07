@@ -39,7 +39,7 @@
 **Fields:**
 - **id** (str)
 - **name** (str)
-- **args** (dict)
-- **result** (typing.Any)
+- **args** (dict[str, typing.Any])
+- **result** (Any)
 
 

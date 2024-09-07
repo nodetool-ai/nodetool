@@ -2,9 +2,5 @@
 
 ## Sampler
 
-An enumeration.
-
 ## Scheduler
-
-An enumeration.
 

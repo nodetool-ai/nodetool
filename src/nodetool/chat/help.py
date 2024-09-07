@@ -250,11 +250,11 @@ Key Nodetool Features:
 - Simplifies complex AI model usage
 
 Core Functionalities:
-1. Workflow Management 
-2. Node Operations
-3. Interface Navigation
-4. Asset Management
-5. Advanced Features
+1. Workflow Management: create, edit, and manage workflows
+2. Node Operations: add, remove, and connect nodes, change parameters
+3. Model Management: download and manage models from Hugging Face, Ollama, and more
+4. Asset Management: upload, manage, and use assets in workflows
+5. Advanced Features: undo, redo, save, and other features
 
 Workflow Management:
 - Click Workflows in the top panel to browse and manage projects
@@ -292,6 +292,16 @@ Asset Management:
 - Download: select one or more assets and use the right click menu
 - Delete: right click menu or X button
 - Rename: right click menu or press F2 key (also works with multiple assets)
+
+Model Management:
+- Download models from Hugging Face, Ollama, and other providers
+- Manage models in the Model Manager
+- Click on "Recommended Models" in a node to download models for that node
+- Check download progress in the app bar
+- Search models in the model manager
+- Filter models by provider, tags, and categories
+- View model details, including description, license, and usage statistics
+- Delete models using the model manager
 
 General Interface:
 - Connect nodes to create data flows

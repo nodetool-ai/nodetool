@@ -62,7 +62,7 @@ Use cases:
 **Tags:** dictionary, key-value, mapping
 
 **Fields:**
-- **value** (dict)
+- **value** (dict[str, typing.Any])
 
 
 ## Float
@@ -122,7 +122,7 @@ Use cases:
 **Tags:** array, squence, collection
 
 **Fields:**
-- **value** (list)
+- **value** (list[typing.Any])
 
 
 ## String

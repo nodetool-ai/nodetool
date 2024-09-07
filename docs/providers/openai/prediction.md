@@ -5,7 +5,7 @@
 **Args:**
 - **prediction (Prediction)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### create_embedding
 
@@ -17,7 +17,7 @@
 **Args:**
 - **prediction (Prediction)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### create_speech
 
@@ -29,12 +29,12 @@
 **Args:**
 - **prediction (Prediction)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### run_openai
 
 **Args:**
 - **prediction (Prediction)**
 
-**Returns:** typing.Any
+**Returns:** Any
 

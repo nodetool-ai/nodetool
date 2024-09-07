@@ -42,12 +42,6 @@
 
 **Returns:** WorkflowList
 
-### load_workflows_ignoring_exceptions
-
-Load workflows ignoring exceptions from missing nodes or old versions.
-**Args:**
-- **workflows (list)**
-
 ### public
 
 **Args:**

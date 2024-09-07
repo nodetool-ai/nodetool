@@ -19,7 +19,7 @@ True if the type is an async generator, False otherwise.
 ### is_class
 
 **Args:**
-- **obj (typing.Any)**
+- **obj (Any)**
 
 **Returns:** bool
 
@@ -116,6 +116,22 @@ Check if a type is an optional type.
 **Returns:**
 
 True if the type is an optional type, False otherwise.
+**Args:**
+- **t**
+
+### is_tuple_type
+
+Check if a type is a tuple.
+
+
+**Args:**
+
+- **t**: The type to check.
+
+
+**Returns:**
+
+True if the type is a tuple, False otherwise.
 **Args:**
 - **t**
 

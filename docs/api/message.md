@@ -1,5 +1,11 @@
 # nodetool.api.message
 
+## HelpRequest
+
+**Fields:**
+- **messages** (list[nodetool.metadata.types.Message])
+
+
 ### create
 
 **Args:**
@@ -24,10 +30,9 @@
 ### help
 
 **Args:**
-- **req (MessageCreateRequest)**
-- **user (User) (default: Depends(current_user))**
+- **req (HelpRequest)**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.Message]
 
 ### index
 

@@ -19,15 +19,3 @@ development purposes.
 
 **Tags:** 
 
-### get_data_path
-
-Get the default database path.
-**Args:**
-- **filename (str)**
-
-### get_system_file_path
-
-Returns the path to the settings file for the current OS.
-**Args:**
-- **filename (str)**
-

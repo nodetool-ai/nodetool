@@ -14,22 +14,6 @@ This node is useful for:
 - **tensor**: The amplitude tensor to be converted to dB scale. (Tensor)
 
 
-## BeatTracking
-
-Perform beat tracking on an audio file.
-
-Use cases:
-- Analyze rhythm and tempo of music tracks
-- Synchronize visual effects with music beats
-- Extract rhythmic features for music classification tasks
-
-**Tags:** audio, rhythm, tempo, beats
-
-**Fields:**
-- **audio**: The audio file to analyze for beats. (AudioRef)
-- **start_bpm**: The starting tempo estimate in beats per minute. (float)
-
-
 ## ChromaSTFT
 
 This node creates a chromagram from a waveform or power spectrogram to identify different pitch classes in an audio signal.
@@ -92,22 +76,6 @@ Applications:
 - **length**: If given, the resulting signal will be zero-padded or clipped to this length. (typing.Optional[int])
 
 
-## HarmonicPercussiveSeparation
-
-Perform Harmonic-Percussive Source Separation on an audio file.
-
-Use cases:
-- Isolate melodic and rhythmic components of music
-- Enhance drum tracks by extracting percussive elements
-- Improve pitch detection by focusing on harmonic content
-
-**Tags:** audio, separation, harmonic, percussive
-
-**Fields:**
-- **audio**: The audio file to separate into harmonic and percussive components. (AudioRef)
-- **margin**: The margin for the separation (larger values increase separation at the cost of artifacts). (float)
-
-
 ## MFCC
 
 MFCC Node computes the Mel-frequency cepstral coefficients (MFCCs) from an audio signal.
@@ -157,9 +125,9 @@ The PlotSpectrogram node generates a visual representation of the spectrum of fr
 ### result_for_client
 
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
 ## PowertToDB

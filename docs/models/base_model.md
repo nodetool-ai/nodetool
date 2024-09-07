@@ -4,7 +4,7 @@
 
 **Args:**
 - **hash_key (bool) (default: False)**
-- **kwargs (typing.Any)**
+- **kwargs (Any)**
 
 ## DBModel
 

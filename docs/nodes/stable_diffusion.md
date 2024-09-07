@@ -60,29 +60,31 @@ Use cases:
 **Tags:** image, text-to-image, generative AI, stable diffusion, custom workflow
 
 **Fields:**
-- **model**: The Flux model to use. (FluxModel)
+- **model**: The Flux model to use. (UNetFile)
 - **prompt**: The prompt to use. (str)
 - **width** (int)
 - **height** (int)
 - **batch_size** (int)
 - **steps**: Number of sampling steps. (int)
 - **guidance_scale** (float)
-- **realism_strength** (float)
 - **scheduler** (Scheduler)
 - **sampler** (Sampler)
 - **denoise** (float)
 - **input_image**: Input image for img2img (optional) (ImageRef)
 - **noise_seed** (int)
+- **lora**: The Lora model to use. (LORAFile)
+- **lora_strength** (float)
 
 ### initialize
 
 **Args:**
 - **context (ProcessingContext)**
 
+### move_to_device
 
-## FluxModel
+**Args:**
+- **device (str)**
 
-An enumeration.
 
 ## StableDiffusion
 

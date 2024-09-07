@@ -36,29 +36,29 @@
 **Args:**
 - **context (ProcessingContext)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### process_local_result
 
 **Args:**
-- **context (typing.Any)**
-- **result (typing.Any)**
+- **context (Any)**
+- **result (Any)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### process_remote
 
 **Args:**
 - **context (ProcessingContext)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### process_remote_result
 
 **Args:**
-- **context (typing.Any)**
-- **result (typing.Any)**
+- **context (Any)**
+- **result (Any)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 

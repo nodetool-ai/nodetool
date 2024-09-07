@@ -118,7 +118,7 @@ Use cases:
 **Tags:** video, frames, combine, sequence
 
 **Fields:**
-- **frames**: The frames to combine into a video. (list)
+- **frames**: The frames to combine into a video. (list[nodetool.metadata.types.ImageRef])
 - **fps**: The FPS of the output video. (float)
 
 
@@ -157,9 +157,9 @@ Use cases:
 ### result_for_client
 
 **Args:**
-- **result (dict)**
+- **result (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 
 ## Fps

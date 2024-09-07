@@ -29,7 +29,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** Tensor
 
@@ -37,9 +37,13 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** Tensor
+
+### required_inputs
+
+**Args:**
 
 
 ## ImageFeatureExtraction
@@ -71,7 +75,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** Tensor
 
@@ -79,9 +83,13 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** Tensor
+
+### required_inputs
+
+**Args:**
 
 
 ## ImageToText
@@ -118,7 +126,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
 
@@ -126,9 +134,13 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
+
+### required_inputs
+
+**Args:**
 
 
 ## MaskGeneration
@@ -165,17 +177,21 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.ImageRef]
 
 ### process_remote_result
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
-**Returns:** list
+**Returns:** list[nodetool.metadata.types.ImageRef]
+
+### required_inputs
+
+**Args:**
 
 
 ## VisualQuestionAnswering
@@ -208,7 +224,7 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
 
@@ -216,8 +232,12 @@ Use cases:
 
 **Args:**
 - **context (ProcessingContext)**
-- **result (typing.Any)**
+- **result (Any)**
 
 **Returns:** str
+
+### required_inputs
+
+**Args:**
 
 

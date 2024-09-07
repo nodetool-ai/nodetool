@@ -14,7 +14,7 @@ Use cases:
 **Fields:**
 - **dataframe**: Dataframe object to add a new column to. (DataframeRef)
 - **column_name**: The name of the new column to be added to the dataframe. (str)
-- **values**: A list of any type of elements which will be the new column's values. (list)
+- **values**: A list of any type of elements which will be the new column's values. (list[typing.Any])
 
 
 ## Chart
@@ -158,23 +158,7 @@ Use cases:
 **Tags:** list, dataframe, convert
 
 **Fields:**
-- **values**: List of values to be converted, each value will be a row. (list)
-
-
-## FromTensor
-
-Convert tensor to dataframe.
-
-Use cases:
-- Analyze tensor data using pandas functions
-- Visualize tensor data in tabular format
-- Export tensor results to dataframe structure
-
-**Tags:** tensor, dataframe, convert
-
-**Fields:**
-- **tensor**: A tensor object to be converted into a dataframe. (Tensor)
-- **columns**: A list of strings specifying the column names for the resulting dataframe. (list)
+- **values**: List of values to be converted, each value will be a row. (list[typing.Any])
 
 
 ## Heatmap

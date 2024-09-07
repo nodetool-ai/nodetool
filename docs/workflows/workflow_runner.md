@@ -25,3 +25,5 @@ Note:
 
 **Tags:** 
 
+### get_available_vram
+

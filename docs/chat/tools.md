@@ -43,7 +43,7 @@ If the node returns a prediction, wait for the prediction to complete.
 - **workflow_id (str)**
 - **params (dict)**
 
-**Returns:** typing.Any
+**Returns:** Any
 
 ### sanitize_node_name
 

@@ -106,7 +106,7 @@ Use cases:
 **Tags:** list, tensor, conversion, type
 
 **Fields:**
-- **values** (list)
+- **values** (list[typing.Any])
 
 
 ## Log
@@ -201,7 +201,7 @@ Use cases:
 
 **Fields:**
 - **tensor** (Tensor)
-- **color_indices** (list)
+- **color_indices** (list[int])
 - **perplexity** (int)
 
 
@@ -265,7 +265,7 @@ Use cases:
 **Tags:** tensor, stack, concatenate, join, merge, axis
 
 **Fields:**
-- **tensors** (list)
+- **tensors** (list[nodetool.metadata.types.Tensor])
 - **axis**: The axis to stack along. (int)
 
 

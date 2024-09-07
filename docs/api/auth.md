@@ -31,8 +31,6 @@
 
 ## OAuthProvider
 
-An enumeration.
-
 ## TokenRequest
 
 **Fields:**

@@ -18,9 +18,9 @@ Convert a graph from the ComfyUI format to the ComfyUI API format.
 
 - **dict[str, Any]**: The graph in ComfyUI API format.
 **Args:**
-- **input_graph (dict)**
+- **input_graph (dict[str, typing.Any])**
 
-**Returns:** dict
+**Returns:** dict[str, typing.Any]
 
 ### create_edges
 
