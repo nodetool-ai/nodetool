@@ -26,12 +26,17 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import ModelRecommendations from "./ModelRecommendations";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { isProduction } from "../../stores/ApiClient";
+import { llama_models } from "../../config/models";
 
-export const TOOLTIP_ENTER_DELAY = 650;
-export const TOOLTIP_LEAVE_DELAY = 200;
-export const TOOLTIP_ENTER_NEXT_DELAY = 350;
-const BASE_HEIGHT = 0;
-const INCREMENT_PER_OUTPUT = 25;
+// Tooltip timing constants
+export const TOOLTIP_ENTER_DELAY = 650; // Delay before tooltip appears on hover
+export const TOOLTIP_LEAVE_DELAY = 200; // Delay before tooltip disappears on mouse leave
+export const TOOLTIP_ENTER_NEXT_DELAY = 350; // Delay before next tooltip appears when hovering multiple elements
+
+// Node sizing constants
+const BASE_HEIGHT = 0; // Minimum height for the node
+const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
+
 /**
  * Split a camelCase string into a space separated string.
  */
@@ -39,34 +44,6 @@ export function titleize(str: string) {
   const s = str.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
   return s.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
-
-const llama_models: UnifiedModel[] = [
-  {
-    id: "llama3.1:8b",
-    name: "Llama 3.1 - 8B",
-    type: "llama_model"
-  },
-  {
-    id: "gemma2:2b",
-    name: "gemma2 - 2B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2:0.5b",
-    name: "qwen2 - 0.5B",
-    type: "llama_model"
-  },
-  {
-    id: "qwen2:1.5b",
-    name: "qwen2 - 1.5B",
-    type: "llama_model"
-  },
-  {
-    id: "phi3:mini",
-    name: "phi3 - 3B",
-    type: "llama_model"
-  }
-];
 
 /**
  * BaseNode renders a single node in the workflow
@@ -76,16 +53,26 @@ const llama_models: UnifiedModel[] = [
 
 export default memo(
   function BaseNode(props: NodeProps<NodeData>) {
+    // Flow and zoom-related state
     const currentZoom = useStore((state) => state.transform[2]);
     const isMinZoom = currentZoom === MIN_ZOOM;
 
+    // Metadata and loading state
     const {
-      data: metadata,
+      data: metadata, // Metadata for all node types
       isLoading: metadataLoading,
       error: metadataError
     } = useMetadata();
+
+    // Global settings and stores
     const secrets = useRemoteSettingsStore((state) => state.secrets);
     const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+    const hasInstalledModels = useModelStore(
+      (state) => state.hasInstalledModels
+    );
+    const { startDownload, openDialog } = useModelDownloadStore();
+
+    // Node-specific data and relationships
     const nodedata = useNodeStore(
       useCallback((state) => state.findNode(props.id)?.data, [props.id])
     );
@@ -102,18 +89,26 @@ export default memo(
     const edges = useNodeStore(
       useCallback((state) => state.getInputEdges(props.id), [props.id])
     );
+
+    // Workflow and status information
     const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
     const status = useStatusStore((state) =>
       state.getStatus(workflowId, props.id)
     );
     const isLoading =
       status === "running" || status === "starting" || status === "booting";
-    const isConstantNode = props.type.startsWith("nodetool.constant");
-    const { startDownload, openDialog } = useModelDownloadStore();
 
+    // Node type flags
+    const isConstantNode = props.type.startsWith("nodetool.constant");
+    const isInputNode = props.type.startsWith("nodetool.input");
+    const isOutputNode =
+      props.type.startsWith("nodetool.output") ||
+      props.type === "comfy.image.SaveImage" ||
+      props.type === "comfy.image.PreviewImage";
+
+    // UI state
     const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
     const [openModelDialog, setOpenModelDialog] = useState(false);
-
     const handleOpenModelDialog = () => setOpenModelDialog(true);
     const handleCloseModelDialog = () => setOpenModelDialog(false);
 
@@ -123,12 +118,6 @@ export default memo(
         setParentIsCollapsed(parentNode?.data.collapsed || false);
       }
     }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
-
-    const isInputNode = props.type.startsWith("nodetool.input");
-    const isOutputNode =
-      props.type.startsWith("nodetool.output") ||
-      props.type === "comfy.image.SaveImage" ||
-      props.type === "comfy.image.PreviewImage";
 
     const className = useMemo(
       () =>
@@ -146,6 +135,8 @@ export default memo(
         props.data.dirty
       ]
     );
+
+    // Results and rendering
     const result = useResultsStore((state) =>
       state.getResult(props.data.workflow_id, props.id)
     );
@@ -157,6 +148,7 @@ export default memo(
       }
     }, [result]);
 
+    // Node height calculation
     const minHeight = useMemo(() => {
       if (!metadata) return BASE_HEIGHT;
       const outputCount =
@@ -164,27 +156,11 @@ export default memo(
       return BASE_HEIGHT + outputCount * INCREMENT_PER_OUTPUT;
     }, [metadata, props.type]);
 
-    const hasInstalledModels = useModelStore(
-      (state) => state.hasInstalledModels
-    );
-
+    // Node metadata and properties
     const nodeMetadata = metadata?.metadataByType[props.type];
     const node_title = titleize(nodeMetadata?.title || "");
     const node_namespace = nodeMetadata?.namespace || "";
     const node_outputs = nodeMetadata?.outputs || [];
-    const recommendedModels: UnifiedModel[] = useMemo(
-      () =>
-        node_namespace.startsWith("huggingface.")
-          ? (nodeMetadata?.recommended_models || []).map((model) => ({
-              id: model.repo_id || "",
-              name: model.repo_id || "",
-              ...model
-            }))
-          : node_namespace.startsWith("ollama.")
-          ? llama_models
-          : [],
-      [nodeMetadata?.recommended_models, node_namespace]
-    );
     const modelType = nodeMetadata?.properties.find((p) =>
       p.type.type.includes("model")
     )?.type.type;
@@ -197,10 +173,27 @@ export default memo(
               type: "string"
             }
           };
+
+    // Model recommendations and installation status
+    const recommendedModels: UnifiedModel[] = useMemo(
+      () =>
+        node_namespace.startsWith("huggingface.")
+          ? (nodeMetadata?.recommended_models || []).map((model) => ({
+              id: model.repo_id || "",
+              name: model.repo_id || "",
+              type: model.type || "hf.model",
+              ...model
+            }))
+          : node_namespace.startsWith("ollama.")
+          ? llama_models
+          : [],
+      [nodeMetadata?.recommended_models, node_namespace]
+    );
     const hasRelevantInstalledModels = modelType
       ? hasInstalledModels(modelType)
       : false;
 
+    // API key validation
     const missingAPIKeys = useMemo(() => {
       if (node_namespace.startsWith("openai.")) {
         if ((secrets.OPENAI_API_KEY || "").length === 0) {
