@@ -6,6 +6,7 @@ from types import NoneType
 import numpy as np
 from pydantic import BaseModel, Field
 from typing import Any, Literal, Optional, Type, Union
+from typing import Literal
 
 from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.models.asset import Asset
@@ -198,7 +199,7 @@ class LlamaModel(BaseType):
 
 
 class HuggingFaceModel(BaseType):
-    type: Literal["hf.model"] = "hf.model"
+    type: str = "hf.model"
     repo_id: str = ""
     allow_patterns: list[str] = []
     ignore_patterns: list[str] = []
