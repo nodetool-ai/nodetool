@@ -30,7 +30,7 @@ export interface paths {
     put: operations["update_api_assets__id__put"];
     /**
      * Delete
-     * @description Deletes the asset for the given id.
+     * @description Deletes the asset for the given id. If the asset is a folder, it deletes all contents recursively.
      */
     delete: operations["delete_api_assets__id__delete"];
   };
@@ -41,6 +41,13 @@ export interface paths {
      * Maintains folder structure based on asset.parent_id relationships.
      */
     post: operations["download_assets_api_assets_download_post"];
+  };
+  "/api/assets/{folder_id}/recursive": {
+    /**
+     * Get Assets Recursive
+     * @description Get all assets in a folder recursively, including the folder structure.
+     */
+    get: operations["get_assets_recursive_api_assets__folder_id__recursive_get"];
   };
   "/api/jobs/{id}": {
     /**
@@ -1570,10 +1577,8 @@ export interface components {
       /**
        * Type
        * @default hf.model
-       * @constant
-       * @enum {string}
        */
-      type?: "hf.model";
+      type?: string;
       /**
        * Repo Id
        * @default
@@ -2691,7 +2696,7 @@ export interface operations {
   };
   /**
    * Delete
-   * @description Deletes the asset for the given id.
+   * @description Deletes the asset for the given id. If the asset is a folder, it deletes all contents recursively.
    */
   delete_api_assets__id__delete: {
     parameters: {
@@ -2737,6 +2742,37 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["AssetDownloadRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /**
+   * Get Assets Recursive
+   * @description Get all assets in a folder recursively, including the folder structure.
+   */
+  get_assets_recursive_api_assets__folder_id__recursive_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      path: {
+        folder_id: string;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
       };
     };
     responses: {
@@ -3013,14 +3049,6 @@ export interface operations {
   };
   /** Help */
   help_api_messages_help_post: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
     requestBody: {
       content: {
         "application/json": components["schemas"]["HelpRequest"];

@@ -1,4 +1,4 @@
-from typing import List, Optional, Literal, Sequence
+from typing import Dict, List, Optional, Literal, Sequence
 from datetime import datetime
 from nodetool.common.content_types import CONTENT_TYPE_TO_EXTENSION
 from nodetool.common.environment import Environment
@@ -147,3 +147,17 @@ class Asset(DBModel):
         """
         items, _ = cls.query(Field("parent_id").equals(parent_id))
         return items
+
+    @classmethod
+    def get_assets_recursive(cls, user_id: str, folder_id: str) -> List[Dict]:
+        def recursive_fetch(current_folder_id):
+            assets, _ = cls.paginate(user_id=user_id, parent_id=current_folder_id, limit=10000)
+            result = []
+            for asset in assets:
+                asset_dict = asset.dict()
+                if asset.content_type == "folder":
+                    asset_dict["children"] = recursive_fetch(asset.id)
+                result.append(asset_dict)
+            return result
+
+        return recursive_fetch(folder_id)

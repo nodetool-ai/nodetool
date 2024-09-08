@@ -9,19 +9,27 @@ export const useAssetDeletion = () => {
   );
   const deleteAsset = useAssetStore((state) => state.delete);
   const [assets, setAssets] = useState<string[]>([]);
-  const performMutation = async (assets: string[]) => {
+
+  const performMutation = async (
+    assets: string[]
+  ): Promise<{ deleted_asset_ids: string[] }> => {
     setAssets(assets);
-    await Promise.all(assets.map((id) => deleteAsset(id)));
+    const deletedIds = await Promise.all(assets.map((id) => deleteAsset(id)));
+    const flattenedIds = deletedIds.flat();
+    return { deleted_asset_ids: flattenedIds };
   };
+
   const mutation = useMutation({
     mutationFn: performMutation,
-    onSuccess: () => {
+    onSuccess: (data) => {
       mutation.reset();
       addNotification({
         type: "info",
         alert: true,
-        content: `${assets.length > 1 ? "Assets" : "Asset"} deleted!`,
-        dismissable: false,
+        content: `${
+          data.deleted_asset_ids.length > 1 ? "Assets" : "Asset"
+        } deleted!`,
+        dismissable: false
       });
     },
     onError: () => {
@@ -29,15 +37,15 @@ export const useAssetDeletion = () => {
         type: "error",
         alert: true,
         content: "Error deleting assets.",
-        dismissable: false,
+        dismissable: false
       });
     },
     onSettled: () => {
       setAssets([]);
-    },
+    }
   });
 
   return {
-    mutation,
+    mutation
   };
 };

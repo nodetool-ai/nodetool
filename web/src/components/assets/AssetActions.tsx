@@ -107,7 +107,6 @@ const styles = (theme: any) =>
   });
 
 const AssetActions = ({
-  setSelectedAssetIds,
   handleSelectAllAssets,
   handleDeselectAssets,
   maxItemSize = 10
@@ -254,6 +253,9 @@ const AssetActions = ({
         </DialogTitle>
         <DialogContent className="dialog-content">
           <DialogContentText id="alert-dialog-description">
+            Enter a name for the new folder:
+          </DialogContentText>
+          <div>
             <TextField
               className="input-field"
               inputRef={inputRef}
@@ -263,7 +265,7 @@ const AssetActions = ({
               onChange={(e) => setCreateFolderName(e.target.value)}
               fullWidth
             />
-          </DialogContentText>
+          </div>
         </DialogContent>
         <DialogActions className="dialog-actions">
           <Button

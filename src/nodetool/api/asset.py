@@ -117,28 +117,69 @@ async def update(
     asset.save()
     return Asset.from_model(asset)
 
-
 @router.delete("/{id}")
 async def delete(id: str, user: User = Depends(current_user)):
-    """
-    Deletes the asset for the given id.
-    """
-    asset = AssetModel.find(user.id, id)
-    if asset is None:
-        log.info("Asset not found: %s", id)
-        raise HTTPException(status_code=404, detail="Asset not found")
-    asset.delete()
     try:
-        await Environment.get_asset_storage().delete(asset.thumb_file_name)
+        asset = AssetModel.find(user.id, id)
+        if asset is None:
+            log.info(f"Asset not found: {id}")
+            raise HTTPException(status_code=404, detail="Asset not found")
+        deleted_asset_ids = []
+        if asset.content_type == "folder":
+            deleted_asset_ids = await delete_folder(user.id, id)
+        else:
+            await delete_single_asset(asset)
+            deleted_asset_ids = [id]
+        return {"deleted_asset_ids": deleted_asset_ids}
     except Exception as e:
-        log.exception(e)
+        log.exception(f"Asset deletion failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting asset: {str(e)}")
+
+async def delete_folder(user_id: str, folder_id: str) -> List[str]:
+    deleted_asset_ids = []
     try:
-        await Environment.get_asset_storage().delete(asset.file_name)
+        assets, next_cursor = AssetModel.paginate(
+            user_id=user_id,
+            parent_id=folder_id,
+            limit=10000
+        )
+        # Delete children first
+        for index, asset in enumerate(assets, 1):
+            if asset.content_type == "folder":
+                subfolder_deleted_ids = await delete_folder(user_id, asset.id)
+                deleted_asset_ids.extend(subfolder_deleted_ids)
+            else:
+                await delete_single_asset(asset)
+                deleted_asset_ids.append(asset.id)
+        
+        # Delete folder
+        folder = AssetModel.find(user_id, folder_id)
+        if folder:
+            await delete_single_asset(folder)
+            deleted_asset_ids.append(folder_id)
+        else:
+            log.warning(f"Folder not found when trying to delete: {folder_id}")
+        log.info(f"Total assets deleted: {len(deleted_asset_ids)}")
+        return deleted_asset_ids
     except Exception as e:
-        log.exception(e)
+        log.exception(f"Error in delete_folder function for folder {folder_id}: {str(e)}")
+        raise
 
-    log.info("Deleted asset: %s", id)
-
+async def delete_single_asset(asset: AssetModel):
+    try:
+        asset.delete()
+        storage = Environment.get_asset_storage()
+        try:
+            await storage.delete(asset.thumb_file_name)
+        except Exception as e:
+            log.warning(f"Error deleting thumbnail for asset {asset.id}: {e}")
+        try:
+            await storage.delete(asset.file_name)
+        except Exception as e:
+            log.warning(f"Error deleting file for asset {asset.id}: {e}")
+    except Exception as e:
+        log.exception(f"Error in delete_single_asset function for asset {asset.id}: {str(e)}")
+        raise
 
 @router.post("/")
 async def create(
@@ -300,3 +341,13 @@ async def download_assets(
         media_type="application/zip",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.get("/{folder_id}/recursive")
+async def get_assets_recursive(folder_id: str, user: User = Depends(current_user)):
+    """
+    Get all assets in a folder recursively, including the folder structure.
+    """
+    assets = AssetModel.get_assets_recursive(user.id, folder_id)
+    return {"assets": assets}
+

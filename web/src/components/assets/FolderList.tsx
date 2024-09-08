@@ -4,16 +4,15 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Box,
+  Box
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import FolderItem from "./FolderItem";
 import useAssets from "../../serverState/useAssets";
-import useSessionStateStore from "../../stores/SessionStateStore";
-import { useAssetStore } from "../../stores/AssetStore";
 import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { Asset } from "../../stores/ApiTypes";
 
 const INITIAL_FOLDER_LIST_HEIGHT = 200;
 const MIN_FOLDER_LIST_HEIGHT = 100;
@@ -29,7 +28,7 @@ const styles = (theme: any) =>
       position: "relative",
       height: "120px",
       overflow: "hidden",
-      paddingBottom: ".5em",
+      paddingBottom: ".5em"
     },
     ".folder-list": {
       display: "flex",
@@ -41,7 +40,7 @@ const styles = (theme: any) =>
       paddingLeft: "1em",
       height: `calc(100% - ${RESIZE_HANDLE_HEIGHT}px)`,
       overflow: "hidden auto",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.c_gray1
     },
     ".accordion": {
       height: ROW_HEIGHT + "em",
@@ -49,33 +48,33 @@ const styles = (theme: any) =>
       boxShadow: "none",
       color: theme.palette.c_gray6,
       "&.Mui-expanded": {
-        backgroundColor: "transparent",
-      },
+        backgroundColor: "transparent"
+      }
     },
     ".accordion::before": {
-      display: "none",
+      display: "none"
     },
     ".accordion.Mui-expanded": {
       height: "auto",
-      background: "transparent",
+      background: "transparent"
     },
     ".accordion-summary": {
       flexDirection: "row-reverse",
       height: ROW_HEIGHT + "em",
       minHeight: "unset",
       "&.Mui-expanded": {
-        minHeight: "auto",
-      },
+        minHeight: "auto"
+      }
     },
     ".accordion-summary .MuiAccordionSummary-content": {
-      margin: "0",
+      margin: "0"
     },
     ".accordion .MuiAccordionDetails-root": {
       padding: "0",
-      marginTop: "-.25em !important",
+      marginTop: "-.25em !important"
     },
     ".accordion .MuiAccordionDetails-root .MuiBox-root": {
-      height: "1.5em",
+      height: "1.5em"
     },
     ".MuiAccordionSummary-expandIconWrapper": {
       position: "relative",
@@ -83,13 +82,13 @@ const styles = (theme: any) =>
       width: "0px",
       height: "0px",
       overflow: "visible",
-      transform: "none",
+      transform: "none"
     },
     ".MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
-      transform: "none",
+      transform: "none"
     },
     ".MuiAccordionSummary-expandIconWrapper:hover": {
-      color: theme.palette.c_hl1,
+      color: theme.palette.c_hl1
     },
     ".MuiAccordionSummary-expandIconWrapper svg": {
       width: "22px",
@@ -103,17 +102,16 @@ const styles = (theme: any) =>
       color: theme.palette.c_gray5,
       filter: "none",
       transform: "rotate(-90deg)",
-      transition: "transform 0.25s ease",
+      transition: "transform 0.25s ease"
     },
     ".MuiAccordionSummary-expandIconWrapper.Mui-expanded svg": {
       color: theme.palette.c_gray6,
-      transform: "rotate(0deg)",
-      // transform: "scaleY(-1)",
+      transform: "rotate(0deg)"
     },
     //
     ".root-folder": {
       paddingLeft: "0",
-      marginLeft: "-.5em",
+      marginLeft: "-.5em"
     },
     // resize folder list
     ".resize-handle": {
@@ -127,7 +125,7 @@ const styles = (theme: any) =>
       backgroundColor: theme.palette.c_gray2,
       transition: "background-color 0.2s ease",
       "&:hover, &.resizing": {
-        backgroundColor: "#4c4c4c",
+        backgroundColor: "#4c4c4c"
       },
       "&::after": {
         content: '""',
@@ -138,12 +136,12 @@ const styles = (theme: any) =>
         width: "2em",
         height: "4px",
         borderRadius: "2px",
-        backgroundColor: theme.palette.c_gray0,
-      },
+        backgroundColor: theme.palette.c_gray0
+      }
     },
     ".resize-handle:hover::after, .resize-handle.resizing::after": {
-      backgroundColor: theme.palette.c_hl1,
-    },
+      backgroundColor: theme.palette.c_hl1
+    }
   });
 
 interface FolderListProps {
@@ -162,12 +160,6 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const initialMouseY = useRef<number>(0);
   const initialHeight = useRef<number>(INITIAL_FOLDER_LIST_HEIGHT);
   const { navigateToFolder } = useAssets();
-  // const selectedFolderIds = useSessionStateStore(
-  //   (state) => state.selectedFolderIds
-  // );
-  const setSelectedFolderIds = useAssetGridStore(
-    (state) => state.setSelectedFolderIds
-  );
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -210,18 +202,12 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     };
   }, [isResizing, handleResize, handleResizeEnd]);
 
-  // const selectedFolderId = useSessionStateStore(
-  //   (state) => state.selectedFolderId
-  // );
-  // const setSelectedFolderId = useSessionStateStore(
-  //   (state) => state.setSelectedFolderId
-  // );
   const selectedFolderIds = useAssetGridStore(
     (state) => state.selectedFolderIds
   );
 
-  const handleSelect = (folderId: string) => {
-    navigateToFolder(folderId);
+  const handleSelect = (folder: Asset) => {
+    navigateToFolder(folder);
   };
 
   const renderFolder = (folder: any, level = 0, isRoot = false) => {
@@ -236,8 +222,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         <AccordionSummary
           className="accordion-summary"
           sx={{
-            // marginLeft: "-1.9em",
-            paddingLeft: `${level * LEVEL_PADDING}em !important`,
+            paddingLeft: `${level * LEVEL_PADDING}em !important`
           }}
           expandIcon={<ExpandMoreIcon />}
           aria-controls={`panel-${folder.id}-content`}
@@ -245,7 +230,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         >
           <FolderItem
             folder={folder}
-            onSelect={() => handleSelect(folder.id)}
+            onSelect={() => handleSelect(folder)}
             isSelected={selectedFolderIds.includes(folder.id)}
           />
         </AccordionSummary>
@@ -260,13 +245,13 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         className={"childless " + (isRoot ? "root-folder" : "")}
         sx={{
           height: ROW_HEIGHT + "em",
-          paddingLeft: `${level * LEVEL_PADDING}em !important`,
+          paddingLeft: `${level * LEVEL_PADDING}em !important`
         }}
         key={folder.id}
       >
         <FolderItem
           folder={folder}
-          onSelect={() => handleSelect(folder.id)}
+          onSelect={() => handleSelect(folder)}
           isSelected={selectedFolderIds.includes(folder.id)}
         />
       </Box>
@@ -278,7 +263,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     name: "ASSETS",
     content_type: "folder",
     children: folderTree,
-    parent_id: currentUser?.id || "",
+    parent_id: currentUser?.id || ""
   };
 
   return (
@@ -289,11 +274,10 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         height: `${folderListHeight}px`,
         minHeight: isHorizontal ? "100%" : "auto",
         minWidth: isHorizontal ? LIST_MIN_WIDTH : "auto",
-        marginRight: isHorizontal ? "1em" : "0",
+        marginRight: isHorizontal ? "1em" : "0"
       }}
       ref={containerRef}
     >
-      {/* {selectedFolderId} */}
       <div className="folder-list">
         {renderFolder(rootFolder, 0, true)}
         {Object.values(folderTree || {}).map((rootFolder: any) =>

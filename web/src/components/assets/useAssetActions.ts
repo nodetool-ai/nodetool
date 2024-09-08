@@ -4,15 +4,12 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { devError } from "../../utils/DevLog";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 
 export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const selectedAssetIds = useAssetGridStore(
-    (state) => state.selectedAssetIds
-  );
+  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
   const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
   );
@@ -21,14 +18,6 @@ export const useAssetActions = (asset: Asset) => {
   );
   const setMoveToFolderDialogOpen = useAssetGridStore(
     (state) => state.setMoveToFolderDialogOpen
-  );
-  const { isControlPressed, isShiftPressed } = useKeyPressedStore(
-    (state) => (
-      {
-        isControlPressed: state.isKeyPressed("Control"),
-        isShiftPressed: state.isKeyPressed("Shift")
-      }
-    )
   );
 
   const { mutation: updateAssetMutation } = useAssetUpdate();
@@ -137,7 +126,12 @@ export const useAssetActions = (asset: Asset) => {
         devError("Invalid JSON string:", assetData);
       }
     },
-    [asset.content_type, asset.id, updateAssetMutation]
+    [
+      asset.content_type,
+      asset.id,
+      setMoveToFolderDialogOpen,
+      updateAssetMutation
+    ]
   );
 
   const handleContextMenu = useCallback(
@@ -160,15 +154,17 @@ export const useAssetActions = (asset: Asset) => {
     [selectedAssetIds, setSelectedAssetIds, openContextMenu, asset.id]
   );
 
-  const handleDelete = useCallback(
-    () => {
-      if (selectedAssetIds?.length === 0) {
-        setSelectedAssetIds([asset.id]);
-      }
-      setDeleteDialogOpen(true);
-    },
-    [selectedAssetIds?.length, setSelectedAssetIds, asset.id]
-  );
+  const handleDelete = useCallback(() => {
+    if (selectedAssetIds?.length === 0) {
+      setSelectedAssetIds([asset.id]);
+    }
+    setDeleteDialogOpen(true);
+  }, [
+    selectedAssetIds?.length,
+    setDeleteDialogOpen,
+    setSelectedAssetIds,
+    asset.id
+  ]);
 
   return {
     isDragHovered,
@@ -180,6 +176,6 @@ export const useAssetActions = (asset: Asset) => {
     handleDragLeave,
     handleDrop,
     handleContextMenu,
-    handleDelete,
+    handleDelete
   };
 };

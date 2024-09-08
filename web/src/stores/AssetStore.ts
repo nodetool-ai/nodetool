@@ -28,9 +28,9 @@ const createAsset = (
       data: formData,
       headers: {
         ...headers,
-        "Content-Type": "multipart/form-data",
+        "Content-Type": "multipart/form-data"
       },
-      onUploadProgress,
+      onUploadProgress
     })
       .then((res) => resolve(res.data as Asset))
       .catch((err) => reject(err));
@@ -61,6 +61,7 @@ export interface AssetStore {
   add: (asset: Asset) => void;
   invalidateQueries: (queryKey: QueryKey) => void;
   get: (id: string) => Promise<Asset>;
+  getAllAssetsInFolder: (folderId: string) => Promise<Asset[]>;
   createFolder: (parent_id: string | null, name: string) => Promise<Asset>;
   createAsset: (
     file: File,
@@ -73,7 +74,7 @@ export interface AssetStore {
   loadCurrentFolder: (cursor?: string) => Promise<AssetList>;
   loadFolderById: (id: string) => Promise<AssetList>;
   update: (asset: AssetUpdate) => Promise<Asset>;
-  delete: (id: string) => Promise<void>;
+  delete: (id: string) => Promise<string[]>;
   download: (ids: string[]) => void;
 }
 
@@ -168,7 +169,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
   get: async (id: string) => {
     const { data, error } = await client.GET("/api/assets/{id}", {
-      params: { path: { id } },
+      params: { path: { id } }
     });
     if (error) {
       throw error;
@@ -187,8 +188,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   load: async (query: AssetQuery) => {
     const { data, error } = await client.GET("/api/assets/", {
       params: {
-        query: query,
-      },
+        query: query
+      }
     });
     if (error) {
       throw error;
@@ -256,33 +257,69 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       {
         parent_id: parent_id,
         content_type: "folder",
-        name: name,
+        name: name
       },
       undefined,
-      (_) => { }
+      (_) => {}
     );
     get().add(folder);
     get().invalidateQueries(["assets", { parent_id: parent_id }]);
     return folder;
   },
+  /**
+   * Get all assets in a folder, including subfolders.
+   *
+   * @param folderId The ID of the folder to get assets from.
+   * @returns A promise that resolves to the assets in the folder.
+   */
+  getAllAssetsInFolder: async (folderId: string): Promise<Asset[]> => {
+    const assets: Asset[] = [];
+    const queue: string[] = [folderId];
 
+    while (queue.length > 0) {
+      const currentFolderId = queue.shift()!;
+      const { data, error } = await client.GET("/api/assets/", {
+        params: { query: { parent_id: currentFolderId } }
+      });
+
+      if (error) {
+        throw error;
+      }
+      const assetList = data as { assets: Asset[] };
+      for (const asset of assetList.assets) {
+        assets.push(asset);
+        if (asset.content_type === "folder") {
+          queue.push(asset.id);
+        }
+      }
+    }
+
+    return assets;
+  },
   /**
    * Delete an asset from the store and the server.
    *
    * @param id The ID of the asset to delete.
    * @returns A promise that resolves when the asset is deleted.
    */
-  delete: async (id: string) => {
-    const asset = await get().get(id);
-    const { error } = await client.DELETE("/api/assets/{id}", {
-      params: { path: { id } },
+  delete: async (id: string): Promise<string[]> => {
+    const { data, error } = await client.DELETE("/api/assets/{id}", {
+      params: { path: { id } }
     });
 
     if (error) {
+      console.error(`Error deleting asset ${id}:`, error);
       throw error;
     }
-    get().invalidateQueries(["assets", id]);
-    get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
+
+    const response = data as { deleted_asset_ids: string[] };
+    const deletedAssetIds = response.deleted_asset_ids;
+
+    deletedAssetIds.forEach((assetId) => {
+      get().invalidateQueries(["assets", assetId]);
+      get().invalidateQueries(["assets", { parent_id: assetId }]);
+    });
+    return deletedAssetIds;
   },
 
   /**
@@ -304,16 +341,16 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         url: url,
         method: "POST",
         data: {
-          asset_ids: ids,
+          asset_ids: ids
         },
-        responseType: "blob",
+        responseType: "blob"
       });
 
       devLog("Response received");
       devLog("Response status:", response.status);
 
       const blob = new Blob([response.data], {
-        type: response.headers["content-type"],
+        type: response.headers["content-type"]
       });
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -358,8 +395,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         parent_id: req.parent_id || null,
         content_type: req.content_type || null,
         metadata: req.metadata || null,
-        data: req.data || null,
-      },
+        data: req.data || null
+      }
     });
     if (error) {
       throw error;
@@ -392,14 +429,14 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         workflow_id: workflow_id,
         parent_id: parent_id,
         content_type: file.type,
-        name: file.name,
+        name: file.name
       },
       file,
-      onUploadProgress || ((_) => { })
+      onUploadProgress || ((_) => {})
     );
     get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
     get().add(asset);
 
     return asset;
-  },
+  }
 }));
