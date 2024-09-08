@@ -749,7 +749,7 @@ This class represents a dataset, which includes a dataframe of features and a da
 ## HuggingFaceModel
 
 **Fields:**
-- **type** (typing.Literal['hf.model'])
+- **type** (str)
 - **repo_id** (str)
 - **allow_patterns** (list[str])
 - **ignore_patterns** (list[str])

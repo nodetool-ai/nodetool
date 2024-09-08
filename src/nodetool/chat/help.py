@@ -235,9 +235,11 @@ def search_examples(query: str, n_results: int = 3):
 
 
 def system_prompt_for(
-    docs: list[str],
+    docs: dict[str, str],
     examples: list[str],
 ) -> str:
+    docs_str = "\n".join([f"{name}: {doc}" for name, doc in docs.items()])
+    examples_str = "\n".join(examples)
     return f"""
 You are an AI assistant specialized in the Nodetool platform - a 
 no-code AI workflow development environment. Your purpose is to provide 
@@ -530,15 +532,20 @@ Show Alert on Close: Prevent closing of the browser tab when there are unsaved c
 
 Select Nodes On Drag: Select nodes when dragging.
 
+Use following documentation to answer user questions.
 
-{docs}
+If a node is relevant add it as a markdown link in the response.
+The link should be `/help/$node_type`
+
+Relevant Documentation:
+{docs_str}
 
 Example Workflows:
-{examples}
+{examples_str}
 """
 
 
-async def create_help_answer(messages: list[Message]) -> Message:
+async def create_help_answer(messages: list[Message]) -> list[Message]:
     assert len(messages) > 0
 
     prompt = str(messages[-1].content)
@@ -546,19 +553,24 @@ async def create_help_answer(messages: list[Message]) -> Message:
     node_types, docs = search_documentation(prompt)
     _, examples = search_examples(prompt)
 
-    system_message = Message(role="system", content=system_prompt_for(docs, examples))
-    tools: list[Tool] = [WorkflowTool("workflow_tool")]
+    docs_dict = dict(zip(node_types, docs))
+
+    print(docs)
+    print(examples)
+
+    system_message = Message(
+        role="system", content=system_prompt_for(docs_dict, examples)
+    )
+    tools: list[Tool] = []
     classes = [
         c for c in get_registered_node_classes() if c.get_node_type() in node_types
     ]
     model = FunctionModel(
-        # provider=Provider.Anthropic,
-        # name="claude-3-5-sonnet-20240620",
         provider=Provider.OpenAI,
         name="gpt-4o-mini",
     )
 
-    for node_class in classes[:128]:
+    for node_class in classes[:10]:
         try:
             if node_class.get_node_type().startswith("replicate"):
                 continue
@@ -575,7 +587,11 @@ async def create_help_answer(messages: list[Message]) -> Message:
         node_id="",
         tools=tools,
     )
-    return answer
+
+    if answer.tool_calls:
+        answer.tool_calls = await process_tool_calls(context, answer.tool_calls, tools)
+
+    return [answer]
 
 
 if __name__ == "__main__":

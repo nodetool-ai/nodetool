@@ -34,7 +34,7 @@ default values, raise an exception.
 - **settings (SettingsModel)**
 - **secrets (SecretsModel)**
 - **default_env (typing.Dict[str, typing.Any])**
-- **default (Any) (default: <object object at 0x000001BF372F4730>)**
+- **default (Any) (default: <object object at 0x12ff2b750>)**
 
 **Returns:** Any
 

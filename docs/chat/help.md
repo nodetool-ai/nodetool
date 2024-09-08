@@ -13,7 +13,7 @@ Tool for creating a new workflow.
 **Args:**
 - **messages (list[nodetool.metadata.types.Message])**
 
-**Returns:** Message
+**Returns:** list[nodetool.metadata.types.Message]
 
 ### get_collection
 
