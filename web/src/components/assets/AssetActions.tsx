@@ -276,11 +276,6 @@ const AssetActions = ({
             className="button-confirm"
             onClick={() => {
               setCreateFolderAnchor(null);
-              console.log(
-                "Creating folder",
-                currentFolder?.id || "",
-                createFolderName
-              );
               createFolder(currentFolder?.id || "", createFolderName).then(
                 () => {
                   addNotification({

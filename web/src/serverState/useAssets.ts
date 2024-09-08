@@ -46,6 +46,9 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const setSelectedFolderIds = useAssetGridStore(
     (state) => state.setSelectedFolderIds
   );
+  const setSelectedAssetIds = useAssetGridStore(
+    (state) => state.setSelectedAssetIds
+  );
   const assetSearchTerm = useAssetGridStore((state) => state.assetSearchTerm);
 
   if (currentUser === null) {
@@ -182,6 +185,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
         setSelectedFolderIds(folder ? [folder.id] : []);
         setCurrentFolderId(folder.id || currentUser?.id || "");
         setCurrentFolder(folder || null);
+        setSelectedAssetIds([]);
       }
     },
     [
@@ -189,7 +193,8 @@ export const useAssets = (initialFolderId: string | null = null) => {
       setCurrentFolderId,
       setSelectedFolderId,
       setSelectedFolderIds,
-      setCurrentFolder
+      setCurrentFolder,
+      setSelectedAssetIds
     ]
   );
   // Navigate to folder id
@@ -203,14 +208,16 @@ export const useAssets = (initialFolderId: string | null = null) => {
         setSelectedFolderIds(folderId ? [folderId] : []);
         setCurrentFolderId(folderId || currentUser?.id || "");
         setCurrentFolder(folder || null);
+        setSelectedAssetIds([]);
       }
     },
     [
-      currentUser?.id,
-      setCurrentFolderId,
       setSelectedFolderId,
       setSelectedFolderIds,
-      setCurrentFolder
+      setCurrentFolderId,
+      currentUser?.id,
+      setCurrentFolder,
+      setSelectedAssetIds
     ]
   );
 
