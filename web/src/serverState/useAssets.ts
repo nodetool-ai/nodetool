@@ -25,16 +25,18 @@ type AssetUpdate = {
 };
 
 export const useAssets = (initialFolderId: string | null = null) => {
-  const setCurrentFolderId = useAssetGridStore((state) => state.setCurrentFolderId);
+  const setCurrentFolderId = useAssetGridStore(
+    (state) => state.setCurrentFolderId
+  );
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const currentUser = useAuth((state) => state.getUser());
-
+  const setCurrentFolder = useAssetGridStore((state) => state.setCurrentFolder);
   const {
     load,
     loadFolderTree,
     update,
     delete: deleteAsset,
-    createFolder,
+    createFolder
   } = useAssetStore();
   const { settings } = useSettingsStore();
   const queryClient = useQueryClient();
@@ -44,9 +46,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const setSelectedFolderIds = useAssetGridStore(
     (state) => state.setSelectedFolderIds
   );
-  const assetSearchTerm = useAssetGridStore(
-    (state) => state.assetSearchTerm
-  );
+  const assetSearchTerm = useAssetGridStore((state) => state.assetSearchTerm);
 
   if (currentUser === null) {
     throw new Error("User not logged");
@@ -63,16 +63,16 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const {
     data: currentFolderAssets,
     error: currentFolderError,
-    isLoading: isLoadingCurrentFolder,
+    isLoading: isLoadingCurrentFolder
   } = useQuery({
     queryKey: ["assets", { parent_id: currentFolderId }],
     queryFn: fetchAssets,
-    enabled: !!currentFolderId,
+    enabled: !!currentFolderId
   });
 
   const refetchAssets = useCallback(() => {
     return queryClient.invalidateQueries({
-      queryKey: ["assets", { parent_id: currentFolderId }],
+      queryKey: ["assets", { parent_id: currentFolderId }]
     });
   }, [queryClient, currentFolderId]);
 
@@ -84,10 +84,10 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const {
     data: folderTree,
     error: folderTreeError,
-    isLoading: isLoadingFolderTree,
+    isLoading: isLoadingFolderTree
   } = useQuery({
     queryKey: ["folderTree", settings.assetsOrder],
-    queryFn: fetchAllFolders,
+    queryFn: fetchAllFolders
   });
 
   const refetchFolders = useCallback(() => {
@@ -143,7 +143,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const folderFilesFiltered = useMemo(() => {
     return filterAssets(processedAssets, {
       searchTerm: assetSearchTerm || "",
-      contentType: null,
+      contentType: null
     });
   }, [filterAssets, processedAssets, assetSearchTerm]);
 
@@ -153,7 +153,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
       queryClient.invalidateQueries({ queryKey: ["folderTree"] });
-    },
+    }
   });
 
   // Delete asset mutation
@@ -162,7 +162,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
       queryClient.invalidateQueries({ queryKey: ["folderTree"] });
-    },
+    }
   });
 
   // Update asset mutation
@@ -171,21 +171,30 @@ export const useAssets = (initialFolderId: string | null = null) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assets", currentFolderId] });
       queryClient.invalidateQueries({ queryKey: ["folderTree"] });
-    },
+    }
   });
 
   // Navigate to folder
   const navigateToFolder = useCallback(
-    (folderId: string | null) => {
+    async (folderId: string | null) => {
+      const getAsset = useAssetStore.getState().get;
+      let folder: Asset | undefined;
+
+      if (folderId) {
+        folder = await getAsset(folderId);
+      }
+
       setSelectedFolderId(folderId);
       setSelectedFolderIds(folderId ? [folderId] : []);
       setCurrentFolderId(folderId || currentUser?.id || "");
+      setCurrentFolder(folder || null);
     },
     [
       currentUser?.id,
       setCurrentFolderId,
       setSelectedFolderId,
       setSelectedFolderIds,
+      setCurrentFolder
     ]
   );
 
@@ -208,7 +217,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
     fetchAssets, // fetch assets for the current folder
     refetchAssets, // invalidate and refetch assets for the current folder
     refetchFolders, // invalidate and refetch all folders
-    refetchAssetsAndFolders, // invalidate and refetch assets and folders
+    refetchAssetsAndFolders // invalidate and refetch assets and folders
   };
 };
 
