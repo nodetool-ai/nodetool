@@ -28,7 +28,6 @@ interface NamespaceListProps {
   metadata: NodeMetadata[];
 }
 
-
 const parseDescription = (description: string) => {
   // First line is description, second line tags, followed by list of use cases
   const lines = description.split("\n");
@@ -218,7 +217,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     setSelectedPath,
     searchResults,
     hoveredNode,
-    setHoveredNode
+    setHoveredNode,
+    showNamespaceTree,
+    toggleNamespaceTree
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     highlightedNamespaces: state.highlightedNamespaces,
@@ -226,7 +227,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     setSelectedPath: state.setSelectedPath,
     searchResults: state.searchResults,
     hoveredNode: state.hoveredNode,
-    setHoveredNode: state.setHoveredNode
+    setHoveredNode: state.setHoveredNode,
+    showNamespaceTree: state.showNamespaceTree,
+    toggleNamespaceTree: state.toggleNamespaceTree
   }));
 
   const handleNamespaceClick = useCallback(
@@ -265,9 +268,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       });
   }, [metadata, selectedPathString, searchTerm]);
 
-  const description = useMemo(() => parseDescription(hoveredNode?.description || ""), [
-    hoveredNode
-  ]);
+  const description = useMemo(
+    () => parseDescription(hoveredNode?.description || ""),
+    [hoveredNode]
+  );
 
   return (
     <div css={namespaceStyles}>
@@ -298,7 +302,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       </Box>
 
       <Box className="list-box">
-        <List className="namespace-list">
+        <List
+          className="namespace-list"
+          sx={{ display: showNamespaceTree ? "block" : "none" }}
+        >
           <RenderNamespaces
             tree={namespaceTree}
             handleNamespaceClick={handleNamespaceClick}

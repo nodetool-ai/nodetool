@@ -20,6 +20,8 @@ type NodeMenuStore = {
   setSelectedPath: (path: string[]) => void;
   activeNode: string | null;
   setActiveNode: (node: string | null) => void;
+  showNamespaceTree: boolean;
+  toggleNamespaceTree: () => void;
 
   openNodeMenu: (
     x: number,
@@ -79,6 +81,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       activeNode: node
     });
   },
+  showNamespaceTree: true,
+  toggleNamespaceTree: () => set((state) => ({ showNamespaceTree: !state.showNamespaceTree })),
   openNodeMenu: (
     x,
     y,

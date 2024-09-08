@@ -14,6 +14,8 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import ErrorOutlineRounded from "@mui/icons-material/ErrorOutlineRounded";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { ExpandCircleDown } from "@mui/icons-material";
 
 // components
 import SearchComponent from "./SearchComponent";
@@ -63,7 +65,9 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     setSearchResults,
     setHighlightedNamespaces,
     selectedPath,
-    setSelectedPath
+    setSelectedPath,
+    showNamespaceTree,
+    toggleNamespaceTree
   } = useNodeMenuStore((state) => ({
     isMenuOpen: state.isMenuOpen,
     closeNodeMenu: state.closeNodeMenu,
@@ -78,7 +82,9 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     setSearchResults: state.setSearchResults,
     setHighlightedNamespaces: state.setHighlightedNamespaces,
     selectedPath: state.selectedPath,
-    setSelectedPath: state.setSelectedPath
+    setSelectedPath: state.setSelectedPath,
+    showNamespaceTree: state.showNamespaceTree,
+    toggleNamespaceTree: state.toggleNamespaceTree
   }));
 
   // SET SELECTED TYPE FILTER
@@ -253,6 +259,16 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
             />
           )}
           <Box className="search-toolbar">
+            <Tooltip
+              title={showNamespaceTree ? "Collapse tree" : "Expand tree"}
+              placement="bottom"
+              enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+              <Button className="toggle-tree" onClick={toggleNamespaceTree}>
+                {showNamespaceTree ? <ExpandCircleDown /> : <ExpandMoreIcon />}
+              </Button>
+            </Tooltip>
+
             <SearchComponent
               metadata={metadataFilteredByTypes}
               handleSearchResult={handleSearchResult}
@@ -284,7 +300,6 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
             />
           </Box>
           <Box>
-            {/* {searchResults.length > 0 && ( */}
             <NamespaceList
               namespaceTree={namespaceTree}
               metadata={searchResults}
