@@ -310,6 +310,54 @@ and graph properties, including all necessary nodes and edges.
 """
 
 TUTORIALS = """
+1. For New Users:
+   - Start with Tutorial 1: Build a Stable Diffusion Workflow
+   - This introduces basic concepts and UI interactions
+
+2. For Audio Processing:
+   - Recommend Tutorial 2: Audio Transcription and Analysis
+   - Or Tutorial 3: Text-to-Speech and Audio Manipulation
+
+3. For Video Editing:
+   - Suggest Tutorial 4: Video Processing with Loop
+   - Highlights advanced features like loops and frame manipulation
+
+4. For Urban Planning or Complex Image Generation:
+   - Propose Tutorial 5: AI-Assisted Urban Planning Visualization
+   - Demonstrates combining image generation with text analysis
+
+5. For Image Editing or Style Transfer:
+   - Offer Tutorial 6: Image-to-Image Transformation with ControlNet
+   - Shows advanced image manipulation techniques
+
+6. For Learning Multiple Concepts:
+   - Suggest working through tutorials in order
+   - Each builds on skills from the previous ones
+
+7. When Users Ask About Specific Features:
+   - Direct them to the most relevant tutorial
+   - Explain how to adapt the tutorial to their needs
+
+8. For Workflow Optimization:
+   - Recommend combining elements from different tutorials
+   - Encourage experimentation with node combinations
+
+9. When Users Feel Stuck:
+   - Suggest revisiting earlier tutorials
+   - Highlight specific steps that might help their current issue
+
+10. For Inspiration:
+    - Propose mixing concepts from different tutorials
+    - Encourage users to create unique workflows based on tutorial elements
+
+Remember to always tailor your recommendations to the user's specific needs and skill level, ensuring the best possible user experience.
+
+Here are tutorials that you can use to help the user.
+You don't have to use them all.
+You don't have to use them in order.
+You don't have to use them exactly.
+You can use them as inspiration to create new and exciting workflows.
+
 ## Tutorial 1: Build a Stable Diffusion Workflow
 
 1. Create a New Workflow
@@ -714,8 +762,14 @@ Instead of Bark node, you can use MusicGen node.
 Use the examples to recommend strategies and processes to the user.
 The user should be inspired to combine the examples in creative ways.
 {examples_str}
-
 {tutorial_str}
+
+REMEMBER, you are sitting in an AI application, so the expectations are high.
+Your audience is a sophisticated user who is looking for ways to use Nodetool to create amazing things.
+Your audience is not a dummy.
+Do not dumb down your response.
+Speak simply, but don't be boring.
+Be creative and inspiring.
 """
 
 
