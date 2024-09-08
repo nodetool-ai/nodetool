@@ -2,19 +2,16 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo } from "react";
-import { Box, Divider, List, Tooltip, Typography } from "@mui/material";
+import { Box, List, Tooltip, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import {
-  titleize,
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../node/BaseNode";
-import { coloVrFoVVVrType, descriptionForType } from "../../config/data_types";
-import { TOOLTIP_DELAY } from "../../config/constants";
 import NodeInfo from "./NodeInfo";
 
 type NamespaceTree = Record<
@@ -28,16 +25,6 @@ interface NamespaceListProps {
   namespaceTree: NamespaceTree;
   metadata: NodeMetadata[];
 }
-
-const parseDescription = (description: string) => {
-  // First line is description, second line tags, followed by list of use cases
-  const lines = description.split("\n");
-  return {
-    desc: lines[0],
-    tags: lines.length > 0 ? lines[1] : [],
-    useCases: lines.length > 1 ? lines.slice(2) : []
-  };
-};
 
 const namespaceStyles = (theme: any) =>
   css({
