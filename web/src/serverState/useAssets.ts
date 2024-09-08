@@ -176,18 +176,34 @@ export const useAssets = (initialFolderId: string | null = null) => {
 
   // Navigate to folder
   const navigateToFolder = useCallback(
+    async (folder: Asset | null) => {
+      if (folder) {
+        setSelectedFolderId(folder.id);
+        setSelectedFolderIds(folder ? [folder.id] : []);
+        setCurrentFolderId(folder.id || currentUser?.id || "");
+        setCurrentFolder(folder || null);
+      }
+    },
+    [
+      currentUser?.id,
+      setCurrentFolderId,
+      setSelectedFolderId,
+      setSelectedFolderIds,
+      setCurrentFolder
+    ]
+  );
+  // Navigate to folder id
+  const navigateToFolderId = useCallback(
     async (folderId: string | null) => {
       const getAsset = useAssetStore.getState().get;
-      let folder: Asset | undefined;
+      const folder: Asset = await getAsset(folderId || "");
 
-      if (folderId) {
-        folder = await getAsset(folderId);
+      if (folder) {
+        setSelectedFolderId(folderId);
+        setSelectedFolderIds(folderId ? [folderId] : []);
+        setCurrentFolderId(folderId || currentUser?.id || "");
+        setCurrentFolder(folder || null);
       }
-
-      setSelectedFolderId(folderId);
-      setSelectedFolderIds(folderId ? [folderId] : []);
-      setCurrentFolderId(folderId || currentUser?.id || "");
-      setCurrentFolder(folder || null);
     },
     [
       currentUser?.id,
@@ -214,6 +230,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
     deleteAsset: deleteAssetMutation.mutate, // delete an asset
     updateAsset: updateAssetMutation.mutate, // update an asset's properties
     navigateToFolder, // change the current folder
+    navigateToFolderId, // change the current folder by id
     fetchAssets, // fetch assets for the current folder
     refetchAssets, // invalidate and refetch assets for the current folder
     refetchFolders, // invalidate and refetch all folders
