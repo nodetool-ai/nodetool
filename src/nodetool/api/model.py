@@ -88,7 +88,8 @@ async def augment_model_info(
     if model.repo_id in models:
         model.model_type = models[model.repo_id].type
     else:
-        model.model_type = pipeline_tag_to_model_type(model.pipeline_tag)
+        if model.pipeline_tag:
+            model.model_type = pipeline_tag_to_model_type(model.pipeline_tag)
 
     return model
 
@@ -97,7 +98,7 @@ async def augment_model_info(
 async def recommended_models(
     user: User = Depends(current_user),
 ) -> list[HuggingFaceModel]:
-    return get_recommended_models()
+    return list(get_recommended_models().values())
 
 
 @router.get("/huggingface_models")
