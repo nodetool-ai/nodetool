@@ -29,8 +29,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         const messages = get().messages.concat(message);
         get().addMessages([message]);
         try {
-            // const response = await fetch('https://api.nodetool.ai/api/messages/help', {
-            const response = await fetch('http://localhost:8000/api/messages/help', {
+            const response = await fetch('https://api.nodetool.ai/api/messages/help', {
+                // const response = await fetch('http://localhost:8000/api/messages/help', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -50,13 +50,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 console.log('response', response);
                 if (response.tool_calls) {
                     response.tool_calls.forEach((toolCall: ToolCall) => {
-                        console.log('toolCall', toolCall);
                         if (toolCall.name === 'workflow_tool') {
                             get().handleWorkflowTool(toolCall.result as Workflow);
                         }
                         if (toolCall.name?.startsWith('add_node')) {
                             const metadata = useMetadataStore.getState().metadata
-                            console.log('metadata', metadata);
                             if (!data) {
                                 console.error('Metadata not loaded');
                                 return;
@@ -64,7 +62,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                             if (toolCall.result) {
                                 const result = toolCall.result as { [key: string]: any };
                                 const nodeMetadata = metadata[result["type"]];
-                                console.log('nodeMetadata', nodeMetadata);
                                 if (!nodeMetadata) {
                                     console.error('Node metadata not found for type:', result["type"]);
                                     return;
