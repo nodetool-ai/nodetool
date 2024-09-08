@@ -42,18 +42,20 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
         >
           <Button
             variant="contained"
-            color="primary"
+            className="model-button"
             size="small"
             sx={{
               fontSize: ThemeNodetool.fontSizeTiny,
               color: hasRelevantInstalledModels
                 ? ThemeNodetool.palette.c_gray5
-                : ThemeNodetool.palette.c_attention,
+                : ThemeNodetool.palette.c_warning,
               margin: "0",
               padding: "0 1em",
               position: "absolute",
               zIndex: 10,
               top: "25px",
+              boxShadow: "none",
+              borderRadius: ".5em",
               lineHeight: "1em"
             }}
             onClick={handleOpenModelDialog}

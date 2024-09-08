@@ -47,7 +47,7 @@ const OverallDownloadProgress: React.FC = () => {
   return (
     <Box
       sx={{
-        width: "120px",
+        width: "80px",
         mt: 1,
         marginRight: "10px",
         padding: "10px 0px",
