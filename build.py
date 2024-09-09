@@ -240,7 +240,7 @@ class Build:
         for file in files_to_copy:
             self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR)
 
-        self.copy_file(self.PROJECT_ROOT / "requirements.txt", self.BUILD_DIR)
+        self.copy_file(PROJECT_ROOT / "requirements.txt", self.BUILD_DIR)
 
         build_command = [
             "npm",
