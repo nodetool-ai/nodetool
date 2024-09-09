@@ -13,7 +13,8 @@
         "src",
         "web",
         "ffmpeg.exe",
-        "ffprobe.exe"
+        "ffprobe.exe",
+        "requirements.txt"
     ],
     "mac": {
         "category": "public.app-category.developer-tools",
