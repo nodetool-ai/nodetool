@@ -61,12 +61,27 @@ export const calculateGridDimensions = (
   return { columns, itemWidth, itemHeight };
 };
 
-export const prepareItems = (
-  assetsByType: Record<string, Asset[]> | undefined | null
-): AssetOrDivider[] => {
-  if (!assetsByType) {
+export const prepareItems = (assets: Asset[]): AssetOrDivider[] => {
+  if (!assets || assets.length === 0) {
     return [];
   }
+
+  const assetsByType: Record<string, Asset[]> = {
+    image: [],
+    audio: [],
+    video: [],
+    text: [],
+    other: []
+  };
+
+  assets.forEach((asset) => {
+    const type = asset.content_type.split("/")[0];
+    if (type in assetsByType) {
+      assetsByType[type].push(asset);
+    } else {
+      assetsByType.other.push(asset);
+    }
+  });
 
   return Object.entries(assetsByType).flatMap(
     ([type, assets]): AssetOrDivider[] => {
@@ -77,7 +92,7 @@ export const prepareItems = (
         { isDivider: true, type },
         ...assets.map(
           (asset): AssetOrDivider => ({ ...asset, isDivider: false, type })
-        ),
+        )
       ];
     }
   );

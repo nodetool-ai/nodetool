@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState,
+  useState
 } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { VariableSizeList as List } from "react-window";
@@ -19,7 +19,7 @@ import {
   prepareItems,
   calculateRowCount,
   getItemsForRow,
-  DIVIDER_HEIGHT,
+  DIVIDER_HEIGHT
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 
@@ -31,27 +31,27 @@ const styles = (theme: any) =>
       overflow: "hidden",
       paddingBottom: ".5em",
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "column"
     },
     ".asset-list": {
       flex: 1,
-      overflow: "hidden",
+      overflow: "hidden"
     },
     ".autosizer-list": {
-      paddingBottom: "10em",
+      paddingBottom: "10em"
     },
     ".content-type-header": {
       width: "100%",
       padding: "0.5em 0",
       backgroundColor: "transparent",
       fontSize: theme.fontSizeSmall,
-      textTransform: "uppercase",
+      textTransform: "uppercase"
     },
     ".divider": {
       width: "100%",
       height: "2px",
-      backgroundColor: theme.palette.divider,
-    },
+      backgroundColor: theme.palette.divider
+    }
   });
 
 interface AssetGridContentProps {
@@ -63,7 +63,7 @@ interface AssetGridContentProps {
 const AssetGridContent: React.FC<AssetGridContentProps> = ({
   itemSpacing = 2,
   assets: propAssets,
-  onDoubleClick,
+  onDoubleClick
 }) => {
   const { folderFilesFiltered } = useAssets();
   const assetItemSize = useSettingsStore(
@@ -80,7 +80,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
     itemWidth: 0,
-    itemHeight: 0,
+    itemHeight: 0
   });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const listRef = useRef<List>(null);
@@ -91,7 +91,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   );
 
   const preparedItems = useMemo(() => {
-    return prepareItems({ other: assets || [] });
+    return prepareItems(assets || []);
   }, [assets]);
 
   const updateGridDimensions = useCallback(
@@ -153,7 +153,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
-      onDoubleClick: onDoubleClick || (() => { }),
+      onDoubleClick: onDoubleClick || (() => {})
       // refetch: refetchAssets,
     }),
     [
@@ -165,7 +165,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
-      onDoubleClick,
+      onDoubleClick
       // refetchAssets,
     ]
   );
@@ -182,7 +182,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
         for (const entry of entries) {
           setContainerSize({
             width: entry.contentRect.width,
-            height: entry.contentRect.height,
+            height: entry.contentRect.height
           });
         }
       });
