@@ -142,7 +142,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       <DialogContent
         style={{
           minWidth: "600px",
-          minHeight: "00px",
+          minHeight: "200px",
           maxHeight: "60vh"
         }}
       >
