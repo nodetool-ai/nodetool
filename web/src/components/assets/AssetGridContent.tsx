@@ -47,6 +47,12 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmall,
       textTransform: "uppercase"
     },
+    ".content-type-header button": {
+      opacity: 0.6
+    },
+    ".content-type-header:hover button": {
+      opacity: 1
+    },
     ".divider": {
       width: "100%",
       height: "2px",
@@ -90,9 +96,25 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     [assetItemSize]
   );
 
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
+    new Set(["image", "audio", "video", "text", "other"])
+  );
+
+  const toggleExpanded = useCallback((type: string) => {
+    setExpandedTypes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(type)) {
+        newSet.delete(type);
+      } else {
+        newSet.add(type);
+      }
+      return newSet;
+    });
+  }, []);
+
   const preparedItems = useMemo(() => {
-    return prepareItems(assets || []);
-  }, [assets]);
+    return prepareItems(assets || [], expandedTypes);
+  }, [assets, expandedTypes]);
 
   const updateGridDimensions = useCallback(
     (width: number) => {
@@ -137,9 +159,13 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       if (rowItems[0]?.isDivider) {
         return DIVIDER_HEIGHT;
       }
+      const type = rowItems[0]?.type;
+      if (type && !expandedTypes.has(type)) {
+        return 0; // Hide collapsed rows
+      }
       return gridDimensions.itemHeight + footerHeight + itemSpacing * 2;
     },
-    [preparedItems, gridDimensions, footerHeight, itemSpacing]
+    [preparedItems, gridDimensions, footerHeight, itemSpacing, expandedTypes]
   );
 
   const itemData = useMemo(
@@ -153,8 +179,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
-      onDoubleClick: onDoubleClick || (() => {})
-      // refetch: refetchAssets,
+      onDoubleClick: onDoubleClick || (() => {}),
+      expandedTypes,
+      toggleExpanded
     }),
     [
       preparedItems,
@@ -165,8 +192,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
-      onDoubleClick
-      // refetchAssets,
+      onDoubleClick,
+      expandedTypes,
+      toggleExpanded
     ]
   );
 

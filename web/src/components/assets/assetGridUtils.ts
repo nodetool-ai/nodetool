@@ -1,7 +1,7 @@
 import { Asset } from "../../stores/ApiTypes";
 
 export type AssetOrDivider =
-  | { isDivider: true; type: string }
+  | { isDivider: true; type: string; count: number }
   | (Asset & { isDivider: false; type: string });
 
 export const getFooterHeight = (size: number): number => {
@@ -61,7 +61,10 @@ export const calculateGridDimensions = (
   return { columns, itemWidth, itemHeight };
 };
 
-export const prepareItems = (assets: Asset[]): AssetOrDivider[] => {
+export const prepareItems = (
+  assets: Asset[],
+  expandedTypes: Set<string>
+): AssetOrDivider[] => {
   if (!assets || assets.length === 0) {
     return [];
   }
@@ -89,10 +92,12 @@ export const prepareItems = (assets: Asset[]): AssetOrDivider[] => {
         return [];
       }
       return [
-        { isDivider: true, type },
-        ...assets.map(
-          (asset): AssetOrDivider => ({ ...asset, isDivider: false, type })
-        )
+        { isDivider: true, type, count: assets.length },
+        ...(expandedTypes.has(type)
+          ? assets.map(
+              (asset): AssetOrDivider => ({ ...asset, isDivider: false, type })
+            )
+          : [])
       ];
     }
   );
