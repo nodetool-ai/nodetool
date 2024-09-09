@@ -122,14 +122,33 @@ export default function useConnectionHandlers() {
       _: React.MouseEvent | React.TouchEvent,
       { nodeId, handleId, handleType }: OnConnectStartParams
     ) => {
-      if (!nodeId || !handleId || !handleType || !metadata) return;
+      if (!nodeId || !handleId || !handleType || !metadata) {
+        console.warn("Missing required data for connection start");
+        return;
+      }
+
       const node = findNode(nodeId);
-      if (!node) return;
+      if (!node) {
+        console.warn(`Node with id ${nodeId} not found`);
+        return;
+      }
+
       const nodeMetadata = metadata.metadataByType[node.type || ""];
+      if (!nodeMetadata) {
+        console.warn(`Metadata for node type ${node.type} not found`);
+        return;
+      }
+
       connectionCreated.current = false;
-      startConnecting(nodeId, handleId, handleType, nodeMetadata);
+
+      try {
+        startConnecting(nodeId, handleId, handleType, nodeMetadata);
+      } catch (error) {
+        console.error("Error starting connection:", error);
+        endConnecting();
+      }
     },
-    [metadata, findNode, startConnecting]
+    [metadata, findNode, startConnecting, endConnecting]
   );
 
   /* ON CONNECT */

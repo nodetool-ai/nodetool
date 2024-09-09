@@ -199,8 +199,7 @@ const PropertyInput: React.FC<PropertyInputProps> = React.memo(
     const updateNodeProperties = useNodeStore(
       (state) => state.updateNodeProperties
     );
-    const value = data.properties[property.name];
-
+    const value = data.properties ? data.properties[property.name] : undefined;
     const onChange = useCallback(
       (value: any) => {
         updateNodeProperties(id, { [property.name]: value });

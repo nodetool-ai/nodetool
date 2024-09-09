@@ -3,7 +3,7 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
 import { NodeProps, useStore } from "reactflow";
 import { isEqual } from "lodash";
-import { Box, Button, Container, Tooltip, Typography } from "@mui/material";
+import { Button, Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
 import useModelStore from "../../stores/ModelStore";

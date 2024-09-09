@@ -1,28 +1,149 @@
-import { memo } from "react";
-import { NodeProps, Handle, Position } from "reactflow";
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
+import { memo, useEffect, useState, useMemo, useCallback } from "react";
+import { NodeProps } from "reactflow";
 import { isEqual } from "lodash";
-import { Container } from "@mui/material";
+import { Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
+import { useWorkflowStore } from "../../stores/WorkflowStore";
+import { useNodeStore } from "../../stores/NodeStore";
+import { NodeHeader } from "../node/NodeHeader";
+import { NodeInputs } from "../node/NodeInputs";
+import { NodeOutputs } from "../node/NodeOutputs";
+import { NodeFooter } from "../node/NodeFooter";
+import { Typography } from "@mui/material";
+
+const styles = (theme: any) =>
+  css({
+    "&": {
+      outline: "2px solid" + theme.palette.c_error
+    },
+    ".node-header ": {
+      minWidth: "150px",
+      backgroundColor: theme.palette.c_error
+    },
+    ".node-property": {
+      width: "100%",
+      textAlign: "left",
+      paddingLeft: "0.5em",
+      marginBottom: "0.1em"
+    },
+    ".missing-node-text": {
+      fontWeight: "bold",
+      color: theme.palette.c_error,
+      padding: 0,
+      margin: ".5em 0 0"
+    }
+  });
 
 const PlaceholderNode = (props: NodeProps<NodeData>) => {
-  const className = `placeholder-node ${
-    props.data.collapsed ? "collapsed" : ""
-  } ${props.selected ? "selected" : ""}`
-    .replace(/\s+/g, " ")
-    .trim();
+  const [nodeType, setNodeType] = useState<string | null>(null);
+  const [nodeData, setNodeData] = useState<any>(null);
+  const [nodeTitle, setNodeTitle] = useState<string | null>(null);
+  const [hasParent, setHasParent] = useState<boolean>(false);
+  const [nodeNamespace, setNodeNamespace] = useState<string | null>(null);
+  const getFromCache = useWorkflowStore((state) => state.getFromCache);
+  const edges = useNodeStore(
+    useCallback((state) => state.getInputEdges(props.id), [props.id])
+  );
 
+  useEffect(() => {
+    if (props.data && props.data.workflow_id) {
+      const workflow = getFromCache(props.data.workflow_id);
+      if (workflow && workflow.graph && workflow.graph.nodes) {
+        const node = workflow.graph.nodes.find((n) => n.id === props.id);
+        if (node) {
+          setNodeType(node.type || "");
+          setNodeData(node.data);
+          const parts = node.type?.split(".") || [];
+          const title = parts[parts.length - 1] || "";
+          const namespace = parts.slice(0, -1).join(".") || "";
+          setNodeTitle(title);
+          setNodeNamespace(namespace);
+          setHasParent(node.parent_id !== null);
+        }
+      }
+    }
+  }, [props.id, props.data, getFromCache, props]);
+
+  const relevantEdges = useMemo(() => {
+    return edges.filter((edge) => edge.target === props.id);
+  }, [edges, props.id]);
+
+  const mockProperties = useMemo(() => {
+    return relevantEdges.map((edge) => ({
+      name: edge.targetHandle || "",
+      type: { type: "any" },
+      description: `Input for ${edge.targetHandle}`,
+      default: null,
+      optional: true
+    }));
+  }, [relevantEdges]);
+
+  const mockMetadata = useMemo(
+    () => ({
+      title: nodeTitle || "Missing Node",
+      description: "This node is missing",
+      namespace: nodeNamespace || "unknown",
+      node_type: nodeType || "unknown",
+      layout: "default",
+      properties: mockProperties,
+      outputs: [
+        {
+          name: "output",
+          type: { type: "any" },
+          description: "Default output"
+        }
+      ],
+      input_schema: {},
+      output_schema: {},
+      model_info: {},
+      recommended_models: []
+    }),
+    [nodeTitle, nodeNamespace, nodeType, mockProperties]
+  );
+
+  const className = useMemo(
+    () =>
+      `node-body ${props.data.collapsed ? "collapsed" : ""}
+      ${hasParent ? "has-parent" : ""}
+      ${props.data.dirty ? "dirty" : ""}`
+        .replace(/\s+/g, " ")
+        .trim(),
+    [props.data.collapsed, hasParent, props.data.dirty]
+  );
   return (
-    <Container
-      className={className}
-      style={{
-        border: "2px dashed red",
-        padding: "10px",
-        textAlign: "center"
-      }}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div className="node-header">-</div>
-      <Handle type="source" position={Position.Right} />
+    <Container css={styles} className={className}>
+      <NodeHeader
+        id={props.id}
+        nodeTitle={nodeTitle || "Missing Node!"}
+        isLoading={false}
+        showMenu={false}
+      />
+      <Tooltip title="Try to find a replacement node or write us a fax.">
+        <Typography variant="h4" className="missing-node-text">
+          Missing Node
+        </Typography>
+      </Tooltip>
+      {mockProperties.length > 0 && (
+        <NodeInputs
+          id={props.id}
+          layout={mockMetadata.layout}
+          properties={mockProperties}
+          nodeType={nodeType || ""}
+          data={nodeData || {}}
+          onlyFields={false}
+          onlyHandles={false}
+          edges={relevantEdges}
+        />
+      )}
+      <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
+      <NodeFooter
+        nodeNamespace={nodeNamespace || ""}
+        type={nodeType || ""}
+        metadata={mockMetadata}
+      />
     </Container>
   );
 };

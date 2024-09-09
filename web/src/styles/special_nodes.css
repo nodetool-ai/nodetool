@@ -129,23 +129,7 @@
   padding: .5em;
 }
 
-/* Placeholder node */
-.react-flow__node.react-flow__node-default {
-  background-color: var(--c_attention);
-  border: 0;
-  padding: 0;
-}
-
-.react-flow__node.react-flow__node-default .placeholder-node {
-  min-width: 150px;
-  color: var(--c_white);
-  border: 0 !important;
-  padding: 0 !important;
-}
-
-.react-flow__node.react-flow__node-default .placeholder-node .react-flow__handle {
-  display: none;
-}
+/* Selected node */
 
 .react-flow .react-flow__node.react-flow__node.selected {
   outline: 1px solid var(--c_white);
