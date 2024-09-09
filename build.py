@@ -263,7 +263,8 @@ class Build:
         if self.arch:
             build_command.append(f"--{self.arch}")
 
-        env = {"DEBUG": "electron-builder"}
+        env = os.environ.copy()
+        env["DEBUG"] = "electron-builder"
 
         self.run_command(build_command, cwd=self.BUILD_DIR, env=env)
         logger.info("Electron app built successfully")
