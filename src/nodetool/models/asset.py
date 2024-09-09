@@ -149,15 +149,30 @@ class Asset(DBModel):
         return items
 
     @classmethod
-    def get_assets_recursive(cls, user_id: str, folder_id: str) -> List[Dict]:
+    def get_assets_recursive(cls, user_id: str, folder_id: str) -> Dict:
+        """
+        Fetch all assets recursively for a given folder_id.
+        """
         def recursive_fetch(current_folder_id):
             assets, _ = cls.paginate(user_id=user_id, parent_id=current_folder_id, limit=10000)
             result = []
             for asset in assets:
+                if asset.user_id != user_id:
+                    continue
+                
                 asset_dict = asset.dict()
                 if asset.content_type == "folder":
                     asset_dict["children"] = recursive_fetch(asset.id)
                 result.append(asset_dict)
+            
             return result
 
-        return recursive_fetch(folder_id)
+        folder = cls.find(user_id, folder_id)
+        if not folder:
+            log.warning(f"Folder {folder_id} not found for user {user_id}")
+            return {"assets": []}
+
+        folder_dict = folder.model_dump()
+        folder_dict["children"] = recursive_fetch(folder_id)
+        
+        return {"assets": [folder_dict]}

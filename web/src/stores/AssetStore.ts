@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { client, BASE_URL, authHeader } from "../stores/ApiClient";
 import { Asset, AssetList } from "../stores/ApiTypes";
-import { devLog } from "../utils/DevLog";
+import { devError, devLog } from "../utils/DevLog";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
@@ -42,6 +42,7 @@ export type AssetQuery = {
   workflow_id?: string | null;
   parent_id?: string | null;
   content_type?: string | null;
+  recursive?: boolean;
 };
 
 export type AssetUpdate = {
@@ -76,6 +77,7 @@ export interface AssetStore {
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
   download: (ids: string[]) => void;
+  getAssetsRecursive: (folderId: string) => Promise<AssetTreeNode[]>;
 }
 
 /**
@@ -133,6 +135,14 @@ const buildFolderTree = (
 
   return sortedTree;
 };
+
+interface AssetTreeResponse {
+  assets: AssetTreeNode[];
+}
+
+interface AssetTreeNode extends Asset {
+  children?: AssetTreeNode[];
+}
 
 export const useAssetStore = create<AssetStore>((set, get) => ({
   queryClient: null,
@@ -308,7 +318,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     });
 
     if (error) {
-      console.error(`Error deleting asset ${id}:`, error);
+      devError(`Error deleting asset ${id}:`, error);
       throw error;
     }
 
@@ -370,10 +380,13 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
       return true;
     } catch (error) {
-      console.error("Error in download function:", error);
+      devError("AssetStore download error:", error);
       if (axios.isAxiosError(error)) {
-        console.error("Error message:", error.message);
-        console.error("Error response:", error.response?.data);
+        devError(
+          "AssetStore download error:",
+          error.message,
+          error.response?.data
+        );
       }
       throw error;
     }
@@ -438,5 +451,30 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     get().add(asset);
 
     return asset;
+  },
+
+  getAssetsRecursive: async (folderId: string): Promise<AssetTreeNode[]> => {
+    const { data, error } = await client.GET(
+      "/api/assets/{folder_id}/recursive",
+      {
+        params: { path: { folder_id: folderId } }
+      }
+    );
+    if (error) {
+      devError("AssetStore: Error fetching assets recursively:", error);
+      throw error;
+    }
+
+    if (
+      typeof data === "object" &&
+      data !== null &&
+      "assets" in data &&
+      Array.isArray(data.assets)
+    ) {
+      return (data as AssetTreeResponse).assets;
+    } else {
+      devError("AssetStore: Unexpected data structure received:", data);
+      throw new Error("Unexpected data structure received from server");
+    }
   }
 }));

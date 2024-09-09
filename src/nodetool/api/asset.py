@@ -119,6 +119,9 @@ async def update(
 
 @router.delete("/{id}")
 async def delete(id: str, user: User = Depends(current_user)):
+    """
+    Deletes the asset for the given id. If the asset is a folder, it deletes all contents recursively.
+    """
     try:
         asset = AssetModel.find(user.id, id)
         if asset is None:
@@ -349,5 +352,5 @@ async def get_assets_recursive(folder_id: str, user: User = Depends(current_user
     Get all assets in a folder recursively, including the folder structure.
     """
     assets = AssetModel.get_assets_recursive(user.id, folder_id)
-    return {"assets": assets}
+    return assets
 

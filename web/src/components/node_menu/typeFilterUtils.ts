@@ -1,5 +1,5 @@
 import { NodeMetadata, TypeName } from "../../stores/ApiTypes";
-import { devLog, devWarn } from "../../utils/DevLog";
+import { devWarn } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
 import { DATA_TYPES } from "../../config/data_types";
 
@@ -45,7 +45,6 @@ function createConnectabilityMatrix(): ConnectabilityMatrix {
 }
 
 function logMissingConnectabilityTypes() {
-  devLog("Checking for missing connectability types...");
   const allTypes: TypeName[] = Object.keys(connectabilityMatrix) as TypeName[];
 
   allTypes.forEach((inputType: TypeName) => {

@@ -1,9 +1,8 @@
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAssetStore } from "../stores/AssetStore";
 import { Asset } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
-import useSessionStateStore from "../stores/SessionStateStore";
 import useAuth from "../stores/useAuth";
 import { useAssetGridStore } from "../stores/AssetGridStore";
 
@@ -224,6 +223,17 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const isLoading = isLoadingCurrentFolder || isLoadingFolderTree;
   const error = currentFolderError || folderTreeError;
 
+  const fetchAssetsRecursive = useCallback(
+    async (folderId: string) => {
+      const result = await load({
+        parent_id: folderId,
+        recursive: true
+      });
+      return result;
+    },
+    [load]
+  );
+
   return {
     folderFiles: processedAssets, // Processed and sorted non-folder assets from the current folder
     folderFilesFiltered, // Filtered assets based on search term and content type
@@ -239,6 +249,7 @@ export const useAssets = (initialFolderId: string | null = null) => {
     navigateToFolder, // change the current folder
     navigateToFolderId, // change the current folder by id
     fetchAssets, // fetch assets for the current folder
+    fetchAssetsRecursive, // fetch assets recursively
     refetchAssets, // invalidate and refetch assets for the current folder
     refetchFolders, // invalidate and refetch all folders
     refetchAssetsAndFolders // invalidate and refetch assets and folders

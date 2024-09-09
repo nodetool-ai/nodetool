@@ -3,7 +3,6 @@
  * Do not make direct changes to the file.
  */
 
-
 export interface paths {
   "/api/assets/": {
     /**
@@ -1736,7 +1735,13 @@ export interface components {
        */
       name?: string;
       /** Content */
-      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      content?:
+        | string
+        | (
+            | components["schemas"]["MessageTextContent"]
+            | components["schemas"]["MessageImageContent"]
+          )[]
+        | null;
       /** Tool Calls */
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
@@ -1772,7 +1777,13 @@ export interface components {
        */
       name?: string;
       /** Content */
-      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      content?:
+        | string
+        | (
+            | components["schemas"]["MessageTextContent"]
+            | components["schemas"]["MessageImageContent"]
+          )[]
+        | null;
       /** Tool Calls */
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
@@ -1797,7 +1808,13 @@ export interface components {
        */
       name?: string;
       /** Content */
-      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      content?:
+        | string
+        | (
+            | components["schemas"]["MessageTextContent"]
+            | components["schemas"]["MessageImageContent"]
+          )[]
+        | null;
       /** Tool Calls */
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
@@ -2106,7 +2123,15 @@ export interface components {
      * Provider
      * @enum {string}
      */
-    Provider: "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "empty";
+    Provider:
+      | "openai"
+      | "anthropic"
+      | "replicate"
+      | "huggingface"
+      | "ollama"
+      | "comfy"
+      | "local"
+      | "empty";
     /** RunJobRequest */
     RunJobRequest: {
       /**
@@ -2365,7 +2390,7 @@ export interface components {
        */
       optional?: boolean;
       /** Values */
-      values?: ((string | number)[]) | null;
+      values?: (string | number)[] | null;
       /**
        * Type Args
        * @default []
@@ -2558,7 +2583,6 @@ export type $defs = Record<string, never>;
 export type external = Record<string, never>;
 
 export interface operations {
-
   /**
    * Index
    * @description Returns all assets for a given user or workflow.
@@ -3106,7 +3130,68 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | Record<string, never>;
+          "application/json":
+            | components["schemas"]["AssetRef"]
+            | components["schemas"]["AudioRef"]
+            | components["schemas"]["DataframeRef"]
+            | components["schemas"]["FolderRef"]
+            | components["schemas"]["ImageRef"]
+            | components["schemas"]["Tensor"]
+            | components["schemas"]["VideoRef"]
+            | components["schemas"]["ModelRef"]
+            | components["schemas"]["TextRef"]
+            | components["schemas"]["WorkflowRef"]
+            | components["schemas"]["NodeRef"]
+            | components["schemas"]["Prediction"]
+            | components["schemas"]["JobUpdate"]
+            | components["schemas"]["NodeUpdate"]
+            | components["schemas"]["NodeProgress"]
+            | components["schemas"]["HuggingFaceModel"]
+            | components["schemas"]["HFImageTextToText"]
+            | components["schemas"]["HFVisualQuestionAnswering"]
+            | components["schemas"]["HFDocumentQuestionAnswering"]
+            | components["schemas"]["HFVideoTextToText"]
+            | components["schemas"]["HFComputerVision"]
+            | components["schemas"]["HFDepthEstimation"]
+            | components["schemas"]["HFImageClassification"]
+            | components["schemas"]["HFObjectDetection"]
+            | components["schemas"]["HFImageSegmentation"]
+            | components["schemas"]["HFTextToImage"]
+            | components["schemas"]["HFStableDiffusion"]
+            | components["schemas"]["HFStableDiffusionXL"]
+            | components["schemas"]["HFImageToText"]
+            | components["schemas"]["HFImageToImage"]
+            | components["schemas"]["HFImageToVideo"]
+            | components["schemas"]["HFUnconditionalImageGeneration"]
+            | components["schemas"]["HFVideoClassification"]
+            | components["schemas"]["HFTextToVideo"]
+            | components["schemas"]["HFZeroShotImageClassification"]
+            | components["schemas"]["HFMaskGeneration"]
+            | components["schemas"]["HFZeroShotObjectDetection"]
+            | components["schemas"]["HFTextTo3D"]
+            | components["schemas"]["HFImageTo3D"]
+            | components["schemas"]["HFImageFeatureExtraction"]
+            | components["schemas"]["HFNaturalLanguageProcessing"]
+            | components["schemas"]["HFTextClassification"]
+            | components["schemas"]["HFTokenClassification"]
+            | components["schemas"]["HFTableQuestionAnswering"]
+            | components["schemas"]["HFQuestionAnswering"]
+            | components["schemas"]["HFZeroShotClassification"]
+            | components["schemas"]["HFTranslation"]
+            | components["schemas"]["HFSummarization"]
+            | components["schemas"]["HFFeatureExtraction"]
+            | components["schemas"]["HFTextGeneration"]
+            | components["schemas"]["HFText2TextGeneration"]
+            | components["schemas"]["HFFillMask"]
+            | components["schemas"]["HFSentenceSimilarity"]
+            | components["schemas"]["HFTextToSpeech"]
+            | components["schemas"]["HFTextToAudio"]
+            | components["schemas"]["HFAutomaticSpeechRecognition"]
+            | components["schemas"]["HFAudioToAudio"]
+            | components["schemas"]["HFAudioClassification"]
+            | components["schemas"]["HFZeroShotAudioClassification"]
+            | components["schemas"]["HFVoiceActivityDetection"]
+            | Record<string, never>;
         };
       };
     };

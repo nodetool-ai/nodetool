@@ -1,223 +1,193 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Button,
-  Typography,
   CircularProgress,
   List,
-  ListItemText,
-  Collapse,
-  ListItemButton,
-  ListItemIcon
+  ListItem,
+  ListItemIcon,
+  ListItemText
 } from "@mui/material";
-import {
-  ExpandLess,
-  ExpandMore,
-  Folder,
-  InsertDriveFile
-} from "@mui/icons-material";
-import { Asset } from "../../stores/ApiTypes";
-import { useAssetStore } from "../../stores/AssetStore";
+import { InsertDriveFile } from "@mui/icons-material";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssets } from "../../serverState/useAssets";
+import { useAssetStore } from "../../stores/AssetStore";
+import AssetTree from "./AssetTree";
+import { Asset } from "../../stores/ApiTypes";
+import { useAuth } from "../../stores/useAuth";
+import { devError, devLog } from "../../utils/DevLog";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface AssetDeleteConfirmationProps {
   assets: string[];
-}
-
-interface AssetTreeNode extends Asset {
-  children: AssetTreeNode[];
-  totalAssets: number;
+  isLoading: boolean;
+  setIsLoading: (loading: boolean) => void;
 }
 
 const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
-  assets
+  assets,
+  isLoading,
+  setIsLoading
 }) => {
-  const [assetTree, setAssetTree] = useState<AssetTreeNode[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [totalAssets, setTotalAssets] = useState(0);
-  const [closedFolders, setClosedFolders] = useState<string[]>([]);
+  const [folderCount, setFolderCount] = useState(0);
+  const [fileCount, setFileCount] = useState(0);
+  const [fileAssets, setFileAssets] = useState<Asset[]>([]);
+  const [isAssetTreeLoading, setIsAssetTreeLoading] = useState(true);
+  const [isPreparingDelete, setIsPreparingDelete] = useState(true);
+  const [showRootFolderWarning, setShowRootFolderWarning] = useState(false);
   const dialogOpen = useAssetGridStore((state) => state.deleteDialogOpen);
   const setDialogOpen = useAssetGridStore((state) => state.setDeleteDialogOpen);
   const { mutation } = useAssetDeletion();
   const { refetchAssetsAndFolders } = useAssets();
   const getAsset = useAssetStore((state) => state.get);
-  const getAllAssetsInFolder = useAssetStore(
-    (state) => state.getAllAssetsInFolder
-  );
-
-  const buildAssetTree = useCallback(
-    async (assetId: string): Promise<AssetTreeNode | null> => {
-      const asset = await getAsset(assetId);
-      if (!asset) return null;
-
-      const node: AssetTreeNode = { ...asset, children: [], totalAssets: 1 };
-
-      if (asset.content_type === "folder") {
-        const children = await getAllAssetsInFolder(asset.id);
-        node.children = (
-          await Promise.all(children.map((child) => buildAssetTree(child.id)))
-        ).filter((child): child is AssetTreeNode => child !== null);
-
-        node.totalAssets =
-          1 + node.children.reduce((sum, child) => sum + child.totalAssets, 0);
-      }
-
-      return node;
-    },
-    [getAsset, getAllAssetsInFolder]
-  );
+  const user = useAuth.getState().getUser();
 
   useEffect(() => {
-    const fetchAssetTree = async () => {
-      setIsLoading(true);
-      const tree = await Promise.all(assets.map(buildAssetTree));
-      const filteredTree = tree.filter(
-        (node): node is AssetTreeNode => node !== null
-      );
-      setAssetTree(filteredTree);
+    const countAssetTypes = async () => {
+      setIsPreparingDelete(true);
+      let folders = 0;
+      let files = 0;
+      const fileAssetsTemp: Asset[] = [];
+      setTotalAssets(0);
+      let hasRootFolder = false;
 
-      const total = filteredTree.reduce(
-        (sum, node) => sum + node.totalAssets,
-        0
-      );
-      setTotalAssets(total);
+      for (const assetId of assets) {
+        const asset = await getAsset(assetId);
+        if (asset) {
+          if (asset.content_type === "folder") {
+            folders++;
+            // Check if the asset is the root folder (either "1" or user.id)
+            if (asset.id === "1" || (user && asset.id === user.id)) {
+              hasRootFolder = true;
+            }
+          } else {
+            files++;
+            fileAssetsTemp.push(asset);
+          }
+        }
+      }
 
-      setIsLoading(false);
+      setFolderCount(folders);
+      setFileCount(files);
+      setFileAssets(fileAssetsTemp);
+      if (files > 0 && folders === 0) {
+        setTotalAssets(files);
+      }
+      setIsPreparingDelete(false);
+      setShowRootFolderWarning(hasRootFolder);
     };
 
-    if (dialogOpen) {
-      fetchAssetTree();
-    }
-  }, [assets, dialogOpen, buildAssetTree]);
+    countAssetTypes();
+  }, [assets, getAsset, user]);
+
+  const handleTotalAssetsCalculated = useCallback((assetCount: number) => {
+    setTotalAssets(assetCount);
+  }, []);
 
   const executeDeletion = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await mutation.mutateAsync(assets);
       if (response === undefined) {
-        console.error("Received undefined response from server");
-      } else {
-        if (typeof response === "object" && response !== null) {
-          console.log(
-            "Deleted asset IDs:",
-            (response as any).deleted_asset_ids
-          );
-        }
+        devError("Received undefined response from server");
+      } else if (typeof response === "object" && response !== null) {
+        devLog("Deleted asset IDs:", (response as any).deleted_asset_ids);
       }
       setDialogOpen(false);
       await refetchAssetsAndFolders();
     } catch (error) {
       if (error instanceof Error) {
-        console.error("Execute deletion error:", error.message);
+        devError("Execute deletion error:", error.message);
       }
+    } finally {
+      setIsLoading(false);
     }
-  }, [mutation, assets, setDialogOpen, refetchAssetsAndFolders]);
+  }, [mutation, assets, setDialogOpen, refetchAssetsAndFolders, setIsLoading]);
 
-  const toggleFolder = (assetId: string) => {
-    setClosedFolders((prev: string[]) => {
-      if (prev.includes(assetId)) {
-        return prev.filter((id: string) => id !== assetId);
-      } else {
-        return [...prev, assetId];
-      }
-    });
-  };
-
-  const renderAssetTree = (nodes: AssetTreeNode[], depth = 0) => {
-    const sortedNodes = [...nodes].sort((a, b) => {
-      if (a.content_type === "folder" && b.content_type !== "folder") {
-        return -1;
-      }
-      if (a.content_type !== "folder" && b.content_type === "folder") {
-        return 1;
-      }
-      return a.name.localeCompare(b.name);
-    });
-
-    return (
-      <List dense disablePadding>
-        {sortedNodes.map((node) => (
-          <React.Fragment key={node.id}>
-            <ListItemButton
-              onClick={() =>
-                node.content_type === "folder" && toggleFolder(node.id)
-              }
-              style={{ paddingLeft: `${depth * 16}px` }}
-            >
-              <ListItemIcon>
-                {node.content_type === "folder" ? (
-                  <Folder />
-                ) : (
-                  <InsertDriveFile />
-                )}
-              </ListItemIcon>
-              <ListItemText primary={node.name} />
-              {node.content_type === "folder" && (
-                <>
-                  {closedFolders.includes(node.id) ? (
-                    <ExpandMore />
-                  ) : (
-                    <ExpandLess />
-                  )}
-                  <Typography variant="body2" color="textSecondary">
-                    ({node.totalAssets} items)
-                  </Typography>
-                </>
-              )}
-            </ListItemButton>
-            {node.content_type === "folder" && (
-              <Collapse
-                in={!closedFolders.includes(node.id)}
-                timeout="auto"
-                unmountOnExit
-              >
-                {renderAssetTree(node.children, depth + 1)}
-              </Collapse>
-            )}
-          </React.Fragment>
-        ))}
-      </List>
-    );
+  const getDialogTitle = () => {
+    if (isAssetTreeLoading) {
+      return "Preparing to delete...";
+    } else if (showRootFolderWarning) {
+      return "Warning: The root folder cannot be deleted.";
+    } else if (folderCount === 1 && fileCount === 0) {
+      return `Delete folder containing ${totalAssets - 1} file${
+        totalAssets - 1 !== 1 ? "s" : ""
+      }?`;
+    } else if (folderCount > 0) {
+      return `Delete ${folderCount} folder${
+        folderCount !== 1 ? "s" : ""
+      } and ${fileCount} file${
+        fileCount !== 1 ? "s" : ""
+      } containing ${totalAssets} item${totalAssets !== 1 ? "s" : ""}?`;
+    } else {
+      return `Delete ${fileCount} file${fileCount !== 1 ? "s" : ""}?`;
+    }
   };
 
   return (
-    <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-      <DialogTitle>
-        {isLoading
-          ? "Preparing to delete..."
-          : `Delete ${assets.length > 1 ? assets.length + " items" : "folder"}${
-              totalAssets > assets.length
-                ? ` containing ${totalAssets} assets?`
-                : "?"
-            }`}
+    <Dialog
+      className="asset-delete-confirmation"
+      open={dialogOpen}
+      onClose={() => setDialogOpen(false)}
+    >
+      <DialogTitle sx={{ color: ThemeNodetool.palette.c_warning }}>
+        {getDialogTitle()}
       </DialogTitle>
-      <DialogContent>
-        {isLoading ? (
-          <CircularProgress />
+      <DialogContent
+        style={{
+          minWidth: "600px",
+          minHeight: "00px",
+          maxHeight: "60vh"
+        }}
+      >
+        {isPreparingDelete ? (
+          <CircularProgress size={16} />
         ) : (
           <>
-            <Typography
-              style={{
-                color: ThemeNodetool.palette.c_warning,
-                marginBottom: "1em"
-              }}
-            >
-              The following items will be deleted:
-            </Typography>
-            {renderAssetTree(assetTree)}
+            {!showRootFolderWarning && (
+              <>
+                {folderCount > 0 ? (
+                  assets.map((assetId) => (
+                    <AssetTree
+                      key={assetId}
+                      folderId={assetId}
+                      onTotalAssetsCalculated={handleTotalAssetsCalculated}
+                      onLoadingChange={setIsAssetTreeLoading}
+                    />
+                  ))
+                ) : (
+                  <List dense>
+                    {fileAssets.map((file) => (
+                      <ListItem key={file.id}>
+                        <ListItemIcon>
+                          <InsertDriveFile />
+                        </ListItemIcon>
+                        <ListItemText primary={file.name} />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </>
+            )}
           </>
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-        <Button onClick={executeDeletion} disabled={isLoading} color="error">
-          Delete
+        <Button onClick={() => setDialogOpen(false)} disabled={isLoading}>
+          Cancel
+        </Button>
+        <Button
+          onClick={executeDeletion}
+          disabled={isLoading || isAssetTreeLoading || showRootFolderWarning}
+          color="error"
+        >
+          {isLoading ? <CircularProgress size={24} /> : "Delete"}
         </Button>
       </DialogActions>
     </Dialog>
