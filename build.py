@@ -255,7 +255,9 @@ class Build:
         if self.arch:
             build_command.append(f"--{self.arch}")
 
-        self.run_command(build_command, cwd=self.BUILD_DIR)
+        env = {"DEBUG": "electron-builder"}
+
+        self.run_command(build_command, cwd=self.BUILD_DIR, env=env)
         logger.info("Electron app built successfully")
 
     def initialize_conda_env(self):

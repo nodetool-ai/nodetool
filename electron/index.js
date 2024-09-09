@@ -8,10 +8,11 @@ let mainWindow;
 let serverProcess;
 
 async function runCondaUnpack() {
+  const resourcesPath = process.resourcesPath;
   const executable =
     process.platform === "win32"
-      ? path.join(userDataPath, "python_env", "Scripts", "conda-unpack.exe")
-      : path.join(userDataPath, "python_env", "bin", "conda-unpack");
+      ? path.join(resourcesPath, "python_env", "Scripts", "conda-unpack.exe")
+      : path.join(resourcesPath, "python_env", "bin", "conda-unpack");
 
   const condaUnpackProcess = spawn(executable, []);
 
@@ -40,7 +41,7 @@ function createWindow() {
   mainWindow.loadFile("index.html");
 
   mainWindow.on("closed", function () {
-    mainWindow = null
+    mainWindow = null;
   });
 }
 
@@ -48,16 +49,20 @@ async function startServer() {
   const resourcesPath = process.resourcesPath;
   const env = Object.create(process.env);
   let webDir;
-  
+
   console.log("resourcesPath", resourcesPath);
 
   mainWindow.webContents.send("boot-message", "Initializing NodeTool");
 
-  const pythonEnvExecutable = path.join(resourcesPath, "python_env", "python.exe");
+  const pythonEnvExecutable = path.join(
+    resourcesPath,
+    "python_env",
+    "python.exe"
+  );
   const pythonEnvExists = await fs.stat(pythonEnvExecutable).catch(() => false);
 
   env.PYTHONUNBUFFERED = "1";
-  
+
   if (pythonEnvExists) {
     // this is the case when the app is run from a built state
     env.PYTHONPATH = path.join(resourcesPath, "src");
@@ -98,19 +103,19 @@ async function startServer() {
       mainWindow.webContents.send("server-log", data.toString());
     }
   });
-  
-  ollamaProcess = spawn(
-    path.join(resourcesPath, "ollama", "ollama.exe"),
-    ["serve"],
-  );
-  
-  ollamaProcess.stdout.on("data", (data) => {
-    console.log(data.toString());
-  });
 
-  ollamaProcess.stderr.on("data", (data) => {
-    console.log(data.toString());
-  });
+  // ollamaProcess = spawn(
+  //   path.join(resourcesPath, "ollama", "ollama.exe"),
+  //   ["serve"],
+  // );
+
+  // ollamaProcess.stdout.on("data", (data) => {
+  //   console.log(data.toString());
+  // });
+
+  // ollamaProcess.stderr.on("data", (data) => {
+  //   console.log(data.toString());
+  // });
 }
 
 app.on("ready", () => {
