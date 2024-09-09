@@ -1,4 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
@@ -24,17 +26,33 @@ import { useAuth } from "../../stores/useAuth";
 import { devError, devLog } from "../../utils/DevLog";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
+const styles = (theme: any) =>
+  css({
+    ".asset-delete-confirmation-content": {
+      minWidth: "600px",
+      minHeight: "200px",
+      maxHeight: "60vh"
+    },
+    ".asset-delete-confirmation-content::after": {
+      content: "''",
+      width: "100%",
+      height: "4em",
+      display: "block",
+      background: `linear-gradient(to top, ${theme.palette.c_gray2}, transparent)`,
+      position: "absolute",
+      bottom: "3em",
+      left: 0
+    }
+  });
+
 interface AssetDeleteConfirmationProps {
   assets: string[];
-  isLoading: boolean;
-  setIsLoading: (loading: boolean) => void;
 }
 
 const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
-  assets,
-  isLoading,
-  setIsLoading
+  assets
 }) => {
+  const [isLoading, setIsLoading] = useState(false);
   const [totalAssets, setTotalAssets] = useState(0);
   const [folderCount, setFolderCount] = useState(0);
   const [fileCount, setFileCount] = useState(0);
@@ -57,7 +75,6 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       const fileAssetsTemp: Asset[] = [];
       setTotalAssets(0);
       let hasRootFolder = false;
-
       for (const assetId of assets) {
         const asset = await getAsset(assetId);
         if (asset) {
@@ -133,6 +150,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
 
   return (
     <Dialog
+      css={styles}
       className="asset-delete-confirmation"
       open={dialogOpen}
       onClose={() => setDialogOpen(false)}
@@ -140,13 +158,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       <DialogTitle sx={{ color: ThemeNodetool.palette.c_warning }}>
         {getDialogTitle()}
       </DialogTitle>
-      <DialogContent
-        style={{
-          minWidth: "600px",
-          minHeight: "200px",
-          maxHeight: "60vh"
-        }}
-      >
+      <DialogContent className="asset-delete-confirmation-content">
         <Typography
           variant="body1"
           color={ThemeNodetool.palette.c_gray5}

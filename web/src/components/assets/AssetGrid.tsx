@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Box, Divider, Typography } from "@mui/material";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -31,7 +31,7 @@ const styles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-start",
-      height: "100%",
+      height: "100%"
     },
     ".dropzone": {
       display: "flex",
@@ -40,7 +40,7 @@ const styles = (theme: any) =>
       flexGrow: 1,
       flexShrink: 1,
       width: "100%",
-      maxHeight: "calc(-273px + 100vh)",
+      maxHeight: "calc(-273px + 100vh)"
     },
     ".audio-controls-container": {
       position: "absolute",
@@ -52,8 +52,8 @@ const styles = (theme: any) =>
       left: "0",
       width: "100%",
       padding: "0.5em",
-      backgroundColor: theme.palette.c_gray1,
-    },
+      backgroundColor: theme.palette.c_gray1
+    }
   });
 
 interface AssetGridProps {
@@ -65,16 +65,22 @@ interface AssetGridProps {
 const AssetGrid: React.FC<AssetGridProps> = ({
   maxItemSize = 100,
   itemSpacing = 5,
-  isHorizontal,
+  isHorizontal
 }) => {
   const { error } = useAssets();
   const openAsset = useAssetGridStore((state) => state.openAsset);
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
   const selectedFolderId = useAssetGridStore((state) => state.selectedFolderId);
-  const setSelectedAssetIds = useAssetGridStore((state) => state.setSelectedAssetIds);
-  const setRenameDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
-  const currentAudioAsset = useAssetGridStore((state) => state.currentAudioAsset);
+  const setSelectedAssetIds = useAssetGridStore(
+    (state) => state.setSelectedAssetIds
+  );
+  const setRenameDialogOpen = useAssetGridStore(
+    (state) => state.setRenameDialogOpen
+  );
+  const currentAudioAsset = useAssetGridStore(
+    (state) => state.currentAudioAsset
+  );
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
   const handleDoubleClick = (asset: Asset) => {
@@ -124,7 +130,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     if (F2KeyPressed && selectedAssetIds.length > 0) {
       setRenameDialogOpen(true);
     }
-  }, [F2KeyPressed, selectedAssetIds]);
+  }, [F2KeyPressed, selectedAssetIds, setRenameDialogOpen]);
 
   const uploadFiles = useCallback(
     (files: File[]) => {
@@ -133,18 +139,18 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         uploadAsset({
           file: file,
           workflow_id: workflow.id,
-          parent_id: currentFolderId || undefined,
+          parent_id: currentFolderId || undefined
         });
       });
     },
     [currentFolderId, uploadAsset]
   );
 
-  const { navigateToFolder } = useAssets();
+  const { navigateToFolderId } = useAssets();
 
   if (selectedFolderId === null) {
     if (user) {
-      navigateToFolder(user?.id);
+      navigateToFolderId(user?.id);
     } else {
       console.error("User is not logged in");
     }
@@ -166,14 +172,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           style={{
             height: "100%",
             display: "flex",
-            flexDirection: isHorizontal ? "row" : "column",
+            flexDirection: isHorizontal ? "row" : "column"
           }}
         >
-          <FolderList
-            isHorizontal={isHorizontal}
-          // onNavigate={navigateToFolder}
-          />
-          {/* <AssetGridContent itemSpacing={itemSpacing} assets={filteredAssets} /> */}
+          <FolderList isHorizontal={isHorizontal} />
           <AssetGridContent
             itemSpacing={itemSpacing}
             onDoubleClick={handleDoubleClick}
@@ -199,15 +201,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         />
       )}
       {openMenuType === "asset-item-context-menu" && <AssetItemContextMenu />}
-      <AssetDeleteConfirmation
-        assets={selectedAssetIds}
-      />
-      <AssetRenameConfirmation
-        assets={selectedAssetIds}
-      />
-      <AssetMoveToFolderConfirmation
-        assets={selectedAssetIds}
-      />
+      <AssetDeleteConfirmation assets={selectedAssetIds} />
+      <AssetRenameConfirmation assets={selectedAssetIds} />
+      <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
     </Box>
   );
 };

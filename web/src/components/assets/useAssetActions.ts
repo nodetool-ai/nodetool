@@ -139,7 +139,10 @@ export const useAssetActions = (asset: Asset) => {
       event.preventDefault();
       event.stopPropagation();
       if (enableContextMenu) {
-        if (!selectedAssetIds.includes(asset.id)) {
+        if (
+          // asset.content_type !== "folder" &&
+          !selectedAssetIds.includes(asset.id)
+        ) {
           setSelectedAssetIds([asset.id]);
         }
 
@@ -151,7 +154,7 @@ export const useAssetActions = (asset: Asset) => {
         );
       }
     },
-    [selectedAssetIds, setSelectedAssetIds, openContextMenu, asset.id]
+    [asset.id, selectedAssetIds, openContextMenu, setSelectedAssetIds]
   );
 
   const handleDelete = useCallback(() => {

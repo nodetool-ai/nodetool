@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { ButtonGroup, Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import { Asset } from "../../stores/ApiTypes";
-import AssetViewer from "./AssetViewer";
 import DeleteButton from "../buttons/DeleteButton";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -27,7 +26,7 @@ const styles = (theme: any) =>
       minHeight: "30px",
       boxSizing: "border-box",
       WebkitBoxSizing: "border-box",
-      MozBoxSizing: "border-box",
+      MozBoxSizing: "border-box"
     },
     ".asset": {
       position: "relative",
@@ -37,7 +36,7 @@ const styles = (theme: any) =>
       top: 0,
       bottom: 0,
       backgroundColor: theme.palette.c_gray0,
-      overflow: "hidden",
+      overflow: "hidden"
     },
     ".asset .image, .asset .image-aspect-ratio": {
       position: "absolute",
@@ -47,18 +46,18 @@ const styles = (theme: any) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      transition: "opacity 0.5s",
+      transition: "opacity 0.5s"
     },
     ".asset .image-aspect-ratio": {
       opacity: 0,
       backgroundSize: "contain",
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.c_gray1
     },
     "&:hover .asset .image": {
-      opacity: 1,
+      opacity: 1
     },
     "&:hover .asset .image-aspect-ratio": {
-      opacity: 1,
+      opacity: 1
     },
     "& svg.placeholder": {
       position: "absolute",
@@ -66,13 +65,13 @@ const styles = (theme: any) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       zIndex: 0,
-      color: theme.palette.c_gray4,
+      color: theme.palette.c_gray4
     },
     p: {
       fontSize: theme.fontSizeTiny,
       color: theme.palette.c_white,
       lineHeight: "0.95em",
-      margin: "2px 0 4px 2px",
+      margin: "2px 0 4px 2px"
     },
     ".info": {
       position: "absolute",
@@ -83,7 +82,7 @@ const styles = (theme: any) =>
       margin: "0",
       padding: "0.2em 0.5em",
       wordBreak: "break-word",
-      width: "fit-content",
+      width: "fit-content"
     },
     ".name": {
       position: "relative",
@@ -91,16 +90,16 @@ const styles = (theme: any) =>
       width: "95%",
       height: "3em",
       overflow: "hidden",
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
     },
     ".filetype": {
       top: "0",
-      fontWeight: "bold",
+      fontWeight: "bold"
     },
     ".duration": {
       bottom: "2px",
       right: "0.25em",
-      color: "white",
+      color: "white"
     },
     "img, video": {
       position: "absolute",
@@ -110,15 +109,15 @@ const styles = (theme: any) =>
       height: "auto",
       maxHeight: "unset",
       transform: "translate(-50%, -50%)",
-      objectFit: "cover",
+      objectFit: "cover"
     },
     "&.text": {
-      minHeight: "80px",
+      minHeight: "80px"
     },
     ".MuiButtonGroup-root": {
       position: "absolute",
       top: 0,
-      right: 0,
+      right: 0
     },
     ".asset-item-actions button": {
       zIndex: 10,
@@ -130,28 +129,28 @@ const styles = (theme: any) =>
       margin: "0.1em",
       padding: "0 0.1em",
       borderRadius: "0em !important",
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
     },
     ".asset-delete": {
       pointerEvents: "none",
-      opacity: 0,
+      opacity: 0
     },
     "&.selected:hover .asset-delete": {
       backgroundColor: "transparent",
       pointerEvents: "all",
-      opacity: 1,
+      opacity: 1
     },
     "&.image": {
       background: "transparent",
       backgroundRepeat: "no-repeat",
       backgroundSize: "cover",
-      overflow: "hidden",
+      overflow: "hidden"
     },
     "&.image img": {
       backgroundColor: theme.palette.c_gray1,
       width: "100%",
       height: "auto",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeSmaller
     },
     // ITEM
     "&.selected:after": {
@@ -160,7 +159,7 @@ const styles = (theme: any) =>
       backgroundColor: "#11111155",
       outlineOffset: "-2px",
       borderRadius: "7px",
-      zIndex: 2000,
+      zIndex: 2000
     },
     "&:after": {
       content: '""',
@@ -170,22 +169,22 @@ const styles = (theme: any) =>
       left: 0,
       right: 0,
       bottom: 0,
-      zIndex: 100,
+      zIndex: 100
     },
     "&:hover:after": {
       border: `2px solid ${theme.palette.c_gray2}`,
-      backgroundColor: "#437cb522",
+      backgroundColor: "#437cb522"
     },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {
-      color: theme.palette.c_hl1,
+      color: theme.palette.c_hl1
     },
     ".folder-up-button.disabled": {
-      color: "gray",
+      color: "gray"
     },
     // DRAG HOVER
     "&.drag-hover": {
-      opacity: 0.7,
+      opacity: 0.7
     },
     // ASSET MISSING
     ".asset-missing": {
@@ -201,8 +200,8 @@ const styles = (theme: any) =>
       color: theme.palette.c_error,
       borderBottom: "1px solid" + theme.palette.c_error,
       width: "100%",
-      height: "100%",
-    },
+      height: "100%"
+    }
   });
 
 export type AssetItemProps = {
@@ -239,10 +238,9 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     onSelect,
     onDoubleClick,
     onClickParent,
-    onSetCurrentAudioAsset,
+    onSetCurrentAudioAsset
   } = props;
 
-  const [openAsset, setOpenAsset] = useState<Asset | undefined>(undefined);
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
@@ -257,7 +255,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
     handleDragLeave,
     handleDrop,
     handleContextMenu,
-    handleDelete,
+    handleDelete
   } = useAssetActions(asset);
 
   const assetType = useMemo(() => {
@@ -288,8 +286,9 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
   return (
     <div
       css={styles}
-      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
-        } ${isParent ? "parent" : ""}`}
+      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
+        isDragHovered ? "drag-hover" : ""
+      } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
@@ -323,16 +322,18 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"
-                  })`,
+                backgroundImage: `url(${
+                  asset.thumb_url || "/images/placeholder.png"
+                })`
               }}
               aria-label={asset.id}
             />
             <div
               className="image-aspect-ratio"
               style={{
-                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"
-                  })`,
+                backgroundImage: `url(${
+                  asset.thumb_url || "/images/placeholder.png"
+                })`
               }}
               aria-label={asset.id}
             />
@@ -362,8 +363,9 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
             <div
               className="image"
               style={{
-                backgroundImage: `url(${asset.thumb_url || "/images/placeholder.png"
-                  })`,
+                backgroundImage: `url(${
+                  asset.thumb_url || "/images/placeholder.png"
+                })`
               }}
               aria-label={asset.id}
             />
@@ -383,7 +385,7 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
               style={{
                 borderLeft: `2px solid var(--c_${assetType})`,
                 color: "white",
-                backgroundColor: "#333",
+                backgroundColor: "#333"
               }}
             >
               {assetFileEnding}

@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState,
+  useState
 } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { VariableSizeList as List } from "react-window";
@@ -19,7 +19,7 @@ import {
   prepareItems,
   calculateRowCount,
   getItemsForRow,
-  DIVIDER_HEIGHT,
+  DIVIDER_HEIGHT
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 
@@ -31,27 +31,33 @@ const styles = (theme: any) =>
       overflow: "hidden",
       paddingBottom: ".5em",
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "column"
     },
     ".asset-list": {
       flex: 1,
-      overflow: "hidden",
+      overflow: "hidden"
     },
     ".autosizer-list": {
-      paddingBottom: "10em",
+      paddingBottom: "10em"
     },
     ".content-type-header": {
       width: "100%",
       padding: "0.5em 0",
       backgroundColor: "transparent",
       fontSize: theme.fontSizeSmall,
-      textTransform: "uppercase",
+      textTransform: "uppercase"
+    },
+    ".content-type-header button": {
+      opacity: 0.6
+    },
+    ".content-type-header:hover button": {
+      opacity: 1
     },
     ".divider": {
       width: "100%",
       height: "2px",
-      backgroundColor: theme.palette.divider,
-    },
+      backgroundColor: theme.palette.divider
+    }
   });
 
 interface AssetGridContentProps {
@@ -63,7 +69,7 @@ interface AssetGridContentProps {
 const AssetGridContent: React.FC<AssetGridContentProps> = ({
   itemSpacing = 2,
   assets: propAssets,
-  onDoubleClick,
+  onDoubleClick
 }) => {
   const { folderFilesFiltered } = useAssets();
   const assetItemSize = useSettingsStore(
@@ -80,7 +86,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
     itemWidth: 0,
-    itemHeight: 0,
+    itemHeight: 0
   });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const listRef = useRef<List>(null);
@@ -90,9 +96,25 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
     [assetItemSize]
   );
 
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
+    new Set(["image", "audio", "video", "text", "other"])
+  );
+
+  const toggleExpanded = useCallback((type: string) => {
+    setExpandedTypes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(type)) {
+        newSet.delete(type);
+      } else {
+        newSet.add(type);
+      }
+      return newSet;
+    });
+  }, []);
+
   const preparedItems = useMemo(() => {
-    return prepareItems({ other: assets || [] });
-  }, [assets]);
+    return prepareItems(assets || [], expandedTypes);
+  }, [assets, expandedTypes]);
 
   const updateGridDimensions = useCallback(
     (width: number) => {
@@ -137,9 +159,13 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       if (rowItems[0]?.isDivider) {
         return DIVIDER_HEIGHT;
       }
+      const type = rowItems[0]?.type;
+      if (type && !expandedTypes.has(type)) {
+        return 0; // Hide collapsed rows
+      }
       return gridDimensions.itemHeight + footerHeight + itemSpacing * 2;
     },
-    [preparedItems, gridDimensions, footerHeight, itemSpacing]
+    [preparedItems, gridDimensions, footerHeight, itemSpacing, expandedTypes]
   );
 
   const itemData = useMemo(
@@ -153,8 +179,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       handleSelectAsset,
       setSelectedAssetIds,
       onDragStart,
-      onDoubleClick: onDoubleClick || (() => { }),
-      // refetch: refetchAssets,
+      onDoubleClick: onDoubleClick || (() => {}),
+      expandedTypes,
+      toggleExpanded
     }),
     [
       preparedItems,
@@ -166,7 +193,8 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       setSelectedAssetIds,
       onDragStart,
       onDoubleClick,
-      // refetchAssets,
+      expandedTypes,
+      toggleExpanded
     ]
   );
 
@@ -182,7 +210,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
         for (const entry of entries) {
           setContainerSize({
             width: entry.contentRect.width,
-            height: entry.contentRect.height,
+            height: entry.contentRect.height
           });
         }
       });

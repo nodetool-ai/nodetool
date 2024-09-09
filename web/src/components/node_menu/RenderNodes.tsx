@@ -11,7 +11,6 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { iconForType } from "../../config/data_types";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useDelayedHover } from "../../hooks/useDelayedHover";
-import { titleize } from "../node/BaseNode";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];

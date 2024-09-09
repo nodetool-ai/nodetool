@@ -1,4 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React, { useEffect, useState, useCallback } from "react";
 import {
   CircularProgress,
@@ -15,6 +17,11 @@ import { Asset } from "../../stores/ApiTypes";
 import { devError } from "../../utils/DevLog";
 import { iconForType } from "../../config/data_types";
 import ThemeNodetool from "../themes/ThemeNodetool";
+
+const styles = (theme: any) =>
+  css({
+    "&": { paddingBottom: "3em" }
+  });
 
 interface AssetTreeProps {
   folderId: string;
@@ -163,7 +170,12 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     });
 
     return (
-      <List dense disablePadding sx={{ backgroundColor: "transparent" }}>
+      <List
+        className="asset-tree"
+        dense
+        disablePadding
+        sx={{ backgroundColor: "transparent" }}
+      >
         {sortedNodes.map((node) => (
           <React.Fragment key={node.id}>
             <ListItemButton
@@ -220,7 +232,13 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     return <CircularProgress />;
   }
 
-  return assetTree.length > 0 ? renderAssetTree(assetTree) : null;
+  return assetTree.length > 0 ? (
+    <div className="asset-tree" css={styles}>
+      {renderAssetTree(assetTree)}
+    </div>
+  ) : (
+    <Typography variant="body1">No assets found</Typography>
+  );
 };
 
 export default AssetTree;
