@@ -9,17 +9,31 @@
 </head>
 
 <body>
-    <header>
-        <h1>{{ site.title }}</h1>
-    </header>
-    <div class="container">
-        <main>
-            {{ content }}
-        </main>
+    <div class="wrapper">
+        <aside class="sidebar">
+            <h2>Modules</h2>
+            <nav>
+                <ul>
+                    {% for page in site.pages %}
+                        {% if page.title %}
+                            <li><a href="{{ page.url | relative_url }}">{{ page.title }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </nav>
+        </aside>
+        <div class="content">
+            <header>
+                <h1>{{ site.title }}</h1>
+            </header>
+            <main>
+                {{ content }}
+            </main>
+            <footer>
+                &copy; {{ site.time | date: '%Y' }} {{ site.title }}
+            </footer>
+        </div>
     </div>
-    <footer>
-        &copy; {{ site.time | date: '%Y' }} {{ site.title }}
-    </footer>
 </body>
 
 </html>

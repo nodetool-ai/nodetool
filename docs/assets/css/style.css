@@ -38,7 +38,6 @@ a:hover {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 40px;
 }
 
 /* Header */
@@ -147,4 +146,54 @@ footer {
   nav ul li {
     margin: 5px 10px;
   }
+}
+
+/* Sidebar */
+.wrapper {
+    display: flex;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #f1f3f5;
+    padding: 20px;
+    height: 100vh;
+    position: fixed;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    margin-top: 0;
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    margin-bottom: 10px;
+}
+
+.content {
+    flex: 1;
+    margin-left: 250px;
+    padding: 20px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .wrapper {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+    }
+
+    .content {
+        margin-left: 0;
+    }
 }
