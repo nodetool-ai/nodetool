@@ -1,10 +1,11 @@
 /* Base Styles */
 :root {
-  --bg-color: #1a1a1a;
-  --text-color: #e0e0e0;
-  --accent-color: #b5e5ff;
-  --link-color: #64b5f6;
-  --code-bg: #2a2a2a;
+  --bg-color: #f8f9fa;
+  --text-color: #333;
+  --accent-color: #3498db;
+  --link-color: #2980b9;
+  --code-bg: #f1f3f5;
+  --border-color: #e9ecef;
 }
 
 body {
@@ -17,8 +18,8 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: var(--accent-color);
-  margin-top: 1.5em;
+  color: #2c3e50;
+  margin-top: 2em;
   margin-bottom: 0.5em;
 }
 
@@ -35,27 +36,30 @@ a:hover {
 
 /* Container */
 .container {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 40px;
 }
 
 /* Header */
 header {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: #fff;
   padding: 20px 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 header h1 {
   font-size: 2.5em;
   margin: 0;
   text-align: center;
+  color: var(--accent-color);
 }
 
 /* Navigation */
 nav {
   margin-top: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
 }
 
 nav ul {
@@ -66,16 +70,19 @@ nav ul {
 }
 
 nav ul li {
-  margin: 0 10px;
+  margin: 0 15px;
 }
 
 nav ul li a {
   font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  letter-spacing: 0.5px;
 }
 
 /* Main Content */
 main {
-  padding: 40px 0;
+  padding: 60px 0;
 }
 
 /* Code blocks */
@@ -85,11 +92,13 @@ pre, code {
   padding: 0.2em 0.4em;
   font-family: 'Fira Code', 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
   font-size: 0.9em;
+  color: #333;
 }
 
 pre {
   padding: 1em;
   overflow-x: auto;
+  border: 1px solid var(--border-color);
 }
 
 /* Table styles */
@@ -97,31 +106,34 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1em;
+  border: 1px solid var(--border-color);
 }
 
 th, td {
-  border: 1px solid #444;
-  padding: 0.5em;
+  border: 1px solid var(--border-color);
+  padding: 0.75em;
   text-align: left;
 }
 
 th {
-  background-color: var(--code-bg);
+  background-color: #f8f9fa;
+  font-weight: 600;
 }
 
 /* Footer */
 footer {
   text-align: center;
-  padding: 20px 0;
+  padding: 30px 0;
   font-size: 0.9em;
-  color: #888;
-  background-color: rgba(0, 0, 0, 0.2);
+  color: #777;
+  background-color: #fff;
+  border-top: 1px solid var(--border-color);
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
   .container {
-    padding: 10px;
+    padding: 20px;
   }
   
   header h1 {
@@ -129,11 +141,10 @@ footer {
   }
   
   nav ul {
-    flex-direction: column;
-    align-items: center;
+    flex-wrap: wrap;
   }
   
   nav ul li {
-    margin: 5px 0;
+    margin: 5px 10px;
   }
 }
