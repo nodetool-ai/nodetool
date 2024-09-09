@@ -158,7 +158,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
                       key={assetId}
                       folderId={assetId}
                       onTotalAssetsCalculated={handleTotalAssetsCalculated}
-                      onLoadingChange={setIsAssetTreeLoading}
+                      onLoading={setIsAssetTreeLoading}
                     />
                   ))
                 ) : (

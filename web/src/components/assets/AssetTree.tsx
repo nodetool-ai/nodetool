@@ -19,7 +19,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 interface AssetTreeProps {
   folderId: string;
   onTotalAssetsCalculated: (total: number) => void;
-  onLoadingChange: (isLoading: boolean) => void;
+  onLoading: (isLoading: boolean) => void;
 }
 
 interface AssetTreeNode extends Asset {
@@ -30,7 +30,7 @@ interface AssetTreeNode extends Asset {
 const AssetTree: React.FC<AssetTreeProps> = ({
   folderId,
   onTotalAssetsCalculated,
-  onLoadingChange
+  onLoading
 }) => {
   const [assetTree, setAssetTree] = useState<AssetTreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +64,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   useEffect(() => {
     const fetchAssetTree = async () => {
       setIsLoading(true);
-      onLoadingChange(true);
+      onLoading(true);
       try {
         const result = await getAssetsRecursive(folderId);
         const treeWithTotals: AssetTreeNode[] = result.map((node) => ({
@@ -87,7 +87,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         onTotalAssetsCalculated(0);
       } finally {
         setIsLoading(false);
-        onLoadingChange(false);
+        onLoading(false);
       }
     };
 
@@ -97,7 +97,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     getAssetsRecursive,
     calculateTotalAssets,
     onTotalAssetsCalculated,
-    onLoadingChange
+    onLoading
   ]);
 
   const toggleFolder = (assetId: string) => {
