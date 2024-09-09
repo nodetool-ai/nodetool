@@ -249,7 +249,15 @@ class Build:
         for file in files_to_copy:
             self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR)
 
-        build_command = ["npx", "electron-builder", "--config", "electron-builder.json"]
+        build_command = [
+            "npm",
+            "exec",
+            "--",
+            "electron-builder",
+            "--config",
+            "electron-builder.json",
+        ]
+
         if self.platform:
             build_command.append(f"--{self.platform}")
         if self.arch:
