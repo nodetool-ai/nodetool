@@ -69,10 +69,10 @@ const HelpChat: React.FC = () => {
                 <ListItemText primary="Getting started" />
               </ListItem>
               <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Managing assets" />
+                <ListItemText primary="Working with nodes, models, and assets" />
               </ListItem>
               <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Working with nodes" />
+                <ListItemText primary="Example workflows" />
               </ListItem>
               <ListItem sx={{ display: "list-item", p: 0 }}>
                 <ListItemText primary="Shortcuts" />
@@ -82,9 +82,6 @@ const HelpChat: React.FC = () => {
               </ListItem>
             </List>
           </Box>
-          <Typography sx={{ mb: 2 }}>
-            You can even ask me to try and build a workflow.
-          </Typography>
         </>
       )}
       <ChatView

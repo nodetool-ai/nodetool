@@ -46,6 +46,7 @@ import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
+import NodeDocumentation from "./components/content/Help/NodeDocumentation";
 
 initSentry();
 
@@ -188,6 +189,16 @@ function getRoutes() {
             <NodeEditor />
           </ThemeProvider>
         </ProtectedRoute>
+      )
+    },
+    {
+      path: "help/:nodeType",
+      element: (
+        <ThemeProvider theme={ThemeNodetool}>
+          <CssBaseline />
+          <AppHeader />
+          <NodeDocumentation />
+        </ThemeProvider>
       )
     }
   ];

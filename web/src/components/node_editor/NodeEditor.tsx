@@ -72,6 +72,7 @@ import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 // constants
 import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
+import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 
 declare global {
   interface Window {
@@ -182,13 +183,23 @@ const NodeEditor: React.FC<unknown> = () => {
   const showLoading = loadingMetadata || metadata?.length === 0;
 
   // OPEN NODE MENU
-  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
-    (state) => ({
-      openNodeMenu: state.openNodeMenu,
-      closeNodeMenu: state.closeNodeMenu,
-      isMenuOpen: state.isMenuOpen
-    })
-  );
+  const {
+    openNodeMenu,
+    closeNodeMenu,
+    isMenuOpen,
+    selectedNodeType,
+    documentationPosition,
+    showDocumentation,
+    closeDocumentation
+  } = useNodeMenuStore((state) => ({
+    openNodeMenu: state.openNodeMenu,
+    closeNodeMenu: state.closeNodeMenu,
+    isMenuOpen: state.isMenuOpen,
+    selectedNodeType: state.selectedNodeType,
+    documentationPosition: state.documentationPosition,
+    showDocumentation: state.showDocumentation,
+    closeDocumentation: state.closeDocumentation
+  }));
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -417,6 +428,13 @@ const NodeEditor: React.FC<unknown> = () => {
         undo={nodeHistory.undo}
         redo={nodeHistory.redo}
       />
+      {showDocumentation && selectedNodeType && (
+        <DraggableNodeDocumentation
+          nodeType={selectedNodeType}
+          position={documentationPosition}
+          onClose={closeDocumentation}
+        />
+      )}
       <div className="node-editor" css={generateCSS}>
         <Grid
           container

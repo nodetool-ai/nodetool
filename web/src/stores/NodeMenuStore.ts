@@ -20,6 +20,8 @@ type NodeMenuStore = {
   setSelectedPath: (path: string[]) => void;
   activeNode: string | null;
   setActiveNode: (node: string | null) => void;
+  showNamespaceTree: boolean;
+  toggleNamespaceTree: () => void;
 
   openNodeMenu: (
     x: number,
@@ -37,6 +39,15 @@ type NodeMenuStore = {
   setHighlightedNamespaces: (namespaces: string[]) => void;
   hoveredNode: NodeMetadata | null;
   setHoveredNode: (node: NodeMetadata | null) => void;
+
+  // New properties for DraggableNodeDocumentation
+  selectedNodeType: string | null;
+  setSelectedNodeType: (nodeType: string | null) => void;
+  documentationPosition: { x: number; y: number };
+  setDocumentationPosition: (position: { x: number; y: number }) => void;
+  showDocumentation: boolean;
+  openDocumentation: (nodeType: string, position: { x: number; y: number }) => void;
+  closeDocumentation: () => void;
 };
 
 const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
@@ -79,6 +90,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       activeNode: node
     });
   },
+  showNamespaceTree: true,
+  toggleNamespaceTree: () => set((state) => ({ showNamespaceTree: !state.showNamespaceTree })),
   openNodeMenu: (
     x,
     y,
@@ -130,7 +143,23 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   hoveredNode: null,
   setHoveredNode: (node) => {
     set({ hoveredNode: node });
-  }
+  },
+
+  // New state and methods for DraggableNodeDocumentation
+  selectedNodeType: null,
+  setSelectedNodeType: (nodeType) => set({ selectedNodeType: nodeType }),
+  documentationPosition: { x: 0, y: 0 },
+  setDocumentationPosition: (position) => set({ documentationPosition: position }),
+  showDocumentation: false,
+  openDocumentation: (nodeType, position) => set({
+    selectedNodeType: nodeType,
+    documentationPosition: position,
+    showDocumentation: true,
+  }),
+  closeDocumentation: () => set({
+    selectedNodeType: null,
+    showDocumentation: false,
+  }),
 }));
 
 export default useNodeMenuStore;

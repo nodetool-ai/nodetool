@@ -1,5 +1,6 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import { useReactFlow } from "reactflow";
+import { createPortal } from "react-dom";
 //mui
 import {
   Checkbox,
@@ -10,7 +11,6 @@ import {
   Typography
 } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
-
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
@@ -29,7 +29,8 @@ import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { devLog } from "../../utils/DevLog";
 import { useMetadata } from "../../serverState/useMetadata";
-import { isUrlAccessible } from "../../utils/isUrlAccessible";
+import { useNavigate } from "react-router-dom";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 const NodeContextMenu: React.FC = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -37,7 +38,9 @@ const NodeContextMenu: React.FC = () => {
     (state) => state.closeContextMenu
   );
   const nodeId = useContextMenuStore((state) => state.nodeId);
-
+  const openDocumentation = useNodeMenuStore(
+    (state) => state.openDocumentation
+  );
   const { getNode } = useReactFlow();
   const deleteNode = useNodeStore((state: NodeStore) => state.deleteNode);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNodeData);
@@ -123,40 +126,14 @@ const NodeContextMenu: React.FC = () => {
     toggleCollapse(checked);
   };
 
-  const handleOpenDocumentation = async () => {
-    if (node) {
-      const { type } = node;
-      const { namespace, title } = metadata || {};
-      if (namespace && title) {
-        const formattedNamespace = namespace.replace(/\./g, "/");
-        const formattedTitle = title.replace(/\s+/g, "").toLowerCase();
-        const documentationUrl = `https://nodetool-ai.github.io/nodetool/nodes/${formattedNamespace}.html#${formattedTitle}`;
-
-        const urlAccessible = await isUrlAccessible(documentationUrl);
-        if (urlAccessible) {
-          window.open(documentationUrl, "_blank");
-        } else {
-          addNotification({
-            type: "error",
-            alert: true,
-            timeout: 10000,
-            dismissable: true,
-            content: `Documentation page not found: ${documentationUrl}`
-          });
-        }
-      } else {
-        addNotification({
-          type: "error",
-          alert: true,
-          content: `No documentation found for node type: ${type}`
-        });
-      }
-    }
+  const handleOpenDocumentation = () => {
+    // place it next to the node
+    openDocumentation(node?.type || "", {
+      x: (menuPosition?.x ?? 0) + 100,
+      y: menuPosition?.y ?? 0
+    });
   };
 
-  if (!menuPosition) {
-    return null;
-  }
   return (
     <Menu
       className="context-menu node-context-menu"
@@ -207,17 +184,16 @@ const NodeContextMenu: React.FC = () => {
       />
       <Divider />
       <ContextMenuItem
-        onClick={handleOpenDocumentation}
-        label="Documentation"
-        IconComponent={<OpenInNewIcon />}
-        tooltip="Open documentation for this node"
-      />
-
-      <ContextMenuItem
         onClick={handleCopyMetadataToClipboard}
         label="Copy NodeData"
         IconComponent={<DataArrayIcon />}
         tooltip="Copy node metadata to the clipboard"
+      />
+      <ContextMenuItem
+        onClick={handleOpenDocumentation}
+        label="Documentation"
+        IconComponent={<OpenInNewIcon />}
+        tooltip="Open documentation for this node"
       />
 
       <Divider />

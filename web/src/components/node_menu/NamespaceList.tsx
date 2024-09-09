@@ -2,19 +2,17 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo } from "react";
-import { Box, Divider, List, Tooltip, Typography } from "@mui/material";
+import { Box, List, Tooltip, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
 import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import {
-  titleize,
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../node/BaseNode";
-import { colorForType, descriptionForType } from "../../config/data_types";
-import { TOOLTIP_DELAY } from "../../config/constants";
+import NodeInfo from "./NodeInfo";
 
 type NamespaceTree = Record<
   string,
@@ -27,17 +25,6 @@ interface NamespaceListProps {
   namespaceTree: NamespaceTree;
   metadata: NodeMetadata[];
 }
-
-
-const parseDescription = (description: string) => {
-  // First line is description, second line tags, followed by list of use cases
-  const lines = description.split("\n");
-  return {
-    desc: lines[0],
-    tags: lines.length > 0 ? lines[1] : [],
-    useCases: lines.length > 1 ? lines.slice(2) : []
-  };
-};
 
 const namespaceStyles = (theme: any) =>
   css({
@@ -117,7 +104,6 @@ const namespaceStyles = (theme: any) =>
         padding: "0"
       }
     },
-
     ".result-info": {
       color: theme.palette.c_white,
       cursor: "default"
@@ -137,73 +123,6 @@ const namespaceStyles = (theme: any) =>
       paddingLeft: ".25em",
       marginLeft: ".1em",
       borderLeft: `2px solid ${theme.palette.c_hl1}`
-    },
-    ".node-info": {
-      display: "flex",
-      flexDirection: "column",
-      overflowY: "auto",
-      gap: ".5em",
-      paddingRight: "1em",
-      maxHeight: "60vh",
-      ".node-title": {
-        fontSize: theme.fontSizeNormal,
-        fontWeight: "600",
-        color: theme.palette.c_hl1
-      },
-      ".node-description": {
-        fontSize: theme.fontSizeNormal,
-        fontWeight: "400",
-        color: theme.palette.c_white
-      },
-      ".node-tags": {
-        fontSize: theme.fontSizeSmall,
-        color: theme.palette.c_gray4
-      },
-      ".node-usecases div": {
-        fontSize: theme.fontSizeNormal,
-        fontWeight: "200",
-        color: theme.palette.c_gray6,
-        lineHeight: "1.3em"
-      }
-    },
-    ".inputs-outputs": {
-      paddingBottom: "1em"
-    },
-    ".inputs, .outputs": {
-      display: "flex",
-      justifyContent: "space-between",
-      flexDirection: "column",
-      gap: 0
-    },
-    ".inputs-outputs .item": {
-      padding: ".25em 0 .25em 0",
-      display: "flex",
-      justifyContent: "space-between",
-      flexDirection: "row",
-      gap: ".5em",
-      cursor: "default"
-    },
-    ".inputs-outputs .item:nth-of-type(odd)": {
-      backgroundColor: "#1e1e1e"
-    },
-    ".inputs-outputs .item .type": {
-      color: theme.palette.c_white,
-      textAlign: "right",
-      fontFamily: theme.fontFamily2,
-      borderRight: `4px solid ${theme.palette.c_gray4}`,
-      paddingRight: ".5em"
-    },
-    ".inputs-outputs .item .property": {
-      color: theme.palette.c_gray6
-    },
-    ".inputs-outputs .item .property.description": {
-      color: theme.palette.c_white
-    },
-    ".preview-image": {
-      width: "100%",
-      height: "auto",
-      maxHeight: "320px",
-      objectFit: "contain"
     }
   });
 
@@ -218,7 +137,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     setSelectedPath,
     searchResults,
     hoveredNode,
-    setHoveredNode
+    setHoveredNode,
+    showNamespaceTree
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     highlightedNamespaces: state.highlightedNamespaces,
@@ -226,7 +146,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     setSelectedPath: state.setSelectedPath,
     searchResults: state.searchResults,
     hoveredNode: state.hoveredNode,
-    setHoveredNode: state.setHoveredNode
+    setHoveredNode: state.setHoveredNode,
+    showNamespaceTree: state.showNamespaceTree
   }));
 
   const handleNamespaceClick = useCallback(
@@ -265,10 +186,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       });
   }, [metadata, selectedPathString, searchTerm]);
 
-  const description = useMemo(() => parseDescription(hoveredNode?.description || ""), [
-    hoveredNode
-  ]);
-
   return (
     <div css={namespaceStyles}>
       <Box className="header">
@@ -298,7 +215,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       </Box>
 
       <Box className="list-box">
-        <List className="namespace-list">
+        <List
+          className="namespace-list"
+          sx={{ display: showNamespaceTree ? "block" : "none" }}
+        >
           <RenderNamespaces
             tree={namespaceTree}
             handleNamespaceClick={handleNamespaceClick}
@@ -309,97 +229,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             <List className="node-list">
               <RenderNodes nodes={currentNodes} />
             </List>
-            {hoveredNode && (
-              <List className="node-info">
-                <Typography className="node-title">
-                  {titleize(hoveredNode.title)}
-                </Typography>
-                <Typography className="node-description">
-                  {description.desc}
-                </Typography>
-                <Typography className="node-tags">
-                  Tags: {description.tags}
-                </Typography>
-                <Typography component="div" className="node-usecases">
-                  {description.useCases.map((useCase, i) => (
-                    <div key={i}>{useCase}</div>
-                  ))}
-                </Typography>
-
-                {hoveredNode.model_info.cover_image_url && (
-                  <img
-                    className={"preview-image"}
-                    src={hoveredNode.model_info.cover_image_url}
-                    alt={hoveredNode.title}
-                  />
-                )}
-
-                <Divider />
-
-                <div className="inputs-outputs">
-                  <div className="inputs">
-                    <Typography variant="h4">Inputs</Typography>
-                    {hoveredNode.properties.map((property) => (
-                      <div key={property.name} className="item">
-                        <Tooltip
-                          enterDelay={TOOLTIP_DELAY}
-                          placement="top-start"
-                          title={property.description}
-                        >
-                          <Typography
-                            className={
-                              property.description
-                                ? "property description"
-                                : "property"
-                            }
-                          >
-                            {property.name}
-                          </Typography>
-                        </Tooltip>
-                        <Tooltip
-                          enterDelay={TOOLTIP_DELAY}
-                          placement="top-end"
-                          title={descriptionForType(property.type.type || "")}
-                        >
-                          <Typography
-                            className="type"
-                            style={{
-                              borderColor: colorForType(property.type.type)
-                            }}
-                          >
-                            {property.type.type}
-                          </Typography>
-                        </Tooltip>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="outputs">
-                    <Typography variant="h4">Outputs</Typography>
-                    {hoveredNode.outputs.map((property) => (
-                      <div key={property.name} className="item">
-                        <Typography className="property">
-                          {property.name}
-                        </Typography>
-                        <Tooltip
-                          enterDelay={TOOLTIP_DELAY}
-                          placement="top-end"
-                          title={descriptionForType(property.type.type || "")}
-                        >
-                          <Typography
-                            className="type"
-                            style={{
-                              borderColor: colorForType(property.type.type)
-                            }}
-                          >
-                            {property.type.type}
-                          </Typography>
-                        </Tooltip>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </List>
-            )}
+            {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}
           </>
         ) : searchTerm.length > 0 && highlightedNamespaces.length > 0 ? (
           <div className="no-selection">

@@ -159,7 +159,7 @@ class WorkflowTool(Tool):
         return params
 
 
-def get_collection(name):
+def get_collection(name) -> chromadb.Collection:
     """
     Get or create a collection with the given name.
 
@@ -184,9 +184,9 @@ def get_collection(name):
     )
 
 
-def index_documentation():
+def index_documentation(collection: chromadb.Collection):
     """
-    Index the documentation.
+    Index the documentation if it doesn't exist yet.
     """
     import nodetool.nodes.anthropic
     import nodetool.nodes.comfy
@@ -200,24 +200,50 @@ def index_documentation():
     ids = [c.get_node_type() for c in get_registered_node_classes()]
     docs = [c.get_description() for c in get_registered_node_classes()]
 
-    get_collection("docs").add(ids, documents=docs)
+    collection.add(ids, documents=docs)
+    return collection
 
 
-def index_examples():
+def index_examples(collection: chromadb.Collection):
     """
-    Index the examples.
+    Index the examples if they don't exist yet.
     """
     examples = load_examples()
     ids = [example.id for example in examples]
     docs = [example.model_dump_json() for example in examples]
 
-    get_collection("examples").add(ids, documents=docs)
+    collection.add(ids, documents=docs)
+    print("Indexed examples")
+
+
+def get_doc_collection():
+    collection = get_collection("docs")
+    if collection.count() == 0:
+        index_documentation(collection)
+    return collection
+
+
+def get_example_collection():
+    collection = get_collection("examples")
+    if collection.count() == 0:
+        index_examples(collection)
+    return collection
 
 
 def search_documentation(
     query: str, n_results: int = 30
 ) -> tuple[list[str], list[str]]:
-    res = get_collection("docs").query(query_texts=[query], n_results=n_results)
+    """
+    Search the documentation for the given query string.
+
+    Args:
+        query: The query to search for.
+        n_results: The number of results to return.
+
+    Returns:
+        A tuple of the ids and documents that match the query.
+    """
+    res = get_doc_collection().query(query_texts=[query], n_results=n_results)
     if len(res["ids"]) == 0:
         return [], []
     if res["documents"] is None:
@@ -226,7 +252,17 @@ def search_documentation(
 
 
 def search_examples(query: str, n_results: int = 3):
-    res = get_collection("examples").query(query_texts=[query], n_results=n_results)
+    """
+    Search the examples for the given query string.
+
+    Args:
+        query: The query to search for.
+        n_results: The number of results to return.
+
+    Returns:
+        A tuple of the ids and documents that match the query.
+    """
+    res = get_example_collection().query(query_texts=[query], n_results=n_results)
     if len(res["ids"]) == 0:
         return [], []
     if res["documents"] is None:
@@ -234,10 +270,201 @@ def search_examples(query: str, n_results: int = 3):
     return res["ids"][0], res["documents"][0]
 
 
+"""
+Workflow Tool:
+You have access to a powerful tool called "workflow_tool". This tool allows 
+you to design new workflows for the user.
+
+Here's how to use it:
+
+1. When a user requests a new workflow or you identify an opportunity to 
+   create one, design the workflow using your knowledge of Nodetool nodes 
+   and their connections.
+
+2. Structure the workflow as a JSON object with the following properties:
+   - name: A descriptive name for the workflow
+   - description: A brief explanation of what the workflow does
+   - graph: An object containing two arrays:
+     - nodes: Each node should have an id, type, data (properties), and 
+              ui_properties
+     - edges: Connections between nodes, each with an id, source, target, 
+              sourceHandle, and targetHandle
+
+3. Make sure all nodes are connected properly and the workflow is logically
+    sound. Important: Only use existing Nodetool nodes in the workflow.
+
+4. Call the "workflow_tool" with this JSON object as its parameter.
+
+This feature allows you to not only suggest workflows but actually implement 
+them, greatly enhancing your ability to assist users. Be creative in 
+designing workflows that solve user problems or demonstrate Nodetool 
+capabilities.
+
+Example usage:
+User: "Can you create a workflow that generates an image and then applies a 
+sepia filter?"
+You: "Yes, here it is:"
+
+Then proceed to design the workflow by calling the tool with the name, description
+and graph properties, including all necessary nodes and edges.
+"""
+
+TUTORIALS = """
+1. For New Users:
+   - Start with Tutorial 1: Build a Stable Diffusion Workflow
+   - This introduces basic concepts and UI interactions
+
+2. For Audio Processing:
+   - Recommend Tutorial 2: Audio Transcription and Analysis
+   - Or Tutorial 3: Text-to-Speech and Audio Manipulation
+
+3. For Video Editing:
+   - Suggest Tutorial 4: Video Processing with Loop
+   - Highlights advanced features like loops and frame manipulation
+
+4. For Urban Planning or Complex Image Generation:
+   - Propose Tutorial 5: AI-Assisted Urban Planning Visualization
+   - Demonstrates combining image generation with text analysis
+
+5. For Image Editing or Style Transfer:
+   - Offer Tutorial 6: Image-to-Image Transformation with ControlNet
+   - Shows advanced image manipulation techniques
+
+6. For Learning Multiple Concepts:
+   - Suggest working through tutorials in order
+   - Each builds on skills from the previous ones
+
+7. When Users Ask About Specific Features:
+   - Direct them to the most relevant tutorial
+   - Explain how to adapt the tutorial to their needs
+
+8. For Workflow Optimization:
+   - Recommend combining elements from different tutorials
+   - Encourage experimentation with node combinations
+
+9. When Users Feel Stuck:
+   - Suggest revisiting earlier tutorials
+   - Highlight specific steps that might help their current issue
+
+10. For Inspiration:
+    - Propose mixing concepts from different tutorials
+    - Encourage users to create unique workflows based on tutorial elements
+
+Remember to always tailor your recommendations to the user's specific needs and skill level, ensuring the best possible user experience.
+
+Here are tutorials that you can use to help the user.
+You don't have to use them all.
+You don't have to use them in order.
+You don't have to use them exactly.
+You can use them as inspiration to create new and exciting workflows.
+
+## Tutorial 1: Build a Stable Diffusion Workflow
+
+1. Create a New Workflow
+   - Click on "Workflows" > "Create New"
+   - Name your workflow in the right sidebar
+
+2. Add a StableDiffusion Node
+   - Click "Nodes" or double-click the canvas
+   - Search for "StableDiffusion" in Huggingface.Image category
+   - Place the node on the canvas
+
+3. Configure the StableDiffusion Node
+   - Enter a prompt describing the desired image
+   - Change the model to Yntec/epiCPhotoGasm
+   - Leave other settings at default
+
+4. Add a Preview Node
+   - Drag the StableDiffusion node's blue output handle to the canvas
+   - Select "Create Preview Node" from the menu
+
+5. Run Your Workflow
+   - Click "Run" at the bottom
+   - Wait for completion
+
+6. View Your Result
+   - Check for completion notification
+   - Resize the Preview node as needed
+   - Double-click the image to enlarge
+
+## Tutorial 2: Audio Transcription and Analysis
+
+1. Add an Audio Input Node
+   - Add "Constant Audio" node from Nodetool.Constant category
+   - Record audio or import an audio file
+
+2. Transcribe the Audio
+   - Add "Transcribe" node from OpenAI.Audio category
+   - Connect Constant Audio output to Transcribe input
+
+3. Perform Sentiment Analysis
+   - Add "GPT" node from OpenAI.Text category
+   - Connect Transcribe output to GPT input
+   - Set GPT prompt for sentiment analysis
+
+4. Extract Sentiment Score
+   - Add "Regex" node from Nodetool.Text category
+   - Connect GPT output to Regex input
+   - Set Regex pattern to extract numerical score
+
+5. Visualize the Sentiment
+   - Add "StableDiffusion" node from HuggingFace.Image category
+   - Connect Regex output to StableDiffusion input
+
+## Tutorial 3: Text-to-Speech and Audio Manipulation
+
+1. Add a Constant String node with text
+2. Add TextToSpeech node (OpenAI.Audio category), connect to String node
+3. Add RemoveSilence node (Nodetool.Audio.Transform), connect to TextToSpeech
+4. Add Preview node, connect to RemoveSilence
+5. Run the workflow and listen to the result
+
+## Tutorial 4: Video Processing with Loop
+
+1. Add LoadVideo node (Nodetool.Video), choose a short video file
+2. Add ExtractFrames node (Nodetool.Video.Transform), connect to LoadVideo
+3. Add Loop node (Nodetool.Group), connect to ExtractFrames
+4. Inside Loop: Add Posterize node (Nodetool.Image), set bits to 2
+5. Connect GroupInput to Posterize, then Posterize to GroupOutput
+6. Add CreateVideo node (Nodetool.Video.Transform), set FPS to 5.0, connect to Loop
+7. Add Preview node, connect to CreateVideo
+8. Run workflow to see processed video
+
+## Tutorial 5: AI-Assisted Urban Planning Visualization
+
+1. Add Constant String node with urban design prompt
+2. Add Flux node (StableDiffusion), set model to "Flux Schnell", connect to String
+3. Add GPT node (OpenAI.Text), use "gpt-4o" model, connect Flux image output to GPT image input
+4. Set GPT prompt for urban design analysis
+5. Add two Preview nodes: one for Flux output, one for GPT output
+6. Run workflow and view results
+7. Iterate on design by modifying the prompt
+8. Create multiple versions on canvas to compare different designs
+
+## Tutorial 6: Image-to-Image Transformation with ControlNet
+
+1. Drop an image onto the Nodetool canvas to create an image node
+2. Add Canny node (Nodetool.Image.Analysis), connect to Constant Image
+3. Add ControlNet node (StableDiffusion category)
+4. Connect CannyEdgeDetection output to control_image input
+5. Set control_model to CANNY
+6. Enter a prompt describing the desired image transformation
+7. Add Preview node, connect to StableDiffusionXLControlNetNode output
+8. Run the workflow to see the guided image generation
+
+"""
+
+
 def system_prompt_for(
+    prompt: str,
     docs: dict[str, str],
     examples: list[str],
 ) -> str:
+    if "tutorial" in prompt:
+        tutorial_str = TUTORIALS
+    else:
+        tutorial_str = ""
+
     docs_str = "\n".join([f"{name}: {doc}" for name, doc in docs.items()])
     examples_str = "\n".join(examples)
     return f"""
@@ -245,18 +472,18 @@ You are an AI assistant specialized in the Nodetool platform - a
 no-code AI workflow development environment. Your purpose is to provide 
 accurate, helpful information exclusively about Nodetool and its features.
 
-Key Nodetool Features:
-- Node-based interface for building AI applications without coding
-- Integrates AI models for multimedia content generation and editing 
-- User-friendly design with visual data flow
+Key Features:
+- Node-based interface for AI applications
+- Integrates AI models for multimedia content
+- Visual data flow design
 - Simplifies complex AI model usage
 
-Core Functionalities:
-1. Workflow Management: create, edit, and manage workflows
-2. Node Operations: add, remove, and connect nodes, change parameters
-3. Model Management: download and manage models from Hugging Face, Ollama, and more
-4. Asset Management: upload, manage, and use assets in workflows
-5. Advanced Features: undo, redo, save, and other features
+Core Functions:
+1. Workflow Management
+2. Node Operations
+3. Model Management
+4. Asset Management
+5. Advanced Features (undo, redo, save)s
 
 Workflow Management:
 - Click Workflows in the top panel to browse and manage projects
@@ -371,15 +598,12 @@ Workflow Shortcuts
 
 There is no shortcut to open the workflow menu.
 
-
- About Nodetool:
+About Nodetool:
 NodeTool enables seamless integration of advanced AI models, allowing the generation 
 and editing of multimedia content including images, text, audio, and video - all in one workflow.
 
 NodeTool is designed to be user-friendly, but does not hide the complexity of AI models.
 It provides a visual representation of the data flow, making it easy to understand and modify.
-
-Try some of the pre-built examples in the Workflow menu to get inspired.
 
 How to respond to user queries:
 Respond to queries about Nodetool nodes, workflows, and features based on 
@@ -402,42 +626,6 @@ User: "Can you create a node that generates an image?"
 You: "Yes, here it is:" and call the tool
     "add_node_huggingface_StableDiffusion" with the necessary parameters.
 
-Workflow Tool:
-You have access to a powerful tool called "workflow_tool". This tool allows 
-you to design new workflows for the user.
-
-Here's how to use it:
-
-1. When a user requests a new workflow or you identify an opportunity to 
-   create one, design the workflow using your knowledge of Nodetool nodes 
-   and their connections.
-
-2. Structure the workflow as a JSON object with the following properties:
-   - name: A descriptive name for the workflow
-   - description: A brief explanation of what the workflow does
-   - graph: An object containing two arrays:
-     - nodes: Each node should have an id, type, data (properties), and 
-              ui_properties
-     - edges: Connections between nodes, each with an id, source, target, 
-              sourceHandle, and targetHandle
-
-3. Make sure all nodes are connected properly and the workflow is logically
-    sound. Important: Only use existing Nodetool nodes in the workflow.
-
-4. Call the "workflow_tool" with this JSON object as its parameter.
-
-This feature allows you to not only suggest workflows but actually implement 
-them, greatly enhancing your ability to assist users. Be creative in 
-designing workflows that solve user problems or demonstrate Nodetool 
-capabilities.
-
-Example usage:
-User: "Can you create a workflow that generates an image and then applies a 
-sepia filter?"
-You: "Yes, here it is:"
-
-Then proceed to design the workflow by calling the tool with the name, description
-and graph properties, including all necessary nodes and edges.
 
 Guidelines:
 - ONLY discuss Nodetool - no general info or other platforms
@@ -452,11 +640,8 @@ Guidelines:
 - If unsure, ask for clarification.
 - Suggest relevant features or solutions users might not be aware of.
 - Provide error troubleshooting guidance when applicable.
-
-Your knowledge and assistance are crucial for Nodetool users.
-Prioritize their experience while maintaining the platform's integrity.
-
-Relevant Documentation:
+- Your knowledge and assistance are crucial for Nodetool users.
+- Prioritize their experience while maintaining the platform's integrity.
 
 Data Types:
 Any Type: A generic datatype that accepts any kind of data. Used when the input type is flexible or unknown.
@@ -498,6 +683,26 @@ Comfy IP Adapter: Multimodal image generation similar to ControlNet, but with a 
 Comfy Insight Face: 2D and 3D face analysis, including recognition, detection, and alignment
 Comfy Style Model: A model that applies a style to an image, used in Stable Diffusion
 TAESD: Tiny Autoencoder for Stable Diffusion previews, a lightweight alternative to VAE
+WorkflowRef: Reference to a workflow
+NodeRef: Reference to a node
+Provider: Enumeration of AI service providers (e.g., OpenAI, Anthropic, Replicate, HuggingFace, Ollama, Comfy, Local)
+FunctionModel: Represents a function model with provider and name information
+LlamaModel: Represents a Llama model with various attributes
+HuggingFaceModel: Base class for HuggingFace models
+ModelFile: Base class for model files
+ComfyModel: Base class for Comfy models
+ComfyData: Base class for Comfy data types
+Task: Represents a task with various attributes like id, status, and result
+FunctionDefinition: Defines a function with name, description, and parameters
+ChatToolParam: Represents a chat tool parameter
+ChatMessageParam: Base class for chat message parameters
+RankingResult: Represents a ranking result with score and text
+ImageSegmentationResult: Represents an image segmentation result with label and mask
+BoundingBox: Represents a bounding box with coordinates
+ObjectDetectionResult: Represents an object detection result with label, score, and bounding box
+Dataset: Represents a dataset with features and targets
+OutputSlot: Represents an output slot that can be connected to an input slot
+Message: Abstract representation of a chat message
 
 Settings Menu:
 users can open the settings menu by clicking on the gear icon in the top right corner of the screen.
@@ -532,16 +737,39 @@ Show Alert on Close: Prevent closing of the browser tab when there are unsaved c
 
 Select Nodes On Drag: Select nodes when dragging.
 
-Use following documentation to answer user questions.
-
 If a node is relevant add it as a markdown link in the response.
-The link should be `/help/$node_type`
+When mentioning relevant nodes in your response, format them as markdown links:
+- Use the exact node type (case-sensitive) as the link text
+- Construct the URL as `/help/` followed by the node type, with spaces replaced by underscores
+- Ensure special characters are properly URL-encoded
 
-Relevant Documentation:
+Examples:
+- [Constant String](/help/nodetool.constant.String) 
+- [Text Generation](/help/huggingface.text.TextGeneration)
+- [Hugging Face Stable Diffusion](/help/huggingface.image.StableDiffusion)
+
+Always double-check that the node type is correct and the URL is properly formatted.
+
+Use following documentation for related node types to answer user questions:
 {docs_str}
 
-Example Workflows:
+These are a set of examples that you can use to recommend workflows to the user.
+
+These examples can be used with different image, text, audio, video nodes.
+For example, instead of StableDiffusion, you can use StableDiffusionXL.
+Instead of GPT node, you can use Ollama node.
+Instead of Bark node, you can use MusicGen node.
+Use the examples to recommend strategies and processes to the user.
+The user should be inspired to combine the examples in creative ways.
 {examples_str}
+{tutorial_str}
+
+REMEMBER, you are sitting in an AI application, so the expectations are high.
+Your audience is a sophisticated user who is looking for ways to use Nodetool to create amazing things.
+Your audience is not a dummy.
+Do not dumb down your response.
+Speak simply, but don't be boring.
+Be creative and inspiring.
 """
 
 
@@ -555,11 +783,8 @@ async def create_help_answer(messages: list[Message]) -> list[Message]:
 
     docs_dict = dict(zip(node_types, docs))
 
-    print(docs)
-    print(examples)
-
     system_message = Message(
-        role="system", content=system_prompt_for(docs_dict, examples)
+        role="system", content=system_prompt_for(prompt, docs_dict, examples)
     )
     tools: list[Tool] = []
     classes = [
@@ -592,9 +817,3 @@ async def create_help_answer(messages: list[Message]) -> list[Message]:
         answer.tool_calls = await process_tool_calls(context, answer.tool_calls, tools)
 
     return [answer]
-
-
-if __name__ == "__main__":
-    index_documentation()
-    index_examples()
-    print("Indexed documentation and examples")

@@ -36,18 +36,18 @@ const styles = (theme: any) =>
       overflowY: "auto",
       listStyleType: "none",
       maxHeight: "500px",
-      padding: "14px"
+      padding: "0px"
     },
     ".messages li.chat-message": {
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       listStyleType: "none",
       marginBottom: "1em",
-      padding: "0.8em",
-      borderRadius: "8px"
+      padding: "0.3em",
+      borderRadius: "0.5em"
     },
     ".messages li.chat-message p": {
-      margin: "0.3em 0"
+      margin: "0.2em 0"
     },
     ".messages li.user": {
       color: theme.palette.c_gray5,
@@ -65,7 +65,7 @@ const styles = (theme: any) =>
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       backgroundColor: theme.palette.c_black,
-      padding: "1em"
+      padding: "0.5em"
     },
     ".messages li pre code": {
       fontFamily: theme.fontFamily2,
@@ -81,7 +81,7 @@ const styles = (theme: any) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      height: "25px"
+      height: "2px"
     },
     ".chat-window .chat-header h6": {
       marginTop: "14px",
@@ -96,10 +96,10 @@ const styles = (theme: any) =>
     ".compose-message textarea": {
       position: "relative",
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmall,
       backgroundColor: theme.palette.c_gray1,
       color: theme.palette.c_white,
-      padding: "0.5em 1em",
+      padding: "1em 1em",
       border: `1px solid ${theme.palette.c_gray2}`,
       resize: "none",
       overflowY: "auto",
@@ -117,9 +117,9 @@ const styles = (theme: any) =>
       position: "relative",
       backgroundColor: theme.palette.c_gray2,
       flexGrow: 0,
-      top: "8px",
-      height: "38px",
-      width: "38px"
+      top: "7px",
+      height: "48px",
+      width: "48px"
     },
     ".compose-message-label": {
       color: theme.palette.c_gray3,

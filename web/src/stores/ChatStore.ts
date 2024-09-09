@@ -50,9 +50,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 console.log('response', response);
                 if (response.tool_calls) {
                     response.tool_calls.forEach((toolCall: ToolCall) => {
-                        if (toolCall.name === 'workflow_tool') {
-                            get().handleWorkflowTool(toolCall.result as Workflow);
-                        }
+                        // if (toolCall.name === 'workflow_tool') {
+                        //     get().handleWorkflowTool(toolCall.result as Workflow);
+                        // }
                         if (toolCall.name?.startsWith('add_node')) {
                             const metadata = useMetadataStore.getState().metadata
                             if (!data) {
