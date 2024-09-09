@@ -21,7 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
-CONDA_ENV = "nodetool-env"
+CONDA_ENV = "nodetool"
 
 
 class BuildError(Exception):
@@ -197,10 +197,6 @@ class Build:
 
         self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack", "-y"])
 
-        # Set environment variable to prevent bytecode generation
-        env = os.environ.copy()
-        env["PYTHONDONTWRITEBYTECODE"] = "1"
-
         # Use conda-pack with exclusions
         self.run_command(
             [
@@ -214,18 +210,13 @@ class Build:
                 "-o",
                 str(self.BUILD_DIR / "python_env.tar"),
             ],
-            env=env,
         )
 
         # Unpack the tar file
         with tarfile.open(str(self.BUILD_DIR / "python_env.tar")) as tar:
             tar.extractall(self.BUILD_DIR / "python_env")
 
-        # Bundle the source code using tarfile
-        # with tarfile.open(f"{self.BUILD_DIR}/nodetool.tar", "w") as tar:
-        #     tar.add(str(PROJECT_ROOT / "src"), arcname="src")
-
-        # copy the src folder into the build dir
+        self.remove_file(self.BUILD_DIR / "python_env.tar")
         self.copy_tree(self.SRC_DIR, self.BUILD_DIR / "src")
 
     def react(self):
@@ -249,6 +240,8 @@ class Build:
         for file in files_to_copy:
             self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR)
 
+        self.copy_file(self.PROJECT_ROOT / "requirements.txt", self.BUILD_DIR)
+
         build_command = [
             "npm",
             "exec",
@@ -263,10 +256,7 @@ class Build:
         if self.arch:
             build_command.append(f"--{self.arch}")
 
-        env = os.environ.copy()
-        env["DEBUG"] = "electron-builder"
-
-        self.run_command(build_command, cwd=self.BUILD_DIR, env=env)
+        self.run_command(build_command, cwd=self.BUILD_DIR)
         logger.info("Electron app built successfully")
 
     def initialize_conda_env(self):
@@ -277,22 +267,22 @@ class Build:
             ["conda", "create", "-n", CONDA_ENV, "python=3.11", "-y"], ignore_error=True
         )
 
-        self.run_command(
-            [
-                "conda",
-                "run",
-                "-n",
-                CONDA_ENV,
-                "pip",
-                "install",
-                "-r",
-                f"{PROJECT_ROOT}/requirements.txt",
-                "-v",
-                "--no-cache-dir",
-                "--extra-index-url",
-                "https://download.pytorch.org/whl/cu121",
-            ]
-        )
+        # self.run_command(
+        #     [
+        #         "conda",
+        #         "run",
+        #         "-n",
+        #         CONDA_ENV,
+        #         "pip",
+        #         "install",
+        #         "-r",
+        #         f"{PROJECT_ROOT}/requirements.txt",
+        #         "-v",
+        #         "--no-cache-dir",
+        #         "--extra-index-url",
+        #         "https://download.pytorch.org/whl/cu121",
+        #     ]
+        # )
 
     def run_build_step(self, step_func):
         try:

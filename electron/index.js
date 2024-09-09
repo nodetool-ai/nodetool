@@ -1,28 +1,51 @@
+/*
+  This file is the entry point for the Electron app.
+  It is responsible for creating the main window and starting the server.
+*/
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
-const tar = require("tar");
 const { spawn } = require("child_process");
 
 let mainWindow;
 let serverProcess;
+let pythonExecutable;
+let pipExecutable;
+let sitePackagesDir;
+let webDir;
+const resourcesPath = process.resourcesPath;
+let env = process.env;
+env.PYTHONUNBUFFERED = "1";
 
-async function runCondaUnpack() {
-  const resourcesPath = process.resourcesPath;
-  const executable =
-    process.platform === "win32"
-      ? path.join(resourcesPath, "python_env", "Scripts", "conda-unpack.exe")
-      : path.join(resourcesPath, "python_env", "bin", "conda-unpack");
+async function installRequirements() {
+  const pipProcess = spawn(pipExecutable, 
+    ["install", "-r", path.join(resourcesPath, "requirements.txt"), 
+      "--extra-index-url", "https://download.pytorch.org/whl/cu121"],
+  );
+  
+  mainWindow.webContents.send("boot-message", "Installing requirements");
+  
+  pipProcess.stdout.on("data", (data) => {
+    console.log(data.toString());
+    if (mainWindow) {
+      mainWindow.webContents.send("server-log", data.toString());
+    }
+  });
 
-  const condaUnpackProcess = spawn(executable, []);
+  pipProcess.stderr.on("data", (data) => {
+    console.log(data.toString());
+    if (mainWindow) {
+      mainWindow.webContents.send("server-log", data.toString());
+    }
+  });
 
   return new Promise((resolve, reject) => {
-    condaUnpackProcess.on("close", (code) => {
+    pipProcess.on("close", (code) => {
       if (code === 0) {
-        console.log("conda-unpack completed successfully");
+        console.log("pip install completed successfully");
         resolve();
       } else {
-        reject(new Error(`conda-unpack process exited with code ${code}`));
+        reject(new Error(`pip install process exited with code ${code}`));
       }
     });
   });
@@ -45,25 +68,54 @@ function createWindow() {
   });
 }
 
-async function startServer() {
-  const resourcesPath = process.resourcesPath;
-  const env = Object.create(process.env);
-  let webDir;
+function runNodeTool(env) {
+  const serverProcess = spawn(
+    pythonExecutable,
+    ["-m", "nodetool.cli", "serve", "--static-folder", webDir],
+    {
+      env: env,
+    }
+  );
+  
+  function handleServerOutput(data) {
+    console.log(data.toString());
+    if (data.toString().includes("Application startup complete.")) {
+      mainWindow.webContents.send("server-started");
+    }
 
+    if (mainWindow) {
+      mainWindow.webContents.send("server-log", data.toString());
+    }
+  }
+  
+  serverProcess.stdout.on("data", handleServerOutput);
+  serverProcess.stderr.on("data", handleServerOutput);
+}
+
+async function startServer() {
+  const pythonEnvExecutable = path.join(resourcesPath, "python_env", "python.exe");
+  const pipEnvExecutable = path.join(resourcesPath, "python_env", "Scripts", "pip.exe");
+  const pythonEnvExists = await fs.stat(pythonEnvExecutable).catch(() => false);
+  
+  pythonExecutable = pythonEnvExists ? pythonEnvExecutable : "python";
+  pipExecutable = pythonEnvExists ? pipEnvExecutable : "pip";
+  sitePackagesDir = pythonEnvExists ? path.join(resourcesPath, "python_env", "Lib", "site-packages") : null;
   console.log("resourcesPath", resourcesPath);
+  
+  if (sitePackagesDir) {
+    console.log("sitePackagesDir", sitePackagesDir);
+    
+    if (await fs.stat(path.join(sitePackagesDir, "fastapi")).catch(() => false)) {
+      console.log("FastAPI is installed");
+    } else {
+      console.log("FastAPI is not installed");
+      await installRequirements();
+    }
+  }
 
   mainWindow.webContents.send("boot-message", "Initializing NodeTool");
-
-  const pythonEnvExecutable = path.join(
-    resourcesPath,
-    "python_env",
-    "python.exe"
-  );
-  const pythonEnvExists = await fs.stat(pythonEnvExecutable).catch(() => false);
-
-  env.PYTHONUNBUFFERED = "1";
-
   if (pythonEnvExists) {
+    console.log("Using python env")
     // this is the case when the app is run from a built state
     env.PYTHONPATH = path.join(resourcesPath, "src");
     env.PATH = `${resourcesPath};${env.PATH}`;
@@ -73,36 +125,12 @@ async function startServer() {
     env.PYTHONPATH = path.join("..", "src");
     webDir = path.join("..", "web", "dist");
   }
-
-  serverProcess = spawn(
-    pythonEnvExists ? pythonEnvExecutable : "python",
-    ["-m", "nodetool.cli", "serve", "--static-folder", webDir],
-    {
-      env: env,
-    }
-  );
-
-  serverProcess.stdout.on("data", (data) => {
-    console.log(data.toString());
-    if (data.toString().includes("Application startup complete.")) {
-      mainWindow.webContents.send("server-started");
-    }
-
-    if (mainWindow) {
-      mainWindow.webContents.send("server-log", data.toString());
-    }
-  });
-
-  serverProcess.stderr.on("data", (data) => {
-    console.log(data.toString());
-    if (data.toString().includes("Application startup complete.")) {
-      mainWindow.webContents.send("server-started");
-    }
-    if (mainWindow) {
-      [];
-      mainWindow.webContents.send("server-log", data.toString());
-    }
-  });
+  
+  try {
+    runNodeTool(env);
+  } catch (error) {
+    console.error("Error starting server", error);
+  }
 
   // ollamaProcess = spawn(
   //   path.join(resourcesPath, "ollama", "ollama.exe"),

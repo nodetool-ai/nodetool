@@ -12,11 +12,8 @@
         "python_env",
         "src",
         "web",
-        "ollama",	
         "ffmpeg.exe",
-        "ffprobe.exe",
-        "ffmpeg",
-        "ffprobe"
+        "ffprobe.exe"
     ],
     "mac": {
         "category": "public.app-category.developer-tools",
