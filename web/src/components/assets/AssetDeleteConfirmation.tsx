@@ -10,7 +10,8 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Typography
 } from "@mui/material";
 import { InsertDriveFile } from "@mui/icons-material";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -146,6 +147,13 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
           maxHeight: "60vh"
         }}
       >
+        <Typography
+          variant="body1"
+          color={ThemeNodetool.palette.c_gray5}
+          style={{ marginBottom: "1em" }}
+        >
+          You can right click selected assets and download them before deleting.
+        </Typography>
         {isPreparingDelete ? (
           <CircularProgress size={16} />
         ) : (
