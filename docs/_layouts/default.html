@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page.title }}</title>
     <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
 <body>
@@ -13,11 +14,26 @@
         <aside class="sidebar">
             <h2>Modules</h2>
             <nav>
-                <ul>
+                <ul id="module-tree">
+                    {% assign namespaces = "" | split: "" %}
                     {% for page in site.pages %}
                         {% if page.title %}
-                            <li><a href="{{ page.url | relative_url }}">{{ page.title }}</a></li>
+                            {% assign parts = page.title | split: "." %}
+                            {% assign namespaces = namespaces | concat: parts | uniq %}
                         {% endif %}
+                    {% endfor %}
+
+                    {% for namespace in namespaces %}
+                        <li>
+                            <span class="caret">{{ namespace }}</span>
+                            <ul class="nested">
+                                {% for page in site.pages %}
+                                    {% if page.title contains namespace %}
+                                        <li><a href="{{ page.url | relative_url }}">{{ page.title }}</a></li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </li>
                     {% endfor %}
                 </ul>
             </nav>
@@ -34,6 +50,15 @@
             </footer>
         </div>
     </div>
+
+    <script>
+        $(document).ready(function() {
+            $('.caret').click(function() {
+                $(this).toggleClass('caret-down');
+                $(this).siblings('.nested').toggleClass('active');
+            });
+        });
+    </script>
 </body>
 
 </html>
