@@ -56,7 +56,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         margin: "1px 0 0 .5em",
         padding: "0",
         border: "0",
-        borderRadius: 0,
+        borderRadius: 5,
         boxShadow: "0 0",
         cursor: "pointer"
       },

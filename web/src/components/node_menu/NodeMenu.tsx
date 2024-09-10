@@ -179,6 +179,11 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
         margin: 0,
         padding: ".5em 1em 0"
       },
+      ".toggle-tree": {
+        minWidth: "40px",
+        height: "25px",
+        margin: "0px"
+      },
       ".close-button": {
         position: "absolute",
         top: "-2px",
@@ -260,7 +265,7 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
           )}
           <Box className="search-toolbar">
             <Tooltip
-              title={showNamespaceTree ? "Collapse tree" : "Expand tree"}
+              title={showNamespaceTree ? "Hide namespaces" : "Show namespaces"}
               placement="bottom"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
@@ -277,7 +282,7 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
               placeholder="Search for nodes..."
               debounceTime={20}
             />
-            <Tooltip
+            {/* <Tooltip
               title="Clear namespace selection"
               placement="bottom"
               enterDelay={TOOLTIP_ENTER_DELAY}
@@ -290,7 +295,7 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
               >
                 <ClearIcon />
               </Button>
-            </Tooltip>
+            </Tooltip> */}
 
             <TypeFilter
               selectedInputType={selectedInputType}

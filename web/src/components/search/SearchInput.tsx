@@ -18,16 +18,15 @@ const styles = (theme: any) =>
       width: "200px",
       margin: "0",
       padding: 0,
-      overflow: "hidden",
+      overflow: "hidden"
     },
     ".search-box": {
-      position: "relative",
+      position: "relative"
     },
     ".search-input": {
       width: "100%",
-      height: "2em",
-      flexShrink: "0",
-      fontSize: theme.fontSizeNormal,
+      height: "25px",
+      flexShrink: "0"
     },
     "input[type='text']": {
       outline: "none",
@@ -39,38 +38,38 @@ const styles = (theme: any) =>
       color: "#ddd",
       backgroundColor: "#313131",
       border: "none",
-      borderRadius: "0px",
-      transition: "background-color 0.2s",
+      borderRadius: "5px",
+      transition: "background-color 0.2s"
     },
     "input[type='text']:focus": {
       backgroundColor: theme.palette.c_gray1,
-      outline: "none",
+      outline: "none"
     },
     ".clear-search-btn": {
       position: "absolute",
       cursor: "pointer",
       width: "2em",
       top: 0,
-      right: ".5em",
-      padding: "0.2em 0.1em 0.2em 0.1em",
+      right: "0.2em",
+      padding: "0.1em 0em 0.2em 0.1em",
       border: 0,
       backgroundColor: "transparent",
       color: theme.palette.c_gray4,
       transition: "color 0.2s",
       "& svg": {
-        fontSize: "1.4rem",
+        fontSize: "1.4rem"
       },
       "&:hover": {
-        backgroundColor: "transparent",
+        backgroundColor: "transparent"
       },
       "&:not(.disabled):hover svg": {
         color: theme.palette.c_hl1,
-        backgroundColor: "transparent",
+        backgroundColor: "transparent"
       },
       "&.disabled": {
-        color: theme.palette.c_gray3,
-      },
-    },
+        color: theme.palette.c_gray3
+      }
+    }
   });
 
 interface SearchInputProps {
@@ -86,17 +85,19 @@ interface SearchInputProps {
 
 const SearchInput: React.FC<SearchInputProps> = ({
   onSearchChange,
-  onSearchClear = () => { },
+  onSearchClear = () => {},
   focusSearchInput = true,
   focusOnTyping = false,
   focusOnEscapeKey = true,
   debounceTime = 0,
   placeholder = "Search...",
-  maxWidth = "unset",
+  maxWidth = "unset"
 }) => {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
+  const controlKeyPressed = useKeyPressedStore((state) =>
+    state.isKeyPressed("Control")
+  );
 
   const setSearchFocused = () => {
     inputRef.current?.focus();
@@ -131,7 +132,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   };
 
   useHotkeys("Escape", clearSearchOnEscape, {
-    enableOnFormTags: ["input"],
+    enableOnFormTags: ["input"]
   });
 
   // focus on mount
