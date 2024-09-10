@@ -2,26 +2,28 @@ import createClient, { type Middleware } from "openapi-fetch";
 import { paths } from "../api.js"; // (generated from openapi-typescript)
 import { useAuth } from "./useAuth.js";
 
-const mode: string = import.meta.env.MODE;
+export const isLocalhost =
+  window.location.hostname === "" ||
+  window.location.hostname.includes("localhost");
 
-export const isLocalhost = window.location.hostname.includes("localhost");
+const mode: string = isLocalhost ? "development" : import.meta.env.MODE;
 
-export const useRemoteAuth =
-  ((mode === "production" || mode === "staging") && !isLocalhost);
+export const useRemoteAuth = mode === "production" || mode === "staging";
 
 export const isDevelopment = mode === "development";
 export const isStaging = mode === "staging";
 export const isProduction = mode === "production";
 
 // TODO: make it configurable via env vars
-export const BASE_URL =
-  isLocalhost
-    ? "http://" + window.location.hostname + ":8000"
-    : isStaging
-      ? "https://staging-api.nodetool.ai"
-      : "https://api.nodetool.ai";
+export const BASE_URL = isLocalhost
+  ? "http://" + window.location.hostname + ":8000"
+  : isStaging
+    ? "https://staging-api.nodetool.ai"
+    : "https://api.nodetool.ai";
 
-export const WORKER_URL = BASE_URL.replace("http://", "ws://").replace("https://", "wss://") + "/predict";
+export const WORKER_URL =
+  BASE_URL.replace("http://", "ws://").replace("https://", "wss://") +
+  "/predict";
 
 export const pingWorker = () => {
   if (isDevelopment) {
@@ -33,8 +35,7 @@ export const pingWorker = () => {
   // fetch(url, {
   //   method: "GET",
   // });
-}
-
+};
 
 const authMiddleware: Middleware = {
   async onRequest(req: Request) {

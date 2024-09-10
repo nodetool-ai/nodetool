@@ -8,11 +8,9 @@ import platform
 import threading
 import subprocess
 import threading
-import os
 import tarfile
 import zipfile
-import urllib.request
-from io import BytesIO
+from typing import List, Optional, Callable
 
 # Set up logging
 logging.basicConfig(
@@ -31,7 +29,14 @@ class BuildError(Exception):
 
 
 class Build:
-    def __init__(self, in_docker=False, clean_build=False, platform=None, arch=None):
+    def __init__(
+        self,
+        in_docker: bool = False,
+        clean_build: bool = False,
+        platform: Optional[str] = None,
+        arch: Optional[str] = None,
+    ):
+        """Initialize Build configuration."""
         self.in_docker = in_docker
         self.clean_build = clean_build
         self.platform = platform
@@ -48,7 +53,10 @@ class Build:
             self.WEB_DIR = PROJECT_ROOT / "web"
             self.SRC_DIR = PROJECT_ROOT / "src"
 
-    def download_and_unzip(self, url, paths):
+    def download_and_unzip(
+        self, url: str, paths: List[str], move_to_build_dir: bool = True
+    ) -> None:
+        """Download and extract files from a zip archive."""
         import urllib.request
         from io import BytesIO
 
@@ -58,9 +66,11 @@ class Build:
         with zipfile.ZipFile(archive_data) as zip_ref:
             for path in paths:
                 zip_ref.extract(path, self.BUILD_DIR)
-                self.move_file(self.BUILD_DIR / path, self.BUILD_DIR)
+                if move_to_build_dir:
+                    self.move_file(self.BUILD_DIR / path, self.BUILD_DIR)
 
-    def ffmpeg(self):
+    def ffmpeg(self) -> None:
+        """Download FFmpeg binaries."""
         logger.info("Downloading FFmpeg")
         system = platform.system().lower()
 
@@ -73,17 +83,23 @@ class Build:
             self.download_and_unzip(url, paths)
         elif system == "darwin":
             self.download_and_unzip(
-                "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["bin/ffmpeg"]
+                "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["ffmpeg"], False
             )
             self.download_and_unzip(
-                "https://evermeet.cx/ffmpeg/ffprobe-7.0.2.zip", ["bin/ffprobe"]
+                "https://evermeet.cx/ffmpeg/ffprobe-7.0.2.zip", ["ffprobe"], False
             )
         else:
             raise BuildError(f"Unsupported platform: {system}")
 
     def run_command(
-        self, command, cwd=None, env=None, in_docker=None, ignore_error=False
-    ):
+        self,
+        command: list[str],
+        cwd: str | Path | None = None,
+        env: dict | None = None,
+        in_docker: bool | None = None,
+        ignore_error: bool = False,
+    ) -> int:
+        """Execute a shell command and stream output."""
         should_run_in_docker = in_docker if in_docker is not None else self.in_docker
 
         if should_run_in_docker:
@@ -137,25 +153,32 @@ class Build:
 
         return return_code
 
-    def create_directory(self, path):
+    def create_directory(self, path: Path) -> None:
+        """Create a directory."""
         self.run_command(["mkdir", str(path)], ignore_error=True)
 
-    def copy_file(self, src, dst):
+    def copy_file(self, src: Path, dst: Path) -> None:
+        """Copy a file."""
         self.run_command(["cp", str(src), str(dst)])
 
-    def copy_tree(self, src, dst):
+    def copy_tree(self, src: Path, dst: Path) -> None:
+        """Copy a directory tree."""
         self.run_command(["cp", "-r", str(src), str(dst)])
 
-    def remove_directory(self, path):
+    def remove_directory(self, path: Path) -> None:
+        """Remove a directory and its contents."""
         self.run_command(["rm", "-rf", str(path)])
 
-    def remove_file(self, path):
+    def remove_file(self, path: Path) -> None:
+        """Remove a file."""
         self.run_command(["rm", "-f", str(path)])
 
-    def move_file(self, src, dst):
+    def move_file(self, src: Path, dst: Path) -> None:
+        """Move a file."""
         self.run_command(["mv", str(src), str(dst)])
 
-    def setup(self):
+    def setup(self) -> None:
+        """Set up the build environment."""
         if self.in_docker:
             logger.info("Running build in Docker container")
             self.run_command(["mkdir", "-p", "/tmp/docker-build"], in_docker=False)
@@ -195,7 +218,8 @@ class Build:
     #     )
     #     self.run_command(["unzip", "ollama.zip", "-d", "ollama"])
 
-    def python(self):
+    def python(self) -> None:
+        """Package Python environment."""
         logger.info("Packing Python environment")
 
         self.run_command(["conda", "install", "-n", CONDA_ENV, "conda-pack", "-y"])
@@ -222,7 +246,8 @@ class Build:
         self.remove_file(self.BUILD_DIR / "python_env.tar")
         self.copy_tree(self.SRC_DIR, self.BUILD_DIR / "src")
 
-    def react(self):
+    def react(self) -> None:
+        """Build React app."""
         logger.info("Building React app")
         web_dir = str(PROJECT_ROOT / "web")
         self.run_command(["npm", "ci"], cwd=web_dir)
@@ -231,7 +256,8 @@ class Build:
         # Bundle the build output using tarfile
         self.copy_tree(self.WEB_DIR / "dist", self.BUILD_DIR / "web")
 
-    def electron(self):
+    def electron(self) -> None:
+        """Build Electron app."""
         logger.info(f"Building Electron app for {self.platform} ({self.arch})")
         files_to_copy = [
             "package.json",
@@ -262,7 +288,8 @@ class Build:
         self.run_command(build_command, cwd=self.BUILD_DIR)
         logger.info("Electron app built successfully")
 
-    def initialize_conda_env(self):
+    def initialize_conda_env(self) -> None:
+        """Initialize Conda environment."""
         logger.info("Initializing clean conda environment")
 
         # Create new environment
@@ -287,7 +314,8 @@ class Build:
         #     ]
         # )
 
-    def run_build_step(self, step_func):
+    def run_build_step(self, step_func: Callable[[], None]) -> None:
+        """Execute a build step and handle errors."""
         try:
             step_func()
         except BuildError as e:
@@ -298,7 +326,8 @@ class Build:
             logger.error(f"Unexpected error in {step_func.__name__}: {str(e)}")
             sys.exit(1)
 
-    def run(self):
+    def run(self) -> None:
+        """Run all build steps."""
         build_steps = [
             self.setup,
             self.python,
@@ -325,7 +354,8 @@ class Build:
             sys.exit(1)
 
 
-def main():
+def main() -> None:
+    """Parse arguments and run the build process."""
     parser = argparse.ArgumentParser(
         description="Build script for Nodetool Electron app and installer"
     )
