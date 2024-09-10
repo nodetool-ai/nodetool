@@ -74,6 +74,7 @@ const NavigateToStart = () => {
   } else if (state === "error") {
     return <Navigate to={"/login"} replace={true} />;
   }
+  return <div>Error!</div>;
 };
 
 function ErrorBoundary() {
