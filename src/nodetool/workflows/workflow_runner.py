@@ -420,7 +420,7 @@ class WorkflowRunner:
                 result = await node.convert_output(context, result)
 
                 # in the future, we will have a better way to handle this
-                await node.move_to_device("cpu")
+                # await node.move_to_device("cpu")
 
                 if node.is_cacheable():
                     context.cache_result(node, result)
@@ -568,8 +568,8 @@ class WorkflowRunner:
                 if torch.cuda.is_available():
                     import comfy.model_management
 
-                    comfy.model_management.cleanup_models()
-                    torch.cuda.empty_cache()
+                    # comfy.model_management.cleanup_models()
+                    # torch.cuda.empty_cache()
                     log.info(
                         f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
                     )

@@ -1,5 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, ReactNode, useMemo } from "react";
+import React, {
+  useState,
+  useCallback,
+  ReactNode,
+  useMemo,
+  useEffect
+} from "react";
 import {
   Typography,
   Accordion,
@@ -11,10 +17,9 @@ import {
   Tab,
   Box,
   Link,
-  Switch,
   FormControlLabel,
   Tooltip,
-  Checkbox,
+  Checkbox
 } from "@mui/material";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -24,11 +29,20 @@ import { overviewContents, Section } from "./OverviewContent";
 import { css } from "@emotion/react";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import WhatsNew from "./WhatsNew";
+import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
+import RemoteSettingsMenu from "../../menus/RemoteSettingsMenu";
+
+enum TabValue {
+  Overview = 0,
+  WhatsNew = 1,
+  Links = 2,
+  Setup = 3
+}
 
 interface TabPanelProps {
   children: React.ReactNode;
-  value: number;
-  index: number;
+  value: TabValue;
+  index: TabValue;
 }
 
 const welcomeStyles = (theme: any) =>
@@ -48,72 +62,72 @@ const welcomeStyles = (theme: any) =>
       overflowY: "hidden",
       border: `2px solid ${theme.palette.c_gray0}`,
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "column"
     },
     ".panel-title": {
       paddingLeft: "0",
       margin: 0,
       color: theme.palette.c_white,
-      marginBottom: "1em",
+      marginBottom: "1em"
     },
     ".summary": {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeBigger,
       color: theme.palette.c_hl1,
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: theme.palette.c_gray1
     },
     ".content": {
       padding: "1em",
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily,
-      fontSize: theme.fontSizeBigger,
+      fontSize: theme.fontSizeBigger
     },
 
     ".content ul": {
       marginLeft: "0",
-      paddingLeft: "1em",
+      paddingLeft: "1em"
     },
     ".content ul li": {
       listStyleType: "square",
       marginLeft: "0",
       marginBottom: 0,
       fontSize: theme.fontSizeNormal,
-      fontFamily: theme.fontFamily1,
+      fontFamily: theme.fontFamily1
     },
     ".search": {
-      marginBottom: "1em",
+      marginBottom: "1em"
     },
     ".MuiAccordion-root": {
       background: "transparent",
       color: theme.palette.c_white,
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      borderBottom: `1px solid ${theme.palette.c_gray3}`
     },
     ".MuiAccordionSummary-content.Mui-expanded": {
-      margin: "0",
+      margin: "0"
     },
     ".MuiAccordionSummary-root": {
-      minHeight: "48px",
+      minHeight: "48px"
     },
     ".MuiAccordionSummary-content": {
-      margin: "12px 0",
+      margin: "12px 0"
     },
     ".MuiTypography-root": {
-      fontFamily: theme.fontFamily,
+      fontFamily: theme.fontFamily
     },
     "ul, ol": {
       fontFamily: theme.fontFamily1,
       paddingLeft: "1.5em",
-      marginTop: "0.5em",
+      marginTop: "0.5em"
     },
     li: {
-      marginBottom: "0.5em",
+      marginBottom: "0.5em"
     },
     ".highlight": {
       backgroundColor: theme.palette.c_hl1,
-      color: theme.palette.c_black,
+      color: theme.palette.c_black
     },
     ".tab-content": {
-      marginTop: "1em",
+      marginTop: "1em"
     },
     ".link": {
       color: theme.palette.c_gray6,
@@ -122,11 +136,11 @@ const welcomeStyles = (theme: any) =>
       textDecoration: "none",
       backgroundColor: theme.palette.c_gray2,
       borderRadius: "4px",
-      transition: "all 0.2s",
+      transition: "all 0.2s"
     },
     ".link:hover": {
       color: theme.palette.c_black,
-      backgroundColor: theme.palette.c_hl1,
+      backgroundColor: theme.palette.c_hl1
     },
 
     ".link-body": {
@@ -135,18 +149,18 @@ const welcomeStyles = (theme: any) =>
       color: theme.palette.c_gray6,
       marginTop: ".25em",
       marginBottom: "2em",
-      display: "block",
+      display: "block"
     },
 
     ".header-container": {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center",
+      alignItems: "center"
     },
     ".header-right": {
       display: "flex",
       alignItems: "center",
-      gap: "3em",
+      gap: "3em"
     },
     ".header": {
       position: "sticky",
@@ -156,28 +170,28 @@ const welcomeStyles = (theme: any) =>
       padding: "1em",
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center",
+      alignItems: "center"
     },
     ".show-on-startup-toggle": {
-      marginTop: "-1em",
+      marginTop: "-1em"
     },
     ".content-area": {
       display: "flex",
       flexDirection: "column",
-      height: "calc(100% - 60px)",
+      height: "calc(100% - 60px)"
     },
     ".tabs-and-search": {
       position: "sticky",
       top: 0,
       backgroundColor: "#222",
       zIndex: 1,
-      paddingBottom: "1em",
+      paddingBottom: "1em"
     },
     ".scrollable-content": {
       flex: 1,
       overflowY: "auto",
-      padding: "1em",
-    },
+      padding: "1em"
+    }
   });
 
 function TabPanel(props: TabPanelProps) {
@@ -209,14 +223,30 @@ const extractText = (node: ReactNode): string => {
 
 const Welcome = ({ handleClose }: { handleClose: () => void }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState<TabValue>(TabValue.Overview);
   const sections: Section[] = overviewContents.map((section) => ({
     ...section,
-    originalContent: section.content,
+    originalContent: section.content
   }));
   const { settings, updateSettings } = useSettingsStore();
+  const { settings: remoteSettings, secrets } = useRemoteSettingsStore();
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const hasSetupKeys = useMemo(() => {
+    return !!(
+      secrets.OPENAI_API_KEY &&
+      secrets.REPLICATE_API_TOKEN &&
+      secrets.ANTHROPIC_API_KEY
+    );
+  }, [secrets]);
+
+  // Add this useEffect to set the initial tab value
+  useEffect(() => {
+    if (!hasSetupKeys) {
+      setTabValue(TabValue.Setup);
+    }
+  }, [hasSetupKeys]);
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: TabValue) => {
     setTabValue(newValue);
   };
 
@@ -240,7 +270,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
         const fuseOptions = {
           keys: [
             { name: "title", weight: 0.4 },
-            { name: "content", weight: 0.6 },
+            { name: "content", weight: 0.6 }
           ],
           includeMatches: true,
           ignoreLocation: true,
@@ -251,12 +281,12 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           minMatchCharLength: 2,
           useExtendedSearch: true,
           tokenize: true,
-          matchAllTokens: false,
+          matchAllTokens: false
         };
 
         const entries = sections.map((section) => ({
           ...section,
-          content: extractText(section.content),
+          content: extractText(section.content)
         }));
 
         const fuse = new Fuse(entries, fuseOptions);
@@ -344,9 +374,10 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
             <Tab label="Overview" id="tab-0" aria-controls="tabpanel-0" />
             <Tab label="Whats New" id="tab-1" aria-controls="tabpanel-1" />
             <Tab label="Links" id="tab-2" aria-controls="tabpanel-2" />
+            <Tab label="Setup" id="tab-3" aria-controls="tabpanel-3" />
           </Tabs>
 
-          {tabValue === 0 && (
+          {tabValue === TabValue.Overview && (
             <TextField
               className="search"
               fullWidth
@@ -359,14 +390,14 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                   <InputAdornment position="start">
                     <SearchIcon />
                   </InputAdornment>
-                ),
+                )
               }}
             />
           )}
         </div>
 
         <div className="scrollable-content">
-          <TabPanel value={tabValue} index={0}>
+          <TabPanel value={tabValue} index={TabValue.Overview}>
             {(searchTerm === "" ? sections : filteredSections).map(
               (section, index) => (
                 <Accordion key={section.id} defaultExpanded={index === 0}>
@@ -386,11 +417,11 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
             )}
           </TabPanel>
 
-          <TabPanel value={tabValue} index={1}>
+          <TabPanel value={tabValue} index={TabValue.WhatsNew}>
             <WhatsNew />
           </TabPanel>
 
-          <TabPanel value={tabValue} index={2}>
+          <TabPanel value={tabValue} index={TabValue.Links}>
             <Link
               href="https://forum.nodetool.ai"
               target="_blank"
@@ -424,6 +455,20 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
               <br />
               Let us know what you build!
             </div>
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={TabValue.Setup}>
+            <h3>Setup</h3>
+            <Typography variant="h6" gutterBottom>
+              Replicate offers a vast array of AI models and possibilities. By
+              setting up your Replicate API token, you will unlock high-end
+              models such as flux.dev and flux.pro. With an OpenAI key, you can
+              unlock high-end models such as GPTo, GPT-4. By setting up your
+              Anthropic API token, you will unlock high-end models such as
+              Claude 3.5 Sonnet.
+            </Typography>
+
+            <RemoteSettingsMenu />
           </TabPanel>
         </div>
       </div>
