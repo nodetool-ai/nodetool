@@ -75,6 +75,9 @@ class Build:
             self.download_and_unzip(
                 "https://evermeet.cx/ffmpeg/ffmpeg-7.0.2.zip", ["bin/ffmpeg"]
             )
+            self.download_and_unzip(
+                "https://evermeet.cx/ffmpeg/ffprobe-7.0.2.zip", ["bin/ffprobe"]
+            )
         else:
             raise BuildError(f"Unsupported platform: {system}")
 
@@ -179,18 +182,18 @@ class Build:
             logger.error(f"Failed to create build directory: {e}")
             sys.exit(1)
 
-    def ollama(self):
-        logger.info("Downloading Ollama")
-        self.run_command(
-            [
-                "curl",
-                "-L",
-                "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip",
-                "-o",
-                "ollama.zip",
-            ]
-        )
-        self.run_command(["unzip", "ollama.zip", "-d", "ollama"])
+    # def ollama(self):
+    #     logger.info("Downloading Ollama")
+    #     self.run_command(
+    #         [
+    #             "curl",
+    #             "-L",
+    #             "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip",
+    #             "-o",
+    #             "ollama.zip",
+    #         ]
+    #     )
+    #     self.run_command(["unzip", "ollama.zip", "-d", "ollama"])
 
     def python(self):
         logger.info("Packing Python environment")

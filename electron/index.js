@@ -17,14 +17,27 @@ const resourcesPath = process.resourcesPath;
 let env = process.env;
 env.PYTHONUNBUFFERED = "1";
 
+const windowsPipArgs = [
+  "install",
+  "-r",
+  path.join(resourcesPath, "requirements.txt"),
+  "--extra-index-url",
+  "https://download.pytorch.org/whl/cu121",
+];
+const macPipArgs = [
+  "install",
+  "-r",
+  path.join(resourcesPath, "requirements.txt"),
+];
+
 async function installRequirements() {
-  const pipProcess = spawn(pipExecutable, 
-    ["install", "-r", path.join(resourcesPath, "requirements.txt"), 
-      "--extra-index-url", "https://download.pytorch.org/whl/cu121"],
+  const pipProcess = spawn(
+    pipExecutable,
+    process.platform === "darwin" ? macPipArgs : windowsPipArgs
   );
-  
+
   mainWindow.webContents.send("boot-message", "Installing requirements");
-  
+
   pipProcess.stdout.on("data", (data) => {
     console.log(data.toString());
     if (mainWindow) {
@@ -76,7 +89,7 @@ function runNodeTool(env) {
       env: env,
     }
   );
-  
+
   function handleServerOutput(data) {
     console.log(data.toString());
     if (data.toString().includes("Application startup complete.")) {
@@ -87,25 +100,56 @@ function runNodeTool(env) {
       mainWindow.webContents.send("server-log", data.toString());
     }
   }
-  
+
   serverProcess.stdout.on("data", handleServerOutput);
   serverProcess.stderr.on("data", handleServerOutput);
 }
 
 async function startServer() {
-  const pythonEnvExecutable = path.join(resourcesPath, "python_env", "python.exe");
-  const pipEnvExecutable = path.join(resourcesPath, "python_env", "Scripts", "pip.exe");
+  let pythonEnvExecutable, pipEnvExecutable;
+
+  if (process.platform === "darwin") {
+    pythonEnvExecutable = path.join(
+      resourcesPath,
+      "python_env",
+      "bin",
+      "python"
+    );
+    pipEnvExecutable = path.join(resourcesPath, "python_env", "bin", "pip");
+  } else {
+    pythonEnvExecutable = path.join(resourcesPath, "python_env", "python.exe");
+    pipEnvExecutable = path.join(
+      resourcesPath,
+      "python_env",
+      "Scripts",
+      "pip.exe"
+    );
+  }
+
   const pythonEnvExists = await fs.stat(pythonEnvExecutable).catch(() => false);
-  
+
   pythonExecutable = pythonEnvExists ? pythonEnvExecutable : "python";
   pipExecutable = pythonEnvExists ? pipEnvExecutable : "pip";
-  sitePackagesDir = pythonEnvExists ? path.join(resourcesPath, "python_env", "Lib", "site-packages") : null;
+  sitePackagesDir = pythonEnvExists
+    ? process.platform === "darwin"
+      ? path.join(
+          resourcesPath,
+          "python_env",
+          "lib",
+          "python3.11",
+          "site-packages"
+        )
+      : path.join(resourcesPath, "python_env", "Lib", "site-packages")
+    : null;
+
   console.log("resourcesPath", resourcesPath);
-  
+
   if (sitePackagesDir) {
     console.log("sitePackagesDir", sitePackagesDir);
-    
-    if (await fs.stat(path.join(sitePackagesDir, "fastapi")).catch(() => false)) {
+
+    if (
+      await fs.stat(path.join(sitePackagesDir, "fastapi")).catch(() => false)
+    ) {
       console.log("FastAPI is installed");
     } else {
       console.log("FastAPI is not installed");
@@ -115,17 +159,23 @@ async function startServer() {
 
   mainWindow.webContents.send("boot-message", "Initializing NodeTool");
   if (pythonEnvExists) {
-    console.log("Using python env")
+    console.log("Using conda env");
     // this is the case when the app is run from a built state
     env.PYTHONPATH = path.join(resourcesPath, "src");
-    env.PATH = `${resourcesPath};${env.PATH}`;
+
+    // set PATH for ffmpeg and ffprobe
+    if (process.platform === "darwin") {
+      env.PATH = `${resourcesPath}:${env.PATH}`;
+    } else {
+      env.PATH = `${resourcesPath};${env.PATH}`;
+    }
     webDir = path.join(resourcesPath, "web");
   } else {
     // this is the case when the app is run from source
     env.PYTHONPATH = path.join("..", "src");
     webDir = path.join("..", "web", "dist");
   }
-  
+
   try {
     runNodeTool(env);
   } catch (error) {
