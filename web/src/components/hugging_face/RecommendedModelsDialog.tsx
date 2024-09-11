@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -15,6 +15,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import ModelCard from "./ModelCard";
+import useModelStore from "../../stores/ModelStore";
+import { useQuery } from "@tanstack/react-query";
+import { client } from "../../stores/ApiClient";
 
 const styles = css({
   ".recommended-models-grid": {
@@ -44,6 +47,32 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   startDownload,
   openDialog
 }) => {
+  const {
+    data: hfModels,
+    isLoading: hfLoading,
+    error: hfError
+  } = useQuery({
+    queryKey: ["huggingFaceModels"],
+    queryFn: async () => {
+      const { data, error } = await client.GET(
+        "/api/models/huggingface_models",
+        {}
+      );
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const modelsWithSize = useMemo(() => {
+    return recommendedModels.map((model) => {
+      const hfModel = hfModels?.find((m) => m.repo_id === model.id);
+      return {
+        ...model,
+        size_on_disk: hfModel?.size_on_disk
+      };
+    });
+  }, [recommendedModels, hfModels]);
+
   return (
     <Dialog
       css={styles}
@@ -74,7 +103,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       <DialogContent sx={{ paddingBottom: "3em" }}>
         <>
           <Grid container spacing={3} className="recommended-models-grid">
-            {recommendedModels.map((model) => (
+            {modelsWithSize.map((model) => (
               <Grid item xs={12} sm={6} md={4} key={model.id}>
                 <ModelCard
                   model={model}
