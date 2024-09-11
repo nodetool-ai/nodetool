@@ -2,9 +2,12 @@ import torch
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
-from transformers import Pipeline
-from enum import Enum
+from transformers import Pipeline, pipeline
 from typing import Any
+from nodetool.model_manager import ModelManager
+from typing import Any, TypeVar
+
+T = TypeVar("T")
 
 
 class HuggingFacePipelineNode(HuggingfaceNode):
@@ -12,60 +15,66 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     def is_visible(cls) -> bool:
         return cls is not HuggingFacePipelineNode
 
-    # run_on_huggingface: bool = Field(
-    #     default=False,
-    #     title="Run on Huggingface",
-    #     description="Whether to run the node on Huggingface servers",
-    # )
     _pipeline: Pipeline | None = None
 
     def get_torch_dtype(self):
         return torch.float16
 
-    async def initialize(self, context: ProcessingContext):
-        # if not self.run_on_huggingface:
-        from transformers import pipeline
+    async def load_pipeline(
+        self,
+        context: ProcessingContext,
+        pipeline_task: str,
+        model_id: str,
+        device: str | None = None,
+    ) -> T:
+        cached_model = ModelManager.get_model(model_id, pipeline_task)
+        if cached_model:
+            return cached_model
 
-        self._pipeline = pipeline(
-            self.pipeline_task,
-            model=self.get_model_id(),
-            device=context.device,
+        if not context.is_huggingface_model_cached(model_id):
+            raise ValueError(f"Model {model_id} must be downloaded first")
+
+        model = pipeline(
+            pipeline_task,
+            model=model_id,
             torch_dtype=self.get_torch_dtype(),
-            local_files_only=True,
+            device=device,
         )
+        ModelManager.set_model(model_id, pipeline_task, model)
+        return model
+
+    async def load_model(
+        self,
+        context: ProcessingContext,
+        model_class: type[T],
+        model_id: str,
+        variant: str | None = "fp16",
+        local_files_only: bool = True,
+        device: str | None = None,
+    ) -> T:
+        cached_model = ModelManager.get_model(model_id, model_class.__name__)
+        if cached_model:
+            return cached_model
+
+        if not context.is_huggingface_model_cached(model_id):
+            raise ValueError(f"Model {model_id} must be downloaded first")
+
+        model = model_class.from_pretrained(
+            model_id,
+            torch_dtype=self.get_torch_dtype(),
+            variant=variant,
+            local_files_only=local_files_only,
+            device=device,
+        )
+        ModelManager.set_model(model_id, model_class.__name__, model)
+        return model
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
-            import torch
-
-            self._pipeline.model.to(device)  # type: ignore
-            self._pipeline.device = torch.device(device)
-
-    def get_params(self):
-        return {}
-
-    async def process_remote(self, context: ProcessingContext) -> Any:
-        params = self.get_params()
-        params["inputs"] = await self.get_inputs(context)
-        result = await self.run_huggingface(
-            model_id=self.get_model_id(), context=context, params=params
-        )
-        return await self.process_remote_result(context, result)
-
-    async def process_local(self, context: ProcessingContext) -> Any:
-        assert self._pipeline is not None
-        inputs = await self.get_inputs(context)
-        if isinstance(inputs, torch.Tensor):
-            # convert to half precision
-            inputs = inputs.to(torch.float16)
-        result = self._pipeline(inputs, **self.get_params())
-        return await self.process_local_result(context, result)
+            self._pipeline.to(device)
 
     async def process(self, context: ProcessingContext) -> Any:
-        # if self.run_on_huggingface:
-        #     return await self.process_remote(context)
-        # else:
-        return await self.process_local(context)
+        raise NotImplementedError("Subclasses must implement this method")
 
     async def get_inputs(self, context: ProcessingContext):
         raise NotImplementedError("Subclasses must implement this method")
@@ -73,9 +82,8 @@ class HuggingFacePipelineNode(HuggingfaceNode):
     def get_model_id(self):
         raise NotImplementedError("Subclasses must implement this method")
 
-    @property
-    def pipeline_task(self) -> str:
-        raise NotImplementedError("Subclasses must implement this property")
+    def get_pipeline_class(self) -> type[Pipeline] | None:
+        return False
 
     async def process_remote_result(self, context: Any, result: Any) -> Any:
         raise NotImplementedError("Subclasses must implement this method")

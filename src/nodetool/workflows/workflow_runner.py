@@ -7,7 +7,9 @@ from functools import lru_cache
 from pydantic import BaseModel
 import torch
 
+from nodetool.metadata import is_assignable, typecheck
 from nodetool.metadata.types import DataframeRef
+from nodetool.model_manager import ModelManager
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.types.graph import Edge
 from nodetool.types.job import JobUpdate, JobCancelledException
@@ -199,7 +201,11 @@ class WorkflowRunner:
 
     async def validate_graph(self, context: ProcessingContext, graph: Graph):
         """
-        Validates the graph by checking nodes for missing input values.
+        Validates all edges in the graph.
+        Validates all nodes for missing input values.
+        Every edge is validated for:
+        - source node has the correct output type for the target node
+        - target node has the correct input type for the source node
 
         Args:
             context (ProcessingContext): Manages the execution state and inter-node communication.
@@ -209,6 +215,23 @@ class WorkflowRunner:
             ValueError: If the graph has missing input values or contains circular dependencies.
         """
         is_valid = True
+
+        for edge in graph.edges:
+            source_node = graph.find_node(edge.source)
+            target_node = graph.find_node(edge.target)
+            output_slot = source_node.find_output(edge.sourceHandle)
+            input_slot = target_node.find_property(edge.targetHandle)
+
+            if not typecheck(output_slot.type, input_slot.type):
+                is_valid = False
+                context.post_message(
+                    NodeUpdate(
+                        node_id=target_node.id,
+                        node_name=target_node.get_title(),
+                        status="error",
+                        error=f"Invalid edge: {source_node.id} -> {target_node.id}",
+                    )
+                )
 
         for node in graph.nodes:
             input_edges = [edge for edge in graph.edges if edge.target == node.id]
@@ -315,6 +338,8 @@ class WorkflowRunner:
 
                 retries += 1
                 vram_before_cleanup = get_available_vram()
+
+                ModelManager.clear()
 
                 for model in current_loaded_models:
                     model.model_unload()

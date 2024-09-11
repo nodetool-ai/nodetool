@@ -12,6 +12,34 @@ import threading
 import os
 
 
+def get_repo_size(
+    repo_id: str,
+    allow_patterns: list[str] | None = None,
+    ignore_patterns: list[str] | None = None,
+) -> int:
+    """
+    Get the total size of files in a Hugging Face repository that match the given patterns.
+
+    Args:
+        repo_id (str): The ID of the Hugging Face repository.
+        allow_patterns (list[str] | None): List of patterns to allow.
+        ignore_patterns (list[str] | None): List of patterns to ignore.
+
+    Returns:
+        int: Total size of matching files in bytes.
+    """
+    api = HfApi()
+    files = api.list_repo_tree(repo_id, recursive=True)
+    files = [file for file in files if isinstance(file, RepoFile)]
+    filtered_files = filter_repo_paths(files, allow_patterns, ignore_patterns)
+
+    total_size = sum(file.size for file in filtered_files)
+    return total_size
+
+
+# ... rest of the existing code ...
+
+
 def filter_repo_paths(
     items: list[RepoFile],
     allow_patterns: list[str] | None = None,
