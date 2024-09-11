@@ -119,7 +119,7 @@ const welcomeStyles = (theme: any) =>
     },
     "ul, ol": {
       fontFamily: theme.fontFamily1,
-      paddingLeft: "1em"
+      paddingLeft: "0"
     },
     ".highlight": {
       backgroundColor: theme.palette.c_hl1,
@@ -190,6 +190,14 @@ const welcomeStyles = (theme: any) =>
       flex: 1,
       overflowY: "auto",
       padding: "1em"
+    },
+    ".fake-button": {
+      color: "#fff",
+      backgroundColor: theme.palette.c_gray2,
+      textTransform: "uppercase",
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
+      margin: "0 .5em"
     }
   });
 
@@ -457,52 +465,75 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           </TabPanel>
 
           <TabPanel value={tabValue} index={TabValue.Setup}>
-            <Typography variant="h5" gutterBottom>
-              Setup your API keys
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Welcome to Nodetool! Before you start, you have two options for
-              accessing AI models:
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="1. Use local models via Hugging Face"
-                    secondary="You can download and run models locally, which is great for privacy and offline use."
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="2. Use remote models"
-                    secondary="Set up API keys to access powerful cloud-based AI models and capabilities. Choose the option that best suits your needs and project requirements."
-                  />
-                </ListItem>
-              </List>
-              <Typography variant="h6" gutterBottom>
-                Available API Integrations
+            <>
+              <Typography variant="h2">Welcome to Nodetool</Typography>
+              <Typography variant="h4" sx={{ margin: "2em 0 1em" }}>
+                How to use AI models
               </Typography>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Replicate"
-                    secondary="Replicate provides access to a diverse range of AI models and capabilities. By configuring your Replicate API token, you'll gain access to advanced models like flux.dev and flux.pro."
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="OpenAI"
-                    secondary="Setting up an OpenAI API key enables you to use powerful language models such as GPT-3.5 and GPT-4."
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Anthropic"
-                    secondary="By entering your Anthropic API token, you'll be able to leverage sophisticated models like Claude 3.5 Sonnet."
-                  />
-                </ListItem>
-              </List>
-            </Typography>
-
-            <RemoteSettingsMenu />
+              <Typography variant="body1" gutterBottom>
+                You can use local and remote AI models:
+                <List>
+                  <ListItem>
+                    <ListItemText
+                      primary="1. Use local models via HuggingFace"
+                      secondary={
+                        <>
+                          Download and run models locally, which is great for
+                          privacy and offline use.
+                          <br /> All nodes that can use local models come with a
+                          <span className="fake-button">
+                            Recommended Models
+                          </span>
+                          button <br />
+                          to download models directly from inside Nodetool.
+                          <br />
+                          Press the<span className="fake-button">Models</span>
+                          button in the top panel to see all existing models.
+                        </>
+                      }
+                    />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText
+                      primary="2. Use remote models"
+                      secondary="Set up API keys to access cloud-based AI models."
+                    />
+                  </ListItem>
+                  <Typography variant="body1" gutterBottom>
+                    Choose the option that best suits your needs and project
+                    requirements.
+                  </Typography>
+                </List>
+                <Typography variant="h6" gutterBottom>
+                  Available API Integrations
+                </Typography>
+                <List>
+                  <ListItem>
+                    <ListItemText
+                      primary="Replicate"
+                      secondary="Replicate provides access to a diverse range of AI models and capabilities. By configuring your Replicate API token, you'll gain access to advanced models like flux.dev and flux.pro."
+                    />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText
+                      primary="OpenAI"
+                      secondary="Setting up an OpenAI API key enables you to use models like GPT, Whisper, DALL-E, and more."
+                    />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText
+                      primary="Anthropic"
+                      secondary="By entering your Anthropic API token, you'll be able to use sophisticated models like Claude 3.5 Sonnet."
+                    />
+                  </ListItem>
+                </List>
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                You can enter your API keys now or go to the
+                <span className="fake-button">Settings</span>menu later.
+              </Typography>
+              <RemoteSettingsMenu />
+            </>
           </TabPanel>
         </div>
       </div>
