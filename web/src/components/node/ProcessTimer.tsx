@@ -16,13 +16,12 @@ export const ProcessTimer = memo(function ProcessTimer({
       startTime = Date.now();
       interval = setInterval(() => {
         const currentTime = Date.now();
-        const diffInSeconds = ((currentTime - (startTime as number))) / 1000;
+        const diffInSeconds = (currentTime - (startTime as number)) / 1000;
         // format the seconds to 1 decimal place
         setSeconds(diffInSeconds.toFixed(1) + "s");
       }, 100);
     } else if (status === "completed" || status === "failed") {
-      if (interval)
-        clearInterval(interval);
+      if (interval) clearInterval(interval);
     }
 
     return () => {
@@ -36,9 +35,15 @@ export const ProcessTimer = memo(function ProcessTimer({
 
   return (
     <div className={"process-timer"}>
-      {status === "starting" && <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>}
-      {status === "booting" && <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>}
-      {status === "running" && <Box sx={{ color: "white" }}>{seconds} running...</Box>}
+      {status === "starting" && (
+        <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>
+      )}
+      {status === "booting" && (
+        <Box sx={{ color: "yellow" }}>{seconds} starting...</Box>
+      )}
+      {status === "running" && (
+        <Box sx={{ color: "white" }}>{seconds} running...</Box>
+      )}
       {status === "failed" && <Box sx={{ color: "red" }}>failed</Box>}
     </div>
   );
