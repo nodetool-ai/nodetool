@@ -35,35 +35,28 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
 
   return (
     <>
-      <Box sx={{ margin: "1em" }}>
-        <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          title="Find models to download."
+      <Tooltip
+        enterDelay={TOOLTIP_ENTER_DELAY}
+        title="Find models to download."
+      >
+        <Button
+          variant="text"
+          className="model-button"
+          size="small"
+          sx={{
+            fontSize: ThemeNodetool.fontSizeTiny,
+            color: hasRelevantInstalledModels
+              ? ThemeNodetool.palette.c_gray5
+              : ThemeNodetool.palette.c_warning,
+            margin: "0",
+            lineHeight: "1em",
+            borderRadius: "0"
+          }}
+          onClick={handleOpenModelDialog}
         >
-          <Button
-            variant="contained"
-            className="model-button"
-            size="small"
-            sx={{
-              fontSize: ThemeNodetool.fontSizeTiny,
-              color: hasRelevantInstalledModels
-                ? ThemeNodetool.palette.c_gray5
-                : ThemeNodetool.palette.c_warning,
-              margin: "0",
-              padding: "0 1em",
-              position: "absolute",
-              zIndex: 10,
-              top: "25px",
-              boxShadow: "none",
-              borderRadius: ".5em",
-              lineHeight: "1em"
-            }}
-            onClick={handleOpenModelDialog}
-          >
-            Recommended models
-          </Button>
-        </Tooltip>
-      </Box>
+          Recommended models
+        </Button>
+      </Tooltip>
 
       <RecommendedModelsDialog
         open={openModelDialog}

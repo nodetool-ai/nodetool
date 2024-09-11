@@ -68,12 +68,12 @@
 /* Loading indicator */
 .react-flow .process-timer {
   pointer-events: none;
-  font-size: var(--font-size-tiny);
+  font-size: 7px;
+  font-family: monospace;
   line-height: 1em;
   width: fit-content;
   text-align: center;
-  color: var(--c_gray5);
-  background-color: #2c2c2c33;
+  color: white;
   margin: auto;
   padding: 0px 2px;
   transition: opacity 1s 1s;
