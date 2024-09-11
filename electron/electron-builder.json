@@ -2,7 +2,8 @@
     "appId": "ai.nodetool",
     "productName": "Nodetool",
     "directories": {
-        "output": "dist"
+        "output": "dist",
+        "buildResources": "resources"
     },
     "files": [
         "index.js",
