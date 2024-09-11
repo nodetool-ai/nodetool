@@ -80,7 +80,6 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
         if (asset) {
           if (asset.content_type === "folder") {
             folders++;
-            // Check if the asset is the root folder (either "1" or user.id)
             if (asset.id === "1" || (user && asset.id === user.id)) {
               hasRootFolder = true;
             }
@@ -94,6 +93,9 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       setFolderCount(folders);
       setFileCount(files);
       setFileAssets(fileAssetsTemp);
+      if (folders === 0) {
+        setIsAssetTreeLoading(false);
+      }
       if (files > 0 && folders === 0) {
         setTotalAssets(files);
       }
@@ -129,7 +131,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   }, [mutation, assets, setDialogOpen, refetchAssetsAndFolders, setIsLoading]);
 
   const getDialogTitle = () => {
-    if (isAssetTreeLoading) {
+    if (isAssetTreeLoading && folderCount > 0) {
       return "Preparing to delete...";
     } else if (showRootFolderWarning) {
       return "Warning: The root folder cannot be deleted.";
