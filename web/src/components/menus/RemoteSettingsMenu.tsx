@@ -46,6 +46,13 @@ const styles = (theme: any) =>
       margin: "0 0 0.5em 0",
       padding: "0"
     }
+    // "& .MuiInputBase-root:not(.Mui-focused) input": {
+    //   filter: "blur(2px)",
+    //   transition: "filter 0.3s ease-in-out"
+    // },
+    // "& .MuiInputBase-root.Mui-focused input": {
+    //   filter: "none"
+    // }
   });
 
 const RemoteSettings = () => {
@@ -84,9 +91,13 @@ const RemoteSettings = () => {
 
           <div className="settings-item">
             <TextField
+              type="password"
               id="replicate-api-token-input"
               label="Replicate API Token"
-              value={replicateApiToken}
+              value={
+                replicateApiToken.slice(0, 5) +
+                "*".repeat(Math.max(0, replicateApiToken.length - 5))
+              }
               onChange={(e) => setReplicateApiToken(e.target.value)}
               onBlur={() =>
                 updateRemoteSettings(
@@ -116,7 +127,10 @@ const RemoteSettings = () => {
             <TextField
               id="openai-api-key-input"
               label="OpenAI API Key"
-              value={openaiApiKey}
+              value={
+                openaiApiKey.slice(0, 5) +
+                "*".repeat(Math.max(0, openaiApiKey.length - 5))
+              }
               onChange={(e) => setOpenaiApiKey(e.target.value)}
               onBlur={() =>
                 updateRemoteSettings({}, { OPENAI_API_KEY: openaiApiKey })
@@ -143,7 +157,10 @@ const RemoteSettings = () => {
             <TextField
               id="anthropic-api-key-input"
               label="Anthropic API Key"
-              value={anthropicApiKey}
+              value={
+                anthropicApiKey.slice(0, 5) +
+                "*".repeat(Math.max(0, anthropicApiKey.length - 5))
+              }
               onChange={(e) => setAnthropicApiKey(e.target.value)}
               onBlur={() =>
                 updateRemoteSettings({}, { ANTHROPIC_API_KEY: anthropicApiKey })
@@ -171,7 +188,10 @@ const RemoteSettings = () => {
             <TextField
               id="hf-token-input"
               label="HuggingFace Token"
-              value={hfToken}
+              value={
+                hfToken.slice(0, 5) +
+                "*".repeat(Math.max(0, hfToken.length - 5))
+              }
               onChange={(e) => setHfToken(e.target.value)}
               onBlur={() => updateRemoteSettings({}, { HF_TOKEN: hfToken })}
               variant="standard"
