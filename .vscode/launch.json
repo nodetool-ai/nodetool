@@ -17,6 +17,9 @@
             "request": "launch",
             "module": "nodetool.cli",
             "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
             "args": [
                 "serve",
                 "--host",

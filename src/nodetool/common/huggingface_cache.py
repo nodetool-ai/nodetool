@@ -1,21 +1,15 @@
 import asyncio
 from fnmatch import fnmatch
-import sys
-import json
-from typing import Callable, Iterable, List, Literal, Optional, Union
-from fastapi import FastAPI, WebSocket
+from typing import Literal
+from fastapi import WebSocket
 from huggingface_hub import HfApi, hf_hub_download, try_to_load_from_cache
 from huggingface_hub.hf_api import RepoFile
 import huggingface_hub.file_download
 from multiprocessing import Manager
-from queue import Empty
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from queue import Empty, Queue
+from concurrent.futures import ProcessPoolExecutor
 import threading
 import os
-
-from torch import Generator
-
-from nodetool.workflows.base_node import get_node_class
 
 
 def filter_repo_paths(
@@ -100,7 +94,7 @@ class DownloadManager:
                 {"status": "error", "message": "Download already in progress"}
             )
             return
-        self.process_pool = ProcessPoolExecutor()
+        self.process_pool = ProcessPoolExecutor(max_workers=2)
         self.manager = Manager()
         self.queue = self.manager.Queue()
         self.status = "start"
@@ -214,23 +208,10 @@ class DownloadManager:
             )
             tasks.append(task)
 
-            # Schedule 2 download processes in parallel
-            if len(tasks) == 2:
-                completed_tasks = await asyncio.gather(*tasks)
-                for filename, local_path in completed_tasks:
-                    if local_path:
-                        self.downloaded_files.append(filename)
-                    self.current_files.remove(filename)
-                await self.send_update()
-
-        # Handle any remaining tasks
-        if tasks:
-            completed_tasks = await asyncio.gather(*tasks)
-            for filename, local_path in completed_tasks:
-                if local_path:
-                    self.downloaded_files.append(filename)
-                self.current_files.remove(filename)
-            await self.send_update()
+        completed_tasks = await asyncio.gather(*tasks)
+        for filename, local_path in completed_tasks:
+            if local_path:
+                self.downloaded_files.append(filename)
 
         self.status = "completed"
 
@@ -245,7 +226,7 @@ class DownloadManager:
 parent_queue = None
 
 
-def download_file(repo_id, filename, queue):
+def download_file(repo_id: str, filename: str, queue: Queue):
     global parent_queue
     parent_queue = queue
 
@@ -299,31 +280,3 @@ async def websocket_endpoint(websocket: WebSocket):
         traceback.print_exc()
     finally:
         await websocket.close()
-
-
-if __name__ == "__main__":
-    if sys.argv[1] == "server":
-        from fastapi import FastAPI
-        import uvicorn
-
-        app = FastAPI()
-        app.add_websocket_route("/ws", websocket_endpoint)
-
-        uvicorn.run(app, host="0.0.0.0", port=8000)
-    elif sys.argv[1] == "test":
-        import websockets
-
-        repo_id = sys.argv[2]
-
-        async def test():
-            async with websockets.connect("ws://localhost:8000/ws") as websocket:
-                await websocket.send(
-                    json.dumps({"command": "start_download", "repo_id": repo_id})
-                )
-                while True:
-                    data = await websocket.recv()
-                    print(data)
-
-        asyncio.run(test(), debug=True)
-    else:
-        print("Usage: python download_manager.py server|test <repo_id>")

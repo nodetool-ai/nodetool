@@ -16,6 +16,7 @@ type ModelStore = {
   loadHuggingFaceModels: () => Promise<CachedModel[]>;
   loadFiles: (folder: string) => Promise<string[]>;
   hasInstalledModels: (modelType: string) => boolean;
+  isModelDownloaded: (modelId: string, modelType: string) => boolean;
 };
 
 const useModelStore = create<ModelStore>((set, get) => ({
@@ -91,6 +92,16 @@ const useModelStore = create<ModelStore>((set, get) => ({
       default:
         // For other types, check if there are any files in the corresponding folder
         return state.modelFiles[modelType]?.length > 0 || false;
+    }
+  },
+  isModelDownloaded: (modelId: string, modelType: string) => {
+    const state = get();
+    if (modelType.startsWith("hf.")) {
+      return state.huggingFaceModels.some(model => model.repo_id === modelId);
+    } else if (modelType.startsWith("llama_model")) {
+      return state.llamaModels.some(model => model.model === modelId);
+    } else {
+      return false;
     }
   }
 }));

@@ -30,6 +30,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
    * Reset all values used for connecting.
    */
   endConnecting: () => {
+    console.log("endConnecting");
     set({
       connecting: false,
       connectType: null,
@@ -54,6 +55,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     handleType: string,
     metadata: NodeMetadata
   ) => {
+    console.log("startConnecting", nodeId, handleId, handleType, metadata);
     if (handleType === "source") {
       const connectType = metadata.outputs.find(
         (output: OutputSlot) => output.name === handleId

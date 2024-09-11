@@ -20,10 +20,11 @@ import { fetchModelInfo } from "../../utils/huggingFaceUtils";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DeleteButton from "../buttons/DeleteButton";
-import { devError } from "../../utils/DevLog";
 import { useQuery } from "@tanstack/react-query";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { isProduction } from "../../stores/ApiClient";
+import useModelStore from "../../stores/ModelStore";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 export async function fetchOllamaModelInfo(modelName: string) {
   const response = await fetch("http://localhost:11434/api/show", {
@@ -189,6 +190,9 @@ const styles = (theme: any) =>
       "&:hover": {
         color: theme.palette.c_white
       }
+    },
+    ".downloaded-indicator": {
+      color: theme.palette.success.main
     }
   });
 
@@ -206,6 +210,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const isHuggingFace = model.type.startsWith("hf.");
   const isOllama = model.type.startsWith("llama_model");
   const [tagsExpanded, setTagsExpanded] = useState(false);
+  const downloaded = model.size_on_disk && model.size_on_disk > 0;
 
   const {
     data: modelData,
@@ -467,7 +472,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
         ></div>
       </CardContent>
       <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
-        {onDownload && !isOllama && (
+        {onDownload && !isOllama && !downloaded && (
           <Button
             className="download"
             size="small"
@@ -481,6 +486,11 @@ const ModelCard: React.FC<ModelCardProps> = ({
           >
             Download
           </Button>
+        )}
+        {downloaded && (
+          <Tooltip title="Model already downloaded">
+            <CheckCircleIcon fontSize="small" sx={{ borderColor: "green" }} />
+          </Tooltip>
         )}
         {model.size_on_disk && (
           <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>

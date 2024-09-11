@@ -17,29 +17,28 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
 import useConnectionStore from "../../stores/ConnectionStore";
-import { TypeMetadata } from "../../stores/ApiTypes";
 import { getTimestampForFilename } from "../../utils/formatDateAndTime";
 
 const OutputContextMenu: React.FC = () => {
-  const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const closeContextMenu = useContextMenuStore(
-    (state) => state.closeContextMenu
-  );
-  const type = useContextMenuStore((state) => state.type);
-  const nodeId = useContextMenuStore((state) => state.nodeId);
-  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const createNode = useNodeStore((state) => state.createNode);
-  const addNode = useNodeStore((state) => state.addNode);
-  const addEdge = useNodeStore((state) => state.addEdge);
-  const generateEdgeId = useNodeStore((state) => state.generateEdgeId);
+  const {
+    nodeId,
+    menuPosition,
+    closeContextMenu,
+    type: sourceType,
+    handleId: sourceHandle
+  } = useContextMenuStore((state) => ({
+    nodeId: state.nodeId,
+    menuPosition: state.menuPosition,
+    closeContextMenu: state.closeContextMenu,
+    type: state.type,
+    handleId: state.handleId
+  }));
+  const { openNodeMenu } = useNodeMenuStore();
+  const { createNode, addNode, addEdge, generateEdgeId } = useNodeStore();
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
-  const connectHandleId = useConnectionStore((state) => state.connectHandleId);
-  const connectType = useConnectionStore((state) => state.connectType);
-  const [sourceHandle, setSourceHandle] = useState<string | null>(null);
-  const [sourceType, setSourceType] = useState<TypeMetadata | null>(null);
 
   type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(
@@ -59,14 +58,6 @@ const OutputContextMenu: React.FC = () => {
     },
     []
   );
-
-  useEffect(() => {
-    if (connectHandleId) {
-      setSourceHandle(connectHandleId);
-      setSourceType(connectType);
-    }
-  }, [connectHandleId, connectType]);
-
   const fetchMetadata = useCallback(
     (nodeType: string) => {
       devLog(`Fetching metadata for node type: ${nodeType}`);
@@ -84,10 +75,10 @@ const OutputContextMenu: React.FC = () => {
   );
 
   useEffect(() => {
-    if (type) {
-      fetchMetadata(type);
+    if (sourceType && sourceType !== "") {
+      fetchMetadata(sourceType);
     }
-  }, [type, fetchMetadata]);
+  }, [sourceType, fetchMetadata]);
 
   const createNodeWithEdge = useCallback(
     (metadata: any, position: { x: number; y: number }, nodeType: string) => {
@@ -122,14 +113,10 @@ const OutputContextMenu: React.FC = () => {
 
       // Assign a unique name to the node
       newNode.data.properties.name =
-        sourceType?.type +
-        "_" +
-        sourceHandle +
-        "_" +
-        getTimestampForFilename(false) || "";
+        `${sourceType}_${sourceHandle}_${getTimestampForFilename(false)}` || "";
 
       addNode(newNode);
-      const targetHandle = getTargetHandle(type || "", nodeType);
+      const targetHandle = getTargetHandle(sourceType || "", nodeType);
       addEdge({
         id: generateEdgeId(),
         source: nodeId || "",
@@ -137,7 +124,7 @@ const OutputContextMenu: React.FC = () => {
         sourceHandle: sourceHandle,
         targetHandle: targetHandle,
         type: "default",
-        className: Slugify(type || "")
+        className: Slugify(sourceType || "")
       });
     },
     [
@@ -145,7 +132,6 @@ const OutputContextMenu: React.FC = () => {
       reactFlowInstance,
       addNode,
       getTargetHandle,
-      type,
       addEdge,
       generateEdgeId,
       nodeId,
@@ -222,7 +208,7 @@ const OutputContextMenu: React.FC = () => {
       getMousePosition().x,
       getMousePosition().y,
       true,
-      type || "",
+      sourceType || "",
       "source"
     );
     closeContextMenu();
@@ -297,12 +283,13 @@ const OutputContextMenu: React.FC = () => {
       {saveNodeMetadata && (
         <ContextMenuItem
           onClick={handleCreateSaveNode}
-          label={`Create Save${type === "string"
-            ? "Text"
-            : type
-              ? type.charAt(0).toUpperCase() + type.slice(1)
+          label={`Create Save${
+            sourceType === "string"
+              ? "Text"
+              : sourceType
+              ? sourceType.charAt(0).toUpperCase() + sourceType.slice(1)
               : ""
-            } Node`}
+          } Node`}
           addButtonClassName="create-save-node"
           IconComponent={<SaveAltIcon />}
           tooltip={"..."}

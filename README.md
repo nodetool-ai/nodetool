@@ -1,19 +1,25 @@
 <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="nodetool_logo" width="32" height="auto">
 
-## nodetool
+## NodeTool
 
-
-NodeTool is a powerful no-code development environment for Artificial Intelligence, enabling intuitive creation of complex AI workflows and seamless integration into existing applications. With its node-based user interface, users can construct sophisticated, multimodal applications without deep programming knowledge.
+NodeTool is a powerful no-code platform for building AI workflows and applications. It's model-agnostic and supports multimodal AI integration.
 
 ![nodetool](nodetool.png)
 
-NodeTool opens up creative and playful access to cutting-edge AI technologies, supporting both beginners and experienced developers in content creation, data analysis, and automation. By visualizing workflows and simplifying complex installation requirements, NodeTool makes AI application development accessible to a broad audience.
+NodeTool simplifies access to advanced AI technologies, providing a creative space for both newcomers and experienced users to build powerful solutions for content creation, data analysis, and automation.
 
-## 🌟 Key Features
+## ✨ Core features
 
-- **No-Code AI Development:** Create AI workflows without deep programming knowledge.
-- **Model Agnostic:** Easily integrate state-of-the-art AI models from various sources.
-- **Multimedia Content Handling:** Generate and edit images, texts, audio, video, and more within a single workflow.
+1. **No-code development** for creating complex AI workflows without deep programming knowledge
+2. **Visual editor** for intuitive, node-based workflow design
+3. **Model agnostic** integration of state-of-the-art AI models from various sources
+4. **Multimodal support** for handling images, texts, audio, video, and more in a single workflow
+5. **API integration** to run AI tools from websites or mobile apps
+6. **Customizable nodes** for extending functionality with Python
+7. **Real-time execution** with WebSocket-based architecture
+8. **Scalable processing** through distributed worker architecture
+9. **Workflow API** for programmatic integration into existing applications
+10. **Cross-platform compatibility** with web and desktop (Electron) versions
 
 ## 🎨 Use Cases
 
