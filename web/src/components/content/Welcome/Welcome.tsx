@@ -19,7 +19,10 @@ import {
   Link,
   FormControlLabel,
   Tooltip,
-  Checkbox
+  Checkbox,
+  List,
+  ListItem,
+  ListItemText
 } from "@mui/material";
 import Fuse from "fuse.js";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -116,11 +119,7 @@ const welcomeStyles = (theme: any) =>
     },
     "ul, ol": {
       fontFamily: theme.fontFamily1,
-      paddingLeft: "1.5em",
-      marginTop: "0.5em"
-    },
-    li: {
-      marginBottom: "0.5em"
+      paddingLeft: "1em"
     },
     ".highlight": {
       backgroundColor: theme.palette.c_hl1,
@@ -458,14 +457,49 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           </TabPanel>
 
           <TabPanel value={tabValue} index={TabValue.Setup}>
-            <h3>Setup</h3>
-            <Typography variant="h6" gutterBottom>
-              Replicate offers a vast array of AI models and possibilities. By
-              setting up your Replicate API token, you will unlock high-end
-              models such as flux.dev and flux.pro. With an OpenAI key, you can
-              unlock high-end models such as GPTo, GPT-4. By setting up your
-              Anthropic API token, you will unlock high-end models such as
-              Claude 3.5 Sonnet.
+            <Typography variant="h5" gutterBottom>
+              Setup your API keys
+            </Typography>
+            <Typography variant="body1" gutterBottom>
+              Welcome to Nodetool! Before you start, you have two options for
+              accessing AI models:
+              <List>
+                <ListItem>
+                  <ListItemText
+                    primary="1. Use local models via Hugging Face"
+                    secondary="You can download and run models locally, which is great for privacy and offline use."
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText
+                    primary="2. Use remote models"
+                    secondary="Set up API keys to access powerful cloud-based AI models and capabilities. Choose the option that best suits your needs and project requirements."
+                  />
+                </ListItem>
+              </List>
+              <Typography variant="h6" gutterBottom>
+                Available API Integrations
+              </Typography>
+              <List>
+                <ListItem>
+                  <ListItemText
+                    primary="Replicate"
+                    secondary="Replicate provides access to a diverse range of AI models and capabilities. By configuring your Replicate API token, you'll gain access to advanced models like flux.dev and flux.pro."
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText
+                    primary="OpenAI"
+                    secondary="Setting up an OpenAI API key enables you to use powerful language models such as GPT-3.5 and GPT-4."
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText
+                    primary="Anthropic"
+                    secondary="By entering your Anthropic API token, you'll be able to leverage sophisticated models like Claude 3.5 Sonnet."
+                  />
+                </ListItem>
+              </List>
             </Typography>
 
             <RemoteSettingsMenu />

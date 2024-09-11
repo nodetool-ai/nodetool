@@ -82,20 +82,34 @@ const RemoteSettings = () => {
         <div className="remote-settings" css={styles}>
           <Typography variant="h3">External Services</Typography>
 
-          <div className="settings-item folder-path">
+          <div className="settings-item">
             <TextField
-              id="comfy-folder-input"
-              label="Comfy Folder"
-              value={comfyFolder}
-              onChange={(e) => setComfyFolder(e.target.value)}
+              id="replicate-api-token-input"
+              label="Replicate API Token"
+              value={replicateApiToken}
+              onChange={(e) => setReplicateApiToken(e.target.value)}
               onBlur={() =>
-                updateRemoteSettings({ COMFY_FOLDER: comfyFolder }, {})
+                updateRemoteSettings(
+                  {},
+                  { REPLICATE_API_TOKEN: replicateApiToken }
+                )
               }
               variant="standard"
             />
-            <Typography className="description">
-              Path to your ComfyUI installation folder.
-            </Typography>
+            <div className="text-and-button">
+              <Typography className="description">
+                Get your Replicate API token
+              </Typography>
+              <Button size="small">
+                <a
+                  href="https://replicate.com/account/api-tokens"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Replicate Settings
+                </a>
+              </Button>
+            </div>
           </div>
 
           <div className="settings-item">
@@ -178,34 +192,20 @@ const RemoteSettings = () => {
             </div>
           </div>
 
-          <div className="settings-item">
+          <div className="settings-item folder-path">
             <TextField
-              id="replicate-api-token-input"
-              label="Replicate API Token"
-              value={replicateApiToken}
-              onChange={(e) => setReplicateApiToken(e.target.value)}
+              id="comfy-folder-input"
+              label="Comfy Folder"
+              value={comfyFolder}
+              onChange={(e) => setComfyFolder(e.target.value)}
               onBlur={() =>
-                updateRemoteSettings(
-                  {},
-                  { REPLICATE_API_TOKEN: replicateApiToken }
-                )
+                updateRemoteSettings({ COMFY_FOLDER: comfyFolder }, {})
               }
               variant="standard"
             />
-            <div className="text-and-button">
-              <Typography className="description">
-                Get your Replicate API token
-              </Typography>
-              <Button size="small">
-                <a
-                  href="https://replicate.com/account/api-tokens"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Replicate Settings
-                </a>
-              </Button>
-            </div>
+            <Typography className="description">
+              Path to your ComfyUI installation folder.
+            </Typography>
           </div>
 
           <Typography className="secrets">
