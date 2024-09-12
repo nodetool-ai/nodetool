@@ -68,3 +68,37 @@ def is_assignable(type_meta: TypeMetadata, value: Any) -> bool:
             return value in type_meta.values
 
     return python_type == NameToType[type_meta.type]
+
+
+def typecheck(type1: TypeMetadata, type2: TypeMetadata) -> bool:
+    if type1.type == "any" or type2.type == "any":
+        return True
+
+    if type1.type != type2.type:
+        return False
+
+    if type1.is_comfy_type() and type2.is_comfy_type():
+        return type1.type == type2.type
+
+    if type1.type == "list" and type2.type == "list":
+        return typecheck(type1.type_args[0], type2.type_args[0])
+
+    if type1.type == "dict" and type2.type == "dict":
+        if len(type1.type_args) != 2 or len(type2.type_args) != 2:
+            return True
+        return typecheck(type1.type_args[0], type2.type_args[0]) and typecheck(
+            type1.type_args[1], type2.type_args[1]
+        )
+
+    if type1.type == "tensor" and type2.type == "tensor":
+        return typecheck(type1.type_args[0], type2.type_args[0])
+
+    if type1.type == "union" and type2.type == "union":
+        return all(
+            any(typecheck(t1, t2) for t2 in type2.type_args) for t1 in type1.type_args
+        )
+
+    if type1.type == "enum" and type2.type == "enum":
+        return set(type1.values or []) == set(type2.values or [])
+
+    return type1.type == type2.type

@@ -1,6 +1,7 @@
 from enum import Enum
 import numpy as np
 import PIL.Image
+from nodetool.model_manager import ModelManager
 from nodetool.metadata.types import (
     BoundingBox,
     HFControlNet,
@@ -62,6 +63,8 @@ from diffusers import StableDiffusionUpscalePipeline  # type: ignore
 from diffusers import UNet2DConditionModel  # type: ignore
 from diffusers import DiffusionPipeline  # type: ignore
 from diffusers import LCMScheduler  # type: ignore
+from transformers import ImageClassificationPipeline  # type: ignore
+from transformers import ImageSegmentationPipeline  # type: ignore
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
@@ -429,11 +432,12 @@ class ImageClassifier(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
-    inputs: ImageRef = Field(
+    image: ImageRef = Field(
         default=ImageRef(),
         title="Image",
         description="The input image to classify",
     )
+    _pipeline: ImageClassificationPipeline | None = None
 
     @classmethod
     def get_recommended_models(cls) -> list[HFImageClassification]:
@@ -473,7 +477,7 @@ class ImageClassifier(HuggingFacePipelineNode):
         ]
 
     def required_inputs(self):
-        return ["inputs"]
+        return ["image"]
 
     def get_model_id(self):
         return self.model.repo_id
@@ -482,25 +486,19 @@ class ImageClassifier(HuggingFacePipelineNode):
     def get_title(cls) -> str:
         return "Image Classifier"
 
-    @property
-    def pipeline_task(self) -> str:
-        return "image-classification"
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.model.to(device)
 
-    async def get_inputs(self, context: ProcessingContext):
-        return await context.image_to_pil(self.inputs)
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return {item["label"]: item["score"] for item in result}
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return {item["label"]: item["score"] for item in result}
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "image-classification", self.get_model_id(), device=context.device
+        )
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        return await super().process(context)
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(image)
+        return {item["label"]: item["score"] for item in result}
 
 
 class ZeroShotImageClassifier(HuggingFacePipelineNode):
@@ -526,7 +524,7 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
-    inputs: ImageRef = Field(
+    image: ImageRef = Field(
         default=ImageRef(),
         title="Image",
         description="The input image to classify",
@@ -567,7 +565,7 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
         ]
 
     def required_inputs(self):
-        return ["inputs"]
+        return ["image"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -576,30 +574,24 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
     def get_model_id(self):
         return self.model.repo_id
 
-    @property
-    def pipeline_task(self) -> str:
-        return "zero-shot-image-classification"
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context,
+            "zero-shot-image-classification",
+            self.get_model_id(),
+            device=context.device,
+        )
 
-    def get_params(self):
-        return {
-            "candidate_labels": self.candidate_labels.split(","),
-        }
-
-    async def get_inputs(self, context: ProcessingContext):
-        return await context.image_to_pil(self.inputs)
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return {item["label"]: item["score"] for item in result}
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return {item["label"]: item["score"] for item in result}
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.model.to(device)
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        return await super().process(context)
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(
+            image, candidate_labels=self.candidate_labels.split(",")
+        )
+        return {item["label"]: item["score"] for item in result}
 
 
 class StableDiffusionScheduler(str, Enum):
@@ -760,6 +752,8 @@ class Segmentation(HuggingFacePipelineNode):
         description="The input image to segment",
     )
 
+    _pipeline: ImageSegmentationPipeline | None = None
+
     @classmethod
     def get_recommended_models(cls) -> list[HFImageSegmentation]:
         return [
@@ -779,26 +773,30 @@ class Segmentation(HuggingFacePipelineNode):
     def get_model_id(self):
         return self.model.repo_id
 
-    @property
-    def pipeline_task(self) -> str:
-        return "image-segmentation"
+    @classmethod
+    def get_title(cls) -> str:
+        return "Image Segmentation"
 
-    async def get_inputs(self, context: ProcessingContext):
-        return await context.image_to_pil(self.image)
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.model.to(device)
 
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "image-segmentation", self.get_model_id(), device=context.device
+        )
+
+    async def process(
+        self, context: ProcessingContext
     ) -> list[ImageSegmentationResult]:
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(image)
+
         async def convert_output(item: dict[str, Any]):
             mask = await context.image_from_pil(item["mask"])
             return ImageSegmentationResult(mask=mask, label=item["label"])
 
         return await asyncio.gather(*[convert_output(item) for item in result])
-
-    async def process(
-        self, context: ProcessingContext
-    ) -> list[ImageSegmentationResult]:
-        return await super().process(context)
 
 
 class FindSegment(BaseNode):
@@ -852,7 +850,7 @@ class ObjectDetection(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for object detection",
     )
-    inputs: ImageRef = Field(
+    image: ImageRef = Field(
         default=ImageRef(),
         title="Inputs",
         description="The input image for object detection",
@@ -911,21 +909,18 @@ class ObjectDetection(HuggingFacePipelineNode):
     def get_model_id(self):
         return self.model.repo_id
 
-    @property
-    def pipeline_task(self) -> str:
-        return "object-detection"
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "object-detection", self.get_model_id(), device=context.device
+        )
 
-    async def get_inputs(self, context: ProcessingContext):
-        return await context.image_to_pil(self.inputs)
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.model.to(device)
 
-    def get_params(self):
-        return {
-            "threshold": self.threshold,
-        }
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> list[ObjectDetectionResult]:
+    async def process(self, context: ProcessingContext) -> list[ObjectDetectionResult]:
+        image = await context.image_to_pil(self.inputs)
+        result = self._pipeline(image, threshold=self.threshold)
         return [
             ObjectDetectionResult(
                 label=item["label"],
@@ -939,9 +934,6 @@ class ObjectDetection(HuggingFacePipelineNode):
             )
             for item in result
         ]
-
-    async def process(self, context: ProcessingContext) -> list[ObjectDetectionResult]:
-        return await super().process(context)
 
 
 class VisualizeObjectDetection(BaseNode):
@@ -1045,7 +1037,7 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for object detection",
     )
-    inputs: ImageRef = Field(
+    image: ImageRef = Field(
         default=ImageRef(),
         title="Inputs",
         description="The input image for object detection",
@@ -1096,7 +1088,7 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
         ]
 
     def required_inputs(self):
-        return ["inputs"]
+        return ["image"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -1105,22 +1097,25 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
     def get_model_id(self):
         return self.model.repo_id
 
-    @property
-    def pipeline_task(self) -> str:
-        return "zero-shot-object-detection"
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context,
+            "zero-shot-object-detection",
+            self.get_model_id(),
+            device=context.device,
+        )
 
-    def get_params(self):
-        return {
-            "candidate_labels": self.candidate_labels.split(","),
-            "threshold": self.threshold,
-        }
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.model.to(device)
 
-    async def get_inputs(self, context: ProcessingContext):
-        return await context.image_to_pil(self.inputs)
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> list[ObjectDetectionResult]:
+    async def process(self, context: ProcessingContext) -> list[ObjectDetectionResult]:
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(
+            image,
+            candidate_labels=self.candidate_labels.split(","),
+            threshold=self.threshold,
+        )
         return [
             ObjectDetectionResult(
                 label=item["label"],
@@ -1134,9 +1129,6 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
             )
             for item in result
         ]
-
-    async def process(self, context: ProcessingContext) -> list[ObjectDetectionResult]:
-        return await super().process(context)
 
 
 class DepthEstimation(HuggingFacePipelineNode):
@@ -1160,7 +1152,7 @@ class DepthEstimation(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for depth estimation",
     )
-    inputs: ImageRef = Field(
+    image: ImageRef = Field(
         default=ImageRef(),
         title="Image",
         description="The input image for depth estimation",
@@ -1188,7 +1180,7 @@ class DepthEstimation(HuggingFacePipelineNode):
         ]
 
     def required_inputs(self):
-        return ["inputs"]
+        return ["image"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -1197,27 +1189,20 @@ class DepthEstimation(HuggingFacePipelineNode):
     def get_model_id(self):
         return self.model.repo_id
 
-    @property
-    def pipeline_task(self) -> str:
-        return "depth-estimation"
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "depth-estimation", self.get_model_id(), device=context.device
+        )
 
-    async def get_inputs(self, context: ProcessingContext):
-        return await context.image_to_pil(self.inputs)
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> ImageRef:
-        depth_map = await context.image_from_base64(result["depth"])
-        return depth_map
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> ImageRef:
-        depth_ref = await context.image_from_pil(result["depth"])
-        return depth_ref
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.model.to(device)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        return await super().process(context)
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(image)
+        depth_map = result["depth"]
+        return await context.image_from_pil(depth_map)
 
 
 class BaseImageToImage(HuggingFacePipelineNode):
@@ -1230,7 +1215,7 @@ class BaseImageToImage(HuggingFacePipelineNode):
     def is_visible(cls) -> bool:
         return cls is not BaseImageToImage
 
-    inputs: ImageRef = Field(
+    image: ImageRef = Field(
         default=ImageRef(),
         title="Input Image",
         description="The input image to transform",
@@ -1242,24 +1227,21 @@ class BaseImageToImage(HuggingFacePipelineNode):
     )
 
     def required_inputs(self):
-        return ["inputs"]
+        return ["image"]
 
-    @property
-    def pipeline_task(self) -> str:
-        return "image-to-image"
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "image-to-image", self.get_model_id(), device=context.device
+        )
 
-    async def get_inputs(self, context: ProcessingContext):
-        return await context.image_to_pil(self.inputs)
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.model.to(device)
 
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> ImageRef:
-        return await context.image_from_base64(result)
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> ImageRef:
-        return await context.image_from_pil(result)
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(image, prompt=self.prompt)
+        return await context.image_from_pil(result.images[0])
 
 
 class Swin2SR(BaseImageToImage):
@@ -1306,9 +1288,6 @@ class Swin2SR(BaseImageToImage):
 
     def get_model_id(self):
         return self.model.repo_id
-
-    def get_params(self):
-        return {}
 
 
 # class InstructPix2Pix(BaseImageToImage):
@@ -1496,13 +1475,13 @@ class PixArtAlpha(BaseNode):
         return "PixArt-alpha/PixArt-XL-2-1024-MS"
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached(self.get_model_id()):
-            raise ValueError(f"Model {self.get_model_id()} must be downloaded first")
-        self._pipeline = PixArtAlphaPipeline.from_pretrained(
-            self.get_model_id(),
+        self._pipeline = await self.load_model(
+            context,
+            "PixArt-alpha/PixArt-XL-2-1024-MS",
+            self.model.repo_id,
+            device=context.device,
             torch_dtype=torch.float16,
-            local_files_only=True,
-        )  # type: ignore
+        )
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -1532,8 +1511,10 @@ class PixArtAlpha(BaseNode):
             negative_prompt=self.negative_prompt,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
+            width=self.width,
+            height=self.height,
             generator=generator,
-            callback=callback,  # type: ignore
+            callback=callback,
             callback_steps=1,
         )
 
@@ -1606,15 +1587,13 @@ class PixArtSigma(BaseNode):
         return "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS"
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached(self.get_model_id()):
-            raise ValueError(f"Model {self.get_model_id()} must be downloaded first")
-        self._pipeline = PixArtSigmaPipeline.from_pretrained(
-            self.get_model_id(), torch_dtype=torch.float16, local_files_only=True
-        )  # type: ignore
-
-    async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        self._pipeline = await self.load_model(
+            context,
+            "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
+            self.model.repo_id,
+            device=context.device,
+            torch_dtype=torch.float16,
+        )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -1640,6 +1619,8 @@ class PixArtSigma(BaseNode):
             negative_prompt=self.negative_prompt,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
+            width=self.width,
+            height=self.height,
             generator=generator,
             callback=callback,  # type: ignore
             callback_steps=1,
@@ -1991,16 +1972,15 @@ class Kandinsky3(BaseNode):
     def get_title(cls) -> str:
         return "Kandinsky 3"
 
+    def get_model_id(self):
+        return "kandinsky-community/kandinsky-3"
+
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached("kandinsky-community/kandinsky-3"):
-            raise ValueError(
-                f"Model kandinsky-community/kandinsky-3 must be downloaded first"
-            )
-        self._pipeline = AutoPipelineForText2Image.from_pretrained(
+        self._pipeline = await self.load_model(
+            context,
             "kandinsky-community/kandinsky-3",
-            variant="fp16",
+            AutoPipelineForText2Image,
             torch_dtype=torch.float16,
-            local_files_only=True,
         )
 
     async def move_to_device(self, device: str):
@@ -2014,12 +1994,13 @@ class Kandinsky3(BaseNode):
             raise ValueError("Pipeline not initialized")
 
         # Set up the generator for reproducibility
-        generator = torch.Generator(device="cpu")
+        generator = None
         if self.seed != -1:
-            generator = generator.manual_seed(self.seed)
+            generator = torch.Generator(device="cpu").manual_seed(self.seed)
 
         self._pipeline.enable_sequential_cpu_offload()
 
+        # Generate the image
         output = self._pipeline(
             prompt=self.prompt,
             num_inference_steps=self.num_inference_steps,
@@ -2030,7 +2011,7 @@ class Kandinsky3(BaseNode):
             callback_steps=1,
         )  # type: ignore
 
-        image = output.images[0]
+        image = output.images[0]  # type: ignore
 
         return await context.image_from_pil(image)
 
@@ -2092,13 +2073,13 @@ class Kandinsky3Img2Img(BaseNode):
         return "kandinsky-community/kandinsky-3"
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached(self.get_model_id()):
-            raise ValueError(f"Model {self.get_model_id()} must be downloaded first")
-        self._pipeline = AutoPipelineForImage2Image.from_pretrained(
-            self.get_model_id(),
-            variant="fp16",
+        self._pipeline = await self.load_model(
+            context,
+            "kandinsky-community/kandinsky-3",
+            AutoPipelineForImage2Image,
             torch_dtype=torch.float16,
-            local_files_only=True,
+            device=context.device,
+            variant="fp16",
         )
 
     async def move_to_device(self, device: str):
@@ -2192,21 +2173,13 @@ class PlaygroundV2(BaseNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached(
-            "playgroundai/playground-v2.5-1024px-aesthetic"
-        ):
-            raise ValueError(
-                f"Model playgroundai/playground-v2.5-1024px-aesthetic must be downloaded first"
-            )
-        self._pipeline = DiffusionPipeline.from_pretrained(
+        self._pipeline = await self.load_model(
+            context,
             "playgroundai/playground-v2.5-1024px-aesthetic",
-            torch_dtype=torch.float16,
-            variant="fp16",
-            local_files_only=True,
-        )  # type: ignore
+            DiffusionPipeline,
+        )
 
     async def move_to_device(self, device: str):
-        # if self._pipeline is not None:
         if self._pipeline is not None:
             self._pipeline.to(device)
 
@@ -2290,10 +2263,10 @@ class Proteus(BaseNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached("dataautogpt3/ProteusV0.5"):
-            raise ValueError(f"Model dataautogpt3/ProteusV0.5 must be downloaded first")
-        self._pipeline = AutoPipelineForText2Image.from_pretrained(
+        self._pipeline = await self.load_model(
+            context,
             "dataautogpt3/ProteusV0.5",
+            AutoPipelineForText2Image,
             torch_dtype=torch.float16,
         )
 
@@ -2324,7 +2297,7 @@ class Proteus(BaseNode):
         return await context.image_from_pil(image)
 
 
-class StableDiffusionBaseNode(BaseNode):
+class StableDiffusionBaseNode(HuggingFacePipelineNode):
     model: HFStableDiffusion = Field(
         default=HFStableDiffusion(),
         description="The model to use for image generation.",
@@ -2414,8 +2387,9 @@ class StableDiffusionBaseNode(BaseNode):
         self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
         if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
             if not self.ip_adapter_image.is_empty():
-                if not context.is_huggingface_model_cached("h94/IP-Adapter"):
-                    raise ValueError(f"Model h94/IP-Adapter must be downloaded first")
+                await self.load_model(
+                    context, "ip-adapter", "h94/IP-Adapter", subfolder="models"
+                )
                 self._load_ip_adapter()
                 return await context.image_to_pil(self.ip_adapter_image)
         return None
@@ -2494,15 +2468,12 @@ class StableDiffusion(StableDiffusionBaseNode):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
-            if not context.is_huggingface_model_cached(self.model.repo_id):
-                raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-            self._pipeline = StableDiffusionPipeline.from_pretrained(
+            self._pipeline = await self.load_model(
+                context,
+                StableDiffusionPipeline,
                 self.model.repo_id,
-                torch_dtype=torch.float16,
-                safety_checker=None,
-                local_files_only=True,
-                variant="fp16",
-            )  # type: ignore
+                device=context.device,
+            )
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
 
@@ -2629,23 +2600,19 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
         return "Stable Diffusion ControlNet"
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached(self.controlnet.value):
-            raise ValueError(
-                f"ControlNet model {self.controlnet.value} must be downloaded first"
-            )
-        if not context.is_huggingface_model_cached(self.model.repo_id):
-            raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-
-        controlnet = ControlNetModel.from_pretrained(
-            self.controlnet.repo_id, torch_dtype=torch.float16, local_files_only=True
+        controlnet = await self.load_model(
+            context,
+            StableDiffusionControlNetPipeline,
+            self.controlnet.repo_id,
+            device=context.device,
         )
-        self._pipeline = StableDiffusionControlNetPipeline.from_pretrained(
+        self._pipeline = await self.load_model(
+            context,
+            "controlnet",
             self.model.repo_id,
             controlnet=controlnet,
-            torch_dtype=torch.float16,
-            local_files_only=True,
-        )  # type: ignore
-        self._pipeline.enable_model_cpu_offload()  # type: ignore
+            device=context.device,
+        )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -2709,15 +2676,19 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
-            if not context.is_huggingface_model_cached(self.model.repo_id):
-                raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-            self._pipeline = StableDiffusionImg2ImgPipeline.from_pretrained(
+            self._pipeline = await self.load_model(
+                context,
+                StableDiffusionImg2ImgPipeline,
                 self.model.repo_id,
+                device=context.device,
                 torch_dtype=torch.float16,
                 safety_checker=None,
-                local_files_only=True,
-            )  # type: ignore
-            self._set_scheduler(self.scheduler)
+            )
+            assert self._pipeline is not None
+            self._pipeline.enable_model_cpu_offload()
+        else:
+            await self.move_to_device(context.device)
+        self._set_scheduler(self.scheduler)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -2795,23 +2766,21 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
         return "Stable Diffusion ControlNet Inpaint"
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached(self.controlnet.value):
-            raise ValueError(
-                f"ControlNet model {self.controlnet.value} must be downloaded first"
-            )
-        if not context.is_huggingface_model_cached(self.model.repo_id):
-            raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-
-        controlnet = ControlNetModel.from_pretrained(
-            self.controlnet.value, torch_dtype=torch.float16, local_files_only=True
+        controlnet = await self.load_pipeline(
+            context,
+            "controlnet",
+            self.controlnet.value,
+            device=context.device,
         )
-        self._pipeline = StableDiffusionControlNetInpaintPipeline.from_pretrained(
+        self._pipeline = await self.load_pipeline(
+            context,
+            "stable-diffusion-controlnet-inpaint",
             self.model.repo_id,
             controlnet=controlnet,
-            torch_dtype=torch.float16,
-            local_files_only=True,
-        )  # type: ignore
-        self._pipeline.enable_model_cpu_offload()  # type: ignore
+            device=context.device,
+        )
+        assert self._pipeline is not None
+        self._set_scheduler(self.scheduler)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -2882,14 +2851,13 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
-            if not context.is_huggingface_model_cached(self.model.repo_id):
-                raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-            self._pipeline = StableDiffusionInpaintPipeline.from_pretrained(
-                "runwayml/stable-diffusion-inpainting",
-                torch_dtype=torch.float16,
-                safety_checker=None,
-                local_files_only=True,
-            )  # type: ignore
+            self._pipeline = await self.load_pipeline(
+                context,
+                "stable-diffusion-inpaint",
+                self.model.repo_id,
+                device=context.device,
+            )
+            assert self._pipeline is not None
             self._load_ip_adapter()
             self._set_scheduler(self.scheduler)
 
@@ -3076,12 +3044,15 @@ class StableDiffusionUpscale(BaseNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        self._pipeline = StableDiffusionUpscalePipeline.from_pretrained(
-            "stabilityai/stable-diffusion-x4-upscaler",
+        self._pipeline = await self.load_pipeline(
+            context,
+            "stable-diffusion-upscale",
+            self.model.repo_id,
+            device=context.device,
             torch_dtype=torch.float16,
             variant="fp16",
-            local_files_only=True,
-        )  # type: ignore
+        )
+        assert self._pipeline is not None
         self._set_scheduler(self.scheduler)
 
     def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
@@ -3119,7 +3090,7 @@ class StableDiffusionUpscale(BaseNode):
         return await context.image_from_pil(upscaled_image)
 
 
-class StableDiffusionXLBase(BaseNode):
+class StableDiffusionXLBase(HuggingFacePipelineNode):
     model: HFStableDiffusionXL = Field(
         default=HFStableDiffusionXL(),
         description="The Stable Diffusion XL model to use for generation.",
@@ -3328,13 +3299,14 @@ class StableDiffusionXL(StableDiffusionXLBase):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
-            if not context.is_huggingface_model_cached(self.model.repo_id):
-                raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-            self._pipeline = StableDiffusionXLPipeline.from_pretrained(
+            self._pipeline = await self.load_model(
+                context,
+                DiffusionPipeline,
                 self.model.repo_id,
-                torch_dtype=torch.float16,
+                device=context.device,
                 variant="fp16",
             )
+            assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
 
     async def process(self, context) -> ImageRef:
@@ -3468,13 +3440,14 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
-            if not context.is_huggingface_model_cached(self.model.repo_id):
-                raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-            self._pipeline = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+            self._pipeline = await self.load_pipeline(
+                context,
+                DiffusionPipeline,
                 self.model.repo_id,
-                torch_dtype=torch.float16,
+                device=context.device,
                 variant="fp16",
             )
+            assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
 
     async def process(self, context) -> ImageRef:
@@ -3550,13 +3523,13 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
-            if not context.is_huggingface_model_cached(self.model.repo_id):
-                raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-            self._pipeline = AutoPipelineForInpainting.from_pretrained(
-                "diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
-                torch_dtype=torch.float16,
-                variant="fp16",
+            self._pipeline = await self.load_model(
+                context,
+                DiffusionPipeline,
+                self.model.repo_id,
+                device=context.device,
             )
+            assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -3685,7 +3658,7 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
         return await context.image_from_pil(output.images[0])  # type: ignore
 
 
-class SDXLTurbo(BaseNode):
+class SDXLTurbo(HuggingFacePipelineNode):
     """
     Generates images from text prompts using SDXL Turbo.
     image, generation, AI, text-to-image, fast
@@ -3751,15 +3724,12 @@ class SDXLTurbo(BaseNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        if self._pipe is None:
-            if not context.is_huggingface_model_cached(self.model.repo_id):
-                raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-            self._pipe = AutoPipelineForText2Image.from_pretrained(
-                self.model.repo_id,
-                torch_dtype=torch.float16,
-                variant="fp16",
-                local_files_only=True,
-            )
+        self._pipe = await self.load_model(
+            context,
+            DiffusionPipeline,
+            self.model.repo_id,
+            device=context.device,
+        )
 
     async def move_to_device(self, device: str):
         if self._pipe is not None:

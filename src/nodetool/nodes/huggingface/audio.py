@@ -10,23 +10,13 @@ from nodetool.metadata.types import (
     HFZeroShotClassification,
     HuggingFaceModel,
 )
-from nodetool.metadata.types import ImageRef
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
-from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from enum import Enum
-from pydantic import Field
 from nodetool.metadata.types import AudioRef
-from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
-from nodetool.workflows.processing_context import ProcessingContext
 import torch
 from diffusers import StableAudioPipeline  # type: ignore
 from nodetool.workflows.types import NodeProgress
-from pydantic import Field
-from nodetool.workflows.base_node import BaseNode
-from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import AudioRef
 import torch
 from transformers import pipeline, Pipeline
 from transformers import AutoProcessor, MusicgenForConditionalGeneration
@@ -34,6 +24,9 @@ from diffusers import DiffusionPipeline  # type: ignore
 from diffusers import MusicLDMPipeline  # type: ignore
 from diffusers import AudioLDMPipeline  # type: ignore
 from diffusers import AudioLDM2Pipeline  # type: ignore
+from transformers import AudioClassificationPipeline  # type: ignore
+from transformers import ZeroShotAudioClassificationPipeline  # type: ignore
+from transformers import TextToAudioPipeline  # type: ignore
 
 
 class AudioClassifier(HuggingFacePipelineNode):
@@ -57,11 +50,17 @@ class AudioClassifier(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for audio classification",
     )
-    inputs: AudioRef = Field(
+    audio: AudioRef = Field(
         default=AudioRef(),
         title="Audio",
         description="The input audio to classify",
     )
+    top_k: int = Field(
+        default=10,
+        title="Top K",
+        description="The number of top results to return",
+    )
+    _pipeline: AudioClassificationPipeline | None = None
 
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
@@ -85,26 +84,13 @@ class AudioClassifier(HuggingFacePipelineNode):
     def get_model_id(self):
         return self.model.repo_id
 
-    @property
-    def pipeline_task(self) -> str:
-        return "audio-classification"
-
-    async def get_inputs(self, context: ProcessingContext):
-        samples, _, _ = await context.audio_to_numpy(self.inputs)
-        return samples
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return {item["label"]: item["score"] for item in result}
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return {item["label"]: item["score"] for item in result}
-
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        return await super().process(context)
+        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        result = self._pipeline(
+            samples,
+            top_k=self.top_k,
+        )
+        return {item["label"]: item["score"] for item in result}
 
 
 class Bark(HuggingFacePipelineNode):
@@ -128,6 +114,7 @@ class Bark(HuggingFacePipelineNode):
         title="Inputs",
         description="The input text to the model",
     )
+    _pipeline: TextToAudioPipeline | None = None
 
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
@@ -142,30 +129,21 @@ class Bark(HuggingFacePipelineNode):
             ),
         ]
 
-    async def get_inputs(self, context: ProcessingContext):
-        return self.prompt
-
     def get_model_id(self):
         return self.model.repo_id
 
-    @property
-    def pipeline_task(self) -> str:
-        return "text-to-audio"
+    async def move_to_device(self, device: str):
+        pass
 
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> AudioRef:
-        audio = await context.audio_from_bytes(result)  # type: ignore
-        return audio
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> AudioRef:
-        audio = await context.audio_from_numpy(result["audio"], 24_000)  # type: ignore
-        return audio
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "text-to-speech", self.get_model_id(), device=context.device
+        )
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        return await super().process(context)
+        result = self._pipeline(self.prompt, forward_params={"do_sample": True})
+        audio = await context.audio_from_numpy(result["audio"], 24_000)  # type: ignore
+        return audio
 
 
 class MusicGen(HuggingfaceNode):
@@ -234,10 +212,10 @@ class MusicGen(HuggingfaceNode):
         if not context.is_huggingface_model_cached(self.model.repo_id):
             raise ValueError(f"Download the model {self.model.repo_id} first")
 
-        self._processor = AutoProcessor.from_pretrained(self.model.repo_id)  # type: ignore
-        self._model = MusicgenForConditionalGeneration.from_pretrained(
-            self.model.repo_id, torch_dtype=torch.float16, local_files_only=True
-        )  # type: ignore
+        self._processor = self.load_model(context, AutoProcessor, self.model.repo_id)
+        self._model = self.load_model(
+            context, MusicgenForConditionalGeneration, self.model.repo_id
+        )
 
     async def move_to_device(self, device: str):
         if self._model is not None:
@@ -312,13 +290,9 @@ class MusicLDM(HuggingFacePipelineNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        self._pipeline = MusicLDMPipeline.from_pretrained(
-            self.model.repo_id, torch_dtype=torch.float16, local_files_only=True
-        )  # type: ignore
-
-    async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        self._pipeline = await self.load_model(
+            context, MusicLDMPipeline, self.model.repo_id
+        )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         assert self._pipeline is not None, "Pipeline not initialized"
@@ -333,7 +307,7 @@ class MusicLDM(HuggingFacePipelineNode):
         return await context.audio_from_numpy(audio, 16_000)
 
 
-class AudioLDM(BaseNode):
+class AudioLDM(HuggingFacePipelineNode):
     """
     Generates audio using the AudioLDM model based on text prompts.
     audio, generation, AI, text-to-audio
@@ -379,17 +353,9 @@ class AudioLDM(BaseNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached("cvssp/audioldm-s-full-v2"):
-            raise ValueError("Download the model cvssp/audioldm-s-full-v2 first")
-        self._pipeline = AudioLDMPipeline.from_pretrained(
-            "cvssp/audioldm-s-full-v2",
-            torch_dtype=torch.float16,
-            local_files_only=True,
-        )  # type: ignore
-
-    async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        self._pipeline = await self.load_model(
+            context, AudioLDMPipeline, "cvssp/audioldm-s-full-v2"
+        )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         if self._pipeline is None:
@@ -424,7 +390,7 @@ class AudioLDM(BaseNode):
         return await context.audio_from_numpy(audio, 16000)
 
 
-class AudioLDM2(BaseNode):
+class AudioLDM2(HuggingFacePipelineNode):
     """
     Generates audio using the AudioLDM2 model based on text prompts.
     audio, generation, AI, text-to-audio
@@ -480,17 +446,9 @@ class AudioLDM2(BaseNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached("cvssp/audioldm2"):
-            raise ValueError("Download the model cvssp/audioldm2 first")
-        self._pipeline = AudioLDM2Pipeline.from_pretrained(
-            "cvssp/audioldm2",
-            torch_dtype=torch.float16,
-            local_files_only=True,
-        )  # type: ignore
-
-    async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        self._pipeline = await self.load_model(
+            context, AudioLDM2Pipeline, "cvssp/audioldm2"
+        )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         if self._pipeline is None:
@@ -527,7 +485,7 @@ class AudioLDM2(BaseNode):
         return await context.audio_from_numpy(audio, 16000)
 
 
-class DanceDiffusion(BaseNode):
+class DanceDiffusion(HuggingFacePipelineNode):
     """
     Generates audio using the DanceDiffusion model.
     audio, generation, AI, music
@@ -569,15 +527,9 @@ class DanceDiffusion(BaseNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached("harmonai/maestro-150k"):
-            raise ValueError("Download the model harmonai/maestro-150k first")
-        self._pipeline = DiffusionPipeline.from_pretrained(
-            "harmonai/maestro-150k", torch_dtype=torch.float16, local_files_only=True
+        self._pipeline = await self.load_model(
+            context, DiffusionPipeline, "harmonai/maestro-150k"
         )
-
-    async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         if self._pipeline is None:
@@ -598,7 +550,7 @@ class DanceDiffusion(BaseNode):
         return await context.audio_from_numpy(audio, 16000)
 
 
-class StableAudioNode(BaseNode):
+class StableAudioNode(HuggingFacePipelineNode):
     """
     Generates audio using the Stable Audio Pipeline based on a text prompt.
     audio, generation, AI, text-to-audio
@@ -647,19 +599,9 @@ class StableAudioNode(BaseNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached("stabilityai/stable-audio-open-1.0"):
-            raise ValueError(
-                "Download the model stabilityai/stable-audio-open-1.0 first"
-            )
-        self._pipeline = StableAudioPipeline.from_pretrained(
-            "stabilityai/stable-audio-open-1.0",
-            torch_dtype=torch.float16,
-            local_files_only=True,
-        )  # type: ignore
-
-    async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
+        self._pipeline = await self.load_model(
+            context, StableAudioPipeline, "stabilityai/stable-audio-open-1.0"
+        )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         if self._pipeline is None:
@@ -715,7 +657,7 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for the speech recognition",
     )
-    inputs: AudioRef = Field(
+    audio: AudioRef = Field(
         default=AudioRef(),
         title="Image",
         description="The input audio to transcribe",
@@ -779,7 +721,7 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
-    inputs: AudioRef = Field(
+    audio: AudioRef = Field(
         default=AudioRef(),
         title="Audio",
         description="The input audio to classify",
@@ -789,6 +731,8 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
         title="Candidate Labels",
         description="The candidate labels to classify the audio against, separated by commas",
     )
+
+    _pipeline: ZeroShotAudioClassificationPipeline | None = None
 
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
@@ -800,7 +744,7 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
         ]
 
     def required_inputs(self):
-        return ["inputs"]
+        return ["audio"]
 
     def get_model_id(self):
         return self.model.repo_id
@@ -809,27 +753,20 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
     def pipeline_task(self) -> str:
         return "zero-shot-audio-classification"
 
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_model(
+            context, ZeroShotAudioClassificationPipeline, self.model.repo_id
+        )
+
     def get_params(self):
-        return {
-            "candidate_labels": self.candidate_labels.split(","),
-        }
-
-    async def get_inputs(self, context: ProcessingContext):
-        samples, _, _ = await context.audio_to_numpy(self.inputs)
-        return samples
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return {item["label"]: item["score"] for item in result}
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return {item["label"]: item["score"] for item in result}
+        return {}
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        return await super().process(context)
+        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        result = self._pipeline(
+            samples, candidate_labels=self.candidate_labels.split(",")
+        )
+        return {item["label"]: item["score"] for item in result}
 
 
 # class LoadSpeakerEmbedding(BaseNode):
