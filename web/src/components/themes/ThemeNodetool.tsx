@@ -219,7 +219,7 @@ ThemeNodetool.components = {
         textTransform: "uppercase"
       },
       body1: {
-        fontSize: "0.9em",
+        fontSize: "1em",
         fontFamily: ThemeNodetool.fontFamily1,
         fontWeight: 300,
         wordSpacing: "0",
@@ -228,10 +228,10 @@ ThemeNodetool.components = {
         marginBottom: ThemeNodetool.spacing(0)
       },
       body2: {
-        fontSize: "0.8em",
-        lineHeight: 1.1,
-        fontFamily: ThemeNodetool.fontFamily2,
-        wordSpacing: "-2px"
+        fontSize: "1em",
+        lineHeight: 1.2,
+        color: ThemeNodetool.palette.c_white,
+        fontFamily: ThemeNodetool.fontFamily1
       }
     }
   },

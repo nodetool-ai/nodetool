@@ -230,7 +230,7 @@ ThemeNodes.components = {
         wordSpacing: "-3px"
       },
       body1: {
-        fontSize: "0.8em",
+        fontSize: "1em",
         fontFamily: ThemeNodes.fontFamily1,
         fontWeight: 300,
         wordSpacing: "0",
@@ -239,10 +239,9 @@ ThemeNodes.components = {
         marginBottom: ThemeNodes.spacing(0)
       },
       body2: {
-        fontSize: "0.8em",
+        fontSize: "1em",
         lineHeight: 1.1,
-        fontFamily: ThemeNodes.fontFamily2,
-        wordSpacing: "-2px"
+        fontFamily: ThemeNodes.fontFamily1
       }
     }
   },
