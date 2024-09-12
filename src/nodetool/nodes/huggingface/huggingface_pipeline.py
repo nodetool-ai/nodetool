@@ -34,6 +34,9 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         if not context.is_huggingface_model_cached(model_id):
             raise ValueError(f"Model {model_id} must be downloaded first")
 
+        if device is None:
+            device = context.device
+
         model = pipeline(
             pipeline_task,
             model=model_id,
@@ -74,19 +77,4 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             self._pipeline.to(device)
 
     async def process(self, context: ProcessingContext) -> Any:
-        raise NotImplementedError("Subclasses must implement this method")
-
-    async def get_inputs(self, context: ProcessingContext):
-        raise NotImplementedError("Subclasses must implement this method")
-
-    def get_model_id(self):
-        raise NotImplementedError("Subclasses must implement this method")
-
-    def get_pipeline_class(self) -> type[Pipeline] | None:
-        return False
-
-    async def process_remote_result(self, context: Any, result: Any) -> Any:
-        raise NotImplementedError("Subclasses must implement this method")
-
-    async def process_local_result(self, context: Any, result: Any) -> Any:
         raise NotImplementedError("Subclasses must implement this method")

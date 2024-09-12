@@ -67,31 +67,15 @@ async def function_model(user: User = Depends(current_user)) -> list[FunctionMod
     return models
 
 
-def get_recommended_models() -> dict[str, HuggingFaceModel]:
+def get_recommended_models() -> dict[str, list[HuggingFaceModel]]:
     node_classes = get_registered_node_classes()
-    return {
-        model.repo_id: model
-        for node_class in node_classes
-        for model in node_class.get_recommended_models()
-    }
-
-
-async def augment_model_info(
-    model: CachedModel, models: dict[str, HuggingFaceModel]
-) -> CachedModel:
-    client = httpx.AsyncClient()
-    res = await client.get(f"https://huggingface.co/api/models/{model.repo_id}")
-    if res.status_code != 200:
-        return model
-    model_info = res.json()
-    model.pipeline_tag = model_info.get("pipeline_tag", None)
-    if model.repo_id in models:
-        model.model_type = models[model.repo_id].type
-    else:
-        if model.pipeline_tag:
-            model.model_type = pipeline_tag_to_model_type(model.pipeline_tag)
-
-    return model
+    models = {}
+    for node_class in node_classes:
+        for model in node_class.get_recommended_models():
+            if model.repo_id not in models:
+                models[model.repo_id] = []
+            models[model.repo_id].append(model)
+    return models
 
 
 @router.get("/recommended_models")
@@ -105,12 +89,7 @@ async def recommended_models(
 async def get_huggingface_models(
     user: User = Depends(current_user),
 ) -> list[CachedModel]:
-    models = read_all_cached_models()
-    recommended_models = get_recommended_models()
-    models = await asyncio.gather(
-        *[augment_model_info(model, recommended_models) for model in models]
-    )
-    return models
+    return read_all_cached_models()
 
 
 @router.delete("/huggingface_model")

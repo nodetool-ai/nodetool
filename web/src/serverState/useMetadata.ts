@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { NodeTypes } from "reactflow";
-import { NodeMetadata } from "../stores/ApiTypes";
+import { HuggingFaceModel, NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
@@ -45,9 +45,14 @@ export const metadataQuery = async () => {
     defaultMetadata
   );
 
+  const recommendedModels = data.reduce<HuggingFaceModel[]>(
+    (result, md) => [...result, ...md.recommended_models],
+    []
+  );
+
   useMetadataStore.getState().setMetadata(metadataByType);
 
-  return { metadata: data, nodeTypes, metadataByType };
+  return { metadata: data, nodeTypes, metadataByType, recommendedModels };
 };
 
 export const useMetadata = () =>

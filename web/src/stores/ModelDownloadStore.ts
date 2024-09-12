@@ -82,7 +82,6 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     if (ws) {
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log("data", data);
         if (data.repo_id) {
           get().updateDownload(data.repo_id, {
             status: data.status,

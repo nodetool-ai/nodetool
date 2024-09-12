@@ -6,6 +6,7 @@ import useModelStore from "../../stores/ModelStore";
 import { PropertyProps } from "../node/PropertyInput";
 import { FunctionModel, TypeName } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
+import { useMetadata } from "../../serverState/useMetadata";
 
 export function comfyModelToFolder(type: TypeName) {
   switch (type) {
@@ -39,6 +40,7 @@ export default function ModelProperty(props: PropertyProps) {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const loadModelFiles = useModelStore((state) => state.loadFiles);
   const functionModels = useModelStore((state) => state.functionModels);
+  const { data: metadata } = useMetadata();
   const loadFunctionModels = useModelStore((state) => state.loadFunctionModels);
   const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
   const loadHuggingFaceModels = useModelStore(
@@ -59,9 +61,12 @@ export default function ModelProperty(props: PropertyProps) {
       }
       if (modelType.startsWith("hf.")) {
         const models = await loadHuggingFaceModels();
-        return models
-          .filter((model) => model.model_type === modelType)
-          .map((model) => model.repo_id);
+        return metadata?.recommendedModels
+          .filter((model) => model.type === modelType)
+          .map((model) => model.repo_id)
+          .filter((repo_id) =>
+            models.some((model) => model.repo_id === repo_id)
+          );
       }
       if (modelType === "comfy.model") {
         const models = await loadModelFiles(comfyModelToFolder(modelType));

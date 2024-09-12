@@ -1,7 +1,19 @@
 from enum import Enum
 from typing import Any
 from pydantic import Field
-from nodetool.metadata.types import ColumnDef, DataframeRef
+from nodetool.metadata.types import (
+    ColumnDef,
+    DataframeRef,
+    HFQuestionAnswering,
+    HFTextClassification,
+    HFTextGeneration,
+    HFFillMask,
+    HFTableQuestionAnswering,
+    HFText2TextGeneration,
+    HFTokenClassification,
+    HFTranslation,
+    HFZeroShotClassification,
+)
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
 
@@ -18,18 +30,12 @@ class TextGeneration(HuggingFacePipelineNode):
     - Code generation and completion
     """
 
-    class TextGenerationModelId(str, Enum):
-        GPT2 = "openai-community/gpt2"
-        DISTILGPT2 = "distilbert/distilgpt2"
-        QWEN2_0_5 = "Qwen/Qwen2-0.5B-Instruct"
-        STARCODER = "bigcode/starcoder"
-
-    model: TextGenerationModelId = Field(
-        default=TextGenerationModelId.GPT2,
+    model: HFTextGeneration = Field(
+        default=HFTextGeneration(),
         title="Model ID on Huggingface",
         description="The model ID to use for the text generation",
     )
-    inputs: str = Field(
+    prompt: str = Field(
         default="",
         title="Prompt",
         description="The input text prompt for generation",
@@ -59,102 +65,89 @@ class TextGeneration(HuggingFacePipelineNode):
         description="Whether to use sampling or greedy decoding",
     )
 
-    def get_model_id(self):
-        return self.model.value
+    @classmethod
+    def get_recommended_models(cls) -> list[str]:
+        return [
+            HFTextGeneration(
+                repo_id="gpt2", allow_patterns=["*.json", "*.txt", "*.safetensors"]
+            ),
+            HFTextGeneration(
+                repo_id="distilgpt2",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFTextGeneration(
+                repo_id="Qwen/Qwen2-0.5B-Instruct",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFTextGeneration(
+                repo_id="bigcode/starcoder",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+        ]
 
-    @property
-    def pipeline_task(self) -> str:
-        return "text-generation"
-
-    def get_params(self):
-        return {
-            "max_new_tokens": self.max_new_tokens,
-            "temperature": self.temperature,
-            "top_p": self.top_p,
-            "do_sample": self.do_sample,
-        }
-
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
-        return result[0]["generated_text"]
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
-        return result[0]["generated_text"]
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, self.pipeline_task, self.model.repo_id
+        )
 
     async def process(self, context: ProcessingContext) -> str:
-        return await super().process(context)
+        result = self._pipeline(
+            self.prompt,
+            max_new_tokens=self.max_new_tokens,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            do_sample=self.do_sample,
+        )
+        return result[0]["generated_text"]
 
 
 class TextClassifier(HuggingFacePipelineNode):
-    class TextClassifierModelId(str, Enum):
-        CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST = (
-            "cardiffnlp/twitter-roberta-base-sentiment-latest"
-        )
-        J_HARTMANN_EMOTION_ENGLISH_DISTILROBERTA_BASE = (
-            "j-hartmann/emotion-english-distilroberta-base"
-        )
-        SAMLOWE_ROBERTA_BASE_GO_EMOTIONS = "SamLowe/roberta-base-go_emotions"
-        PROSUSAI_FINBERT = "ProsusAI/finbert"
-        DISTILBERT_BASE_UNCASED_FINETUNED_SST_2_ENGLISH = (
-            "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
-        )
-
-    model: TextClassifierModelId = Field(
-        default=TextClassifierModelId.CARDIFFNLP_TWITTER_ROBERTA_BASE_SENTIMENT_LATEST,
+    model: str = Field(
+        default="cardiffnlp/twitter-roberta-base-sentiment-latest",
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
-    inputs: str = Field(
+    prompt: str = Field(
         default="",
         title="Inputs",
         description="The input text to the model",
     )
 
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
+    @classmethod
+    def get_recommended_models(cls) -> list[str]:
+        return [
+            HFTextClassification(
+                repo_id=model, allow_patterns=["*.json", "*.txt", "*.safetensors"]
+            )
+            for model in [
+                "cardiffnlp/twitter-roberta-base-sentiment-latest",
+                "j-hartmann/emotion-english-distilroberta-base",
+                "SamLowe/roberta-base-go_emotions",
+                "ProsusAI/finbert",
+                "distilbert/distilbert-base-uncased-finetuned-sst-2-english",
+            ]
+        ]
 
-    def get_model_id(self):
-        return self.model.value
-
-    @property
-    def pipeline_task(self) -> str:
-        return "text-classification"
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return result[0]
-
-    async def process_local_result(
-        self, contex: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return {i["label"]: i["score"] for i in list(result)}
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "text-classification", self.model.repo_id
+        )
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        return await super().process(context)
+        result = self._pipeline(self.prompt)
+        return {i["label"]: i["score"] for i in list(result)}
 
 
 class Summarize(HuggingFacePipelineNode):
-    class SummarizeModelId(str, Enum):
-        FALCONSAI_TEXT_SUMMARIZATION = "Falconsai/text_summarization"
-        FALCONSAI_MEDICAL_SUMMARIZATION = "Falconsai/medical_summarization"
-        IMVLADIKON_HET5_SUMMARIZATION = "imvladikon/het5_summarization"
-
-    model: SummarizeModelId = Field(
-        default=SummarizeModelId.FALCONSAI_TEXT_SUMMARIZATION,
+    model: HFTextGeneration = Field(
+        default=HFTextGeneration(),
         title="Model ID on Huggingface",
-        description="The model ID to use for the summarization",
+        description="The model ID to use for the text generation",
     )
-    inputs: str = Field(
+    prompt: str = Field(
         default="",
-        title="Inputs",
-        description="The input text to the model",
+        title="Prompt",
+        description="The input text prompt for generation",
     )
     max_length: int = Field(
         default=100,
@@ -167,34 +160,38 @@ class Summarize(HuggingFacePipelineNode):
         description="Whether to sample from the model",
     )
 
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
+    @classmethod
+    def get_recommended_models(cls) -> list[str]:
+        return [
+            HFTextGeneration(
+                repo_id="Falconsai/text_summarization",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFTextGeneration(
+                repo_id="Falconsai/medical_summarization",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFTextGeneration(
+                repo_id="imvladikon/het5_summarization",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+        ]
 
-    def get_model_id(self):
-        return self.model.value
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "summarization", self.model.repo_id
+        )
 
-    @property
-    def pipeline_task(self) -> str:
-        return "summarization"
-
-    def get_params(self):
-        return {
+    async def process(self, context: ProcessingContext) -> str:
+        inputs = self.inputs
+        model_id = self.model.repo_id
+        params = {
             "max_length": self.max_length,
             "do_sample": self.do_sample,
         }
 
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
+        result = self._pipeline(inputs, **params)
         return result[0]["summary_text"]
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
-        return result[0]["summary_text"]
-
-    async def process(self, context: ProcessingContext) -> str:
-        return await super().process(context)
 
 
 class QuestionAnswering(HuggingFacePipelineNode):
@@ -209,18 +206,8 @@ class QuestionAnswering(HuggingFacePipelineNode):
     - Enhancing search functionality
     """
 
-    class QuestionAnsweringModelId(str, Enum):
-        DISTILBERT_BASE_CASED_DISTILLED_SQUAD = "distilbert-base-cased-distilled-squad"
-        BERT_LARGE_UNCASED_WHOLE_WORD_MASKING_FINETUNED_SQUAD = (
-            "bert-large-uncased-whole-word-masking-finetuned-squad"
-        )
-        DEEPSET_ROBERTA_BASE_SQUAD2 = "deepset/roberta-base-squad2"
-        DISTILBERT_BASE_UNCASED_DISTILLED_SQUAD = (
-            "distilbert-base-uncased-distilled-squad"
-        )
-
-    model: QuestionAnsweringModelId = Field(
-        default=QuestionAnsweringModelId.DISTILBERT_BASE_CASED_DISTILLED_SQUAD,
+    model: HFQuestionAnswering = Field(
+        default=HFQuestionAnswering(),
         title="Model ID on Huggingface",
         description="The model ID to use for question answering",
     )
@@ -235,36 +222,45 @@ class QuestionAnswering(HuggingFacePipelineNode):
         description="The question to be answered based on the context",
     )
 
-    def get_model_id(self):
-        return self.model.value
+    @classmethod
+    def get_recommended_models(cls) -> list[HFQuestionAnswering]:
+        return [
+            HFQuestionAnswering(
+                repo_id="distilbert-base-cased-distilled-squad",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFQuestionAnswering(
+                repo_id="bert-large-uncased-whole-word-masking-finetuned-squad",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFQuestionAnswering(
+                repo_id="deepset/roberta-base-squad2",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFQuestionAnswering(
+                repo_id="distilbert-base-uncased-distilled-squad",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+        ]
 
-    async def get_inputs(self, context: ProcessingContext):
-        return {
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "question-answering", self.model.repo_id
+        )
+
+    async def process(self, context: ProcessingContext) -> dict[str, Any]:
+        inputs = {
             "question": self.question,
             "context": self.context,
         }
 
-    @property
-    def pipeline_task(self) -> str:
-        return "question-answering"
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, Any]:
-        return await self.process_local_result(context, result)
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, Any]:
+        result = self._pipeline(inputs)
         return {
             "answer": result["answer"],
             "score": result["score"],
             "start": result["start"],
             "end": result["end"],
         }
-
-    async def process(self, context: ProcessingContext) -> dict[str, Any]:
-        return await super().process(context)
 
 
 class FillMask(HuggingFacePipelineNode):
@@ -279,15 +275,9 @@ class FillMask(HuggingFacePipelineNode):
     - Generating text options
     """
 
-    class FillMaskModelId(str, Enum):
-        BERT_BASE_UNCASED = "bert-base-uncased"
-        ROBERTA_BASE = "roberta-base"
-        DISTILBERT_BASE_UNCASED = "distilbert-base-uncased"
-        ALBERT_BASE_V2 = "albert-base-v2"
-
-    model: FillMaskModelId = Field(
-        default=FillMaskModelId.BERT_BASE_UNCASED,
-        title="Model ID on Huggingface",
+    model: HFFillMask = Field(
+        default=HFFillMask(),
+        title="Model ID",
         description="The model ID to use for fill-mask task",
     )
     inputs: str = Field(
@@ -301,38 +291,43 @@ class FillMask(HuggingFacePipelineNode):
         description="Number of top predictions to return",
     )
 
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
+    @classmethod
+    def get_recommended_models(cls) -> list[HFFillMask]:
+        return [
+            HFFillMask(
+                repo_id="bert-base-uncased",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFFillMask(
+                repo_id="roberta-base",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFFillMask(
+                repo_id="distilbert-base-uncased",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFFillMask(
+                repo_id="albert-base-v2",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+        ]
 
-    def get_model_id(self):
-        return self.model.value
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "fill-mask", self.model.repo_id
+        )
 
-    @property
-    def pipeline_task(self) -> str:
-        return "fill-mask"
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)
 
-    def get_params(self):
-        return {
-            "top_k": self.top_k,
-        }
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> DataframeRef:
-        return await self.process_local_result(context, result)
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> DataframeRef:
+    async def process(self, context: ProcessingContext) -> dict[str, Any]:
+        result = self._pipeline(self.inputs, top_k=self.top_k)
         data = [[item["token_str"], item["score"]] for item in result]
         columns = [
             ColumnDef(name="token", data_type="string"),
             ColumnDef(name="score", data_type="float"),
         ]
         return DataframeRef(columns=columns, data=data)
-
-    async def process(self, context: ProcessingContext) -> list[dict[str, Any]]:
-        return await super().process(context)
 
 
 class TableQuestionAnswering(HuggingFacePipelineNode):
@@ -347,15 +342,25 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
     - Automated data exploration
     """
 
-    class TableQuestionAnsweringModelId(str, Enum):
-        GOOGLE_TAPAS_BASE_FINETUNED_WTQ = "google/tapas-base-finetuned-wtq"
-        MICROSOFT_TAPEX_LARGE_FINETUNED_TABFACT = (
-            "microsoft/tapex-large-finetuned-tabfact"
-        )
-        GOOGLE_TAPAS_LARGE_FINETUNED_SQA = "google/tapas-large-finetuned-sqa"
+    @classmethod
+    def get_recommended_models(cls) -> list[HFTableQuestionAnswering]:
+        return [
+            HFTableQuestionAnswering(
+                repo_id="google/tapas-base-finetuned-wtq",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFTableQuestionAnswering(
+                repo_id="microsoft/tapex-large-finetuned-tabfact",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFTableQuestionAnswering(
+                repo_id="google/tapas-large-finetuned-squad",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+        ]
 
-    model: TableQuestionAnsweringModelId = Field(
-        default=TableQuestionAnsweringModelId.GOOGLE_TAPAS_BASE_FINETUNED_WTQ,
+    model: HFTableQuestionAnswering = Field(
+        default=HFTableQuestionAnswering(),
         title="Model ID on Huggingface",
         description="The model ID to use for table question answering",
     )
@@ -370,37 +375,35 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
         description="The question to be answered based on the table",
     )
 
-    def get_model_id(self):
-        return self.model.value
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "table-question-answering", self.model.repo_id
+        )
 
-    async def get_inputs(self, context: ProcessingContext):
-        table = await context.dataframe_to_pandas(self.inputs)
+    @classmethod
+    def get_return_type(cls):
         return {
+            "answer": str,
+            "coordinates": list[tuple[int, int]],
+            "cells": list[str],
+            "aggregator": str,
+        }
+
+    async def process(self, context: ProcessingContext):
+        table = await context.dataframe_to_pandas(self.inputs)
+        inputs = {
             "table": table,
             "query": self.question,
         }
 
-    @property
-    def pipeline_task(self) -> str:
-        return "table-question-answering"
+        result = self.pipeline(inputs)
 
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, Any]:
-        return await self.process_local_result(context, result)
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, Any]:
         return {
             "answer": result["answer"],
             "coordinates": result.get("coordinates"),
             "cells": result.get("cells"),
             "aggregator": result.get("aggregator"),
         }
-
-    async def process(self, context: ProcessingContext) -> dict[str, Any]:
-        return await super().process(context)
 
 
 class TextToText(HuggingFacePipelineNode):
@@ -415,15 +418,25 @@ class TextToText(HuggingFacePipelineNode):
     - Text style transfer
     """
 
-    class TextToTextModelId(str, Enum):
-        GOOGLE_FLAN_T5_SMALL = "google/flan-t5-small"
-        GOOGLE_FLAN_T5_BASE = "google/flan-t5-base"
-        GOOGLE_FLAN_T5_LARGE = "google/flan-t5-large"
-        COEDIT_LARGE = "grammarly/coedit-large"
-        AYA_101 = "CohereForAI/aya-101"
+    @classmethod
+    def get_recommended_models(cls) -> list[HFText2TextGeneration]:
+        return [
+            HFText2TextGeneration(
+                repo_id="google/flan-t5-small",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFText2TextGeneration(
+                repo_id="google/flan-t5-base",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFText2TextGeneration(
+                repo_id="google/flan-t5-large",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+        ]
 
-    model: TextToTextModelId = Field(
-        default=TextToTextModelId.GOOGLE_FLAN_T5_SMALL,
+    model: HFText2TextGeneration = Field(
+        default=HFText2TextGeneration(),
         title="Model ID on Huggingface",
         description="The model ID to use for the text-to-text generation",
     )
@@ -448,34 +461,19 @@ class TextToText(HuggingFacePipelineNode):
         description="The number of alternative sequences to generate",
     )
 
-    def get_model_id(self):
-        return self.model.value
-
-    @property
-    def pipeline_task(self) -> str:
-        return "text2text-generation"
-
-    def get_params(self):
-        return {
-            "max_length": self.max_length,
-            "num_return_sequences": self.num_return_sequences,
-        }
-
-    async def get_inputs(self, context: ProcessingContext):
-        return f"{self.prefix} {self.inputs}".strip()
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> list[str]:
-        return [item["generated_text"] for item in result]
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> list[str]:
-        return [item["generated_text"] for item in result]
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "text2text-generation", self.model.repo_id
+        )
 
     async def process(self, context: ProcessingContext) -> list[str]:
-        return await super().process(context)
+        inputs = f"{self.prefix} {self.inputs}".strip()
+        result = self._pipeline(
+            inputs,
+            max_length=self.max_length,
+            num_return_sequences=self.num_return_sequences,
+        )
+        return [item["generated_text"] for item in result]
 
 
 class TokenClassification(HuggingFacePipelineNode):
@@ -490,22 +488,14 @@ class TokenClassification(HuggingFacePipelineNode):
     - Information extraction from unstructured text
     """
 
-    class TokenClassificationModelId(str, Enum):
-        DBMDZ_BERT_LARGE_CASED_FINETUNED_CONLL03_ENGLISH = (
-            "dbmdz/bert-large-cased-finetuned-conll03-english"
-        )
-        DSLIM_BERT_BASE_NER = "dslim/bert-base-NER"
-        JEAN_BAPTISTE_CAMEMBERT_NER = "Jean-Baptiste/camembert-ner"
-        FLAIR_POS_ENGLISH = "flair/pos-english"
-
     class AggregationStrategy(str, Enum):
         SIMPLE = "simple"
         FIRST = "first"
         AVERAGE = "average"
         MAX = "max"
 
-    model: TokenClassificationModelId = Field(
-        default=TokenClassificationModelId.DSLIM_BERT_BASE_NER,
+    model: HFTokenClassification = Field(
+        default=HFTokenClassification(),
         title="Model ID on Huggingface",
         description="The model ID to use for token classification",
     )
@@ -520,29 +510,15 @@ class TokenClassification(HuggingFacePipelineNode):
         description="Strategy to aggregate tokens into entities",
     )
 
-    def get_model_id(self):
-        return self.model.value
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "token-classification", self.model.repo_id
+        )
 
-    @property
-    def pipeline_task(self) -> str:
-        return "token-classification"
-
-    def get_params(self):
-        return {
-            "aggregation_strategy": self.aggregation_strategy.value,
-        }
-
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> DataframeRef:
-        return await self.process_local_result(context, result)
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> DataframeRef:
+    async def process(self, context: ProcessingContext) -> DataframeRef:
+        result = self._pipeline(
+            self.inputs, aggregation_strategy=self.aggregation_strategy.value
+        )
         data = [
             [
                 item["entity_group"],
@@ -561,9 +537,6 @@ class TokenClassification(HuggingFacePipelineNode):
             ColumnDef(name="score", data_type="float"),
         ]
         return DataframeRef(columns=columns, data=data)
-
-    async def process(self, context: ProcessingContext) -> DataframeRef:
-        return await super().process(context)
 
 
 class Translation(HuggingFacePipelineNode):
@@ -615,6 +588,11 @@ class Translation(HuggingFacePipelineNode):
         KOERAN = "ko"
         JAPANESE = "ja"
 
+    model: HFTranslation = Field(
+        default=HFTranslation(),
+        title="Model ID on Huggingface",
+        description="The model ID to use for translation",
+    )
     inputs: str = Field(
         default="",
         title="Input Text",
@@ -631,36 +609,36 @@ class Translation(HuggingFacePipelineNode):
         description="The target language code (e.g., 'fr' for French)",
     )
 
-    async def initialize(self, context: Any):
-        from transformers import pipeline
+    @classmethod
+    def get_recommended_models(cls) -> list[HFTranslation]:
+        return [
+            HFTranslation(
+                repo_id="google-t5/t5-base",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFTranslation(
+                repo_id="google-t5/t5-large",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFTranslation(
+                repo_id="google-t5/t5-small",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+        ]
 
-        self._pipeline = pipeline(self.pipeline_task, device=context.device)
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = self.load_pipeline(
+            context, self.pipeline_task, self.model.repo_id
+        )
 
     @property
     def pipeline_task(self) -> str:
         return f"translation_{self.source_lang}_to_{self.target_lang}"
 
-    def get_params(self):
-        return {
-            "src_lang": self.source_lang,
-            "tgt_lang": self.target_lang,
-        }
-
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
-        return result[0]["translation_text"]
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
-        return result[0]["translation_text"]
-
     async def process(self, context: ProcessingContext) -> str:
-        return await super().process(context)
+        self._pipeline(
+            self.inputs, src_lang=self.source_lang, tgt_lang=self.target_lang
+        )
 
 
 class ZeroShotTextClassifier(HuggingFacePipelineNode):
@@ -675,14 +653,29 @@ class ZeroShotTextClassifier(HuggingFacePipelineNode):
     - Intent classification in conversational AI
     """
 
-    class ZeroShotTextClassifierModelId(str, Enum):
-        FACEBOOK_BART_LARGE_MNLI = "facebook/bart-large-mnli"
-        CROSS_ENCODER_NLI_DEBERTA_V3_BASE = "cross-encoder/nli-deberta-v3-base"
-        MICROSOFT_DEBERTA_V2_XLARGE_MNLI = "microsoft/deberta-v2-xlarge-mnli"
-        ROBERTA_LARGE_MNLI = "roberta-large-mnli"
+    @classmethod
+    def get_recommended_models(cls) -> list[HFZeroShotClassification]:
+        return [
+            HFZeroShotClassification(
+                repo_id="facebook/bart-large-mnli",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFZeroShotClassification(
+                repo_id="cross-encoder/nli-deberta-v3-base",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFZeroShotClassification(
+                repo_id="microsoft/deberta-v2-xlarge-mnli",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFZeroShotClassification(
+                repo_id="roberta-large-mnli",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+        ]
 
-    model: ZeroShotTextClassifierModelId = Field(
-        default=ZeroShotTextClassifierModelId.FACEBOOK_BART_LARGE_MNLI,
+    model: HFZeroShotClassification = Field(
+        default=HFZeroShotClassification(),
         title="Model ID on Huggingface",
         description="The model ID to use for zero-shot classification",
     )
@@ -702,31 +695,18 @@ class ZeroShotTextClassifier(HuggingFacePipelineNode):
         description="Whether to perform multi-label classification",
     )
 
-    def get_model_id(self):
-        return self.model.value
-
-    @property
-    def pipeline_task(self) -> str:
-        return "zero-shot-classification"
-
-    def get_params(self):
-        return {
-            "candidate_labels": self.candidate_labels.split(","),
-            "multi_label": self.multi_label,
-        }
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context, "zero-shot-classification", self.model.repo_id
+        )
 
     async def get_inputs(self, context: ProcessingContext):
         return self.inputs
 
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return dict(zip(result["labels"], result["scores"]))
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> dict[str, float]:
-        return dict(zip(result["labels"], result["scores"]))
-
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        return await super().process(context)
+        result = self._pipeline(
+            self.inputs,
+            candidate_labels=self.candidate_labels.split(","),
+            multi_label=self.multi_label,
+        )
+        return dict(zip(result["labels"], result["scores"]))
