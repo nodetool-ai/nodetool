@@ -61,12 +61,13 @@ export default function ModelProperty(props: PropertyProps) {
       }
       if (modelType.startsWith("hf.")) {
         const models = await loadHuggingFaceModels();
-        return metadata?.recommendedModels
+        const repos = metadata?.recommendedModels
           .filter((model) => model.type === modelType)
           .map((model) => model.repo_id)
           .filter((repo_id) =>
             models.some((model) => model.repo_id === repo_id)
           );
+        return [...new Set(repos)];
       }
       if (modelType === "comfy.model") {
         const models = await loadModelFiles(comfyModelToFolder(modelType));
