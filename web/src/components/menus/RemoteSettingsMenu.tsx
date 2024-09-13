@@ -18,9 +18,8 @@ const styles = (theme: any) =>
       marginBottom: "1em"
     },
     ".description a": {
-      display: "block",
       color: theme.palette.c_hl1,
-      textDecoration: "none"
+      marginLeft: ".5em"
     },
     ".description a:hover": {
       color: theme.palette.c_gray6
@@ -84,16 +83,16 @@ const RemoteSettings = () => {
 
   return (
     <>
-      {isLoading && <Typography>Loading External Services...</Typography>}
+      {isLoading && <Typography>Loading API providers...</Typography>}
       {isSuccess ? (
         <div className="remote-settings" css={styles}>
-          <Typography variant="h3">External Services</Typography>
+          <Typography variant="h3">API Providers</Typography>
 
           <div className="settings-item">
             <TextField
               type="password"
               id="replicate-api-token-input"
-              label="Replicate API Token"
+              label="Enter your Replicate API token"
               value={
                 replicateApiToken.slice(0, 5) +
                 "*".repeat(Math.max(0, replicateApiToken.length - 5))
@@ -109,24 +108,25 @@ const RemoteSettings = () => {
             />
             <div className="text-and-button">
               <Typography className="description">
-                Get your Replicate API token
-              </Typography>
-              <Button size="small">
+                Replicate provides access to a diverse range of AI models and
+                capabilities. By configuring your Replicate API token,
+                you&apos;ll gain access to advanced models like flux.dev and
+                flux.pro.
                 <a
                   href="https://replicate.com/account/api-tokens"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Replicate Settings
+                  &rarr; Replicate Settings
                 </a>
-              </Button>
+              </Typography>
             </div>
           </div>
 
           <div className="settings-item">
             <TextField
               id="openai-api-key-input"
-              label="OpenAI API Key"
+              label="Enter your OpenAI API key"
               value={
                 openaiApiKey.slice(0, 5) +
                 "*".repeat(Math.max(0, openaiApiKey.length - 5))
@@ -139,24 +139,23 @@ const RemoteSettings = () => {
             />
             <div className="text-and-button">
               <Typography className="description">
-                Get your OpenAI API key
-              </Typography>
-              <Button size="small">
+                Setting up an OpenAI API key enables you to use models like GPT,
+                Whisper, DALL-E, and more.
                 <a
                   href="https://platform.openai.com/account/api-keys"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  OpenAI Settings
+                  &rarr; OpenAI Settings
                 </a>
-              </Button>
+              </Typography>
             </div>
           </div>
 
           <div className="settings-item">
             <TextField
               id="anthropic-api-key-input"
-              label="Anthropic API Key"
+              label="Enter your Anthropic API key"
               value={
                 anthropicApiKey.slice(0, 5) +
                 "*".repeat(Math.max(0, anthropicApiKey.length - 5))
@@ -170,24 +169,23 @@ const RemoteSettings = () => {
 
             <div className="text-and-button">
               <Typography className="description">
-                Get your Anthropic API key
-              </Typography>
-              <Button size="small">
+                By entering your Anthropic API token, you&apos;ll be able to use
+                sophisticated models like Claude 3.5 Sonnet.
                 <a
                   href="https://console.anthropic.com/account/keys"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Anthropic Settings
+                  &rarr; Anthropic Settings
                 </a>
-              </Button>
+              </Typography>
             </div>
           </div>
 
           <div className="settings-item">
             <TextField
               id="hf-token-input"
-              label="HuggingFace Token"
+              label="Enter your HuggingFace token"
               value={
                 hfToken.slice(0, 5) +
                 "*".repeat(Math.max(0, hfToken.length - 5))
@@ -198,17 +196,16 @@ const RemoteSettings = () => {
             />
             <div className="text-and-button">
               <Typography className="description">
-                Get your HuggingFace Access Token
-              </Typography>
-              <Button size="small">
+                You need a HuggingFace Access Token to use the models in the
+                HuggingFace Hub that are not openly available.
                 <a
                   href="https://huggingface.co/settings/tokens"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  HuggingFace Settings
+                  &rarr; HuggingFace Settings
                 </a>
-              </Button>
+              </Typography>
             </div>
           </div>
 
@@ -224,7 +221,8 @@ const RemoteSettings = () => {
               variant="standard"
             />
             <Typography className="description">
-              Path to your ComfyUI installation folder.
+              To use ComfyUI node, you need to set the path to your ComfyUI
+              installation folder.
             </Typography>
           </div>
 

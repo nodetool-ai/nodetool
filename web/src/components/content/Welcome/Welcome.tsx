@@ -117,6 +117,9 @@ const welcomeStyles = (theme: any) =>
     ".MuiTypography-root": {
       fontFamily: theme.fontFamily
     },
+    ".MuiListItemText-primary": {
+      fontWeight: "bold"
+    },
     "ul, ol": {
       fontFamily: theme.fontFamily1,
       paddingLeft: "0"
@@ -503,29 +506,6 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     Choose the option that best suits your needs and project
                     requirements.
                   </Typography>
-                </List>
-                <Typography variant="h6" gutterBottom>
-                  Available API Integrations
-                </Typography>
-                <List>
-                  <ListItem>
-                    <ListItemText
-                      primary="Replicate"
-                      secondary="Replicate provides access to a diverse range of AI models and capabilities. By configuring your Replicate API token, you'll gain access to advanced models like flux.dev and flux.pro."
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="OpenAI"
-                      secondary="Setting up an OpenAI API key enables you to use models like GPT, Whisper, DALL-E, and more."
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Anthropic"
-                      secondary="By entering your Anthropic API token, you'll be able to use sophisticated models like Claude 3.5 Sonnet."
-                    />
-                  </ListItem>
                 </List>
               </Typography>
               <Typography variant="body1" gutterBottom>
