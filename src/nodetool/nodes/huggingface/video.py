@@ -4,16 +4,22 @@ from pydantic import Field
 from nodetool.providers.huggingface.huggingface_node import progress_callback
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import ImageRef, VideoRef
+from nodetool.metadata.types import (
+    HFStableDiffusion,
+    HuggingFaceModel,
+    HFTextToVideo,
+    ImageRef,
+    VideoRef,
+)
 import torch
 from diffusers import AnimateDiffPipeline, DDIMScheduler, MotionAdapter  # type: ignore
 from diffusers import StableVideoDiffusionPipeline  # type: ignore
 from diffusers.utils import export_to_video  # type: ignore
-
+from .huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.types import NodeProgress  # type: ignore
 
 
-class AnimateDiffNode(BaseNode):
+class AnimateDiffNode(HuggingFacePipelineNode):
     """
     Generates animated GIFs using the AnimateDiff pipeline.
     image, animation, generation, AI
@@ -23,6 +29,11 @@ class AnimateDiffNode(BaseNode):
     - Generate dynamic visual effects for creative projects
     - Produce animated illustrations for digital media
     """
+
+    model: HFStableDiffusion = Field(
+        default=HFStableDiffusion(),
+        description="The model to use for image generation.",
+    )
 
     prompt: str = Field(
         default="masterpiece, bestquality, highlydetailed, ultradetailed, sunset, "
@@ -50,16 +61,84 @@ class AnimateDiffNode(BaseNode):
 
     _pipeline: AnimateDiffPipeline | None = None
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToVideo(
+                repo_id="guoyww/animatediff-motion-adapter-v1-5-2",
+                allow_patterns=["*.fp16.safetensors", "*.json", "*.txt"],
+            ),
+            HFStableDiffusion(
+                repo_id="Lykon/dreamshaper-8",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/Deliberate2",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="imagepipeline/epiC-PhotoGasm",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="526christian/526mix-v1.5",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="stablediffusionapi/realistic-vision-v51",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="stablediffusionapi/anything-v5",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+        ]
+
     async def initialize(self, context: ProcessingContext):
-        adapter = MotionAdapter.from_pretrained(
-            "guoyww/animatediff-motion-adapter-v1-5-2", torch_dtype=torch.float16
+        adapter = await self.load_model(
+            context=context,
+            model_class=MotionAdapter,
+            model_id="guoyww/animatediff-motion-adapter-v1-5-2",
         )
-        model_id = "SG161222/Realistic_Vision_V5.1_noVAE"
-        self._pipeline = AnimateDiffPipeline.from_pretrained(
-            model_id, motion_adapter=adapter, torch_dtype=torch.float16
-        )  # type: ignore
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=AnimateDiffPipeline,
+            model_id=self.model.repo_id,
+            motion_adapter=adapter,
+        )
+
         scheduler = DDIMScheduler.from_pretrained(
-            model_id,
+            self.model.repo_id,
             subfolder="scheduler",
             clip_sample=False,
             timestep_spacing="linspace",
@@ -79,7 +158,9 @@ class AnimateDiffNode(BaseNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        generator = torch.Generator("cpu").manual_seed(self.seed)
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
 
         output = self._pipeline(
             prompt=self.prompt,
@@ -97,7 +178,7 @@ class AnimateDiffNode(BaseNode):
         return await context.video_from_numpy(frames)  # type: ignore
 
 
-class StableVideoDiffusion(BaseNode):
+class StableVideoDiffusion(HuggingFacePipelineNode):
     """
     Generates a video from a single image using the Stable Video Diffusion model.
     video, generation, AI, image-to-video, stable-diffusion
@@ -133,12 +214,26 @@ class StableVideoDiffusion(BaseNode):
 
     _pipeline: StableVideoDiffusionPipeline | None = None
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFStableDiffusion(
+                repo_id="stabilityai/stable-video-diffusion-img2vid-xt",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+        ]
+
     async def initialize(self, context: ProcessingContext):
-        self._pipeline = StableVideoDiffusionPipeline.from_pretrained(
-            "stabilityai/stable-video-diffusion-img2vid-xt",
-            torch_dtype=torch.float16,
-            variant="fp16",
-        )  # type: ignore
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableVideoDiffusionPipeline,
+            model_id="stabilityai/stable-video-diffusion-img2vid-xt",
+        )
         self._pipeline.enable_model_cpu_offload()  # type: ignore
 
     async def process(self, context: ProcessingContext) -> VideoRef:
@@ -149,8 +244,9 @@ class StableVideoDiffusion(BaseNode):
         input_image = await context.image_to_pil(self.input_image)
         input_image = input_image.resize((1024, 576))
 
-        # Set up the generator for reproducibility
-        generator = torch.manual_seed(self.seed)
+        generator = torch.Generator(device="cpu")
+        if self.seed != -1:
+            generator = generator.manual_seed(self.seed)
 
         def callback(pipe: StableVideoDiffusionPipeline, step: int, *args):
             context.post_message(

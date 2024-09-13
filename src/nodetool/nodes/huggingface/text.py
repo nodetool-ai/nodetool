@@ -87,8 +87,11 @@ class TextGeneration(HuggingFacePipelineNode):
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_pipeline(
-            context, self.pipeline_task, self.model.repo_id
+            context, "text-generation", self.model.repo_id
         )
+
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)
 
     async def process(self, context: ProcessingContext) -> str:
         result = self._pipeline(
@@ -102,8 +105,8 @@ class TextGeneration(HuggingFacePipelineNode):
 
 
 class TextClassifier(HuggingFacePipelineNode):
-    model: str = Field(
-        default="cardiffnlp/twitter-roberta-base-sentiment-latest",
+    model: HFTextClassification = Field(
+        default=HFTextClassification(),
         title="Model ID on Huggingface",
         description="The model ID to use for the classification",
     )
@@ -117,14 +120,11 @@ class TextClassifier(HuggingFacePipelineNode):
     def get_recommended_models(cls) -> list[str]:
         return [
             HFTextClassification(
-                repo_id=model, allow_patterns=["*.json", "*.txt", "*.safetensors"]
+                repo_id=model, allow_patterns=["*.json", "*.txt", "*.bin"]
             )
             for model in [
                 "cardiffnlp/twitter-roberta-base-sentiment-latest",
-                "j-hartmann/emotion-english-distilroberta-base",
-                "SamLowe/roberta-base-go_emotions",
-                "ProsusAI/finbert",
-                "distilbert/distilbert-base-uncased-finetuned-sst-2-english",
+                "michellejieli/emotion_text_classifier",
             ]
         ]
 
@@ -132,6 +132,9 @@ class TextClassifier(HuggingFacePipelineNode):
         self._pipeline = await self.load_pipeline(
             context, "text-classification", self.model.repo_id
         )
+
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         result = self._pipeline(self.prompt)
@@ -181,6 +184,9 @@ class Summarize(HuggingFacePipelineNode):
         self._pipeline = await self.load_pipeline(
             context, "summarization", self.model.repo_id
         )
+
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)
 
     async def process(self, context: ProcessingContext) -> str:
         inputs = self.inputs
@@ -247,6 +253,9 @@ class QuestionAnswering(HuggingFacePipelineNode):
         self._pipeline = await self.load_pipeline(
             context, "question-answering", self.model.repo_id
         )
+
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
         inputs = {
@@ -380,6 +389,9 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
             context, "table-question-answering", self.model.repo_id
         )
 
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)
+
     @classmethod
     def get_return_type(cls):
         return {
@@ -466,8 +478,11 @@ class TextToText(HuggingFacePipelineNode):
             context, "text2text-generation", self.model.repo_id
         )
 
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)
+
     async def process(self, context: ProcessingContext) -> list[str]:
-        inputs = f"{self.prefix} {self.inputs}".strip()
+        inputs = f"{self.prefix}: {self.inputs}".strip()
         result = self._pipeline(
             inputs,
             max_length=self.max_length,
@@ -700,8 +715,8 @@ class ZeroShotTextClassifier(HuggingFacePipelineNode):
             context, "zero-shot-classification", self.model.repo_id
         )
 
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         result = self._pipeline(

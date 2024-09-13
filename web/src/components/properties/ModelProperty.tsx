@@ -47,7 +47,7 @@ export default function ModelProperty(props: PropertyProps) {
     (state) => state.loadHuggingFaceModels
   );
   const modelType = props.property.type.type;
-  const { data, isError } = useQuery({
+  const { data, isError, isLoading } = useQuery({
     queryKey: ["models", modelType],
     queryFn: async () => {
       if (modelType === undefined) return [];
@@ -138,6 +138,7 @@ export default function ModelProperty(props: PropertyProps) {
         }}
       >
         {isError && <MenuItem value="">Error loading models</MenuItem>}
+        {isLoading && <MenuItem value="">Loading models...</MenuItem>}
         {modelType === undefined && (
           <MenuItem value="">No models available</MenuItem>
         )}

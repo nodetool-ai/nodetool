@@ -26,6 +26,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         pipeline_task: str,
         model_id: str,
         device: str | None = None,
+        **kwargs: Any,
     ) -> T:
         cached_model = ModelManager.get_model(model_id, pipeline_task)
         if cached_model:
@@ -42,6 +43,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             model=model_id,
             torch_dtype=self.get_torch_dtype(),
             device=device,
+            **kwargs,
         )
         ModelManager.set_model(model_id, pipeline_task, model)
         return model
@@ -52,8 +54,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         model_class: type[T],
         model_id: str,
         variant: str | None = "fp16",
-        local_files_only: bool = True,
-        device: str | None = None,
+        **kwargs: Any,
     ) -> T:
         cached_model = ModelManager.get_model(model_id, model_class.__name__)
         if cached_model:
@@ -66,8 +67,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             model_id,
             torch_dtype=self.get_torch_dtype(),
             variant=variant,
-            local_files_only=local_files_only,
-            device=device,
+            **kwargs,
         )
         ModelManager.set_model(model_id, model_class.__name__, model)
         return model

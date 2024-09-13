@@ -2362,6 +2362,96 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                     "*.json",
                 ],
             ),
+            HFStableDiffusion(
+                repo_id="Yntec/Deliberate2",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/epiCPhotoGasm",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/526Mix",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="stablediffusionapi/realistic-vision-v51",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/StaticMVintage",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/OpenGenDiffusers",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/darelitesFantasyMix",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/darelitesFantasyMix",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="stablediffusionapi/anything-v5",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/TwoAndAHalfDimensions",
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
+            ),
             HFIPAdapter(
                 repo_id="h94/IP-Adapter",
                 allow_patterns=[
@@ -2473,6 +2563,7 @@ class StableDiffusion(StableDiffusionBaseNode):
                 StableDiffusionPipeline,
                 self.model.repo_id,
                 device=context.device,
+                variant="fp16",
             )
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
@@ -2974,7 +3065,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         return await context.image_from_pil(image)
 
 
-class StableDiffusionUpscale(BaseNode):
+class StableDiffusionUpscale(HuggingFacePipelineNode):
     """
     Upscales an image using Stable Diffusion 4x upscaler.
     image, upscaling, AI, stable-diffusion
@@ -3044,12 +3135,10 @@ class StableDiffusionUpscale(BaseNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        self._pipeline = await self.load_pipeline(
-            context,
-            "stable-diffusion-upscale",
-            self.model.repo_id,
-            device=context.device,
-            torch_dtype=torch.float16,
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableDiffusionUpscalePipeline,
+            model_id="stabilityai/stable-diffusion-x4-upscaler",
             variant="fp16",
         )
         assert self._pipeline is not None

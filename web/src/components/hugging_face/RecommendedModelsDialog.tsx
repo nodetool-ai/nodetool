@@ -15,7 +15,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import ModelCard from "./ModelCard";
-import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 
@@ -47,11 +46,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   startDownload,
   openDialog
 }) => {
-  const {
-    data: hfModels,
-    isLoading: hfLoading,
-    error: hfError
-  } = useQuery({
+  const { data: hfModels } = useQuery({
     queryKey: ["huggingFaceModels"],
     queryFn: async () => {
       const { data, error } = await client.GET(
