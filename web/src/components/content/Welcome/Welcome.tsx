@@ -63,7 +63,7 @@ const welcomeStyles = (theme: any) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       overflowY: "hidden",
-      border: `2px solid ${theme.palette.c_gray0}`,
+      border: `2px solid ${theme.palette.c_gray4}`,
       display: "flex",
       flexDirection: "column"
     },

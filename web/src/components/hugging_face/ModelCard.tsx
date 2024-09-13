@@ -23,7 +23,6 @@ import DeleteButton from "../buttons/DeleteButton";
 import { useQuery } from "@tanstack/react-query";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import { isProduction } from "../../stores/ApiClient";
-import useModelStore from "../../stores/ModelStore";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 export async function fetchOllamaModelInfo(modelName: string) {
@@ -39,7 +38,6 @@ export async function fetchOllamaModelInfo(modelName: string) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const data = await response.json();
-  console.log("ollama response", data);
   return data;
 }
 
@@ -109,22 +107,15 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmall
     },
     ".tags-list": {
-      display: "none",
-      position: "absolute",
-      width: "100%",
-      height: "auto",
-      maxHeight: "115px",
+      display: "block",
+      maxHeight: "120px",
       paddingBottom: "1em",
-      top: "40px",
       left: "0",
       flexWrap: "wrap",
       gap: 2,
       zIndex: 100,
-      overflow: "hidden auto",
-      transition: "all 0.2s ease-out"
-    },
-    ".tags-list.expanded": {
-      display: "flex"
+      transition: "all 0.2s ease-out",
+      overflow: "hidden auto"
     },
     ".tag": {
       fontFamily: theme.fontFamily2,
@@ -148,7 +139,7 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmaller
     },
     ".text-model-size": {
-      margin: 0,
+      float: "right",
       padding: 0,
       color: theme.palette.c_warning
     },
@@ -348,13 +339,6 @@ const ModelCard: React.FC<ModelCardProps> = ({
               </Button>
             </Tooltip>
           )}
-          {model.size_on_disk && (
-            <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
-              <Typography variant="body2" className="text-model-size">
-                {modelSize(model)}
-              </Typography>
-            </Tooltip>
-          )}
         </CardActions>
       </Card>
     );
@@ -414,27 +398,30 @@ const ModelCard: React.FC<ModelCardProps> = ({
               </Typography>
             )}
             <Box>
-              <Typography
+              {/* <Typography
                 className="text-model-type"
                 variant="body2"
                 color="text.secondary"
               >
                 Base Model: {modelData.model_type}
-              </Typography>
+              </Typography> */}
 
-              <Box className="tags-container">
-                <Button
-                  className="pipeline-tag"
-                  onClick={toggleTags}
-                  endIcon={
-                    tagsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />
-                  }
+              {model.size_on_disk && (
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  title={"Size on disk"}
                 >
-                  {modelData.cardData?.pipeline_tag ||
-                    (tagsExpanded ? "Hide Tags" : "Show Tags")}
+                  <Typography variant="body2" className="text-model-size">
+                    {modelSize(model)}
+                  </Typography>
+                </Tooltip>
+              )}
+              <Box className="tags-container">
+                <Button className="pipeline-tag">
+                  {modelData.cardData?.pipeline_tag}
                 </Button>
 
-                <Box className={`tags-list ${tagsExpanded ? "expanded" : ""}`}>
+                <Box className="tags-list">
                   {(modelData.cardData?.tags || modelData.tags) && (
                     <Box mt={1}>
                       {(modelData.cardData?.tags || modelData.tags).map(
@@ -472,7 +459,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
         ></div>
       </CardContent>
       <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
-        {onDownload && !isOllama && !downloaded && (
+        {onDownload && !isOllama && (
           <Button
             className="download"
             size="small"
@@ -490,13 +477,6 @@ const ModelCard: React.FC<ModelCardProps> = ({
         {downloaded && (
           <Tooltip title="Model already downloaded">
             <CheckCircleIcon fontSize="small" sx={{ borderColor: "green" }} />
-          </Tooltip>
-        )}
-        {model.size_on_disk && (
-          <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
-            <Typography variant="body2" className="text-model-size">
-              {modelSize(model)}
-            </Typography>
           </Tooltip>
         )}
         {isHuggingFace && (

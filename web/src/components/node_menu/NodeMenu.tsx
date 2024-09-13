@@ -152,6 +152,7 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
       },
       ".draggable-header": {
         borderRadius: "8px 8px 0 0",
+        border: `1px solid ${theme.palette.c_gray4}`,
         backgroundColor: theme.palette.c_gray2,
         width: "100%",
         height: "30px",
@@ -163,6 +164,7 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
       },
       ".node-menu-container": {
         backgroundColor: theme.palette.c_gray1,
+        border: `1px solid ${theme.palette.c_gray4}`,
         borderRadius: "0 0 8px 8px",
         padding: ".5em 0px 1em .5em",
         width: "100%",
