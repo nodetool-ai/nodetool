@@ -9,8 +9,8 @@ import {
   Grid,
   Typography,
   List,
-  ListItem,
-  ListItemText
+  ListItemText,
+  ListItemButton
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
@@ -25,7 +25,6 @@ import {
 import axios from "axios";
 import { CachedModel, HuggingFaceModel } from "../../stores/ApiTypes";
 
-// Add this new type definition
 type OllamaModel = {
   name: string;
   modified_at: string;
@@ -38,6 +37,69 @@ type OllamaModel = {
     parameter_size: string;
     quantization_level: string;
   };
+};
+
+import ModelIcon from "../../icons/model.svg";
+
+const prettifyModelType = (type: string) => {
+  if (type === "All") return type;
+
+  if (type === "Ollama") {
+    return (
+      <>
+        <img
+          src="/ollama.png"
+          alt="Ollama"
+          style={{
+            width: "16px",
+            marginRight: "8px",
+            filter: "invert(1)"
+          }}
+        />
+        Ollama
+      </>
+    );
+  }
+
+  const parts = type.split(".");
+  if (parts[0] === "hf") {
+    parts.shift(); // Remove "hf"
+    return (
+      <>
+        <img
+          src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
+          alt="Hugging Face"
+          style={{ width: "20px", marginRight: "8px" }}
+        />
+        {parts
+          .map((part) =>
+            part
+              .split("_")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ")
+          )
+          .join(" ")}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <img
+        src={ModelIcon}
+        alt="Model"
+        style={{
+          width: "20px",
+          marginRight: "8px",
+          filter: "invert(1)"
+        }}
+      />
+      {type
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")}
+    </>
+  );
 };
 
 const groupModelsByType = (models: CachedModel[]) => {
@@ -134,10 +196,10 @@ const ModelList: React.FC = () => {
     () => groupModelsByType(hfModels || []),
     [hfModels]
   );
-  const modelTypes = useMemo(
-    () => ["All", ...Object.keys(groupedHFModels), "Ollama"],
-    [groupedHFModels]
-  );
+  const modelTypes = useMemo(() => {
+    const types = Object.keys(groupedHFModels);
+    return ["All", ...types.sort(), "Ollama"];
+  }, [groupedHFModels]);
 
   const handleModelTypeChange = useCallback((newValue: string) => {
     setSelectedModelType(newValue);
@@ -229,14 +291,13 @@ const ModelList: React.FC = () => {
       <Box className="sidebar">
         <List>
           {modelTypes.map((type) => (
-            <ListItem
-              button
+            <ListItemButton
               key={type}
               selected={selectedModelType === type}
               onClick={() => handleModelTypeChange(type)}
             >
-              <ListItemText primary={type} />
-            </ListItem>
+              <ListItemText primary={prettifyModelType(type)} />
+            </ListItemButton>
           ))}
         </List>
       </Box>
@@ -254,7 +315,7 @@ const ModelList: React.FC = () => {
 
         {Object.entries(filteredModels).map(([modelType, models]) => (
           <Box key={modelType} mt={2}>
-            <Typography variant="h2">{modelType}</Typography>
+            <Typography variant="h2">{prettifyModelType(modelType)}</Typography>
             <Grid container spacing={3}>
               {models.map((model: CachedModel | OllamaModel) => (
                 <Grid
@@ -292,7 +353,17 @@ const ModelList: React.FC = () => {
 
         {(selectedModelType === "Ollama" || selectedModelType === "All") && (
           <>
-            <Typography variant="h1" mt={4}>
+            <Typography
+              variant="h2"
+              mt={4}
+              sx={{ display: "flex", alignItems: "center" }}
+            >
+              <img
+                src="/ollama.png"
+                alt="Ollama"
+                width={16}
+                style={{ filter: "invert(1)", marginRight: "8px" }}
+              />
               Ollama Models
             </Typography>
             <Grid container spacing={3}>

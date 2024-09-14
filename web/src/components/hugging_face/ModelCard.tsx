@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -17,8 +17,6 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { fetchModelInfo } from "../../utils/huggingFaceUtils";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DeleteButton from "../buttons/DeleteButton";
 import { useQuery } from "@tanstack/react-query";
 import { UnifiedModel } from "../../stores/ApiTypes";

@@ -21,6 +21,7 @@ const styles = (theme: any) =>
       padding: "1em"
     },
     ".existing-models-section": {
+      width: "100%",
       display: "flex",
       flexDirection: "column",
       gap: "1em",
