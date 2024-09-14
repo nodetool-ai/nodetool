@@ -5,6 +5,7 @@ import { useAuth } from "./useAuth.js";
 export const isLocalhost =
   window.location.hostname.includes("dev.") ||
   window.location.hostname === "127.0.0.1" ||
+  window.location.hostname === "localhost" ||
   window.location.hostname === "192.168.50.225";
 
 export const useRemoteAuth = !isLocalhost;
@@ -23,7 +24,6 @@ export const WORKER_URL =
 export const DOWNLOAD_URL =
   BASE_URL.replace("http://", "ws://").replace("https://", "wss://") +
   "/hf/download";
-
 
 console.log("BASE_URL", BASE_URL);
 console.log("WORKER_URL", WORKER_URL);
