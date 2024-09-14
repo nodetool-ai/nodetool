@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import useModelStore from "./ModelStore";
-import axios, { CancelTokenSource } from 'axios';
+import axios, { CancelTokenSource } from "axios";
 import { DOWNLOAD_URL } from "./ApiClient";
 
 interface SpeedDataPoint {
@@ -10,14 +10,14 @@ interface SpeedDataPoint {
 
 interface Download {
   status:
-  | "pending"
-  | "idle"
-  | "running"
-  | "completed"
-  | "cancelled"
-  | "error"
-  | "start"
-  | "progress";
+    | "pending"
+    | "idle"
+    | "running"
+    | "completed"
+    | "cancelled"
+    | "error"
+    | "start"
+    | "progress";
   id: string;
   downloadedBytes: number;
   totalBytes: number;
@@ -41,7 +41,7 @@ interface ModelDownloadStore {
   startDownload: (
     id: string,
     modelType: string,
-    path: string | null,
+    path?: string | null,
     allowPatterns?: string[] | null,
     ignorePatterns?: string[] | null
   ) => void;
@@ -127,7 +127,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           id: id,
           speed: null,
           speedHistory: [],
-          ...additionalProps,
+          ...additionalProps
         } as Download
       }
     })),
@@ -139,8 +139,11 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
       const newSpeedHistory = [
         ...currentDownload.speedHistory,
-        { bytes: update.downloadedBytes || currentDownload.downloadedBytes, timestamp: Date.now() }
-      ].slice(-10);  // Keep only the last 10 data points
+        {
+          bytes: update.downloadedBytes || currentDownload.downloadedBytes,
+          timestamp: Date.now()
+        }
+      ].slice(-10); // Keep only the last 10 data points
 
       const newSpeed = calculateSpeed(newSpeedHistory);
 
@@ -166,7 +169,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   startDownload: async (
     id: string,
     modelType: string,
-    path: string | null,
+    path?: string | null,
     allowPatterns?: string[] | null,
     ignorePatterns?: string[] | null
   ) => {
@@ -175,7 +178,9 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         throw new Error("allowPatterns is not supported when path is provided");
       }
       if (ignorePatterns) {
-        throw new Error("ignorePatterns is not supported when path is provided");
+        throw new Error(
+          "ignorePatterns is not supported when path is provided"
+        );
       }
       allowPatterns = [path];
       ignorePatterns = [];
@@ -193,14 +198,14 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           ignore_patterns: ignorePatterns
         })
       );
-    } else if (modelType === 'llama_model') {
+    } else if (modelType === "llama_model") {
       try {
-        const response = await fetch('http://localhost:11434/api/pull', {
-          method: 'POST',
+        const response = await fetch("http://localhost:11434/api/pull", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json"
           },
-          body: JSON.stringify({ name: id }),
+          body: JSON.stringify({ name: id })
         });
 
         if (!response.ok) {
@@ -209,16 +214,19 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
-        let buffer = '';
+        let buffer = "";
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
-          const { done, value } = await reader?.read() || { done: true, value: undefined };
+          const { done, value } = (await reader?.read()) || {
+            done: true,
+            value: undefined
+          };
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
           let newlineIndex;
-          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
             const line = buffer.slice(0, newlineIndex);
             buffer = buffer.slice(newlineIndex + 1);
             const data = JSON.parse(line);
@@ -226,7 +234,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
               status: data.status === "success" ? "completed" : "running",
               message: data.status,
               downloadedBytes: data.completed || 0,
-              totalBytes: data.total || 0,
+              totalBytes: data.total || 0
             });
           }
         }
@@ -246,7 +254,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   cancelDownload: async (id) => {
     const download = get().downloads[id];
     if (download && download.cancelTokenSource) {
-      download.cancelTokenSource.cancel('Download cancelled by user');
+      download.cancelTokenSource.cancel("Download cancelled by user");
       get().updateDownload(id, { status: "cancelled" });
     } else {
       const ws = await get().connectWebSocket();
