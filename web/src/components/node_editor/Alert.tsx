@@ -128,6 +128,10 @@ const Alert: React.FC = () => {
     updateLastDisplayedTimestamp
   ]);
 
+  const handleClose = (id: string) => {
+    removeNotification(id);
+  };
+
   const initiateExitTransition = (id: string) => {
     setShow((s) => ({ ...s, [id]: false }));
 
@@ -136,7 +140,7 @@ const Alert: React.FC = () => {
       setVisibleNotifications((prev) =>
         prev.filter((notification) => notification.id !== id)
       );
-    }, 500);
+    }, 3000);
   };
   return (
     <ul css={styles}>
@@ -145,8 +149,8 @@ const Alert: React.FC = () => {
           <MUIAlert
             severity={mapTypeToSeverity(notification.type)}
             onClose={
-              notification.dismissable
-                ? () => initiateExitTransition(notification.id)
+              notification.type === "error" || notification.dismissable
+                ? () => handleClose(notification.id)
                 : undefined
             }
           >

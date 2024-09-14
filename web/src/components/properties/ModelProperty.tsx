@@ -8,12 +8,29 @@ import {
   FunctionModel,
   HuggingFaceModel,
   LlamaModel,
-  ModelFile,
-  TypeName,
-  UnifiedModel
+  ModelFile
 } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import { useMetadata } from "../../serverState/useMetadata";
+import { client } from "../../stores/ApiClient";
+
+const tryCacheFile = async (repo_id: string, path: string) => {
+  const { data, error } = await client.GET(
+    "/api/models/huggingface/try_cache_file",
+    {
+      params: {
+        query: {
+          repo_id,
+          path
+        }
+      }
+    }
+  );
+  if (error) {
+    throw new Error("Failed to check if file is cached: " + error);
+  }
+  return data;
+};
 
 export default function ModelProperty(props: PropertyProps) {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
@@ -27,10 +44,13 @@ export default function ModelProperty(props: PropertyProps) {
   const modelType = props.property.type.type;
   const selectValue = props.value?.name || props.value?.repo_id || "";
 
+  console.log(modelType);
+
   const {
     data: models,
     isError,
-    isLoading
+    isLoading,
+    isSuccess
   } = useQuery({
     queryKey: ["models", modelType],
     queryFn: async () => {
@@ -40,6 +60,17 @@ export default function ModelProperty(props: PropertyProps) {
       }
       if (modelType === "llama_model") {
         return await loadLlamaModels();
+      }
+      if (modelType.startsWith("hf.lora_sd")) {
+        const loras = metadata?.recommendedModels.filter(
+          (model) => model.type === modelType
+        );
+        const loraModels = await Promise.all(
+          loras?.filter(async (lora) => {
+            return await tryCacheFile(lora.repo_id || "", lora.path || "");
+          }) || []
+        );
+        return loraModels;
       }
       if (modelType.startsWith("hf.")) {
         const models = await loadHuggingFaceModels();
@@ -119,44 +150,35 @@ export default function ModelProperty(props: PropertyProps) {
         description={props.property.description}
         id={id}
       />
-      {isError && <Typography>Error loading models</Typography>}
-      {isLoading && <Typography>Loading models...</Typography>}
-      {!isLoading && !isError && values.length === 0 && (
-        <Typography>
-          No models available, please install recommended models
-        </Typography>
-      )}
-      {values.length > 0 && (
-        <Select
-          id={id}
-          labelId={id}
-          name=""
-          value={selectValue}
-          variant="standard"
-          onChange={onModelChange}
-          className="mui-select nodrag"
-          disableUnderline={true}
-          MenuProps={{
-            anchorOrigin: {
-              vertical: "bottom",
-              horizontal: "left"
-            },
-            transformOrigin: {
-              vertical: "top",
-              horizontal: "left"
-            }
-          }}
-        >
-          {modelType === undefined && (
-            <MenuItem value="">No models available</MenuItem>
-          )}
-          {values?.map((modelName) => (
-            <MenuItem key={modelName} value={modelName}>
-              {modelName}
-            </MenuItem>
-          ))}
-        </Select>
-      )}
+      <Select
+        id={id}
+        labelId={id}
+        name=""
+        value={selectValue}
+        variant="standard"
+        onChange={onModelChange}
+        className="mui-select nodrag"
+        disableUnderline={true}
+        MenuProps={{
+          anchorOrigin: {
+            vertical: "bottom",
+            horizontal: "left"
+          },
+          transformOrigin: {
+            vertical: "top",
+            horizontal: "left"
+          }
+        }}
+      >
+        {isLoading && <MenuItem value="">Loading models...</MenuItem>}
+        {isError && <MenuItem value="">Error loading models</MenuItem>}
+        {isSuccess && <MenuItem value="">None</MenuItem>}
+        {values?.map((modelName) => (
+          <MenuItem key={modelName} value={modelName}>
+            {modelName}
+          </MenuItem>
+        ))}
+      </Select>
     </>
   );
 }

@@ -110,6 +110,9 @@ class AssetRef(BaseType):
 
     def is_empty(self):
         return self.uri == "" and self.asset_id is None and self.data is None
+    
+    def is_set(self):
+        return not self.is_empty()
 
     @classmethod
     def __init_subclass__(cls):
@@ -264,22 +267,14 @@ class HFControlNetSDXL(HuggingFaceModel):
 
 class HFIPAdapter(HuggingFaceModel):
     type: Literal["hf.ip_adapter"] = "hf.ip_adapter"
-    file_name: str = ""
 
 
-class HFIPAdapterSDXL(HuggingFaceModel):
-    type: Literal["hf.ip_adapter_sdxl"] = "hf.ip_adapter_sdxl"
-    file_name: str = ""
-
-
-class HFLora(HuggingFaceModel):
-    type: Literal["hf.lora"] = "hf.lora"
-    file_name: str = ""
+class HFLoraSD(HuggingFaceModel):
+    type: Literal["hf.lora_sd"] = "hf.lora_sd"
 
 
 class HFLoraSDXL(HuggingFaceModel):
     type: Literal["hf.lora_sdxl"] = "hf.lora_sdxl"
-    file_name: str = ""
 
 
 class HFStableDiffusionXLTurbo(HuggingFaceModel):

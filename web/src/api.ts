@@ -220,6 +220,10 @@ export interface paths {
     /** Get Huggingface Models */
     get: operations["get_huggingface_models_api_models_huggingface_models_get"];
   };
+  "/api/models/huggingface/try_cache_file": {
+    /** Get Huggingface Lora Sd */
+    get: operations["get_huggingface_lora_sd_api_models_huggingface_try_cache_file_get"];
+  };
   "/api/models/huggingface_model": {
     /** Delete Huggingface Model */
     delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
@@ -3696,6 +3700,35 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["CachedModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Huggingface Lora Sd */
+  get_huggingface_lora_sd_api_models_huggingface_try_cache_file_get: {
+    parameters: {
+      query: {
+        repo_id: string;
+        path: string;
+      };
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": boolean;
         };
       };
       /** @description Validation Error */

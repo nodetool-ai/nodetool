@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   Typography,
   Box,
@@ -41,6 +41,17 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
   const handleRemove = useCallback(() => {
     removeDownload(name);
   }, [name, removeDownload]);
+
+  const eta = useMemo(() => {
+    if (download.speed && download.speed > 0) {
+      const remainingBytes = download.totalBytes - download.downloadedBytes;
+      const remainingSeconds = remainingBytes / download.speed;
+      const minutes = Math.floor(remainingSeconds / 60);
+      const seconds = Math.floor(remainingSeconds % 60);
+      return `${minutes}m ${seconds}s`;
+    }
+    return null;
+  }, [download.speed, download.totalBytes, download.downloadedBytes]);
 
   if (!download) return null;
 
@@ -140,9 +151,16 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
             Downloading: {download.currentFiles?.join(", ")}
           </Typography>
           {download.speed !== null && (
-            <Typography variant="body2" style={{ marginTop: "0.5em" }}>
-              Speed: {(download.speed / 1024 / 1024).toFixed(2)} MB/s
-            </Typography>
+            <>
+              <Typography variant="body2" style={{ marginTop: "0.5em" }}>
+                Speed: {(download.speed / 1024 / 1024).toFixed(2)} MB/s
+              </Typography>
+              {eta && (
+                <Typography variant="body2" style={{ marginTop: "0.5em" }}>
+                  ETA: {eta}
+                </Typography>
+              )}
+            </>
           )}
           <Button
             onClick={() => cancelDownload(name)}

@@ -8,7 +8,8 @@ from nodetool.metadata.types import (
     HFIPAdapter,
     HFImageClassification,
     HFImageToImage,
-    HFLora,
+    HFLoraSD,
+    HFLoraSDXL,
     HFStableDiffusion,
     HFStableDiffusionUpscale,
     HFStableDiffusionXL,
@@ -38,6 +39,7 @@ from diffusers import StableDiffusionXLControlNetPipeline, ControlNetModel, Auto
 from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline  # type: ignore
 from diffusers import StableDiffusionInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline  # type: ignore
+from diffusers import StableDiffusionXLInpaintPipeline  # type: ignore
 from diffusers import PixArtAlphaPipeline  # type: ignore
 from diffusers import PixArtSigmaPipeline  # type: ignore
 from diffusers.schedulers import (
@@ -69,6 +71,7 @@ from transformers import ImageSegmentationPipeline  # type: ignore
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
+from huggingface_hub import try_to_load_from_cache
 
 
 class IPAdapter_SDXL_Model(str, Enum):
@@ -86,336 +89,289 @@ class IPAdapter_SD15_Model(str, Enum):
     IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
 
 
-class LORA_Model(str, Enum):
-    NONE = ""
-    ADD_DETAIL = "add_detail"
-    _2D_sprite = "2d_sprite"
-    GHIBLI_SCENERY = "ghibli_scenery"
-    COLORWATER = "colorwater"
-    SXZ_GAME_ASSETS = "sxz_game_assets"
-    _3DANAGLYPH = "3Danaglyph"
-    AKIRATORIYAMA_STYLE = "akiratoriyama_style"
-    ANIMEOUTLINEV4 = "animeoutlineV4"
-    AQUA_KONOSUBA = "aqua_konosuba"
-    ARAKIHIROHIKO_STYLE = "arakihirohiko_style"
-    ARCANE_STYLE = "arcane_style"
-    CANETAAZUL = "canetaazul"
-    CYBERPUNK_TAROT = "cyberpunk_tarot"
-    DISCOELYSIUM_STYLE = "discoelysium_style"
-    ESDEATH_AKAMEGAKILL = "esdeath_akamegakill"
-    FIRE_VFX = "fire_vfx"
-    FLAMINGEYE = "flamingeye"
-    FUNNYCREATURES = "funnycreatures"
-    GACHA_SPLASH = "gacha_splash"
-    GIGACHAD = "gigachad"
-    GYOKAI_STYLE = "gyokai_style"
-    HAROLD = "harold"
-    HIDEROHORIBES_STYLE = "hiderohoribes_style"
-    ILYAKUVSHINOV_STYLE = "ilyakuvshinov_style"
-    JACKSPARROW = "jacksparrow"
-    JIMLEE_STYLE = "jimlee_style"
-    KOMOWATAHARUKA_CHIBIART = "komowataharuka_chibiart"
-    LIGHTNING_VFX = "lightning_vfx"
-    LUCY_CYBERPUNK = "lucy_cyberpunk"
-    LUISAP_PIXELART = "luisap_pixelart"
-    MUMEI_KABANERI = "mumei_kabaneri"
-    MYHEROACADEMIA_STYLE = "myheroacademia_style"
-    NEOARTCORE = "neoartcore"
-    OCHAKOURARAKA = "ochakouraraka"
-    ONEPIECE_STYLE = "onepiece_style"
-    PAIMON_GENSHINIMPACT = "paimon_genshinimpact"
-    PEANUTSCOMICS_STYLE = "peanutscomics_style"
-    PEPEFROG = "pepefrog"
-    PERSONA5_PORTRAITS = "persona5_portraits"
-    PERSONA5_STYLE = "persona5_style"
-    PIXHELL = "pixhell"
-    PRINCESSZELDA = "princesszelda"
-    SATOSHIURUCHIHARA_STYLE = "satoshiuruchihara_style"
-    SHINOBU_DEMONSLAYER = "shinobu_demonslayer"
-    SOKOLOV_STYLE = "sokolov_style"
-    STANDINGBACKGROUNDV1 = "standingbackgroundv1"
-    SUN_SHADOW_STYLE = "sun_shadow_style"
-    THICKERANIMELINES = "thickeranimelines"
-    THREESIDEDVIEW = "threesidedview"
-    TWITCH_EMOTES = "twitch_emotes"
-    WATER_VFX = "water_vfx"
-    WLOP_STYLE = "wlop_style"
-    ZEROTWO_DARLING = "zerotwo_darling"
+HF_LORA_SD_MODELS = [
+    HFLoraSD(repo_id="danbrown/loras", path="2d_sprite.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="ghibli_scenery.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="add_detail.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="colorwater.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="sxz_game_assets.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="3Danaglyph.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="akiratoriyama_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="animeoutlineV4.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="aqua_konosuba.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="arakihirohiko_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="arcane_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="canetaazul.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="cyberpunk_tarot.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="discoelysium_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="esdeath_akamegakill.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="fire_vfx.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="flamingeye.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="funnycreatures.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="gacha_splash.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="gigachad.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="gyokai_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="harold.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="hiderohoribes_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="ilyakuvshinov_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="jacksparrow.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="jimlee_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="komowataharuka_chibiart.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="lightning_vfx.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="lucy_cyberpunk.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="luisap_pixelart.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="mumei_kabaneri.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="myheroacademia_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="neoartcore.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="ochakouraraka.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="onepiece_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="paimon_genshinimpact.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="peanutscomics_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="pepefrog.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="persona5_portraits.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="persona5_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="pixhell.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="princesszelda.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="satoshiuruchihara_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="shinobu_demonslayer.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="sokolov_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="standingbackgroundv1.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="sun_shadow_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="thickeranimelines.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="threesidedview.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="twitch_emotes.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="water_vfx.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="wlop_style.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="zerotwo_darling.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="2d_sprite.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="ghibli_scenery.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="add_detail.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="colorwater.safetensors"),
+    HFLoraSD(repo_id="danbrown/loras", path="sxz_game_assets.safetensors"),
+]
 
+HF_LORA_SDXL_MODELS = [
+    HFLoraSDXL(repo_id="CiroN2022/toy-face", path="toy_face_sdxl.safetensors"),
+    HFLoraSDXL(repo_id="nerijs/pixel-art-xl", path="pixel-art-xl.safetensors"),
+    HFLoraSDXL(
+        repo_id="goofyai/3d_render_style_xl", path="3d_render_style_xl.safetensors"
+    ),
+    HFLoraSDXL(
+        repo_id="artificialguybr/CuteCartoonRedmond-V2",
+        path="CuteCartoonRedmond-CuteCartoon-CuteCartoonAF.safetensors",
+    ),
+    HFLoraSDXL(
+        repo_id="blink7630/graphic-novel-illustration",
+        path="Graphic_Novel_Illustration-000007.safetensors",
+    ),
+    HFLoraSDXL(
+        repo_id="robert123231/coloringbookgenerator",
+        path="ColoringBookRedmond-ColoringBook-ColoringBookAF.safetensors",
+    ),
+    HFLoraSDXL(
+        repo_id="Linaqruf/anime-detailer-xl-lora",
+        path="anime-detailer-xl-lora.safetensors",
+    ),
+]
 
-class LORA_SDXL_Model(str, Enum):
-    NONE = ""
-    TOY_FACE = "toy-face"
-    PIXEL_ART = "pixel-art"
-    _3D_RENDER_STYLE = "3d-render-style"
-    CUTE_CARTOON = "cute-cartoon"
-    GRAPHIC_NOVEL_ILLUSTRATION = "graphic-novel-illustration"
-    COLORING_BOOK = "coloring-book"
-    ANIME_DETAILER_XL = "anime-detailer-xl"
+HF_STABLE_DIFFUSION_MODELS = [
+    HFStableDiffusion(
+        repo_id="Yntec/Deliberate2",
+        path="Deliberate_v2.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/epiCPhotoGasm", path="epiCPhotoGasmVAE.safetensors"
+    ),
+    HFStableDiffusion(repo_id="Yntec/epiCEpic", path="epiCEpic.safetensors"),
+    HFStableDiffusion(repo_id="Yntec/VisionVision", path="VisionVision.safetensors"),
+    HFStableDiffusion(
+        repo_id="Yntec/AbsoluteReality",
+        path="absolutereality_v16.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/realistic-vision-v13",
+        path="Realistic_Vision_V1.3.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/realisticStockPhoto3",
+        path="realisticStockPhoto_v30SD15.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/HyperRemix",
+        path="HyperRemix.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/HyperPhotoGASM",
+        path="HyperPhotoGASM.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/ZootVision", path="zootvisionAlpha_v10Alpha.safetensors"
+    ),
+    HFStableDiffusion(repo_id="Yntec/ChunkyCat", path="ChunkyCat.safetensors"),
+    HFStableDiffusion(
+        repo_id="Yntec/TickleYourFancy",
+        path="TickleYourFancy.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/AllRoadsLeadToRetro",
+        path="AllRoadsLeadToRetro.safetensors",
+    ),
+    HFStableDiffusion(repo_id="Yntec/ClayStyle", path="ClayStyle.safetensors"),
+    HFStableDiffusion(repo_id="Yntec/epiCDream", path="epicdream_lullaby.safetensors"),
+    HFStableDiffusion(
+        repo_id="Yntec/Epsilon_Naught",
+        path="Epsilon_Naught.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/BetterPonyDiffusion",
+        path="betterPonyDiffusionV6_v20.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/ZootVisionEpsilon",
+        path="zootvisionEpsilon_v50Epsilon.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/RevAnimatedV2Rebirth",
+        path="revAnimated_v2RebirthVAE.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/AnimephilesAnonymous",
+        path="AnimephilesAnonymous.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/InsaneSurreality",
+        path="InsaneSurreality.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/DreamlikePhotoReal2",
+        path="DreamlikePhotoReal2.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/DreamShaperRemix",
+        path="DreamShaperRemix.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/CrystalReality",
+        path="CrystalReality.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/ZooFun",
+        path="ZooFun.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/DreamWorks",
+        path="DreamWorks.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/ICantBelieveItSNotPhotography",
+        path="icbinpICantBelieveIts_v10_pruned.safetensors",
+    ),
+    HFStableDiffusion(repo_id="Yntec/fennPhoto", path="fennPhoto_v10.safetensors"),
+    HFStableDiffusion(
+        repo_id="Yntec/Surreality",
+        path="ChainGirl-Surreality.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/WinningBlunder",
+        path="WinningBlunder.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/beLIEve",
+        path="beLIEve.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/Neurogen",
+        path="NeurogenVAE.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/Hyperlink",
+        path="Hyperlink.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/Disneyify",
+        path="Disneyify_v1.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/DisneyPixarCartoon768",
+        path="disneyPixarCartoonVAE.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/Wonder",
+        path="Wonder.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/Voxel",
+        path="VoxelVAE.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/Vintage",
+        path="Vintage.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/BeautyFoolRemix",
+        path="BeautyFoolRemix.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/handpaintedRPGIcons",
+        path="handpaintedRPGIcons_v1.safetensors",
+    ),
+    HFStableDiffusion(repo_id="Yntec/526Mix", path="526mixV15.safetensors"),
+    HFStableDiffusion(repo_id="Yntec/majicmixLux", path="majicmixLux_v1.safetensors"),
+    HFStableDiffusion(
+        repo_id="Yntec/incha_re_zoro", path="inchaReZoro_v10.safetensors"
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/3DCartoonVision", path="3dCartoonVision_v10.safetensors"
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/Disneyify",
+        path="Disneyify.safetensors",
+    ),
+    HFStableDiffusion(repo_id="Yntec/RetroRetro", path="RetroRetro.safetensors"),
+    HFStableDiffusion(repo_id="Yntec/ClassicToons", path="ClassicToons.safetensors"),
+    HFStableDiffusion(repo_id="Yntec/PixelKicks", path="PixelKicks.safetensors"),
+    HFStableDiffusion(
+        repo_id="Yntec/NostalgicLife", path="NostalgicLifeVAE.safetensors"
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/ArthemyComics",
+        path="arthemyComics_v10Bakedvae.safetensors",
+    ),
+    HFStableDiffusion(repo_id="Yntec/Paramount", path="Paramount.safetensors"),
+]
 
-
-LORA_WEIGHTS = {
-    LORA_Model._2D_sprite: {
-        "repo": "danbrown/loras",
-        "weight_name": "2d_sprite.safetensors",
-    },
-    LORA_Model.GHIBLI_SCENERY: {
-        "repo": "danbrown/loras",
-        "weight_name": "ghibli_scenery.safetensors",
-    },
-    LORA_Model.ADD_DETAIL: {
-        "repo": "danbrown/loras",
-        "weight_name": "add_detail.safetensors",
-    },
-    LORA_Model.COLORWATER: {
-        "repo": "danbrown/loras",
-        "weight_name": "colorwater.safetensors",
-    },
-    LORA_Model.SXZ_GAME_ASSETS: {
-        "repo": "danbrown/loras",
-        "weight_name": "sxz_game_assets.safetensors",
-    },
-    LORA_Model._3DANAGLYPH: {
-        "repo": "danbrown/loras",
-        "weight_name": "3Danaglyph.safetensors",
-    },
-    LORA_Model.AKIRATORIYAMA_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "akiratoriyama_style.safetensors",
-    },
-    LORA_Model.ANIMEOUTLINEV4: {
-        "repo": "danbrown/loras",
-        "weight_name": "animeoutlineV4.safetensors",
-    },
-    LORA_Model.AQUA_KONOSUBA: {
-        "repo": "danbrown/loras",
-        "weight_name": "aqua_konosuba.safetensors",
-    },
-    LORA_Model.ARAKIHIROHIKO_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "arakihirohiko_style.safetensors",
-    },
-    LORA_Model.ARCANE_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "arcane_style.safetensors",
-    },
-    LORA_Model.CANETAAZUL: {
-        "repo": "danbrown/loras",
-        "weight_name": "canetaazul.safetensors",
-    },
-    LORA_Model.CYBERPUNK_TAROT: {
-        "repo": "danbrown/loras",
-        "weight_name": "cyberpunk_tarot.safetensors",
-    },
-    LORA_Model.DISCOELYSIUM_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "discoelysium_style.safetensors",
-    },
-    LORA_Model.ESDEATH_AKAMEGAKILL: {
-        "repo": "danbrown/loras",
-        "weight_name": "esdeath_akamegakill.safetensors",
-    },
-    LORA_Model.FIRE_VFX: {
-        "repo": "danbrown/loras",
-        "weight_name": "fire_vfx.safetensors",
-    },
-    LORA_Model.FLAMINGEYE: {
-        "repo": "danbrown/loras",
-        "weight_name": "flamingeye.safetensors",
-    },
-    LORA_Model.FUNNYCREATURES: {
-        "repo": "danbrown/loras",
-        "weight_name": "funnycreatures.safetensors",
-    },
-    LORA_Model.GACHA_SPLASH: {
-        "repo": "danbrown/loras",
-        "weight_name": "gacha_splash.safetensors",
-    },
-    LORA_Model.GIGACHAD: {
-        "repo": "danbrown/loras",
-        "weight_name": "gigachad.safetensors",
-    },
-    LORA_Model.GYOKAI_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "gyokai_style.safetensors",
-    },
-    LORA_Model.HAROLD: {
-        "repo": "danbrown/loras",
-        "weight_name": "harold.safetensors",
-    },
-    LORA_Model.HIDEROHORIBES_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "hiderohoribes_style.safetensors",
-    },
-    LORA_Model.ILYAKUVSHINOV_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "ilyakuvshinov_style.safetensors",
-    },
-    LORA_Model.JACKSPARROW: {
-        "repo": "danbrown/loras",
-        "weight_name": "jacksparrow.safetensors",
-    },
-    LORA_Model.JIMLEE_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "jimlee_style.safetensors",
-    },
-    LORA_Model.KOMOWATAHARUKA_CHIBIART: {
-        "repo": "danbrown/loras",
-        "weight_name": "komowataharuka_chibiart.safetensors",
-    },
-    LORA_Model.LIGHTNING_VFX: {
-        "repo": "danbrown/loras",
-        "weight_name": "lightning_vfx.safetensors",
-    },
-    LORA_Model.LUCY_CYBERPUNK: {
-        "repo": "danbrown/loras",
-        "weight_name": "lucy_cyberpunk.safetensors",
-    },
-    LORA_Model.LUISAP_PIXELART: {
-        "repo": "danbrown/loras",
-        "weight_name": "luisap_pixelart.safetensors",
-    },
-    LORA_Model.MUMEI_KABANERI: {
-        "repo": "danbrown/loras",
-        "weight_name": "mumei_kabaneri.safetensors",
-    },
-    LORA_Model.MYHEROACADEMIA_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "myheroacademia_style.safetensors",
-    },
-    LORA_Model.NEOARTCORE: {
-        "repo": "danbrown/loras",
-        "weight_name": "neoartcore.safetensors",
-    },
-    LORA_Model.OCHAKOURARAKA: {
-        "repo": "danbrown/loras",
-        "weight_name": "ochakouraraka.safetensors",
-    },
-    LORA_Model.ONEPIECE_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "onepiece_style.safetensors",
-    },
-    LORA_Model.PAIMON_GENSHINIMPACT: {
-        "repo": "danbrown/loras",
-        "weight_name": "paimon_genshinimpact.safetensors",
-    },
-    LORA_Model.PEANUTSCOMICS_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "peanutscomics_style.safetensors",
-    },
-    LORA_Model.PEPEFROG: {
-        "repo": "danbrown/loras",
-        "weight_name": "pepefrog.safetensors",
-    },
-    LORA_Model.PERSONA5_PORTRAITS: {
-        "repo": "danbrown/loras",
-        "weight_name": "persona5_portraits.safetensors",
-    },
-    LORA_Model.PERSONA5_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "persona5_style.safetensors",
-    },
-    LORA_Model.PIXHELL: {
-        "repo": "danbrown/loras",
-        "weight_name": "pixhell.safetensors",
-    },
-    LORA_Model.PRINCESSZELDA: {
-        "repo": "danbrown/loras",
-        "weight_name": "princesszelda.safetensors",
-    },
-    LORA_Model.SATOSHIURUCHIHARA_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "satoshiuruchihara_style.safetensors",
-    },
-    LORA_Model.SHINOBU_DEMONSLAYER: {
-        "repo": "danbrown/loras",
-        "weight_name": "shinobu_demonslayer.safetensors",
-    },
-    LORA_Model.SOKOLOV_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "sokolov_style.safetensors",
-    },
-    LORA_Model.STANDINGBACKGROUNDV1: {
-        "repo": "danbrown/loras",
-        "weight_name": "standingbackgroundv1.safetensors",
-    },
-    LORA_Model.SUN_SHADOW_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "sun_shadow_style.safetensors",
-    },
-    LORA_Model.THICKERANIMELINES: {
-        "repo": "danbrown/loras",
-        "weight_name": "thickeranimelines.safetensors",
-    },
-    LORA_Model.THREESIDEDVIEW: {
-        "repo": "danbrown/loras",
-        "weight_name": "threesidedview.safetensors",
-    },
-    LORA_Model.TWITCH_EMOTES: {
-        "repo": "danbrown/loras",
-        "weight_name": "twitch_emotes.safetensors",
-    },
-    LORA_Model.WATER_VFX: {
-        "repo": "danbrown/loras",
-        "weight_name": "water_vfx.safetensors",
-    },
-    LORA_Model.WLOP_STYLE: {
-        "repo": "danbrown/loras",
-        "weight_name": "wlop_style.safetensors",
-    },
-    LORA_Model.ZEROTWO_DARLING: {
-        "repo": "danbrown/loras",
-        "weight_name": "zerotwo_darling.safetensors",
-    },
-    LORA_Model._2D_sprite: {
-        "repo": "danbrown/loras",
-        "weight_name": "2d_sprite.safetensors",
-    },
-    LORA_Model.GHIBLI_SCENERY: {
-        "repo": "danbrown/loras",
-        "weight_name": "ghibli_scenery.safetensors",
-    },
-    LORA_Model.ADD_DETAIL: {
-        "repo": "danbrown/loras",
-        "weight_name": "add_detail.safetensors",
-    },
-    LORA_Model.COLORWATER: {
-        "repo": "danbrown/loras",
-        "weight_name": "colorwater.safetensors",
-    },
-    LORA_Model.SXZ_GAME_ASSETS: {
-        "repo": "danbrown/loras",
-        "weight_name": "sxz_game_assets.safetensors",
-    },
-    LORA_SDXL_Model.TOY_FACE: {
-        "repo": "CiroN2022/toy-face",
-        "weight_name": "toy_face_sdxl.safetensors",
-    },
-    LORA_SDXL_Model.PIXEL_ART: {
-        "repo": "nerijs/pixel-art-xl",
-        "weight_name": "pixel-art-xl.safetensors",
-    },
-    LORA_SDXL_Model._3D_RENDER_STYLE: {
-        "repo": "goofyai/3d_render_style_xl",
-        "weight_name": "3d_render_style_xl.safetensors",
-    },
-    LORA_SDXL_Model.CUTE_CARTOON: {
-        "repo": "artificialguybr/CuteCartoonRedmond-V2",
-        "weight_name": "CuteCartoonRedmond-CuteCartoon-CuteCartoonAF.safetensors",
-    },
-    LORA_SDXL_Model.GRAPHIC_NOVEL_ILLUSTRATION: {
-        "repo": "blink7630/graphic-novel-illustration",
-        "weight_name": "Graphic_Novel_Illustration-000007.safetensors",
-    },
-    LORA_SDXL_Model.COLORING_BOOK: {
-        "repo": "robert123231/coloringbookgenerator",
-        "weight_name": "ColoringBookRedmond-ColoringBook-ColoringBookAF.safetensors",
-    },
-    LORA_SDXL_Model.ANIME_DETAILER_XL: {
-        "repo": "Linaqruf/anime-detailer-xl-lora",
-        "weight_name": "anime-detailer-xl-lora.safetensors",
-    },
-}
+HF_STABLE_DIFFUSION_XL_MODELS = [
+    HFStableDiffusionXL(
+        repo_id="stabilityai/stable-diffusion-xl-base-1.0",
+        path="sd_xl_base_1.0.safetensors",
+    ),
+    HFStableDiffusionXL(
+        repo_id="stabilityai/stable-diffusion-xl-refiner-1.0",
+        path="sd_xl_refiner_1.0.safetensors",
+    ),
+    HFStableDiffusionXL(
+        repo_id="RunDiffusion/Juggernaut-XL-v9",
+        path="Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
+    ),
+    HFStableDiffusionXL(
+        repo_id="dataautogpt3/ProteusV0.5",
+        path="proteusV0.5.safetensors",
+    ),
+    HFStableDiffusionXL(
+        repo_id="Lykon/dreamshaper-xl-lightning",
+        path="DreamShaperXL_Lightning.safetensors",
+    ),
+    HFStableDiffusionXL(
+        repo_id="fofr/sdxl-emoji",
+    ),
+    HFStableDiffusionXL(
+        repo_id="stabilityai/sdxl-turbo", path="sd_xl_turbo_1.0_fp16.safetensors"
+    ),
+    HFStableDiffusionXL(
+        repo_id="Lykon/dreamshaper-xl-v2-turbo",
+        path="DreamShaperXL_Turbo_v2_1.safetensors",
+    ),
+]
 
 
 class ImageClassifier(HuggingFacePipelineNode):
@@ -489,7 +445,7 @@ class ImageClassifier(HuggingFacePipelineNode):
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
-            self._pipeline.model.to(device)
+            self._pipeline.model.to(device)  # type: ignore
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_pipeline(
@@ -498,8 +454,8 @@ class ImageClassifier(HuggingFacePipelineNode):
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         image = await context.image_to_pil(self.image)
-        result = self._pipeline(image)
-        return {item["label"]: item["score"] for item in result}
+        result = self._pipeline(image)  # type: ignore
+        return {str(item["label"]): float(item["score"]) for item in result}  # type: ignore
 
 
 class ZeroShotImageClassifier(HuggingFacePipelineNode):
@@ -585,14 +541,14 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
-            self._pipeline.model.to(device)
+            self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
         image = await context.image_to_pil(self.image)
         result = self._pipeline(
             image, candidate_labels=self.candidate_labels.split(",")
         )  # type: ignore
-        return {item["label"]: item["score"] for item in result}
+        return {str(item["label"]): float(item["score"]) for item in result}  # type: ignore
 
 
 class StableDiffusionScheduler(str, Enum):
@@ -1114,9 +1070,10 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
-            self._pipeline.model.to(device)
+            self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> list[ObjectDetectionResult]:
+        assert self._pipeline is not None
         image = await context.image_to_pil(self.image)
         result = self._pipeline(
             image,
@@ -1125,16 +1082,16 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
         )
         return [
             ObjectDetectionResult(
-                label=item["label"],
-                score=item["score"],
+                label=item.label,  # type: ignore
+                score=item.score,  # type: ignore
                 box=BoundingBox(
-                    xmin=item["box"]["xmin"],
-                    ymin=item["box"]["ymin"],
-                    xmax=item["box"]["xmax"],
-                    ymax=item["box"]["ymax"],
+                    xmin=item.box.xmin,  # type: ignore
+                    ymin=item.box.ymin,  # type: ignore
+                    xmax=item.box.xmax,  # type: ignore
+                    ymax=item.box.ymax,  # type: ignore
                 ),
             )
-            for item in result
+            for item in result  # type: ignore
         ]
 
 
@@ -1203,13 +1160,14 @@ class DepthEstimation(HuggingFacePipelineNode):
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
-            self._pipeline.model.to(device)
+            self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
+        assert self._pipeline is not None
         image = await context.image_to_pil(self.image)
         result = self._pipeline(image)
-        depth_map = result["depth"]
-        return await context.image_from_pil(depth_map)
+        depth_map = result["depth"]  # type: ignore
+        return await context.image_from_pil(depth_map)  # type: ignore
 
 
 class BaseImageToImage(HuggingFacePipelineNode):
@@ -1236,6 +1194,9 @@ class BaseImageToImage(HuggingFacePipelineNode):
     def required_inputs(self):
         return ["image"]
 
+    def get_model_id(self):
+        raise NotImplementedError("Subclass must implement abstract method")
+
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_pipeline(
             context, "image-to-image", self.get_model_id(), device=context.device
@@ -1243,12 +1204,12 @@ class BaseImageToImage(HuggingFacePipelineNode):
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
-            self._pipeline.model.to(device)
+            self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
-        result = self._pipeline(image, prompt=self.prompt)
-        return await context.image_from_pil(result.images[0])
+        result = self._pipeline(image, prompt=self.prompt)  # type: ignore
+        return await context.image_from_pil(result)  # type: ignore
 
 
 class Swin2SR(BaseImageToImage):
@@ -1295,54 +1256,6 @@ class Swin2SR(BaseImageToImage):
 
     def get_model_id(self):
         return self.model.repo_id
-
-
-# class InstructPix2Pix(BaseImageToImage):
-#     """
-#     Performs image editing based on text instructions using the InstructPix2Pix model.
-#     image, editing, transformation, huggingface
-
-#     Use cases:
-#     - Apply specific edits to images based on text instructions
-#     - Modify image content or style guided by text prompts
-#     - Create variations of existing images with controlled changes
-#     """
-
-#     prompt: str = Field(
-#         default="Remove the background.",
-#         description="The text prompt to guide the image transformation.",
-#     )
-#     negative_prompt: str = Field(
-#         default="",
-#         description="The negative text prompt to avoid in the transformation.",
-#     )
-#     num_inference_steps: int = Field(
-#         default=50, description="The number of denoising steps.", ge=1, le=100
-#     )
-#     guidance_scale: float = Field(
-#         default=7.0, description="The guidance scale for the transformation.", ge=1.0
-#     )
-#     image_guidance_scale: float = Field(
-#         default=7.0,
-#         description="The image guidance scale for the transformation.",
-#         ge=1.0,
-#     )
-8
-#     @classmethod
-#     def get_title(cls) -> str:
-#         return "Instruct Pix2Pix"
-
-#     def get_model_id(self):
-#         return "timbrooks/instruct-pix2pix"
-
-#     def get_params(self):
-#         return {
-#             "prompt": self.prompt,
-#             "negative_prompt": self.negative_prompt,
-#             "num_inference_steps": self.num_inference_steps,
-#             "guidance_scale": self.guidance_scale,
-#             "image_guidance_scale": self.image_guidance_scale,
-#         }
 
 
 # class AuraFlow(BaseNode):
@@ -2014,7 +1927,7 @@ class Kandinsky3(HuggingFacePipelineNode):
         return await context.image_from_pil(image)
 
 
-class Kandinsky3Img2Img(BaseNode):
+class Kandinsky3Img2Img(HuggingFacePipelineNode):
     """
     Transforms existing images using the Kandinsky-3 model based on text prompts.
     image, generation, AI, image-to-image
@@ -2143,6 +2056,30 @@ class PlaygroundV2(HuggingFacePipelineNode):
         ge=-1,
     )
 
+    lora_model: HFLoraSD = Field(
+        default=HFLoraSD(),
+        description="The LORA model to use for image processing",
+    )
+    lora_scale: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=3.0,
+        description="Strength of the LORA image",
+    )
+    ip_adapter_model: IPAdapter_SD15_Model = Field(
+        default=IPAdapter_SD15_Model.NONE,
+        description="The IP adapter model to use for image processing",
+    )
+    ip_adapter_image: ImageRef = Field(
+        default=ImageRef(),
+        description="When provided the image will be fed into the IP adapter",
+    )
+    ip_adapter_scale: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Strength of the IP adapter image",
+    )
     _pipeline: DiffusionPipeline | None = None
 
     @classmethod
@@ -2167,12 +2104,47 @@ class PlaygroundV2(HuggingFacePipelineNode):
             ),
         ]
 
+    def _load_ip_adapter(self):
+        if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+            cache_path = try_to_load_from_cache(
+                "h94/IP-Adapter", f"models/{self.ip_adapter_model.value}"
+            )
+            if cache_path is None:
+                raise ValueError(
+                    f"Install the h94/IP-Adapter model to use it (Recommended Models above)"
+                )
+            assert self._pipeline is not None
+            self._pipeline.load_ip_adapter(
+                "h94/IP-Adapter",
+                subfolder="models",
+                weight_name=self.ip_adapter_model,
+            )
+            self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
+
+    async def _load_lora(self, context: ProcessingContext):
+        if self.lora_model.repo_id != "" and self.lora_model.path:
+            cache_path = try_to_load_from_cache(
+                self.lora_model.repo_id,
+                self.lora_model.path,
+            )
+            if cache_path is None:
+                raise ValueError(
+                    f"Install {self.lora_model.repo_id}/{self.lora_model.path} LORA to use it (Recommended Models above)"
+                )
+            assert self._pipeline is not None
+            self._pipeline.load_lora_weights(
+                cache_path,
+                weight_name=self.lora_model.path,
+                adapter_name="default",
+            )
+
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_model(
             context=context,
             model_id="playgroundai/playground-v2.5-1024px-aesthetic",
             model_class=DiffusionPipeline,
         )
+        await self._load_lora(context)
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -2187,6 +2159,12 @@ class PlaygroundV2(HuggingFacePipelineNode):
         if self.seed != -1:
             generator = generator.manual_seed(self.seed)
 
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
+
         output = self._pipeline(
             prompt=self.prompt,
             num_inference_steps=self.num_inference_steps,
@@ -2195,6 +2173,9 @@ class PlaygroundV2(HuggingFacePipelineNode):
             height=self.height,
             callback=progress_callback(self.id, self.num_inference_steps, context),
             callback_steps=1,
+            ip_adapter_image=ip_adapter_image,
+            ip_adapter_scale=self.ip_adapter_scale,
+            cross_attention_kwargs={"scale": self.lora_scale},
         )  # type: ignore
 
         image = output.images[0]
@@ -2228,8 +2209,8 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         default=StableDiffusionScheduler.HeunDiscreteScheduler,
         description="The scheduler to use for the diffusion process.",
     )
-    lora_model: LORA_Model = Field(
-        default=LORA_Model.NONE,
+    lora_model: HFLoraSD = Field(
+        default=HFLoraSD(),
         description="The LORA model to use for image processing",
     )
     lora_scale: float = Field(
@@ -2256,198 +2237,19 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     _pipeline: Any = None
 
     @classmethod
-    def get_recommended_models(cls) -> list[HuggingFaceModel]:
-        return [
-            HFStableDiffusion(
-                repo_id="Yntec/Deliberate2",
-                path="Deliberate_v2.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/epiCPhotoGasm", path="epiCPhotoGasmVAE.safetensors"
-            ),
-            HFStableDiffusion(repo_id="Yntec/epiCEpic", path="epiCEpic.safetensors"),
-            HFStableDiffusion(
-                repo_id="Yntec/VisionVision", path="VisionVision.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/AbsoluteReality",
-                path="absolutereality_v16.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/realistic-vision-v13",
-                path="Realistic_Vision_V1.3.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/realisticStockPhoto3",
-                path="realisticStockPhoto_v30SD15.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/HyperRemix",
-                path="HyperRemix.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/HyperPhotoGASM",
-                path="HyperPhotoGASM.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/ZootVision", path="zootvisionAlpha_v10Alpha.safetensors"
-            ),
-            HFStableDiffusion(repo_id="Yntec/ChunkyCat", path="ChunkyCat.safetensors"),
-            HFStableDiffusion(
-                repo_id="Yntec/TickleYourFancy",
-                path="TickleYourFancy.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/AllRoadsLeadToRetro",
-                path="AllRoadsLeadToRetro.safetensors",
-            ),
-            HFStableDiffusion(repo_id="Yntec/ClayStyle", path="ClayStyle.safetensors"),
-            HFStableDiffusion(
-                repo_id="Yntec/epiCDream", path="epicdream_lullaby.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/Epsilon_Naught",
-                path="Epsilon_Naught.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/BetterPonyDiffusion",
-                path="betterPonyDiffusionV6_v20.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/ZootVisionEpsilon",
-                path="zootvisionEpsilon_v50Epsilon.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/RevAnimatedV2Rebirth",
-                path="revAnimated_v2RebirthVAE.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/AnimephilesAnonymous",
-                path="AnimephilesAnonymous.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/InsaneSurreality",
-                path="InsaneSurreality.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/DreamlikePhotoReal2",
-                path="DreamlikePhotoReal2.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/DreamShaperRemix",
-                path="DreamShaperRemix.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/CrystalReality",
-                path="CrystalReality.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/ZooFun",
-                path="ZooFun.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/DreamWorks",
-                path="DreamWorks.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/ICantBelieveItSNotPhotography",
-                path="icbinpICantBelieveIts_v10_pruned.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/fennPhoto", path="fennPhoto_v10.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/Surreality",
-                path="ChainGirl-Surreality.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/WinningBlunder",
-                path="WinningBlunder.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/beLIEve",
-                path="beLIEve.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/Neurogen",
-                path="NeurogenVAE.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/Hyperlink",
-                path="Hyperlink.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/Disneyify",
-                path="Disneyify_v1.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/DisneyPixarCartoon768",
-                path="disneyPixarCartoonVAE.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/Wonder",
-                path="Wonder.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/Voxel",
-                path="VoxelVAE.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/Vintage",
-                path="Vintage.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/BeautyFoolRemix",
-                path="BeautyFoolRemix.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/handpaintedRPGIcons",
-                path="handpaintedRPGIcons_v1.safetensors",
-            ),
-            HFStableDiffusion(repo_id="Yntec/526Mix", path="526mixV15.safetensors"),
-            HFStableDiffusion(
-                repo_id="Yntec/majicmixLux", path="majicmixLux_v1.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/incha_re_zoro", path="inchaReZoro_v10.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/3DCartoonVision", path="3dCartoonVision_v10.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/Disneyify",
-                path="Disneyify.safetensors",
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/RetroRetro", path="RetroRetro.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/ClassicToons", path="ClassicToons.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/PixelKicks", path="PixelKicks.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/NostalgicLife", path="NostalgicLifeVAE.safetensors"
-            ),
-            HFStableDiffusion(
-                repo_id="Yntec/ArthemyComics",
-                path="arthemyComics_v10Bakedvae.safetensors",
-            ),
-            HFStableDiffusion(repo_id="Yntec/Paramount", path="Paramount.safetensors"),
-            HFIPAdapter(
-                repo_id="h94/IP-Adapter",
-                allow_patterns=[
-                    "models/*.safetensors",
-                ],
-            ),
-            HFLora(
-                repo_id="danbrown/loras",
-                allow_patterns=[
-                    "*.safetensors",
-                ],
-            ),
-        ]
+    def get_recommended_models(cls):
+        return (
+            HF_STABLE_DIFFUSION_MODELS
+            + HF_LORA_SD_MODELS
+            + [
+                HFIPAdapter(
+                    repo_id="h94/IP-Adapter",
+                    allow_patterns=[
+                        "models/*.safetensors",
+                    ],
+                ),
+            ]
+        )
 
     @classmethod
     def is_visible(cls) -> bool:
@@ -2456,28 +2258,43 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     async def initialize(self, context: ProcessingContext):
         raise NotImplementedError("Subclasses must implement this method")
 
-    async def _setup_ip_adapter(self, context: ProcessingContext):
-        self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
+    def should_skip_cache(self):
         if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
-            if not self.ip_adapter_image.is_empty():
-                self._load_ip_adapter()
-                return await context.image_to_pil(self.ip_adapter_image)
-        return None
+            return True
+        if self.lora_model.repo_id != "":
+            return True
+        return False
 
     def _load_ip_adapter(self):
         if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
+            cache_path = try_to_load_from_cache(
+                "h94/IP-Adapter", f"models/{self.ip_adapter_model.value}"
+            )
+            if cache_path is None:
+                raise ValueError(
+                    f"Install the h94/IP-Adapter model to use {self.ip_adapter_model.value} (Recommended Models above)"
+                )
             self._pipeline.load_ip_adapter(
                 "h94/IP-Adapter",
                 subfolder="models",
                 weight_name=self.ip_adapter_model,
             )
+            self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
 
-    def _load_lora(self):
-        if self.lora_model != LORA_Model.NONE:
+    async def _load_lora(self, context: ProcessingContext):
+        if self.lora_model.repo_id != "" and self.lora_model.path:
+            cache_path = try_to_load_from_cache(
+                self.lora_model.repo_id,
+                self.lora_model.path,
+            )
+            if cache_path is None:
+                raise ValueError(
+                    f"Install {self.lora_model.repo_id}/{self.lora_model.path} LORA to use it (Recommended Models above)"
+                )
             self._pipeline.load_lora_weights(
-                LORA_WEIGHTS[self.lora_model]["repo"],
-                weight_name=LORA_WEIGHTS[self.lora_model]["weight_name"],
-                adapter_name=self.lora_model.value,
+                cache_path,
+                weight_name=self.lora_model.path,
+                adapter_name="default",
             )
 
     def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
@@ -2546,14 +2363,19 @@ class StableDiffusion(StableDiffusionBaseNode):
             )
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
+            await self._load_lora(context)
+            self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        self._load_lora()
         generator = self._setup_generator()
-        ip_adapter_image = await self._setup_ip_adapter(context)
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2681,15 +2503,20 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             model_id=self.controlnet.repo_id,
             controlnet=controlnet,
         )
+        self._load_ip_adapter()
+        await self._load_lora(context)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
         control_image = await context.image_to_pil(self.control_image)
-        ip_adapter_image = await self._setup_ip_adapter(context)
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
         generator = self._setup_generator()
-        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2704,6 +2531,8 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             generator=generator,
             callback=self.progress_callback(context),
             callback_steps=1,
+            ip_adapter_scale=self.ip_adapter_scale,
+            cross_attention_kwargs={"scale": self.lora_scale},
         ).images[  # type: ignore
             0
         ]  # type: ignore
@@ -2743,20 +2572,17 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
         return "Stable Diffusion (Img2Img)"
 
     async def initialize(self, context: ProcessingContext):
-        if self._pipeline is None:
-            self._pipeline = await self.load_model(
-                context,
-                StableDiffusionImg2ImgPipeline,
-                self.model.repo_id,
-                device=context.device,
-                torch_dtype=torch.float16,
-                safety_checker=None,
-            )
-            assert self._pipeline is not None
-            self._pipeline.enable_model_cpu_offload()
-        else:
-            await self.move_to_device(context.device)
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableDiffusionImg2ImgPipeline,
+            model_id=self.model.repo_id,
+            safety_checker=None,
+        )
+        assert self._pipeline is not None
+        self._pipeline.enable_model_cpu_offload()
         self._set_scheduler(self.scheduler)
+        await self._load_lora(context)
+        self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -2764,8 +2590,11 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
 
         generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
-        ip_adapter_image = await self._setup_ip_adapter(context)
-        self._load_lora()
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2774,6 +2603,8 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
             negative_prompt=self.negative_prompt,
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
+            ip_adapter_scale=self.ip_adapter_scale,
+            cross_attention_kwargs={"scale": self.lora_scale},
             width=init_image.width,
             height=init_image.height,
             strength=self.strength,
@@ -2849,17 +2680,21 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
         )
         assert self._pipeline is not None
         self._set_scheduler(self.scheduler)
+        await self._load_lora(context)
+        self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
-
         init_image = await context.image_to_pil(self.init_image)
         mask_image = await context.image_to_pil(self.mask_image)
         control_image = await context.image_to_pil(self.control_image)
-        ip_adapter_image = await self._setup_ip_adapter(context)
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
         generator = self._setup_generator()
-        self._load_lora()
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2873,6 +2708,8 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
             num_inference_steps=self.num_inference_steps,
             guidance_scale=self.guidance_scale,
             controlnet_conditioning_scale=self.controlnet_conditioning_scale,
+            ip_adapter_scale=self.ip_adapter_scale,
+            cross_attention_kwargs={"scale": self.lora_scale},
             generator=generator,
             callback=self.progress_callback(context),
             callback_steps=1,
@@ -2928,6 +2765,7 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
             assert self._pipeline is not None
             self._load_ip_adapter()
             self._set_scheduler(self.scheduler)
+            await self._load_lora(context)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -2936,8 +2774,11 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
         generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
         mask_image = await context.image_to_pil(self.mask_image)
-        ip_adapter_image = await self._setup_ip_adapter(context)
-        self._load_lora()
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -2951,6 +2792,8 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
             strength=self.strength,
             generator=generator,
             ip_adapter_image=ip_adapter_image,
+            ip_adapter_scale=self.ip_adapter_scale,
+            cross_attention_kwargs={"scale": self.lora_scale},
             callback=self.progress_callback(context),
             callback_steps=1,
         ).images[  # type: ignore
@@ -3001,6 +2844,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
             )
         if not context.is_huggingface_model_cached(self.model.repo_id):
             raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
+
         controlnet = ControlNetModel.from_pretrained(
             self.controlnet.repo_id, torch_dtype=torch.float16, local_files_only=True
         )
@@ -3012,6 +2856,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         )  # type: ignore
         self._pipeline.enable_model_cpu_offload()  # type: ignore
         self._set_scheduler(self.scheduler)
+        await self._load_lora(context)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -3019,8 +2864,11 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
 
         input_image = await context.image_to_pil(self.image)
         control_image = await context.image_to_pil(self.control_image)
-        ip_adapter_image = await self._setup_ip_adapter(context)
-        self._load_lora()
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
 
         generator = torch.Generator(device="cpu").manual_seed(self.seed)
 
@@ -3029,10 +2877,12 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
             image=input_image,
             control_image=control_image,
             ip_adapter_image=ip_adapter_image,
+            ip_adapter_scale=self.ip_adapter_scale,
             width=input_image.width,
             height=input_image.height,
             num_inference_steps=self.num_inference_steps,
             generator=generator,
+            cross_attention_kwargs={"scale": self.lora_scale},
             callback=self.progress_callback(context),
             callback_steps=1,
         ).images[  # type: ignore
@@ -3112,11 +2962,11 @@ class StableDiffusionUpscale(HuggingFacePipelineNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
+
         self._pipeline = await self.load_model(
             context=context,
             model_class=StableDiffusionUpscalePipeline,
             model_id="stabilityai/stable-diffusion-x4-upscaler",
-            variant="fp16",
         )
         assert self._pipeline is not None
         self._set_scheduler(self.scheduler)
@@ -3188,8 +3038,8 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
         default=StableDiffusionScheduler.DDIMScheduler,
         description="The scheduler to use for the diffusion process.",
     )
-    lora_model: LORA_SDXL_Model = Field(
-        default=LORA_SDXL_Model.NONE,
+    lora_model: HFLoraSDXL = Field(
+        default=HFLoraSDXL(),
         description="The LORA model to use for image processing",
     )
     lora_scale: float = Field(
@@ -3217,65 +3067,55 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
 
     @classmethod
     def get_recommended_models(cls):
-        return [
-            HFStableDiffusionXL(
-                repo_id="stabilityai/stable-diffusion-xl-base-1.0",
-                path="sd_xl_base_1.0.safetensors",
-            ),
-            HFStableDiffusionXL(
-                repo_id="stabilityai/stable-diffusion-xl-refiner-1.0",
-                path="sd_xl_refiner_1.0.safetensors",
-            ),
-            HFStableDiffusionXL(
-                repo_id="RunDiffusion/Juggernaut-XL-v9",
-                path="Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
-            ),
-            HFStableDiffusionXL(
-                repo_id="dataautogpt3/ProteusV0.5",
-                path="proteusV0.5.safetensors",
-            ),
-            HFStableDiffusionXL(
-                repo_id="Lykon/dreamshaper-xl-lightning",
-                path="DreamShaperXL_Lightning.safetensors",
-            ),
-            HFStableDiffusionXL(
-                repo_id="fofr/sdxl-emoji",
-            ),
-            HFIPAdapter(
-                repo_id="h94/IP-Adapter",
-                allow_patterns=[
-                    "models/*.safetensors",
-                ],
-            ),
-            HFLora(
-                repo_id="danbrown/sdxl-lora",
-                allow_patterns=[
-                    "models/*.safetensors",
-                ],
-            ),
-            HFControlNet(
-                repo_id="diffusers/controlnet-canny-sdxl-1.0",
-                allow_patterns=["*.fp16.safetensors"],
-            ),
-            HFControlNet(
-                repo_id="diffusers/controlnet-depth-sdxl-1.0",
-                allow_patterns=["*.fp16.safetensors"],
-            ),
-            HFControlNet(
-                repo_id="diffusers/controlnet-zoe-depth-sdxl-1.0",
-                allow_patterns=["*.fp16.safetensors"],
-            ),
-        ]
+        return (
+            [
+                HFIPAdapter(
+                    repo_id="h94/IP-Adapter",
+                    allow_patterns=[
+                        "models/*.safetensors",
+                    ],
+                )
+            ]
+            + HF_STABLE_DIFFUSION_XL_MODELS
+            + HF_LORA_SDXL_MODELS
+            + [
+                HFControlNet(
+                    repo_id="diffusers/controlnet-canny-sdxl-1.0",
+                    allow_patterns=["*.fp16.safetensors"],
+                ),
+                HFControlNet(
+                    repo_id="diffusers/controlnet-depth-sdxl-1.0",
+                    allow_patterns=["*.fp16.safetensors"],
+                ),
+                HFControlNet(
+                    repo_id="diffusers/controlnet-zoe-depth-sdxl-1.0",
+                    allow_patterns=["*.fp16.safetensors"],
+                ),
+            ]
+        )
 
     @classmethod
     def is_visible(cls) -> bool:
         return cls is not StableDiffusionXLBase
 
+    def should_skip_cache(self):
+        if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:
+            return True
+        if self.lora_model.repo_id != "":
+            return True
+        return False
+
     def _set_scheduler(self, scheduler_type: StableDiffusionScheduler):
         scheduler_class = get_scheduler_class(scheduler_type)
-        self._pipeline.scheduler = scheduler_class.from_config(
-            self._pipeline.scheduler.config
-        )
+        if "turbo" in self.model.repo_id:
+            self._pipeline.scheduler = scheduler_class.from_config(
+                self._pipeline.scheduler.config,
+                timestep_spacing="trailing",
+            )
+        else:
+            self._pipeline.scheduler = scheduler_class.from_config(
+                self._pipeline.scheduler.config,
+            )
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -3287,15 +3127,6 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
             generator = generator.manual_seed(self.seed)
         return generator
 
-    async def _setup_ip_adapter(self, context: ProcessingContext):
-        if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:
-            if not context.is_huggingface_model_cached("h94/IP-Adapter"):
-                raise ValueError(f"Model h94/IP-Adapter must be downloaded first")
-            assert not self.ip_adapter_image.is_empty()
-            self._load_ip_adapter()
-            return await context.image_to_pil(self.ip_adapter_image)
-        return None
-
     def _load_ip_adapter(self):
         if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:
             self._pipeline.load_ip_adapter(
@@ -3304,18 +3135,22 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
                 weight_name=self.ip_adapter_model.value,
             )
 
-    def _load_lora(self):
-        if self.lora_model != LORA_SDXL_Model.NONE:
-            if not context.is_huggingface_model_cached(
-                LORA_WEIGHTS[self.lora_model]["repo"]
-            ):
+    async def _load_lora(self, context: ProcessingContext):
+        if self.lora_model.repo_id != "" and self.lora_model.path is not None:
+            cache_path = try_to_load_from_cache(
+                self.lora_model.repo_id,
+                self.lora_model.path,
+            )
+            if cache_path is None:
                 raise ValueError(
-                    f"Model {LORA_WEIGHTS[self.lora_model]['repo']} must be downloaded first"
+                    f"Install {self.lora_model.repo_id}/{self.lora_model.path} LORA to use it (Recommended Models above)"
                 )
+
+            self._pipeline.__loras__ = {"default": self.lora_model.path}
             self._pipeline.load_lora_weights(
-                LORA_WEIGHTS[self.lora_model]["repo"],
-                weight_name=LORA_WEIGHTS[self.lora_model]["weight_name"],
-                adapter_name=self.lora_model.value,
+                self.lora_model.repo_id,
+                weight_name=self.lora_model.path,
+                adapter_name="default",
             )
 
     def progress_callback(self, context: ProcessingContext):
@@ -3353,23 +3188,27 @@ class StableDiffusionXL(StableDiffusionXLBase):
         return "Stable Diffusion XL"
 
     async def initialize(self, context: ProcessingContext):
-        if self._pipeline is None:
-            self._pipeline = await self.load_model(
-                context=context,
-                model_class=StableDiffusionXLPipeline,
-                model_id=self.model.repo_id,
-                path=self.model.path,
-            )
-            assert self._pipeline is not None
-            self._set_scheduler(self.scheduler)
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableDiffusionXLPipeline,
+            model_id=self.model.repo_id,
+            path=self.model.path,
+        )
+        assert self._pipeline is not None
+        self._set_scheduler(self.scheduler)
+        await self._load_lora(context)
+        self._load_ip_adapter()
 
     async def process(self, context) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
         generator = self._setup_generator()
-        self._load_lora()
-        ip_adapter_image = await self._setup_ip_adapter(context)
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -3487,6 +3326,8 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
         description="Strength for Image-to-Image generation.",
     )
 
+    _pipeline: StableDiffusionXLImg2ImgPipeline | None = None
+
     def required_inputs(self):
         return ["init_image"]
 
@@ -3495,26 +3336,27 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
         return "Stable Diffusion XL (Img2Img)"
 
     async def initialize(self, context: ProcessingContext):
-        if self._pipeline is None:
-            self._pipeline = await self.load_pipeline(
-                context,
-                DiffusionPipeline,
-                self.model.repo_id,
-                device=context.device,
-                variant="fp16",
-            )
-            assert self._pipeline is not None
-            self._set_scheduler(self.scheduler)
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableDiffusionXLImg2ImgPipeline,
+            model_id=self.model.repo_id,
+        )
+        assert self._pipeline is not None
+        self._set_scheduler(self.scheduler)
 
     async def process(self, context) -> ImageRef:
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        self._load_lora()
+        await self._load_lora(context)
         generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
         init_image = init_image.resize((self.width, self.height))
-        ip_adapter_image = await self._setup_ip_adapter(context)
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
 
         image = self._pipeline(
             prompt=self.prompt,
@@ -3529,7 +3371,9 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
             callback=self.progress_callback(context),
             callback_steps=1,
             generator=generator,
-        ).images[0]
+        ).images[
+            0
+        ]  # type: ignore
 
         return await context.image_from_pil(image)
 
@@ -3569,21 +3413,25 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
         return "Stable Diffusion XL (Inpainting)"
 
     @classmethod
-    def get_recommended_models(cls) -> list[str]:
+    def get_recommended_models(cls):
         return [
             HFStableDiffusionXL(
                 repo_id="stabilityai/stable-diffusion-xl-inpainting-0.1",
-                allow_patterns=["**/*.fp16.safetensors", "**/*.json", "**/*.txt"],
+                allow_patterns=[
+                    "**/*.fp16.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             )
         ]
 
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
             self._pipeline = await self.load_model(
-                context,
-                DiffusionPipeline,
-                self.model.repo_id,
-                device=context.device,
+                context=context,
+                model_class=AutoPipelineForInpainting,
+                model_id=self.model.repo_id,
             )
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
@@ -3595,7 +3443,12 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
         generator = self._setup_generator()
         input_image = await context.image_to_pil(self.image)
         mask_image = await context.image_to_pil(self.mask_image)
-        ip_adapter_image = await self._setup_ip_adapter(context)
+        mask_image = mask_image.resize((self.width, self.height))
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
 
         output = self._pipeline(
             prompt=self.prompt,
@@ -3659,22 +3512,16 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
     _pipeline: StableDiffusionXLControlNetPipeline | None = None
 
     async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached(self.control_model.value):
-            raise ValueError(
-                f"ControlNet model {self.control_model.value} must be downloaded first"
-            )
-        if not context.is_huggingface_model_cached(self.model.repo_id):
-            raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-
-        controlnet = ControlNetModel.from_pretrained(
-            self.control_model.value, torch_dtype=torch.float16
+        controlnet = self.load_model(
+            context=context,
+            model_class=ControlNetModel,
+            model_id=self.control_model.value,
         )
-        self._pipeline = StableDiffusionXLControlNetPipeline.from_pretrained(
-            self.model.repo_id,
-            controlnet=controlnet,
-            torch_dtype=torch.float16,
-            local_files_only=True,
-        )  # type: ignore
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableDiffusionXLControlNetPipeline,
+            model_id=self.model.repo_id,
+        )
 
         self._set_scheduler(self.scheduler)
 
@@ -3682,7 +3529,7 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        self._load_lora()
+        await self._load_lora(context)
         generator = self._setup_generator()
 
         control_image = await context.image_to_pil(self.control_image)
@@ -3693,7 +3540,11 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
         else:
             init_image = None
 
-        ip_adapter_image = await self._setup_ip_adapter(context)
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
 
         output = self._pipeline(
             prompt=self.prompt,
@@ -3712,414 +3563,3 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
         )
 
         return await context.image_from_pil(output.images[0])  # type: ignore
-
-
-class SDXLTurbo(HuggingFacePipelineNode):
-    """
-    Generates images from text prompts using SDXL Turbo.
-    image, generation, AI, text-to-image, fast
-
-    Use cases:
-    - Rapid prototyping of visual concepts
-    - Real-time image generation for interactive applications
-    - Quick visualization of ideas for brainstorming sessions
-    - Creating multiple variations of an image concept quickly
-    """
-
-    model: HFStableDiffusionXLTurbo = Field(
-        default=HFStableDiffusionXLTurbo(),
-        description="The SDXL Turbo model to use for generation.",
-    )
-    prompt: str = Field(default="", description="The prompt for image generation.")
-    seed: int = Field(
-        default=-1,
-        ge=-1,
-        le=1000000,
-        description="Seed for the random number generator.",
-    )
-    num_inference_steps: int = Field(
-        default=1, ge=1, le=50, description="Number of inference steps."
-    )
-    guidance_scale: float = Field(
-        default=0.0, ge=0.0, le=20.0, description="Guidance scale for generation."
-    )
-    width: int = Field(
-        default=1024, ge=64, le=2048, description="Width of the generated image."
-    )
-    height: int = Field(
-        default=1024, ge=64, le=2048, description="Height of the generated image"
-    )
-
-    _pipe: Any = None
-
-    @classmethod
-    def get_title(cls):
-        return "SDXL Turbo"
-
-    @classmethod
-    def get_recommended_models(cls) -> list[str]:
-        return [
-            HFStableDiffusionXLTurbo(
-                repo_id="stabilityai/sdxl-turbo",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
-            ),
-            HFStableDiffusionXLTurbo(
-                repo_id="Lykon/dreamshaper-xl-v2-turbo",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
-            ),
-        ]
-
-    async def initialize(self, context: ProcessingContext):
-        self._pipe = await self.load_model(
-            context,
-            DiffusionPipeline,
-            self.model.repo_id,
-            device=context.device,
-        )
-
-    async def move_to_device(self, device: str):
-        if self._pipe is not None:
-            self._pipe.to(device)
-
-    async def process(self, context) -> ImageRef:
-        if self._pipe is None:
-            raise ValueError("Pipeline not initialized")
-
-        # Set up the generator for reproducibility
-        generator = torch.Generator(device="cpu")
-        if self.seed != -1:
-            generator = generator.manual_seed(self.seed)
-
-        image = self._pipe(
-            prompt=self.prompt,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            width=self.width,
-            height=self.height,
-            callback=progress_callback(self.id, self.num_inference_steps, context),
-            callback_steps=1,
-            generator=generator,
-        ).images[0]
-
-        return await context.image_from_pil(image)
-
-
-class SDXLTurboImg2Img(BaseNode):
-    """
-    Transforms existing images based on text prompts using SDXL Turbo.
-    image, generation, AI, image-to-image
-
-    Use cases:
-    - Modifying existing images to fit a specific style or theme
-    - Enhancing or altering stock photos for unique marketing materials
-    - Transforming rough sketches into detailed illustrations
-    - Creating variations of existing artwork or designs
-    """
-
-    model: HFStableDiffusionXLTurbo = Field(
-        default=HFStableDiffusionXLTurbo(),
-        description="The SDXL Turbo model to use for generation.",
-    )
-    prompt: str = Field(default="", description="The prompt for image generation.")
-    init_image: ImageRef = Field(
-        default=ImageRef(),
-        description="The initial image for Image-to-Image generation.",
-    )
-    seed: int = Field(
-        default=-1,
-        ge=-1,
-        le=1000000,
-        description="Seed for the random number generator.",
-    )
-    num_inference_steps: int = Field(
-        default=4, ge=1, le=50, description="Number of inference steps."
-    )
-    guidance_scale: float = Field(
-        default=0.0, ge=0.0, le=20.0, description="Guidance scale for generation."
-    )
-    width: int = Field(
-        default=1024, ge=64, le=2048, description="Width of the generated image."
-    )
-    height: int = Field(
-        default=1024, ge=64, le=2048, description="Height of the generated image"
-    )
-    strength: float = Field(
-        default=0.8,
-        ge=0.0,
-        le=1.0,
-        description="Strength for Image-to-Image generation.",
-    )
-
-    _pipe: Any = None
-
-    @classmethod
-    def get_recommended_models(cls) -> list[str]:
-        return [
-            HFStableDiffusionXLTurbo(
-                repo_id="stabilityai/sdxl-turbo",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
-            ),
-            HFStableDiffusionXLTurbo(
-                repo_id="Lykon/dreamshaper-xl-v2-turbo",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
-            ),
-        ]
-
-    def required_inputs(self):
-        return ["init_image"]
-
-    @classmethod
-    def get_title(cls):
-        return "SD XL Turbo (Img2Img)"
-
-    async def initialize(self, context: ProcessingContext):
-        if self._pipe is None:
-            if not context.is_huggingface_model_cached(self.model.repo_id):
-                raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-            self._pipe = AutoPipelineForImage2Image.from_pretrained(
-                self.model.repo_id,
-                torch_dtype=torch.float16,
-                variant="fp16",
-            )
-
-    async def move_to_device(self, device: str):
-        if self._pipe is not None:
-            self._pipe.to(device)
-
-    async def process(self, context) -> ImageRef:
-        if self._pipe is None:
-            raise ValueError("Pipeline not initialized")
-
-        # Set up the generator for reproducibility
-        generator = torch.Generator(device="cpu")
-        if self.seed != -1:
-            generator = generator.manual_seed(self.seed)
-
-        init_image = await context.image_to_pil(self.init_image)
-        init_image = init_image.resize((self.width, self.height))
-
-        image = self._pipe(
-            prompt=self.prompt,
-            image=init_image,
-            num_inference_steps=self.num_inference_steps,
-            strength=self.strength,
-            guidance_scale=self.guidance_scale,
-            callback=progress_callback(self.id, self.num_inference_steps, context),
-            callback_steps=1,
-            generator=generator,
-        ).images[0]
-
-        return await context.image_from_pil(image)
-
-
-class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
-    """
-    Generates images using Stable Diffusion XL with ControlNet.
-    image, generation, AI, text-to-image, controlnet
-
-    Use cases:
-    - Generate high-quality images with precise control over structures and features
-    - Create variations of existing images while maintaining specific characteristics
-    - Artistic image generation with guided outputs based on various control types
-    """
-
-    class StableDiffusionXLControlNetModel(str, Enum):
-        CANNY = "diffusers/controlnet-canny-sdxl-1.0"
-        DEPTH = "diffusers/controlnet-depth-sdxl-1.0"
-        POSE = "diffusers/controlnet-openpose-sdxl-1.0"
-        NORMAL = "diffusers/controlnet-normal-sdxl-1.0"
-
-    control_image: ImageRef = Field(
-        default=ImageRef(),
-        description="The control image to guide the generation process (already processed).",
-    )
-    control_model: StableDiffusionXLControlNetModel = Field(
-        default=StableDiffusionXLControlNetModel.CANNY,
-        description="The type of ControlNet model to use.",
-    )
-    controlnet_conditioning_scale: float = Field(
-        default=0.5,
-        description="The scale of the ControlNet conditioning.",
-        ge=0.0,
-        le=2.0,
-    )
-
-    def required_inputs(self):
-        return ["control_image"]
-
-    @classmethod
-    def get_title(cls):
-        return "Stable Diffusion XL ControlNet"
-
-    _pipeline: StableDiffusionXLControlNetPipeline | None = None
-
-    async def initialize(self, context: ProcessingContext):
-        if not context.is_huggingface_model_cached(self.control_model.value):
-            raise ValueError(
-                f"ControlNet model {self.control_model.value} must be downloaded first"
-            )
-        if not context.is_huggingface_model_cached(self.model.repo_id):
-            raise ValueError(f"Model {self.model.repo_id} must be downloaded first")
-
-        controlnet = ControlNetModel.from_pretrained(
-            self.control_model.value, torch_dtype=torch.float16
-        )
-        vae = AutoencoderKL.from_pretrained(
-            "madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16
-        )
-        self._pipeline = StableDiffusionXLControlNetPipeline.from_pretrained(
-            self.model.repo_id,
-            controlnet=controlnet,
-            vae=vae,
-            torch_dtype=torch.float16,
-        )  # type: ignore
-
-        self._set_scheduler(self.scheduler)
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
-        self._load_lora()
-        generator = self._setup_generator()
-
-        control_image = await context.image_to_pil(self.control_image)
-
-        if not self.init_image.is_empty():
-            init_image = await context.image_to_pil(self.init_image)
-            init_image = init_image.resize((self.width, self.height))
-        else:
-            init_image = None
-
-        ip_adapter_image = await self._setup_ip_adapter(context)
-
-        output = self._pipeline(
-            prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
-            init_image=init_image,
-            image=control_image,
-            strength=self.strength,
-            ip_adapter_image=ip_adapter_image,
-            ip_adapter_scale=self.ip_adapter_scale,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            controlnet_conditioning_scale=self.controlnet_conditioning_scale,
-            num_inference_steps=self.num_inference_steps,
-            generator=generator,
-            callback=self.progress_callback(context),
-            callback_steps=1,
-        )
-
-        return await context.image_from_pil(output.images[0])  # type: ignore
-
-
-class LatentConsistencyModel(StableDiffusionXLBase):
-    """
-    Generates images using the Latent Consistency Model.
-    image, generation, AI, diffusion
-
-    Use cases:
-    - Create AI-generated art and illustrations
-    - Produce concept art for creative projects
-    - Generate visual content for various applications
-    - Explore AI-assisted image creation
-    """
-
-    num_inference_steps: int = Field(
-        default=4,
-        description="Number of denoising steps. LCM supports fast inference even with <=4 steps. Recommended: 1-8 steps.",
-        ge=1,
-        le=50,
-    )
-
-    _unet: UNet2DConditionModel | None = None
-    _pipeline: DiffusionPipeline | None = None
-
-    @classmethod
-    def get_title(cls):
-        return "Latent Consistency Model"
-
-    @classmethod
-    def get_recommended_models(cls) -> list[str]:
-        return [
-            HFStableDiffusionXLTurbo(
-                repo_id="latent-consistency/lcm-sdxl",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
-            )
-        ]
-
-    async def initialize(self, context: ProcessingContext):
-        self._unet = UNet2DConditionModel.from_pretrained(
-            "latent-consistency/lcm-sdxl", torch_dtype=torch.float16, variant="fp16"
-        )  # type: ignore
-        self._pipeline = DiffusionPipeline.from_pretrained(
-            self.model.repo_id,
-            unet=self._unet,
-            torch_dtype=torch.float16,
-            variant="fp16",
-        )
-        self._set_scheduler(self.scheduler)
-        self._pipeline.scheduler = LCMScheduler.from_config(self._pipeline.scheduler.config)  # type: ignore
-
-    async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device, dtype=torch.float16)
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
-        generator = self._setup_generator()
-        self._load_lora()
-        ip_adapter_image = await self._setup_ip_adapter(context)
-
-        def progress_callback(
-            step: int, timestep: int, latents: torch.FloatTensor
-        ) -> None:
-            context.post_message(
-                NodeProgress(
-                    node_id=self.id,
-                    progress=step,
-                    total=self.num_inference_steps,
-                )
-            )
-
-        image = self._pipeline(
-            prompt=self.prompt,
-            width=self.width,
-            height=self.height,
-            ip_adapter_image=ip_adapter_image,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            generator=generator,
-            callback=progress_callback,
-            callback_steps=1,
-        ).images[  # type: ignore
-            0
-        ]
-
-        return await context.image_from_pil(image)

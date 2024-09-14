@@ -7,6 +7,7 @@ from typing import Any
 from nodetool.model_manager import ModelManager
 from huggingface_hub.file_download import try_to_load_from_cache
 from typing import Any, TypeVar
+from diffusers import DiffusionPipeline  # type: ignore
 
 T = TypeVar("T")
 
@@ -18,6 +19,9 @@ class HuggingFacePipelineNode(HuggingfaceNode):
 
     _pipeline: Pipeline | None = None
 
+    def should_skip_cache(self):
+        return False
+
     async def load_pipeline(
         self,
         context: ProcessingContext,
@@ -27,6 +31,8 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         torch_dtype: torch.dtype = torch.float16,
         **kwargs: Any,
     ) -> T:
+        if model_id == "":
+            raise ValueError("Please select a model")
         cached_model = ModelManager.get_model(model_id, pipeline_task)
         if cached_model:
             return cached_model
@@ -45,7 +51,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             **kwargs,
         )
         ModelManager.set_model(model_id, pipeline_task, model)
-        return model
+        return model  # type: ignore
 
     async def load_model(
         self,
@@ -55,11 +61,13 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         variant: str | None = "fp16",
         torch_dtype: torch.dtype = torch.float16,
         path: str | None = None,
+        skip_cache: bool = False,
         **kwargs: Any,
     ) -> T:
-        cached_model = ModelManager.get_model(model_id, model_class.__name__)
-        if cached_model:
-            return cached_model
+        if not skip_cache and not self.should_skip_cache():
+            cached_model = ModelManager.get_model(model_id, model_class.__name__, path)
+            if cached_model:
+                return cached_model
 
         if path:
             cache_path = try_to_load_from_cache(model_id, path)
@@ -81,7 +89,8 @@ class HuggingFacePipelineNode(HuggingfaceNode):
                 variant=variant,
                 **kwargs,
             )
-        ModelManager.set_model(model_id, model_class.__name__, model)
+
+        ModelManager.set_model(model_id, model_class.__name__, model, path)
         return model
 
     async def move_to_device(self, device: str):

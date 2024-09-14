@@ -18,6 +18,7 @@ from nodetool.metadata.types import (
     pipeline_tag_to_model_type,
 )
 import ollama
+from huggingface_hub import try_to_load_from_cache
 from nodetool.api.utils import current_user
 from nodetool.models.user import User
 from fastapi import APIRouter, Depends
@@ -92,6 +93,15 @@ async def get_huggingface_models(
     user: User = Depends(current_user),
 ) -> list[CachedModel]:
     return await read_all_cached_models()
+
+
+@router.get("/huggingface/try_cache_file")
+async def get_huggingface_lora_sd(
+    repo_id: str,
+    path: str,
+    user: User = Depends(current_user),
+) -> bool:
+    return try_to_load_from_cache(repo_id, path) is not None
 
 
 @router.delete("/huggingface_model")
