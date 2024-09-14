@@ -23,7 +23,7 @@ import {
   DialogTitle
 } from "@mui/material";
 import axios from "axios";
-import { CachedModel, HuggingFaceModel } from "../../stores/ApiTypes";
+import { CachedModel } from "../../stores/ApiTypes";
 
 type OllamaModel = {
   name: string;
@@ -153,6 +153,10 @@ const styles = (theme: any) =>
     },
     button: {
       color: theme.palette.c_gray5
+    },
+    ".model-type-button span": {
+      display: "flex",
+      alignItems: "center"
     }
   });
 
@@ -179,12 +183,8 @@ const ModelList: React.FC = () => {
     }
   });
 
-  // Add this new query for Ollama models
-  const {
-    data: ollamaModels,
-    isLoading: ollamaLoading,
-    error: ollamaError
-  } = useQuery({
+  // ollama query
+  const { data: ollamaModels, isLoading: ollamaLoading } = useQuery({
     queryKey: ["ollamaModels"],
     queryFn: async () => {
       const response = await axios.get("http://localhost:11434/api/tags");
@@ -197,8 +197,26 @@ const ModelList: React.FC = () => {
     [hfModels]
   );
   const modelTypes = useMemo(() => {
-    const types = Object.keys(groupedHFModels);
-    return ["All", ...types.sort(), "Ollama"];
+    const types = new Set<string>();
+
+    // hf
+    Object.keys(groupedHFModels).forEach((key) => {
+      if (key.startsWith("hf.")) {
+        types.add(key);
+      }
+    });
+
+    types.add("Ollama");
+    types.add("Other");
+
+    return [
+      "All",
+      ...Array.from(types).sort((a, b) => {
+        if (a.startsWith("hf.") && !b.startsWith("hf.")) return -1;
+        if (!a.startsWith("hf.") && b.startsWith("hf.")) return 1;
+        return a.localeCompare(b);
+      })
+    ];
   }, [groupedHFModels]);
 
   const handleModelTypeChange = useCallback((newValue: string) => {
@@ -207,7 +225,9 @@ const ModelList: React.FC = () => {
 
   const filteredModels = useMemo(() => {
     if (selectedModelType === "All") {
-      return groupedHFModels;
+      return {
+        All: [...Object.values(groupedHFModels).flat(), ...(ollamaModels || [])]
+      };
     } else if (selectedModelType === "Ollama") {
       return { Ollama: ollamaModels || [] };
     } else {
@@ -292,6 +312,7 @@ const ModelList: React.FC = () => {
         <List>
           {modelTypes.map((type) => (
             <ListItemButton
+              className="model-type-button"
               key={type}
               selected={selectedModelType === type}
               onClick={() => handleModelTypeChange(type)}
@@ -313,83 +334,95 @@ const ModelList: React.FC = () => {
           <Typography color="success">Model deleted successfully</Typography>
         )}
 
-        {Object.entries(filteredModels).map(([modelType, models]) => (
-          <Box key={modelType} mt={2}>
-            <Typography variant="h2">{prettifyModelType(modelType)}</Typography>
-            <Grid container spacing={3}>
-              {models.map((model: CachedModel | OllamaModel) => (
-                <Grid
-                  item
-                  xs={12}
-                  sm={12}
-                  md={6}
-                  lg={4}
-                  xl={3}
-                  key={"repo_id" in model ? model.repo_id : model.name}
-                >
-                  <ModelCard
-                    model={{
-                      id: "repo_id" in model ? model.repo_id : model.name,
-                      type: "repo_id" in model ? "hf.model" : "llama_model",
-                      name:
-                        "repo_id" in model
-                          ? model.repo_id
-                          : `${model.details.family} - ${model.details.parameter_size}`,
-                      description: "",
-                      size_on_disk:
-                        "size_on_disk" in model
-                          ? model.size_on_disk
-                          : model.size
-                    }}
-                    handleDelete={
-                      "repo_id" in model ? handleDeleteClick : () => {}
-                    }
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        ))}
-
-        {(selectedModelType === "Ollama" || selectedModelType === "All") && (
-          <>
-            <Typography
-              variant="h2"
-              mt={4}
-              sx={{ display: "flex", alignItems: "center" }}
-            >
-              <img
-                src="/ollama.png"
-                alt="Ollama"
-                width={16}
-                style={{ filter: "invert(1)", marginRight: "8px" }}
-              />
-              Ollama Models
+        {selectedModelType === "All" ? (
+          modelTypes.slice(1).map((modelType) => (
+            <Box key={modelType} mt={2}>
+              <Typography variant="h2">
+                {prettifyModelType(modelType)}
+              </Typography>
+              <Grid container spacing={3}>
+                {(modelType === "Ollama"
+                  ? ollamaModels || []
+                  : groupedHFModels[modelType] || []
+                ).map((model: CachedModel | OllamaModel) => (
+                  <Grid
+                    item
+                    xs={12}
+                    sm={12}
+                    md={6}
+                    lg={4}
+                    xl={3}
+                    key={"repo_id" in model ? model.repo_id : model.name}
+                  >
+                    <ModelCard
+                      model={{
+                        id: "repo_id" in model ? model.repo_id : model.name,
+                        type:
+                          "repo_id" in model
+                            ? model.model_type || "hf.model"
+                            : "Ollama",
+                        name:
+                          "repo_id" in model
+                            ? model.repo_id
+                            : `${model.details.family} - ${model.details.parameter_size}`,
+                        description: "",
+                        size_on_disk:
+                          "size_on_disk" in model
+                            ? model.size_on_disk
+                            : model.size
+                      }}
+                      handleDelete={
+                        "repo_id" in model ? handleDeleteClick : () => {}
+                      }
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          ))
+        ) : (
+          <Box mt={2}>
+            <Typography variant="h2">
+              {prettifyModelType(selectedModelType)}
             </Typography>
             <Grid container spacing={3}>
-              {ollamaModels?.map((model) => (
-                <Grid
-                  item
-                  xs={12}
-                  sm={12}
-                  md={6}
-                  lg={4}
-                  xl={3}
-                  key={model.name}
-                >
-                  <ModelCard
-                    model={{
-                      id: model.name,
-                      type: "llama_model",
-                      name: `${model.details.family} - ${model.details.parameter_size}`,
-                      size_on_disk: model.size
-                    }}
-                    handleDelete={() => {}} // Implement delete functionality for Ollama models if needed
-                  />
-                </Grid>
-              ))}
+              {Object.entries(filteredModels).map(([modelType, models]) =>
+                models.map((model: CachedModel | OllamaModel) => (
+                  <Grid
+                    item
+                    xs={12}
+                    sm={12}
+                    md={6}
+                    lg={4}
+                    xl={3}
+                    key={"repo_id" in model ? model.repo_id : model.name}
+                  >
+                    <ModelCard
+                      model={{
+                        id: "repo_id" in model ? model.repo_id : model.name,
+                        type:
+                          "repo_id" in model
+                            ? model.model_type || "hf.model"
+                            : "Ollama",
+                        name:
+                          "repo_id" in model
+                            ? model.repo_id
+                            : `${model.details.family} - ${model.details.parameter_size}`,
+                        description: "",
+                        size_on_disk:
+                          "size_on_disk" in model
+                            ? model.size_on_disk
+                            : model.size
+                      }}
+                      handleDelete={
+                        "repo_id" in model ? handleDeleteClick : () => {}
+                      }
+                    />
+                  </Grid>
+                ))
+              )}
             </Grid>
-          </>
+          </Box>
         )}
 
         <Dialog

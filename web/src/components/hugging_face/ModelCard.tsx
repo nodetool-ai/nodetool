@@ -201,11 +201,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const downloaded = model.size_on_disk && model.size_on_disk > 0;
 
-  const {
-    data: modelData,
-    isLoading,
-    error: modelInfoError
-  } = useQuery({
+  const { data: modelData, isLoading } = useQuery({
     queryKey: ["modelInfo", model.id],
     queryFn: () => {
       if (isHuggingFace) {
@@ -214,7 +210,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
         return fetchOllamaModelInfo(model.id);
       }
       return null;
-    }
+    },
+    staleTime: Infinity,
+    gcTime: 1000 * 60
   });
 
   const toggleTags = () => {
@@ -337,7 +335,12 @@ const ModelCard: React.FC<ModelCardProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <img src="/ollama.png" alt="Ollama" width={16} />
+                <img
+                  src="/ollama.png"
+                  alt="Ollama"
+                  width={16}
+                  style={{ filter: "invert(1)" }}
+                />
               </Button>
             </Tooltip>
           )}
