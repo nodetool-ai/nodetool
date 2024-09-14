@@ -67,9 +67,6 @@ export default memo(
     // Global settings and stores
     const secrets = useRemoteSettingsStore((state) => state.secrets);
     const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
-    const hasInstalledModels = useModelStore(
-      (state) => state.hasInstalledModels
-    );
     const { startDownload, openDialog } = useModelDownloadStore();
 
     // Node-specific data and relationships
@@ -161,9 +158,6 @@ export default memo(
     const node_title = titleize(nodeMetadata?.title || "");
     const node_namespace = nodeMetadata?.namespace || "";
     const node_outputs = nodeMetadata?.outputs || [];
-    const modelType = nodeMetadata?.properties.find((p) =>
-      p.type.type.includes("model")
-    )?.type.type;
     const firstOutput =
       node_outputs.length > 0
         ? node_outputs[0]
@@ -182,17 +176,15 @@ export default memo(
               id: model.repo_id || "",
               name: model.repo_id || "",
               type: model.type || "hf.model",
-              ...model
+              path: model.path ?? null,
+              allow_patterns: model.allow_patterns ?? undefined,
+              ignore_patterns: model.ignore_patterns ?? undefined
             }))
           : node_namespace.startsWith("ollama.")
           ? llama_models
           : [],
       [nodeMetadata?.recommended_models, node_namespace]
     );
-    const hasRelevantInstalledModels = modelType
-      ? hasInstalledModels(modelType)
-      : false;
-
     // API key validation
     const missingAPIKeys = useMemo(() => {
       if (node_namespace.startsWith("openai.")) {
@@ -257,7 +249,6 @@ export default memo(
             {!isProduction && (
               <ModelRecommendations
                 recommendedModels={recommendedModels}
-                hasRelevantInstalledModels={hasRelevantInstalledModels}
                 openModelDialog={openModelDialog}
                 handleOpenModelDialog={handleOpenModelDialog}
                 handleCloseModelDialog={handleCloseModelDialog}

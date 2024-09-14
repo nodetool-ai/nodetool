@@ -7,12 +7,14 @@ from nodetool.metadata.types import (
     FunctionModel,
     GPTModel,
     AnthropicModel,
+    ModelFile,
     Provider,
     FunctionModel,
     Provider,
     FunctionModel,
     HuggingFaceModel,
     LlamaModel,
+    comfy_model_to_folder,
     pipeline_tag_to_model_type,
 )
 import ollama
@@ -82,14 +84,14 @@ def get_recommended_models() -> dict[str, list[HuggingFaceModel]]:
 async def recommended_models(
     user: User = Depends(current_user),
 ) -> list[HuggingFaceModel]:
-    return list(get_recommended_models().values())
+    return list(get_recommended_models().values())  # type: ignore
 
 
 @router.get("/huggingface_models")
 async def get_huggingface_models(
     user: User = Depends(current_user),
 ) -> list[CachedModel]:
-    return read_all_cached_models()
+    return await read_all_cached_models()
 
 
 @router.delete("/huggingface_model")
@@ -100,8 +102,9 @@ async def delete_huggingface_model(repo_id: str) -> bool:
     return delete_cached_model(repo_id)
 
 
-@router.get("/{folder}")
-async def index(folder: str, user: User = Depends(current_user)) -> list[str]:
+@router.get("/{model_type}")
+async def index(model_type: str, user: User = Depends(current_user)) -> list[ModelFile]:
+    folder = comfy_model_to_folder(model_type)
     worker_client = Environment.get_worker_api_client()
     if worker_client:
         res = await worker_client.get(f"/models/{folder}")
@@ -109,4 +112,6 @@ async def index(folder: str, user: User = Depends(current_user)) -> list[str]:
     else:
         import folder_paths
 
-        return folder_paths.get_filename_list(folder)
+        files = folder_paths.get_filename_list(folder)
+
+        return [ModelFile(type=folder, name=file) for file in files]

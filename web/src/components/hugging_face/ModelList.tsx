@@ -1,8 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState } from "react";
-import { Box, Button, CircularProgress, Grid, Typography } from "@mui/material";
+import React, { useState, useMemo, useCallback } from "react";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Grid,
+  Typography,
+  List,
+  ListItem,
+  ListItemText
+} from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import ModelCard from "./ModelCard";
@@ -13,8 +22,8 @@ import {
   DialogContentText,
   DialogTitle
 } from "@mui/material";
-import { devError } from "../../utils/DevLog";
 import axios from "axios";
+import { CachedModel, HuggingFaceModel } from "../../stores/ApiTypes";
 
 // Add this new type definition
 type OllamaModel = {
@@ -31,12 +40,32 @@ type OllamaModel = {
   };
 };
 
+const groupModelsByType = (models: CachedModel[]) => {
+  return models.reduce((acc, model) => {
+    const type = model.model_type || "Other";
+    if (!acc[type]) {
+      acc[type] = [];
+    }
+    acc[type].push(model);
+    return acc;
+  }, {} as Record<string, CachedModel[]>);
+};
+
 const styles = (theme: any) =>
   css({
-    "&.huggingface-model-list": {
-      height: "80vh",
+    "&": {
+      display: "flex",
+      flexDirection: "row"
+    },
+    ".sidebar": {
+      width: "20%",
+      borderRight: `1px solid ${theme.palette.divider}`,
+      overflowY: "auto"
+    },
+    ".content": {
+      width: "80%",
+      flexGrow: 1,
       overflowY: "auto",
-      backgroundColor: theme.palette.c_gray1,
       padding: theme.spacing(2),
       paddingBottom: "4em"
     },
@@ -70,6 +99,8 @@ const ModelList: React.FC = () => {
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  const [selectedModelType, setSelectedModelType] = useState<string>("All");
+
   const {
     data: hfModels,
     isLoading: hfLoading,
@@ -98,6 +129,29 @@ const ModelList: React.FC = () => {
       return response.data.models as OllamaModel[];
     }
   });
+
+  const groupedHFModels = useMemo(
+    () => groupModelsByType(hfModels || []),
+    [hfModels]
+  );
+  const modelTypes = useMemo(
+    () => ["All", ...Object.keys(groupedHFModels), "Ollama"],
+    [groupedHFModels]
+  );
+
+  const handleModelTypeChange = useCallback((newValue: string) => {
+    setSelectedModelType(newValue);
+  }, []);
+
+  const filteredModels = useMemo(() => {
+    if (selectedModelType === "All") {
+      return groupedHFModels;
+    } else if (selectedModelType === "Ollama") {
+      return { Ollama: ollamaModels || [] };
+    } else {
+      return { [selectedModelType]: groupedHFModels[selectedModelType] || [] };
+    }
+  }, [selectedModelType, groupedHFModels, ollamaModels]);
 
   // delete mutation
   const deleteHFModel = async (repoId: string) => {
@@ -140,14 +194,24 @@ const ModelList: React.FC = () => {
 
   if (hfLoading || ollamaLoading) {
     return (
-      <>
+      <Box
+        sx={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          textAlign: "center"
+        }}
+      >
         <CircularProgress />
-        <Typography variant="h4">Loading models</Typography>
-      </>
+        <Typography variant="h4" mt={2}>
+          Loading models
+        </Typography>
+      </Box>
     );
   }
 
-  if (hfError || ollamaError) {
+  if (hfError) {
     return (
       <>
         <Typography variant="h3">Could not load models.</Typography>
@@ -156,82 +220,131 @@ const ModelList: React.FC = () => {
             HuggingFace Error: {hfError.message}
           </Typography>
         )}
-        {ollamaError && (
-          <Typography variant="body2" color="error">
-            Ollama Error: {(ollamaError as Error).message}
-          </Typography>
-        )}
       </>
     );
   }
 
   return (
     <Box className="huggingface-model-list" css={styles}>
-      <Typography variant="h5">Existing Models</Typography>
-      {deleteHFModelMutation.isPending && <CircularProgress />}
-      {deleteHFModelMutation.isError && (
-        <Typography color="error">
-          {deleteHFModelMutation.error.message}
-        </Typography>
-      )}
-      {deleteHFModelMutation.isSuccess && (
-        <Typography color="success">Model deleted successfully</Typography>
-      )}
-      <Grid container spacing={3}>
-        {hfModels?.map((model) => (
-          <Grid item xs={12} sm={12} md={6} lg={4} xl={3} key={model.repo_id}>
-            {model.repo_id !== "" && (
-              <>
-                <ModelCard
-                  model={{
-                    id: model.repo_id,
-                    type: "hf.model",
-                    name: model.repo_id,
-                    description: "",
-                    size_on_disk: model.size_on_disk
-                  }}
-                  handleDelete={handleDeleteClick}
-                />
-              </>
-            )}
-          </Grid>
-        ))}
-        {ollamaModels?.map((model) => (
-          <Grid item xs={12} sm={12} md={6} lg={4} xl={3} key={model.name}>
-            <ModelCard
-              model={{
-                id: model.name,
-                type: "llama_model",
-                name: `${model.details.family} - ${model.details.parameter_size}`,
-                size_on_disk: model.size
-              }}
-              handleDelete={() => {}} // Implement delete functionality for Ollama models if needed
-            />
-          </Grid>
-        ))}
-      </Grid>
+      <Box className="sidebar">
+        <List>
+          {modelTypes.map((type) => (
+            <ListItem
+              button
+              key={type}
+              selected={selectedModelType === type}
+              onClick={() => handleModelTypeChange(type)}
+            >
+              <ListItemText primary={type} />
+            </ListItem>
+          ))}
+        </List>
+      </Box>
 
-      <Dialog
-        open={!!modelToDelete}
-        onClose={handleCancelDelete}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">{"Confirm Deletion"}</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            Delete {modelToDelete}?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelDelete}>Cancel</Button>
-          <Button onClick={handleConfirmDelete} autoFocus>
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Box className="content">
+        {deleteHFModelMutation.isPending && <CircularProgress />}
+        {deleteHFModelMutation.isError && (
+          <Typography color="error">
+            {deleteHFModelMutation.error.message}
+          </Typography>
+        )}
+        {deleteHFModelMutation.isSuccess && (
+          <Typography color="success">Model deleted successfully</Typography>
+        )}
+
+        {Object.entries(filteredModels).map(([modelType, models]) => (
+          <Box key={modelType} mt={2}>
+            <Typography variant="h2">{modelType}</Typography>
+            <Grid container spacing={3}>
+              {models.map((model: CachedModel | OllamaModel) => (
+                <Grid
+                  item
+                  xs={12}
+                  sm={12}
+                  md={6}
+                  lg={4}
+                  xl={3}
+                  key={"repo_id" in model ? model.repo_id : model.name}
+                >
+                  <ModelCard
+                    model={{
+                      id: "repo_id" in model ? model.repo_id : model.name,
+                      type: "repo_id" in model ? "hf.model" : "llama_model",
+                      name:
+                        "repo_id" in model
+                          ? model.repo_id
+                          : `${model.details.family} - ${model.details.parameter_size}`,
+                      description: "",
+                      size_on_disk:
+                        "size_on_disk" in model
+                          ? model.size_on_disk
+                          : model.size
+                    }}
+                    handleDelete={
+                      "repo_id" in model ? handleDeleteClick : () => {}
+                    }
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        ))}
+
+        {(selectedModelType === "Ollama" || selectedModelType === "All") && (
+          <>
+            <Typography variant="h1" mt={4}>
+              Ollama Models
+            </Typography>
+            <Grid container spacing={3}>
+              {ollamaModels?.map((model) => (
+                <Grid
+                  item
+                  xs={12}
+                  sm={12}
+                  md={6}
+                  lg={4}
+                  xl={3}
+                  key={model.name}
+                >
+                  <ModelCard
+                    model={{
+                      id: model.name,
+                      type: "llama_model",
+                      name: `${model.details.family} - ${model.details.parameter_size}`,
+                      size_on_disk: model.size
+                    }}
+                    handleDelete={() => {}} // Implement delete functionality for Ollama models if needed
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </>
+        )}
+
+        <Dialog
+          open={!!modelToDelete}
+          onClose={handleCancelDelete}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">
+            {"Confirm Deletion"}
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Delete {modelToDelete}?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCancelDelete}>Cancel</Button>
+            <Button onClick={handleConfirmDelete} autoFocus>
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </Box>
   );
 };
 
-export default ModelList;
+export default React.memo(ModelList);

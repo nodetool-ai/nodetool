@@ -44,6 +44,8 @@ export type FunctionModel = components["schemas"]["FunctionModel"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type Task = components["schemas"]["Task"];
 export type CachedModel = components["schemas"]["CachedModel"];
+export type ModelFile = components["schemas"]["ModelFile"];
+export type ModelInfo = components["schemas"]["ModelInfo"];
 export type SettingsModel = components["schemas"]["SettingsModel"];
 export type SecretsModel = components["schemas"]["SecretsModel"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
@@ -58,6 +60,7 @@ export interface UnifiedModel {
   type: string;
   name: string;
   repo_id?: string;
+  path?: string | null;
   allow_patterns?: string[];
   ignore_patterns?: string[];
   description?: string;

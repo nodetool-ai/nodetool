@@ -3,6 +3,7 @@
  * Do not make direct changes to the file.
  */
 
+
 export interface paths {
   "/api/assets/": {
     /**
@@ -223,9 +224,9 @@ export interface paths {
     /** Delete Huggingface Model */
     delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
   };
-  "/api/models/{folder}": {
+  "/api/models/{model_type}": {
     /** Index */
-    get: operations["index_api_models__folder__get"];
+    get: operations["index_api_models__model_type__get"];
   };
   "/api/settings/": {
     /** Get Settings */
@@ -351,10 +352,9 @@ export interface components {
       repo_type: string;
       /** Size On Disk */
       size_on_disk: number;
-      /** Pipeline Tag */
-      pipeline_tag?: string | null;
       /** Model Type */
       model_type?: string | null;
+      model_info?: components["schemas"]["ModelInfo"] | null;
     };
     /** ColumnDef */
     ColumnDef: {
@@ -475,16 +475,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFAudioToAudio */
     HFAudioToAudio: {
@@ -500,16 +496,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFAutomaticSpeechRecognition */
     HFAutomaticSpeechRecognition: {
@@ -525,16 +517,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFComputerVision */
     HFComputerVision: {
@@ -550,16 +538,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFDepthEstimation */
     HFDepthEstimation: {
@@ -575,16 +559,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFDocumentQuestionAnswering */
     HFDocumentQuestionAnswering: {
@@ -600,16 +580,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFFeatureExtraction */
     HFFeatureExtraction: {
@@ -625,16 +601,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFFillMask */
     HFFillMask: {
@@ -650,16 +622,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFImageClassification */
     HFImageClassification: {
@@ -675,16 +643,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFImageFeatureExtraction */
     HFImageFeatureExtraction: {
@@ -700,16 +664,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFImageSegmentation */
     HFImageSegmentation: {
@@ -725,16 +685,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFImageTextToText */
     HFImageTextToText: {
@@ -750,16 +706,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFImageTo3D */
     HFImageTo3D: {
@@ -775,16 +727,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFImageToImage */
     HFImageToImage: {
@@ -800,16 +748,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFImageToText */
     HFImageToText: {
@@ -825,16 +769,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFImageToVideo */
     HFImageToVideo: {
@@ -850,16 +790,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFMaskGeneration */
     HFMaskGeneration: {
@@ -875,16 +811,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFNaturalLanguageProcessing */
     HFNaturalLanguageProcessing: {
@@ -900,16 +832,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFObjectDetection */
     HFObjectDetection: {
@@ -925,16 +853,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFQuestionAnswering */
     HFQuestionAnswering: {
@@ -950,16 +874,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFSentenceSimilarity */
     HFSentenceSimilarity: {
@@ -975,16 +895,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFStableDiffusion */
     HFStableDiffusion: {
@@ -1000,16 +916,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFStableDiffusionXL */
     HFStableDiffusionXL: {
@@ -1025,16 +937,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFSummarization */
     HFSummarization: {
@@ -1050,16 +958,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTableQuestionAnswering */
     HFTableQuestionAnswering: {
@@ -1075,16 +979,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFText2TextGeneration */
     HFText2TextGeneration: {
@@ -1100,16 +1000,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTextClassification */
     HFTextClassification: {
@@ -1125,16 +1021,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTextGeneration */
     HFTextGeneration: {
@@ -1150,16 +1042,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTextTo3D */
     HFTextTo3D: {
@@ -1175,16 +1063,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTextToAudio */
     HFTextToAudio: {
@@ -1200,16 +1084,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTextToImage */
     HFTextToImage: {
@@ -1225,16 +1105,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTextToSpeech */
     HFTextToSpeech: {
@@ -1250,16 +1126,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTextToVideo */
     HFTextToVideo: {
@@ -1275,16 +1147,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTokenClassification */
     HFTokenClassification: {
@@ -1300,16 +1168,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFTranslation */
     HFTranslation: {
@@ -1325,16 +1189,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFUnconditionalImageGeneration */
     HFUnconditionalImageGeneration: {
@@ -1350,16 +1210,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFVideoClassification */
     HFVideoClassification: {
@@ -1375,16 +1231,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFVideoTextToText */
     HFVideoTextToText: {
@@ -1400,16 +1252,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFVisualQuestionAnswering */
     HFVisualQuestionAnswering: {
@@ -1425,16 +1273,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFVoiceActivityDetection */
     HFVoiceActivityDetection: {
@@ -1450,16 +1294,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFZeroShotAudioClassification */
     HFZeroShotAudioClassification: {
@@ -1475,16 +1315,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFZeroShotClassification */
     HFZeroShotClassification: {
@@ -1500,16 +1336,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFZeroShotImageClassification */
     HFZeroShotImageClassification: {
@@ -1525,16 +1357,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HFZeroShotObjectDetection */
     HFZeroShotObjectDetection: {
@@ -1550,16 +1378,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -1583,16 +1407,12 @@ export interface components {
        * @default
        */
       repo_id?: string;
-      /**
-       * Allow Patterns
-       * @default []
-       */
-      allow_patterns?: string[];
-      /**
-       * Ignore Patterns
-       * @default []
-       */
-      ignore_patterns?: string[];
+      /** Path */
+      path?: string | null;
+      /** Allow Patterns */
+      allow_patterns?: string[] | null;
+      /** Ignore Patterns */
+      ignore_patterns?: string[] | null;
     };
     /**
      * ImageRef
@@ -1735,13 +1555,7 @@ export interface components {
        */
       name?: string;
       /** Content */
-      content?:
-        | string
-        | (
-            | components["schemas"]["MessageTextContent"]
-            | components["schemas"]["MessageImageContent"]
-          )[]
-        | null;
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
       /** Tool Calls */
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
@@ -1777,13 +1591,7 @@ export interface components {
        */
       name?: string;
       /** Content */
-      content?:
-        | string
-        | (
-            | components["schemas"]["MessageTextContent"]
-            | components["schemas"]["MessageImageContent"]
-          )[]
-        | null;
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
       /** Tool Calls */
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
@@ -1808,13 +1616,7 @@ export interface components {
        */
       name?: string;
       /** Content */
-      content?:
-        | string
-        | (
-            | components["schemas"]["MessageTextContent"]
-            | components["schemas"]["MessageImageContent"]
-          )[]
-        | null;
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
       /** Tool Calls */
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
@@ -1858,6 +1660,63 @@ export interface components {
        * @default
        */
       text?: string;
+    };
+    /** ModelFile */
+    ModelFile: {
+      /** Type */
+      type: string;
+      /**
+       * Name
+       * @default
+       */
+      name?: string;
+    };
+    /** ModelInfo */
+    ModelInfo: {
+      /** Id */
+      id: string;
+      /** Modelid */
+      modelId: string;
+      /** Author */
+      author: string;
+      /** Sha */
+      sha: string;
+      /**
+       * Lastmodified
+       * Format: date-time
+       */
+      lastModified: string;
+      /** Private */
+      private: boolean;
+      /** Disabled */
+      disabled: boolean;
+      /** Gated */
+      gated: boolean | string;
+      /** Pipeline Tag */
+      pipeline_tag?: string | null;
+      /** Tags */
+      tags: string[];
+      /** Downloads */
+      downloads: number;
+      /** Library Name */
+      library_name?: string | null;
+      /** Likes */
+      likes: number;
+      /** Model-Index */
+      "model-index"?: unknown;
+      /** Config */
+      config?: Record<string, never> | null;
+      /** Carddata */
+      cardData?: Record<string, never> | null;
+      /** Siblings */
+      siblings?: components["schemas"]["Sibling"][] | null;
+      /** Spaces */
+      spaces?: string[] | null;
+      /**
+       * Createdat
+       * Format: date-time
+       */
+      createdAt: string;
     };
     /** ModelRef */
     ModelRef: {
@@ -2123,15 +1982,7 @@ export interface components {
      * Provider
      * @enum {string}
      */
-    Provider:
-      | "openai"
-      | "anthropic"
-      | "replicate"
-      | "huggingface"
-      | "ollama"
-      | "comfy"
-      | "local"
-      | "empty";
+    Provider: "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "empty";
     /** RunJobRequest */
     RunJobRequest: {
       /**
@@ -2214,6 +2065,11 @@ export interface components {
     SettingsUpdateRequest: {
       settings: components["schemas"]["SettingsModel"];
       secrets: components["schemas"]["SecretsModel"];
+    };
+    /** Sibling */
+    Sibling: {
+      /** Rfilename */
+      rfilename: string;
     };
     /** Task */
     Task: {
@@ -2390,7 +2246,7 @@ export interface components {
        */
       optional?: boolean;
       /** Values */
-      values?: (string | number)[] | null;
+      values?: ((string | number)[]) | null;
       /**
        * Type Args
        * @default []
@@ -2583,6 +2439,7 @@ export type $defs = Record<string, never>;
 export type external = Record<string, never>;
 
 export interface operations {
+
   /**
    * Index
    * @description Returns all assets for a given user or workflow.
@@ -3130,68 +2987,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json":
-            | components["schemas"]["AssetRef"]
-            | components["schemas"]["AudioRef"]
-            | components["schemas"]["DataframeRef"]
-            | components["schemas"]["FolderRef"]
-            | components["schemas"]["ImageRef"]
-            | components["schemas"]["Tensor"]
-            | components["schemas"]["VideoRef"]
-            | components["schemas"]["ModelRef"]
-            | components["schemas"]["TextRef"]
-            | components["schemas"]["WorkflowRef"]
-            | components["schemas"]["NodeRef"]
-            | components["schemas"]["Prediction"]
-            | components["schemas"]["JobUpdate"]
-            | components["schemas"]["NodeUpdate"]
-            | components["schemas"]["NodeProgress"]
-            | components["schemas"]["HuggingFaceModel"]
-            | components["schemas"]["HFImageTextToText"]
-            | components["schemas"]["HFVisualQuestionAnswering"]
-            | components["schemas"]["HFDocumentQuestionAnswering"]
-            | components["schemas"]["HFVideoTextToText"]
-            | components["schemas"]["HFComputerVision"]
-            | components["schemas"]["HFDepthEstimation"]
-            | components["schemas"]["HFImageClassification"]
-            | components["schemas"]["HFObjectDetection"]
-            | components["schemas"]["HFImageSegmentation"]
-            | components["schemas"]["HFTextToImage"]
-            | components["schemas"]["HFStableDiffusion"]
-            | components["schemas"]["HFStableDiffusionXL"]
-            | components["schemas"]["HFImageToText"]
-            | components["schemas"]["HFImageToImage"]
-            | components["schemas"]["HFImageToVideo"]
-            | components["schemas"]["HFUnconditionalImageGeneration"]
-            | components["schemas"]["HFVideoClassification"]
-            | components["schemas"]["HFTextToVideo"]
-            | components["schemas"]["HFZeroShotImageClassification"]
-            | components["schemas"]["HFMaskGeneration"]
-            | components["schemas"]["HFZeroShotObjectDetection"]
-            | components["schemas"]["HFTextTo3D"]
-            | components["schemas"]["HFImageTo3D"]
-            | components["schemas"]["HFImageFeatureExtraction"]
-            | components["schemas"]["HFNaturalLanguageProcessing"]
-            | components["schemas"]["HFTextClassification"]
-            | components["schemas"]["HFTokenClassification"]
-            | components["schemas"]["HFTableQuestionAnswering"]
-            | components["schemas"]["HFQuestionAnswering"]
-            | components["schemas"]["HFZeroShotClassification"]
-            | components["schemas"]["HFTranslation"]
-            | components["schemas"]["HFSummarization"]
-            | components["schemas"]["HFFeatureExtraction"]
-            | components["schemas"]["HFTextGeneration"]
-            | components["schemas"]["HFText2TextGeneration"]
-            | components["schemas"]["HFFillMask"]
-            | components["schemas"]["HFSentenceSimilarity"]
-            | components["schemas"]["HFTextToSpeech"]
-            | components["schemas"]["HFTextToAudio"]
-            | components["schemas"]["HFAutomaticSpeechRecognition"]
-            | components["schemas"]["HFAudioToAudio"]
-            | components["schemas"]["HFAudioClassification"]
-            | components["schemas"]["HFZeroShotAudioClassification"]
-            | components["schemas"]["HFVoiceActivityDetection"]
-            | Record<string, never>;
+          "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["Tensor"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFStableDiffusion"] | components["schemas"]["HFStableDiffusionXL"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | Record<string, never>;
         };
       };
     };
@@ -3933,13 +3729,13 @@ export interface operations {
     };
   };
   /** Index */
-  index_api_models__folder__get: {
+  index_api_models__model_type__get: {
     parameters: {
       header?: {
         authorization?: string | null;
       };
       path: {
-        folder: string;
+        model_type: string;
       };
       cookie?: {
         auth_cookie?: string | null;
@@ -3949,7 +3745,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": string[];
+          "application/json": components["schemas"]["ModelFile"][];
         };
       };
       /** @description Validation Error */

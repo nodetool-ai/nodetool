@@ -34,23 +34,23 @@ const styles = (theme: any) =>
     },
 
     ".models-list": {
-      overflow: "hidden",
       backgroundColor: "transparent",
-      padding: theme.spacing(2)
+      height: "100%",
+      width: "100%"
     }
   });
 
 const ModelsManager: React.FC = () => {
   return (
     <div className="models-manager" css={styles}>
-      <div className="download-models-section">
+      {/* <div className="download-models-section">
         <div className="models-search">
           <HuggingFaceModelSearch />
         </div>
         <div className="models-download-dialog">
           <HuggingFaceDownloadDialog />
         </div>
-      </div>
+      </div> */}
       <div className="existing-models-section">
         <div className="models-list">
           <ModelList />

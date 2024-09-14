@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import useModelStore from "./ModelStore";
 import axios, { CancelTokenSource } from 'axios';
+import { DOWNLOAD_URL } from "./ApiClient";
 
 interface SpeedDataPoint {
   bytes: number;
@@ -40,6 +41,7 @@ interface ModelDownloadStore {
   startDownload: (
     id: string,
     modelType: string,
+    path: string | null,
     allowPatterns?: string[] | null,
     ignorePatterns?: string[] | null
   ) => void;
@@ -68,7 +70,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       return ws;
     }
 
-    ws = new WebSocket("ws://localhost:8000/hf/download");
+    ws = new WebSocket(DOWNLOAD_URL);
 
     await new Promise<void>((resolve, reject) => {
       if (ws) {
@@ -164,9 +166,20 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
   startDownload: async (
     id: string,
     modelType: string,
+    path: string | null,
     allowPatterns?: string[] | null,
     ignorePatterns?: string[] | null
   ) => {
+    if (path) {
+      if (allowPatterns) {
+        throw new Error("allowPatterns is not supported when path is provided");
+      }
+      if (ignorePatterns) {
+        throw new Error("ignorePatterns is not supported when path is provided");
+      }
+      allowPatterns = [path];
+      ignorePatterns = [];
+    }
     const cancelTokenSource = axios.CancelToken.source();
     get().addDownload(id, { cancelTokenSource });
     if (modelType.startsWith("hf.")) {

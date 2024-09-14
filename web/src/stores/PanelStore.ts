@@ -49,13 +49,13 @@ export const usePanelStore = create<ResizePanelState>()(
         })),
     }),
     // {
-    //     name: 'resize-panel-storage',
-    //     partialize: (state) => ({
-    //         panels: {
-    //             left: { size: state.panels.left.size },
-    //             right: { size: state.panels.right.size },
-    //         },
-    //     }),
+    // name: 'resize-panel-storage',
+    // partialize: (state) => ({
+    //     panels: {
+    //         left: { size: state.panels.left.size },
+    //         right: { size: state.panels.right.size },
+    //     },
+    // }),
     // }
     // )
 );

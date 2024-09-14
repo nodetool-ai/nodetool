@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button, IconButton, InputBase, Box, Tooltip } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
@@ -27,28 +27,28 @@ const styles = (theme: any) =>
       fontWeight: "normal",
       backgroundColor: theme.palette.c_gray1,
       "&:hover": {
-        color: theme.palette.c_hl1,
-      },
+        color: theme.palette.c_hl1
+      }
     },
     "&.last-workflow button": {
       color: theme.palette.c_white,
       backgroundColor: "transparent",
       borderRadius: "1em",
       textTransform: "none",
-      fontSize: "1em",
+      fontSize: "1em"
     },
     "&.last-workflow button.disabled": {
       borderRadius: "0",
       backgroundColor: theme.palette.c_gray1,
-      color: theme.palette.c_gray6,
+      color: theme.palette.c_gray6
     },
     "&.last-workflow button:hover ": {
       backgroundColor: theme.palette.c_gray3,
-      borderRadius: "1em",
+      borderRadius: "1em"
     },
     "&.last-workflow span": {
       color: theme.palette.c_attention,
-      marginLeft: "0.2em",
+      marginLeft: "0.2em"
     },
     "& .edit-button": {
       display: "block",
@@ -59,14 +59,14 @@ const styles = (theme: any) =>
       height: "1em",
       opacity: 0,
       padding: "0",
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
     },
     "&:hover .edit-button:hover": {
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
     },
     "&:hover .edit-button": {
       display: "inline-block",
-      opacity: 1,
+      opacity: 1
     },
     "& .confirm-buttons": {
       opacity: 0,
@@ -76,21 +76,21 @@ const styles = (theme: any) =>
       right: "-2em",
       width: "5em",
       height: "1.5em",
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
     },
     "&:hover .confirm-buttons": {
-      opacity: 1,
+      opacity: 1
     },
     "& .confirm-buttons button:hover, & .edit-button:hover": {
       color: theme.palette.c_hl1,
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
     },
     "& .confirm-buttons button.cancel:hover": {
-      color: theme.palette.c_delete,
+      color: theme.palette.c_delete
     },
     ".edit": {
       display: "flex",
-      alignItems: "flex-start",
+      alignItems: "flex-start"
     },
     input: {
       fontSize: theme.fontSizeBig,
@@ -102,20 +102,20 @@ const styles = (theme: any) =>
       borderRadius: "0",
       color: theme.palette.c_white,
       "&:focus": {
-        outline: "none",
-      },
-    },
+        outline: "none"
+      }
+    }
   });
 
 const LastWorkflowButton = () => {
   const navigate = useNavigate();
-  const { workflow, setWorkflowAttributes, saveWorkflow } = useNodeStore(
-    (state) => ({
+  const { workflow, setWorkflowAttributes, saveWorkflow, workflowDirty } =
+    useNodeStore((state) => ({
       workflow: state.workflow,
       setWorkflowAttributes: state.setWorkflowAttributes,
       saveWorkflow: state.saveWorkflow,
-    })
-  );
+      workflowDirty: state.getWorkflowIsDirty()
+    }));
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -155,7 +155,7 @@ const LastWorkflowButton = () => {
         type: "info",
         content: "Workflow name updated!",
         alert: true,
-        dismissable: true,
+        dismissable: true
       });
     }
   };
@@ -164,6 +164,26 @@ const LastWorkflowButton = () => {
     setIsEditing(false);
     setLocalName(workflow.name);
   };
+
+  const handleDoubleClick = () => {
+    if (!isEditing) {
+      setIsEditing(true);
+    }
+  };
+
+  const memoizedButton = useMemo(
+    () => (
+      <Button
+        onClick={handleNavigateToLastWorkflow}
+        onDoubleClick={handleDoubleClick}
+        disabled={path.startsWith("/editor")}
+      >
+        {workflow.name}
+        {workflowDirty && <span>*</span>}
+      </Button>
+    ),
+    [workflow.name, workflowDirty, path, handleNavigateToLastWorkflow]
+  );
 
   return (
     <div className="last-workflow" css={styles}>
@@ -178,13 +198,7 @@ const LastWorkflowButton = () => {
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Button
-            onClick={handleNavigateToLastWorkflow}
-            disabled={path.startsWith("/editor")}
-          >
-            {workflow.name}
-            {workflow.name !== localName && <span>*</span>}
-          </Button>
+          {memoizedButton}
         </>
       ) : (
         <Box className="edit">

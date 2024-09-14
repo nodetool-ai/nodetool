@@ -271,10 +271,14 @@ const ModelCard: React.FC<ModelCardProps> = ({
           >
             {formatId(model.id)}
           </Typography>
-          <Typography
-            variant="h3"
-            style={{ color: ThemeNodetool.palette.c_warning }}
-          ></Typography>
+          {model.path && (
+            <Typography
+              variant="h3"
+              style={{ color: ThemeNodetool.palette.c_warning }}
+            >
+              {model.path}
+            </Typography>
+          )}
           {isOllama && (
             <>
               <Typography
@@ -417,11 +421,14 @@ const ModelCard: React.FC<ModelCardProps> = ({
                 </Tooltip>
               )}
               <Box className="tags-container">
-                <Button className="pipeline-tag">
+                <Button className="pipeline-tag" onClick={toggleTags}>
                   {modelData.cardData?.pipeline_tag}
                 </Button>
 
-                <Box className="tags-list">
+                <Box
+                  className="tags-list"
+                  style={{ display: tagsExpanded ? "block" : "none" }}
+                >
                   {(modelData.cardData?.tags || modelData.tags) && (
                     <Box mt={1}>
                       {(modelData.cardData?.tags || modelData.tags).map(
