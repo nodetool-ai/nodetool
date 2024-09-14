@@ -25,7 +25,7 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { useWorkflowStore } from "./WorkflowStore";
 import { useNotificationStore } from "./NotificationStore";
 import { uuidv4 } from "./uuidv4";
-import { devError, devLog } from "../utils/DevLog";
+import { devError, devLog, devWarn } from "../utils/DevLog";
 import { autoLayout, subgraph } from "../core/graph";
 import { Slugify, isConnectable } from "../utils/TypeHandler";
 import { WorkflowAttributes } from "./ApiTypes";
@@ -46,6 +46,36 @@ type NodeSelection = {
   nodes: Node<NodeData>[];
   edges: Edge[];
 };
+
+function sanitizeNodes(nodes: Node<NodeData>[]): Node<NodeData>[] {
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+
+  return nodes.map((node) => {
+    const sanitizedNode = { ...node };
+
+    // Check for parentId
+    if (sanitizedNode.parentId && !nodeMap.has(sanitizedNode.parentId)) {
+      devWarn(
+        `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentId}. Removing parent reference.`
+      );
+      delete sanitizedNode.parentId;
+    }
+
+    // Check for deprecated parentNode
+    if (
+      "parentNode" in sanitizedNode &&
+      sanitizedNode.parentNode &&
+      !nodeMap.has(sanitizedNode.parentNode)
+    ) {
+      devWarn(
+        `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentNode} using deprecated 'parentNode'. Removing parent reference.`
+      );
+      delete sanitizedNode.parentNode;
+    }
+
+    return sanitizedNode;
+  });
+}
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
@@ -174,7 +204,11 @@ export interface NodeStore {
   ) => boolean;
   workflowJSON: () => string;
   loadJSON: (json: string) => void;
-  createNode: (metadata: NodeMetadata, position: XYPosition, properties?: Record<string, any>) => Node<NodeData>;
+  createNode: (
+    metadata: NodeMetadata,
+    position: XYPosition,
+    properties?: Record<string, any>
+  ) => Node<NodeData>;
   autoLayout: () => void;
 }
 
@@ -385,14 +419,17 @@ export const useNodeStore = create<NodeStore>()(
           };
         };
 
+        const unsanitizedNodes = (workflow.graph?.nodes || []).map(
+          (n: GraphNode) => graphNodeToReactFlowNode(workflow, n)
+        );
+        const sanitizedNodes = sanitizeNodes(unsanitizedNodes);
+
         set({
           workflow: workflow,
           lastWorkflow: workflow,
           shouldAutoLayout: false,
           edges: (workflow.graph?.edges || []).map(graphEdgeToReactFlowEdge),
-          nodes: (workflow.graph?.nodes || []).map((n: GraphNode) =>
-            graphNodeToReactFlowNode(workflow, n)
-          )
+          nodes: sanitizedNodes
         });
 
         if (shouldAutoLayout) {
@@ -460,8 +497,7 @@ export const useNodeStore = create<NodeStore>()(
         const edges = get().edges;
         const isHandleConnected = (nodeId: string, handle: string) => {
           return edges.some(
-            (edge) =>
-              edge.target === nodeId && edge.targetHandle === handle
+            (edge) => edge.target === nodeId && edge.targetHandle === handle
           );
         };
         const unconnectedProperties = (node: Node<NodeData>) => {
@@ -621,15 +657,15 @@ export const useNodeStore = create<NodeStore>()(
             (node) =>
               (node.id === id
                 ? {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    workflow_id,
-                    properties: { ...node.data.properties, ...properties }
+                    ...node,
+                    data: {
+                      ...node.data,
+                      workflow_id,
+                      properties: { ...node.data.properties, ...properties }
+                    }
                   }
-                }
                 : node) as Node
-          ),
+          )
         });
         get().setWorkflowDirty(true);
       },
@@ -680,6 +716,8 @@ export const useNodeStore = create<NodeStore>()(
        * @param nodes The nodes of the workflow.
        */
       setNodes: (nodes: Node[], setDirty: boolean = true) => {
+        console.log("Setting nodes:", nodes);
+
         if (setDirty) {
           nodes.forEach((node) => {
             node.data.dirty = true;
@@ -706,6 +744,8 @@ export const useNodeStore = create<NodeStore>()(
        * @param changes The changes to the nodes.
        */
       onNodesChange: (changes: NodeChange[]) => {
+        console.log("Node changes:", changes);
+
         const nodes = applyNodeChanges(changes, get().nodes);
         set({ nodes });
         get().setWorkflowDirty(true);

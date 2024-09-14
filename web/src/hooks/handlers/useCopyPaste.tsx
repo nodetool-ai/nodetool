@@ -2,18 +2,10 @@ import { useNodeStore } from "../../stores/NodeStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "reactflow";
 import { uuidv4 } from "../../stores/uuidv4";
-import { devLog, devWarn } from "../../utils/DevLog";
+import { devWarn } from "../../utils/DevLog";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboard } from "../browser/useClipboard";
-
-const findNewNodeId = (
-  oldId: string,
-  copiedNodes: Node[],
-  newNodes: Node[]
-): string => {
-  const oldNodeIndex = copiedNodes.findIndex((node) => node.id === oldId);
-  return oldNodeIndex !== -1 ? newNodes[oldNodeIndex].id : oldId;
-};
+import { NodeData } from "../../stores/NodeData";
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
@@ -81,14 +73,15 @@ export const useCopyPaste = () => {
     }
 
     const mousePosition = getMousePosition();
-    const elementUnderCursor = document.elementFromPoint(
-      mousePosition.x,
-      mousePosition.y
-    );
     if (!mousePosition) {
       devWarn("Mouse position not available");
       return;
     }
+
+    const elementUnderCursor = document.elementFromPoint(
+      mousePosition.x,
+      mousePosition.y
+    );
 
     if (
       elementUnderCursor?.classList.contains("react-flow__pane") ||
@@ -96,19 +89,23 @@ export const useCopyPaste = () => {
         !document.activeElement?.classList.contains("MuiInputBase-input"))
     ) {
       const { nodes: copiedNodes, edges: copiedEdges } = parsedData;
-      if (copiedNodes.length === 0) {
-        devLog("No nodes to paste");
-        return;
-      }
+      const oldToNewIds = new Map<string, string>();
+      const newNodes: Node<NodeData>[] = [];
+      const newEdges: Edge[] = [];
 
-      // const firstNodePosition = reactFlow.screenToFlowPosition({
+      // create new IDs for all nodes
+      copiedNodes.forEach((node: Node<NodeData>) => {
+        oldToNewIds.set(node.id, uuidv4());
+      });
+
+      // calculate offset for pasting
       const firstNodePosition = reactFlow.screenToFlowPosition({
         x: mousePosition.x,
         y: mousePosition.y
       });
 
       if (!firstNodePosition) {
-        devWarn("firstNodePosition is undefined");
+        devWarn("Failed to calculate paste position");
         return;
       }
 
@@ -117,31 +114,59 @@ export const useCopyPaste = () => {
         y: firstNodePosition.y - copiedNodes[0].position.y
       };
 
-      const newNodes = copiedNodes.map((node: any) => ({
-        ...node,
-        id: uuidv4(),
-        selected: false,
-        position: {
-          x: node.position.x + offset.x,
-          y: node.position.y + offset.y
+      // create new nodes with updated IDs and parent references
+      for (const node of copiedNodes) {
+        const newId = oldToNewIds.get(node.id)!;
+        let newParentId: string | undefined;
+
+        // check if parent exists in copied nodes
+        if (node.parentId && oldToNewIds.has(node.parentId)) {
+          newParentId = oldToNewIds.get(node.parentId);
+        } else {
+          newParentId = undefined;
         }
-      }));
 
-      const newEdges = copiedEdges.map((edge: Edge) => ({
-        ...edge,
-        id: uuidv4(),
-        source: findNewNodeId(edge.source, copiedNodes, newNodes),
-        target: findNewNodeId(edge.target, copiedNodes, newNodes)
-      }));
+        const newNode: Node<NodeData> = {
+          ...node,
+          id: newId,
+          parentId: newParentId,
+          position: {
+            x: node.position.x + (newParentId ? 0 : offset.x),
+            y: node.position.y + (newParentId ? 0 : offset.y)
+          },
+          selected: false
+        };
 
-      const validEdges = newEdges.filter(
-        (edge: Edge) =>
-          newNodes.some((node: any) => node.id === edge.source) &&
-          newNodes.some((node: any) => node.id === edge.target)
-      );
+        if (newNode.positionAbsolute) {
+          newNode.positionAbsolute = {
+            x: newNode.positionAbsolute.x + offset.x,
+            y: newNode.positionAbsolute.y + offset.y
+          };
+        }
 
+        delete (newNode as any).parentNode;
+
+        newNodes.push(newNode);
+      }
+
+      // Update edges
+      copiedEdges.forEach((edge: Edge) => {
+        const newSource = oldToNewIds.get(edge.source);
+        const newTarget = oldToNewIds.get(edge.target);
+
+        if (newSource && newTarget) {
+          newEdges.push({
+            ...edge,
+            id: uuidv4(),
+            source: newSource,
+            target: newTarget
+          });
+        }
+      });
+
+      // Update state
       setNodes([...nodes, ...newNodes]);
-      setEdges([...edges, ...validEdges]);
+      setEdges([...edges, ...newEdges]);
     }
   };
 
