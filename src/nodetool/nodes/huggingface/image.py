@@ -1209,7 +1209,7 @@ class BaseImageToImage(HuggingFacePipelineNode):
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
         result = self._pipeline(image, prompt=self.prompt)  # type: ignore
-        return await context.image_from_pil(result.images[0])  # type: ignore
+        return await context.image_from_pil(result)  # type: ignore
 
 
 class Swin2SR(BaseImageToImage):

@@ -445,7 +445,7 @@ class WorkflowRunner:
                 result = await node.convert_output(context, result)
 
                 # in the future, we will have a better way to handle this
-                # await node.move_to_device("cpu")
+                await node.move_to_device("cpu")
 
                 if node.is_cacheable():
                     context.cache_result(node, result)
