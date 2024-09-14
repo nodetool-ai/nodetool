@@ -238,10 +238,19 @@ class CombineVertically(BaseNode):
     async def process(self, context: ProcessingContext) -> DataframeRef:
         df_a = await context.dataframe_to_pandas(self.dataframe_a)
         df_b = await context.dataframe_to_pandas(self.dataframe_b)
+
+        # Handle empty dataframes
+        if df_a.empty:
+            return await context.dataframe_from_pandas(df_b)
+        if df_b.empty:
+            return await context.dataframe_from_pandas(df_a)
+
+        # Check column compatibility only if both dataframes are non-empty
         if not df_a.columns.equals(df_b.columns):
             raise ValueError(
                 f"Columns in dataframe A ({df_a.columns}) do not match columns in dataframe B ({df_b.columns})"
             )
+
         df = pd.concat([df_a, df_b], axis=0)
         return await context.dataframe_from_pandas(df)
 
