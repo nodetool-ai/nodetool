@@ -33,6 +33,7 @@ interface RecommendedModelsDialogProps {
   startDownload: (
     repoId: string,
     modelType: string,
+    path: string | null,
     allowPatterns: string[] | null,
     ignorePatterns: string[] | null
   ) => void;
@@ -63,7 +64,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       const hfModel = hfModels?.find((m) => m.repo_id === model.id);
       return {
         ...model,
-        size_on_disk: hfModel?.size_on_disk
+        size_on_disk: hfModel?.size_on_disk,
       };
     });
   }, [recommendedModels, hfModels]);
@@ -106,6 +107,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
                     startDownload(
                       model.id,
                       model.type,
+                      model.path ?? null,
                       model.allow_patterns ?? null,
                       model.ignore_patterns ?? null
                     );

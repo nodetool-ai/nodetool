@@ -201,8 +201,9 @@ class LlamaModel(BaseType):
 class HuggingFaceModel(BaseType):
     type: str = "hf.model"
     repo_id: str = ""
-    allow_patterns: list[str] = []
-    ignore_patterns: list[str] = []
+    path: str | None = None
+    allow_patterns: list[str] | None = None
+    ignore_patterns: list[str] | None = None
 
 
 class HFImageTextToText(HuggingFaceModel):
@@ -283,6 +284,10 @@ class HFLoraSDXL(HuggingFaceModel):
 
 class HFStableDiffusionXLTurbo(HuggingFaceModel):
     type: Literal["hf.stable_diffusion_xl_turbo"] = "hf.stable_diffusion_xl_turbo"
+
+
+class HFStableDiffusionUpscale(HuggingFaceModel):
+    type: Literal["hf.stable_diffusion_upscale"] = "hf.stable_diffusion_upscale"
 
 
 class HFImageToText(HuggingFaceModel):
@@ -419,6 +424,15 @@ class HFVoiceActivityDetection(HuggingFaceModel):
     type: Literal["hf.voice_activity_detection"] = "hf.voice_activity_detection"
 
 
+CLASSNAME_TO_MODEL_TYPE = {
+    "StableDiffusionPipeline": "hf.stable_diffusion",
+    "StableDiffusionXLPipeline": "hf.stable_diffusion_xl",
+    "StableDiffusionXLControlNetPipeline": "hf.stable_diffusion_xl",
+    "StableDiffusionUpscalePipeline": "hf.stable_diffusion_upscale",
+    "PixArtAlphaPipeline": "hf.pixart_alpha",
+}
+
+
 PIPELINE_TAGS = {
     "hf.audio_classification": ["audio-classification"],
     "hf.audio_to_audio": ["audio-to-audio"],
@@ -531,6 +545,23 @@ class UpscaleModelFile(ModelFile):
 
 class InstantIDFile(ModelFile):
     type: Literal["comfy.instant_id_file"] = "comfy.instant_id_file"
+
+
+def comfy_model_to_folder(type_name: str) -> str:
+    folder_mapping = {
+        "comfy.checkpoint_file": "checkpoints",
+        "comfy.vae_file": "vae",
+        "comfy.clip_file": "clip",
+        "comfy.clip_vision_file": "clip_vision",
+        "comfy.control_net_file": "controlnet",
+        "comfy.ip_adapter_file": "ipadapter",
+        "comfy.gligen_file": "gligen",
+        "comfy.upscale_model_file": "upscale_models",
+        "comfy.lora_file": "loras",
+        "comfy.unet_file": "unet",
+        "comfy.instant_id_file": "instantid",
+    }
+    return folder_mapping.get(type_name, type_name)
 
 
 comfy_model_types = set()

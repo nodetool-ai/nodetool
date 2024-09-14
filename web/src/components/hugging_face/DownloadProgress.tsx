@@ -1,5 +1,12 @@
-import React from "react";
-import { Typography, Box, Button, CircularProgress } from "@mui/material";
+import React, { useCallback } from "react";
+import {
+  Typography,
+  Box,
+  Button,
+  CircularProgress,
+  IconButton
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -28,7 +35,12 @@ const moveRight = keyframes`
 export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
   const downloads = useModelDownloadStore((state) => state.downloads);
   const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
+  const removeDownload = useModelDownloadStore((state) => state.removeDownload);
   const download = downloads[name];
+
+  const handleRemove = useCallback(() => {
+    removeDownload(name);
+  }, [name, removeDownload]);
 
   if (!download) return null;
 
@@ -39,9 +51,23 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
         border: "1px solid #999",
         borderRadius: "4px",
         padding: "16px",
-        background: "#444"
+        background: "#444",
+        position: "relative" // Add this
       }}
     >
+      <IconButton
+        onClick={handleRemove}
+        size="small"
+        sx={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          color: "white"
+        }}
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+
       <Typography variant="subtitle1">{name}</Typography>
       {download.message && (
         <Typography variant="body2">{download.message}</Typography>

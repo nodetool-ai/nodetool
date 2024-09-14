@@ -10,6 +10,7 @@ from nodetool.metadata.types import (
     HFImageToImage,
     HFLora,
     HFStableDiffusion,
+    HFStableDiffusionUpscale,
     HFStableDiffusionXL,
     HFStableDiffusionXLTurbo,
     HFZeroShotImageClassification,
@@ -576,9 +577,9 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_pipeline(
-            context,
-            "zero-shot-image-classification",
-            self.get_model_id(),
+            context=context,
+            pipeline_task="zero-shot-image-classification",
+            model_id=self.get_model_id(),
             device=context.device,
         )
 
@@ -590,7 +591,7 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
         image = await context.image_to_pil(self.image)
         result = self._pipeline(
             image, candidate_labels=self.candidate_labels.split(",")
-        )
+        )  # type: ignore
         return {item["label"]: item["score"] for item in result}
 
 
@@ -789,6 +790,8 @@ class Segmentation(HuggingFacePipelineNode):
     async def process(
         self, context: ProcessingContext
     ) -> list[ImageSegmentationResult]:
+        assert self._pipeline is not None
+
         image = await context.image_to_pil(self.image)
         result = self._pipeline(image)
 
@@ -900,7 +903,7 @@ class ObjectDetection(HuggingFacePipelineNode):
         ]
 
     def required_inputs(self):
-        return ["inputs"]
+        return ["image"]
 
     @classmethod
     def get_title(cls) -> str:
@@ -916,24 +919,28 @@ class ObjectDetection(HuggingFacePipelineNode):
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
-            self._pipeline.model.to(device)
+            self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> list[ObjectDetectionResult]:
-        image = await context.image_to_pil(self.inputs)
+        assert self._pipeline is not None
+        image = await context.image_to_pil(self.image)
         result = self._pipeline(image, threshold=self.threshold)
-        return [
-            ObjectDetectionResult(
-                label=item["label"],
-                score=item["score"],
-                box=BoundingBox(
-                    xmin=item["box"]["xmin"],
-                    ymin=item["box"]["ymin"],
-                    xmax=item["box"]["xmax"],
-                    ymax=item["box"]["ymax"],
-                ),
-            )
-            for item in result
-        ]
+        if isinstance(result, list):
+            return [
+                ObjectDetectionResult(
+                    label=item["label"],
+                    score=item["score"],
+                    box=BoundingBox(
+                        xmin=item["box"]["xmin"],
+                        ymin=item["box"]["ymin"],
+                        xmax=item["box"]["xmax"],
+                        ymax=item["box"]["ymax"],
+                    ),
+                )
+                for item in result
+            ]
+        else:
+            raise ValueError(f"Invalid result type: {type(result)}")
 
 
 class VisualizeObjectDetection(BaseNode):
@@ -1411,7 +1418,7 @@ class Swin2SR(BaseImageToImage):
 #         return await context.image_from_pil(image)
 
 
-class PixArtAlpha(BaseNode):
+class PixArtAlpha(HuggingFacePipelineNode):
     """
     Generates images from text prompts using the PixArt-Alpha model.
     image, generation, AI, text-to-image
@@ -1466,21 +1473,17 @@ class PixArtAlpha(BaseNode):
     @classmethod
     def get_recommended_models(cls) -> list[HFImageToImage]:
         return [
-            HuggingFaceModel(
+            HFImageToImage(
                 repo_id="PixArt-alpha/PixArt-XL-2-1024-MS",
             ),
         ]
 
-    def get_model_id(self):
-        return "PixArt-alpha/PixArt-XL-2-1024-MS"
-
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_model(
-            context,
-            "PixArt-alpha/PixArt-XL-2-1024-MS",
-            self.model.repo_id,
-            device=context.device,
-            torch_dtype=torch.float16,
+            context=context,
+            model_id="PixArt-alpha/PixArt-XL-2-1024-MS",
+            model_class=PixArtAlphaPipeline,
+            variant=None,
         )
 
     async def move_to_device(self, device: str):
@@ -1496,7 +1499,7 @@ class PixArtAlpha(BaseNode):
         if self.seed != -1:
             generator = torch.Generator(device="cpu").manual_seed(self.seed)
 
-        def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+        def callback(step: int, timestep: int, latents: torch.Tensor) -> None:
             context.post_message(
                 NodeProgress(
                     node_id=self.id,
@@ -1523,7 +1526,7 @@ class PixArtAlpha(BaseNode):
         return await context.image_from_pil(image)
 
 
-class PixArtSigma(BaseNode):
+class PixArtSigma(HuggingFacePipelineNode):
     """
     Generates images from text prompts using the PixArt-Sigma model.
     image, generation, AI, text-to-image
@@ -1578,21 +1581,17 @@ class PixArtSigma(BaseNode):
     @classmethod
     def get_recommended_models(cls) -> list[HFImageToImage]:
         return [
-            HuggingFaceModel(
+            HFImageToImage(
                 repo_id="PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
             ),
         ]
 
-    def get_model_id(self):
-        return "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS"
-
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_model(
-            context,
-            "PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
-            self.model.repo_id,
-            device=context.device,
-            torch_dtype=torch.float16,
+            context=context,
+            model_id="PixArt-alpha/PixArt-Sigma-XL-2-1024-MS",
+            model_class=PixArtAlphaPipeline,
+            variant=None,
         )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -1927,7 +1926,7 @@ class PixArtSigma(BaseNode):
 #         return await context.image_from_pil(output.images[0])  # type: ignore
 
 
-class Kandinsky3(BaseNode):
+class Kandinsky3(HuggingFacePipelineNode):
     """
     Generates images using the Kandinsky-3 model from text prompts.
     image, generation, AI, text-to-image
@@ -1977,10 +1976,9 @@ class Kandinsky3(BaseNode):
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_model(
-            context,
-            "kandinsky-community/kandinsky-3",
-            AutoPipelineForText2Image,
-            torch_dtype=torch.float16,
+            context=context,
+            model_id="kandinsky-community/kandinsky-3",
+            model_class=AutoPipelineForText2Image,
         )
 
     async def move_to_device(self, device: str):
@@ -2074,12 +2072,9 @@ class Kandinsky3Img2Img(BaseNode):
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_model(
-            context,
-            "kandinsky-community/kandinsky-3",
-            AutoPipelineForImage2Image,
-            torch_dtype=torch.float16,
-            device=context.device,
-            variant="fp16",
+            context=context,
+            model_id="kandinsky-community/kandinsky-3",
+            model_class=AutoPipelineForImage2Image,
         )
 
     async def move_to_device(self, device: str):
@@ -2111,7 +2106,7 @@ class Kandinsky3Img2Img(BaseNode):
         return await context.image_from_pil(image)
 
 
-class PlaygroundV2(BaseNode):
+class PlaygroundV2(HuggingFacePipelineNode):
     """
     Playground v2.5 is the state-of-the-art open-source model in aesthetic quality.
     image, generation, AI, text-to-image
@@ -2174,9 +2169,9 @@ class PlaygroundV2(BaseNode):
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_model(
-            context,
-            "playgroundai/playground-v2.5-1024px-aesthetic",
-            DiffusionPipeline,
+            context=context,
+            model_id="playgroundai/playground-v2.5-1024px-aesthetic",
+            model_class=DiffusionPipeline,
         )
 
     async def move_to_device(self, device: str):
@@ -2198,96 +2193,6 @@ class PlaygroundV2(BaseNode):
             generator=generator,
             width=self.width,
             height=self.height,
-            callback=progress_callback(self.id, self.num_inference_steps, context),
-            callback_steps=1,
-        )  # type: ignore
-
-        image = output.images[0]
-
-        return await context.image_from_pil(image)
-
-
-class Proteus(BaseNode):
-    """
-    Proteus is an open-source text-to-image generation model.
-    image, generation, AI, text-to-image
-
-    Use cases:
-    - Generate images from textual descriptions
-    - Create unique visual content for creative projects
-    - Explore AI-generated imagery for concept development
-    - Produce illustrations for various applications
-    """
-
-    prompt: str = Field(
-        default="black fluffy gorgeous dangerous cat animal creature, large orange eyes, big fluffy ears, piercing gaze, full moon, dark ambiance, best quality, extremely detailed",
-        description="A text prompt describing the desired image.",
-    )
-    num_inference_steps: int = Field(
-        default=50, description="The number of denoising steps.", ge=1, le=100
-    )
-    guidance_scale: float = Field(
-        default=7.5,
-        description="The scale for classifier-free guidance.",
-        ge=1.0,
-        le=20.0,
-    )
-    seed: int = Field(
-        default=0,
-        description="Seed for the random number generator. Use -1 for a random seed.",
-        ge=-1,
-    )
-
-    _pipeline: AutoPipelineForText2Image | None = None
-
-    @classmethod
-    def get_title(cls) -> str:
-        return "Proteus"
-
-    @classmethod
-    def get_recommended_models(cls) -> list[HuggingFaceModel]:
-        return [
-            HuggingFaceModel(
-                repo_id="dataautogpt3/ProteusV0.5",
-                allow_patterns=[
-                    "**/*.safetensors",
-                    "*.json",
-                    "**/*.json",
-                    "*.txt",
-                    "**/*.txt",
-                ],
-                ignore_patterns=[
-                    "proteusV0.5.safetensors",
-                ],
-            ),
-        ]
-
-    async def initialize(self, context: ProcessingContext):
-        self._pipeline = await self.load_model(
-            context,
-            "dataautogpt3/ProteusV0.5",
-            AutoPipelineForText2Image,
-            torch_dtype=torch.float16,
-        )
-
-    async def move_to_device(self, device: str):
-        if self._pipeline is not None:
-            self._pipeline.to(device)
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
-        # Set up the generator for reproducibility
-        generator = torch.Generator(device="cpu")
-        if self.seed != -1:
-            generator = generator.manual_seed(self.seed)
-
-        output = self._pipeline(
-            prompt=self.prompt,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            generator=generator,
             callback=progress_callback(self.id, self.num_inference_steps, context),
             callback_steps=1,
         )  # type: ignore
@@ -2354,104 +2259,182 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
             HFStableDiffusion(
-                repo_id="Lykon/dreamshaper-8",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
-            ),
-            HFStableDiffusion(
                 repo_id="Yntec/Deliberate2",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                path="Deliberate_v2.safetensors",
             ),
             HFStableDiffusion(
-                repo_id="Yntec/epiCPhotoGasm",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                repo_id="Yntec/epiCPhotoGasm", path="epiCPhotoGasmVAE.safetensors"
+            ),
+            HFStableDiffusion(repo_id="Yntec/epiCEpic", path="epiCEpic.safetensors"),
+            HFStableDiffusion(
+                repo_id="Yntec/VisionVision", path="VisionVision.safetensors"
             ),
             HFStableDiffusion(
-                repo_id="Yntec/526Mix",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                repo_id="Yntec/AbsoluteReality",
+                path="absolutereality_v16.safetensors",
             ),
             HFStableDiffusion(
-                repo_id="stablediffusionapi/realistic-vision-v51",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                repo_id="Yntec/realistic-vision-v13",
+                path="Realistic_Vision_V1.3.safetensors",
             ),
             HFStableDiffusion(
-                repo_id="Yntec/StaticMVintage",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                repo_id="Yntec/realisticStockPhoto3",
+                path="realisticStockPhoto_v30SD15.safetensors",
             ),
             HFStableDiffusion(
-                repo_id="Yntec/OpenGenDiffusers",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                repo_id="Yntec/HyperRemix",
+                path="HyperRemix.safetensors",
             ),
             HFStableDiffusion(
-                repo_id="Yntec/darelitesFantasyMix",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                repo_id="Yntec/HyperPhotoGASM",
+                path="HyperPhotoGASM.safetensors",
             ),
             HFStableDiffusion(
-                repo_id="Yntec/darelitesFantasyMix",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                repo_id="Yntec/ZootVision", path="zootvisionAlpha_v10Alpha.safetensors"
+            ),
+            HFStableDiffusion(repo_id="Yntec/ChunkyCat", path="ChunkyCat.safetensors"),
+            HFStableDiffusion(
+                repo_id="Yntec/TickleYourFancy",
+                path="TickleYourFancy.safetensors",
             ),
             HFStableDiffusion(
-                repo_id="stablediffusionapi/anything-v5",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                repo_id="Yntec/AllRoadsLeadToRetro",
+                path="AllRoadsLeadToRetro.safetensors",
+            ),
+            HFStableDiffusion(repo_id="Yntec/ClayStyle", path="ClayStyle.safetensors"),
+            HFStableDiffusion(
+                repo_id="Yntec/epiCDream", path="epicdream_lullaby.safetensors"
             ),
             HFStableDiffusion(
-                repo_id="Yntec/TwoAndAHalfDimensions",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                repo_id="Yntec/Epsilon_Naught",
+                path="Epsilon_Naught.safetensors",
             ),
+            HFStableDiffusion(
+                repo_id="Yntec/BetterPonyDiffusion",
+                path="betterPonyDiffusionV6_v20.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/ZootVisionEpsilon",
+                path="zootvisionEpsilon_v50Epsilon.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/RevAnimatedV2Rebirth",
+                path="revAnimated_v2RebirthVAE.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/AnimephilesAnonymous",
+                path="AnimephilesAnonymous.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/InsaneSurreality",
+                path="InsaneSurreality.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/DreamlikePhotoReal2",
+                path="DreamlikePhotoReal2.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/DreamShaperRemix",
+                path="DreamShaperRemix.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/CrystalReality",
+                path="CrystalReality.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/ZooFun",
+                path="ZooFun.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/DreamWorks",
+                path="DreamWorks.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/ICantBelieveItSNotPhotography",
+                path="icbinpICantBelieveIts_v10_pruned.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/fennPhoto", path="fennPhoto_v10.safetensors"
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/Surreality",
+                path="ChainGirl-Surreality.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/WinningBlunder",
+                path="WinningBlunder.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/beLIEve",
+                path="beLIEve.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/Neurogen",
+                path="NeurogenVAE.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/Hyperlink",
+                path="Hyperlink.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/Disneyify",
+                path="Disneyify_v1.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/DisneyPixarCartoon768",
+                path="disneyPixarCartoonVAE.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/Wonder",
+                path="Wonder.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/Voxel",
+                path="VoxelVAE.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/Vintage",
+                path="Vintage.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/BeautyFoolRemix",
+                path="BeautyFoolRemix.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/handpaintedRPGIcons",
+                path="handpaintedRPGIcons_v1.safetensors",
+            ),
+            HFStableDiffusion(repo_id="Yntec/526Mix", path="526mixV15.safetensors"),
+            HFStableDiffusion(
+                repo_id="Yntec/majicmixLux", path="majicmixLux_v1.safetensors"
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/incha_re_zoro", path="inchaReZoro_v10.safetensors"
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/3DCartoonVision", path="3dCartoonVision_v10.safetensors"
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/Disneyify",
+                path="Disneyify.safetensors",
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/RetroRetro", path="RetroRetro.safetensors"
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/ClassicToons", path="ClassicToons.safetensors"
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/PixelKicks", path="PixelKicks.safetensors"
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/NostalgicLife", path="NostalgicLifeVAE.safetensors"
+            ),
+            HFStableDiffusion(
+                repo_id="Yntec/ArthemyComics",
+                path="arthemyComics_v10Bakedvae.safetensors",
+            ),
+            HFStableDiffusion(repo_id="Yntec/Paramount", path="Paramount.safetensors"),
             HFIPAdapter(
                 repo_id="h94/IP-Adapter",
                 allow_patterns=[
@@ -2477,9 +2460,6 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
         if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
             if not self.ip_adapter_image.is_empty():
-                await self.load_model(
-                    context, "ip-adapter", "h94/IP-Adapter", subfolder="models"
-                )
                 self._load_ip_adapter()
                 return await context.image_to_pil(self.ip_adapter_image)
         return None
@@ -2559,11 +2539,10 @@ class StableDiffusion(StableDiffusionBaseNode):
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
             self._pipeline = await self.load_model(
-                context,
-                StableDiffusionPipeline,
-                self.model.repo_id,
-                device=context.device,
-                variant="fp16",
+                context=context,
+                model_class=StableDiffusionPipeline,
+                model_id=self.model.repo_id,
+                path=self.model.path,
             )
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
@@ -2692,17 +2671,15 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
 
     async def initialize(self, context: ProcessingContext):
         controlnet = await self.load_model(
-            context,
-            StableDiffusionControlNetPipeline,
-            self.controlnet.repo_id,
-            device=context.device,
+            context=context,
+            model_class=ControlNetModel,
+            model_id=self.controlnet.repo_id,
         )
         self._pipeline = await self.load_model(
-            context,
-            "controlnet",
-            self.model.repo_id,
+            context=context,
+            model_class=StableDiffusionControlNetPipeline,
+            model_id=self.controlnet.repo_id,
             controlnet=controlnet,
-            device=context.device,
         )
 
     async def process(self, context: ProcessingContext) -> ImageRef:
@@ -3121,9 +3098,9 @@ class StableDiffusionUpscale(HuggingFacePipelineNode):
     _pipeline: StableDiffusionUpscalePipeline | None = None
 
     @classmethod
-    def get_recommended_models(cls) -> list[str]:
+    def get_recommended_models(cls):
         return [
-            HFStableDiffusionXL(
+            HFStableDiffusionUpscale(
                 repo_id="stabilityai/stable-diffusion-x4-upscaler",
                 allow_patterns=[
                     "**/*.fp16.safetensors",
@@ -3239,43 +3216,30 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
     _pipeline: Any = None
 
     @classmethod
-    def get_recommended_models(cls) -> list[str]:
+    def get_recommended_models(cls):
         return [
             HFStableDiffusionXL(
                 repo_id="stabilityai/stable-diffusion-xl-base-1.0",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                path="sd_xl_base_1.0.safetensors",
             ),
             HFStableDiffusionXL(
                 repo_id="stabilityai/stable-diffusion-xl-refiner-1.0",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                path="sd_xl_refiner_1.0.safetensors",
             ),
             HFStableDiffusionXL(
                 repo_id="RunDiffusion/Juggernaut-XL-v9",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
+                path="Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors",
+            ),
+            HFStableDiffusionXL(
+                repo_id="dataautogpt3/ProteusV0.5",
+                path="proteusV0.5.safetensors",
+            ),
+            HFStableDiffusionXL(
+                repo_id="Lykon/dreamshaper-xl-lightning",
+                path="DreamShaperXL_Lightning.safetensors",
             ),
             HFStableDiffusionXL(
                 repo_id="fofr/sdxl-emoji",
-                allow_patterns=[
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
             ),
             HFIPAdapter(
                 repo_id="h94/IP-Adapter",
@@ -3382,6 +3346,8 @@ class StableDiffusionXL(StableDiffusionXLBase):
     - Visualizing interior design concepts for clients
     """
 
+    _pipeline: StableDiffusionXLPipeline | None = None
+
     @classmethod
     def get_title(cls):
         return "Stable Diffusion XL"
@@ -3389,11 +3355,10 @@ class StableDiffusionXL(StableDiffusionXLBase):
     async def initialize(self, context: ProcessingContext):
         if self._pipeline is None:
             self._pipeline = await self.load_model(
-                context,
-                DiffusionPipeline,
-                self.model.repo_id,
-                device=context.device,
-                variant="fp16",
+                context=context,
+                model_class=StableDiffusionXLPipeline,
+                model_id=self.model.repo_id,
+                path=self.model.path,
             )
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
@@ -3419,7 +3384,9 @@ class StableDiffusionXL(StableDiffusionXLBase):
             callback=self.progress_callback(context),
             callback_steps=1,
             generator=generator,
-        ).images[0]
+        ).images[
+            0
+        ]  # type: ignore
 
         return await context.image_from_pil(image)
 

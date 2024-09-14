@@ -7,13 +7,13 @@ import { UnifiedModel } from "../../stores/ApiTypes";
 
 interface ModelRecommendationsProps {
   recommendedModels: UnifiedModel[];
-  hasRelevantInstalledModels: boolean;
   openModelDialog: boolean;
   handleOpenModelDialog: () => void;
   handleCloseModelDialog: () => void;
   startDownload: (
     model: string,
     modelType: string,
+    path: string | null,
     allowPatterns?: string[] | null,
     ignorePatterns?: string[] | null
   ) => void;
@@ -22,7 +22,6 @@ interface ModelRecommendationsProps {
 
 const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
   recommendedModels,
-  hasRelevantInstalledModels,
   openModelDialog,
   handleOpenModelDialog,
   handleCloseModelDialog,
@@ -45,9 +44,7 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = ({
           size="small"
           sx={{
             fontSize: ThemeNodetool.fontSizeTiny,
-            color: hasRelevantInstalledModels
-              ? ThemeNodetool.palette.c_gray5
-              : ThemeNodetool.palette.c_warning,
+            color: ThemeNodetool.palette.c_gray5,
             margin: "0",
             lineHeight: "1em",
             borderRadius: "0"

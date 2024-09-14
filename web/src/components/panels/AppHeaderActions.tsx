@@ -4,17 +4,18 @@ import {
   Tooltip,
   CircularProgress,
   Box,
-  Typography,
+  Typography
 } from "@mui/material";
 import NodesIcon from "@mui/icons-material/CircleOutlined";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import SaveIcon from "@mui/icons-material/Save";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
 
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useCallback } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -25,6 +26,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { useWorkflowStore } from "../../stores/WorkflowStore";
 
 const actionsStyles = (
   theme: any,
@@ -46,7 +48,7 @@ const actionsStyles = (
       backgroundColor: theme.palette.c_gray1,
       borderRadius: "0 0 .5em 0.5em",
       margin: "-.25em 0 0",
-      padding: "0 .5em .2em .5em",
+      padding: "0 .5em .2em .5em"
     },
     ".action-button": {
       flexShrink: 0,
@@ -60,26 +62,26 @@ const actionsStyles = (
           : "0",
       color: theme.palette.c_gray6,
       "&:hover": {
-        backgroundColor: theme.palette.c_gray2,
-      },
+        backgroundColor: theme.palette.c_gray2
+      }
     },
     ".action-button:hover": {
-      color: theme.palette.c_hl1,
+      color: theme.palette.c_hl1
     },
     ".action-button.disabled": {
-      color: theme.palette.c_gray4,
+      color: theme.palette.c_gray4
     },
     ".divider": {
       display: "inline-block",
       width: ".2em",
       color: theme.palette.c_gray4,
-      padding: "0 .1em",
+      padding: "0 .1em"
     },
     ".run-stop-button": {
       backgroundColor: theme.palette.c_gray2,
       color: theme.palette.c_hl1,
       padding: "0.1em 1em",
-      minWidth: "5em",
+      minWidth: "5em"
     },
     ".run-stop-button svg": {
       padding: "0",
@@ -87,11 +89,11 @@ const actionsStyles = (
       height: "100%",
       minWidth: "1.2em",
       minHeight: "1.2em",
-      display: "block",
+      display: "block"
     },
     ".MuiCircularProgress-root": {
       width: "20px !important",
-      height: "20px !important",
+      height: "20px !important"
     },
     ".run-status": {
       position: "absolute",
@@ -100,17 +102,19 @@ const actionsStyles = (
       padding: "0 .5em",
       borderRadius: ".5em",
       color: theme.palette.c_gray6,
-      backgroundColor: theme.palette.c_gray1,
-    },
+      backgroundColor: theme.palette.c_gray1
+    }
   });
 
 export default function AppHeaderActions() {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
+  const createNewWorkflow = useWorkflowStore((state) => state.createNew);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const navigate = useNavigate();
   const runWorkflow = useWorkflowRunner((state) => state.run);
   const cancelWorkflow = useWorkflowRunner((state) => state.cancel);
   const state = useWorkflowRunner((state) => state.state);
@@ -127,11 +131,16 @@ export default function AppHeaderActions() {
       addNotification({
         content: `Workflow ${workflow.name} saved`,
         type: "success",
-        alert: true,
+        alert: true
       });
     },
     [addNotification]
   );
+
+  const handleCreateWorkflow = useCallback(async () => {
+    const workflow = await createNewWorkflow();
+    navigate(`/editor/${workflow.id}`);
+  }, [createNewWorkflow, navigate]);
 
   useHotkeys("Alt+s", () => saveWorkflow().then(onWorkflowSaved));
   useHotkeys("Meta+s", () => saveWorkflow().then(onWorkflowSaved));
@@ -156,6 +165,13 @@ export default function AppHeaderActions() {
           css={actionsStyles(ThemeNodetool, buttonAppearance)}
         >
           <>
+            <Tooltip title="Create new workflow" enterDelay={TOOLTIP_DELAY}>
+              <Button className="action-button" onClick={handleCreateWorkflow}>
+                <NoteAddIcon />
+                New
+              </Button>
+            </Tooltip>
+
             <Tooltip
               title={
                 <>
@@ -164,7 +180,7 @@ export default function AppHeaderActions() {
                       fontSize: "1.2em",
                       color: "white",
                       textAlign: "center",
-                      display: "block",
+                      display: "block"
                     }}
                   >
                     Open NodeMenu
@@ -174,7 +190,7 @@ export default function AppHeaderActions() {
                       fontSize: "1em",
                       color: "white",
                       textAlign: "center",
-                      display: "block",
+                      display: "block"
                     }}
                   >
                     Ctrl+Space
@@ -221,7 +237,7 @@ export default function AppHeaderActions() {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    gap: "0.1em",
+                    gap: "0.1em"
                   }}
                 >
                   <span style={{ fontSize: "1.2em", color: "white" }}>
@@ -262,7 +278,7 @@ export default function AppHeaderActions() {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    gap: "0.1em",
+                    gap: "0.1em"
                   }}
                 >
                   <span style={{ fontSize: "1.2em", color: "white" }}>
