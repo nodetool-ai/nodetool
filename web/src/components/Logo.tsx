@@ -20,6 +20,9 @@ const logoStyles = (
   small: boolean
 ) =>
   css({
+    display: "flex",
+    alignItems: "center",
+    gap: "8px", // Add space between logo and text
     ".nt": {
       fontFamily: theme.fontFamily2,
       fontWeight: 600,
@@ -28,7 +31,7 @@ const logoStyles = (
       height: height,
       backgroundColor: "transparent",
       opacity: opacity,
-      transition: "opacity 1s ease-in-out .2s",
+      transition: "opacity 1s ease-in-out .2s"
     },
     ".nodetool": {
       display: "flex",
@@ -41,13 +44,13 @@ const logoStyles = (
       fontSize: fontSize,
       lineHeight: "1em",
       padding: "0",
-      color: "#222",
+      color: "#ccc",
       borderRadius: ".1em",
       boxShadow: small ? `0` : "0 0 24px rgba(200,200,200,0.3)",
       cursor: "pointer",
       boxSizing: "border-box",
-      backgroundColor: "white",
-      transition: "all .4s ease-in-out",
+      // backgroundColor: "white",
+      transition: "all .4s ease-in-out"
     },
     ".nt:hover .nodetool": {
       borderRadius: borderRadius,
@@ -55,8 +58,12 @@ const logoStyles = (
       color: textColor,
       textShadow: small ? "0" : `0 0 2px ${textColor}`,
       filter: small ? "none" : "blur(0.3px)",
-      boxShadow: small ? `0` : `0 0 11px ${bgColor}`,
+      boxShadow: small ? `0` : `0 0 11px ${bgColor}`
     },
+    ".logo-image": {
+      width: "20px",
+      height: "20px"
+    }
   });
 
 type LogoProps = {
@@ -74,7 +81,7 @@ const Logo = ({
   fontSize,
   borderRadius,
   small,
-  singleLine,
+  singleLine
 }: LogoProps) => {
   const [rdt, setRdt] = useState(randomDatatype());
   const [hoverColor, setHoverColor] = useState(rdt.color);
@@ -106,6 +113,7 @@ const Logo = ({
         small
       )}
     >
+      <img className="logo-image" src="/logo192.png" alt="NodeTool" />
       <div className="nt" onMouseEnter={handleMouseEnter}>
         <div className="nodetool">
           {singleLine ? (
