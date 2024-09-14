@@ -752,7 +752,7 @@ class BaseNode(BaseModel):
         else:
             return []
 
-    async def initialize(self, context: Any):
+    async def initialize(self, context: Any, skip_cache: bool = False):
         """
         Initialize the node when workflow starts.
 

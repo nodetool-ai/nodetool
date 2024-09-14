@@ -50,9 +50,16 @@ export const metadataQuery = async () => {
     []
   );
 
+  // deduplicate by type, repo_id, path
+  const uniqueRecommendedModels = recommendedModels.filter(
+    (model, index, self) =>
+      index ===
+      self.findIndex((t) => t.type === model.type && t.repo_id === model.repo_id && t.path === model.path)
+  );
+
   useMetadataStore.getState().setMetadata(metadataByType);
 
-  return { metadata: data, nodeTypes, metadataByType, recommendedModels };
+  return { metadata: data, nodeTypes, metadataByType, recommendedModels: uniqueRecommendedModels };
 };
 
 export const useMetadata = () =>
