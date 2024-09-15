@@ -6,6 +6,8 @@ from pydantic import Field
 from nodetool.metadata.types import (
     ImageRef,
     HFVisualQuestionAnswering,
+    HFImageToText,
+    HFMaskGeneration,
 )
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
@@ -23,20 +25,12 @@ class ImageToText(HuggingFacePipelineNode):
     - Generating alt text for web images
     """
 
-    class ImageToTextModelId(str, Enum):
-        MICROSOFT_GIT_BASE_COCO = "microsoft/git-base-coco"
-        NLPCONNECT_VIT_GPT2_IMAGE_CAPTIONING = "nlpconnect/vit-gpt2-image-captioning"
-        SALESFORCE_BLIP_IMAGE_CAPTIONING_BASE = "Salesforce/blip-image-captioning-base"
-        SALESFORCE_BLIP_IMAGE_CAPTIONING_LARGE = (
-            "Salesforce/blip-image-captioning-large"
-        )
-
-    model: ImageToTextModelId = Field(
-        default=ImageToTextModelId.SALESFORCE_BLIP_IMAGE_CAPTIONING_BASE,
+    model: HFImageToText = Field(
+        default=HFImageToText(),
         title="Model ID on Huggingface",
         description="The model ID to use for image-to-text generation",
     )
-    inputs: ImageRef = Field(
+    image: ImageRef = Field(
         default=ImageRef(),
         title="Input Image",
         description="The image to generate text from",
@@ -47,36 +41,47 @@ class ImageToText(HuggingFacePipelineNode):
         description="The maximum number of tokens to generate",
     )
 
+    @classmethod
+    def get_recommended_models(cls):
+        return [
+            HFImageToText(
+                repo_id="Salesforce/blip-image-captioning-base",
+                allow_patterns=["*.bin", "*.json", "*.txt    "],
+            ),
+            HFImageToText(
+                repo_id="Salesforce/blip-image-captioning-large",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+            HFImageToText(
+                repo_id="nlpconnect/vit-gpt2-image-captioning",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+            HFImageToText(
+                repo_id="microsoft/git-base-coco",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+        ]
+
     def required_inputs(self):
-        return ["inputs"]
+        return ["image"]
 
-    def get_model_id(self):
-        return self.model.value
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context=context,
+            pipeline_task="image-to-text",
+            model_id=self.model.repo_id,
+        )
 
-    @property
-    def pipeline_task(self) -> str:
-        return "image-to-text"
-
-    async def get_inputs(self, context: ProcessingContext):
-        return await context.image_to_pil(self.inputs)
-
-    def get_params(self):
-        return {
-            "max_new_tokens": self.max_new_tokens,
-        }
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
-        return result[0]["generated_text"]
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
-        return result[0]["generated_text"]
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> str:
-        return await super().process(context)
+        assert self._pipeline is not None
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(image, max_new_tokens=self.max_new_tokens)
+        assert isinstance(result, list)
+        assert len(result) == 1
+        return result[0]["generated_text"]
 
 
 class MaskGeneration(HuggingFacePipelineNode):

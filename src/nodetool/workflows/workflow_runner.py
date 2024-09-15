@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import contextmanager
 from datetime import datetime
+import gc
 from typing import Dict, Any, Optional
 from functools import lru_cache
 
@@ -169,6 +170,7 @@ class WorkflowRunner:
         with self.torch_context(context):
             try:
                 await self.validate_graph(context, graph)
+                await self.clear_unused_models(graph)
                 await self.initialize_graph(context, graph)
                 await self.process_graph(context, graph)
             except torch.cuda.OutOfMemoryError as e:
@@ -219,6 +221,10 @@ class WorkflowRunner:
         for edge in graph.edges:
             source_node = graph.find_node(edge.source)
             target_node = graph.find_node(edge.target)
+
+            assert source_node is not None, f"Source node {edge.source} not found"
+            assert target_node is not None, f"Target node {edge.target} not found"
+
             output_slot = source_node.find_output(edge.sourceHandle)
             input_slot = target_node.find_property(edge.targetHandle)
 
@@ -249,6 +255,16 @@ class WorkflowRunner:
                     )
         if not is_valid:
             raise ValueError("Graph contains errors")
+
+    async def clear_unused_models(self, graph: Graph):
+        """
+        Clears unused models from the model manager.
+        """
+        if not Environment.is_production():
+            ModelManager.clear_unused(node_ids=[node.id for node in graph.nodes])
+            # run garbage collection
+            gc.collect()
+            torch.cuda.empty_cache()
 
     async def initialize_graph(self, context: ProcessingContext, graph: Graph):
         """
@@ -340,6 +356,7 @@ class WorkflowRunner:
                 vram_before_cleanup = get_available_vram()
 
                 ModelManager.clear()
+                gc.collect()
 
                 for model in current_loaded_models:
                     model.model_unload()
