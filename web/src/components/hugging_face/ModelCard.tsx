@@ -17,13 +17,12 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { useQuery } from "@tanstack/react-query";
-import { UnifiedModel } from "../../stores/ApiTypes";
-import { isProduction } from "../../stores/ApiClient";
 import {
   ModelComponentProps,
   formatId,
   modelSize,
-  ModelExternalLink,
+  HuggingFaceLink,
+  OllamaLink,
   renderModelSecondaryInfo,
   renderModelActions,
   fetchOllamaModelInfo
@@ -62,7 +61,7 @@ const styles = (theme: any) =>
       background: ThemeNodetool.palette.c_gray1
     },
     ".repo-name": {
-      width: "calc(100% - 1em)",
+      width: "calc(100% - 2.5em)",
       padding: "0",
       margin: "0 0 .5em 0",
       fontSize: "1em"
@@ -94,6 +93,7 @@ const styles = (theme: any) =>
     },
     ".tags-list": {
       display: "block",
+      position: "absolute",
       maxHeight: "120px",
       paddingBottom: "1em",
       left: "0",
@@ -138,8 +138,12 @@ const styles = (theme: any) =>
         border: "1px solid" + ThemeNodetool.palette.c_gray0
       }
     },
-    ".view-on-huggingface": {
+    ".model-external-link-icon ": {
       boxShadow: "none",
+      cursor: "pointer",
+      position: "absolute",
+      right: ".5em",
+      bottom: ".5em",
       backgroundColor: "transparent",
       filter: "saturate(0)",
       transition: "transform 0.125s ease-in, filter 0.2s ease-in",
@@ -148,6 +152,9 @@ const styles = (theme: any) =>
         transform: "scale(1.5)",
         filter: "saturate(1)"
       }
+    },
+    ".model-external-link-icon img": {
+      cursor: "pointer"
     },
     ".delete-button": {
       position: "absolute",
@@ -170,6 +177,11 @@ const styles = (theme: any) =>
     },
     ".downloaded-indicator": {
       color: theme.palette.success.main
+    },
+    ".model-downloaded-icon": {
+      position: "absolute",
+      top: ".6em",
+      right: "2em"
     }
   });
 
@@ -180,9 +192,8 @@ const ModelCard: React.FC<ModelComponentProps> = ({
 }) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const isHuggingFace = model.type.startsWith("hf.");
-  const isOllama = model.type.startsWith("llama_model");
+  const isOllama = model.type.toLowerCase().includes("ollama");
   const downloaded = !!(model.size_on_disk && model.size_on_disk > 0);
-
   const { data: modelData, isLoading } = useQuery({
     queryKey: ["modelInfo", model.id],
     queryFn: () => {
@@ -242,7 +253,7 @@ const ModelCard: React.FC<ModelComponentProps> = ({
           {isOllama && (
             <Typography
               variant="h5"
-              style={{ color: ThemeNodetool.palette.c_gray5 }}
+              style={{ color: ThemeNodetool.palette.c_warning }}
             >
               Model not downloaded.
             </Typography>
@@ -251,7 +262,7 @@ const ModelCard: React.FC<ModelComponentProps> = ({
             <>
               <Typography
                 variant="h5"
-                style={{ color: ThemeNodetool.palette.c_gray5 }}
+                style={{ color: ThemeNodetool.palette.c_warning }}
               >
                 Failed to find matching repository:
               </Typography>
@@ -284,7 +295,8 @@ const ModelCard: React.FC<ModelComponentProps> = ({
               Download
             </Button>
           )}
-          <ModelExternalLink isHuggingFace={isHuggingFace} modelId={model.id} />
+          {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+          {isOllama && <OllamaLink modelId={model.id} />}
         </CardActions>
       </Card>
     );
@@ -313,16 +325,16 @@ const ModelCard: React.FC<ModelComponentProps> = ({
               </Typography>
             </Tooltip>
           )}
-          <Box className="tags-container">
-            <Button className="pipeline-tag" onClick={toggleTags}>
-              {modelData.cardData?.pipeline_tag}
-            </Button>
+          {(modelData.cardData?.tags || modelData.tags) && (
+            <Box className="tags-container">
+              <Button className="pipeline-tag" onClick={toggleTags}>
+                {modelData.cardData?.pipeline_tag || "#"}
+              </Button>
 
-            <Box
-              className="tags-list"
-              style={{ display: tagsExpanded ? "block" : "none" }}
-            >
-              {(modelData.cardData?.tags || modelData.tags) && (
+              <Box
+                className="tags-list"
+                style={{ display: tagsExpanded ? "block" : "none" }}
+              >
                 <Box mt={1}>
                   {(modelData.cardData?.tags || modelData.tags).map(
                     (tag: string) => (
@@ -336,9 +348,9 @@ const ModelCard: React.FC<ModelComponentProps> = ({
                     )
                   )}
                 </Box>
-              )}
+              </Box>
             </Box>
-          </Box>
+          )}
         </Box>
 
         <div
@@ -384,7 +396,8 @@ const ModelCard: React.FC<ModelComponentProps> = ({
             </Typography>
           </Box>
         )}
-        <ModelExternalLink isHuggingFace={isHuggingFace} modelId={model.id} />
+        {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+        {isOllama && <OllamaLink modelId={model.id} />}
       </CardActions>
     </Card>
   );

@@ -13,47 +13,61 @@ import {
 } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import ThemeNodetool from "../themes/ThemeNodetool";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { useQuery } from "@tanstack/react-query";
 import {
   ModelComponentProps,
   formatId,
   modelSize,
-  ModelExternalLink,
   renderModelSecondaryInfo,
   renderModelActions,
-  fetchOllamaModelInfo
+  fetchOllamaModelInfo,
+  HuggingFaceLink,
+  OllamaLink
 } from "./ModelUtils";
 import { fetchModelInfo } from "../../utils/huggingFaceUtils";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
     "&.model-list-item": {
-      borderBottom: `1px solid ${theme.palette.divider}`,
-      padding: "16px 0"
+      padding: "0 0 1em 1em",
+      marginBottom: ".5em",
+      backgroundColor: theme.palette.c_gray1,
+
+      "& .model-name": {
+        fontWeight: "bold",
+        textTransform: "uppercase",
+        color: theme.palette.c_hl1
+      },
+      "& .model-info": {
+        color: theme.palette.text.secondary,
+        fontSize: "0.875rem"
+      },
+      "& .pipeline-tag": {
+        marginRight: "1em"
+      },
+      "& .model-stats": {
+        display: "flex",
+        alignItems: "center",
+        gap: "1em",
+        marginRight: "16px"
+      }
     },
-    ".model-name": {
-      fontWeight: "bold",
-      color: theme.palette.text.primary
+    ".model-external-link-icon": {
+      boxShadow: "none",
+      cursor: "pointer",
+      backgroundColor: "transparent",
+      filter: "saturate(0)",
+      transition: "transform 0.125s ease-in, filter 0.2s ease-in",
+      "&:hover": {
+        backgroundColor: "transparent",
+        transform: "scale(1.5)",
+        filter: "saturate(1)"
+      }
     },
-    ".model-info": {
-      color: theme.palette.text.secondary,
-      fontSize: "0.875rem"
-    },
-    ".model-actions": {
-      display: "flex",
-      gap: "8px",
-      alignItems: "center"
-    },
-    ".pipeline-tag": {
-      marginRight: "8px"
-    },
-    ".model-stats": {
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      marginRight: "16px"
+    ".model-external-link-icon img": {
+      cursor: "pointer"
     }
   });
 
@@ -63,7 +77,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
   handleDelete
 }) => {
   const isHuggingFace = model.type.startsWith("hf.");
-  const isOllama = model.type.startsWith("llama_model");
+  const isOllama = model.type.toLowerCase().includes("ollama");
   const downloaded = !!(model.size_on_disk && model.size_on_disk > 0);
 
   const { data: modelData, isLoading } = useQuery({
@@ -90,71 +104,99 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
 
   if (!modelData) {
     return (
-      <ListItem css={styles} className="model-list-item">
-        <ListItemText
-          primary={formatId(model.id)}
-          secondary={
-            isOllama
-              ? "Model not downloaded."
-              : "Failed to find matching repository."
-          }
-        />
-        <ListItemSecondaryAction className="model-actions">
-          {renderModelActions({ model, handleDelete, onDownload }, downloaded)}
-          <ModelExternalLink isHuggingFace={isHuggingFace} modelId={model.id} />
-        </ListItemSecondaryAction>
-      </ListItem>
+      <Box css={styles} className="model-list-item">
+        <ListItem className="model-list-item">
+          <ListItemText
+            primary={formatId(model.id)}
+            secondary={
+              isOllama ? (
+                "Model not downloaded."
+              ) : (
+                <span style={{ color: ThemeNodetool.palette.c_warning }}>
+                  Failed to find matching repository.
+                </span>
+              )
+            }
+          />
+          <ListItemSecondaryAction
+            sx={{
+              display: "flex",
+              gap: "1em",
+              alignItems: "center"
+            }}
+          >
+            {renderModelActions(
+              { model, handleDelete, onDownload },
+              downloaded
+            )}
+            {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+            {isOllama && <OllamaLink modelId={model.id} />}
+          </ListItemSecondaryAction>
+        </ListItem>
+      </Box>
     );
   }
 
   return (
-    <ListItem css={styles} className="model-list-item">
-      <ListItemText
-        primary={
-          <Typography className="model-name">{formatId(model.id)}</Typography>
-        }
-        secondary={
-          <React.Fragment>
-            <Typography component="span" className="model-info">
-              {renderModelSecondaryInfo(modelData, isHuggingFace)}
-            </Typography>
-            {model.size_on_disk && (
-              <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Size on disk">
-                <Typography component="span" className="model-info">
-                  {" • "}
-                  {modelSize(model)}
-                </Typography>
+    <Box css={styles} className="model-list-item">
+      <ListItem css={styles} className="model-list-item">
+        <ListItemText
+          primary={<Typography className="model-name">{model.id}</Typography>}
+          secondary={
+            <React.Fragment>
+              <Typography component="span" className="model-info">
+                {renderModelSecondaryInfo(modelData, isHuggingFace)}
+              </Typography>
+              {model.size_on_disk && (
+                <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Size on disk">
+                  <Typography component="span" className="model-info">
+                    {" • "}
+                    {modelSize(model)}
+                  </Typography>
+                </Tooltip>
+              )}
+              {modelData.cardData?.pipeline_tag && (
+                <Chip
+                  label={modelData.cardData.pipeline_tag}
+                  size="small"
+                  className="pipeline-tag"
+                />
+              )}
+            </React.Fragment>
+          }
+        />
+        <ListItemSecondaryAction
+          sx={{
+            display: "flex",
+            gap: "1em",
+            alignItems: "center"
+          }}
+        >
+          {isHuggingFace && (
+            <Box className="model-stats" sx={{ display: "flex", gap: ".5em" }}>
+              <Tooltip title="Downloads last month">
+                <CloudDownloadIcon fontSize="small" />
               </Tooltip>
+              <Typography variant="body2">
+                {modelData.downloads?.toLocaleString() || "N/A"}
+              </Typography>
+              <FavoriteIcon fontSize="small" />
+              <Typography variant="body2">
+                {modelData.likes?.toLocaleString() || "N/A"}
+              </Typography>
+            </Box>
+          )}
+          {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+          {isOllama && <OllamaLink modelId={model.id} />}
+          <Box sx={{ display: "flex", gap: "1.5em" }}>
+            {renderModelActions(
+              { model, handleDelete, onDownload },
+              downloaded
             )}
-            {modelData.cardData?.pipeline_tag && (
-              <Chip
-                label={modelData.cardData.pipeline_tag}
-                size="small"
-                className="pipeline-tag"
-              />
-            )}
-          </React.Fragment>
-        }
-      />
-      <ListItemSecondaryAction className="model-actions">
-        {isHuggingFace && (
-          <Box className="model-stats">
-            <Tooltip title="Downloads last month">
-              <CloudDownloadIcon fontSize="small" />
-            </Tooltip>
-            <Typography variant="body2">
-              {modelData.downloads?.toLocaleString() || "N/A"}
-            </Typography>
-            <FavoriteIcon fontSize="small" />
-            <Typography variant="body2">
-              {modelData.likes?.toLocaleString() || "N/A"}
-            </Typography>
           </Box>
-        )}
-        {renderModelActions({ model, handleDelete, onDownload }, downloaded)}
-        <ModelExternalLink isHuggingFace={isHuggingFace} modelId={model.id} />
-      </ListItemSecondaryAction>
-    </ListItem>
+        </ListItemSecondaryAction>
+      </ListItem>
+    </Box>
   );
 };
 

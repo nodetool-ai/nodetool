@@ -29,94 +29,12 @@ import axios from "axios";
 import { CachedModel } from "../../stores/ApiTypes";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
-
-type OllamaModel = {
-  name: string;
-  modified_at: string;
-  size: number;
-  digest: string;
-  details: {
-    format: string;
-    family: string;
-    families: string[] | null;
-    parameter_size: string;
-    quantization_level: string;
-  };
-};
-
-import ModelIcon from "../../icons/model.svg";
-
-const prettifyModelType = (type: string) => {
-  if (type === "All") return type;
-
-  if (type === "Ollama") {
-    return (
-      <>
-        <img
-          src="/ollama.png"
-          alt="Ollama"
-          style={{
-            width: "16px",
-            marginRight: "8px",
-            filter: "invert(1)"
-          }}
-        />
-        Ollama
-      </>
-    );
-  }
-
-  const parts = type.split(".");
-  if (parts[0] === "hf") {
-    parts.shift(); // Remove "hf"
-    return (
-      <>
-        <img
-          src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
-          alt="Hugging Face"
-          style={{ width: "20px", marginRight: "8px" }}
-        />
-        {parts
-          .map((part) =>
-            part
-              .split("_")
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" ")
-          )
-          .join(" ")}
-      </>
-    );
-  }
-
-  return (
-    <>
-      <img
-        src={ModelIcon}
-        alt="Model"
-        style={{
-          width: "20px",
-          marginRight: "8px",
-          filter: "invert(1)"
-        }}
-      />
-      {type
-        .split("_")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ")}
-    </>
-  );
-};
-
-const groupModelsByType = (models: CachedModel[]) => {
-  return models.reduce((acc, model) => {
-    const type = model.model_type || "Other";
-    if (!acc[type]) {
-      acc[type] = [];
-    }
-    acc[type].push(model);
-    return acc;
-  }, {} as Record<string, CachedModel[]>);
-};
+import {
+  prettifyModelType,
+  OllamaModel,
+  groupModelsByType,
+  sortModelTypes
+} from "./ModelUtils";
 
 const styles = (theme: any) =>
   css({
@@ -209,14 +127,7 @@ const ModelList: React.FC = () => {
     const types = new Set(Object.keys(groupedHFModels));
     types.add("Other");
     types.add("Ollama");
-    return [
-      "All",
-      ...Array.from(types).sort((a, b) => {
-        if (a === "Other") return 1;
-        if (b === "Other") return -1;
-        return a.localeCompare(b);
-      })
-    ];
+    return sortModelTypes(Array.from(types));
   }, [groupedHFModels]);
 
   const handleModelTypeChange = useCallback((newValue: string) => {
