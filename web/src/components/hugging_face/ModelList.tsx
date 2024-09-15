@@ -10,11 +10,14 @@ import {
   Typography,
   List,
   ListItemText,
-  ListItemButton
+  ListItemButton,
+  ToggleButton,
+  ToggleButtonGroup
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import ModelCard from "./ModelCard";
+import ModelListItem from "./ModelListItem";
 import {
   Dialog,
   DialogActions,
@@ -24,6 +27,8 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import { CachedModel } from "../../stores/ApiTypes";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 
 type OllamaModel = {
   name: string;
@@ -161,6 +166,7 @@ const styles = (theme: any) =>
   });
 
 const ModelList: React.FC = () => {
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -183,8 +189,11 @@ const ModelList: React.FC = () => {
     }
   });
 
-  // ollama query
-  const { data: ollamaModels, isLoading: ollamaLoading } = useQuery({
+  const {
+    data: ollamaModels,
+    isLoading: ollamaLoading,
+    error: ollamaError
+  } = useQuery({
     queryKey: ["ollamaModels"],
     queryFn: async () => {
       const response = await axios.get("http://localhost:11434/api/tags");
@@ -197,23 +206,14 @@ const ModelList: React.FC = () => {
     [hfModels]
   );
   const modelTypes = useMemo(() => {
-    const types = new Set<string>();
-
-    // hf
-    Object.keys(groupedHFModels).forEach((key) => {
-      if (key.startsWith("hf.")) {
-        types.add(key);
-      }
-    });
-
-    types.add("Ollama");
+    const types = new Set(Object.keys(groupedHFModels));
     types.add("Other");
-
+    types.add("Ollama");
     return [
       "All",
       ...Array.from(types).sort((a, b) => {
-        if (a.startsWith("hf.") && !b.startsWith("hf.")) return -1;
-        if (!a.startsWith("hf.") && b.startsWith("hf.")) return 1;
+        if (a === "Other") return 1;
+        if (b === "Other") return -1;
         return a.localeCompare(b);
       })
     ];
@@ -235,7 +235,6 @@ const ModelList: React.FC = () => {
     }
   }, [selectedModelType, groupedHFModels, ollamaModels]);
 
-  // delete mutation
   const deleteHFModel = async (repoId: string) => {
     setDeletingModels((prev) => new Set(prev).add(repoId));
     try {
@@ -274,6 +273,78 @@ const ModelList: React.FC = () => {
     setModelToDelete(null);
   };
 
+  const handleViewModeChange = (
+    event: React.MouseEvent<HTMLElement>,
+    newViewMode: "grid" | "list" | null
+  ) => {
+    if (newViewMode !== null) {
+      setViewMode(newViewMode);
+    }
+  };
+
+  const renderModels = (models: (CachedModel | OllamaModel)[]) => {
+    if (viewMode === "grid") {
+      return (
+        <Grid container spacing={3}>
+          {models.map((model: CachedModel | OllamaModel) => (
+            <Grid
+              item
+              xs={12}
+              sm={12}
+              md={6}
+              lg={4}
+              xl={3}
+              key={"repo_id" in model ? model.repo_id : model.name}
+            >
+              <ModelCard
+                model={{
+                  id: "repo_id" in model ? model.repo_id : model.name,
+                  type:
+                    "repo_id" in model
+                      ? model.model_type || "hf.model"
+                      : "Ollama",
+                  name:
+                    "repo_id" in model
+                      ? model.repo_id
+                      : `${model.details.family} - ${model.details.parameter_size}`,
+                  description: "",
+                  size_on_disk:
+                    "size_on_disk" in model ? model.size_on_disk : model.size
+                }}
+                handleDelete={"repo_id" in model ? handleDeleteClick : () => {}}
+              />
+            </Grid>
+          ))}
+        </Grid>
+      );
+    } else {
+      return (
+        <List>
+          {models.map((model: CachedModel | OllamaModel) => (
+            <ModelListItem
+              key={"repo_id" in model ? model.repo_id : model.name}
+              model={{
+                id: "repo_id" in model ? model.repo_id : model.name,
+                type:
+                  "repo_id" in model
+                    ? model.model_type || "hf.model"
+                    : "Ollama",
+                name:
+                  "repo_id" in model
+                    ? model.repo_id
+                    : `${model.details.family} - ${model.details.parameter_size}`,
+                description: "",
+                size_on_disk:
+                  "size_on_disk" in model ? model.size_on_disk : model.size
+              }}
+              handleDelete={"repo_id" in model ? handleDeleteClick : () => {}}
+            />
+          ))}
+        </List>
+      );
+    }
+  };
+
   if (hfLoading || ollamaLoading) {
     return (
       <Box
@@ -293,13 +364,18 @@ const ModelList: React.FC = () => {
     );
   }
 
-  if (hfError) {
+  if (hfError || ollamaError) {
     return (
       <>
         <Typography variant="h3">Could not load models.</Typography>
         {hfError && (
           <Typography variant="body2" color="error">
             HuggingFace Error: {hfError.message}
+          </Typography>
+        )}
+        {ollamaError && (
+          <Typography variant="body2" color="error">
+            Ollama Error: {ollamaError.message}
           </Typography>
         )}
       </>
@@ -324,6 +400,29 @@ const ModelList: React.FC = () => {
       </Box>
 
       <Box className="content">
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2
+          }}
+        >
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            aria-label="view mode"
+          >
+            <ToggleButton value="grid" aria-label="grid view">
+              <ViewModuleIcon />
+            </ToggleButton>
+            <ToggleButton value="list" aria-label="list view">
+              <ViewListIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
         {deleteHFModelMutation.isPending && <CircularProgress />}
         {deleteHFModelMutation.isError && (
           <Typography color="error">
@@ -340,44 +439,11 @@ const ModelList: React.FC = () => {
               <Typography variant="h2">
                 {prettifyModelType(modelType)}
               </Typography>
-              <Grid container spacing={3}>
-                {(modelType === "Ollama"
+              {renderModels(
+                modelType === "Ollama"
                   ? ollamaModels || []
                   : groupedHFModels[modelType] || []
-                ).map((model: CachedModel | OllamaModel) => (
-                  <Grid
-                    item
-                    xs={12}
-                    sm={12}
-                    md={6}
-                    lg={4}
-                    xl={3}
-                    key={"repo_id" in model ? model.repo_id : model.name}
-                  >
-                    <ModelCard
-                      model={{
-                        id: "repo_id" in model ? model.repo_id : model.name,
-                        type:
-                          "repo_id" in model
-                            ? model.model_type || "hf.model"
-                            : "Ollama",
-                        name:
-                          "repo_id" in model
-                            ? model.repo_id
-                            : `${model.details.family} - ${model.details.parameter_size}`,
-                        description: "",
-                        size_on_disk:
-                          "size_on_disk" in model
-                            ? model.size_on_disk
-                            : model.size
-                      }}
-                      handleDelete={
-                        "repo_id" in model ? handleDeleteClick : () => {}
-                      }
-                    />
-                  </Grid>
-                ))}
-              </Grid>
+              )}
             </Box>
           ))
         ) : (
@@ -385,43 +451,7 @@ const ModelList: React.FC = () => {
             <Typography variant="h2">
               {prettifyModelType(selectedModelType)}
             </Typography>
-            <Grid container spacing={3}>
-              {Object.entries(filteredModels).map(([modelType, models]) =>
-                models.map((model: CachedModel | OllamaModel) => (
-                  <Grid
-                    item
-                    xs={12}
-                    sm={12}
-                    md={6}
-                    lg={4}
-                    xl={3}
-                    key={"repo_id" in model ? model.repo_id : model.name}
-                  >
-                    <ModelCard
-                      model={{
-                        id: "repo_id" in model ? model.repo_id : model.name,
-                        type:
-                          "repo_id" in model
-                            ? model.model_type || "hf.model"
-                            : "Ollama",
-                        name:
-                          "repo_id" in model
-                            ? model.repo_id
-                            : `${model.details.family} - ${model.details.parameter_size}`,
-                        description: "",
-                        size_on_disk:
-                          "size_on_disk" in model
-                            ? model.size_on_disk
-                            : model.size
-                      }}
-                      handleDelete={
-                        "repo_id" in model ? handleDeleteClick : () => {}
-                      }
-                    />
-                  </Grid>
-                ))
-              )}
-            </Grid>
+            {renderModels(Object.values(filteredModels)[0])}
           </Box>
         )}
 
