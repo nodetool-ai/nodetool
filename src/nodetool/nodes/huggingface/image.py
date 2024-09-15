@@ -7,6 +7,7 @@ from nodetool.metadata.types import (
     HFControlNet,
     HFIPAdapter,
     HFImageClassification,
+    HFImageFeatureExtraction,
     HFImageToImage,
     HFLoraSD,
     HFLoraSDXL,
@@ -23,6 +24,7 @@ from nodetool.metadata.types import (
     ImageRef,
     ImageSegmentationResult,
     ObjectDetectionResult,
+    Tensor,
 )
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import progress_callback
@@ -3563,3 +3565,126 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
         )
 
         return await context.image_from_pil(output.images[0])  # type: ignore
+
+
+# throws an error
+# class DocumentQuestionAnswering(HuggingFacePipelineNode):
+#     """
+#     Answers questions based on a given document.
+#     text, question answering, document, natural language processing
+
+#     Use cases:
+#     - Information retrieval from long documents
+#     - Automated document analysis
+#     - Enhancing search functionality in document repositories
+#     - Assisting in research and data extraction tasks
+#     """
+
+#     class DocumentQuestionAnsweringModelId(str, Enum):
+#         IMPIRA_LAYOUTLM_DOCUMENT_QA = "impira/layoutlm-document-qa"
+
+#     model: DocumentQuestionAnsweringModelId = Field(
+#         default=DocumentQuestionAnsweringModelId.IMPIRA_LAYOUTLM_DOCUMENT_QA,
+#         title="Model ID on Huggingface",
+#         description="The model ID to use for document question answering",
+#     )
+#     image: ImageRef = Field(
+#         default=ImageRef(),
+#         title="Document Image",
+#         description="The image of the document to analyze",
+#     )
+#     question: str = Field(
+#         default="",
+#         title="Question",
+#         description="The question to be answered based on the document",
+#     )
+
+#     def get_model_id(self):
+#         return self.model.value
+
+#     async def get_inputs(self, context: ProcessingContext):
+#         image = await context.image_to_pil(self.image)
+#         return {
+#             "image": image,
+#             "question": self.question,
+#         }
+
+#     @property
+#     def pipeline_task(self) -> str:
+#         return 'document-question-answering'
+
+#     async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+#         return await self.process_local_result(context, result)
+
+#     async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
+#         return {
+#             "answer": result["answer"],
+#             "score": result["score"],
+#         }
+
+#     async def process(self, context: ProcessingContext) -> dict[str, Any]:
+#         return await super().process(context)
+
+
+class ImageFeatureExtraction(HuggingFacePipelineNode):
+    """
+    Extracts features from images using pre-trained models.
+    image, feature extraction, embeddings, computer vision
+
+    Use cases:
+    - Image similarity comparison
+    - Clustering images
+    - Input for machine learning models
+    - Content-based image retrieval
+    """
+
+    model: HFImageFeatureExtraction = Field(
+        default=HFImageFeatureExtraction(),
+        title="Model ID on Huggingface",
+        description="The model ID to use for image feature extraction",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The image to extract features from",
+    )
+
+    @classmethod
+    def get_recommended_models(cls):
+        return [
+            HFImageFeatureExtraction(
+                repo_id="google/vit-base-patch16-224-in21k",
+                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+            ),
+            HFImageFeatureExtraction(
+                repo_id="facebook/dinov2-base",
+                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+            ),
+            HFImageFeatureExtraction(
+                repo_id="facebook/dinov2-small",
+                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+            ),
+        ]
+
+    def required_inputs(self):
+        return ["image"]
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context=context,
+            pipeline_task="image-feature-extraction",
+            model_id=self.model.repo_id,
+        )
+
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> Tensor:
+        # The result is typically a list with a single numpy array
+        # We'll return this array as a Tensor
+        assert self._pipeline is not None
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(image)
+        assert isinstance(result, list)
+        assert len(result) == 1
+        return Tensor.from_numpy(np.array(result[0]))
