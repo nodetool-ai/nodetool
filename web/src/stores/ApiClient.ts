@@ -12,6 +12,8 @@ export const useRemoteAuth = !isLocalhost;
 export const isDevelopment = isLocalhost;
 export const isProduction = !isLocalhost;
 
+(window as any)["isProduction"] = isProduction;
+
 // TODO: make it configurable via env vars
 export const BASE_URL = isLocalhost
   ? "http://" + window.location.hostname + ":8000"

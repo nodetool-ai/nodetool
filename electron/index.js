@@ -5,7 +5,7 @@
  * @typedef {import('electron').BrowserWindow} BrowserWindow
  */
 
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs").promises;
 const { spawn } = require("child_process");
@@ -22,6 +22,8 @@ function log(message) {
 let mainWindow;
 /** @type {import('child_process').ChildProcess|null} */
 let serverProcess;
+/** @type {import('child_process').ChildProcess|null} */
+let ollamaProcess;
 /** @type {string} */
 let pythonExecutable;
 /** @type {string|null} */
@@ -31,10 +33,14 @@ let webDir;
 /** @type {string} */
 const resourcesPath = process.resourcesPath;
 /** @type {NodeJS.ProcessEnv} */
-let env = process.env;
-env.PYTHONUNBUFFERED = "1";
+let env = { ...process.env, PYTHONUNBUFFERED: "1" };
 
-log(`Starting application. resourcesPath: ${resourcesPath}`);
+/** @type {{ isStarted: boolean, bootMsg: string, logs: string[] }} */
+let serverState = {
+  isStarted: false,
+  bootMsg: "Initializing...",
+  logs: [],
+};
 
 /** @type {string[]} */
 const windowsPipArgs = [
@@ -66,20 +72,16 @@ async function installRequirements() {
     env,
   });
 
-  mainWindow.webContents.send("boot-message", "Installing requirements");
+  emitBootMessage("Installing requirements");
 
   pipProcess.stdout.on("data", (/** @type {Buffer} */ data) => {
     console.log(data.toString());
-    if (mainWindow) {
-      mainWindow.webContents.send("server-log", data.toString());
-    }
+    emitServerLog(data.toString());
   });
 
   pipProcess.stderr.on("data", (/** @type {Buffer} */ data) => {
     console.log(data.toString());
-    if (mainWindow) {
-      mainWindow.webContents.send("server-log", data.toString());
-    }
+    emitServerLog(data.toString());
   });
 
   return new Promise((resolve, reject) => {
@@ -104,13 +106,24 @@ function createWindow() {
     width: 1500,
     height: 1000,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
     },
   });
+  emitBootMessage("Initializing...");
 
   mainWindow.loadFile("index.html");
   log("index.html loaded into main window");
+
+  // Add this: Wait for the window to be ready before sending initial state
+  mainWindow.webContents.on("did-finish-load", () => {
+    emitBootMessage(serverState.bootMsg);
+    if (serverState.isStarted) {
+      emitServerStarted();
+    }
+    serverState.logs.forEach(emitServerLog);
+  });
 
   mainWindow.on("closed", function () {
     log("Main window closed");
@@ -126,7 +139,7 @@ function runNodeTool(env) {
   log(
     `Running NodeTool. Python executable: ${pythonExecutable}, Web dir: ${webDir}`
   );
-  const serverProcess = spawn(
+  serverProcess = spawn(
     pythonExecutable,
     ["-m", "nodetool.cli", "serve", "--static-folder", webDir],
     { env: env }
@@ -141,12 +154,9 @@ function runNodeTool(env) {
     log(`Server output: ${output}`);
     if (output.includes("Application startup complete.")) {
       log("Server startup complete");
-      mainWindow.webContents.send("server-started");
+      emitServerStarted();
     }
-
-    if (mainWindow) {
-      mainWindow.webContents.send("server-log", output);
-    }
+    emitServerLog(output);
   }
 
   serverProcess.stdout.on("data", handleServerOutput);
@@ -226,7 +236,7 @@ async function startServer() {
     }
   }
 
-  mainWindow.webContents.send("boot-message", "Initializing NodeTool");
+  emitBootMessage("Initializing NodeTool");
   if (pythonEnvExists) {
     log("Using conda env");
     env.PYTHONPATH = path.join(resourcesPath, "src");
@@ -251,9 +261,48 @@ async function startServer() {
     log("Attempting to run NodeTool");
     runNodeTool(env);
   } catch (error) {
-    log(`Error starting server: ${error.message}`);
-    console.error("Error starting server", error);
+    log(`Error starting server or Ollama: ${error.message}`);
+    console.error("Error starting server or Ollama", error);
   }
+  try {
+    await startOllama();
+  } catch (error) {
+    log(`Error starting Ollama: ${error.message}`);
+    console.error("Error starting Ollama", error);
+  }
+}
+
+/**
+ * Start the Ollama binary
+ */
+async function startOllama() {
+  log("Starting Ollama");
+  const ollamaPath =
+    process.platform === "win32"
+      ? path.join(resourcesPath, "ollama.exe")
+      : path.join(resourcesPath, "ollama");
+
+  log(`Ollama path: ${ollamaPath}`);
+
+  if (!(await checkFileExists(ollamaPath))) {
+    log("Ollama executable not found");
+    return;
+  }
+
+  ollamaProcess = spawn(ollamaPath, ["serve"]);
+
+  function handleOllamaOutput(data) {
+    const output = data.toString().trim();
+    log(`Ollama output: ${output}`);
+    emitServerLog(output);
+  }
+
+  ollamaProcess.stdout.on("data", handleOllamaOutput);
+  ollamaProcess.stderr.on("data", handleOllamaOutput);
+
+  ollamaProcess.on("close", (code) => {
+    log(`Ollama process exited with code ${code}`);
+  });
 }
 
 app.on("ready", () => {
@@ -284,4 +333,31 @@ app.on("quit", () => {
     log("Killing server process");
     serverProcess.kill();
   }
+  if (ollamaProcess) {
+    log("Killing Ollama process");
+    ollamaProcess.kill();
+  }
 });
+
+ipcMain.handle("get-server-state", () => serverState);
+
+function emitBootMessage(message) {
+  serverState.bootMsg = message;
+  if (mainWindow && mainWindow.webContents) {
+    mainWindow.webContents.send("boot-message", message);
+  }
+}
+
+function emitServerStarted() {
+  serverState.isStarted = true;
+  if (mainWindow && mainWindow.webContents) {
+    mainWindow.webContents.send("server-started");
+  }
+}
+
+function emitServerLog(message) {
+  serverState.logs.push(message);
+  if (mainWindow && mainWindow.webContents) {
+    mainWindow.webContents.send("server-log", message);
+  }
+}

@@ -54,4 +54,6 @@ async def update_settings(
 
     save_settings(settings, secrets)
 
+    Environment.load_settings()
+
     return SettingsResponse(settings=settings, secrets=secrets)
