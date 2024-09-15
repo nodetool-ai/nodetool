@@ -10,7 +10,8 @@ import os
 import shutil
 from fastapi import FastAPI
 
-from nodetool.metadata.types import CLASSNAME_TO_MODEL_TYPE
+from nodetool.metadata.types import CLASSNAME_TO_MODEL_TYPE, HuggingFaceModel
+from nodetool.workflows.base_node import get_recommended_models
 
 # Add a new in-memory cache
 model_info_cache = {}
@@ -81,7 +82,14 @@ class CachedModel(BaseModel):
     model_info: ModelInfo | None = None
 
 
-def model_type_from_model_info(model_info: ModelInfo | None) -> str | None:
+def model_type_from_model_info(
+    recommended_models: dict[str, list[HuggingFaceModel]],
+    repo_id: str,
+    model_info: ModelInfo | None,
+) -> str | None:
+    recommended = recommended_models.get(repo_id, [])
+    if len(recommended) == 1:
+        return recommended[0].type
     if model_info is None:
         return None
     if (
@@ -107,6 +115,7 @@ async def read_all_cached_models(load_model_info: bool = True) -> List[CachedMod
     """
     cache_info = scan_cache_dir()
     model_repos = [repo for repo in cache_info.repos if repo.repo_type == "model"]
+    recommended_models = get_recommended_models()
     if load_model_info:
         model_infos = await asyncio.gather(
             *[fetch_model_info(repo.repo_id) for repo in model_repos]
@@ -119,7 +128,9 @@ async def read_all_cached_models(load_model_info: bool = True) -> List[CachedMod
             repo_type=repo.repo_type,
             size_on_disk=repo.size_on_disk,
             model_info=model_info,
-            model_type=model_type_from_model_info(model_info),
+            model_type=model_type_from_model_info(
+                recommended_models, repo.repo_id, model_info
+            ),
         )
         for repo, model_info in zip(model_repos, model_infos)
     ]

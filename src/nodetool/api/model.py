@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import asyncio
-import httpx
+import psutil
+import torch
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
     FunctionModel,
@@ -28,10 +28,21 @@ from nodetool.common.huggingface_models import (
     delete_cached_model,
     read_all_cached_models,
 )
-from nodetool.workflows.base_node import get_registered_node_classes
+from nodetool.workflows.base_node import get_recommended_models
+from pydantic import BaseModel, Field
 
 log = Environment.get_logger()
 router = APIRouter(prefix="/api/models", tags=["models"])
+
+
+class SystemStats(BaseModel):
+    cpu_percent: float = Field(..., description="CPU usage percentage")
+    memory_total_gb: float = Field(..., description="Total memory in GB")
+    memory_used_gb: float = Field(..., description="Used memory in GB")
+    memory_percent: float = Field(..., description="Memory usage percentage")
+    vram_total_gb: float | None = Field(None, description="Total VRAM in GB")
+    vram_used_gb: float | None = Field(None, description="Used VRAM in GB")
+    vram_percent: float | None = Field(None, description="VRAM usage percentage")
 
 
 @router.get("/llama_models")
@@ -70,17 +81,6 @@ async def function_model(user: User = Depends(current_user)) -> list[FunctionMod
     return models
 
 
-def get_recommended_models() -> dict[str, list[HuggingFaceModel]]:
-    node_classes = get_registered_node_classes()
-    models = {}
-    for node_class in node_classes:
-        for model in node_class.get_recommended_models():
-            if model.repo_id not in models:
-                models[model.repo_id] = []
-            models[model.repo_id].append(model)
-    return models
-
-
 @router.get("/recommended_models")
 async def recommended_models(
     user: User = Depends(current_user),
@@ -110,6 +110,35 @@ async def delete_huggingface_model(repo_id: str) -> bool:
         log.warning("Cannot delete models in production")
         return False
     return delete_cached_model(repo_id)
+
+
+@router.get("/system_stats", response_model=SystemStats)
+async def get_system_stats(user: User = Depends(current_user)) -> SystemStats:
+    # CPU usage
+    cpu_percent = psutil.cpu_percent(interval=1)
+
+    # Memory usage
+    memory = psutil.virtual_memory()
+    memory_total = memory.total / (1024**3)  # Convert to GB
+    memory_used = memory.used / (1024**3)  # Convert to GB
+    memory_percent = memory.percent
+
+    # VRAM usage (if GPU is available)
+    vram_total = vram_used = vram_percent = None
+    if torch.cuda.is_available():
+        vram_total = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+        vram_used = torch.cuda.memory_allocated(0) / (1024**3)
+        vram_percent = (vram_used / vram_total) * 100
+
+    return SystemStats(
+        cpu_percent=cpu_percent,
+        memory_total_gb=round(memory_total, 2),
+        memory_used_gb=round(memory_used, 2),
+        memory_percent=memory_percent,
+        vram_total_gb=round(vram_total, 2) if vram_total is not None else None,
+        vram_used_gb=round(vram_used, 2) if vram_used is not None else None,
+        vram_percent=round(vram_percent, 2) if vram_percent is not None else None,
+    )
 
 
 @router.get("/{model_type}")

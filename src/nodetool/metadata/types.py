@@ -110,7 +110,7 @@ class AssetRef(BaseType):
 
     def is_empty(self):
         return self.uri == "" and self.asset_id is None and self.data is None
-    
+
     def is_set(self):
         return not self.is_empty()
 
@@ -215,6 +215,14 @@ class HFImageTextToText(HuggingFaceModel):
 
 class HFVisualQuestionAnswering(HuggingFaceModel):
     type: Literal["hf.visual_question_answering"] = "hf.visual_question_answering"
+
+
+class HFMiniCPM(HuggingFaceModel):
+    type: Literal["hf.minicpm"] = "hf.minicpm"
+
+
+class HFGOTOCR(HuggingFaceModel):
+    type: Literal["hf.gotocr"] = "hf.gotocr"
 
 
 class HFDocumentQuestionAnswering(HuggingFaceModel):

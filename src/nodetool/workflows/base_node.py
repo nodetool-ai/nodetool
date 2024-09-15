@@ -952,3 +952,14 @@ class GroupNode(BaseNode):
     @classmethod
     def is_cacheable(cls):
         return False
+
+
+def get_recommended_models() -> dict[str, list[HuggingFaceModel]]:
+    node_classes = get_registered_node_classes()
+    models = {}
+    for node_class in node_classes:
+        for model in node_class.get_recommended_models():
+            if model.repo_id not in models:
+                models[model.repo_id] = []
+            models[model.repo_id].append(model)
+    return models

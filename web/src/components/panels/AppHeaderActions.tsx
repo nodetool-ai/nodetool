@@ -103,6 +103,15 @@ const actionsStyles = (
       borderRadius: ".5em",
       color: theme.palette.c_gray6,
       backgroundColor: theme.palette.c_gray1
+    },
+    "@keyframes pulse": {
+      "0%": { opacity: 0.1 },
+      "50%": { opacity: 1 },
+      "100%": { opacity: 0.1 }
+    },
+    ".connecting-status": {
+      animation: "pulse 1.5s infinite ease-in-out",
+      color: theme.palette.c_hl1
     }
   });
 
@@ -259,7 +268,13 @@ export default function AppHeaderActions() {
               >
                 {state === "connecting" || state === "connected" ? (
                   <>
-                    <span className="run-status"> Connecting </span>
+                    <span
+                      className={`run-status ${
+                        state === "connecting" ? "connecting-status" : ""
+                      }`}
+                    >
+                      {state === "connecting" ? "Connecting" : "Connected"}
+                    </span>
                     <PlayArrow />
                   </>
                 ) : state === "running" ? (

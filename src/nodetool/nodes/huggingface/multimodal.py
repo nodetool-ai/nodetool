@@ -3,7 +3,10 @@ from enum import Enum
 from typing import Any
 
 from pydantic import Field
+import torch
 from nodetool.metadata.types import (
+    HFGOTOCR,
+    HFMiniCPM,
     ImageRef,
     HFVisualQuestionAnswering,
     HFImageToText,
@@ -11,6 +14,7 @@ from nodetool.metadata.types import (
 )
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
+from transformers import AutoModel, AutoTokenizer
 
 
 class ImageToText(HuggingFacePipelineNode):
@@ -96,13 +100,8 @@ class VisualQuestionAnswering(HuggingFacePipelineNode):
     - Accessibility tools for visually impaired users
     """
 
-    class VisualQuestionAnsweringModelId(str, Enum):
-        MICROSOFT_GIT_BASE_TEXTVQA = "microsoft/git-base-textvqa"
-        DANDELIN_VLT5_BASE_FINETUNED_VQA = "dandelin/vilt-b32-finetuned-vqa"
-        SALEFORCE_BLIP_VQA_BASE = "Salesforce/blip-vqa-base"
-
-    model: VisualQuestionAnsweringModelId = Field(
-        default=VisualQuestionAnsweringModelId.MICROSOFT_GIT_BASE_TEXTVQA,
+    model: HFVisualQuestionAnswering = Field(
+        default=HFVisualQuestionAnswering(),
         title="Model ID on Huggingface",
         description="The model ID to use for visual question answering",
     )
@@ -117,32 +116,227 @@ class VisualQuestionAnswering(HuggingFacePipelineNode):
         description="The question to be answered about the image",
     )
 
-    def required_inputs(self):
-        return ["image", "question"]
+    @classmethod
+    def get_recommended_models(cls):
+        return [
+            HFVisualQuestionAnswering(
+                repo_id="Salesforce/blip-vqa-base",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+        ]
 
-    def get_model_id(self):
-        return self.model.value
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context=context,
+            pipeline_task="visual-question-answering",
+            model_id=self.model.repo_id,
+        )
 
-    @property
-    def pipeline_task(self) -> str:
-        return "visual-question-answering"
-
-    async def get_inputs(self, context: ProcessingContext):
-        image = await context.image_to_pil(self.image)
-        return {
-            "image": image,
-            "question": self.question,
-        }
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
-        return result[0]["answer"]
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> str:
-        return result[0]["answer"]
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> str:
-        return await super().process(context)
+        assert self._pipeline is not None
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(image, question=self.question)
+        assert isinstance(result, list)
+        assert len(result) == 1
+        return result[0]["answer"]
+
+
+class MiniCPM(HuggingFacePipelineNode):
+    """
+    Answers questions about images.
+    image, text, question answering, multimodal
+
+    Use cases:
+    - Image content analysis
+    - Automated image captioning
+    - Visual information retrieval
+    - Accessibility tools for visually impaired users
+    """
+
+    model: HFMiniCPM = Field(
+        default=HFMiniCPM(),
+        title="Model ID on Huggingface",
+        description="The model ID to use for visual question answering",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Image 1",
+        description="The image to analyze",
+    )
+    system_prompt: str = Field(
+        default="",
+        title="System Prompt",
+        description="The system prompt to use for the model",
+    )
+    question: str = Field(
+        default="",
+        title="Question",
+        description="The question to be answered about the image",
+    )
+    sampling: bool = Field(
+        default=True,
+        title="Sampling",
+        description="Whether to use sampling or beam search",
+    )
+    temperature: float = Field(
+        default=0.7,
+        title="Temperature",
+        description="The temperature to use for sampling",
+    )
+
+    _model: AutoModel | None = None
+    _tokenizer: AutoTokenizer | None = None
+
+    @classmethod
+    def get_recommended_models(cls):
+        return [
+            HFMiniCPM(
+                repo_id="openbmb/MiniCPM-V-2_6",
+            ),
+            HFMiniCPM(
+                repo_id="openbmb/MiniCPM-V-2_6-int4",
+            ),
+        ]
+
+    async def initialize(self, context: ProcessingContext):
+        self._model = await self.load_model(
+            context=context,
+            model_id=self.model.repo_id,
+            model_class=AutoModel,
+            trust_remote_code=True,
+            attn_implementation="sdpa",
+            torch_dtype=torch.bfloat16,
+            variant=None,
+        )
+        self._model.eval()  # type: ignore
+        self._tokenizer = await self.load_model(
+            context=context,
+            model_id=self.model.repo_id,
+            model_class=AutoTokenizer,
+            trust_remote_code=True,
+        )
+
+    async def move_to_device(self, device: str):
+        # self._model.to(device)  # type: ignore
+        pass
+
+    async def process(self, context: ProcessingContext) -> str:
+        assert self._model is not None
+        assert self._tokenizer is not None
+        image = await context.image_to_pil(self.image)
+
+        msgs = [
+            {
+                "role": "user",
+                "content": self.question,
+            }
+        ]
+
+        res = self._model.chat(  # type: ignore
+            image=image,
+            msgs=msgs,
+            tokenizer=self._tokenizer,
+            sampling=self.sampling,
+            temperature=self.temperature,
+            system_prompt=self.system_prompt,
+        )
+        generated_text = ""
+        for tok in res:
+            generated_text += tok
+        return generated_text
+
+
+class OCRType(str, Enum):
+    OCR = "ocr"
+    FORMAT = "format"
+
+
+class GOTOCR(HuggingFacePipelineNode):
+    """
+    Performs OCR on images using the GOT-OCR model.
+    image, text, OCR, multimodal
+
+    Use cases:
+    - Text extraction from images
+    - Document digitization
+    - Image-based information retrieval
+    - Accessibility tools for visually impaired users
+    """
+
+    model: HFGOTOCR = Field(
+        default=HFGOTOCR(),
+        title="Model ID on Huggingface",
+        description="The model ID to use for GOT-OCR",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Image",
+        description="The image to perform OCR on",
+    )
+    ocr_type: OCRType = Field(
+        default=OCRType.OCR,
+        title="OCR Type",
+        description="The type of OCR to perform",
+    )
+    ocr_box: str = Field(
+        default="",
+        title="OCR Box",
+        description="Bounding box for fine-grained OCR (optional)",
+    )
+    ocr_color: str = Field(
+        default="",
+        title="OCR Color",
+        description="Color for fine-grained OCR (optional)",
+    )
+
+    _model: AutoModel | None = None
+    _tokenizer: AutoTokenizer | None = None
+
+    @classmethod
+    def get_recommended_models(cls):
+        return [
+            HFGOTOCR(
+                repo_id="ucaslcl/GOT-OCR2_0",
+            ),
+        ]
+
+    async def initialize(self, context: ProcessingContext):
+        self._tokenizer = await self.load_model(
+            context=context,
+            model_id=self.model.repo_id,
+            model_class=AutoTokenizer,
+            trust_remote_code=True,
+        )
+        self._model = await self.load_model(
+            context=context,
+            model_id=self.model.repo_id,
+            model_class=AutoModel,
+            trust_remote_code=True,
+            low_cpu_mem_usage=True,
+            device_map="cuda",
+            use_safetensors=True,
+            pad_token_id=self._tokenizer.eos_token_id,  # type: ignore
+        )
+        self._model.eval()  # type: ignore
+
+    async def move_to_device(self, device: str):
+        self._model.to(device)  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> str:
+        assert self._model is not None
+        assert self._tokenizer is not None
+
+        image = await context.image_to_pil(self.image)
+
+        kwargs = {
+            "ocr_type": self.ocr_type.value,
+            "ocr_color": self.ocr_color if self.ocr_color else None,
+            "images": [image],
+        }
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        res = self._model.chat(self._tokenizer, **kwargs)  # type: ignore
+
+        return res

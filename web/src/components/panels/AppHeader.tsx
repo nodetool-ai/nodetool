@@ -42,7 +42,9 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
 import { useEffect, useState } from "react";
-import { isProduction } from "../../stores/ApiClient";
+import { client, isProduction } from "../../stores/ApiClient";
+import { useQuery } from "@tanstack/react-query";
+import SystemStatsDisplay from "./SystemStats";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -184,6 +186,15 @@ function AppHeader() {
   const showWelcomeOnStartup = useSettingsStore(
     (state) => state.settings.showWelcomeOnStartup
   );
+
+  const { data: systemStats } = useQuery({
+    queryKey: ["systemStats"],
+    queryFn: async () => {
+      const res = await client.GET("/api/models/system_stats");
+      return res.data;
+    },
+    refetchInterval: 1000
+  });
 
   useEffect(() => {
     if (showWelcomeOnStartup) {
@@ -340,6 +351,7 @@ function AppHeader() {
           <Box className="buttons-right">
             {!isProduction && (
               <>
+                <SystemStatsDisplay />
                 <OverallDownloadProgress />
                 <Tooltip title="Model Manager" enterDelay={TOOLTIP_DELAY}>
                   <Button

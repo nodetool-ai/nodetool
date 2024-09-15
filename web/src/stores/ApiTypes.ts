@@ -49,6 +49,7 @@ export type ModelInfo = components["schemas"]["ModelInfo"];
 export type SettingsModel = components["schemas"]["SettingsModel"];
 export type SecretsModel = components["schemas"]["SecretsModel"];
 export type HuggingFaceModel = components["schemas"]["HuggingFaceModel"];
+export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 // a type that allows arbitrary members
 export type TypeName = string;
