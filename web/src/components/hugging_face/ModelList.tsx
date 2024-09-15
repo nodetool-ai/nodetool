@@ -35,6 +35,7 @@ import {
   groupModelsByType,
   sortModelTypes
 } from "./ModelUtils";
+import SearchInput from "../search/SearchInput";
 
 const styles = (theme: any) =>
   css({
@@ -62,6 +63,13 @@ const styles = (theme: any) =>
     },
     ".model-list-section": {
       marginBottom: theme.spacing(15)
+    },
+    ".model-list-section.empty-section": {
+      marginBottom: theme.spacing(5),
+      color: theme.palette.c_gray5
+    },
+    ".model-list-section.empty-section h4": {
+      color: theme.palette.c_gray5
     },
     ".model-item": {
       padding: 0,
@@ -113,7 +121,7 @@ const ModelList: React.FC = () => {
   const [deletingModels, setDeletingModels] = useState<Set<string>>(new Set());
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const queryClient = useQueryClient();
-
+  const [modelSearchTerm, setModelSearchTerm] = useState("");
   const [selectedModelType, setSelectedModelType] = useState<string>("All");
 
   const {
@@ -160,16 +168,48 @@ const ModelList: React.FC = () => {
   }, []);
 
   const filteredModels = useMemo(() => {
+    const filterModel = (model: CachedModel | OllamaModel) => {
+      const searchTerm = modelSearchTerm.toLowerCase();
+      const modelName = (
+        "repo_id" in model ? model.repo_id : model.name
+      ).toLowerCase();
+      return modelName.includes(searchTerm);
+    };
+
     if (selectedModelType === "All") {
-      return {
-        All: [...Object.values(groupedHFModels).flat(), ...(ollamaModels || [])]
-      };
+      const allModels = [
+        ...Object.values(groupedHFModels).flat(),
+        ...(ollamaModels || [])
+      ];
+      const filteredAllModels = allModels.filter(filterModel);
+      return Object.fromEntries(
+        modelTypes.map((type) => [
+          type,
+          filteredAllModels.filter((model) =>
+            type === "Ollama"
+              ? !("repo_id" in model)
+              : "repo_id" in model &&
+                (model.model_type === type ||
+                  (type === "Other" && !model.model_type))
+          )
+        ])
+      );
     } else if (selectedModelType === "Ollama") {
-      return { Ollama: ollamaModels || [] };
+      return { Ollama: (ollamaModels || []).filter(filterModel) };
     } else {
-      return { [selectedModelType]: groupedHFModels[selectedModelType] || [] };
+      return {
+        [selectedModelType]: (groupedHFModels[selectedModelType] || []).filter(
+          filterModel
+        )
+      };
     }
-  }, [selectedModelType, groupedHFModels, ollamaModels]);
+  }, [
+    selectedModelType,
+    groupedHFModels,
+    ollamaModels,
+    modelSearchTerm,
+    modelTypes
+  ]);
 
   const deleteHFModel = async (repoId: string) => {
     setDeletingModels((prev) => new Set(prev).add(repoId));
@@ -218,7 +258,26 @@ const ModelList: React.FC = () => {
     }
   };
 
+  const onSearchChange = useCallback(
+    (newSearchTerm: string) => {
+      setModelSearchTerm(newSearchTerm);
+    },
+    [setModelSearchTerm]
+  );
+
+  const onSearchClear = useCallback(() => {
+    setModelSearchTerm("");
+  }, [setModelSearchTerm]);
+
   const renderModels = (models: (CachedModel | OllamaModel)[]) => {
+    if (models.length === 0) {
+      return (
+        <Typography variant="body1" sx={{ mt: 2 }}>
+          No models found for &quot;{modelSearchTerm}&quot;
+        </Typography>
+      );
+    }
+
     if (viewMode === "grid") {
       return (
         <Grid className="model-grid-container" container spacing={3}>
@@ -322,6 +381,37 @@ const ModelList: React.FC = () => {
   return (
     <Box className="huggingface-model-list" css={styles}>
       <Box className="sidebar">
+        <Box
+          className="model-list-header"
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2
+          }}
+        >
+          <SearchInput
+            onSearchChange={onSearchChange}
+            onSearchClear={onSearchClear}
+            focusOnTyping={true}
+            focusSearchInput={false}
+            focusOnEscapeKey={false}
+            maxWidth={"9em"}
+          />
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            aria-label="view mode"
+          >
+            <ToggleButton value="grid" aria-label="grid view">
+              <ViewModuleIcon />
+            </ToggleButton>
+            <ToggleButton value="list" aria-label="list view">
+              <ViewListIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
         <List>
           {modelTypes.map((type) => (
             <ListItemButton
@@ -337,30 +427,6 @@ const ModelList: React.FC = () => {
       </Box>
 
       <Box className="content">
-        <Box
-          className="model-list-header"
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2
-          }}
-        >
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={handleViewModeChange}
-            aria-label="view mode"
-          >
-            <ToggleButton value="grid" aria-label="grid view">
-              <ViewModuleIcon />
-            </ToggleButton>
-            <ToggleButton value="list" aria-label="list view">
-              <ViewListIcon />
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
         {deleteHFModelMutation.isPending && <CircularProgress />}
         {deleteHFModelMutation.isError && (
           <Typography color="error">
@@ -372,18 +438,34 @@ const ModelList: React.FC = () => {
         )}
 
         {selectedModelType === "All" ? (
-          modelTypes.slice(1).map((modelType) => (
-            <Box className="model-list-section" key={modelType} mt={2}>
-              <Typography variant="h2">
-                {prettifyModelType(modelType)}
+          <>
+            {modelSearchTerm && (
+              <Typography variant="h3">
+                Searching models for &quot;{modelSearchTerm}&quot;
               </Typography>
-              {renderModels(
-                modelType === "Ollama"
-                  ? ollamaModels || []
-                  : groupedHFModels[modelType] || []
-              )}
-            </Box>
-          ))
+            )}
+            {modelTypes.slice(1).map((modelType) =>
+              filteredModels[modelType] &&
+              filteredModels[modelType].length > 0 ? (
+                <Box className="model-list-section" key={modelType} mt={2}>
+                  <Typography variant="h2">
+                    {prettifyModelType(modelType)}
+                  </Typography>
+                  {renderModels(filteredModels[modelType] || [])}
+                </Box>
+              ) : (
+                <Box
+                  className="model-list-section empty-section"
+                  key={modelType}
+                  mt={2}
+                >
+                  <Typography variant="h4">
+                    {prettifyModelType(modelType)}
+                  </Typography>
+                </Box>
+              )
+            )}
+          </>
         ) : (
           <Box className="model-list-section" mt={2}>
             <Typography variant="h2">
