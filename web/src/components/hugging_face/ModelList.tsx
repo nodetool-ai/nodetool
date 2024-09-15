@@ -45,8 +45,9 @@ const styles = (theme: any) =>
       position: "relative"
     },
     ".sidebar": {
-      // width: "20%",
+      width: "20%",
       minWidth: "200px",
+      maxWidth: "350px",
       paddingRight: "2em",
       overflowY: "auto",
       backgroundColor: theme.palette.c_gray1
@@ -58,6 +59,9 @@ const styles = (theme: any) =>
       overflowY: "auto",
       padding: theme.spacing(2),
       paddingBottom: "4em"
+    },
+    ".model-list-section": {
+      marginBottom: theme.spacing(15)
     },
     ".model-item": {
       padding: 0,
@@ -217,9 +221,10 @@ const ModelList: React.FC = () => {
   const renderModels = (models: (CachedModel | OllamaModel)[]) => {
     if (viewMode === "grid") {
       return (
-        <Grid container spacing={3}>
+        <Grid className="model-grid-container" container spacing={3}>
           {models.map((model: CachedModel | OllamaModel) => (
             <Grid
+              className="model-grid-item"
               item
               xs={12}
               sm={12}
@@ -333,6 +338,7 @@ const ModelList: React.FC = () => {
 
       <Box className="content">
         <Box
+          className="model-list-header"
           sx={{
             display: "flex",
             justifyContent: "space-between",
@@ -367,7 +373,7 @@ const ModelList: React.FC = () => {
 
         {selectedModelType === "All" ? (
           modelTypes.slice(1).map((modelType) => (
-            <Box key={modelType} mt={2}>
+            <Box className="model-list-section" key={modelType} mt={2}>
               <Typography variant="h2">
                 {prettifyModelType(modelType)}
               </Typography>
@@ -379,7 +385,7 @@ const ModelList: React.FC = () => {
             </Box>
           ))
         ) : (
-          <Box mt={2}>
+          <Box className="model-list-section" mt={2}>
             <Typography variant="h2">
               {prettifyModelType(selectedModelType)}
             </Typography>

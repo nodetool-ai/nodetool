@@ -34,7 +34,13 @@ const styles = (theme: any) =>
       padding: "0 0 1em 1em",
       marginBottom: ".5em",
       backgroundColor: theme.palette.c_gray1,
-
+      boxSizing: "border-box",
+      border: "1px solid transparent",
+      borderRadius: "1em",
+      transition: "border 0.125s ease-in",
+      "&.model-list-item-container:hover": {
+        border: "1px solid" + theme.palette.c_gray2
+      },
       "& .model-name": {
         fontWeight: "bold",
         textTransform: "uppercase",
