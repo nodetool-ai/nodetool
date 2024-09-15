@@ -53,6 +53,15 @@ const styles = (theme: any) =>
       overflowY: "auto",
       backgroundColor: theme.palette.c_gray1
     },
+    ".model-list-header": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingLeft: "1em"
+    },
+    ".model-list-header button": {
+      padding: ".1em .5em"
+    },
     ".content": {
       width: "80%",
       height: "95%",

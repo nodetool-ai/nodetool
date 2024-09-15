@@ -6,7 +6,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { isProduction } from "../../stores/ApiClient";
 import ModelIcon from "../../icons/model.svg";
 
-// Add OllamaModel type
 export type OllamaModel = {
   name: string;
   modified_at: string;
@@ -21,7 +20,6 @@ export type OllamaModel = {
   };
 };
 
-// Add prettifyModelType function
 export const prettifyModelType = (type: string) => {
   if (type === "All") return type;
 
