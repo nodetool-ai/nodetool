@@ -276,6 +276,7 @@ class Build:
             "package-lock.json",
             "index.html",
             "index.js",
+            "preload.js",
             "electron-builder.json",
         ]
         self.copy_tree(self.ELECTRON_DIR / "resources", self.BUILD_DIR)
