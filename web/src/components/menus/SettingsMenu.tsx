@@ -127,7 +127,8 @@ const styles = (theme: any) =>
         lineHeight: "1.5em"
       },
       ".MuiTextField-root input": {
-        padding: "0.8em 0 0.2em 0"
+        padding: "0.8em 0 0.2em 0",
+        backgroundColor: "transparent"
       },
       ul: {
         paddingLeft: "1em",
@@ -301,16 +302,18 @@ function SettingsMenu() {
               </Select>
             </FormControl>
 
-            <Typography className="description">
-              Move the canvas by dragging with the left or right mouse button.
-              <br />
-              With RightMouseButton selected, you can also pan with:
-              <br />
+            <div className="description">
+              <Typography>
+                Move the canvas by dragging with the left or right mouse button.
+              </Typography>
+              <Typography>
+                With RightMouseButton selected, you can also pan with:
+              </Typography>
               <ul>
-                <li> Space + LeftClick </li>
-                <li> Middle Mouse Button</li>
+                <li>Space + LeftClick</li>
+                <li>Middle Mouse Button</li>
               </ul>
-            </Typography>
+            </div>
           </div>
 
           <div className="settings-item">
@@ -339,6 +342,7 @@ function SettingsMenu() {
           <div className="settings-item">
             <TextField
               type="number"
+              autoComplete="off"
               inputProps={{ min: 1, max: 100 }}
               id="grid-snap-input"
               label="Grid Snap Precision"
@@ -357,6 +361,7 @@ function SettingsMenu() {
           <div className="settings-item">
             <TextField
               type="number"
+              autoComplete="off"
               inputProps={{ min: 5, max: 30 }}
               id="connection-snap-input"
               label="Connection Snap Range"
@@ -415,6 +420,7 @@ function SettingsMenu() {
           <div className="settings-item">
             <TextField
               type="number"
+              autoComplete="off"
               inputProps={{ min: 1, max: 10 }}
               id="asset-item-size-input"
               label="Asset item size"
