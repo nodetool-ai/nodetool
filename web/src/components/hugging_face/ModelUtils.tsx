@@ -223,15 +223,15 @@ export async function fetchOllamaModelInfo(modelName: string) {
   return data;
 }
 
-export const groupModelsByType = (models: CachedModel[]) => {
+export const groupModelsByType = (models: UnifiedModel[]) => {
   return models.reduce((acc, model) => {
-    const type = model.model_type || "Other";
+    const type = model.type || "Other";
     if (!acc[type]) {
       acc[type] = [];
     }
     acc[type].push(model);
     return acc;
-  }, {} as Record<string, CachedModel[]>);
+  }, {} as Record<string, UnifiedModel[]>);
 };
 
 export const sortModelTypes = (types: string[]) => {

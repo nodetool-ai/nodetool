@@ -65,5 +65,6 @@ export interface UnifiedModel {
   allow_patterns?: string[];
   ignore_patterns?: string[];
   description?: string;
+  readme?: string;
   size_on_disk?: number;
 }

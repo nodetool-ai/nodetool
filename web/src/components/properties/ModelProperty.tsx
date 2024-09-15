@@ -44,8 +44,6 @@ export default function ModelProperty(props: PropertyProps) {
   const modelType = props.property.type.type;
   const selectValue = props.value?.name || props.value?.repo_id || "";
 
-  console.log(modelType);
-
   const {
     data: models,
     isError,
@@ -84,8 +82,6 @@ export default function ModelProperty(props: PropertyProps) {
       return await loadModelFiles(modelType);
     }
   });
-
-  console.log(models);
 
   const values = useMemo(() => {
     if (!models) return [];

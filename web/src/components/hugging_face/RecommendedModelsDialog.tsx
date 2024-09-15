@@ -65,6 +65,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       return {
         ...model,
         size_on_disk: hfModel?.size_on_disk,
+        readme: hfModel?.readme ?? ""
       };
     });
   }, [recommendedModels, hfModels]);

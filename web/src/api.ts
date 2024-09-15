@@ -363,6 +363,8 @@ export interface components {
       /** Model Type */
       model_type?: string | null;
       model_info?: components["schemas"]["ModelInfo"] | null;
+      /** Readme */
+      readme?: string | null;
     };
     /** ColumnDef */
     ColumnDef: {

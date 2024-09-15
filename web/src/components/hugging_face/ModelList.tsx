@@ -26,7 +26,7 @@ import {
   DialogTitle
 } from "@mui/material";
 import axios from "axios";
-import { CachedModel } from "../../stores/ApiTypes";
+import { UnifiedModel } from "../../stores/ApiTypes";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import {
@@ -145,8 +145,19 @@ const ModelList: React.FC = () => {
         {}
       );
       if (error) throw error;
-      return data;
-    }
+      return data.map(
+        (model: any): UnifiedModel => ({
+          id: model.repo_id,
+          type: model.model_type || "hf.model",
+          name: model.repo_id,
+          repo_id: model.repo_id,
+          description: "",
+          readme: model.readme ?? "",
+          size_on_disk: model.size_on_disk
+        })
+      );
+    },
+    refetchOnWindowFocus: false
   });
 
   const {
@@ -157,8 +168,17 @@ const ModelList: React.FC = () => {
     queryKey: ["ollamaModels"],
     queryFn: async () => {
       const response = await axios.get("http://localhost:11434/api/tags");
-      return response.data.models as OllamaModel[];
-    }
+      return response.data.models.map(
+        (model: OllamaModel): UnifiedModel => ({
+          id: model.name,
+          type: "Ollama",
+          name: `${model.details.family} - ${model.details.parameter_size}`,
+          description: "",
+          size_on_disk: model.size
+        })
+      );
+    },
+    refetchOnWindowFocus: false
   });
 
   const groupedHFModels = useMemo(
@@ -176,13 +196,10 @@ const ModelList: React.FC = () => {
     setSelectedModelType(newValue);
   }, []);
 
-  const filteredModels = useMemo(() => {
-    const filterModel = (model: CachedModel | OllamaModel) => {
+  const filteredModels: Record<string, UnifiedModel[]> = useMemo(() => {
+    const filterModel = (model: UnifiedModel) => {
       const searchTerm = modelSearchTerm.toLowerCase();
-      const modelName = (
-        "repo_id" in model ? model.repo_id : model.name
-      ).toLowerCase();
-      return modelName.includes(searchTerm);
+      return model.name.toLowerCase().includes(searchTerm);
     };
 
     if (selectedModelType === "All") {
@@ -196,10 +213,8 @@ const ModelList: React.FC = () => {
           type,
           filteredAllModels.filter((model) =>
             type === "Ollama"
-              ? !("repo_id" in model)
-              : "repo_id" in model &&
-                (model.model_type === type ||
-                  (type === "Other" && !model.model_type))
+              ? model.type === type
+              : model.type === type || (type === "Other" && !model.type)
           )
         ])
       );
@@ -278,7 +293,7 @@ const ModelList: React.FC = () => {
     setModelSearchTerm("");
   }, [setModelSearchTerm]);
 
-  const renderModels = (models: (CachedModel | OllamaModel)[]) => {
+  const renderModels = (models: UnifiedModel[]) => {
     if (models.length === 0) {
       return (
         <Typography variant="body1" sx={{ mt: 2 }}>
@@ -290,7 +305,7 @@ const ModelList: React.FC = () => {
     if (viewMode === "grid") {
       return (
         <Grid className="model-grid-container" container spacing={3}>
-          {models.map((model: CachedModel | OllamaModel) => (
+          {models.map((model: UnifiedModel) => (
             <Grid
               className="model-grid-item"
               item
@@ -299,24 +314,13 @@ const ModelList: React.FC = () => {
               md={6}
               lg={4}
               xl={3}
-              key={"repo_id" in model ? model.repo_id : model.name}
+              key={model.id}
             >
               <ModelCard
-                model={{
-                  id: "repo_id" in model ? model.repo_id : model.name,
-                  type:
-                    "repo_id" in model
-                      ? model.model_type || "hf.model"
-                      : "Ollama",
-                  name:
-                    "repo_id" in model
-                      ? model.repo_id
-                      : `${model.details.family} - ${model.details.parameter_size}`,
-                  description: "",
-                  size_on_disk:
-                    "size_on_disk" in model ? model.size_on_disk : model.size
-                }}
-                handleDelete={"repo_id" in model ? handleDeleteClick : () => {}}
+                model={model}
+                handleDelete={
+                  model.type !== "Ollama" ? handleDeleteClick : () => {}
+                }
               />
             </Grid>
           ))}
@@ -325,24 +329,13 @@ const ModelList: React.FC = () => {
     } else {
       return (
         <List>
-          {models.map((model: CachedModel | OllamaModel) => (
+          {models.map((model: UnifiedModel) => (
             <ModelListItem
-              key={"repo_id" in model ? model.repo_id : model.name}
-              model={{
-                id: "repo_id" in model ? model.repo_id : model.name,
-                type:
-                  "repo_id" in model
-                    ? model.model_type || "hf.model"
-                    : "Ollama",
-                name:
-                  "repo_id" in model
-                    ? model.repo_id
-                    : `${model.details.family} - ${model.details.parameter_size}`,
-                description: "",
-                size_on_disk:
-                  "size_on_disk" in model ? model.size_on_disk : model.size
-              }}
-              handleDelete={"repo_id" in model ? handleDeleteClick : () => {}}
+              key={model.id}
+              model={model}
+              handleDelete={
+                model.type !== "Ollama" ? handleDeleteClick : () => {}
+              }
             />
           ))}
         </List>

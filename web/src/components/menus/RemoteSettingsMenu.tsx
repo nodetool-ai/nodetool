@@ -92,7 +92,7 @@ const RemoteSettings = () => {
             <TextField
               autoComplete="off"
               id="replicate-api-token-input"
-              label="Enter your Replicate API token"
+              label="Replicate API token"
               value={
                 replicateApiToken.slice(0, 5) +
                 "*".repeat(Math.max(0, replicateApiToken.length - 5))
@@ -126,8 +126,8 @@ const RemoteSettings = () => {
           <div className="settings-item">
             <TextField
               id="openai-api-key-input"
+              label="OpenAI API key"
               autoComplete="off"
-              label="Enter your OpenAI API key"
               value={
                 openaiApiKey.slice(0, 5) +
                 "*".repeat(Math.max(0, openaiApiKey.length - 5))
@@ -156,7 +156,6 @@ const RemoteSettings = () => {
           <div className="settings-item">
             <TextField
               id="anthropic-api-key-input"
-              autoComplete="off"
               label="Enter your Anthropic API key"
               value={
                 anthropicApiKey.slice(0, 5) +
@@ -188,7 +187,6 @@ const RemoteSettings = () => {
             <TextField
               id="hf-token-input"
               label="Enter your HuggingFace token"
-              autoComplete="off"
               value={
                 hfToken.slice(0, 5) +
                 "*".repeat(Math.max(0, hfToken.length - 5))

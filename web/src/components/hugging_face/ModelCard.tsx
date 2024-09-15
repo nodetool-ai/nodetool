@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -28,6 +28,8 @@ import {
   fetchOllamaModelInfo
 } from "./ModelUtils";
 import { fetchModelInfo } from "../../utils/huggingFaceUtils";
+import MarkdownRenderer from "../../utils/MarkdownRenderer";
+import Markdown from "react-markdown";
 
 const styles = (theme: any) =>
   css({
@@ -214,12 +216,21 @@ const ModelCard: React.FC<ModelComponentProps> = ({
       return null;
     },
     staleTime: Infinity,
-    gcTime: 1000 * 60
+    gcTime: 1000 * 60,
+    refetchOnWindowFocus: false
   });
 
   const toggleTags = () => {
     setTagsExpanded(!tagsExpanded);
   };
+
+  const readme = useMemo(() => {
+    // skip until the first #
+    const lines = model.readme?.split("\n");
+    const start = lines?.findIndex((line) => line.startsWith("#"));
+    if (!start || start === -1) return "";
+    return lines?.slice(start + 1).join("\n");
+  }, [model.readme]);
 
   if (isLoading) {
     return (
@@ -355,12 +366,13 @@ const ModelCard: React.FC<ModelComponentProps> = ({
             left: 0,
             width: "100%",
             height: "120px",
-            backgroundImage: `url(${modelData.cardData?.thumbnail})`,
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "center"
+            padding: "1em",
+            overflow: "auto",
+            fontSize: "0.6em"
           }}
-        ></div>
+        >
+          {readme !== "" && <Markdown>{readme}</Markdown>}
+        </div>
       </CardContent>
       <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
         {isHuggingFace && (
