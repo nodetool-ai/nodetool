@@ -276,7 +276,7 @@ const ModelCard: React.FC<ModelComponentProps> = ({
     const lines = model.readme?.split("\n");
     const start = lines?.findIndex((line) => line.startsWith("#"));
     if (!start || start === -1) return "";
-    return lines?.slice(start + 1).join("\n");
+    return lines?.slice(start).join("\n");
   }, [model.readme]);
 
   if (isLoading) {
