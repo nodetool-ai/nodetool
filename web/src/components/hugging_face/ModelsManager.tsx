@@ -2,8 +2,8 @@
 import { css } from "@emotion/react";
 
 import React from "react";
-import HuggingFaceModelSearch from "../hugging_face/HuggingFaceModelSearch";
-import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
+// import HuggingFaceModelSearch from "../hugging_face/HuggingFaceModelSearch";
+// import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
 import ModelList from "./ModelList";
 
 const styles = (theme: any) =>
@@ -34,9 +34,9 @@ const styles = (theme: any) =>
       padding: theme.spacing(2)
     },
 
-    ".models-list": {
-      backgroundColor: "transparent",
-      height: "100%",
+    ".models-list-container": {
+      position: "relative",
+      height: "calc(100vh - 120px)",
       width: "100%"
     }
   });
@@ -53,7 +53,7 @@ const ModelsManager: React.FC = () => {
         </div>
       </div> */}
       <div className="existing-models-section">
-        <div className="models-list">
+        <div className="models-list-container">
           <ModelList />
         </div>
       </div>

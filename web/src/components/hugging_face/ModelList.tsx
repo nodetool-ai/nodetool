@@ -40,15 +40,20 @@ const styles = (theme: any) =>
   css({
     "&": {
       display: "flex",
-      flexDirection: "row"
+      flexDirection: "row",
+      height: "100%",
+      position: "relative"
     },
     ".sidebar": {
-      width: "20%",
-      borderRight: `1px solid ${theme.palette.divider}`,
-      overflowY: "auto"
+      // width: "20%",
+      minWidth: "200px",
+      paddingRight: "2em",
+      overflowY: "auto",
+      backgroundColor: theme.palette.c_gray1
     },
     ".content": {
       width: "80%",
+      height: "95%",
       flexGrow: 1,
       overflowY: "auto",
       padding: theme.spacing(2),
@@ -77,9 +82,25 @@ const styles = (theme: any) =>
     button: {
       color: theme.palette.c_gray5
     },
+    ".model-type-button": {
+      backgroundColor: theme.palette.c_gray1,
+      "&:hover": {
+        color: theme.palette.c_gray6,
+        backgroundColor: theme.palette.c_gray1
+      }
+    },
+    ".model-type-button.Mui-selected": {
+      backgroundColor: theme.palette.c_gray1
+    },
     ".model-type-button span": {
       display: "flex",
       alignItems: "center"
+    },
+    ".model-type-button img": {
+      filter: "saturate(0)"
+    },
+    ".model-type-button.Mui-selected span": {
+      color: theme.palette.c_hl1
     }
   });
 

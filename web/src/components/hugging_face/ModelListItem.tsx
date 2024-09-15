@@ -30,7 +30,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
-    "&.model-list-item": {
+    "&.model-list-item-container": {
       padding: "0 0 1em 1em",
       marginBottom: ".5em",
       backgroundColor: theme.palette.c_gray1,
@@ -104,8 +104,8 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
 
   if (!modelData) {
     return (
-      <Box css={styles} className="model-list-item">
-        <ListItem className="model-list-item">
+      <Box css={styles} className="model-list-item-container">
+        <ListItem>
           <ListItemText
             primary={formatId(model.id)}
             secondary={
@@ -125,12 +125,12 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
               alignItems: "center"
             }}
           >
+            {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
+            {isOllama && <OllamaLink modelId={model.id} />}
             {renderModelActions(
               { model, handleDelete, onDownload },
               downloaded
             )}
-            {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
-            {isOllama && <OllamaLink modelId={model.id} />}
           </ListItemSecondaryAction>
         </ListItem>
       </Box>
@@ -138,8 +138,8 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
   }
 
   return (
-    <Box css={styles} className="model-list-item">
-      <ListItem css={styles} className="model-list-item">
+    <Box css={styles} className="model-list-item-container">
+      <ListItem className="model-list-item">
         <ListItemText
           primary={<Typography className="model-name">{model.id}</Typography>}
           secondary={

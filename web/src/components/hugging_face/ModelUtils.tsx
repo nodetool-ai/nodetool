@@ -145,8 +145,7 @@ export const HuggingFaceLink: React.FC<{
 
 export const OllamaLink: React.FC<{
   modelId: string;
-  invertColors?: boolean;
-}> = ({ modelId, invertColors }) => (
+}> = ({ modelId }) => (
   <Tooltip title="View on Ollama">
     <Button
       size="small"
