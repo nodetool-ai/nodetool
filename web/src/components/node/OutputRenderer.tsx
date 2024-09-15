@@ -15,6 +15,7 @@ import TaskTable from "./DataTable/TaskTable";
 import ImageView from "./ImageView";
 import AssetGridContent from "../assets/AssetGridContent";
 import { uint8ArrayToDataUri } from "../../utils/binary";
+import TensorView from "./TensorView"; // We'll create this component
 
 // interface SortedAssetsByType {
 //   assetsByType: Record<string, Asset[]>;
@@ -170,14 +171,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     return null;
   }
 
-  function renderTensorPreview(tensor: Tensor): string {
-    const value = tensor.value || [];
-    const dtype = tensor.dtype || "unknown";
-    const preview = `
-    ${dtype}
-    ${JSON.stringify(value, null, 2)}
-  `;
-    return preview;
+  function renderTensorPreview(tensor: Tensor): React.ReactNode {
+    return <TensorView tensor={tensor} />;
   }
   switch (type) {
     case "image":

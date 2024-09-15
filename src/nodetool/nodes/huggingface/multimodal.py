@@ -3,73 +3,13 @@ from enum import Enum
 from typing import Any
 
 from pydantic import Field
-from nodetool.metadata.types import ImageRef, Tensor
+from nodetool.metadata.types import (
+    ImageRef,
+    Tensor,
+    HFVisualQuestionAnswering,
+)
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
-
-
-class FeaturesExtraction(HuggingFacePipelineNode):
-    """
-    Extracts features from text using pre-trained models.
-    text, feature extraction, embeddings, natural language processing
-
-    Use cases:
-    - Text similarity comparison
-    - Clustering text documents
-    - Input for machine learning models
-    - Semantic search applications
-    """
-
-    class FeaturesExtractionModelId(str, Enum):
-        SENTENCE_TRANSFORMERS_ALL_MPNET_BASE_V2 = (
-            "sentence-transformers/all-mpnet-base-v2"
-        )
-        SENTENCE_TRANSFORMERS_ALL_MINILM_L6_V2 = (
-            "sentence-transformers/all-MiniLM-L6-v2"
-        )
-        DISTILBERT_BASE_UNCASED = "distilbert-base-uncased"
-        BERT_BASE_UNCASED = "bert-base-uncased"
-
-    model: FeaturesExtractionModelId = Field(
-        default=FeaturesExtractionModelId.SENTENCE_TRANSFORMERS_ALL_MPNET_BASE_V2,
-        title="Model ID on Huggingface",
-        description="The model ID to use for feature extraction",
-    )
-    inputs: str = Field(
-        default="",
-        title="Input Text",
-        description="The text to extract features from",
-    )
-
-    def required_inputs(self):
-        return ["inputs"]
-
-    def get_model_id(self):
-        return self.model.value
-
-    @property
-    def pipeline_task(self) -> str:
-        return "feature-extraction"
-
-    async def get_inputs(self, context: ProcessingContext):
-        return self.inputs
-
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> Tensor:
-        return await self.process_local_result(context, result)
-
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> Tensor:
-        # The result is typically a list of lists, where each inner list represents the features for a token
-        # We'll return the mean of these features to get a single vector for the entire input
-        import numpy as np
-
-        return Tensor.from_numpy(np.mean(result[0], axis=0))
-
-    async def process(self, context: ProcessingContext) -> list[float]:
-        return await super().process(context)
 
 
 # throws an error
