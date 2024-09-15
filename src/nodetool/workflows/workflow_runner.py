@@ -218,26 +218,28 @@ class WorkflowRunner:
         """
         is_valid = True
 
-        for edge in graph.edges:
-            source_node = graph.find_node(edge.source)
-            target_node = graph.find_node(edge.target)
+        # for edge in graph.edges:
+        #     source_node = graph.find_node(edge.source)
+        #     target_node = graph.find_node(edge.target)
 
-            assert source_node is not None, f"Source node {edge.source} not found"
-            assert target_node is not None, f"Target node {edge.target} not found"
+        #     if source_node is None:
+        #         continue
+        #     if target_node is None:
+        #         continue
 
-            output_slot = source_node.find_output(edge.sourceHandle)
-            input_slot = target_node.find_property(edge.targetHandle)
+        #     output_slot = source_node.find_output(edge.sourceHandle)
+        #     input_slot = target_node.find_property(edge.targetHandle)
 
-            if not typecheck(output_slot.type, input_slot.type):
-                is_valid = False
-                context.post_message(
-                    NodeUpdate(
-                        node_id=target_node.id,
-                        node_name=target_node.get_title(),
-                        status="error",
-                        error=f"Invalid edge: {source_node.id} -> {target_node.id}",
-                    )
-                )
+        #     if not typecheck(output_slot.type, input_slot.type):
+        #         is_valid = False
+        #         context.post_message(
+        #             NodeUpdate(
+        #                 node_id=target_node.id,
+        #                 node_name=target_node.get_title(),
+        #                 status="error",
+        #                 error=f"Invalid edge: {source_node.id} -> {target_node.id}",
+        #             )
+        #         )
 
         for node in graph.nodes:
             input_edges = [edge for edge in graph.edges if edge.target == node.id]

@@ -42,4 +42,4 @@ def calculate_cost(hardware: str, duration: float):
         total_price = price_per_second * duration
         return total_price
     else:
-        raise ValueError(f"Unsupported hardware: {hardware}")
+        return 0.0

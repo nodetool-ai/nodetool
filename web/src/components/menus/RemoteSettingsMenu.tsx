@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-
-import { useEffect, useState } from "react";
+import SaveIcon from "@mui/icons-material/Save";
+import { useMemo, useState, useCallback } from "react";
 import { Button, TextField, Typography } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 const styles = (theme: any) =>
   css({
@@ -55,31 +56,62 @@ const styles = (theme: any) =>
   });
 
 const RemoteSettings = () => {
-  const { updateSettings: updateRemoteSettings, fetchSettings } =
-    useRemoteSettingsStore((state) => ({
-      updateSettings: state.updateSettings,
-      fetchSettings: state.fetchSettings
-    }));
+  const queryClient = useQueryClient();
+  const { updateSettings, fetchSettings } = useRemoteSettingsStore();
+  const { addNotification } = useNotificationStore();
 
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings
   });
 
-  const [comfyFolder, setComfyFolder] = useState("");
-  const [openaiApiKey, setOpenaiApiKey] = useState("");
-  const [anthropicApiKey, setAnthropicApiKey] = useState("");
-  const [hfToken, setHfToken] = useState("");
-  const [replicateApiToken, setReplicateApiToken] = useState("");
+  const [settings, setSettings] = useState({
+    COMFY_FOLDER: "",
+    OPENAI_API_KEY: "",
+    ANTHROPIC_API_KEY: "",
+    HF_TOKEN: "",
+    REPLICATE_API_TOKEN: ""
+  });
 
-  useEffect(() => {
+  const updateSettingsMutation = useMutation({
+    mutationFn: ({ settings, secrets }: { settings: any; secrets: any }) =>
+      updateSettings(settings, secrets),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    }
+  });
+
+  useMemo(() => {
     if (isSuccess) {
-      setComfyFolder(data.settings.COMFY_FOLDER || "");
-      setOpenaiApiKey(data.secrets.OPENAI_API_KEY || "");
-      setHfToken(data.secrets.HF_TOKEN || "");
-      setReplicateApiToken(data.secrets.REPLICATE_API_TOKEN || "");
+      setSettings({
+        COMFY_FOLDER: data.settings.COMFY_FOLDER || "",
+        OPENAI_API_KEY: data.secrets.OPENAI_API_KEY || "",
+        ANTHROPIC_API_KEY: data.secrets.ANTHROPIC_API_KEY || "",
+        HF_TOKEN: data.secrets.HF_TOKEN || "",
+        REPLICATE_API_TOKEN: data.secrets.REPLICATE_API_TOKEN || ""
+      });
     }
   }, [isSuccess, data]);
+
+  const handleChange = useCallback((key: string, value: string) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleSave = useCallback(() => {
+    const { COMFY_FOLDER, ...secrets } = settings;
+    updateSettingsMutation.mutate(
+      { settings: { COMFY_FOLDER }, secrets },
+      {
+        onSuccess: () => {
+          addNotification({
+            content: "Your settings have been saved successfully",
+            type: "success",
+            alert: true
+          });
+        }
+      }
+    );
+  }, [settings, updateSettingsMutation]);
 
   return (
     <>
@@ -93,16 +125,9 @@ const RemoteSettings = () => {
               autoComplete="off"
               id="replicate-api-token-input"
               label="Replicate API token"
-              value={
-                replicateApiToken.slice(0, 5) +
-                "*".repeat(Math.max(0, replicateApiToken.length - 5))
-              }
-              onChange={(e) => setReplicateApiToken(e.target.value)}
-              onBlur={() =>
-                updateRemoteSettings(
-                  {},
-                  { REPLICATE_API_TOKEN: replicateApiToken }
-                )
+              value={settings.REPLICATE_API_TOKEN}
+              onChange={(e) =>
+                handleChange("REPLICATE_API_TOKEN", e.target.value)
               }
               variant="standard"
             />
@@ -128,14 +153,8 @@ const RemoteSettings = () => {
               id="openai-api-key-input"
               label="OpenAI API key"
               autoComplete="off"
-              value={
-                openaiApiKey.slice(0, 5) +
-                "*".repeat(Math.max(0, openaiApiKey.length - 5))
-              }
-              onChange={(e) => setOpenaiApiKey(e.target.value)}
-              onBlur={() =>
-                updateRemoteSettings({}, { OPENAI_API_KEY: openaiApiKey })
-              }
+              value={settings.OPENAI_API_KEY}
+              onChange={(e) => handleChange("OPENAI_API_KEY", e.target.value)}
               variant="standard"
             />
             <div className="text-and-button">
@@ -157,13 +176,9 @@ const RemoteSettings = () => {
             <TextField
               id="anthropic-api-key-input"
               label="Enter your Anthropic API key"
-              value={
-                anthropicApiKey.slice(0, 5) +
-                "*".repeat(Math.max(0, anthropicApiKey.length - 5))
-              }
-              onChange={(e) => setAnthropicApiKey(e.target.value)}
-              onBlur={() =>
-                updateRemoteSettings({}, { ANTHROPIC_API_KEY: anthropicApiKey })
+              value={settings.ANTHROPIC_API_KEY}
+              onChange={(e) =>
+                handleChange("ANTHROPIC_API_KEY", e.target.value)
               }
               variant="standard"
             />
@@ -187,12 +202,8 @@ const RemoteSettings = () => {
             <TextField
               id="hf-token-input"
               label="Enter your HuggingFace token"
-              value={
-                hfToken.slice(0, 5) +
-                "*".repeat(Math.max(0, hfToken.length - 5))
-              }
-              onChange={(e) => setHfToken(e.target.value)}
-              onBlur={() => updateRemoteSettings({}, { HF_TOKEN: hfToken })}
+              value={settings.HF_TOKEN}
+              onChange={(e) => handleChange("HF_TOKEN", e.target.value)}
               variant="standard"
             />
             <div className="text-and-button">
@@ -214,11 +225,8 @@ const RemoteSettings = () => {
             <TextField
               id="comfy-folder-input"
               label="Comfy Folder"
-              value={comfyFolder}
-              onChange={(e) => setComfyFolder(e.target.value)}
-              onBlur={() =>
-                updateRemoteSettings({ COMFY_FOLDER: comfyFolder }, {})
-              }
+              value={settings.COMFY_FOLDER}
+              onChange={(e) => handleChange("COMFY_FOLDER", e.target.value)}
               variant="standard"
             />
             <Typography className="description">
@@ -226,6 +234,16 @@ const RemoteSettings = () => {
               folder: PATH/ComfyUI
             </Typography>
           </div>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSave}
+            sx={{ mt: 2, minHeight: "3em", borderRadius: "1em" }}
+          >
+            <SaveIcon sx={{ mr: 1 }} />
+            Save API Keys
+          </Button>
 
           <Typography className="secrets">
             Keep your keys and tokens secure and do not share them publicly
