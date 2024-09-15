@@ -1,11 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Typography, Divider, Tooltip } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { titleize } from "../node/BaseNode";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { TOOLTIP_DELAY } from "../../config/constants";
+import { useQuery } from "@tanstack/react-query";
+import { client } from "../../stores/ApiClient";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
@@ -28,6 +30,21 @@ const nodeInfoStyles = (theme: any) =>
       fontSize: "0.8em",
       fontWeight: "600",
       color: theme.palette.c_hl1
+    },
+    ".replicate-status": {
+      fontSize: "0.8em",
+      fontWeight: "400",
+      width: "fit-content",
+      color: theme.palette.c_white,
+      display: "inline-block",
+      padding: "0.25em 0.5em",
+      borderRadius: "0.25em"
+    },
+    ".replicate-status.online": {
+      backgroundColor: "#10a37f"
+    },
+    ".replicate-status.offline": {
+      backgroundColor: "#ff4500"
     },
     ".node-description": {
       fontSize: "0.8em",
@@ -101,11 +118,38 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
     [nodeMetadata]
   );
 
+  const fetchReplicateStatus = useCallback(async () => {
+    if (nodeMetadata.node_type.startsWith("replicate.")) {
+      const { data, error } = await client.GET("/api/nodes/replicate_status", {
+        params: {
+          query: {
+            node_type: nodeMetadata.node_type
+          }
+        }
+      });
+      if (error) {
+        return "unknown";
+      }
+      return data;
+    }
+    return "unknown";
+  }, [nodeMetadata]);
+
+  const { data: replicateStatus, isLoading } = useQuery({
+    queryKey: ["replicateStatus", nodeMetadata.node_type],
+    queryFn: fetchReplicateStatus
+  });
+
   return (
     <div css={nodeInfoStyles}>
       <Typography className="node-title">
         {titleize(nodeMetadata.title)}
       </Typography>
+      {replicateStatus !== "unknown" && (
+        <Typography className={`replicate-status ${replicateStatus}`}>
+          {replicateStatus}
+        </Typography>
+      )}
       <Typography className="node-description">{description.desc}</Typography>
       <Typography className="node-tags">Tags: {description.tags}</Typography>
       <Typography component="div" className="node-usecases">

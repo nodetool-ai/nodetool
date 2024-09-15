@@ -110,6 +110,13 @@ export interface paths {
      */
     get: operations["metadata_api_nodes_metadata_get"];
   };
+  "/api/nodes/replicate_status": {
+    /**
+     * Replicate Status
+     * @description Returns the status of the Replicate model.
+     */
+    get: operations["replicate_status_api_nodes_replicate_status_get"];
+  };
   "/api/predictions/": {
     /**
      * Index
@@ -3050,6 +3057,31 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["NodeMetadata"][];
+        };
+      };
+    };
+  };
+  /**
+   * Replicate Status
+   * @description Returns the status of the Replicate model.
+   */
+  replicate_status_api_nodes_replicate_status_get: {
+    parameters: {
+      query: {
+        node_type: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": string;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

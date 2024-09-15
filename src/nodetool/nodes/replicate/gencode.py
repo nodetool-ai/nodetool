@@ -289,6 +289,24 @@ replicate_nodes = [
         "return_type": ImageRef,
         "overrides": {"image": ImageRef, "mask": ImageRef},
     },
+    {
+        "model_id": "black-forest-labs/flux-schnell",
+        "node_name": "Flux_Schnell",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
+        "model_id": "black-forest-labs/flux-dev",
+        "node_name": "Flux_Dev",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
+    {
+        "model_id": "black-forest-labs/flux-pro",
+        "node_name": "Flux_Pro",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+    },
     # {
     #     "model_id": "lucataco/realvisxl2-lcm",
     #     "node_name": "RealVisXL2_LCM",

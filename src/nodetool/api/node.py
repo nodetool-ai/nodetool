@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+import httpx
 from nodetool.types.job import (
     JobUpdate,
 )
@@ -64,7 +65,7 @@ from nodetool.metadata.types import (
     HFZeroShotAudioClassification,
     HFVoiceActivityDetection,
 )
-from nodetool.workflows.base_node import get_registered_node_classes
+from nodetool.workflows.base_node import get_node_class, get_registered_node_classes
 from nodetool.common.environment import Environment
 from nodetool.workflows.types import NodeProgress, NodeUpdate
 
@@ -157,3 +158,21 @@ async def metadata() -> list[NodeMetadata]:
         return res.json()
     else:
         return [node_class.metadata() for node_class in get_registered_node_classes()]
+
+
+@router.get("/replicate_status")
+async def replicate_status(node_type: str) -> str:
+    """
+    Returns the status of the Replicate model.
+    """
+    node_class = get_node_class(node_type)
+    if node_class:
+        url = node_class.model_info().get("url")
+        if url:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{url}/status")
+                return response.json()["status"]
+        else:
+            raise HTTPException(status_code=404, detail="Node type not found")
+    else:
+        raise HTTPException(status_code=404, detail="Node type not found")

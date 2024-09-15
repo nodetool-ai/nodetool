@@ -773,18 +773,6 @@ class ProcessingContext:
         response.raise_for_status()
         return response
 
-    def get_web_crawler(self):
-        """
-        Returns a web crawler instance.
-        """
-        if not hasattr(self, "web_crawler"):
-            from crawl4ai import WebCrawler
-
-            self.web_crawler = WebCrawler()
-            self.web_crawler.warmup()
-
-        return self.web_crawler
-
     async def download_file(self, url: str) -> IO:
         """
         Download a file from URL.
