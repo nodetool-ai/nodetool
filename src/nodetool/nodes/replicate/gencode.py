@@ -1,10 +1,13 @@
 from nodetool.providers.replicate.code_generation import (
     create_replicate_namespace,
-    create_replicate_node,
 )
 from nodetool.metadata.types import AudioRef, ImageRef, VideoRef
 import argparse
 import dotenv
+import os
+
+replicate_nodes_folder = os.path.dirname(os.path.abspath(__file__))
+
 
 """
 This script generates source code for all replicate nodes 
@@ -226,13 +229,13 @@ replicate_nodes = [
     #     "return_type": ImageRef,
     #     "overrides": {"image": ImageRef},
     # },
-    # {
-    #     "model_id": "stability-ai/sdxl",
-    #     "node_name": "StableDiffusionXL",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {"image": ImageRef, "mask": ImageRef},
-    # },
+    {
+        "model_id": "stability-ai/sdxl",
+        "node_name": "StableDiffusionXL",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
     # {
     #     "model_id": "stability-ai/stable-diffusion-3",
     #     "node_name": "StableDiffusion3",
@@ -245,13 +248,13 @@ replicate_nodes = [
         "namespace": "image.generate",
         "return_type": ImageRef,
     },
-    # {
-    #     "model_id": "lucataco/juggernaut-xl-v9",
-    #     "node_name": "Juggernaut_XL_V9",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {"image": ImageRef, "mask": ImageRef},
-    # },
+    {
+        "model_id": "lucataco/juggernaut-xl-v9",
+        "node_name": "Juggernaut_XL_V9",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
     {
         "model_id": "fofr/epicrealismxl-lightning-hades",
         "node_name": "EpicRealismXL_Lightning_Hades",
@@ -272,20 +275,20 @@ replicate_nodes = [
         "return_type": ImageRef,
         "overrides": {"image": ImageRef, "mask": ImageRef},
     },
-    # {
-    #     "model_id": "lucataco/sdxl-inpainting",
-    #     "node_name": "StableDiffusionInpainting",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {"image": ImageRef},
-    # },
-    # {
-    #     "model_id": "lucataco/realvisxl-v2.0",
-    #     "node_name": "RealVisXL_V2",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {"image": ImageRef, "mask": ImageRef},
-    # },
+    {
+        "model_id": "lucataco/sdxl-inpainting",
+        "node_name": "StableDiffusionInpainting",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
+    {
+        "model_id": "lucataco/realvisxl-v2.0",
+        "node_name": "RealVisXL_V2",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef, "mask": ImageRef},
+    },
     # {
     #     "model_id": "lucataco/realvisxl2-lcm",
     #     "node_name": "RealVisXL2_LCM",
@@ -306,38 +309,13 @@ replicate_nodes = [
     #         "controlnet_3_image": ImageRef,
     #     },
     # },
-    # {
-    #     "model_id": "batouresearch/open-dalle-1.1-lora",
-    #     "node_name": "OpenDalle_Lora",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {
-    #         "image": ImageRef,
-    #         "mask": ImageRef,
-    #     },
-    # },
-    # {
-    #     "model_id": "usamaehsan/controlnet-x-ip-adapter-realistic-vision-v5",
-    #     "node_name": "Controlnet_X_IP_Adapter_Realistic_Vision_V5",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {
-    #         "image": ImageRef,
-    #         "lineart_image": ImageRef,
-    #         "scribble_image": ImageRef,
-    #         "tile_image": ImageRef,
-    #         "brightness_image": ImageRef,
-    #         "inpainting_image": ImageRef,
-    #         "mask_image": ImageRef,
-    #     },
-    # },
-    # {
-    #     "model_id": "lucataco/sdxl-controlnet",
-    #     "node_name": "SDXL_Controlnet",
-    #     "namespace": "image.generate",
-    #     "return_type": ImageRef,
-    #     "overrides": {"image": ImageRef},
-    # },
+    {
+        "model_id": "lucataco/sdxl-controlnet",
+        "node_name": "SDXL_Controlnet",
+        "namespace": "image.generate",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
     {
         "model_id": "catacolabs/sdxl-ad-inpaint",
         "node_name": "SDXL_Ad_Inpaint",
@@ -359,19 +337,19 @@ replicate_nodes = [
         "return_type": ImageRef,
         "overrides": {"image": ImageRef},
     },
-    # {
-    #     "node_name": "StableDiffusionXLLightning",
-    #     "namespace": "image.generate",
-    #     "model_id": "bytedance/sdxl-lightning-4step",
-    #     "return_type": ImageRef,
-    # },
-    # {
-    #     "node_name": "PlaygroundV2",
-    #     "namespace": "image.generate",
-    #     "model_id": "playgroundai/playground-v2.5-1024px-aesthetic",
-    #     "return_type": ImageRef,
-    #     "overrides": {"image": ImageRef},
-    # },
+    {
+        "node_name": "StableDiffusionXLLightning",
+        "namespace": "image.generate",
+        "model_id": "bytedance/sdxl-lightning-4step",
+        "return_type": ImageRef,
+    },
+    {
+        "node_name": "PlaygroundV2",
+        "namespace": "image.generate",
+        "model_id": "playgroundai/playground-v2.5-1024px-aesthetic",
+        "return_type": ImageRef,
+        "overrides": {"image": ImageRef},
+    },
     {
         "node_name": "VideoMorpher",
         "model_id": "fofr/video-morpher",
@@ -398,12 +376,12 @@ replicate_nodes = [
         "model_id": "lucataco/hotshot-xl",
         "return_type": VideoRef,
     },
-    # {
-    #     "node_name": "AnimateDiff",
-    #     "namespace": "video.generate",
-    #     "model_id": "zsxkib/animate-diff",
-    #     "return_type": VideoRef,
-    # },
+    {
+        "node_name": "AnimateDiff",
+        "namespace": "video.generate",
+        "model_id": "zsxkib/animate-diff",
+        "return_type": VideoRef,
+    },
     {
         "node_name": "Tooncrafter",
         "namespace": "video.generate",
@@ -689,7 +667,7 @@ if __name__ == "__main__":
                 nodes.append(node)
 
         print(f"Creating namespace: {args.namespace}")
-        create_replicate_namespace(args.namespace, nodes)
+        create_replicate_namespace(replicate_nodes_folder, args.namespace, nodes)
     else:
         nodes_by_namespace = {}
         for node in replicate_nodes:
@@ -699,4 +677,4 @@ if __name__ == "__main__":
 
         for namespace, nodes in nodes_by_namespace.items():
             print(f"Creating namespace: {namespace}")
-            create_replicate_namespace(namespace, nodes)
+            create_replicate_namespace(replicate_nodes_folder, namespace, nodes)

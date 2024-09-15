@@ -10,7 +10,6 @@ from nodetool.providers.replicate.replicate_node import (
     capitalize,
     log,
     parse_model_info,
-    replicate_nodes_folder,
     sanitize_enum,
 )
 from nodetool.dsl.codegen import field_default, type_to_string
@@ -239,7 +238,7 @@ def generate_model_source_code(
         if is_enum_type(field_type):
             imports += f"from {field_type.__module__} import {field_type.__name__}\n"
 
-        lines.append(f"    {name}: {type_to_string(field_type)}{field_args}")
+        lines.append(f"    {name}: {type_to_string(field_type)}{field_args}")  # type: ignore
 
     code = "\n".join(lines)
     return imports + "\n\n" + format_code(code)
@@ -367,15 +366,17 @@ def create_replicate_node(
     return source_code
 
 
-def create_replicate_namespace(namespace: str, nodes: list[dict[str, Any]]):
+def create_replicate_namespace(
+    folder: str, namespace: str, nodes: list[dict[str, Any]]
+):
     imports = (
         "from pydantic import BaseModel, Field\n"
         "from nodetool.metadata.types import *\n"
         "from nodetool.dsl.graph import GraphNode\n"
-        "from nodetool.common.replicate_node import ReplicateNode\n"
+        "from nodetool.providers.replicate.replicate_node import ReplicateNode\n"
         "from enum import Enum\n"
     )
-    namespace_path = os.path.join(replicate_nodes_folder, namespace.replace(".", "/"))
+    namespace_path = os.path.join(folder, namespace.replace(".", "/"))
     namespace_folder = os.path.dirname(namespace_path)
     os.makedirs(namespace_folder, exist_ok=True)
 

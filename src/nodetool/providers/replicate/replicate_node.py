@@ -23,10 +23,6 @@ import os
 
 
 log = Environment.get_logger()
-current_folder = os.path.dirname(os.path.abspath(__file__))
-replicate_nodes_folder = os.path.join(
-    os.path.dirname(current_folder), "nodes", "replicate"
-)
 
 REPLICATE_MODELS = {}
 
