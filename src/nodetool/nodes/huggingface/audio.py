@@ -447,7 +447,7 @@ class AudioLDM2(HuggingFacePipelineNode):
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_model(
-            context, AudioLDM2Pipeline, "cvssp/audioldm2"
+            context, AudioLDM2Pipeline, "cvssp/audioldm2", variant=None
         )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
