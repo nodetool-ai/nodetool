@@ -29,7 +29,7 @@ import {
 } from "./ModelUtils";
 import { fetchModelInfo } from "../../utils/huggingFaceUtils";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import Markdown from "react-markdown";
+import CloseIcon from "@mui/icons-material/Close";
 
 const styles = (theme: any) =>
   css({
@@ -193,6 +193,52 @@ const styles = (theme: any) =>
       "&:hover": {
         color: theme.palette.c_white
       }
+    },
+    ".readme-toggle-button": {
+      position: "absolute",
+      top: "0",
+      right: "1em",
+      zIndex: 1,
+      color: theme.palette.c_gray5,
+      "&:hover": {
+        color: theme.palette.c_white
+      }
+    },
+
+    ".readme-container.expanded .readme-toggle-button": {
+      top: "1em",
+      right: "2em",
+      backgroundColor: theme.palette.c_gray2,
+      zIndex: 2000
+    },
+    ".readme-container": {
+      position: "absolute",
+      backgroundColor: "transparent",
+      top: "unset",
+      bottom: "60px",
+      right: "0",
+      width: "0",
+      height: 0,
+      fontSize: "0",
+      padding: "1em",
+      zIndex: 1,
+      overflow: "visible"
+    },
+    ".readme-container.expanded": {
+      position: "fixed",
+      overflow: "hidden auto",
+      zIndex: 2000,
+      width: "80vw",
+      height: "80vh",
+      top: "50%",
+      left: "50%",
+      fontSize: "1em",
+      padding: "4em 2em 2em 2em",
+      color: "#fff",
+      backgroundColor: theme.palette.c_gray1,
+      border: "1px solid" + theme.palette.c_gray3,
+      borderRadius: "1em",
+      transform: "translate(-50%, -50%)"
     }
   });
 
@@ -202,6 +248,7 @@ const ModelCard: React.FC<ModelComponentProps> = ({
   handleDelete
 }) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
+  const [readmeExpanded, setReadmeExpanded] = useState(false);
   const isHuggingFace = model.type.startsWith("hf.");
   const isOllama = model.type.toLowerCase().includes("llama_model");
   const downloaded = !!(model.size_on_disk && model.size_on_disk > 0);
@@ -358,20 +405,24 @@ const ModelCard: React.FC<ModelComponentProps> = ({
           )}
         </Box>
 
-        <div
-          style={{
-            position: "absolute",
-            backgroundColor: "transparent",
-            top: "120px",
-            left: 0,
-            width: "100%",
-            height: "120px",
-            padding: "1em",
-            overflow: "auto",
-            fontSize: "0.6em"
-          }}
-        >
-          {readme !== "" && <Markdown>{readme}</Markdown>}
+        <div className={`readme-container ${readmeExpanded ? "expanded" : ""}`}>
+          {readme !== "" && (
+            <>
+              <Button
+                className="readme-toggle-button"
+                onClick={() => setReadmeExpanded(!readmeExpanded)}
+                sx={{ position: "absolute", top: 5, right: 5, zIndex: 1001 }}
+              >
+                {readmeExpanded ? (
+                  <CloseIcon />
+                ) : (
+                  <Typography>README</Typography>
+                )}
+              </Button>
+
+              <MarkdownRenderer content={readme || ""} isReadme={true} />
+            </>
+          )}
         </div>
       </CardContent>
       <CardActions sx={{ justifyContent: "space-between", p: 2 }}>

@@ -53,6 +53,8 @@
     "react-virtualized-auto-sizer": "^1.0.24",
     "react-window": "^1.8.10",
     "reactflow": "^11.11.1",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.0",
     "rollup": "^4.17.2",
     "slate": "^0.101.4",
     "slate-react": "^0.101.3",

@@ -5,9 +5,12 @@ import ReactMarkdown from "react-markdown";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import DraggableNodeDocumentation from "../components/content/Help/DraggableNodeDocumentation";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 interface MarkdownRendererProps {
   content: string;
+  isReadme?: boolean;
 }
 
 const styles = (theme: any) =>
@@ -24,11 +27,29 @@ const styles = (theme: any) =>
     },
     pre: {
       fontFamily: theme.fontFamily2,
-      width: "100%"
+      width: "90%",
+      overflow: "auto",
+      backgroundColor: theme.palette.c_gray0,
+      borderRadius: "5px",
+      padding: "1em"
+    },
+    table: {
+      maxWidth: "90%",
+      overflow: "auto",
+      display: "block",
+      padding: "1em 0",
+      borderCollapse: "collapse"
+    },
+    th: {
+      border: `1px solid ${theme.palette.c_gray3}`,
+      padding: "0.5em"
     }
   });
 
-const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
+  content,
+  isReadme
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNodeType, setSelectedNodeType] = useState<string | null>(null);
   const [documentationPosition, setDocumentationPosition] = useState({
@@ -48,6 +69,10 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       setDocumentationPosition({ x: e.clientX + 200, y: e.clientY - 100 });
     }
   }, []);
+
+  const isExternalLink = (url: string) => {
+    return /^https?:\/\//.test(url);
+  };
 
   const memoizedDocumentation = useMemo(() => {
     if (!selectedNodeType) return null;
@@ -70,7 +95,25 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
         tabIndex={0}
         onClick={handleClick}
       >
-        <ReactMarkdown>{content || ""}</ReactMarkdown>
+        {isReadme ? (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+            components={{
+              a: ({ href, children }) => {
+                if (isExternalLink(href || "")) {
+                  return <span>{children}</span>;
+                }
+
+                return <a href={href}>{children}</a>;
+              }
+            }}
+          >
+            {content || ""}
+          </ReactMarkdown>
+        ) : (
+          <ReactMarkdown>{content || ""}</ReactMarkdown>
+        )}
       </div>
       {memoizedDocumentation}
     </>
