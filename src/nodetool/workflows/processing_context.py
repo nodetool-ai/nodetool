@@ -1022,7 +1022,7 @@ class ProcessingContext:
             return df
 
     async def dataframe_from_pandas(
-        self, data: pd.DataFrame, name: str | None = None
+        self, data: pd.DataFrame, name: str | None = None, parent_id: str | None = None
     ) -> DataframeRef:
         """
         Converts a pandas DataFrame to a DataframeRef object.
@@ -1030,13 +1030,15 @@ class ProcessingContext:
         Args:
             data (pd.DataFrame): The pandas DataFrame to convert.
             name (str | None, optional): The name of the asset. Defaults to None.
-
+            parent_id (str | None, optional): The parent ID of the asset. Defaults to None.
         Returns:
             DataframeRef: The converted DataframeRef object.
         """
         buffer = BytesIO(dumps(data))
         if name:
-            asset = await self.create_asset(name, "application/octet-stream", buffer)
+            asset = await self.create_asset(
+                name, "application/octet-stream", buffer, parent_id=parent_id
+            )
             return DataframeRef(asset_id=asset.id, uri=asset.get_url or "")
         else:
             # TODO: avoid for large tables

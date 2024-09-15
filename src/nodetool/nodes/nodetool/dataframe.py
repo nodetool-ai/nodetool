@@ -35,7 +35,8 @@ class SaveDataframe(BaseNode):
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
         df = await context.dataframe_to_pandas(self.df)
-        return await context.dataframe_from_pandas(df, self.name)
+        parent_id = self.folder.asset_id if self.folder.is_set() else None
+        return await context.dataframe_from_pandas(df, self.name, parent_id)
 
 
 class SelectColumn(BaseNode):

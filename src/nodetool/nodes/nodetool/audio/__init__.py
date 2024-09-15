@@ -29,6 +29,5 @@ class SaveAudio(BaseNode):
         file = io.BytesIO()
         audio.export(file)
         file.seek(0)
-        return await context.audio_from_segment(
-            audio, self.name, parent_id=self.folder.asset_id
-        )
+        parent_id = self.folder.asset_id if self.folder.is_set() else None
+        return await context.audio_from_segment(audio, self.name, parent_id=parent_id)

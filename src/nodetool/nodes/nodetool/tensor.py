@@ -46,7 +46,7 @@ class SaveTensor(BaseNode):
             name=self.name,
             content_type="application/tensor",
             content=buffer,
-            parent_id=self.folder.asset_id,
+            parent_id=self.folder.asset_id if self.folder.is_set() else None,
         )
         return Tensor.from_numpy(
             tensor,

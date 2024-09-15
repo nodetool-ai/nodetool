@@ -38,10 +38,9 @@ class SaveImage(BaseNode):
         image = await context.image_to_pil(self.image)
 
         name = datetime.now().strftime(self.name)
+        parent_id = self.folder.asset_id if self.folder.is_set() else None
 
-        return await context.image_from_pil(
-            image=image, name=name, parent_id=self.folder.asset_id
-        )
+        return await context.image_from_pil(image=image, name=name, parent_id=parent_id)
 
     def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
         return self.result_for_all_outputs(result)

@@ -6,7 +6,7 @@ from typing import Any
 import pandas as pd
 from pydantic import Field
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.metadata.types import DataframeRef
+from nodetool.metadata.types import DataframeRef, FolderRef
 from nodetool.metadata.types import TextRef
 from nodetool.workflows.base_node import BaseNode
 import json
@@ -175,12 +175,16 @@ class SaveText(BaseNode):
     """
 
     value: str | TextRef = Field(title="Text", default_factory=TextRef)
+    folder: FolderRef = Field(
+        default=FolderRef(), description="Name of the output folder."
+    )
     name: str = Field(title="Name", default="text.txt")
 
     async def process(self, context: ProcessingContext) -> TextRef:
         string = await to_string(context, self.value)
         file = BytesIO(string.encode("utf-8"))
-        asset = await context.create_asset(self.name, "text/plain", file)
+        parent_id = self.folder.asset_id if self.folder.is_set() else None
+        asset = await context.create_asset(self.name, "text/plain", file, parent_id)
         return TextRef(uri=asset.get_url or "", asset_id=asset.id)
 
 

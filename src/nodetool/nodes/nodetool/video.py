@@ -37,7 +37,7 @@ class SaveVideo(BaseNode):
         return await context.video_from_io(
             buffer=video,
             name=self.name,
-            parent_id=self.folder.asset_id,
+            parent_id=self.folder.asset_id if self.folder.is_set() else None,
         )
 
 
