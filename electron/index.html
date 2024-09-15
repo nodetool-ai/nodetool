@@ -156,18 +156,14 @@
     </div>
 
     <script>
-        const { ipcRenderer } = require('electron');
+        // Remove the require('electron') line, we'll use the exposed api instead
+        // const { api } = window;
         const contentElement = document.getElementById('content');
         const logElement = document.getElementById('log');
-        const bootElement = document.getElementById('boot');
+        const bootMessage = document.getElementById('boot-message');
         const logContainer = document.getElementById('log-container');
         const logToggle = document.getElementById('log-toggle');
-        const bootMessage = document.getElementById('boot-message');
-        const progressContainer = document.getElementById('progress-container');
-        const progressBarFill = document.getElementById('progress-bar-fill');
-        const progressText = document.getElementById('progress-text');
-        const progressPath = document.getElementById('progress-path');
-        
+
         function createMatrixLogger(logElement) {
             let lastLogLine = null;
             let typingTimeout = null;
@@ -206,24 +202,49 @@
             logToggle.textContent = logContainer.classList.contains('expanded') ? 'Hide Log' : 'Show Log';
         }
         
-        ipcRenderer.on("boot-message", (event, message) => {
-            const bootTextElement = document.querySelector('.boot-text');
-            bootTextElement.textContent = message;
-        });
-        
-        ipcRenderer.on('server-started', () => {
-            toggleLog();
-            contentElement.src = 'http://localhost:8000';
+        const matrixLogger = createMatrixLogger(logElement);
+
+        function loadContentWithNoCaching() {
+            const timestamp = new Date().getTime();
+            contentElement.src = `http://localhost:8000?nocache=${timestamp}`;
+        }
+
+        function initializeApp() {
+            api.getServerState().then(({ isStarted, bootMsg, logs }) => {
+                console.log("Server state:", { isStarted, bootMsg, logs });
+                if (isStarted) {
+                    loadContentWithNoCaching();
+                    bootMessage.style.display = 'none';
+                    logToggle.style.display = 'block';
+                } else {
+                    const bootTextElement = document.querySelector('.boot-text');
+                    bootTextElement.textContent = bootMsg;
+                }
+
+                logs.forEach(log => matrixLogger.log(log));
+            });
+        }
+
+        api.onServerStarted(() => {
+            loadContentWithNoCaching();
             bootMessage.style.display = 'none';
+            logContainer.style.display = 'none';
             logToggle.style.display = 'block';
         });
 
-        const matrixLogger = createMatrixLogger(logElement);
-        ipcRenderer.on('server-log', (event, message) => {
+        api.onBootMessage((message) => {
+            const bootTextElement = document.querySelector('.boot-text');
+            bootTextElement.textContent = message;
+        });
+
+        api.onServerLog((message) => {
             matrixLogger.log(message);
         });
 
         logToggle.addEventListener('click', toggleLog);
+
+        // Initialize the app when the page loads
+        initializeApp();
     </script>
 </body>
 

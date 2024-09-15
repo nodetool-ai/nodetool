@@ -2,17 +2,13 @@ import asyncio
 from contextlib import contextmanager
 from datetime import datetime
 import gc
-from typing import Dict, Any, Optional
-from functools import lru_cache
+from typing import Any, Optional
 
-from pydantic import BaseModel
 import torch
 
-from nodetool.metadata import is_assignable, typecheck
 from nodetool.metadata.types import DataframeRef
 from nodetool.model_manager import ModelManager
 from nodetool.nodes.nodetool.output import GroupOutput
-from nodetool.types.graph import Edge
 from nodetool.types.job import JobUpdate, JobCancelledException
 from nodetool.nodes.nodetool.input import GroupInput
 from nodetool.workflows.base_node import GroupNode, BaseNode
@@ -21,7 +17,6 @@ from nodetool.workflows.run_job_request import RunJobRequest
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.common.environment import Environment
 from nodetool.workflows.graph import Graph
-import time
 import random
 from nodetool.common.environment import Environment
 
@@ -189,8 +184,8 @@ class WorkflowRunner:
                 log.info("Finalizing nodes")
                 for node in graph.nodes:
                     await node.finalize(context)
-                torch.cuda.empty_cache()
-                log.info("CUDA cache emptied")
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
         if self.is_cancelled:
             log.info(f"Job {self.job_id} cancelled")
@@ -251,7 +246,8 @@ class WorkflowRunner:
             ModelManager.clear_unused(node_ids=[node.id for node in graph.nodes])
             # run garbage collection
             gc.collect()
-            torch.cuda.empty_cache()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
     async def initialize_graph(self, context: ProcessingContext, graph: Graph):
         """
@@ -346,22 +342,25 @@ class WorkflowRunner:
                 break
             except torch.cuda.OutOfMemoryError as e:
                 retries += 1
-                log.warning(f"VRAM OOM for node {node._id}. Attempt {retries}/{MAX_RETRIES}")
-                torch.cuda.synchronize()
-                vram_before_cleanup = get_available_vram()
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                    vram_before_cleanup = get_available_vram()
 
-                ModelManager.clear()
-                gc.collect()
+                    ModelManager.clear()
+                    gc.collect()
 
-                from comfy.model_management import current_loaded_models
-                for model in current_loaded_models:
-                    model.model_unload()
+                    from comfy.model_management import current_loaded_models
 
-                torch.cuda.empty_cache()
-                torch.cuda.synchronize()
-                additional_vram = vram_before_cleanup - get_available_vram()
+                    for model in current_loaded_models:
+                        model.model_unload()
 
-                if retries >= MAX_RETRIES:
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+                    additional_vram = vram_before_cleanup - get_available_vram()
+
+                    if retries >= MAX_RETRIES:
+                        raise
+                else:
                     raise
 
                 # Calculate delay with exponential backoff and jitter
@@ -574,9 +573,10 @@ class WorkflowRunner:
             return {"output": results[output_nodes[0]._id]}
 
     def log_vram_usage(self, message=""):
-        torch.cuda.synchronize()
-        vram = torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024
-        log.info(f"{message} VRAM usage: {vram:.2f} GB")
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            vram = torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024
+            log.info(f"{message} VRAM usage: {vram} GB")
 
     @contextmanager
     def torch_context(self, context: ProcessingContext):
@@ -611,18 +611,22 @@ class WorkflowRunner:
 
         comfy.utils.set_progress_bar_global_hook(hook)
 
-        log.info(
-            f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024:.2f} GB"
-        )
-        # with torch.inference_mode():
-        try:
-            yield
-        finally:
-            if torch.cuda.is_available():
-                import comfy.model_management
+        if torch.cuda.is_available():
+            log.info(
+                f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+            )
+        with torch.inference_mode():
+            try:
+                yield
+            finally:
+                if torch.cuda.is_available():
+                    import comfy.model_management
 
-                torch.cuda.synchronize()
-                log.info(
-                    f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024:.2f} GB"
+                    torch.cuda.synchronize()
+
+                    # comfy.model_management.cleanup_models()
+                    # torch.cuda.empty_cache()
+                    log.info(
+                        f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
                     )
         log.info("Exiting torch context")

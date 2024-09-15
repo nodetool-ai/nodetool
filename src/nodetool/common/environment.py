@@ -9,6 +9,8 @@ from nodetool.common.nodetool_api_client import (
 from nodetool.models.database_adapter import DatabaseAdapter
 from nodetool.storage.abstract_node_cache import AbstractNodeCache
 from nodetool.common.settings import (
+    SecretsModel,
+    SettingsModel,
     load_settings,
     save_settings,
     setup_settings,
@@ -65,8 +67,8 @@ class Environment(object):
     development purposes.
     """
 
-    settings: dict[str, Any] | None = None
-    secrets: dict[str, Any] | None = None
+    settings: SettingsModel | None = None
+    secrets: SecretsModel | None = None
     remote_auth: bool = True
 
     @classmethod

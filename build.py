@@ -205,18 +205,30 @@ class Build:
             logger.error(f"Failed to create build directory: {e}")
             sys.exit(1)
 
-    # def ollama(self):
-    #     logger.info("Downloading Ollama")
-    #     self.run_command(
-    #         [
-    #             "curl",
-    #             "-L",
-    #             "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip",
-    #             "-o",
-    #             "ollama.zip",
-    #         ]
-    #     )
-    #     self.run_command(["unzip", "ollama.zip", "-d", "ollama"])
+    def ollama(self):
+        logger.info("Downloading Ollama")
+        # if self.platform == "win":
+        #     self.run_command(
+        #         [
+        #             "curl",
+        #             "-L",
+        #             "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip",
+        #             "-o",
+        #             "ollama.zip",
+        #         ]
+        #     )
+        #     self.run_command(["unzip", "ollama.zip", "-d", "ollama"])
+        if self.platform == "mac":
+            self.run_command(
+                [
+                    "curl",
+                    "-L",
+                    "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-darwin",
+                    "-o",
+                    str(self.BUILD_DIR / "ollama"),
+                ]
+            )
+            self.run_command(["chmod", "+x", str(self.BUILD_DIR / "ollama")])
 
     def python(self) -> None:
         """Package Python environment."""
@@ -266,6 +278,7 @@ class Build:
             "index.js",
             "electron-builder.json",
         ]
+        self.copy_tree(self.ELECTRON_DIR / "resources", self.BUILD_DIR)
         for file in files_to_copy:
             self.copy_file(self.ELECTRON_DIR / file, self.BUILD_DIR)
 
@@ -297,23 +310,6 @@ class Build:
             ["conda", "create", "-n", CONDA_ENV, "python=3.11", "-y"], ignore_error=True
         )
 
-        # self.run_command(
-        #     [
-        #         "conda",
-        #         "run",
-        #         "-n",
-        #         CONDA_ENV,
-        #         "pip",
-        #         "install",
-        #         "-r",
-        #         f"{PROJECT_ROOT}/requirements.txt",
-        #         "-v",
-        #         "--no-cache-dir",
-        #         "--extra-index-url",
-        #         "https://download.pytorch.org/whl/cu121",
-        #     ]
-        # )
-
     def run_build_step(self, step_func: Callable[[], None]) -> None:
         """Execute a build step and handle errors."""
         try:
@@ -333,6 +329,7 @@ class Build:
             self.python,
             self.react,
             self.ffmpeg,
+            self.ollama,
             self.electron,
         ]
         try:
