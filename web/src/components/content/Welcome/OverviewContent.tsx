@@ -16,29 +16,25 @@ export const overviewContents: Section[] = [
     defaultExpanded: true,
     content: (
       <Typography>
-        NodeTool is a no-code development environment that simplifies creating
-        AI workflows. With its node-based interface, you can build complex
-        applications without programming.
+        NodeTool is a user-friendly platform that helps you create AI workflows
+        without needing to code.
         <br />
         <br />
-        NodeTool enables seamless integration of advanced AI models, allowing
-        the generation and editing of multimedia content including images, text,
-        audio, and video - all in one workflow.
+        With NodeTool, you can integrate advanced AI models to create and edit
+        multimedia content like images, text, audio, and video, all within a
+        single workflow.
         <br />
         <br />
-        NodeTool is designed to be user-friendly, but does not hide the
-        complexity of AI models.
-        <br />
-        It provides a visual representation of the data flow, making it easy to
-        understand and modify.
+        NodeTool makes it simple to see and modify how data flows through your
+        project, giving you a clear picture of what's happening.
         <br />
         <br />
         <b>
-          Try some of the pre-built examples in the Workflow menu to get
-          inspired.
+          Check out the pre-built examples in the Workflow menu to get started
+          and see what's possible.
         </b>
       </Typography>
-    ),
+    )
   },
   {
     id: "panel2",
@@ -47,30 +43,37 @@ export const overviewContents: Section[] = [
       <>
         <ul>
           <li>
-            Click Workflows in the top panel to browse and manage projects
+            Click on "Workflows" in the top panel to browse and manage your
+            projects.
           </li>
-          <li>Edit the current workflow in the Workflow panel</li>
+          <li>Edit your current workflow in the "Workflow" panel.</li>
           <li>
-            Save workflows using the save button.
+            Save your workflows using the save button.
             <br />
-            Changing the Name, Description and Tooltip will be saved
+            Any changes to the Name, Description, and Tooltip will be saved
             automatically.
           </li>
-          <li>Explore pre-built examples in the Workflow menu</li>
+          <li>
+            Explore the pre-built examples in the "Workflow" menu to get started
+            quickly.
+          </li>
         </ul>
         <Typography>
-          Run workflows with the Play Button in the bottom panel to see results.
+          Run your workflows by clicking the Play Button in the bottom panel to
+          see the results.
           <br />
-          Note that some processes may take time to startup or complete.
+          Please be patient, as some processes may take a little time to start
+          up or complete.
           <br />
-          The currently processed node is being indicated by an animation in the
-          node header.
+          The node currently being processed will be indicated by an animation
+          in the node header.
           <br />
-          Longer running nodes have a Log at the bottom that can be expanded.
+          For longer-running nodes, you can expand the Log at the bottom to see
+          more details.
           <br />
         </Typography>
       </>
-    ),
+    )
   },
   {
     id: "panel3",
@@ -93,7 +96,7 @@ export const overviewContents: Section[] = [
           nodes.
         </Typography>
       </>
-    ),
+    )
   },
   {
     id: "panel4",
@@ -118,7 +121,7 @@ export const overviewContents: Section[] = [
               maxWidth: "100%",
               height: "auto",
               borderRadius: "4px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
             }}
           />
         </Box>
@@ -144,7 +147,7 @@ export const overviewContents: Section[] = [
           </li>
         </ul>
       </>
-    ),
+    )
   },
   {
     id: "panel5",
@@ -174,7 +177,7 @@ export const overviewContents: Section[] = [
           using hotkeys 1 and 2.
         </Typography>
       </>
-    ),
+    )
   },
   {
     id: "panel6",
@@ -220,7 +223,7 @@ export const overviewContents: Section[] = [
           multiple assets)
         </li>
       </ul>
-    ),
+    )
   },
   {
     id: "panel7",
@@ -231,7 +234,7 @@ export const overviewContents: Section[] = [
         <br />
         <b>Note:</b> The settings are only saved in your browser.
       </Typography>
-    ),
+    )
   },
   {
     id: "panel8",
@@ -254,6 +257,6 @@ export const overviewContents: Section[] = [
           Click the NodeTool icon in the top left corner to open this menu again
         </li>
       </ul>
-    ),
-  },
+    )
+  }
 ];
