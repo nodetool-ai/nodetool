@@ -28,7 +28,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         pipeline_task: str,
         model_id: str,
         device: str | None = None,
-        torch_dtype: torch.dtype = torch.float16,
+        torch_dtype: torch.dtype | None = torch.float16,
         **kwargs: Any,
     ) -> T:
         if model_id == "":

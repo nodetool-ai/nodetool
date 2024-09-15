@@ -11,6 +11,7 @@ from nodetool.metadata.types import (
     HFImageToImage,
     HFLoraSD,
     HFLoraSDXL,
+    HFMaskGeneration,
     HFStableDiffusion,
     HFStableDiffusionUpscale,
     HFStableDiffusionXL,
@@ -3688,3 +3689,96 @@ class ImageFeatureExtraction(HuggingFacePipelineNode):
         assert isinstance(result, list)
         assert len(result) == 1
         return Tensor.from_numpy(np.array(result[0]))
+
+
+class MaskGeneration(HuggingFacePipelineNode):
+    """
+    Generates masks for images using segmentation models.
+    image, segmentation, mask generation, computer vision
+
+    Use cases:
+    - Object segmentation in images
+    - Background removal
+    - Image editing and manipulation
+    - Scene understanding and analysis
+    """
+
+    class MaskGenerationModelId(str, Enum):
+        FACEBOOK_SAM_VIT_BASE = "facebook/sam-vit-base"
+        FACEBOOK_SAM_VIT_HUGE = "facebook/sam-vit-huge"
+        FACEBOOK_SAM_VIT_LARGE = "facebook/sam-vit-large"
+
+    model: HFMaskGeneration = Field(
+        default=HFMaskGeneration(),
+        title="Model ID on Huggingface",
+        description="The model ID to use for mask generation",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Input Image",
+        description="The image to generate masks for",
+    )
+    points_per_side: int = Field(
+        default=128,
+        title="Points per Side",
+        description="Number of points to be sampled along each side of the image",
+        ge=1,
+        le=512,
+    )
+    pred_iou_thresh: float = Field(
+        default=0.88,
+        title="Prediction Threshold",
+        description="Threshold for the prediction IoU confidence",
+        ge=0.0,
+        le=1.0,
+    )
+
+    @classmethod
+    def get_recommended_models(cls):
+        return [
+            HFMaskGeneration(
+                repo_id="facebook/sam-vit-base",
+                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+            ),
+            HFMaskGeneration(
+                repo_id="facebook/sam-vit-huge",
+                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+            ),
+            HFMaskGeneration(
+                repo_id="facebook/sam-vit-large",
+                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+            ),
+        ]
+
+    def required_inputs(self):
+        return ["image"]
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context=context,
+            pipeline_task="mask-generation",
+            model_id=self.model.repo_id,
+            torch_dtype=None,
+        )
+
+    async def move_to_device(self, device: str):
+        self._pipeline.model.to(device)  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> list[ImageRef]:
+        assert self._pipeline is not None
+        image = await context.image_to_pil(self.image)
+        result = self._pipeline(
+            image,
+            points_per_side=self.points_per_side,
+            pred_iou_thresh=self.pred_iou_thresh,
+        )
+        assert isinstance(result, dict)
+        mask_images = []
+        for mask in result["masks"]:
+            # Convert boolean mask to uint8 (0 and 255)
+            mask_uint8 = (mask * 255).astype(np.uint8)
+            # Create PIL Image from the mask
+            mask_image = PIL.Image.fromarray(mask_uint8, mode="L")
+            mask_ref = await context.image_from_pil(mask_image)
+            mask_images.append(mask_ref)
+        return mask_images
