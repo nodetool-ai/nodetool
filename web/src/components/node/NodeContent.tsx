@@ -5,14 +5,17 @@ import { ProcessTimer } from "./ProcessTimer";
 import { NodeProgress } from "./NodeProgress";
 import { NodeLogs } from "./NodeLogs";
 import { NodeFooter } from "./NodeFooter";
-
+import { NodeMetadata } from "../../stores/ApiTypes";
+import { NodeData } from "../../stores/NodeData";
+import { Edge } from "reactflow";
 interface NodeContentProps {
   id: string;
-  nodeMetadata: any;
+  nodeType: string;
+  nodeMetadata: NodeMetadata;
   isConstantNode: boolean;
   isOutputNode: boolean;
-  data: any;
-  edges: any[];
+  data: NodeData;
+  edges: Edge[];
   status: string;
   workflowId: string;
   renderedResult: React.ReactNode;
@@ -27,6 +30,7 @@ interface NodeContentProps {
 
 const NodeContent: React.FC<NodeContentProps> = ({
   id,
+  nodeType,
   nodeMetadata,
   isConstantNode,
   isOutputNode,
@@ -44,7 +48,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
         id={id}
         layout={nodeMetadata.layout}
         properties={nodeMetadata.properties}
-        nodeType={nodeMetadata.type}
+        nodeType={nodeType}
         data={data}
         onlyFields={isConstantNode}
         onlyHandles={false}
@@ -70,4 +74,4 @@ const NodeContent: React.FC<NodeContentProps> = ({
   );
 };
 
-export default React.memo(NodeContent);
+export default NodeContent;

@@ -186,6 +186,7 @@ export default memo(
         )}
         <NodeContent
           id={props.id}
+          nodeType={props.type}
           nodeMetadata={nodeMetadata}
           isConstantNode={isConstantNode}
           isOutputNode={isOutputNode}

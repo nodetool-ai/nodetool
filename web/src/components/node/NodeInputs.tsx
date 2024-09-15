@@ -18,29 +18,39 @@ export interface NodeInputsProps {
   edges: Edge[];
 }
 
-export const NodeInputs = memo(
-  function NodeInputs(
-    { id, properties, data, edges, nodeType, onlyHandles, onlyFields, layout, primaryField, secondaryField }: NodeInputsProps
-  ) {
-    return (
-      <div className="node-inputs">
-        {properties.map((property, index) => (
-          <PropertyField
-            key={property.name + id}
-            id={id}
-            data={data}
-            nodeType={nodeType}
-            layout={layout}
-            property={property}
-            propertyIndex={index.toString()}
-            isPrimary={property.name === primaryField}
-            isSecondary={property.name === secondaryField}
-            onlyInput={onlyFields}
-            onlyHandle={onlyHandles}
-            edgeConnected={edges.find((edge) => edge.targetHandle === property.name) !==
-              undefined} />
-        ))}
-      </div>
-    );
-  }
-); 
+export const NodeInputs = memo(function NodeInputs({
+  id,
+  properties,
+  data,
+  edges,
+  nodeType,
+  onlyHandles,
+  onlyFields,
+  layout,
+  primaryField,
+  secondaryField
+}: NodeInputsProps) {
+  return (
+    <div className="node-inputs">
+      {properties.map((property, index) => (
+        <PropertyField
+          key={property.name + id}
+          id={id}
+          data={data}
+          nodeType={nodeType}
+          layout={layout}
+          property={property}
+          propertyIndex={index.toString()}
+          isPrimary={property.name === primaryField}
+          isSecondary={property.name === secondaryField}
+          onlyInput={onlyFields}
+          onlyHandle={onlyHandles}
+          edgeConnected={
+            edges.find((edge) => edge.targetHandle === property.name) !==
+            undefined
+          }
+        />
+      ))}
+    </div>
+  );
+});
