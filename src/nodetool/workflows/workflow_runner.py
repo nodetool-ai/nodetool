@@ -144,6 +144,7 @@ class WorkflowRunner:
             - Handles input validation, graph processing, and output collection.
             - Manages GPU resources if required by the workflow.
         """
+        log.info(f"Starting workflow execution for job_id: {self.job_id}")
         assert req.graph is not None, "Graph is required"
 
         graph = Graph.from_dict(
@@ -169,9 +170,13 @@ class WorkflowRunner:
 
         with self.torch_context(context):
             try:
+                log.info("Validating graph")
                 await self.validate_graph(context, graph)
+                log.info("Clearing unused models")
                 await self.clear_unused_models(graph)
+                log.info("Initializing graph")
                 await self.initialize_graph(context, graph)
+                log.info("Processing graph")
                 await self.process_graph(context, graph)
             except torch.cuda.OutOfMemoryError as e:
                 error_message = f"VRAM OOM error: {str(e)}. No additional VRAM available after retries."
@@ -181,24 +186,25 @@ class WorkflowRunner:
                 )
                 self.status = "error"
             finally:
+                log.info("Finalizing nodes")
                 for node in graph.nodes:
                     await node.finalize(context)
                 torch.cuda.empty_cache()
+                log.info("CUDA cache emptied")
 
         if self.is_cancelled:
-            log.info("Job cancelled")
+            log.info(f"Job {self.job_id} cancelled")
             context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
             self.status = "cancelled"
             return
 
+        log.info(f"Job {self.job_id} completed successfully")
         output = {
             node.name: context.get_result(node._id, "output") for node in output_nodes
         }
-
         context.post_message(
             JobUpdate(job_id=self.job_id, status="completed", result=output)
         )
-
         self.status = "completed"
 
     async def validate_graph(self, context: ProcessingContext, graph: Graph):
@@ -216,30 +222,8 @@ class WorkflowRunner:
         Raises:
             ValueError: If the graph has missing input values or contains circular dependencies.
         """
+        log.info("Starting graph validation")
         is_valid = True
-
-        # for edge in graph.edges:
-        #     source_node = graph.find_node(edge.source)
-        #     target_node = graph.find_node(edge.target)
-
-        #     if source_node is None:
-        #         continue
-        #     if target_node is None:
-        #         continue
-
-        #     output_slot = source_node.find_output(edge.sourceHandle)
-        #     input_slot = target_node.find_property(edge.targetHandle)
-
-        #     if not typecheck(output_slot.type, input_slot.type):
-        #         is_valid = False
-        #         context.post_message(
-        #             NodeUpdate(
-        #                 node_id=target_node.id,
-        #                 node_name=target_node.get_title(),
-        #                 status="error",
-        #                 error=f"Invalid edge: {source_node.id} -> {target_node.id}",
-        #             )
-        #         )
 
         for node in graph.nodes:
             input_edges = [edge for edge in graph.edges if edge.target == node.id]
@@ -262,6 +246,7 @@ class WorkflowRunner:
         """
         Clears unused models from the model manager.
         """
+        log.info("Clearing unused models")
         if not Environment.is_production():
             ModelManager.clear_unused(node_ids=[node.id for node in graph.nodes])
             # run garbage collection
@@ -279,10 +264,13 @@ class WorkflowRunner:
         Raises:
             Exception: Any exception raised during node initialization is caught and reported.
         """
+        log.info("Initializing graph nodes")
         for node in graph.nodes:
             try:
+                log.debug(f"Initializing node: {node.id}")
                 await node.initialize(context)
             except Exception as e:
+                log.error(f"Error initializing node {node.id}: {str(e)}")
                 context.post_message(
                     NodeUpdate(
                         node_id=node.id,
@@ -309,9 +297,10 @@ class WorkflowRunner:
             - Executes nodes at each level in parallel using asyncio.gather.
             - Checks for cancellation before processing each level.
         """
+        log.info(f"Processing graph (parent_id: {parent_id})")
         sorted_nodes = graph.topological_sort(parent_id)
-
         for level in sorted_nodes:
+            log.debug(f"Processing level: {level}")
             nodes = [graph.find_node(i) for i in level if i]
             await asyncio.gather(
                 *[self.process_node(context, node) for node in nodes if node]
@@ -333,13 +322,15 @@ class WorkflowRunner:
             - Handles special processing for GroupNodes.
             - Posts node status updates (running, completed, error) to the context.
         """
+        log.info(f"Processing node: {node._id}")
         if self.is_cancelled:
+            log.info(f"Skipping node {node._id} due to cancellation")
             return
 
         self.current_node = node._id
 
-        # Skip nodes that have already been processed in a subgraph.
         if node._id in context.processed_nodes:
+            log.info(f"Node {node._id} already processed, skipping")
             return
 
         retries = 0
@@ -347,20 +338,22 @@ class WorkflowRunner:
         while retries < MAX_RETRIES:
             try:
                 if isinstance(node, GroupNode):
+                    log.info(f"Running group node: {node._id}")
                     await self.run_group_node(node, context)
                 else:
+                    log.info(f"Processing regular node: {node._id}")
                     await self.process_regular_node(context, node)
-                break  # If successful, break the retry loop
+                break
             except torch.cuda.OutOfMemoryError as e:
-                from comfy.model_management import current_loaded_models
-
                 retries += 1
+                log.warning(f"VRAM OOM for node {node._id}. Attempt {retries}/{MAX_RETRIES}")
                 torch.cuda.synchronize()
                 vram_before_cleanup = get_available_vram()
 
                 ModelManager.clear()
                 gc.collect()
 
+                from comfy.model_management import current_loaded_models
                 for model in current_loaded_models:
                     model.model_unload()
 
@@ -382,6 +375,7 @@ class WorkflowRunner:
 
                 await asyncio.sleep(delay)
             except JobCancelledException:
+                log.info(f"Job cancelled during processing of node {node._id}")
                 self.cancel()
                 break
 
@@ -402,6 +396,7 @@ class WorkflowRunner:
             - Retrieves inputs for the GroupNode from the context.
             - Calls process_subgraph to handle the execution of the subgraph.
         """
+        log.info(f"Running group node: {group_node._id}")
         group_inputs = context.get_node_inputs(group_node._id)
 
         result = await self.process_subgraph(context, group_node, group_inputs)
@@ -433,10 +428,12 @@ class WorkflowRunner:
             - Manages timing information for node execution.
             - Prepares and posts detailed node updates including properties and results.
         """
+        log.info(f"Processing regular node: {node._id}")
         started_at = datetime.now()
 
         try:
             inputs = context.get_node_inputs(node.id)
+            log.debug(f"Node {node._id} inputs: {inputs}")
 
             for name, value in inputs.items():
                 try:
@@ -444,31 +441,38 @@ class WorkflowRunner:
                 except Exception as e:
                     log.warn(f"Error assigning property {name} to node {node.id}: {e}")
 
+            log.debug(f"Pre-processing node: {node._id}")
             await node.pre_process(context)
 
             if node.is_cacheable():
+                log.debug(f"Checking cache for node: {node._id}")
                 cached_result = context.get_cached_result(node)
             else:
                 cached_result = None
 
             if cached_result is not None:
+                log.info(f"Using cached result for node: {node._id}")
                 result = cached_result
             else:
+                log.info(f"Processing node: {node._id}")
                 node.send_update(context, "running")
                 await node.move_to_device(self.device)
                 result = await node.process(context)
                 result = await node.convert_output(context, result)
 
-                # in the future, we will have a better way to handle this
+                log.debug(f"Moving node {node._id} to CPU")
                 await node.move_to_device("cpu")
                 self.log_vram_usage(f"after node {node.id}: ")
 
                 if node.is_cacheable():
+                    log.debug(f"Caching result for node: {node._id}")
                     context.cache_result(node, result)
 
+            log.info(f"Node {node._id} completed")
             node.send_update(context, "completed", result)
 
         except Exception as e:
+            log.error(f"Error processing node {node._id}: {str(e)}")
             context.post_message(
                 NodeUpdate(
                     node_id=node.id,
@@ -481,6 +485,7 @@ class WorkflowRunner:
 
         context.processed_nodes.add(node._id)
         context.set_result(node._id, result)
+        log.info(f"Node {node._id} processing time: {datetime.now() - started_at}")
 
     async def process_subgraph(
         self, context: ProcessingContext, group_node: GroupNode, inputs: dict[str, Any]
@@ -505,6 +510,7 @@ class WorkflowRunner:
             - Collects and returns results from output nodes.
             - Marks all nodes in the subgraph as processed.
         """
+        log.info(f"Processing subgraph for group node: {group_node._id}")
         child_nodes = [
             node for node in context.graph.nodes if node.parent_id == group_node._id
         ]
@@ -570,7 +576,7 @@ class WorkflowRunner:
     def log_vram_usage(self, message=""):
         torch.cuda.synchronize()
         vram = torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024
-        log.info(f"{message} VRAM usage: {vram} GB")
+        log.info(f"{message} VRAM usage: {vram:.2f} GB")
 
     @contextmanager
     def torch_context(self, context: ProcessingContext):
@@ -585,6 +591,7 @@ class WorkflowRunner:
             - Manages CUDA memory and PyTorch inference mode.
             - Cleans up models and CUDA cache after execution.
         """
+        log.info("Entering torch context")
         import comfy
         import comfy.utils
 
@@ -605,19 +612,17 @@ class WorkflowRunner:
         comfy.utils.set_progress_bar_global_hook(hook)
 
         log.info(
-            f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+            f"VRAM before workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024:.2f} GB"
         )
-        with torch.inference_mode():
-            try:
-                yield
-            finally:
-                if torch.cuda.is_available():
-                    import comfy.model_management
+        # with torch.inference_mode():
+        try:
+            yield
+        finally:
+            if torch.cuda.is_available():
+                import comfy.model_management
 
-                    torch.cuda.synchronize()
-
-                    # comfy.model_management.cleanup_models()
-                    # torch.cuda.empty_cache()
-                    log.info(
-                        f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024}"
+                torch.cuda.synchronize()
+                log.info(
+                    f"VRAM after workflow: {torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024:.2f} GB"
                     )
+        log.info("Exiting torch context")
