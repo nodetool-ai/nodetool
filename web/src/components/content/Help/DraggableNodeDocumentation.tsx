@@ -12,17 +12,16 @@ const styles = (theme: any) => css`
   border: 1px solid ${theme.palette.divider};
   border-radius: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 1rem;
+  padding: 0px;
   max-width: 400px;
   min-width: 300px;
 
   .handle {
     cursor: move;
-    padding-bottom: 0.5rem;
+    min-height: 2rem;
     margin-bottom: 0.5rem;
+    background-color: ${theme.palette.background.default};
     border-bottom: 1px solid ${theme.palette.divider};
-    font-weight: bold;
-    color: ${theme.palette.text.primary};
   }
 
   h1 {
@@ -40,11 +39,14 @@ const styles = (theme: any) => css`
     font-size: 1rem;
     color: ${theme.palette.error.main};
   }
+  .content {
+    padding: 10px;
+  }
 
   .close-button {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 5px;
+    right: 5px;
     background: none;
     border: none;
     font-size: 1.2rem;
@@ -77,11 +79,11 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   return (
     <Draggable handle=".handle" defaultPosition={position}>
       <div css={styles}>
-        <div className="handle">{nodeType}</div>
+        <div className="handle"></div>
         <button className="close-button" onClick={onClose}>
           ×
         </button>
-        {content}
+        <div className="content">{content}</div>
       </div>
     </Draggable>
   );

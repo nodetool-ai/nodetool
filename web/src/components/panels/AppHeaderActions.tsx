@@ -16,7 +16,7 @@ import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -115,6 +115,24 @@ const actionsStyles = (
     }
   });
 
+// Custom hook for global hotkeys
+const useGlobalHotkeys = (callback: () => void) => {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        callback();
+      }
+    },
+    [callback]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+};
+
 export default function AppHeaderActions() {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const autoLayout = useNodeStore((state) => state.autoLayout);
@@ -154,7 +172,8 @@ export default function AppHeaderActions() {
   useHotkeys("Alt+s", () => saveWorkflow().then(onWorkflowSaved));
   useHotkeys("Meta+s", () => saveWorkflow().then(onWorkflowSaved));
   useHotkeys("Ctrl+Space", () => openNodeMenu(400, 200));
-  useHotkeys("Control+Enter", () => runWorkflow());
+
+  useGlobalHotkeys(runWorkflow);
 
   return (
     <>

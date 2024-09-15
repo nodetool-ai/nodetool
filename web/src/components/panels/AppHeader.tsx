@@ -41,7 +41,7 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { client, isProduction } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import SystemStatsDisplay from "./SystemStats";
@@ -228,8 +228,8 @@ function AppHeader() {
             >
               <Logo
                 width="80px"
-                height="20px"
-                fontSize="14px"
+                height="24px"
+                fontSize="16px"
                 borderRadius="20px"
                 small={true}
                 singleLine={true}
