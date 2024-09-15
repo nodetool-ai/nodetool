@@ -180,7 +180,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
         >
           {isHuggingFace && (
             <Box className="model-stats" sx={{ display: "flex", gap: ".5em" }}>
-              <Tooltip title="Downloads last month">
+              <Tooltip title="Downloads on HF last month">
                 <CloudDownloadIcon fontSize="small" />
               </Tooltip>
               <Typography variant="body2">

@@ -113,7 +113,7 @@ export const ModelDeleteButton: React.FC<{ onClick: () => void }> = ({
 export const ModelDownloadButton: React.FC<{ onClick: () => void }> = ({
   onClick
 }) => (
-  <Button size="small" onClick={onClick}>
+  <Button className="model-download-button" onClick={onClick}>
     Download
   </Button>
 );
@@ -185,7 +185,10 @@ export const renderModelActions = (
   props: ModelComponentProps,
   downloaded: boolean
 ) => (
-  <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+  <Box
+    className="model-actions"
+    sx={{ display: "flex", gap: 1, alignItems: "center" }}
+  >
     {props.onDownload && !downloaded && (
       <ModelDownloadButton onClick={props.onDownload} />
     )}

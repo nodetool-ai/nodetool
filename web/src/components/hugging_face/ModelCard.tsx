@@ -55,10 +55,27 @@ const styles = (theme: any) =>
       background: "linear-gradient(55deg, #333, #393939 65%, #393939 75%, #333)"
     },
     "&.missing": {
-      background: ThemeNodetool.palette.c_gray1
+      background: theme.palette.c_gray1
     },
     "&.missing:hover": {
-      background: ThemeNodetool.palette.c_gray1
+      background: theme.palette.c_gray1
+    },
+    ".model-download-button": {
+      color: theme.palette.c_hl1,
+      margin: "1em 0.1em 0 1em",
+      padding: ".25em .5em",
+      border: "1px solid" + theme.palette.c_gray3,
+      "&:hover": {
+        borderColor: theme.palette.c_hl1
+      }
+    },
+    ".downloaded-indicator": {
+      color: theme.palette.success.main
+    },
+    ".model-downloaded-icon": {
+      position: "absolute",
+      top: ".6em",
+      right: "2em"
     },
     ".repo-name": {
       width: "calc(100% - 2.5em)",
@@ -174,14 +191,6 @@ const styles = (theme: any) =>
       "&:hover": {
         color: theme.palette.c_white
       }
-    },
-    ".downloaded-indicator": {
-      color: theme.palette.success.main
-    },
-    ".model-downloaded-icon": {
-      position: "absolute",
-      top: ".6em",
-      right: "2em"
     }
   });
 
@@ -192,7 +201,7 @@ const ModelCard: React.FC<ModelComponentProps> = ({
 }) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const isHuggingFace = model.type.startsWith("hf.");
-  const isOllama = model.type.toLowerCase().includes("ollama");
+  const isOllama = model.type.toLowerCase().includes("llama_model");
   const downloaded = !!(model.size_on_disk && model.size_on_disk > 0);
   const { data: modelData, isLoading } = useQuery({
     queryKey: ["modelInfo", model.id],
@@ -253,9 +262,9 @@ const ModelCard: React.FC<ModelComponentProps> = ({
           {isOllama && (
             <Typography
               variant="h5"
-              style={{ color: ThemeNodetool.palette.c_warning }}
+              style={{ color: ThemeNodetool.palette.c_gray4 }}
             >
-              Model not downloaded.
+              Model not downloaded
             </Typography>
           )}
           {isHuggingFace && (
@@ -280,21 +289,6 @@ const ModelCard: React.FC<ModelComponentProps> = ({
           )}
         </CardContent>
         <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
-          {isOllama && onDownload && (
-            <Button
-              className="download"
-              size="small"
-              variant="contained"
-              sx={{
-                padding: "1em .5em ",
-                color: ThemeNodetool.palette.c_hl1,
-                backgroundColor: "transparent"
-              }}
-              onClick={onDownload}
-            >
-              Download
-            </Button>
-          )}
           {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
           {isOllama && <OllamaLink modelId={model.id} />}
         </CardActions>
@@ -376,7 +370,7 @@ const ModelCard: React.FC<ModelComponentProps> = ({
               color="text.secondary"
               style={{ display: "flex", alignItems: "center", gap: 5 }}
             >
-              <Tooltip title="Downloads last month">
+              <Tooltip title="Downloads on HF last month">
                 <CloudDownloadIcon
                   fontSize="small"
                   sx={{
