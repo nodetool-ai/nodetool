@@ -199,8 +199,8 @@ const RemoteSettings = () => {
             />
             <div className="text-and-button">
               <Typography className="description">
-                You need a HuggingFace Access Token to use the models in the
-                HuggingFace Hub that are not openly available.
+                Enter your HuggingFace Access Token to use additional models
+                that are not openly available.
                 <a
                   href="https://huggingface.co/settings/tokens"
                   target="_blank"
@@ -224,8 +224,8 @@ const RemoteSettings = () => {
               variant="standard"
             />
             <Typography className="description">
-              To use ComfyUI node, you need to set the path to your ComfyUI
-              installation folder.
+              To use ComfyUI nodes, set the path to your ComfyUI installation
+              folder: PATH/ComfyUI
             </Typography>
           </div>
 

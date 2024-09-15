@@ -42,7 +42,7 @@ export const prettifyModelType = (type: string) => {
 
   const parts = type.split(".");
   if (parts[0] === "hf") {
-    parts.shift(); // Remove "hf"
+    parts.shift();
     return (
       <>
         <img
