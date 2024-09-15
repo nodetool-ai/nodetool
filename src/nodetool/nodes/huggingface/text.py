@@ -70,7 +70,7 @@ class TextGeneration(HuggingFacePipelineNode):
     )
 
     @classmethod
-    def get_recommended_models(cls) -> list[str]:
+    def get_recommended_models(cls):
         return [
             HFTextGeneration(
                 repo_id="gpt2", allow_patterns=["*.json", "*.txt", "*.safetensors"]
@@ -95,9 +95,10 @@ class TextGeneration(HuggingFacePipelineNode):
         )
 
     async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)
+        self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> str:
+        assert self._pipeline is not None
         result = self._pipeline(
             self.prompt,
             max_new_tokens=self.max_new_tokens,
@@ -105,7 +106,8 @@ class TextGeneration(HuggingFacePipelineNode):
             top_p=self.top_p,
             do_sample=self.do_sample,
         )
-        return result[0]["generated_text"]
+        assert result is not None
+        return result[0]["generated_text"]  # type: ignore
 
 
 class TextClassifier(HuggingFacePipelineNode):
@@ -121,7 +123,7 @@ class TextClassifier(HuggingFacePipelineNode):
     )
 
     @classmethod
-    def get_recommended_models(cls) -> list[str]:
+    def get_recommended_models(cls):
         return [
             HFTextClassification(
                 repo_id=model, allow_patterns=["*.json", "*.txt", "*.bin"]
@@ -138,11 +140,12 @@ class TextClassifier(HuggingFacePipelineNode):
         )
 
     async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)
+        self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
+        assert self._pipeline is not None
         result = self._pipeline(self.prompt)
-        return {i["label"]: i["score"] for i in list(result)}
+        return {i["label"]: i["score"] for i in list(result)}  # type: ignore
 
 
 class Summarize(HuggingFacePipelineNode):
@@ -151,10 +154,10 @@ class Summarize(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for the text generation",
     )
-    prompt: str = Field(
+    inputs: str = Field(
         default="",
-        title="Prompt",
-        description="The input text prompt for generation",
+        title="Inputs",
+        description="The input text to summarize",
     )
     max_length: int = Field(
         default=100,
@@ -168,7 +171,7 @@ class Summarize(HuggingFacePipelineNode):
     )
 
     @classmethod
-    def get_recommended_models(cls) -> list[str]:
+    def get_recommended_models(cls):
         return [
             HFTextGeneration(
                 repo_id="Falconsai/text_summarization",
@@ -190,18 +193,19 @@ class Summarize(HuggingFacePipelineNode):
         )
 
     async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)
+        self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> str:
+        assert self._pipeline is not None
         inputs = self.inputs
-        model_id = self.model.repo_id
         params = {
             "max_length": self.max_length,
             "do_sample": self.do_sample,
         }
 
         result = self._pipeline(inputs, **params)
-        return result[0]["summary_text"]
+        assert result is not None
+        return result[0]["summary_text"]  # type: ignore
 
 
 class QuestionAnswering(HuggingFacePipelineNode):
@@ -259,20 +263,22 @@ class QuestionAnswering(HuggingFacePipelineNode):
         )
 
     async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)
+        self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
+        assert self._pipeline is not None
         inputs = {
             "question": self.question,
             "context": self.context,
         }
 
         result = self._pipeline(inputs)
+        assert result is not None
         return {
-            "answer": result["answer"],
-            "score": result["score"],
-            "start": result["start"],
-            "end": result["end"],
+            "answer": result["answer"],  # type: ignore
+            "score": result["score"],  # type: ignore
+            "start": result["start"],  # type: ignore
+            "end": result["end"],  # type: ignore
         }
 
 
@@ -331,16 +337,18 @@ class FillMask(HuggingFacePipelineNode):
         )
 
     async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)
+        self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> dict[str, Any]:
+        assert self._pipeline is not None
         result = self._pipeline(self.inputs, top_k=self.top_k)
-        data = [[item["token_str"], item["score"]] for item in result]
+        assert result is not None
+        data = [[item["token_str"], item["score"]] for item in result]  # type: ignore
         columns = [
             ColumnDef(name="token", data_type="string"),
             ColumnDef(name="score", data_type="float"),
         ]
-        return DataframeRef(columns=columns, data=data)
+        return DataframeRef(columns=columns, data=data)  # type: ignore
 
 
 class TableQuestionAnswering(HuggingFacePipelineNode):
@@ -363,6 +371,10 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
                 allow_patterns=["*.json", "*.txt", "*.safetensors"],
             ),
             HFTableQuestionAnswering(
+                repo_id="google/tapas-large-finetuned-wtq",
+                allow_patterns=["*.json", "*.txt", "*.safetensors"],
+            ),
+            HFTableQuestionAnswering(
                 repo_id="microsoft/tapex-large-finetuned-tabfact",
                 allow_patterns=["*.json", "*.txt", "*.safetensors"],
             ),
@@ -377,7 +389,7 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
         title="Model ID on Huggingface",
         description="The model ID to use for table question answering",
     )
-    inputs: DataframeRef = Field(
+    dataframe: DataframeRef = Field(
         default=DataframeRef(),
         title="Table",
         description="The input table to query",
@@ -394,10 +406,10 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
         )
 
     async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)
+        self._pipeline.model.to(device)  # type: ignore
 
     @classmethod
-    def get_return_type(cls):
+    def return_type(cls):
         return {
             "answer": str,
             "coordinates": list[tuple[int, int]],
@@ -406,19 +418,20 @@ class TableQuestionAnswering(HuggingFacePipelineNode):
         }
 
     async def process(self, context: ProcessingContext):
-        table = await context.dataframe_to_pandas(self.inputs)
+        assert self._pipeline is not None
+        table = await context.dataframe_to_pandas(self.dataframe)
         inputs = {
-            "table": table,
+            "table": table.astype(str),
             "query": self.question,
         }
 
-        result = self.pipeline(inputs)
-
+        result = self._pipeline(inputs)
+        assert result is not None
         return {
-            "answer": result["answer"],
-            "coordinates": result.get("coordinates"),
-            "cells": result.get("cells"),
-            "aggregator": result.get("aggregator"),
+            "answer": result["answer"],  # type: ignore
+            "coordinates": result["coordinates"],  # type: ignore
+            "cells": result["cells"],  # type: ignore
+            "aggregator": result["aggregator"],  # type: ignore
         }
 
 
@@ -483,7 +496,7 @@ class TextToText(HuggingFacePipelineNode):
         )
 
     async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)
+        self._pipeline.model.to(device)  # type: ignore
 
     async def process(self, context: ProcessingContext) -> list[str]:
         inputs = f"{self.prefix}: {self.inputs}".strip()
@@ -491,8 +504,8 @@ class TextToText(HuggingFacePipelineNode):
             inputs,
             max_length=self.max_length,
             num_return_sequences=self.num_return_sequences,
-        )
-        return [item["generated_text"] for item in result]
+        )  # type: ignore
+        return [item["generated_text"] for item in result]  # type: ignore
 
 
 class TokenClassification(HuggingFacePipelineNode):
@@ -535,18 +548,19 @@ class TokenClassification(HuggingFacePipelineNode):
         )
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
+        assert self._pipeline is not None
         result = self._pipeline(
             self.inputs, aggregation_strategy=self.aggregation_strategy.value
         )
         data = [
             [
-                item["entity_group"],
-                item["word"],
-                item["start"],
-                item["end"],
-                float(item["score"]),
+                item["entity_group"],  # type: ignore
+                item["word"],  # type: ignore
+                item["start"],  # type: ignore
+                item["end"],  # type: ignore
+                float(item["score"]),  # type: ignore
             ]
-            for item in result
+            for item in result  # type: ignore
         ]
         columns = [
             ColumnDef(name="entity", data_type="string"),
@@ -646,7 +660,7 @@ class Translation(HuggingFacePipelineNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-        self._pipeline = self.load_pipeline(
+        self._pipeline = await self.load_pipeline(
             context, self.pipeline_task, self.model.repo_id
         )
 
@@ -655,9 +669,12 @@ class Translation(HuggingFacePipelineNode):
         return f"translation_{self.source_lang}_to_{self.target_lang}"
 
     async def process(self, context: ProcessingContext) -> str:
-        self._pipeline(
+        assert self._pipeline is not None
+        result = self._pipeline(
             self.inputs, src_lang=self.source_lang, tgt_lang=self.target_lang
         )
+        assert result is not None
+        return result[0]["translation_text"]  # type: ignore
 
 
 class ZeroShotTextClassifier(HuggingFacePipelineNode):
