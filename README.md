@@ -224,7 +224,7 @@ socket.send(msgpack.encode({
 }));
 ```
 
-While runnning handle responses:
+While running handle responses:
 
 ```javascript
 socket.onmessage = async (event) => {
