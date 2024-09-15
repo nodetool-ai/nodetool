@@ -166,15 +166,6 @@ const AppHeader: React.FC = React.memo(() => {
     (state) => state.settings.showWelcomeOnStartup
   );
 
-  const { data: systemStats } = useQuery({
-    queryKey: ["systemStats"],
-    queryFn: async () => {
-      const res = await client.GET("/api/models/system_stats");
-      return res.data;
-    },
-    refetchInterval: 1000
-  });
-
   const handleResize = useCallback(() => {
     if (window.innerWidth <= 1200) {
       setButtonAppearance("icon");
@@ -434,5 +425,7 @@ const AppHeader: React.FC = React.memo(() => {
     </div>
   );
 });
+
+AppHeader.displayName = "AppHeader";
 
 export default AppHeader;

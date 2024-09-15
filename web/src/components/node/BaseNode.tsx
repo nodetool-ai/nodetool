@@ -3,30 +3,21 @@ import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
 import { NodeProps, useStore } from "reactflow";
 import { isEqual } from "lodash";
-import { Button, Container, Typography } from "@mui/material";
+import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
-import useModelStore from "../../stores/ModelStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { NodeHeader } from "./NodeHeader";
-import { NodeFooter } from "./NodeFooter";
-import { NodeInputs } from "./NodeInputs";
-import { NodeOutputs } from "./NodeOutputs";
-import { NodeLogs } from "./NodeLogs";
-import { ProcessTimer } from "./ProcessTimer";
-import { NodeProgress } from "./NodeProgress";
 import { NodeErrors } from "./NodeErrors";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import OutputRenderer from "./OutputRenderer";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
-import { useSettingsStore } from "../../stores/SettingsStore";
 import { MIN_ZOOM } from "../../config/constants";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import ModelRecommendations from "./ModelRecommendations";
-import { UnifiedModel } from "../../stores/ApiTypes";
 import { isProduction } from "../../stores/ApiClient";
-import { llama_models } from "../../config/models";
+import ApiKeyValidation from "./ApiKeyValidation";
+import NodeStatus from "./NodeStatus";
+import NodeContent from "./NodeContent";
 
 // Tooltip timing constants
 export const TOOLTIP_ENTER_DELAY = 650; // Delay before tooltip appears on hover
@@ -64,11 +55,6 @@ export default memo(
       error: metadataError
     } = useMetadata();
 
-    // Global settings and stores
-    const secrets = useRemoteSettingsStore((state) => state.secrets);
-    const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
-    const { startDownload, openDialog } = useModelDownloadStore();
-
     // Node-specific data and relationships
     const nodedata = useNodeStore(
       useCallback((state) => state.findNode(props.id)?.data, [props.id])
@@ -105,9 +91,6 @@ export default memo(
 
     // UI state
     const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
-    const [openModelDialog, setOpenModelDialog] = useState(false);
-    const handleOpenModelDialog = () => setOpenModelDialog(true);
-    const handleCloseModelDialog = () => setOpenModelDialog(false);
 
     useEffect(() => {
       // Set parentIsCollapsed state based on parent node
@@ -168,58 +151,14 @@ export default memo(
             }
           };
 
-    // Model recommendations and installation status
-    const recommendedModels: UnifiedModel[] = useMemo(
-      () =>
-        node_namespace.startsWith("huggingface.")
-          ? (nodeMetadata?.recommended_models || []).map((model) => ({
-              id: model.repo_id || "",
-              name: model.repo_id || "",
-              type: model.type || "hf.model",
-              path: model.path ?? null,
-              allow_patterns: model.allow_patterns ?? undefined,
-              ignore_patterns: model.ignore_patterns ?? undefined
-            }))
-          : node_namespace.startsWith("ollama.")
-          ? llama_models
-          : [],
-      [nodeMetadata?.recommended_models, node_namespace]
-    );
-    // API key validation
-    const missingAPIKeys = useMemo(() => {
-      if (node_namespace.startsWith("openai.")) {
-        if ((secrets.OPENAI_API_KEY || "").length === 0) {
-          return "OpenAI API Key";
-        }
-      }
-      if (node_namespace.startsWith("replicate.")) {
-        if ((secrets.REPLICATE_API_TOKEN || "").length === 0) {
-          return "Replicate API Token";
-        }
-      }
-      if (node_namespace.startsWith("anthropic.")) {
-        if ((secrets.ANTHROPIC_API_KEY || "").length === 0) {
-          return "Anthropic API Key";
-        }
-      }
-      return null;
-    }, [
-      node_namespace,
-      secrets.OPENAI_API_KEY,
-      secrets.REPLICATE_API_TOKEN,
-      secrets.ANTHROPIC_API_KEY
-    ]);
-
     if (!nodeMetadata || metadataLoading || metadataError) {
       return (
-        <Container
-          className={className}
-          style={{ minHeight: `${minHeight}px` }}
-        >
+        <Container className={className}>
           <NodeHeader id={props.id} nodeTitle={node_title} isLoading={true} />
         </Container>
       );
     }
+
     return (
       <Container
         className={className}
@@ -240,68 +179,24 @@ export default memo(
               hasParent={hasParent}
             />
             <NodeErrors id={props.id} />
-            {status == "booting" && (
-              <Typography className="node-status">
-                Model is booting, taking minutes.
-              </Typography>
-            )}
-
-            {!isProduction && (
-              <ModelRecommendations
-                recommendedModels={recommendedModels}
-                openModelDialog={openModelDialog}
-                handleOpenModelDialog={handleOpenModelDialog}
-                handleCloseModelDialog={handleCloseModelDialog}
-                startDownload={startDownload}
-                openDialog={openDialog}
-              />
-            )}
-
-            {missingAPIKeys && (
-              <Typography className="node-status">
-                {missingAPIKeys} is missing!
-                <Button
-                  variant="contained"
-                  color="primary"
-                  size="small"
-                  onClick={() => {
-                    setMenuOpen(true);
-                  }}
-                >
-                  Add key in Settings
-                </Button>
-              </Typography>
-            )}
+            <NodeStatus status={status} />
+            {!isProduction && <ModelRecommendations nodeType={props.type} />}
+            <ApiKeyValidation nodeNamespace={node_namespace} />
           </>
         )}
-        <NodeInputs
+        <NodeContent
           id={props.id}
-          layout={nodeMetadata.layout}
-          properties={nodeMetadata.properties}
-          nodeType={props.type}
+          nodeMetadata={nodeMetadata}
+          isConstantNode={isConstantNode}
+          isOutputNode={isOutputNode}
           data={props.data}
-          onlyFields={isConstantNode}
-          onlyHandles={false}
           edges={edges}
+          status={status}
+          workflowId={workflowId}
+          renderedResult={renderedResult}
+          isMinZoom={isMinZoom}
+          firstOutput={firstOutput}
         />
-        {!isOutputNode && (
-          <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
-        )}
-        {renderedResult}
-        {nodeMetadata.layout === "default" && !isMinZoom && (
-          <>
-            <ProcessTimer status={status} />
-            {status === "running" && (
-              <NodeProgress id={props.id} workflowId={workflowId} />
-            )}
-            <NodeLogs id={props.id} workflowId={workflowId} />
-            <NodeFooter
-              nodeNamespace={node_namespace}
-              type={firstOutput.type.type}
-              metadata={nodeMetadata}
-            />
-          </>
-        )}
       </Container>
     );
   },

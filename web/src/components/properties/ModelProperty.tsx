@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { Select, SelectChangeEvent, Typography } from "@mui/material";
+import { Select, SelectChangeEvent } from "@mui/material";
 import MenuItem from "@mui/material/MenuItem";
 import PropertyLabel from "../node/PropertyLabel";
 import useModelStore from "../../stores/ModelStore";
@@ -43,7 +43,6 @@ export default function ModelProperty(props: PropertyProps) {
   );
   const modelType = props.property.type.type;
   const selectValue = props.value?.name || props.value?.repo_id || "";
-
   const {
     data: models,
     isError,
@@ -140,7 +139,7 @@ export default function ModelProperty(props: PropertyProps) {
         });
       }
     },
-    [modelType, models, props]
+    [metadata?.recommendedModels, modelType, models, props]
   );
 
   return (
@@ -172,7 +171,11 @@ export default function ModelProperty(props: PropertyProps) {
       >
         {isLoading && <MenuItem value="">Loading models...</MenuItem>}
         {isError && <MenuItem value="">Error loading models</MenuItem>}
-        {isSuccess && <MenuItem value="">None</MenuItem>}
+        {isSuccess && values.length === 0 && (
+          <MenuItem value="">
+            No models found. Click RECOMMENDED MODELS above to find models.
+          </MenuItem>
+        )}
         {values?.map((modelName) => (
           <MenuItem key={modelName} value={modelName}>
             {modelName}

@@ -64,6 +64,9 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         skip_cache: bool = False,
         **kwargs: Any,
     ) -> T:
+        if model_id == "":
+            raise ValueError("Please select a model")
+
         if not skip_cache and not self.should_skip_cache():
             cached_model = ModelManager.get_model(model_id, model_class.__name__, path)
             if cached_model:

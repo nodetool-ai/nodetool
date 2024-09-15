@@ -17,7 +17,7 @@ export const useResizePanel = (
       setHasDragged(panelPosition, false);
       event.preventDefault();
     },
-    []
+    [panelPosition, setHasDragged, setIsDragging]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -25,7 +25,7 @@ export const useResizePanel = (
 
     // delay reset of hasDragged state
     setTimeout(() => setHasDragged(panelPosition, false), 0);
-  }, []);
+  }, [panelPosition, setHasDragged, setIsDragging]);
 
   const handleMouseMove = useCallback(
     (event: MouseEvent) => {
@@ -52,14 +52,14 @@ export const useResizePanel = (
         setHasDragged(panelPosition, true);
       }
     },
-    [isDragging, minWidth, maxWidth, setSize, panelPosition]
+    [isDragging, panelPosition, minWidth, maxWidth, setSize, setHasDragged]
   );
 
   const handlePanelToggle = useCallback(() => {
     if (!hasDragged) {
       setSize(panelPosition, size > minWidth ? minWidth : Math.min(maxWidth / 2, 300));
     }
-  }, [hasDragged, setSize, size, minWidth, maxWidth]);
+  }, [hasDragged, setSize, panelPosition, size, minWidth, maxWidth]);
 
   useEffect(() => {
     const handleMouseUpOutside = () => {
@@ -74,7 +74,7 @@ export const useResizePanel = (
       document.removeEventListener("mouseup", handleMouseUpOutside);
       document.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [handleMouseMove]);
+  }, [handleMouseMove, panelPosition, setHasDragged, setIsDragging]);
 
   return {
     ref,
