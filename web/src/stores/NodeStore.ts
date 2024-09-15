@@ -657,13 +657,13 @@ export const useNodeStore = create<NodeStore>()(
             (node) =>
               (node.id === id
                 ? {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      workflow_id,
-                      properties: { ...node.data.properties, ...properties }
-                    }
+                  ...node,
+                  data: {
+                    ...node.data,
+                    workflow_id,
+                    properties: { ...node.data.properties, ...properties }
                   }
+                }
                 : node) as Node
           )
         });
@@ -744,8 +744,6 @@ export const useNodeStore = create<NodeStore>()(
        * @param changes The changes to the nodes.
        */
       onNodesChange: (changes: NodeChange[]) => {
-        console.log("Node changes:", changes);
-
         const nodes = applyNodeChanges(changes, get().nodes);
         set({ nodes });
         get().setWorkflowDirty(true);

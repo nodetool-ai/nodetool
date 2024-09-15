@@ -11,12 +11,6 @@ const styles = (theme: any) =>
     max-width: 600px;
     margin: 0 auto;
 
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 1.5rem;
-      color: ${theme.palette.c_hl1};
-    }
-
     .loading {
       font-size: 1.2rem;
       color: ${theme.palette.c_gray4};
@@ -39,12 +33,7 @@ const NodeDocumentation: React.FC = () => {
     return <NodeInfo nodeMetadata={nodeMetadata} />;
   };
 
-  return (
-    <div css={styles}>
-      <h1>{nodeType}</h1>
-      {renderContent()}
-    </div>
-  );
+  return <div css={styles}>{renderContent()}</div>;
 };
 
 export default React.memo(NodeDocumentation);

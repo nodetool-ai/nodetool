@@ -369,7 +369,7 @@ const ModelList: React.FC = () => {
     );
   }
 
-  if (hfError || ollamaError) {
+  if (hfError) {
     return (
       <>
         <Typography variant="h3">Could not load models.</Typography>

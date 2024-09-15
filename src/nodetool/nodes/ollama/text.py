@@ -42,6 +42,10 @@ class Ollama(BaseNode):
         le=1.0,
         description="The cumulative probability cutoff for nucleus/top-p sampling.",
     )
+    keep_alive: int = Field(
+        default="300",
+        description="The number of seconds to keep the model alive.",
+    )
 
     async def process(self, context: ProcessingContext) -> str:
         res = await context.run_prediction(
@@ -60,6 +64,7 @@ class Ollama(BaseNode):
                     "temperature": self.temperature,
                     "top_k": self.top_k,
                     "top_p": self.top_p,
+                    "keep_alive": self.keep_alive,
                 },
             },
         )

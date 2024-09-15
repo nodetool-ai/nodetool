@@ -20,12 +20,17 @@ const nodeInfoStyles = (theme: any) =>
     paddingRight: "1em",
     maxHeight: "60vh",
     ".node-title": {
-      fontSize: theme.fontSizeNormal,
+      fontSize: "0.8em",
+      fontWeight: "600",
+      color: theme.palette.c_hl1
+    },
+    h4: {
+      fontSize: "0.8em",
       fontWeight: "600",
       color: theme.palette.c_hl1
     },
     ".node-description": {
-      fontSize: theme.fontSizeNormal,
+      fontSize: "0.8em",
       fontWeight: "400",
       color: theme.palette.c_white
     },
@@ -34,8 +39,8 @@ const nodeInfoStyles = (theme: any) =>
       color: theme.palette.c_gray4
     },
     ".node-usecases div": {
-      fontSize: theme.fontSizeNormal,
-      fontWeight: "200",
+      fontSize: "0.8em",
+      fontWeight: "300",
       color: theme.palette.c_gray6,
       lineHeight: "1.3em"
     },
@@ -52,6 +57,8 @@ const nodeInfoStyles = (theme: any) =>
       padding: ".25em 0 .25em 0",
       display: "flex",
       justifyContent: "space-between",
+      fontFamily: theme.fontFamily2,
+      fontSize: "0.7em",
       flexDirection: "row",
       gap: ".5em",
       cursor: "default"
@@ -62,7 +69,6 @@ const nodeInfoStyles = (theme: any) =>
     ".inputs-outputs .item .type": {
       color: theme.palette.c_white,
       textAlign: "right",
-      fontFamily: theme.fontFamily2,
       borderRight: `4px solid ${theme.palette.c_gray4}`,
       paddingRight: ".5em"
     },

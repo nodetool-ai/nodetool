@@ -228,6 +228,10 @@ export interface paths {
     /** Delete Huggingface Model */
     delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
   };
+  "/api/models/system_stats": {
+    /** Get System Stats */
+    get: operations["get_system_stats_api_models_system_stats_get"];
+  };
   "/api/models/{model_type}": {
     /** Index */
     get: operations["index_api_models__model_type__get"];
@@ -2075,6 +2079,44 @@ export interface components {
       /** Rfilename */
       rfilename: string;
     };
+    /** SystemStats */
+    SystemStats: {
+      /**
+       * Cpu Percent
+       * @description CPU usage percentage
+       */
+      cpu_percent: number;
+      /**
+       * Memory Total Gb
+       * @description Total memory in GB
+       */
+      memory_total_gb: number;
+      /**
+       * Memory Used Gb
+       * @description Used memory in GB
+       */
+      memory_used_gb: number;
+      /**
+       * Memory Percent
+       * @description Memory usage percentage
+       */
+      memory_percent: number;
+      /**
+       * Vram Total Gb
+       * @description Total VRAM in GB
+       */
+      vram_total_gb?: number | null;
+      /**
+       * Vram Used Gb
+       * @description Used VRAM in GB
+       */
+      vram_used_gb?: number | null;
+      /**
+       * Vram Percent
+       * @description VRAM usage percentage
+       */
+      vram_percent?: number | null;
+    };
     /** Task */
     Task: {
       /**
@@ -3751,6 +3793,31 @@ export interface operations {
       200: {
         content: {
           "application/json": boolean;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get System Stats */
+  get_system_stats_api_models_system_stats_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["SystemStats"];
         };
       };
       /** @description Validation Error */

@@ -560,3 +560,35 @@ class LoadIrisDataset(BaseNode):
             data=await context.dataframe_from_pandas(data.data),
             target=await context.dataframe_from_pandas(pd.DataFrame(data.target)),
         )
+
+
+class Slice(BaseNode):
+    """
+    Slice a dataframe by rows using start and end indices.
+    slice, subset, rows
+
+    Use cases:
+    - Extract a specific range of rows from a large dataset
+    - Create training and testing subsets for machine learning
+    - Analyze data in smaller chunks
+    """
+
+    dataframe: DataframeRef = Field(
+        default=DataframeRef(), description="The input dataframe to be sliced."
+    )
+    start_index: int = Field(
+        default=0, description="The starting index of the slice (inclusive)."
+    )
+    end_index: int = Field(
+        default=-1,
+        description="The ending index of the slice (exclusive). Use -1 for the last row.",
+    )
+
+    async def process(self, context: ProcessingContext) -> DataframeRef:
+        df = await context.dataframe_to_pandas(self.dataframe)
+
+        if self.end_index == -1:
+            self.end_index = len(df)
+
+        sliced_df = df.iloc[self.start_index : self.end_index]
+        return await context.dataframe_from_pandas(sliced_df)

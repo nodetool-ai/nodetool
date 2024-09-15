@@ -53,6 +53,12 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
     return null;
   }, [download.speed, download.totalBytes, download.downloadedBytes]);
 
+  const showDetails =
+    download.status === "start" ||
+    download.status === "pending" ||
+    download.status === "running" ||
+    download.status === "progress";
+
   if (!download) return null;
 
   return (
@@ -111,7 +117,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
           Download error
         </Typography>
       )}
-      {download.totalBytes > 0 && (
+      {showDetails && download.totalBytes > 0 && (
         <>
           <Box
             sx={{

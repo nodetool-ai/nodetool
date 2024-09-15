@@ -223,11 +223,21 @@ class ProcessingContext:
         """Cache the result for a node."""
 
         from nodetool.common.comfy_node import ComfyNode
+        import torch
 
         all_cacheable = all(out.type.is_cacheable_type() for out in node.outputs())
 
         if all_cacheable:
             key = self.generate_node_cache_key(node)
+
+            # Move torch tensors to CPU before caching
+            if isinstance(result, dict):
+                for k, v in result.items():
+                    if isinstance(v, torch.Tensor):
+                        result[k] = v.cpu().detach()
+            elif isinstance(result, torch.Tensor):
+                result = result.cpu().detach()
+
             Environment.get_node_cache().set(key, result, ttl)
 
     def add_model(self, type: str, name: str, model: Any):

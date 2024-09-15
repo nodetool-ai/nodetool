@@ -1,6 +1,7 @@
 import PropertyLabel from "../node/PropertyLabel";
 import TextareaAutosize from "react-textarea-autosize";
 import { PropertyProps } from "../node/PropertyInput";
+import useWorkflowRunnner from "../../stores/WorkflowRunner";
 
 export default function StringProperty(props: PropertyProps) {
   const id = `textfield-${props.property.name}-${props.propertyIndex}`;

@@ -28,7 +28,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         pipeline_task: str,
         model_id: str,
         device: str | None = None,
-        torch_dtype: torch.dtype = torch.float16,
+        torch_dtype: torch.dtype | None = torch.float16,
         **kwargs: Any,
     ) -> T:
         if model_id == "":
@@ -50,7 +50,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             device=device,
             **kwargs,
         )
-        ModelManager.set_model(model_id, pipeline_task, model)
+        ModelManager.set_model(self.id, model_id, pipeline_task, model)
         return model  # type: ignore
 
     async def load_model(
@@ -90,7 +90,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
                 **kwargs,
             )
 
-        ModelManager.set_model(model_id, model_class.__name__, model, path)
+        ModelManager.set_model(self.id, model_id, model_class.__name__, model, path)
         return model
 
     async def move_to_device(self, device: str):

@@ -16,7 +16,7 @@ import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -103,8 +103,35 @@ const actionsStyles = (
       borderRadius: ".5em",
       color: theme.palette.c_gray6,
       backgroundColor: theme.palette.c_gray1
+    },
+    "@keyframes pulse": {
+      "0%": { opacity: 0.1 },
+      "50%": { opacity: 1 },
+      "100%": { opacity: 0.1 }
+    },
+    ".connecting-status": {
+      animation: "pulse 1.5s infinite ease-in-out",
+      color: theme.palette.c_hl1
     }
   });
+
+// Custom hook for global hotkeys
+const useGlobalHotkeys = (callback: () => void) => {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        callback();
+      }
+    },
+    [callback]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+};
 
 export default function AppHeaderActions() {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
@@ -145,7 +172,8 @@ export default function AppHeaderActions() {
   useHotkeys("Alt+s", () => saveWorkflow().then(onWorkflowSaved));
   useHotkeys("Meta+s", () => saveWorkflow().then(onWorkflowSaved));
   useHotkeys("Ctrl+Space", () => openNodeMenu(400, 200));
-  useHotkeys("Control+Enter", () => runWorkflow());
+
+  useGlobalHotkeys(runWorkflow);
 
   return (
     <>
@@ -259,7 +287,13 @@ export default function AppHeaderActions() {
               >
                 {state === "connecting" || state === "connected" ? (
                   <>
-                    <span className="run-status"> Connecting </span>
+                    <span
+                      className={`run-status ${
+                        state === "connecting" ? "connecting-status" : ""
+                      }`}
+                    >
+                      {state === "connecting" ? "Connecting" : "Connected"}
+                    </span>
                     <PlayArrow />
                   </>
                 ) : state === "running" ? (

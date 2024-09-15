@@ -237,6 +237,14 @@ const CommandMenu = memo(function CommandMenu({
     link.click();
   }, [workflowJSON, workflow.name]);
 
+  const executeAndClose = useCallback(
+    (action: () => void) => {
+      action();
+      close();
+    },
+    [close]
+  );
+
   return (
     <Dialog css={styles} open={open} onClose={() => setOpen(false)}>
       <Command label="Command Menu" className="command-menu">
@@ -244,106 +252,47 @@ const CommandMenu = memo(function CommandMenu({
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
           <Command.Group heading="Workflow">
-            <Command.Item onSelect={() => runWorkflow()}>
+            <Command.Item onSelect={() => executeAndClose(runWorkflow)}>
               Run Workflow
             </Command.Item>
-            <Command.Item onSelect={downloadWorkflow}>
+            <Command.Item onSelect={() => executeAndClose(downloadWorkflow)}>
               Download Workflow as JSON
             </Command.Item>
-            <Command.Item
-              onSelect={() => {
-                saveWorkflow();
-                close();
-              }}
-            >
+            <Command.Item onSelect={() => executeAndClose(saveWorkflow)}>
               Save Workflow
             </Command.Item>
-            <Command.Item
-              onSelect={() => {
-                newWorkflow();
-                close();
-              }}
-            >
+            <Command.Item onSelect={() => executeAndClose(newWorkflow)}>
               New Workflow
             </Command.Item>
-            <Command.Item
-              onSelect={() => {
-                cancelWorkflow();
-                close();
-              }}
-            >
+            <Command.Item onSelect={() => executeAndClose(cancelWorkflow)}>
               Cancel Workflow
             </Command.Item>
-            <Command.Item
-              onSelect={() => {
-                autoLayout();
-                close();
-              }}
-            >
+            <Command.Item onSelect={() => executeAndClose(autoLayout)}>
               Auto Layout
             </Command.Item>
-            {/* <Command.Item
-              onSelect={() => {
-                runSelected();
-                close();
-              }}
-            >
-              Run Selected Nodes
-            </Command.Item> */}
           </Command.Group>
 
           <Command.Group heading="Undo">
-            <Command.Item
-              onSelect={() => {
-                undo();
-                close();
-              }}
-            >
+            <Command.Item onSelect={() => executeAndClose(undo)}>
               Undo
             </Command.Item>
-            <Command.Item
-              onSelect={() => {
-                redo();
-                close();
-              }}
-            >
+            <Command.Item onSelect={() => executeAndClose(redo)}>
               Redo
             </Command.Item>
           </Command.Group>
 
-          {/* <Command.Group heading="Edit">
-            <Command.Item
-              onSelect={() => {
-                handleCopy();
-                close();
-              }}
-            >
-              Copy
-            </Command.Item>
-            <Command.Item
-              onSelect={() => {
-                handlePaste();
-                close();
-              }}
-            >
-              Paste
-            </Command.Item>
-          </Command.Group> */}
-
           <Command.Group heading="Layout">
             <Command.Item
-              onSelect={() => {
-                alignNodes({ arrangeSpacing: false });
-                close();
-              }}
+              onSelect={() =>
+                executeAndClose(() => alignNodes({ arrangeSpacing: false }))
+              }
             >
               Align Nodes
             </Command.Item>
             <Command.Item
-              onSelect={() => {
-                alignNodes({ arrangeSpacing: true });
-                close();
-              }}
+              onSelect={() =>
+                executeAndClose(() => alignNodes({ arrangeSpacing: true }))
+              }
             >
               Align Nodes with Spacing
             </Command.Item>
@@ -357,7 +306,9 @@ const CommandMenu = memo(function CommandMenu({
                   {metadata.map((meta, idx) => (
                     <Command.Item
                       key={idx}
-                      onSelect={() => handleCreateNode(meta)}
+                      onSelect={() =>
+                        executeAndClose(() => handleCreateNode(meta))
+                      }
                     >
                       {meta.node_type.split(".").pop()}
                     </Command.Item>

@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import contextmanager
 from datetime import datetime
+import gc
 from typing import Dict, Any, Optional
 from functools import lru_cache
 
@@ -169,6 +170,7 @@ class WorkflowRunner:
         with self.torch_context(context):
             try:
                 await self.validate_graph(context, graph)
+                await self.clear_unused_models(graph)
                 await self.initialize_graph(context, graph)
                 await self.process_graph(context, graph)
             except torch.cuda.OutOfMemoryError as e:
@@ -219,6 +221,10 @@ class WorkflowRunner:
         for edge in graph.edges:
             source_node = graph.find_node(edge.source)
             target_node = graph.find_node(edge.target)
+
+            assert source_node is not None, f"Source node {edge.source} not found"
+            assert target_node is not None, f"Target node {edge.target} not found"
+
             output_slot = source_node.find_output(edge.sourceHandle)
             input_slot = target_node.find_property(edge.targetHandle)
 
@@ -249,6 +255,16 @@ class WorkflowRunner:
                     )
         if not is_valid:
             raise ValueError("Graph contains errors")
+
+    async def clear_unused_models(self, graph: Graph):
+        """
+        Clears unused models from the model manager.
+        """
+        if not Environment.is_production():
+            ModelManager.clear_unused(node_ids=[node.id for node in graph.nodes])
+            # run garbage collection
+            gc.collect()
+            torch.cuda.empty_cache()
 
     async def initialize_graph(self, context: ProcessingContext, graph: Graph):
         """
@@ -337,21 +353,18 @@ class WorkflowRunner:
                 from comfy.model_management import current_loaded_models
 
                 retries += 1
+                torch.cuda.synchronize()
                 vram_before_cleanup = get_available_vram()
 
                 ModelManager.clear()
+                gc.collect()
 
                 for model in current_loaded_models:
                     model.model_unload()
 
                 torch.cuda.empty_cache()
+                torch.cuda.synchronize()
                 additional_vram = vram_before_cleanup - get_available_vram()
-
-                if additional_vram <= 0:
-                    log.warning(
-                        f"No additional VRAM available. Stopping retries for node {node._id}."
-                    )
-                    raise  # Re-raise the exception if no more VRAM is available
 
                 if retries >= MAX_RETRIES:
                     raise
@@ -446,6 +459,7 @@ class WorkflowRunner:
 
                 # in the future, we will have a better way to handle this
                 await node.move_to_device("cpu")
+                self.log_vram_usage(f"after node {node.id}: ")
 
                 if node.is_cacheable():
                     context.cache_result(node, result)
@@ -551,6 +565,11 @@ class WorkflowRunner:
         else:
             return {"output": results[output_nodes[0]._id]}
 
+    def log_vram_usage(self, message=""):
+        torch.cuda.synchronize()
+        vram = torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024
+        log.info(f"{message} VRAM usage: {vram} GB")
+
     @contextmanager
     def torch_context(self, context: ProcessingContext):
         """
@@ -592,6 +611,8 @@ class WorkflowRunner:
             finally:
                 if torch.cuda.is_available():
                     import comfy.model_management
+
+                    torch.cuda.synchronize()
 
                     # comfy.model_management.cleanup_models()
                     # torch.cuda.empty_cache()

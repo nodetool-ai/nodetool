@@ -61,6 +61,8 @@ export default function ModelProperty(props: PropertyProps) {
       if (modelType === "llama_model") {
         return await loadLlamaModels();
       }
+      // Special case for lora_sd models
+      // as multiple files are in the same repo
       if (modelType.startsWith("hf.lora_sd")) {
         const loras = metadata?.recommendedModels.filter(
           (model) => model.type === modelType
@@ -82,6 +84,8 @@ export default function ModelProperty(props: PropertyProps) {
       return await loadModelFiles(modelType);
     }
   });
+
+  console.log(models);
 
   const values = useMemo(() => {
     if (!models) return [];

@@ -43,7 +43,7 @@ const logoStyles = (
       userSelect: "none",
       fontSize: fontSize,
       lineHeight: "1em",
-      padding: "0",
+      padding: "0px",
       color: "#ccc",
       borderRadius: ".1em",
       boxShadow: small ? `0` : "0 0 24px rgba(200,200,200,0.3)",
