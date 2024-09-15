@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Button, IconButton, InputBase, Box, Tooltip } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
@@ -107,47 +107,48 @@ const styles = (theme: any) =>
     }
   });
 
-const LastWorkflowButton = () => {
+const LastWorkflowButton = React.memo(() => {
   const navigate = useNavigate();
-  const { workflow, setWorkflowAttributes, saveWorkflow, workflowDirty } =
-    useNodeStore((state) => ({
-      workflow: state.workflow,
-      setWorkflowAttributes: state.setWorkflowAttributes,
-      saveWorkflow: state.saveWorkflow,
-      workflowDirty: state.getWorkflowIsDirty()
-    }));
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
+  const { pathname } = useLocation();
+  const {
+    workflow,
+    setWorkflowAttributes,
+    saveWorkflow,
+    workflowDirty,
+    lastWorkflow
+  } = useNodeStore(
+    useCallback(
+      (state) => ({
+        workflow: state.workflow,
+        setWorkflowAttributes: state.setWorkflowAttributes,
+        saveWorkflow: state.saveWorkflow,
+        workflowDirty: state.getWorkflowIsDirty(),
+        lastWorkflow: state.lastWorkflow
+      }),
+      []
+    )
   );
-  const [localName, setLocalName] = useState<string>("");
-  const [isEditing, setIsEditing] = useState(false);
-  const path = useLocation().pathname;
+  const addNotification = useNotificationStore(
+    useCallback((state) => state.addNotification, [])
+  );
 
-  const lastWorkflow = useNodeStore((state) => state.lastWorkflow);
-  const handleNavigateToLastWorkflow = () => {
+  const [localName, setLocalName] = useState(workflow?.name || "");
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleNavigateToLastWorkflow = useCallback(() => {
     if (lastWorkflow) {
       navigate(`/editor/${lastWorkflow.id}`);
     }
-  };
+  }, [lastWorkflow, navigate]);
 
-  useEffect(() => {
-    if (workflow) {
-      setLocalName(workflow.name);
-    }
-  }, [workflow]);
+  const handleEdit = useCallback(() => setIsEditing(true), []);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setLocalName(e.target.value),
+    []
+  );
 
-  if (!workflow) return null;
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalName(e.target.value);
-  };
-
-  const handleSave = async () => {
-    if (localName.trim() !== "") {
+  const handleSave = useCallback(async () => {
+    if (localName.trim() !== "" && workflow) {
       setWorkflowAttributes({ ...workflow, name: localName.trim() });
       await saveWorkflow();
       setIsEditing(false);
@@ -158,32 +159,46 @@ const LastWorkflowButton = () => {
         dismissable: true
       });
     }
-  };
+  }, [
+    localName,
+    workflow,
+    setWorkflowAttributes,
+    saveWorkflow,
+    addNotification
+  ]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setIsEditing(false);
-    setLocalName(workflow.name);
-  };
+    setLocalName(workflow?.name || "");
+  }, [workflow]);
 
-  const handleDoubleClick = () => {
+  const handleDoubleClick = useCallback(() => {
     if (!isEditing) {
       setIsEditing(true);
     }
-  };
+  }, [isEditing]);
 
   const memoizedButton = useMemo(
     () => (
       <Button
         onClick={handleNavigateToLastWorkflow}
         onDoubleClick={handleDoubleClick}
-        disabled={path.startsWith("/editor")}
+        disabled={pathname.startsWith("/editor")}
       >
-        {workflow.name}
+        {workflow?.name}
         {workflowDirty && <span>*</span>}
       </Button>
     ),
-    [workflow.name, workflowDirty, path, handleNavigateToLastWorkflow]
+    [
+      workflow?.name,
+      workflowDirty,
+      pathname,
+      handleNavigateToLastWorkflow,
+      handleDoubleClick
+    ]
   );
+
+  if (!workflow) return null;
 
   return (
     <div className="last-workflow" css={styles}>
@@ -206,12 +221,8 @@ const LastWorkflowButton = () => {
             value={localName}
             onChange={handleChange}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSave();
-              }
-              if (e.key === "Escape") {
-                handleCancel();
-              }
+              if (e.key === "Enter") handleSave();
+              if (e.key === "Escape") handleCancel();
             }}
           />
           <div className="confirm-buttons">
@@ -234,6 +245,6 @@ const LastWorkflowButton = () => {
       )}
     </div>
   );
-};
+});
 
 export default LastWorkflowButton;

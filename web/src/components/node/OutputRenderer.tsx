@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import React, { useMemo, useCallback } from "react";
 import { css } from "@emotion/react";
 
 import { Asset, DataframeRef, Message, Tensor } from "../../stores/ApiTypes";
@@ -151,150 +152,176 @@ const typeFor = (value: any): string => {
   return typeof value;
 };
 
-const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
-  const { writeClipboard } = useClipboard();
-  const type = typeFor(value);
+const OutputRenderer: React.FC<OutputRendererProps> = React.memo(
+  ({ value }) => {
+    const { writeClipboard } = useClipboard();
+    const addNotification = useNotificationStore(
+      (state) => state.addNotification
+    );
 
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  const handleCopyToClipboard = (value: string) => {
-    writeClipboard(value?.toString(), true);
-    addNotification({
-      type: "info",
-      alert: true,
-      content: "Value copied to Clipboard!"
-    });
-  };
+    const type = useMemo(() => typeFor(value), [value]);
 
-  if (value === null || value === undefined) {
-    return null;
-  }
+    const handleCopyToClipboard = useCallback(
+      (value: string) => {
+        writeClipboard(value?.toString(), true);
+        addNotification({
+          type: "info",
+          alert: true,
+          content: "Value copied to Clipboard!"
+        });
+      },
+      [writeClipboard, addNotification]
+    );
 
-  function renderTensorPreview(tensor: Tensor): React.ReactNode {
-    return <TensorView tensor={tensor} />;
-  }
-  switch (type) {
-    case "image":
-      if (Array.isArray(value.data)) {
-        return value.data.map((v: any, i: number) => (
-          <ImageView key={i} source={v} />
-        ));
-      } else {
-        return (
-          <ImageView source={value?.uri === "" ? value?.data : value?.uri} />
-        );
+    const renderContent = useMemo(() => {
+      if (value === null || value === undefined) {
+        return null;
       }
-    case "audio":
-      return (
-        <div className="audio" style={{ padding: "1em" }}>
-          <AudioPlayer source={value?.uri === "" ? value?.data : value?.uri} />
-        </div>
-      );
-    case "video":
-      if (value?.uri === "") {
-        const blob = new Blob([value?.data], { type: "video/mp4" });
-        const url = URL.createObjectURL(blob);
-        return <video src={url} controls style={{ width: "100%" }} />;
-      } else {
-        return <video src={value?.uri} controls style={{ width: "100%" }} />;
+
+      function renderTensorPreview(tensor: Tensor): React.ReactNode {
+        return <TensorView tensor={tensor} />;
       }
-    case "dataframe":
-      return <DataTable dataframe={value as DataframeRef} editable={false} />;
-    case "tensor":
-      return (
-        <div className="tensor nodrag nowheel">
-          {renderTensorPreview(value)}
-        </div>
-      );
-    case "object":
-      if (Object.values(value).length === 0) {
-        const val = Object.values(value);
-        if (typeof val[0] === "string") {
-          return <DictTable data={value} data_type="string" editable={false} />;
-        }
-        if (typeof val[0] === "number") {
-          return <DictTable data={value} data_type="float" editable={false} />;
-        }
-      }
-      return <DictTable data={value} editable={false} data_type="string" />;
-    case "array":
-      if (value.length > 0) {
-        if (typeof value[0] === "string") {
-          return <ListTable data={value} data_type="string" editable={false} />;
-        }
-        if (typeof value[0] === "number") {
-          return <ListTable data={value} data_type="float" editable={false} />;
-        }
-        if (typeof value[0] === "object") {
-          if (value[0].type === "thread_message") {
-            return <ThreadMessageList messages={value as Message[]} />;
+      switch (type) {
+        case "image":
+          if (Array.isArray(value.data)) {
+            return value.data.map((v: any, i: number) => (
+              <ImageView key={i} source={v} />
+            ));
+          } else {
+            return (
+              <ImageView
+                source={value?.uri === "" ? value?.data : value?.uri}
+              />
+            );
           }
-          if (value[0].type === "task") {
-            return <TaskTable data={value} />;
+        case "audio":
+          return (
+            <div className="audio" style={{ padding: "1em" }}>
+              <AudioPlayer
+                source={value?.uri === "" ? value?.data : value?.uri}
+              />
+            </div>
+          );
+        case "video":
+          if (value?.uri === "") {
+            const blob = new Blob([value?.data], { type: "video/mp4" });
+            const url = URL.createObjectURL(blob);
+            return <video src={url} controls style={{ width: "100%" }} />;
+          } else {
+            return (
+              <video src={value?.uri} controls style={{ width: "100%" }} />
+            );
           }
-          if (["image", "audio", "video"].includes(value[0].type)) {
-            return generateAssetGridContent(value);
-          }
-          const columnType = (v: any): "string" | "float" | "object" => {
-            if (typeof v === "string") {
-              return "string";
+        case "dataframe":
+          return (
+            <DataTable dataframe={value as DataframeRef} editable={false} />
+          );
+        case "tensor":
+          return (
+            <div className="tensor nodrag nowheel">
+              {renderTensorPreview(value)}
+            </div>
+          );
+        case "object":
+          if (Object.values(value).length === 0) {
+            const val = Object.values(value);
+            if (typeof val[0] === "string") {
+              return (
+                <DictTable data={value} data_type="string" editable={false} />
+              );
             }
-            if (typeof v === "number") {
-              return "float";
+            if (typeof val[0] === "number") {
+              return (
+                <DictTable data={value} data_type="float" editable={false} />
+              );
             }
-            return "object";
-          };
-          const df = {
-            data: value.map((v: any) => Object.values(v)),
-            columns: Object.entries(value[0]).map((i) => {
-              return { name: i[0], data_type: columnType(i[1]) };
-            })
-          };
-          return <DataTable dataframe={df} editable={false} />;
-        }
-      }
+          }
+          return <DictTable data={value} editable={false} data_type="string" />;
+        case "array":
+          if (value.length > 0) {
+            if (typeof value[0] === "string") {
+              return (
+                <ListTable data={value} data_type="string" editable={false} />
+              );
+            }
+            if (typeof value[0] === "number") {
+              return (
+                <ListTable data={value} data_type="float" editable={false} />
+              );
+            }
+            if (typeof value[0] === "object") {
+              if (value[0].type === "thread_message") {
+                return <ThreadMessageList messages={value as Message[]} />;
+              }
+              if (value[0].type === "task") {
+                return <TaskTable data={value} />;
+              }
+              if (["image", "audio", "video"].includes(value[0].type)) {
+                return generateAssetGridContent(value);
+              }
+              const columnType = (v: any): "string" | "float" | "object" => {
+                if (typeof v === "string") {
+                  return "string";
+                }
+                if (typeof v === "number") {
+                  return "float";
+                }
+                return "object";
+              };
+              const df = {
+                data: value.map((v: any) => Object.values(v)),
+                columns: Object.entries(value[0]).map((i) => {
+                  return { name: i[0], data_type: columnType(i[1]) };
+                })
+              };
+              return <DataTable dataframe={df} editable={false} />;
+            }
+          }
 
-      return (
-        <Container>
-          {value.map((v: any, i: number) => (
-            <OutputRenderer key={i} value={v} />
-          ))}
-        </Container>
-      );
-    case "segmentation_result":
-      return (
-        <div>
-          {Object.entries(value).map((v: any) => (
-            <OutputRenderer key={v[0]} value={v[1]} />
-          ))}
-        </div>
-      );
-    case "classification_result":
-      return (
-        <div>
-          {value["label"]}: {value["score"]}
-        </div>
-      );
-    default:
-      return (
-        <div className="output value nodrag nowheel" css={styles}>
-          {value !== null && (
-            <>
-              <ButtonGroup className="actions">
-                <Button
-                  size="small"
-                  onClick={() => handleCopyToClipboard(value?.toString())}
-                >
-                  Copy
-                </Button>
-              </ButtonGroup>
-              <MarkdownRenderer content={value?.toString()} />
-            </>
-          )}
-        </div>
-      );
+          return (
+            <Container>
+              {value.map((v: any, i: number) => (
+                <OutputRenderer key={i} value={v} />
+              ))}
+            </Container>
+          );
+        case "segmentation_result":
+          return (
+            <div>
+              {Object.entries(value).map((v: any) => (
+                <OutputRenderer key={v[0]} value={v[1]} />
+              ))}
+            </div>
+          );
+        case "classification_result":
+          return (
+            <div>
+              {value["label"]}: {value["score"]}
+            </div>
+          );
+        default:
+          return (
+            <div className="output value nodrag nowheel" css={styles}>
+              {value !== null && (
+                <>
+                  <ButtonGroup className="actions">
+                    <Button
+                      size="small"
+                      onClick={() => handleCopyToClipboard(value?.toString())}
+                    >
+                      Copy
+                    </Button>
+                  </ButtonGroup>
+                  <MarkdownRenderer content={value?.toString()} />
+                </>
+              )}
+            </div>
+          );
+      }
+    }, [value, handleCopyToClipboard]);
+
+    return renderContent;
   }
-};
+);
 
 export default OutputRenderer;

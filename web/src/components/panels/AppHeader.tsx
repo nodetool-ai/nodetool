@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import React, { useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -41,7 +42,7 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { client, isProduction } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import SystemStatsDisplay from "./SystemStats";
@@ -138,7 +139,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
     }
   });
 
-function AppHeader() {
+const AppHeader: React.FC = React.memo(() => {
   const navigate = useNavigate();
   const path = useLocation().pathname;
 
@@ -146,31 +147,9 @@ function AppHeader() {
     (state) => state.settings.buttonAppearance
   );
 
-  // Local state to manage button appearance based on screen size
   const [buttonAppearance, setButtonAppearance] = useState(
     globalButtonAppearance
   );
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth <= 1200) {
-        setButtonAppearance("icon");
-      } else {
-        setButtonAppearance(globalButtonAppearance);
-      }
-    };
-
-    // Initialize on component mount
-    handleResize();
-
-    // Add event listener for window resize
-    window.addEventListener("resize", handleResize);
-
-    // Cleanup the event listener on unmount
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [globalButtonAppearance]);
 
   const {
     helpOpen,
@@ -196,14 +175,186 @@ function AppHeader() {
     refetchInterval: 1000
   });
 
+  const handleResize = useCallback(() => {
+    if (window.innerWidth <= 1200) {
+      setButtonAppearance("icon");
+    } else {
+      setButtonAppearance(globalButtonAppearance);
+    }
+  }, [globalButtonAppearance]);
+
+  useEffect(() => {
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [handleResize]);
+
   useEffect(() => {
     if (showWelcomeOnStartup) {
       handleOpenWelcome();
     }
   }, [handleOpenWelcome, showWelcomeOnStartup]);
 
+  const memoizedStyles = useMemo(
+    () => styles(ThemeNodetool, buttonAppearance),
+    [buttonAppearance]
+  );
+
+  const NavigationButtons = useMemo(
+    () => (
+      <Box className="nav-buttons">
+        <Tooltip title="Load and create workflows" enterDelay={TOOLTIP_DELAY}>
+          <Button
+            aria-controls="simple-menu"
+            aria-haspopup="true"
+            className={`nav-button ${
+              path.startsWith("/workflows") ? "active" : ""
+            }`}
+            onClick={() => navigate("/workflows")}
+            style={{
+              color: path.startsWith("/workflows")
+                ? ThemeNodetool.palette.c_hl1
+                : ThemeNodetool.palette.c_white
+            }}
+          >
+            <WorkflowsIcon />
+            Workflows
+          </Button>
+        </Tooltip>
+
+        <Tooltip title="View and manage Assets" enterDelay={TOOLTIP_DELAY}>
+          <Button
+            className={`nav-button ${path === "/assets" ? "active" : ""}`}
+            onClick={() => navigate("/assets")}
+            style={{
+              color: path.startsWith("/assets")
+                ? ThemeNodetool.palette.c_hl1
+                : ThemeNodetool.palette.c_white
+            }}
+          >
+            {iconForType(
+              "asset",
+              {
+                fill: path.startsWith("/assets")
+                  ? ThemeNodetool.palette.c_hl1
+                  : ThemeNodetool.palette.c_white,
+
+                containerStyle: {
+                  borderRadius: "0 0 3px 0",
+                  marginLeft: "0.1em",
+                  marginTop: "0"
+                },
+                bgStyle: {
+                  backgroundColor: "#333",
+                  width: "30px",
+                  height: "20px"
+                }
+              },
+              false
+            )}
+            Assets
+          </Button>
+        </Tooltip>
+        {path.startsWith("/editor") && (
+          <Tooltip
+            title="Open Nodetool Chat Assistant"
+            enterDelay={TOOLTIP_DELAY}
+          >
+            <Button className="action-button" onClick={toggleChat}>
+              <ChatIcon />
+              Chat
+            </Button>
+          </Tooltip>
+        )}
+      </Box>
+    ),
+    [path, navigate]
+  );
+
+  const RightSideButtons = useMemo(
+    () => (
+      <Box className="buttons-right">
+        {!isProduction && (
+          <>
+            <SystemStatsDisplay />
+            <OverallDownloadProgress />
+            <Tooltip title="Model Manager" enterDelay={TOOLTIP_DELAY}>
+              <Button
+                className="action-button"
+                onClick={() => navigate("/models")}
+                style={{
+                  color: path.startsWith("/models")
+                    ? ThemeNodetool.palette.c_hl1
+                    : ThemeNodetool.palette.c_white
+                }}
+              >
+                {iconForType(
+                  "model",
+                  {
+                    fill: path.startsWith("/models")
+                      ? ThemeNodetool.palette.c_hl1
+                      : "#fff",
+                    bgStyle: {
+                      backgroundColor: "transparent",
+                      width: "28px",
+                      marginRight: ".5em"
+                    },
+                    width: "15px",
+                    height: "15px"
+                  },
+                  false
+                )}
+                Models
+              </Button>
+            </Tooltip>
+          </>
+        )}
+
+        <Popover
+          open={helpOpen}
+          onClose={handleCloseHelp}
+          anchorReference="none"
+          style={{
+            position: "fixed",
+            width: "100%",
+            height: "100%",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)"
+          }}
+        >
+          <Help handleClose={handleCloseHelp} />
+        </Popover>
+        <Tooltip
+          enterDelay={TOOLTIP_DELAY}
+          title={
+            <div style={{ textAlign: "center" }}>
+              <Typography variant="inherit">Help</Typography>
+              <Typography variant="inherit">[ALT+H | OPTION+H]</Typography>
+            </div>
+          }
+        >
+          <Button
+            className="command-icon"
+            onClick={(e) => {
+              e.preventDefault();
+              handleOpenHelp();
+            }}
+          >
+            <QuestionMarkIcon />
+            Help
+          </Button>
+        </Tooltip>
+        <SettingsMenu />
+      </Box>
+    ),
+    [path, navigate, helpOpen, handleCloseHelp, handleOpenHelp]
+  );
+
   return (
-    <div css={styles(ThemeNodetool, buttonAppearance)} className="app-header">
+    <div css={memoizedStyles} className="app-header">
       <AppBar position="static" className="app-bar">
         <Toolbar variant="dense" className="toolbar">
           <Tooltip
@@ -271,161 +422,17 @@ function AppHeader() {
 
           <div className="navigate">
             <Box sx={{ flexGrow: 0.02 }} />
-            <Box className="nav-buttons">
-              <Tooltip
-                title="Load and create workflows"
-                enterDelay={TOOLTIP_DELAY}
-              >
-                <Button
-                  aria-controls="simple-menu"
-                  aria-haspopup="true"
-                  className={`nav-button ${
-                    path.startsWith("/workflows") ? "active" : ""
-                  }`}
-                  onClick={() => navigate("/workflows")}
-                  style={{
-                    color: path.startsWith("/workflows")
-                      ? ThemeNodetool.palette.c_hl1
-                      : ThemeNodetool.palette.c_white
-                  }}
-                >
-                  <WorkflowsIcon />
-                  Workflows
-                </Button>
-              </Tooltip>
-
-              <Tooltip
-                title="View and manage Assets"
-                enterDelay={TOOLTIP_DELAY}
-              >
-                <Button
-                  className={`nav-button ${path === "/assets" ? "active" : ""}`}
-                  onClick={() => navigate("/assets")}
-                  style={{
-                    color: path.startsWith("/assets")
-                      ? ThemeNodetool.palette.c_hl1
-                      : ThemeNodetool.palette.c_white
-                  }}
-                >
-                  {iconForType(
-                    "asset",
-                    {
-                      fill: path.startsWith("/assets")
-                        ? ThemeNodetool.palette.c_hl1
-                        : ThemeNodetool.palette.c_white,
-
-                      containerStyle: {
-                        borderRadius: "0 0 3px 0",
-                        marginLeft: "0.1em",
-                        marginTop: "0"
-                      },
-                      bgStyle: {
-                        backgroundColor: "#333",
-                        width: "30px",
-                        height: "20px"
-                      }
-                    },
-                    false
-                  )}
-                  Assets
-                </Button>
-              </Tooltip>
-              {path.startsWith("/editor") && (
-                <Tooltip
-                  title="Open Nodetool Chat Assistant"
-                  enterDelay={TOOLTIP_DELAY}
-                >
-                  <Button className="action-button" onClick={toggleChat}>
-                    <ChatIcon />
-                    Chat
-                  </Button>
-                </Tooltip>
-              )}
-            </Box>
+            {NavigationButtons}
           </div>
 
           <AppHeaderActions />
           <LastWorkflowButton />
           <Alert />
-
-          <Box className="buttons-right">
-            {!isProduction && (
-              <>
-                <SystemStatsDisplay />
-                <OverallDownloadProgress />
-                <Tooltip title="Model Manager" enterDelay={TOOLTIP_DELAY}>
-                  <Button
-                    className="action-button"
-                    onClick={() => navigate("/models")}
-                    style={{
-                      color: path.startsWith("/models")
-                        ? ThemeNodetool.palette.c_hl1
-                        : ThemeNodetool.palette.c_white
-                    }}
-                  >
-                    {iconForType(
-                      "model",
-                      {
-                        fill: path.startsWith("/models")
-                          ? ThemeNodetool.palette.c_hl1
-                          : "#fff",
-                        bgStyle: {
-                          backgroundColor: "transparent",
-                          width: "28px",
-                          marginRight: ".5em"
-                        },
-                        width: "15px",
-                        height: "15px"
-                      },
-                      false
-                    )}
-                    Models
-                  </Button>
-                </Tooltip>
-              </>
-            )}
-
-            <Popover
-              open={helpOpen}
-              onClose={handleCloseHelp}
-              anchorReference="none"
-              style={{
-                position: "fixed",
-                width: "100%",
-                height: "100%",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)"
-              }}
-            >
-              <Help handleClose={handleCloseHelp} />
-            </Popover>
-            <Tooltip
-              enterDelay={TOOLTIP_DELAY}
-              title={
-                <div style={{ textAlign: "center" }}>
-                  <Typography variant="inherit">Help</Typography>
-                  <Typography variant="inherit">[ALT+H | OPTION+H]</Typography>
-                </div>
-              }
-            >
-              <Button
-                className="command-icon"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleOpenHelp();
-                }}
-              >
-                <QuestionMarkIcon />
-                Help
-              </Button>
-            </Tooltip>
-            <SettingsMenu />
-          </Box>
+          {RightSideButtons}
         </Toolbar>
       </AppBar>
     </div>
   );
-}
+});
 
 export default AppHeader;
