@@ -404,35 +404,35 @@ class ImageClassifier(HuggingFacePipelineNode):
         return [
             HFImageClassification(
                 repo_id="google/vit-base-patch16-224",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFImageClassification(
                 repo_id="microsoft/resnet-50",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFImageClassification(
                 repo_id="microsoft/resnet-18",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFImageClassification(
                 repo_id="apple/mobilevit-small",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
             HFImageClassification(
                 repo_id="apple/mobilevit-xx-small",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
             HFImageClassification(
                 repo_id="nateraw/vit-age-classifier",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFImageClassification(
                 repo_id="Falconsai/nsfw_image_detection",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFImageClassification(
                 repo_id="rizvandwiki/gender-classification-2",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
         ]
 
@@ -500,27 +500,27 @@ class ZeroShotImageClassifier(HuggingFacePipelineNode):
         return [
             HFZeroShotImageClassification(
                 repo_id="openai/clip-vit-base-patch16",
-                allow_patterns=["pytorch_model.bin", "*.json", "*.txt"],
+                allow_patterns=["README.md", "pytorch_model.bin", "*.json", "*.txt"],
             ),
             HFZeroShotImageClassification(
                 repo_id="openai/clip-vit-base-patch32",
-                allow_patterns=["pytorch_model.bin", "*.json", "*.txt"],
+                allow_patterns=["README.md", "pytorch_model.bin", "*.json", "*.txt"],
             ),
             HFZeroShotImageClassification(
                 repo_id="openai/clip-vit-base-patch14",
-                allow_patterns=["pytorch_model.bin", "*.json", "*.txt"],
+                allow_patterns=["README.md", "pytorch_model.bin", "*.json", "*.txt"],
             ),
             HFZeroShotImageClassification(
                 repo_id="patricjohncyh/fashion-clip",
-                allow_patterns=["pytorch_model.bin", "*.json", "*.txt"],
+                allow_patterns=["README.md", "pytorch_model.bin", "*.json", "*.txt"],
             ),
             HFZeroShotImageClassification(
                 repo_id="laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
-                allow_patterns=["pytorch_model.bin", "*.json", "*.txt"],
+                allow_patterns=["README.md", "pytorch_model.bin", "*.json", "*.txt"],
             ),
             HFZeroShotImageClassification(
                 repo_id="laion/CLIP-ViT-g-14-laion2B-s12B-b42K",
-                allow_patterns=["pytorch_model.bin", "*.json", "*.txt"],
+                allow_patterns=["README.md", "pytorch_model.bin", "*.json", "*.txt"],
             ),
         ]
 
@@ -719,11 +719,11 @@ class Segmentation(HuggingFacePipelineNode):
         return [
             HFImageSegmentation(
                 repo_id="nvidia/segformer-b3-finetuned-ade-512-512",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
             HFImageSegmentation(
                 repo_id="mattmdjaga/segformer_b2_clothes",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
         ]
 
@@ -833,31 +833,31 @@ class ObjectDetection(HuggingFacePipelineNode):
         return [
             HFObjectDetection(
                 repo_id="facebook/detr-resnet-50",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
             HFObjectDetection(
                 repo_id="facebook/detr-resnet-101",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFObjectDetection(
                 repo_id="hustvl/yolos-tiny",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFObjectDetection(
                 repo_id="hustvl/yolos-small",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFObjectDetection(
                 repo_id="microsoft/table-transformer-detection",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
             HFObjectDetection(
                 repo_id="microsoft/table-transformer-structure-recognition-v1.1-all",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
             HFObjectDetection(
                 repo_id="valentinafeve/yolos-fashionpedia",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
         ]
 
@@ -1029,27 +1029,27 @@ class ZeroShotObjectDetection(HuggingFacePipelineNode):
         return [
             HFZeroShotObjectDetection(
                 repo_id="google/owlvit-base-patch32",
-                allow_patterns=["*.bin", "*.json", "**/*.json", "txt"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json", "txt"],
             ),
             HFZeroShotObjectDetection(
                 repo_id="google/owlvit-large-patch14",
-                allow_patterns=["*.bin", "*.json", "**/*.json", "txt"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json", "txt"],
             ),
             HFZeroShotObjectDetection(
                 repo_id="google/owlvit-base-patch16",
-                allow_patterns=["*.bin", "*.json", "**/*.json", "txt"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json", "txt"],
             ),
             HFZeroShotObjectDetection(
                 repo_id="google/owlv2-base-patch16",
-                allow_patterns=["*.bin", "*.json", "**/*.json", "txt"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json", "txt"],
             ),
             HFZeroShotObjectDetection(
                 repo_id="google/owlv2-base-patch16-ensemble",
-                allow_patterns=["*.bin", "*.json", "**/*.json", "txt"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json", "txt"],
             ),
             HFZeroShotObjectDetection(
                 repo_id="IDEA-Research/grounding-dino-tiny",
-                allow_patterns=["*.bin", "*.json", "**/*.json", "txt"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json", "txt"],
             ),
         ]
 
@@ -1139,7 +1139,13 @@ class DepthEstimation(HuggingFacePipelineNode):
             ),
             HFDepthEstimation(
                 repo_id="Intel/dpt-large",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json", "txt"],
+                allow_patterns=[
+                    "README.md",
+                    "*.safetensors",
+                    "*.json",
+                    "**/*.json",
+                    "txt",
+                ],
             ),
         ]
 
@@ -1234,19 +1240,19 @@ class Swin2SR(BaseImageToImage):
         return [
             HFImageToImage(
                 repo_id="caidas/swin2SR-classical-sr-x2-64",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFImageToImage(
                 repo_id="caidas/swin2SR-classical-sr-x4-48",
-                allow_patterns=["*.safetensors", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.safetensors", "*.json", "**/*.json"],
             ),
             HFImageToImage(
                 repo_id="caidas/swin2SR-lightweight-sr-x2-64",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
             HFImageToImage(
                 repo_id="caidas/swin2SR-realworld-sr-x4-64-bsrgan-psnr",
-                allow_patterns=["*.bin", "*.json", "**/*.json"],
+                allow_patterns=["README.md", "*.bin", "*.json", "**/*.json"],
             ),
         ]
 
@@ -2092,6 +2098,7 @@ class PlaygroundV2(HuggingFacePipelineNode):
             HuggingFaceModel(
                 repo_id="playgroundai/playground-v2.5-1024px-aesthetic",
                 allow_patterns=[
+                    "README.md",
                     "text_encoder/model.fp16.safetensors",
                     "text_encoder_2/model.fp16.safetensors",
                     "unet/diffusion_pytorch_model.fp16.safetensors",
@@ -2245,6 +2252,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 HFIPAdapter(
                     repo_id="h94/IP-Adapter",
                     allow_patterns=[
+                        "README.md",
                         "models/*.safetensors",
                     ],
                 ),
@@ -2436,6 +2444,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             HFControlNet(
                 repo_id="lllyasviel/sd-controlnet-canny",
                 allow_patterns=[
+                    "README.md",
                     "*.safetensors",
                     "*.json",
                 ],
@@ -2443,6 +2452,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             HFControlNet(
                 repo_id="lllyasviel/sd-controlnet-depth",
                 allow_patterns=[
+                    "README.md",
                     "*.safetensors",
                     "*.json",
                 ],
@@ -2450,6 +2460,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             HFControlNet(
                 repo_id="lllyasviel/sd-controlnet-openpose",
                 allow_patterns=[
+                    "README.md",
                     "*.safetensors",
                     "*.json",
                 ],
@@ -2457,6 +2468,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             HFControlNet(
                 repo_id="lllyasviel/sd-controlnet-scribble",
                 allow_patterns=[
+                    "README.md",
                     "*.safetensors",
                     "*.json",
                 ],
@@ -2464,6 +2476,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             HFControlNet(
                 repo_id="lllyasviel/sd-controlnet-seg",
                 allow_patterns=[
+                    "README.md",
                     "*.safetensors",
                     "*.json",
                 ],
@@ -2471,6 +2484,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             HFControlNet(
                 repo_id="lllyasviel/sd-controlnet-hed",
                 allow_patterns=[
+                    "README.md",
                     "*.safetensors",
                     "*.json",
                 ],
@@ -2478,6 +2492,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             HFControlNet(
                 repo_id="lllyasviel/sd-controlnet-normal",
                 allow_patterns=[
+                    "README.md",
                     "*.safetensors",
                     "*.json",
                 ],
@@ -2485,6 +2500,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             HFControlNet(
                 repo_id="lllyasviel/sd-controlnet-mlsd",
                 allow_patterns=[
+                    "README.md",
                     "*.safetensors",
                     "*.json",
                 ],
@@ -2966,6 +2982,7 @@ class StableDiffusionUpscale(HuggingFacePipelineNode):
             HFStableDiffusionUpscale(
                 repo_id="stabilityai/stable-diffusion-x4-upscaler",
                 allow_patterns=[
+                    "README.md",
                     "**/*.fp16.safetensors",
                     "**/*.json",
                     "**/*.txt",
@@ -3085,6 +3102,7 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
                 HFIPAdapter(
                     repo_id="h94/IP-Adapter",
                     allow_patterns=[
+                        "README.md",
                         "models/*.safetensors",
                     ],
                 )
@@ -3094,15 +3112,15 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
             + [
                 HFControlNet(
                     repo_id="diffusers/controlnet-canny-sdxl-1.0",
-                    allow_patterns=["*.fp16.safetensors"],
+                    allow_patterns=["README.md", "*.fp16.safetensors"],
                 ),
                 HFControlNet(
                     repo_id="diffusers/controlnet-depth-sdxl-1.0",
-                    allow_patterns=["*.fp16.safetensors"],
+                    allow_patterns=["README.md", "*.fp16.safetensors"],
                 ),
                 HFControlNet(
                     repo_id="diffusers/controlnet-zoe-depth-sdxl-1.0",
-                    allow_patterns=["*.fp16.safetensors"],
+                    allow_patterns=["README.md", "*.fp16.safetensors"],
                 ),
             ]
         )
@@ -3436,6 +3454,7 @@ class StableDiffusionXLInpainting(StableDiffusionXLBase):
             HFStableDiffusionXL(
                 repo_id="stabilityai/stable-diffusion-xl-inpainting-0.1",
                 allow_patterns=[
+                    "README.md",
                     "**/*.fp16.safetensors",
                     "**/*.json",
                     "**/*.txt",
@@ -3670,15 +3689,15 @@ class ImageFeatureExtraction(HuggingFacePipelineNode):
         return [
             HFImageFeatureExtraction(
                 repo_id="google/vit-base-patch16-224-in21k",
-                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
             ),
             HFImageFeatureExtraction(
                 repo_id="facebook/dinov2-base",
-                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
             ),
             HFImageFeatureExtraction(
                 repo_id="facebook/dinov2-small",
-                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
             ),
         ]
 
@@ -3753,15 +3772,15 @@ class MaskGeneration(HuggingFacePipelineNode):
         return [
             HFMaskGeneration(
                 repo_id="facebook/sam-vit-base",
-                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
             ),
             HFMaskGeneration(
                 repo_id="facebook/sam-vit-huge",
-                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
             ),
             HFMaskGeneration(
                 repo_id="facebook/sam-vit-large",
-                allow_patterns=["*.safetensors", "*.txt", "*,json"],
+                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
             ),
         ]
 
