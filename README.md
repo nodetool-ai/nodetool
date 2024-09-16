@@ -13,8 +13,6 @@ NodeTool is a powerful no-code platform for building AI workflows and applicatio
 2. **Remote Execution**:
    - **Replicate, OpenAI, and Anthropic**: Outsource heavy GPU workloads to cloud services, allowing you to leverage powerful models without the need for expensive hardware.
 
-NodeTool includes a **Model Manager**, which allows you to browse cached local models and download recommended models from the Hugging Face Hub.
-
 ![NodeTool](nodetool.png)
 
 By simplifying access to advanced AI technologies, NodeTool provides a creative space for both newcomers and experienced users to build powerful solutions for content creation, data analysis, automation, and more.
@@ -28,6 +26,8 @@ By simplifying access to advanced AI technologies, NodeTool provides a creative 
   - **Local Execution**: Run models locally using Ollama and Hugging Face, leveraging your own hardware.
   - **Remote Execution**: Outsource processing to cloud services like Replicate, OpenAI, and Anthropic.
 - **Model Manager**: Browse and manage cached local models; download recommended models directly from the Hugging Face Hub.
+- **Asset Browser**: Import and manage media assets in your workflows.
+- **ComfyUI**: Import ComfyUI workflows and nodes into NodeTool.
 - **Model-Agnostic Integration**: Utilize state-of-the-art AI models from various sources.
 - **Multimodal Support**: Handle images, text, audio, video, and more in a single workflow.
 - **API Integration**: Run AI tools from websites or mobile apps.
