@@ -144,8 +144,7 @@ C <-->|WebSocket| D[Worker with ML Models<br>CPU/GPU<br>Local/Cloud]
 D <-->|HTTP Callbacks| B
 E[Other Apps/Websites] -->|HTTP| B
 E <-->|WebSocket| C
-D -->|Optional API Calls| F[OpenAI Replicate Anthropic Others]
-
+D -->|Optional API Calls| F[OpenAI<br>Replicate<br>Anthropic<br>Others]
 
     classDef default fill:#e0eee0,stroke:#333,stroke-width:2px,color:#000;
     classDef frontend fill:#ffcccc,stroke:#333,stroke-width:2px,color:#000;
@@ -154,7 +153,6 @@ D -->|Optional API Calls| F[OpenAI Replicate Anthropic Others]
     classDef worker fill:#ccf2ff,stroke:#333,stroke-width:2px,color:#000;
     classDef api fill:#e0e0e0,stroke:#333,stroke-width:2px,color:#000;
     classDef darkgray fill:#a9a9a9,stroke:#333,stroke-width:2px,color:#000;
-
 
     class A frontend;
     class B server;
