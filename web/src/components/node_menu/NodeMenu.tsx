@@ -12,7 +12,6 @@ import {
   Tooltip
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import ClearIcon from "@mui/icons-material/Clear";
 import ErrorOutlineRounded from "@mui/icons-material/ErrorOutlineRounded";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { ExpandCircleDown } from "@mui/icons-material";
@@ -61,11 +60,10 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     connectDirection,
     activeNode,
     setActiveNode,
+
     searchResults,
     setSearchResults,
     setHighlightedNamespaces,
-    selectedPath,
-    setSelectedPath,
     showNamespaceTree,
     toggleNamespaceTree
   } = useNodeMenuStore((state) => ({

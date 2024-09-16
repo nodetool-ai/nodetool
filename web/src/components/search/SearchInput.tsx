@@ -81,6 +81,7 @@ interface SearchInputProps {
   placeholder?: string;
   focusOnEscapeKey?: boolean;
   maxWidth?: string;
+  value?: string;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -91,9 +92,10 @@ const SearchInput: React.FC<SearchInputProps> = ({
   focusOnEscapeKey = true,
   debounceTime = 0,
   placeholder = "Search...",
-  maxWidth = "unset"
+  maxWidth = "unset",
+  value: externalValue = ""
 }) => {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(externalValue || "ttt");
   const inputRef = useRef<HTMLInputElement>(null);
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
@@ -141,7 +143,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       if (inputRef.current) {
         inputRef.current?.focus();
       }
-      setValue("");
+      // setValue("");
     }
   }, [focusSearchInput]);
 
@@ -173,6 +175,10 @@ const SearchInput: React.FC<SearchInputProps> = ({
       };
     }
   }, [focusOnTyping, controlKeyPressed]);
+
+  useEffect(() => {
+    setValue(externalValue);
+  }, [externalValue]);
 
   return (
     <div

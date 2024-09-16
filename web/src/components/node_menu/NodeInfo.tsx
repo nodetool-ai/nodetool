@@ -8,6 +8,7 @@ import { colorForType, descriptionForType } from "../../config/data_types";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
@@ -55,7 +56,21 @@ const nodeInfoStyles = (theme: any) =>
     },
     ".node-tags": {
       fontSize: theme.fontSizeSmall,
-      color: theme.palette.c_gray4
+      color: theme.palette.c_gray4,
+      display: "flex",
+      flexWrap: "wrap",
+      gap: ".5em"
+    },
+    ".node-tags .tag": {
+      fontSize: theme.fontSizeSmall,
+      fontWeight: "600",
+      color: theme.palette.c_black,
+      backgroundColor: theme.palette.c_gray4,
+      borderRadius: "0.5em",
+      padding: "0.2em 0.5em",
+      textTransform: "uppercase",
+      display: "inline-block",
+      cursor: "pointer"
     },
     ".node-usecases div": {
       fontSize: theme.fontSizeSmall,
@@ -120,7 +135,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
     () => parseDescription(nodeMetadata?.description || ""),
     [nodeMetadata]
   );
-
+  const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
   const fetchReplicateStatus = useCallback(async () => {
     if (nodeMetadata.node_type.startsWith("replicate.")) {
       const { data, error } = await client.GET("/api/nodes/replicate_status", {
@@ -143,9 +158,21 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
     queryFn: fetchReplicateStatus
   });
 
+  const handleTagClick = useCallback(
+    (tag: string) => {
+      setSearchTerm(tag.trim());
+    },
+    [setSearchTerm]
+  );
   const renderTags = (tags: string) => {
     return tags?.split(",").map((tag, index) => (
-      <span key={index} className="tag">
+      <span
+        onClick={() => {
+          handleTagClick(tag.trim());
+        }}
+        key={index}
+        className="tag"
+      >
         {tag.trim()}
       </span>
     ));

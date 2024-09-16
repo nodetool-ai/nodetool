@@ -46,7 +46,10 @@ type NodeMenuStore = {
   documentationPosition: { x: number; y: number };
   setDocumentationPosition: (position: { x: number; y: number }) => void;
   showDocumentation: boolean;
-  openDocumentation: (nodeType: string, position: { x: number; y: number }) => void;
+  openDocumentation: (
+    nodeType: string,
+    position: { x: number; y: number }
+  ) => void;
   closeDocumentation: () => void;
 };
 
@@ -91,7 +94,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     });
   },
   showNamespaceTree: true,
-  toggleNamespaceTree: () => set((state) => ({ showNamespaceTree: !state.showNamespaceTree })),
+  toggleNamespaceTree: () =>
+    set((state) => ({ showNamespaceTree: !state.showNamespaceTree })),
   openNodeMenu: (
     x,
     y,
@@ -149,17 +153,20 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   selectedNodeType: null,
   setSelectedNodeType: (nodeType) => set({ selectedNodeType: nodeType }),
   documentationPosition: { x: 0, y: 0 },
-  setDocumentationPosition: (position) => set({ documentationPosition: position }),
+  setDocumentationPosition: (position) =>
+    set({ documentationPosition: position }),
   showDocumentation: false,
-  openDocumentation: (nodeType, position) => set({
-    selectedNodeType: nodeType,
-    documentationPosition: position,
-    showDocumentation: true,
-  }),
-  closeDocumentation: () => set({
-    selectedNodeType: null,
-    showDocumentation: false,
-  }),
+  openDocumentation: (nodeType, position) =>
+    set({
+      selectedNodeType: nodeType,
+      documentationPosition: position,
+      showDocumentation: true
+    }),
+  closeDocumentation: () =>
+    set({
+      selectedNodeType: null,
+      showDocumentation: false
+    })
 }));
 
 export default useNodeMenuStore;

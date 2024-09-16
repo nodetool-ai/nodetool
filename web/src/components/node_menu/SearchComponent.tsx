@@ -28,13 +28,17 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   focusOnTyping = false,
   debounceTime = 0,
   setSearchTimeout = 30,
+
   placeholder = "Search..."
 }) => {
   const [localSearchTerm, setLocalSearchTerm] = useState("");
-  const { setSearchTerm, setSelectedPath } = useNodeMenuStore((state) => ({
-    setSearchTerm: state.setSearchTerm,
-    setSelectedPath: state.setSelectedPath
-  }));
+  const { searchTerm, setSearchTerm, setSelectedPath } = useNodeMenuStore(
+    (state) => ({
+      searchTerm: state.searchTerm,
+      setSearchTerm: state.setSearchTerm,
+      setSelectedPath: state.setSelectedPath
+    })
+  );
 
   const resetSearch = useCallback(() => {
     setSearchTerm("");
@@ -114,20 +118,30 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     }
   }, [localSearchTerm, handleSearchResult, performSearch, resetSearch]);
 
-  const handleSearchChange = (newSearchTerm: string) => {
-    setLocalSearchTerm(newSearchTerm);
-    setTimeout(() => {
-      setSearchTerm(newSearchTerm);
-    }, setSearchTimeout);
-  };
+  const handleSearchChange = useCallback(
+    (newSearchTerm: string) => {
+      setLocalSearchTerm(newSearchTerm);
+      setTimeout(() => {
+        setSearchTerm(newSearchTerm);
+      }, setSearchTimeout);
+    },
+    [setSearchTerm, setSearchTimeout]
+  );
 
-  const handleSearchClear = () => {
+  const handleSearchClear = useCallback(() => {
     resetSearch();
-  };
+  }, [resetSearch]);
+
+  useEffect(() => {
+    if (searchTerm !== localSearchTerm) {
+      handleSearchChange(searchTerm);
+    }
+  }, [handleSearchChange, localSearchTerm, searchTerm]);
 
   return (
     <div className="search-container">
       <SearchInput
+        value={searchTerm}
         onSearchChange={handleSearchChange}
         onSearchClear={handleSearchClear}
         focusSearchInput={focusSearchInput}
