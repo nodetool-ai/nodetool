@@ -29,7 +29,7 @@ interface NamespaceListProps {
 const namespaceStyles = (theme: any) =>
   css({
     "&": {
-      maxHeight: "65vh"
+      // maxHeight: "65vh"
     },
     ".header": {
       display: "flex",
@@ -84,7 +84,7 @@ const namespaceStyles = (theme: any) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       margin: "0",
-      padding: "0 2em 2em .5em"
+      padding: "0 2em 2em 0"
     },
     ".explanation h5": {
       color: theme.palette.c_hl1,

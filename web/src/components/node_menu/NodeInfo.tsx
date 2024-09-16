@@ -22,17 +22,18 @@ const nodeInfoStyles = (theme: any) =>
     paddingRight: "1em",
     maxHeight: "60vh",
     ".node-title": {
-      fontSize: "0.8em",
+      fontSize: theme.fontSizeSmall,
       fontWeight: "600",
+      minHeight: "1.25em",
       color: theme.palette.c_hl1
     },
     h4: {
-      fontSize: "0.8em",
+      fontSize: theme.fontSizeSmall,
       fontWeight: "600",
       color: theme.palette.c_hl1
     },
     ".replicate-status": {
-      fontSize: "0.8em",
+      fontSize: theme.fontSizeSmall,
       fontWeight: "400",
       width: "fit-content",
       color: theme.palette.c_white,
@@ -47,7 +48,7 @@ const nodeInfoStyles = (theme: any) =>
       backgroundColor: "#ff4500"
     },
     ".node-description": {
-      fontSize: "0.8em",
+      fontSize: theme.fontSizeSmall,
       fontWeight: "400",
       color: theme.palette.c_white
     },
@@ -56,7 +57,7 @@ const nodeInfoStyles = (theme: any) =>
       color: theme.palette.c_gray4
     },
     ".node-usecases div": {
-      fontSize: "0.8em",
+      fontSize: theme.fontSizeSmall,
       fontWeight: "300",
       color: theme.palette.c_gray6,
       lineHeight: "1.3em"
@@ -75,7 +76,7 @@ const nodeInfoStyles = (theme: any) =>
       display: "flex",
       justifyContent: "space-between",
       fontFamily: theme.fontFamily2,
-      fontSize: "0.7em",
+      fontSize: theme.fontSizeSmaller,
       flexDirection: "row",
       gap: ".5em",
       cursor: "default"
