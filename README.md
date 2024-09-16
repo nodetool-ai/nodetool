@@ -144,7 +144,7 @@ C <-->|WebSocket| D[Worker with ML Models<br>CPU/GPU<br>Local/Cloud]
 D <-->|HTTP Callbacks| B
 E[Other Apps/Websites] -->|HTTP| B
 E <-->|WebSocket| C
-D -->|Optional API Calls| F[OpenAI, Replicate, Anthropic,<br>and Others]
+D -->|Optional API Calls| F[OpenAI, Replicate, Anthropic and Others]
 
 
     classDef default fill:#e0eee0,stroke:#333,stroke-width:2px,color:#000;
