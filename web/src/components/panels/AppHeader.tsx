@@ -93,7 +93,6 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
           : "none",
       padding: "0.1em",
       marginRight: "0.2em"
-      // marginRight: "0.4em",
     },
     "button.logo:hover": {
       backgroundColor: "transparent"
@@ -103,7 +102,7 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       flexDirection: "row",
       justifyContent: "flex-start",
       alignItems: "center",
-      gap: "0.5em"
+      gap: "0.1em"
     },
     "nav-button": {
       flexShrink: 0,
@@ -224,7 +223,7 @@ const AppHeader: React.FC = React.memo(() => {
                 : ThemeNodetool.palette.c_white
             }}
           >
-            {(buttonAppearance === "icon" || buttonAppearance === "both") &&
+            {buttonAppearance !== "text" &&
               iconForType(
                 "asset",
                 {
@@ -275,7 +274,7 @@ const AppHeader: React.FC = React.memo(() => {
         )}
       </Box>
     ),
-    [path, toggleChat, navigate]
+    [path, buttonAppearance, toggleChat, navigate]
   );
 
   const RightSideButtons = useMemo(
@@ -295,7 +294,7 @@ const AppHeader: React.FC = React.memo(() => {
                     : ThemeNodetool.palette.c_white
                 }}
               >
-                {(buttonAppearance === "icon" || buttonAppearance === "both") &&
+                {buttonAppearance !== "text" &&
                   iconForType(
                     "model",
                     {
