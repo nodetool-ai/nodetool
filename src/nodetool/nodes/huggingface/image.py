@@ -739,7 +739,7 @@ class Segmentation(HuggingFacePipelineNode):
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
-            self._pipeline.model.to(device) # type: ignore
+            self._pipeline.model.to(device)  # type: ignore
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_pipeline(
@@ -1129,16 +1129,13 @@ class DepthEstimation(HuggingFacePipelineNode):
     def get_recommended_models(cls) -> list[HFDepthEstimation]:
         return [
             HFDepthEstimation(
-                repo_id="depth-anything/Depth-Anything-V2-Small",
-                allow_patterns=["*.pth"],
+                repo_id="depth-anything/Depth-Anything-V2-Small-hf",
             ),
             HFDepthEstimation(
-                repo_id="depth-anything/Depth-Anything-V2-Base",
-                allow_patterns=["*.pth"],
+                repo_id="depth-anything/Depth-Anything-V2-Base-hf",
             ),
             HFDepthEstimation(
-                repo_id="depth-anything/Depth-Anything-V2-Large",
-                allow_patterns=["*.pth"],
+                repo_id="depth-anything/Depth-Anything-V2-Large-hf",
             ),
             HFDepthEstimation(
                 repo_id="Intel/dpt-large",
@@ -2363,6 +2360,7 @@ class StableDiffusion(StableDiffusionBaseNode):
                 model_class=StableDiffusionPipeline,
                 model_id=self.model.repo_id,
                 path=self.model.path,
+                config="Lykon/DreamShaper",
             )
             assert self._pipeline is not None
             self._set_scheduler(self.scheduler)
@@ -2499,12 +2497,16 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
             context=context,
             model_class=ControlNetModel,
             model_id=self.controlnet.repo_id,
+            path=self.controlnet.path,
+            variant=None,
         )
         self._pipeline = await self.load_model(
             context=context,
             model_class=StableDiffusionControlNetPipeline,
-            model_id=self.controlnet.repo_id,
+            model_id=self.model.repo_id,
+            path=self.model.path,
             controlnet=controlnet,
+            config="Lykon/DreamShaper",
         )
         self._load_ip_adapter()
         await self._load_lora(context)
@@ -2579,7 +2581,9 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
             context=context,
             model_class=StableDiffusionImg2ImgPipeline,
             model_id=self.model.repo_id,
+            path=self.model.path,
             safety_checker=None,
+            config="Lykon/DreamShaper",
         )
         assert self._pipeline is not None
         self._pipeline.enable_model_cpu_offload()
@@ -3343,6 +3347,7 @@ class StableDiffusionXLImg2Img(StableDiffusionXLBase):
             context=context,
             model_class=StableDiffusionXLImg2ImgPipeline,
             model_id=self.model.repo_id,
+            path=self.model.path,
         )
         assert self._pipeline is not None
         self._set_scheduler(self.scheduler)
