@@ -36,7 +36,6 @@ diffusers = { extras = ["torch"], version = "*" }
 einops = "*"
 fastapi = ">=0.109.0"
 filelock = "*"
-flash_attn = "*"
 ffmpeg-python = "*"
 freezegun = "*"
 ftfy = "*"

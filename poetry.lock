@@ -1426,20 +1426,6 @@ testing = ["covdefaults (>=2.3)", "coverage (>=7.6.1)", "diff-cover (>=9.1.1)", 
 typing = ["typing-extensions (>=4.12.2)"]
 
 [[package]]
-name = "flash-attn"
-version = "2.6.3"
-description = "Flash Attention: Fast and Memory-Efficient Exact Attention"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "flash_attn-2.6.3.tar.gz", hash = "sha256:5bfae9500ad8e7d2937ebccb4906f3bc464d1bf66eedd0e4adabd520811c7b52"},
-]
-
-[package.dependencies]
-einops = "*"
-torch = "*"
-
-[[package]]
 name = "flatbuffers"
 version = "24.3.25"
 description = "The FlatBuffers serialization format for Python"
@@ -2012,13 +1998,13 @@ files = [
 
 [[package]]
 name = "idna"
-version = "3.9"
+version = "3.10"
 description = "Internationalized Domain Names in Applications (IDNA)"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "idna-3.9-py3-none-any.whl", hash = "sha256:69297d5da0cc9281c77efffb4e730254dd45943f45bbfb461de5991713989b1e"},
-    {file = "idna-3.9.tar.gz", hash = "sha256:e5c5dafde284f26e9e0f28f6ea2d6400abd5ca099864a67f576f3981c6476124"},
+    {file = "idna-3.10-py3-none-any.whl", hash = "sha256:946d195a0d259cbba61165e88e65941f16e9b36ea6ddb97f00452bae8b1287d3"},
+    {file = "idna-3.10.tar.gz", hash = "sha256:12f65c9b470abda6dc35cf8e63cc574b1c52b11df2c86030af0ac09b01b13ea9"},
 ]
 
 [package.extras]
@@ -2956,12 +2942,12 @@ files = [
 
 [[package]]
 name = "modal"
-version = "0.64.111"
+version = "0.64.112"
 description = "Python client library for Modal"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "modal-0.64.111-py3-none-any.whl", hash = "sha256:10b1c1ca1c804aa1239c0d094aa332ac262b0a297b0a4a4613c14046c308dc1e"},
+    {file = "modal-0.64.112-py3-none-any.whl", hash = "sha256:39c8dd76d318a6eee2aea5cc710c69d458513558eba83fe0455d588d170e1561"},
 ]
 
 [package.dependencies]
@@ -5972,12 +5958,13 @@ test = ["pytest"]
 
 [[package]]
 name = "spandrel"
-version = "0.3.4"
+version = "0.4.0"
 description = "Give your project support for a variety of PyTorch model architectures, including auto-detecting model architecture from just .pth files. spandrel gives you arch support."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "spandrel-0.3.4-py3-none-any.whl", hash = "sha256:1b5585bcb0298fc817e5b556880431353f48770f98328c3ce54f4ed9768f2c13"},
+    {file = "spandrel-0.4.0-py3-none-any.whl", hash = "sha256:819f3f15fe944fe589f43ba33150458a00d0ed0c2e8ef1eef0198615320127b1"},
+    {file = "spandrel-0.4.0.tar.gz", hash = "sha256:f45526893f923a12ef37542c44e444b1208976593bc7ccdfa54fd04c7c3e80ca"},
 ]
 
 [package.dependencies]
@@ -7462,4 +7449,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ed1f60af114a7d7394544278c74f2fa17c8be033948e748b2ed028b9e46f8304"
+content-hash = "7d231c4ebefe1c7ae090e2eac57ed6fb5926f1d414f27c36fcc2ffe395448345"
