@@ -1,5 +1,5 @@
 from pydantic import Field, validator
-from nodetool.metadata.types import LlamaModel, Provider, Tensor, TextRef
+from nodetool.metadata.types import ImageRef, LlamaModel, Provider, Tensor, TextRef
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
@@ -23,6 +23,11 @@ class Ollama(BaseNode):
     system_prompt: str = Field(
         default="You are an assistant.",
         description="System prompt to send to the model.",
+    )
+    image: ImageRef = Field(
+        default=ImageRef(),
+        title="Image",
+        description="The image to analyze",
     )
     temperature: float = Field(
         default=0.7,
@@ -48,6 +53,15 @@ class Ollama(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> str:
+        user_message: dict[str, str | list[str]] = {
+            "role": "user",
+            "content": self.prompt,
+        }
+
+        if self.image.is_set():
+            image_base64 = await context.image_to_base64(self.image)
+            user_message["images"] = [image_base64]
+
         res = await context.run_prediction(
             node_id=self._id,
             provider=Provider.Ollama,
@@ -58,7 +72,7 @@ class Ollama(BaseNode):
                         "role": "system",
                         "content": self.system_prompt,
                     },
-                    {"role": "user", "content": self.prompt},
+                    user_message,
                 ],
                 "options": {
                     "temperature": self.temperature,

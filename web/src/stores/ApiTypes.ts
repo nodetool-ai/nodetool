@@ -55,6 +55,7 @@ export type ToolCall = components["schemas"]["ToolCall"];
 export type TypeName = string;
 export type WorkflowAttributes = Omit<Workflow, "graph">;
 export type MessageContent = MessageTextContent | MessageImageContent;
+export type RepoPath = components["schemas"]["RepoPath"];
 
 export interface UnifiedModel {
   id: string;
@@ -67,4 +68,5 @@ export interface UnifiedModel {
   description?: string;
   readme?: string;
   size_on_disk?: number;
+  downloaded?: boolean;
 }

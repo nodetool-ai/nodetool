@@ -443,8 +443,6 @@ class Environment(object):
     def get_ollama_client(cls):
         from ollama import AsyncClient
 
-        print("using ollama url", cls.get_ollama_api_url())
-
         return AsyncClient(cls.get_ollama_api_url())
 
     @classmethod

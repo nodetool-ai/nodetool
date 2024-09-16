@@ -144,109 +144,109 @@ class VisualQuestionAnswering(HuggingFacePipelineNode):
         return result[0]["answer"]
 
 
-class MiniCPM(HuggingFacePipelineNode):
-    """
-    Answers questions about images.
-    image, text, question answering, multimodal
+# class MiniCPM(HuggingFacePipelineNode):
+#     """
+#     Answers questions about images.
+#     image, text, question answering, multimodal
 
-    Use cases:
-    - Image content analysis
-    - Automated image captioning
-    - Visual information retrieval
-    - Accessibility tools for visually impaired users
-    """
+#     Use cases:
+#     - Image content analysis
+#     - Automated image captioning
+#     - Visual information retrieval
+#     - Accessibility tools for visually impaired users
+#     """
 
-    model: HFMiniCPM = Field(
-        default=HFMiniCPM(),
-        title="Model ID on Huggingface",
-        description="The model ID to use for visual question answering",
-    )
-    image: ImageRef = Field(
-        default=ImageRef(),
-        title="Image 1",
-        description="The image to analyze",
-    )
-    system_prompt: str = Field(
-        default="",
-        title="System Prompt",
-        description="The system prompt to use for the model",
-    )
-    question: str = Field(
-        default="",
-        title="Question",
-        description="The question to be answered about the image",
-    )
-    sampling: bool = Field(
-        default=True,
-        title="Sampling",
-        description="Whether to use sampling or beam search",
-    )
-    temperature: float = Field(
-        default=0.7,
-        title="Temperature",
-        description="The temperature to use for sampling",
-    )
+#     model: HFMiniCPM = Field(
+#         default=HFMiniCPM(),
+#         title="Model ID on Huggingface",
+#         description="The model ID to use for visual question answering",
+#     )
+#     image: ImageRef = Field(
+#         default=ImageRef(),
+#         title="Image 1",
+#         description="The image to analyze",
+#     )
+#     system_prompt: str = Field(
+#         default="",
+#         title="System Prompt",
+#         description="The system prompt to use for the model",
+#     )
+#     question: str = Field(
+#         default="",
+#         title="Question",
+#         description="The question to be answered about the image",
+#     )
+#     sampling: bool = Field(
+#         default=True,
+#         title="Sampling",
+#         description="Whether to use sampling or beam search",
+#     )
+#     temperature: float = Field(
+#         default=0.7,
+#         title="Temperature",
+#         description="The temperature to use for sampling",
+#     )
 
-    _model: AutoModel | None = None
-    _tokenizer: AutoTokenizer | None = None
+#     _model: AutoModel | None = None
+#     _tokenizer: AutoTokenizer | None = None
 
-    @classmethod
-    def get_recommended_models(cls):
-        return [
-            HFMiniCPM(
-                repo_id="openbmb/MiniCPM-V-2_6",
-            ),
-            HFMiniCPM(
-                repo_id="openbmb/MiniCPM-V-2_6-int4",
-            ),
-        ]
+#     @classmethod
+#     def get_recommended_models(cls):
+#         return [
+#             HFMiniCPM(
+#                 repo_id="openbmb/MiniCPM-V-2_6",
+#             ),
+#             HFMiniCPM(
+#                 repo_id="openbmb/MiniCPM-V-2_6-int4",
+#             ),
+#         ]
 
-    async def initialize(self, context: ProcessingContext):
-        self._model = await self.load_model(
-            context=context,
-            model_id=self.model.repo_id,
-            model_class=AutoModel,
-            trust_remote_code=True,
-            attn_implementation="sdpa",
-            torch_dtype=torch.bfloat16,
-            variant=None,
-        )
-        self._model.eval()  # type: ignore
-        self._tokenizer = await self.load_model(
-            context=context,
-            model_id=self.model.repo_id,
-            model_class=AutoTokenizer,
-            trust_remote_code=True,
-        )
+#     async def initialize(self, context: ProcessingContext):
+#         self._model = await self.load_model(
+#             context=context,
+#             model_id=self.model.repo_id,
+#             model_class=AutoModel,
+#             trust_remote_code=True,
+#             attn_implementation="sdpa",
+#             torch_dtype=torch.bfloat16,
+#             variant=None,
+#         )
+#         self._model.eval()  # type: ignore
+#         self._tokenizer = await self.load_model(
+#             context=context,
+#             model_id=self.model.repo_id,
+#             model_class=AutoTokenizer,
+#             trust_remote_code=True,
+#         )
 
-    async def move_to_device(self, device: str):
-        # self._model.to(device)  # type: ignore
-        pass
+#     async def move_to_device(self, device: str):
+#         # self._model.to(device)  # type: ignore
+#         pass
 
-    async def process(self, context: ProcessingContext) -> str:
-        assert self._model is not None
-        assert self._tokenizer is not None
-        image = await context.image_to_pil(self.image)
+#     async def process(self, context: ProcessingContext) -> str:
+#         assert self._model is not None
+#         assert self._tokenizer is not None
+#         image = await context.image_to_pil(self.image)
 
-        msgs = [
-            {
-                "role": "user",
-                "content": self.question,
-            }
-        ]
+#         msgs = [
+#             {
+#                 "role": "user",
+#                 "content": self.question,
+#             }
+#         ]
 
-        res = self._model.chat(  # type: ignore
-            image=image,
-            msgs=msgs,
-            tokenizer=self._tokenizer,
-            sampling=self.sampling,
-            temperature=self.temperature,
-            system_prompt=self.system_prompt,
-        )
-        generated_text = ""
-        for tok in res:
-            generated_text += tok
-        return generated_text
+#         res = self._model.chat(  # type: ignore
+#             image=image,
+#             msgs=msgs,
+#             tokenizer=self._tokenizer,
+#             sampling=self.sampling,
+#             temperature=self.temperature,
+#             system_prompt=self.system_prompt,
+#         )
+#         generated_text = ""
+#         for tok in res:
+#             generated_text += tok
+#         return generated_text
 
 
 class OCRType(str, Enum):

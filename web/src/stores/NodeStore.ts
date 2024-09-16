@@ -716,8 +716,6 @@ export const useNodeStore = create<NodeStore>()(
        * @param nodes The nodes of the workflow.
        */
       setNodes: (nodes: Node[], setDirty: boolean = true) => {
-        console.log("Setting nodes:", nodes);
-
         if (setDirty) {
           nodes.forEach((node) => {
             node.data.dirty = true;

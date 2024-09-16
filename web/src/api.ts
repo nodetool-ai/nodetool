@@ -227,13 +227,25 @@ export interface paths {
     /** Get Huggingface Models */
     get: operations["get_huggingface_models_api_models_huggingface_models_get"];
   };
-  "/api/models/huggingface/try_cache_file": {
-    /** Get Huggingface Lora Sd */
-    get: operations["get_huggingface_lora_sd_api_models_huggingface_try_cache_file_get"];
+  "/api/models/huggingface/try_cache_files": {
+    /** Try Cache Files */
+    post: operations["try_cache_files_api_models_huggingface_try_cache_files_post"];
   };
   "/api/models/huggingface_model": {
     /** Delete Huggingface Model */
     delete: operations["delete_huggingface_model_api_models_huggingface_model_delete"];
+  };
+  "/api/models/ollama_models": {
+    /** Get Ollama Models */
+    get: operations["get_ollama_models_api_models_ollama_models_get"];
+  };
+  "/api/models/ollama_model_info": {
+    /** Get Ollama Model Info */
+    get: operations["get_ollama_model_info_api_models_ollama_model_info_get"];
+  };
+  "/api/models/pull_ollama_model": {
+    /** Pull Ollama Model */
+    post: operations["pull_ollama_model_api_models_pull_ollama_model_post"];
   };
   "/api/models/system_stats": {
     /** Get System Stats */
@@ -2000,6 +2012,18 @@ export interface components {
      * @enum {string}
      */
     Provider: "openai" | "anthropic" | "replicate" | "huggingface" | "ollama" | "comfy" | "local" | "empty";
+    /** RepoPath */
+    RepoPath: {
+      /** Repo Id */
+      repo_id: string;
+      /** Path */
+      path: string;
+      /**
+       * Downloaded
+       * @default false
+       */
+      downloaded?: boolean;
+    };
     /** RunJobRequest */
     RunJobRequest: {
       /**
@@ -3786,13 +3810,9 @@ export interface operations {
       };
     };
   };
-  /** Get Huggingface Lora Sd */
-  get_huggingface_lora_sd_api_models_huggingface_try_cache_file_get: {
+  /** Try Cache Files */
+  try_cache_files_api_models_huggingface_try_cache_files_post: {
     parameters: {
-      query: {
-        repo_id: string;
-        path: string;
-      };
       header?: {
         authorization?: string | null;
       };
@@ -3800,11 +3820,16 @@ export interface operations {
         auth_cookie?: string | null;
       };
     };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RepoPath"][];
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": boolean;
+          "application/json": components["schemas"]["RepoPath"][];
         };
       };
       /** @description Validation Error */
@@ -3827,6 +3852,87 @@ export interface operations {
       200: {
         content: {
           "application/json": boolean;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Ollama Models */
+  get_ollama_models_api_models_ollama_models_get: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["LlamaModel"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Ollama Model Info */
+  get_ollama_model_info_api_models_ollama_model_info_get: {
+    parameters: {
+      query: {
+        model_name: string;
+      };
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Pull Ollama Model */
+  pull_ollama_model_api_models_pull_ollama_model_post: {
+    parameters: {
+      query: {
+        model_name: string;
+      };
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

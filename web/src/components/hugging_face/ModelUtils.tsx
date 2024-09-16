@@ -3,7 +3,7 @@ import { UnifiedModel, CachedModel } from "../../stores/ApiTypes";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import DeleteButton from "../buttons/DeleteButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { isProduction } from "../../stores/ApiClient";
+import { client, isProduction } from "../../stores/ApiClient";
 import ModelIcon from "../../icons/model.svg";
 
 export type OllamaModel = {
@@ -208,18 +208,16 @@ export const renderModelActions = (
 );
 
 export async function fetchOllamaModelInfo(modelName: string) {
-  const response = await fetch("http://localhost:11434/api/show", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ name: modelName })
+  const { data, error } = await client.GET("/api/models/ollama_model_info", {
+    params: {
+      query: {
+        model_name: modelName
+      }
+    }
   });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+  if (error) {
+    throw error;
   }
-  const data = await response.json();
   return data;
 }
 

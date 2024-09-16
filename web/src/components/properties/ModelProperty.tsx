@@ -8,22 +8,18 @@ import {
   FunctionModel,
   HuggingFaceModel,
   LlamaModel,
-  ModelFile
+  ModelFile,
+  RepoPath
 } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import { useMetadata } from "../../serverState/useMetadata";
 import { client } from "../../stores/ApiClient";
 
-const tryCacheFile = async (repo_id: string, path: string) => {
-  const { data, error } = await client.GET(
-    "/api/models/huggingface/try_cache_file",
+const tryCacheFiles = async (files: RepoPath[]) => {
+  const { data, error } = await client.POST(
+    "/api/models/huggingface/try_cache_files",
     {
-      params: {
-        query: {
-          repo_id,
-          path
-        }
-      }
+      body: files
     }
   );
   if (error) {
@@ -42,7 +38,13 @@ export default function ModelProperty(props: PropertyProps) {
     (state) => state.loadHuggingFaceModels
   );
   const modelType = props.property.type.type;
-  const selectValue = props.value?.name || props.value?.repo_id || "";
+  const selectValue = useMemo(() => {
+    if (props.value?.repo_id && props.value?.path) {
+      return `${props.value.repo_id}:${props.value.path}`;
+    }
+    return props.value?.path || props.value?.repo_id || "";
+  }, [props.value]);
+
   const {
     data: models,
     isError,
@@ -64,16 +66,38 @@ export default function ModelProperty(props: PropertyProps) {
         const loras = metadata?.recommendedModels.filter(
           (model) => model.type === modelType
         );
-        const loraModels = await Promise.all(
-          loras?.filter(async (lora) => {
-            return await tryCacheFile(lora.repo_id || "", lora.path || "");
-          }) || []
-        );
-        return loraModels;
+        const loraPaths = loras?.map((lora) => ({
+          repo_id: lora.repo_id || "",
+          path: lora.path || ""
+        }));
+        const loraModels = await tryCacheFiles(loraPaths || []);
+        return loraModels
+          ?.filter((m) => m.downloaded)
+          .map((lora) => ({
+            type: modelType,
+            repo_id: lora.repo_id,
+            path: lora.path
+          }));
       }
       if (modelType.startsWith("hf.")) {
+        const recommendedModels = metadata?.recommendedModels.filter(
+          (model) => model.type === modelType
+        );
         const models = await loadHuggingFaceModels();
-        return models.filter((model) => model.model_type === modelType);
+        return (
+          recommendedModels?.reduce((acc, recommendedModel) => {
+            const model = models.find(
+              (m) => m.repo_id === recommendedModel.repo_id
+            );
+            if (model) {
+              acc.push({
+                ...model,
+                path: recommendedModel.path
+              });
+            }
+            return acc;
+          }, [] as HuggingFaceModel[]) || []
+        );
       }
       if (modelType.startsWith("comfy.")) {
         return await loadModelFiles(modelType);
@@ -83,59 +107,70 @@ export default function ModelProperty(props: PropertyProps) {
   });
 
   const values = useMemo(() => {
-    if (!models) return [];
-    if (isLoading || isError) return [];
-    if (modelType === undefined) return [];
+    if (!models || isLoading || isError || modelType === undefined) return [];
+
     if (modelType === "function_model") {
-      const functionModels = models as FunctionModel[];
-      return functionModels.map((model) => model.name);
+      return (models as FunctionModel[]).map((model) => ({
+        value: model.name,
+        label: model.name
+      }));
     }
     if (modelType === "llama_model") {
-      const llamaModels = models as LlamaModel[];
-      return llamaModels.map((model) => model.name);
+      return (models as LlamaModel[]).map((model) => ({
+        value: model.name,
+        label: model.name
+      }));
+    }
+    if (modelType.startsWith("hf.lora_sd")) {
+      return (models as HuggingFaceModel[]).map((model) => ({
+        value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
+        label: model.path
+      }));
     }
     if (modelType.startsWith("hf.")) {
-      const hfModels = models as HuggingFaceModel[];
-      return hfModels.map((model) => model.repo_id);
+      return (models as HuggingFaceModel[]).map((model) => ({
+        value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
+        label: model.repo_id
+      }));
     }
     if (modelType === "comfy.model") {
-      const comfyModels = models as ModelFile[];
-      return comfyModels.map((model) => model.name);
+      return (models as ModelFile[]).map((model) => ({
+        value: model.name,
+        label: model.name
+      }));
     }
     return [];
   }, [models, isLoading, isError, modelType]);
 
   const onModelChange = useCallback(
     (e: SelectChangeEvent) => {
-      const modelName = e.target.value;
+      const modelValue = e.target.value;
       if (modelType === "function_model") {
         const functionModels = models as FunctionModel[];
         const provider = functionModels.find(
-          (model: FunctionModel) => model.name === modelName
+          (model: FunctionModel) => model.name === modelValue
         )?.provider;
         props.onChange({
           type: props.property.type.type,
-          name: modelName,
+          name: modelValue,
           provider: provider
         });
       } else if (modelType === "llama_model") {
         props.onChange({
           type: props.property.type.type,
-          name: modelName
+          name: modelValue
         });
       } else if (modelType.startsWith("hf.")) {
-        const m = metadata?.recommendedModels.find(
-          (model: HuggingFaceModel) => model.repo_id === modelName
-        );
+        const [repo_id, path] = modelValue.split(":");
         props.onChange({
           type: props.property.type.type,
-          repo_id: modelName,
-          path: m?.path
+          repo_id,
+          path: path || undefined
         });
       } else {
         props.onChange({
           type: props.property.type.type,
-          name: modelName
+          name: modelValue
         });
       }
     },
@@ -176,9 +211,10 @@ export default function ModelProperty(props: PropertyProps) {
             No models found. Click RECOMMENDED MODELS above to find models.
           </MenuItem>
         )}
-        {values?.map((modelName) => (
-          <MenuItem key={modelName} value={modelName}>
-            {modelName}
+        {isSuccess && <MenuItem value="">None</MenuItem>}
+        {values?.map(({ value, label }) => (
+          <MenuItem key={value} value={value}>
+            {label}
           </MenuItem>
         ))}
       </Select>

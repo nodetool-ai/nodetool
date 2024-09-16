@@ -1,9 +1,9 @@
 import axios from "axios";
 
-export async function fetchModelInfo(modelName: string): Promise<any> {
+export async function fetchModelInfo(repoId: string): Promise<any> {
   try {
     const response = await axios.get(
-      `https://huggingface.co/api/models/${modelName}`
+      `https://huggingface.co/api/models/${repoId}`
     );
     return response.data;
   } catch (error) {
@@ -19,8 +19,7 @@ export async function fetchModelInfo(modelName: string): Promise<any> {
       }
     } else {
       throw new Error(
-        `Unexpected error: ${
-          error instanceof Error ? error.message : String(error)
+        `Unexpected error: ${error instanceof Error ? error.message : String(error)
         }`
       );
     }

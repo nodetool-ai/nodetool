@@ -26,7 +26,8 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = React.memo(
 
       if (node_namespace.startsWith("huggingface.")) {
         return (nodeMetadata?.recommended_models || []).map((model) => ({
-          id: model.repo_id || "",
+          id: `${model.repo_id}/${model.path}`,
+          repo_id: model.repo_id || "",
           name: model.repo_id || "",
           type: model.type || "hf.model",
           path: model.path ?? null,

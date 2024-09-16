@@ -784,9 +784,7 @@ class BaseNode(BaseModel):
         This will be called before cache key is computed.
         Default implementation generates a seed for any field named seed.
         """
-        for name in self.inherited_fields().keys():
-            if "seed" in name:
-                setattr(self, name, context.get("seed", 0))
+        pass
 
     async def process(self, context: Any) -> Any:
         """

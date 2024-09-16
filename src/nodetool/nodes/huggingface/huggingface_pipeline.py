@@ -1,4 +1,5 @@
 import torch
+from nodetool.common.environment import Environment
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
@@ -10,6 +11,8 @@ from typing import Any, TypeVar
 from diffusers import DiffusionPipeline  # type: ignore
 
 T = TypeVar("T")
+
+log = Environment.get_logger()
 
 
 class HuggingFacePipelineNode(HuggingfaceNode):
@@ -77,6 +80,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             cache_path = try_to_load_from_cache(model_id, path)
             if not cache_path:
                 raise ValueError(f"Model {model_id} must be downloaded first")
+            log.info(f"Loading model {model_id} from {cache_path}")
             model = model_class.from_single_file(  # type: ignore
                 cache_path,
                 torch_dtype=torch_dtype,
@@ -87,7 +91,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         else:
             # if not await context.is_huggingface_model_cached(model_id):
             #     raise ValueError(f"Model {model_id} must be downloaded first")
-
+            log.info(f"Loading model {model_id} from HuggingFace")
             model = model_class.from_pretrained(  # type: ignore
                 model_id,
                 torch_dtype=torch_dtype,

@@ -1,35 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useMemo, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardActions,
-  Typography,
-  Button,
-  Chip,
-  Box,
-  Tooltip,
-  CircularProgress
-} from "@mui/material";
-import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { Card, CardContent, CircularProgress } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ModelComponentProps,
-  formatId,
-  modelSize,
-  HuggingFaceLink,
-  OllamaLink,
-  renderModelSecondaryInfo,
-  renderModelActions,
-  fetchOllamaModelInfo
-} from "./ModelUtils";
+import { ModelComponentProps, fetchOllamaModelInfo } from "./ModelUtils";
 import { fetchModelInfo } from "../../utils/huggingFaceUtils";
-import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import CloseIcon from "@mui/icons-material/Close";
+import ModelCardContent from "./ModelCardContent";
+import ModelCardActions from "./ModelCardActions";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
@@ -196,268 +174,86 @@ const styles = (theme: any) =>
     },
     ".readme-toggle-button": {
       position: "absolute",
-      top: "0",
-      right: "1em",
-      zIndex: 1,
+      bottom: "2.5em",
+      right: "0em",
       color: theme.palette.c_gray5,
       "&:hover": {
         color: theme.palette.c_white
       }
-    },
-
-    ".readme-container.expanded .readme-toggle-button": {
-      top: "1em",
-      right: "2em",
-      backgroundColor: theme.palette.c_gray2,
-      zIndex: 2000
-    },
-    ".readme-container": {
-      position: "absolute",
-      backgroundColor: "transparent",
-      top: "unset",
-      bottom: "60px",
-      right: "0",
-      width: "0",
-      height: 0,
-      fontSize: "0",
-      padding: "1em",
-      zIndex: 1,
-      overflow: "visible"
-    },
-    ".readme-container.expanded": {
-      position: "fixed",
-      overflow: "hidden auto",
-      zIndex: 2000,
-      width: "80vw",
-      height: "80vh",
-      top: "50%",
-      left: "50%",
-      fontSize: "1em",
-      padding: "4em 2em 2em 2em",
-      color: "#fff",
-      backgroundColor: theme.palette.c_gray1,
-      border: "1px solid" + theme.palette.c_gray3,
-      borderRadius: "1em",
-      transform: "translate(-50%, -50%)"
     }
   });
 
-const ModelCard: React.FC<ModelComponentProps> = ({
-  model,
-  onDownload,
-  handleDelete
-}) => {
-  const [tagsExpanded, setTagsExpanded] = useState(false);
-  const [readmeExpanded, setReadmeExpanded] = useState(false);
-  const isHuggingFace = model.type.startsWith("hf.");
-  const isOllama = model.type.toLowerCase().includes("llama_model");
-  const downloaded = !!(model.size_on_disk && model.size_on_disk > 0);
-  const { data: modelData, isLoading } = useQuery({
-    queryKey: ["modelInfo", model.id],
-    queryFn: () => {
-      if (isHuggingFace) {
-        return fetchModelInfo(model.id);
-      } else if (isOllama) {
-        return fetchOllamaModelInfo(model.id);
-      }
-      return null;
-    },
-    staleTime: Infinity,
-    gcTime: 1000 * 60,
-    refetchOnWindowFocus: false
-  });
+const ModelCard: React.FC<ModelComponentProps> = React.memo(
+  ({ model, onDownload, handleDelete }) => {
+    const [tagsExpanded, setTagsExpanded] = useState(false);
+    const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
 
-  const toggleTags = () => {
-    setTagsExpanded(!tagsExpanded);
-  };
+    const isHuggingFace = model.type.startsWith("hf.");
+    const isOllama = model.type.toLowerCase().includes("llama_model");
+    const downloaded = model.type.startsWith("hf.lora_sd")
+      ? model.downloaded ?? false
+      : !!(model.size_on_disk && model.size_on_disk > 0);
 
-  const readme = useMemo(() => {
-    // skip until the first #
-    const lines = model.readme?.split("\n");
-    const start = lines?.findIndex((line) => line.startsWith("#"));
-    if (!start || start === -1) return "";
-    return lines?.slice(start).join("\n");
-  }, [model.readme]);
+    const { data: modelData, isLoading } = useQuery({
+      queryKey: ["modelInfo", model.id],
+      queryFn: () => {
+        if (isHuggingFace) {
+          return fetchModelInfo(model.repo_id || "");
+        } else if (isOllama) {
+          return fetchOllamaModelInfo(model.id);
+        }
+        return null;
+      },
+      staleTime: Infinity,
+      gcTime: 1000 * 60,
+      refetchOnWindowFocus: false
+    });
 
-  if (isLoading) {
-    return (
-      <Card className="model-card" css={styles}>
-        <CardContent
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%"
-          }}
-        >
-          <CircularProgress />
-        </CardContent>
-      </Card>
-    );
-  }
+    const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
-  if (!modelData) {
-    return (
-      <Card className="model-card missing" css={styles}>
-        {renderModelActions({ model, handleDelete, onDownload }, downloaded)}
-        <CardContent sx={{ flexGrow: 1 }}>
-          <Typography
-            className="repo-name"
-            variant="h4"
-            component="div"
-            gutterBottom
+    if (isLoading) {
+      return (
+        <Card className="model-card" css={styles}>
+          <CardContent
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "100%"
+            }}
           >
-            {formatId(model.id)}
-          </Typography>
-          {model.path && (
-            <Typography
-              variant="h3"
-              style={{ color: ThemeNodetool.palette.c_warning }}
-            >
-              {model.path}
-            </Typography>
-          )}
-          {isOllama && (
-            <Typography
-              variant="h5"
-              style={{ color: ThemeNodetool.palette.c_gray4 }}
-            >
-              Model not downloaded
-            </Typography>
-          )}
-          {isHuggingFace && (
-            <>
-              <Typography
-                variant="h5"
-                style={{ color: ThemeNodetool.palette.c_warning }}
-              >
-                Failed to find matching repository:
-              </Typography>
-              <Button
-                className="button-link"
-                size="small"
-                variant="contained"
-                href={`https://huggingface.co/${model.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {model.id}
-              </Button>
-            </>
-          )}
-        </CardContent>
-        <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
-          {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
-          {isOllama && <OllamaLink modelId={model.id} />}
-        </CardActions>
+            <CircularProgress />
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card
+        className={`model-card ${!modelData ? "missing" : ""}`}
+        css={styles}
+      >
+        <ModelCardContent
+          model={model}
+          modelData={modelData}
+          downloaded={downloaded}
+          tagsExpanded={tagsExpanded}
+          toggleTags={toggleTags}
+          readmeDialogOpen={readmeDialogOpen}
+          setReadmeDialogOpen={setReadmeDialogOpen}
+        />
+        <ModelCardActions
+          model={model}
+          modelData={modelData}
+          isHuggingFace={isHuggingFace}
+          isOllama={isOllama}
+          handleDelete={handleDelete}
+          onDownload={onDownload}
+          downloaded={downloaded}
+        />
       </Card>
     );
   }
-
-  return (
-    <Card className="model-card" css={styles}>
-      {renderModelActions({ model, handleDelete, onDownload }, downloaded)}
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Typography
-          className="repo-name"
-          variant="h4"
-          component="div"
-          gutterBottom
-        >
-          {formatId(model.id)}
-        </Typography>
-
-        {renderModelSecondaryInfo(modelData, isHuggingFace)}
-
-        <Box>
-          {model.size_on_disk && (
-            <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
-              <Typography variant="body2" className="text-model-size">
-                {modelSize(model)}
-              </Typography>
-            </Tooltip>
-          )}
-          {(modelData.cardData?.tags || modelData.tags) && (
-            <Box className="tags-container">
-              <Button className="pipeline-tag" onClick={toggleTags}>
-                {modelData.cardData?.pipeline_tag || "#"}
-              </Button>
-
-              <Box
-                className="tags-list"
-                style={{ display: tagsExpanded ? "block" : "none" }}
-              >
-                <Box mt={1}>
-                  {(modelData.cardData?.tags || modelData.tags).map(
-                    (tag: string) => (
-                      <Chip
-                        className="tag"
-                        key={tag}
-                        label={tag}
-                        size="small"
-                        sx={{ margin: "2px" }}
-                      />
-                    )
-                  )}
-                </Box>
-              </Box>
-            </Box>
-          )}
-        </Box>
-
-        <div className={`readme-container ${readmeExpanded ? "expanded" : ""}`}>
-          {readme !== "" && (
-            <>
-              <Button
-                className="readme-toggle-button"
-                onClick={() => setReadmeExpanded(!readmeExpanded)}
-                sx={{ position: "absolute", top: 5, right: 5, zIndex: 1001 }}
-              >
-                {readmeExpanded ? (
-                  <CloseIcon />
-                ) : (
-                  <Typography>README</Typography>
-                )}
-              </Button>
-
-              <MarkdownRenderer content={readme || ""} isReadme={true} />
-            </>
-          )}
-        </div>
-      </CardContent>
-      <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
-        {isHuggingFace && (
-          <Box className="model-stats">
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              style={{ display: "flex", alignItems: "center", gap: 5 }}
-            >
-              <Tooltip title="Downloads on HF last month">
-                <CloudDownloadIcon
-                  fontSize="small"
-                  sx={{
-                    color: ThemeNodetool.palette.c_gray3,
-                    marginRight: ".1em"
-                  }}
-                />
-              </Tooltip>
-              <Typography variant="body2">
-                {modelData.downloads?.toLocaleString() || "N/A"}
-              </Typography>
-              <FavoriteIcon
-                fontSize="small"
-                sx={{ ml: 2, color: ThemeNodetool.palette.c_gray3 }}
-              />{" "}
-              {modelData.likes?.toLocaleString() || "N/A"}
-            </Typography>
-          </Box>
-        )}
-        {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
-        {isOllama && <OllamaLink modelId={model.id} />}
-      </CardActions>
-    </Card>
-  );
-};
+);
 
 export default ModelCard;

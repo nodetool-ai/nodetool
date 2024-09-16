@@ -5,6 +5,16 @@ export const llama_models: UnifiedModel[] = [
   {
     id: "llama3.1:8b",
     name: "Llama 3.1 - 8B",
+    type: "llama_model",
+  },
+  {
+    id: "llava:7b",
+    name: "Llava - 7B",
+    type: "llama_model"
+  },
+  {
+    id: "minicpm-v:8b",
+    name: "MiniCPM-V - 8B",
     type: "llama_model"
   },
   {
@@ -25,6 +35,16 @@ export const llama_models: UnifiedModel[] = [
   {
     id: "phi3:mini",
     name: "phi3 - 3B",
+    type: "llama_model"
+  },
+  {
+    id: "all-minilm:22m",
+    name: "all-minilm - 22M",
+    type: "llama_model"
+  },
+  {
+    id: "nomic-embed-text:latest",
+    name: "nomic-embed-text",
     type: "llama_model"
   }
 ];

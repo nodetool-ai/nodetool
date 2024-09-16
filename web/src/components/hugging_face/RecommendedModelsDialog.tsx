@@ -12,7 +12,7 @@ import {
   Typography
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { UnifiedModel } from "../../stores/ApiTypes";
+import { RepoPath, UnifiedModel } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import ModelCard from "./ModelCard";
 import { useQuery } from "@tanstack/react-query";
@@ -40,6 +40,19 @@ interface RecommendedModelsDialogProps {
   openDialog: () => void;
 }
 
+const tryCacheFiles = async (files: RepoPath[]) => {
+  const { data, error } = await client.POST(
+    "/api/models/huggingface/try_cache_files",
+    {
+      body: files
+    }
+  );
+  if (error) {
+    throw new Error("Failed to check if file is cached: " + error);
+  }
+  return data;
+};
+
 const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   open,
   onClose,
@@ -58,17 +71,36 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       return data;
     }
   });
+  const loras = recommendedModels.filter((model) =>
+    model.type.startsWith("hf.lora_sd")
+  );
+  const loraPaths = loras?.map((lora) => ({
+    repo_id: lora.repo_id || "",
+    path: lora.path || ""
+  }));
+
+  const { data: downloadedModels } = useQuery({
+    queryKey: ["loraModels"].concat(
+      loraPaths?.map((path) => path.repo_id + ":" + path.path)
+    ),
+    queryFn: async () => await tryCacheFiles(loraPaths || []),
+    enabled: loraPaths && loraPaths.length > 0
+  });
 
   const modelsWithSize = useMemo(() => {
     return recommendedModels.map((model) => {
-      const hfModel = hfModels?.find((m) => m.repo_id === model.id);
+      const hfModel = hfModels?.find((m) => m.repo_id === model.repo_id);
+      const loraModel = downloadedModels?.find(
+        (path) => path.repo_id === model.repo_id && path.path === model.path
+      );
       return {
         ...model,
         size_on_disk: hfModel?.size_on_disk,
+        downloaded: loraModel?.downloaded,
         readme: hfModel?.readme ?? ""
       };
     });
-  }, [recommendedModels, hfModels]);
+  }, [recommendedModels, hfModels, downloadedModels]);
 
   return (
     <Dialog
@@ -106,7 +138,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
                   model={model}
                   onDownload={() => {
                     startDownload(
-                      model.id,
+                      model.repo_id || "",
                       model.type,
                       model.path ?? null,
                       model.allow_patterns ?? null,

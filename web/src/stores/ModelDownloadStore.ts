@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import useModelStore from "./ModelStore";
 import axios, { CancelTokenSource } from "axios";
-import { DOWNLOAD_URL } from "./ApiClient";
+import { BASE_URL, DOWNLOAD_URL } from "./ApiClient";
 
 interface SpeedDataPoint {
   bytes: number;
@@ -10,14 +10,14 @@ interface SpeedDataPoint {
 
 interface Download {
   status:
-    | "pending"
-    | "idle"
-    | "running"
-    | "completed"
-    | "cancelled"
-    | "error"
-    | "start"
-    | "progress";
+  | "pending"
+  | "idle"
+  | "running"
+  | "completed"
+  | "cancelled"
+  | "error"
+  | "start"
+  | "progress";
   id: string;
   downloadedBytes: number;
   totalBytes: number;
@@ -200,12 +200,11 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       );
     } else if (modelType === "llama_model") {
       try {
-        const response = await fetch("http://localhost:11434/api/pull", {
+        const response = await fetch(BASE_URL + "/api/models/pull_ollama_model?model_name=" + id, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ name: id })
         });
 
         if (!response.ok) {

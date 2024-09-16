@@ -26,7 +26,7 @@ import {
   DialogTitle
 } from "@mui/material";
 import axios from "axios";
-import { UnifiedModel } from "../../stores/ApiTypes";
+import { LlamaModel, UnifiedModel } from "../../stores/ApiTypes";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import {
@@ -145,6 +145,7 @@ const ModelList: React.FC = () => {
         {}
       );
       if (error) throw error;
+      console.log("data", data);
       return data.map(
         (model: any): UnifiedModel => ({
           id: model.repo_id,
@@ -167,12 +168,13 @@ const ModelList: React.FC = () => {
   } = useQuery({
     queryKey: ["ollamaModels"],
     queryFn: async () => {
-      const response = await axios.get("http://localhost:11434/api/tags");
-      return response.data.models.map(
-        (model: OllamaModel): UnifiedModel => ({
-          id: model.name,
+      const { data, error } = await client.GET("/api/models/ollama_models", {});
+      if (error) throw error;
+      return data.map(
+        (model: LlamaModel): UnifiedModel => ({
+          id: model.name ?? "",
           type: "Ollama",
-          name: `${model.details.family} - ${model.details.parameter_size}`,
+          name: `${model.details?.family} - ${model.details?.parameter_size}`,
           description: "",
           size_on_disk: model.size
         })
@@ -199,7 +201,10 @@ const ModelList: React.FC = () => {
   const filteredModels: Record<string, UnifiedModel[]> = useMemo(() => {
     const filterModel = (model: UnifiedModel) => {
       const searchTerm = modelSearchTerm.toLowerCase();
-      return model.name.toLowerCase().includes(searchTerm);
+      return (
+        model.name?.toLowerCase().includes(searchTerm) ||
+        model.repo_id?.toLowerCase().includes(searchTerm)
+      );
     };
 
     if (selectedModelType === "All") {

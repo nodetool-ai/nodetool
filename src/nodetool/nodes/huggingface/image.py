@@ -1,6 +1,7 @@
 from enum import Enum
 import numpy as np
 import PIL.Image
+from nodetool.common.environment import Environment
 from nodetool.model_manager import ModelManager
 from nodetool.metadata.types import (
     BoundingBox,
@@ -75,6 +76,9 @@ import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
 from huggingface_hub import try_to_load_from_cache
+
+
+log = Environment.get_logger()
 
 
 class IPAdapter_SDXL_Model(str, Enum):
@@ -325,10 +329,6 @@ HF_STABLE_DIFFUSION_MODELS = [
     ),
     HFStableDiffusion(
         repo_id="Yntec/3DCartoonVision", path="3dCartoonVision_v10.safetensors"
-    ),
-    HFStableDiffusion(
-        repo_id="Yntec/Disneyify",
-        path="Disneyify.safetensors",
     ),
     HFStableDiffusion(repo_id="Yntec/RetroRetro", path="RetroRetro.safetensors"),
     HFStableDiffusion(repo_id="Yntec/ClassicToons", path="ClassicToons.safetensors"),
@@ -2258,6 +2258,10 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     async def initialize(self, context: ProcessingContext):
         raise NotImplementedError("Subclasses must implement this method")
 
+    async def pre_process(self, context: ProcessingContext):
+        if self.seed == -1:
+            self.seed = context.get("seed", 0)
+
     def should_skip_cache(self):
         if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
             return True
@@ -2274,6 +2278,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 raise ValueError(
                     f"Install the h94/IP-Adapter model to use {self.ip_adapter_model.value} (Recommended Models above)"
                 )
+            log.info(f"Loading IP Adapter {self.ip_adapter_model.value}")
             self._pipeline.load_ip_adapter(
                 "h94/IP-Adapter",
                 subfolder="models",
@@ -2291,6 +2296,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 raise ValueError(
                     f"Install {self.lora_model.repo_id}/{self.lora_model.path} LORA to use it (Recommended Models above)"
                 )
+            log.info(f"Loading LORA {self.lora_model.repo_id}/{self.lora_model.path}")
             self._pipeline.load_lora_weights(
                 cache_path,
                 weight_name=self.lora_model.path,
@@ -2354,18 +2360,17 @@ class StableDiffusion(StableDiffusionBaseNode):
         return "Stable Diffusion"
 
     async def initialize(self, context: ProcessingContext):
-        if self._pipeline is None:
-            self._pipeline = await self.load_model(
-                context=context,
-                model_class=StableDiffusionPipeline,
-                model_id=self.model.repo_id,
-                path=self.model.path,
-                config="Lykon/DreamShaper",
-            )
-            assert self._pipeline is not None
-            self._set_scheduler(self.scheduler)
-            await self._load_lora(context)
-            self._load_ip_adapter()
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableDiffusionPipeline,
+            model_id=self.model.repo_id,
+            path=self.model.path,
+            config="Lykon/DreamShaper",
+        )
+        assert self._pipeline is not None
+        self._set_scheduler(self.scheduler)
+        await self._load_lora(context)
+        self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:
@@ -2387,6 +2392,7 @@ class StableDiffusion(StableDiffusionBaseNode):
             height=self.height,
             generator=generator,
             ip_adapter_image=ip_adapter_image,
+            cross_attention_kwargs={"scale": self.lora_scale},
             callback=self.progress_callback(context),
             callback_steps=1,
         ).images[  # type: ignore
@@ -3104,6 +3110,10 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
     @classmethod
     def is_visible(cls) -> bool:
         return cls is not StableDiffusionXLBase
+
+    async def pre_process(self, context: ProcessingContext):
+        if self.seed == -1:
+            self.seed = context.get("seed", 0)
 
     def should_skip_cache(self):
         if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:

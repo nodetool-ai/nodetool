@@ -149,12 +149,8 @@ async def read_all_cached_models(load_model_info: bool = True) -> List[CachedMod
         model_infos = await asyncio.gather(
             *[fetch_model_info(repo.repo_id) for repo in model_repos]
         )
-        readmes = await asyncio.gather(
-            *[fetch_model_readme(repo.repo_id) for repo in model_repos]
-        )
     else:
         model_infos = [None] * len(model_repos)
-        readmes = [None] * len(model_repos)
     models = [
         CachedModel(
             repo_id=repo.repo_id,
@@ -164,9 +160,8 @@ async def read_all_cached_models(load_model_info: bool = True) -> List[CachedMod
             model_type=model_type_from_model_info(
                 recommended_models, repo.repo_id, model_info
             ),
-            readme=readme,
         )
-        for repo, model_info, readme in zip(model_repos, model_infos, readmes)
+        for repo, model_info in zip(model_repos, model_infos)
     ]
     return models
 

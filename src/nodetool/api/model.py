@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import asyncio
+import json
+from fastapi.responses import StreamingResponse
 import psutil
 import torch
 from nodetool.common.environment import Environment
@@ -95,13 +98,24 @@ async def get_huggingface_models(
     return await read_all_cached_models()
 
 
-@router.get("/huggingface/try_cache_file")
-async def get_huggingface_lora_sd(
-    repo_id: str,
-    path: str,
+class RepoPath(BaseModel):
+    repo_id: str
+    path: str
+    downloaded: bool = False
+
+
+@router.post("/huggingface/try_cache_files")
+async def try_cache_files(
+    paths: list[RepoPath],
     user: User = Depends(current_user),
-) -> bool:
-    return try_to_load_from_cache(repo_id, path) is not None
+) -> list[RepoPath]:
+    def check_path(path: RepoPath) -> bool:
+        return try_to_load_from_cache(path.repo_id, path.path) is not None
+
+    return [
+        RepoPath(repo_id=path.repo_id, path=path.path, downloaded=check_path(path))
+        for path in paths
+    ]
 
 
 @router.delete("/huggingface_model")
@@ -110,6 +124,36 @@ async def delete_huggingface_model(repo_id: str) -> bool:
         log.warning("Cannot delete models in production")
         return False
     return delete_cached_model(repo_id)
+
+
+@router.get("/ollama_models")
+async def get_ollama_models(user: User = Depends(current_user)) -> list[LlamaModel]:
+    ollama = Environment.get_ollama_client()
+    models = await ollama.list()
+    return [LlamaModel(**model) for model in models["models"]]
+
+
+@router.get("/ollama_model_info")
+async def get_ollama_model_info(
+    model_name: str, user: User = Depends(current_user)
+) -> dict:
+    ollama = Environment.get_ollama_client()
+    try:
+        res = await ollama.show(model_name)
+    except Exception as e:
+        return {}
+    return dict(res)
+
+
+@router.post("/pull_ollama_model")
+async def pull_ollama_model(model_name: str, user: User = Depends(current_user)):
+    async def stream_response():
+        ollama = Environment.get_ollama_client()
+        res = await ollama.pull(model_name, stream=True)
+        async for chunk in res:
+            yield json.dumps(chunk) + "\n"
+
+    return StreamingResponse(stream_response(), media_type="application/json")
 
 
 @router.get("/system_stats", response_model=SystemStats)
