@@ -194,7 +194,7 @@ class FunctionModel(BaseType):
 class LlamaModel(BaseType):
     type: Literal["llama_model"] = "llama_model"
     name: str = ""
-    model: str = ""
+    repo_id: str = ""
     modified_at: str = ""
     size: int = 0
     digest: str = ""

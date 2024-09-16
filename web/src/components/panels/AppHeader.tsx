@@ -19,6 +19,7 @@ import WorkflowsIcon from "@mui/icons-material/ListAlt";
 // import AssetIcon from "@mui/icons-material/ImageSharp";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import ChatIcon from "@mui/icons-material/Chat";
+import ExamplesIcon from "@mui/icons-material/AutoAwesome"; // Add this import
 
 // nodetool icons
 import { iconForType } from "../../config/data_types";
@@ -248,6 +249,20 @@ const AppHeader: React.FC = React.memo(() => {
             Assets
           </Button>
         </Tooltip>
+        <Tooltip title="Browse example workflows" enterDelay={TOOLTIP_DELAY}>
+          <Button
+            className={`nav-button ${path === "/examples" ? "active" : ""}`}
+            onClick={() => navigate("/examples")}
+            style={{
+              color: path.startsWith("/examples")
+                ? ThemeNodetool.palette.c_hl1
+                : ThemeNodetool.palette.c_white
+            }}
+          >
+            <ExamplesIcon />
+            Examples
+          </Button>
+        </Tooltip>
         {path.startsWith("/editor") && (
           <Tooltip
             title="Open Nodetool Chat Assistant"
@@ -371,7 +386,7 @@ const AppHeader: React.FC = React.memo(() => {
               <Logo
                 width="80px"
                 height="24px"
-                fontSize="16px"
+                fontSize="1em"
                 borderRadius="20px"
                 small={true}
                 singleLine={true}

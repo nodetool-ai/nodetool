@@ -24,13 +24,14 @@ const logoStyles = (
     alignItems: "center",
     gap: "8px", // Add space between logo and text
     ".nt": {
-      fontFamily: theme.fontFamily2,
+      fontFamily: theme.fontFamily1,
       fontWeight: 600,
       color: "white",
       width: width,
       height: height,
       backgroundColor: "transparent",
       opacity: opacity,
+      marginLeft: "0.5em",
       transition: "opacity 1s ease-in-out .2s"
     },
     ".nodetool": {
@@ -113,7 +114,7 @@ const Logo = ({
         small
       )}
     >
-      <img className="logo-image" src="/logo192.png" alt="NodeTool" />
+      <img className="logo-image" src="/nodetool_icon.png" alt="NodeTool" />
       <div className="nt" onMouseEnter={handleMouseEnter}>
         <div className="nodetool">
           {singleLine ? (
