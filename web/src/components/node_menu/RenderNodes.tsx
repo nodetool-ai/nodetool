@@ -75,6 +75,23 @@ const NodeItem: React.FC<NodeItemProps> = memo(
   }: NodeItemProps) => {
     const outputType = node.outputs.length > 0 ? node.outputs[0].type.type : "";
 
+    const infoStyle = useMemo(
+      () => ({
+        color: isHovered
+          ? ThemeNodetool.palette.c_hl1
+          : ThemeNodetool.palette.c_gray3
+      }),
+      [isHovered]
+    );
+
+    const handleInfoMouseEnter = useCallback(() => {
+      onMouseEnter();
+    }, [onMouseEnter]);
+
+    const handleInfoMouseLeave = useCallback(() => {
+      onMouseLeave();
+    }, [onMouseLeave]);
+
     return (
       <div
         className={`node ${isHovered ? "hovered" : ""}`}
@@ -106,13 +123,9 @@ const NodeItem: React.FC<NodeItemProps> = memo(
           />
         </ListItemButton>
         <span
-          style={{
-            color: isHovered
-              ? ThemeNodetool.palette.c_hl1
-              : ThemeNodetool.palette.c_gray3
-          }}
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
+          style={infoStyle}
+          onMouseEnter={handleInfoMouseEnter}
+          onMouseLeave={handleInfoMouseLeave}
           onClick={onInfoClick}
           className="node-info"
         >

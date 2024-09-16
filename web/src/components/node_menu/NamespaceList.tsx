@@ -70,11 +70,13 @@ const namespaceStyles = (theme: any) =>
       overflowY: "scroll"
     },
     ".no-selection": {
+      display: "flex",
       flexDirection: "column",
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       wordSpacing: "0",
+      padding: "0 1em",
       margin: 0,
       alignItems: "stretch",
       gap: "1em"
@@ -123,6 +125,9 @@ const namespaceStyles = (theme: any) =>
       paddingLeft: ".25em",
       marginLeft: ".1em",
       borderLeft: `2px solid ${theme.palette.c_hl1}`
+    },
+    ".highlighted-text": {
+      color: theme.palette.c_hl1
     }
   });
 
@@ -235,7 +240,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
           <div className="no-selection">
             <p>
               Nothing found in this namespace for
-              <strong>[{searchTerm}]</strong>
+              <strong className="highlighted-text">
+                {" "}
+                &quot;{searchTerm}&quot;
+              </strong>
             </p>
             <ul className="no-results">
               <li>

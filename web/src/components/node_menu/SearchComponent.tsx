@@ -132,12 +132,6 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     resetSearch();
   }, [resetSearch]);
 
-  useEffect(() => {
-    if (searchTerm !== localSearchTerm) {
-      handleSearchChange(searchTerm);
-    }
-  }, [handleSearchChange, localSearchTerm, searchTerm]);
-
   return (
     <div className="search-container">
       <SearchInput
