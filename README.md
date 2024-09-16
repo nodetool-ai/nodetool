@@ -146,20 +146,13 @@ NodeTool's architecture is designed for flexibility. Here's a breakdown of the m
 
 4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability. Can also call external APIs like OpenAI, Replicate, and others.
 
-### Key Features
+### Data Flow 🔄
 
-- **Build Anything, Run Anywhere**: Create AI workflows in a node-based editor, run them from anywhere using the API.
-- **Real-Time Communication**: WebSocket connections enable live updates and interactive workflow execution.
-- **Scalable Processing**: Worker architecture allows distributed processing of node tasks.
-- **Flexible Node System**: Easily integrate new node types and AI services.
-
-### Data Flow
-
-1. User interacts with the React frontend to create or modify workflows.
-2. Frontend communicates with the API server to save workflows and initiate execution.
-3. API server delegates workflow execution to the WebSocket Runner.
-4. WebSocket Runner coordinates execution of nodes via Workers.
-5. Results are sent back to the frontend in real-time via WebSocket connections.
+1. **User Interaction**: Create and modify workflows through the intuitive React frontend.
+2. **Workflow Management**: Frontend sends workflow data to the API server for storage and execution.
+3. **Execution Delegation**: API server hands off workflow execution to the WebSocket Runner.
+4. **Node Coordination**: WebSocket Runner orchestrates node execution across Workers.
+5. **Real-Time Feedback**: Results stream back to the frontend via WebSocket for instant updates.
 
 ## Implementing Custom Nodes 🛠️
 
