@@ -1532,10 +1532,10 @@ export interface components {
        */
       name?: string;
       /**
-       * Model
+       * Repo Id
        * @default
        */
-      model?: string;
+      repo_id?: string;
       /**
        * Modified At
        * @default

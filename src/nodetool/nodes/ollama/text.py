@@ -65,7 +65,7 @@ class Ollama(BaseNode):
         res = await context.run_prediction(
             node_id=self._id,
             provider=Provider.Ollama,
-            model=self.model.name,
+            model=self.model.repo_id,
             params={
                 "messages": [
                     {
@@ -122,7 +122,7 @@ class Embedding(BaseNode):
             res = await context.run_prediction(
                 node_id=self._id,
                 provider=Provider.Ollama,
-                model=self.model.name,
+                model=self.model.repo_id,
                 params={"prompt": chunk},
             )
             embeddings.append(res["embedding"])

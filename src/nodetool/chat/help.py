@@ -686,7 +686,6 @@ TAESD: Tiny Autoencoder for Stable Diffusion previews, a lightweight alternative
 WorkflowRef: Reference to a workflow
 NodeRef: Reference to a node
 Provider: Enumeration of AI service providers (e.g., OpenAI, Anthropic, Replicate, HuggingFace, Ollama, Comfy, Local)
-FunctionModel: Represents a function model with provider and name information
 LlamaModel: Represents a Llama model with various attributes
 HuggingFaceModel: Base class for HuggingFace models
 ModelFile: Base class for model files

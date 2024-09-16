@@ -33,8 +33,28 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
+    id: "qwen2:latest",
+    name: "Qwen2",
+    type: "llama_model"
+  },
+  {
     id: "phi3:mini",
     name: "phi3 - 3B",
+    type: "llama_model"
+  },
+  {
+    id: "mistral:latest",
+    name: "mistral-nemo - 8B",
+    type: "llama_model"
+  },
+  {
+    id: "codegemma:latest",
+    name: "coddegemma",
+    type: "llama_model"
+  },
+  {
+    id: "codegemma:2b",
+    name: "codegemma - 2B",
     type: "llama_model"
   },
   {
@@ -45,6 +65,11 @@ export const llama_models: UnifiedModel[] = [
   {
     id: "nomic-embed-text:latest",
     name: "nomic-embed-text",
+    type: "llama_model"
+  },
+  {
+    id: "mistral-nemo:8b",
+    name: "mistral-nemo - 8B",
     type: "llama_model"
   }
 ];

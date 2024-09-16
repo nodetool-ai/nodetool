@@ -173,6 +173,7 @@ const ModelList: React.FC = () => {
       return data.map(
         (model: LlamaModel): UnifiedModel => ({
           id: model.name ?? "",
+          repo_id: model.repo_id ?? "",
           type: "Ollama",
           name: `${model.details?.family} - ${model.details?.parameter_size}`,
           description: "",

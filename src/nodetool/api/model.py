@@ -1,26 +1,16 @@
 #!/usr/bin/env python
 
-import asyncio
 import json
 from fastapi.responses import StreamingResponse
 import psutil
 import torch
 from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
-    FunctionModel,
-    GPTModel,
-    AnthropicModel,
     ModelFile,
-    Provider,
-    FunctionModel,
-    Provider,
-    FunctionModel,
     HuggingFaceModel,
     LlamaModel,
     comfy_model_to_folder,
-    pipeline_tag_to_model_type,
 )
-import ollama
 from huggingface_hub import try_to_load_from_cache
 from nodetool.api.utils import current_user
 from nodetool.models.user import User
@@ -46,42 +36,6 @@ class SystemStats(BaseModel):
     vram_total_gb: float | None = Field(None, description="Total VRAM in GB")
     vram_used_gb: float | None = Field(None, description="Used VRAM in GB")
     vram_percent: float | None = Field(None, description="VRAM usage percentage")
-
-
-@router.get("/llama_models")
-async def llama_model(user: User = Depends(current_user)) -> list[LlamaModel]:
-    ollama = Environment.get_ollama_client()
-    models = await ollama.list()
-
-    return [LlamaModel(**model) for model in models["models"]]
-
-
-@router.get("/function_models")
-async def function_model(user: User = Depends(current_user)) -> list[FunctionModel]:
-    models = [
-        FunctionModel(
-            provider=Provider.OpenAI,
-            name=GPTModel.GPT4.value,
-        ),
-        FunctionModel(
-            provider=Provider.OpenAI,
-            name=GPTModel.GPT4Mini.value,
-        ),
-        FunctionModel(
-            provider=Provider.Anthropic, name=AnthropicModel.claude_3_5_sonnet
-        ),
-    ]
-
-    if not Environment.is_production():
-        # TODO: hardcode list of models for production
-        models = ollama.list()["models"]
-        return [
-            FunctionModel(provider=Provider.Ollama, name=model["name"])
-            for model in models
-            if model["name"].startswith("mistra")
-        ]
-
-    return models
 
 
 @router.get("/recommended_models")
@@ -130,7 +84,17 @@ async def delete_huggingface_model(repo_id: str) -> bool:
 async def get_ollama_models(user: User = Depends(current_user)) -> list[LlamaModel]:
     ollama = Environment.get_ollama_client()
     models = await ollama.list()
-    return [LlamaModel(**model) for model in models["models"]]
+    return [
+        LlamaModel(
+            name=model["name"],
+            repo_id=model["name"],
+            modified_at=model["modified_at"],
+            size=model["size"],
+            digest=model["digest"],
+            details=model["details"],
+        )
+        for model in models["models"]
+    ]
 
 
 @router.get("/ollama_model_info")

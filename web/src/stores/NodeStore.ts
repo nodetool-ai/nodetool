@@ -1,7 +1,7 @@
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
 import { create, useStore } from "zustand";
-import { NodeMetadata, OutputSlot, Property, Workflow } from "./ApiTypes";
+import { NodeMetadata, OutputSlot, Property, UnifiedModel, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import {
   Connection,
@@ -186,6 +186,7 @@ export interface NodeStore {
   deleteEdge: (id: string) => void;
   addEdge: (edge: Edge) => void;
   updateEdge: (edge: Edge) => void;
+  getModels: () => UnifiedModel[];
   setNodes: (nodes: Node<NodeData>[], setDirty?: boolean) => void;
   setEdges: (edges: Edge[]) => void;
   setWorkflow: (workflow: Workflow) => void;
@@ -238,6 +239,22 @@ export const useNodeStore = create<NodeStore>()(
       edges: [] as Edge[],
       edgeUpdateSuccessful: false as boolean,
       hoveredNodes: [],
+
+      /**
+       * Get all models referenced by the workflow.
+       */
+      getModels: () => {
+        const nodes = get().nodes;
+        return nodes.reduce((acc, node) => {
+          for (const key in node.data.properties) {
+            const property = node.data.properties[key];
+            if (property?.type && property?.repo_id) {
+              acc.push(property as UnifiedModel);
+            }
+          }
+          return acc;
+        }, [] as UnifiedModel[]);
+      },
 
       /**
        * Set the hovered nodes.

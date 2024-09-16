@@ -73,6 +73,9 @@ import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 import { ErrorBoundary } from "@sentry/react";
+import { NodeData } from "../../stores/NodeData";
+import useModelStore from "../../stores/ModelStore";
+import { tryCacheFiles } from "../tryCacheFiles";
 
 declare global {
   interface Window {
@@ -403,11 +406,26 @@ const NodeEditor: React.FC<unknown> = () => {
     }
   }, [fitScreen, shouldFitToScreen]);
 
+  const workflowModels = useNodeStore((state) => state.getModels());
+  const loadHuggingFaceModels = useModelStore(
+    (state) => state.loadHuggingFaceModels
+  );
   // INIT
   const handleOnInit = useCallback(() => {
     setTimeout(() => {
       fitScreen();
     }, 10);
+    loadHuggingFaceModels().then((models) => {
+      const files = workflowModels
+        .filter((model) => model.path && model.repo_id)
+        .map((model) => ({
+          repo_id: model.repo_id as string,
+          path: model.path as string
+        }));
+      tryCacheFiles(files).then((files) => {
+        console.log("cached", files);
+      });
+    });
   }, [fitScreen]);
 
   // LOADING OVERLAY
