@@ -39,7 +39,8 @@ const nodeInfoStyles = (theme: any) =>
       color: theme.palette.c_white,
       display: "inline-block",
       padding: "0.25em 0.5em",
-      borderRadius: "0.25em"
+      borderRadius: "0.25em",
+      minHeight: "1.5em"
     },
     ".replicate-status.online": {
       backgroundColor: "#10a37f"
@@ -99,6 +100,7 @@ const nodeInfoStyles = (theme: any) =>
     ".preview-image": {
       width: "100%",
       height: "auto",
+      minHeight: "200px",
       maxHeight: "320px",
       objectFit: "contain"
     }
@@ -141,6 +143,14 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
     queryFn: fetchReplicateStatus
   });
 
+  const renderTags = (tags: string) => {
+    return tags?.split(",").map((tag, index) => (
+      <span key={index} className="tag">
+        {tag.trim()}
+      </span>
+    ));
+  };
+
   return (
     <div css={nodeInfoStyles}>
       <Typography className="node-title">
@@ -152,20 +162,25 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
         </Typography>
       )}
       <Typography className="node-description">{description.desc}</Typography>
-      <Typography className="node-tags">Tags: {description.tags}</Typography>
+      <Typography className="node-tags">
+        {renderTags(description.tags as string)}
+      </Typography>
       <Typography component="div" className="node-usecases">
         {description.useCases.map((useCase, i) => (
           <div key={i}>{useCase}</div>
         ))}
       </Typography>
-
-      {nodeMetadata.model_info.cover_image_url && (
-        <img
-          className="preview-image"
-          src={nodeMetadata.model_info.cover_image_url}
-          alt={nodeMetadata.title}
-        />
-      )}
+      {nodeMetadata.model_info.cover_image_url ? (
+        isLoading ? (
+          <div className="preview-image loading"></div>
+        ) : (
+          <img
+            className="preview-image"
+            src={nodeMetadata.model_info.cover_image_url}
+            alt={nodeMetadata.title}
+          />
+        )
+      ) : null}
 
       <Divider />
 
