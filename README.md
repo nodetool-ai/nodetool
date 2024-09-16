@@ -144,7 +144,7 @@ C <-->|WebSocket| D[Worker with ML Models<br>CPU/GPU<br>Local/Cloud]
 D <-->|HTTP Callbacks| B
 E[Other Apps/Websites] -->|HTTP| B
 E <-->|WebSocket| C
-D -->|Optional API Calls| F[OpenAI, Replicate, Anthropic and Others]
+D -->|Optional API Calls| F[OpenAI Replicate Anthropic Others]
 
 
     classDef default fill:#e0eee0,stroke:#333,stroke-width:2px,color:#000;
@@ -161,7 +161,7 @@ D -->|Optional API Calls| F[OpenAI, Replicate, Anthropic and Others]
     class C runner;
     class D worker;
     class E other;
-    class F,G,H api;
+    class F api;
 ```
 
 ### Components Overview
