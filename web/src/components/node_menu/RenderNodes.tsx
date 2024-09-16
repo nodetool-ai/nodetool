@@ -38,11 +38,18 @@ const nodeStyles = (theme: any) =>
       borderRadius: "3px",
       cursor: "pointer",
       ".node-button": {
-        padding: ".2em .5em"
+        padding: ".2em .5em",
+        "& .MuiTypography-root": {
+          fontSize: theme.fontSizeNormal
+        }
       }
     },
     ".node.hovered": {
       color: theme.palette.c_hl1
+    },
+    ".namespace-text": {
+      color: theme.palette.c_hl1,
+      margin: "1em 0 0"
     }
   });
 
@@ -181,7 +188,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           key={`namespace-${namespace}`}
           variant="h5"
           component="div"
-          sx={{ my: 2, color: "#888" }}
+          className="namespace-text"
         >
           {namespace}
         </Typography>,
