@@ -4,58 +4,58 @@
 
 NodeTool is a powerful no-code platform for building AI workflows and applications. It's model-agnostic and supports multimodal AI integration.
 
-![nodetool](nodetool.png)
+![NodeTool](nodetool.png)
 
 NodeTool simplifies access to advanced AI technologies, providing a creative space for both newcomers and experienced users to build powerful solutions for content creation, data analysis, and automation.
 
-## ✨ Core features
+## Features ✨
 
-1. **No-code development** for creating complex AI workflows without deep programming knowledge
-2. **Visual editor** for intuitive, node-based workflow design
-3. **Model agnostic** integration of state-of-the-art AI models from various sources
-4. **Multimodal support** for handling images, texts, audio, video, and more in a single workflow
-5. **API integration** to run AI tools from websites or mobile apps
-6. **Customizable nodes** for extending functionality with Python
-7. **Real-time execution** with WebSocket-based architecture
-8. **Scalable processing** through distributed worker architecture
-9. **Workflow API** for programmatic integration into existing applications
-10. **Cross-platform compatibility** with web and desktop (Electron) versions
+- **No-Code Development**: Create complex AI workflows without programming knowledge.
+- **Visual Editor**: Intuitive, node-based workflow design.
+- **Model-Agnostic Integration**: Utilize state-of-the-art AI models from various sources.
+- **Multimodal Support**: Handle images, text, audio, video, and more in a single workflow.
+- **API Integration**: Run AI tools from websites or mobile apps.
+- **Customizable Nodes**: Extend functionality with Python.
+- **Real-Time Execution**: WebSocket-based architecture for live processing.
+- **Scalable Processing**: Distributed worker architecture for efficient scaling.
+- **Workflow API**: Programmatically integrate workflows into existing applications.
+- **Cross-Platform Compatibility**: Available on web and desktop (Electron).
 
-## 🎨 Use Cases
+## Use Cases 🎨
 
-- **Combine AI**: Explore hundreds of ML models and combine them creatively.
-- **Stable Diffusion**: Generate custom image generation pipelines from the ground up.
-- **Run Anywhere**: Create AI tools and run them from your website or mobile app.
-- **Music**: Generate musical ideas and compositions based on textual descriptions or themes.
+- **Combine AI Models**: Explore and creatively combine hundreds of ML models.
+- **Stable Diffusion**: Generate custom image pipelines from the ground up.
+- **Run Anywhere**: Create AI tools accessible from websites or mobile apps.
+- **Music Generation**: Produce musical ideas and compositions based on text descriptions or themes.
 - **Sound-to-Visual Art**: Transform audio into visual masterpieces.
-- **Audio-to-Story Generator**: Create short stories or narratives inspired by audio inputs.
-- **Image Enhancement**: Improve image quality through various AI-powered enhancement techniques.
-- **Multi-lingual Content Creation**: Produce and translate content across multiple languages.
-- **Data Visualization**: Transform complex datasets into intuitive, visually appealing representations.
+- **Audio-to-Story Generator**: Create stories inspired by audio inputs.
+- **Image Enhancement**: Improve image quality with AI-powered techniques.
+- **Multilingual Content Creation**: Produce and translate content across languages.
+- **Data Visualization**: Turn complex datasets into intuitive, visual representations.
 
-## 🚀 Quickstart
+## Quickstart 🚀
 
-📥 Download the latest Release from our [Release Page](https://github.com/nodetool-ai/nodetool/releases)
+Download the latest release from our [Releases Page](https://github.com/nodetool-ai/nodetool/releases).
 
-## 📦 Installation
+### Installation 📦
 
-1. Extract the downloaded archive.
-2. Run the installer.
-3. Follow the instructions to complete the installation.
+1. **Download**: Get the latest release from the [Releases Page](https://github.com/nodetool-ai/nodetool/releases).
+2. **Extract**: Unzip the downloaded archive.
+3. **Install**: Run the installer and follow the instructions.
 
-# 🧩 Node Overview
+## Node Overview 🧩
 
-## Node Categories
+NodeTool offers a diverse range of nodes to support various AI tasks. Nodes are organized into categories:
 
-NodeTool offers a diverse range of node categories to support various AI tasks:
+### Node Categories
 
-1. **🧠 Anthropic**: Text-based AI operations using Anthropic's models.
-2. **🤗 HuggingFace**: Comprehensive AI capabilities including audio, image, text, video, and multimodal processing.
-3. **🔧 NodeTool**: Core functionalities for data manipulation, I/O operations, and various media processing.
-4. **🦙 Ollama**: Text-based AI operations using Ollama models.
-5. **🔮 OpenAI**: AI operations for audio, image, and text using OpenAI's models.
-6. **🔁 Replicate**: Versatile AI capabilities for audio, image, text, and video processing.
-7. **🎨 Stable Diffusion**: Specialized image generation and manipulation.
+- **Anthropic** (`anthropic`): Text-based AI operations using Anthropic's models.
+- **HuggingFace** (`huggingface`): Comprehensive AI capabilities including audio, image, text, video, and multimodal processing.
+- **NodeTool Core** (`nodetool`): Core functionalities for data manipulation, I/O operations, and various media processing.
+- **Ollama** (`ollama`): Text-based AI operations using Ollama models.
+- **OpenAI** (`openai`): AI operations for audio, image, and text using OpenAI's models.
+- **Replicate** (`replicate`): Versatile AI capabilities for audio, image, text, and video processing.
+- **Stable Diffusion** (`stable_diffusion`): Specialized image generation and manipulation.
 
 Each category contains specific nodes tailored for different AI tasks, allowing users to create complex workflows by combining nodes across these categories.
 
@@ -103,16 +103,16 @@ nodes
     └── image
 ```
 
-# 🏗️ Architecture
+## Architecture 🏗️
+
+NodeTool's architecture is designed for flexibility and scalability.
 
 ```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0d1117', 'edgeLabelBackground': '#0d1117', 'lineColor': '#777', 'edgeLabelColor': '#777' }}}%%
-
 graph TD
-A([Nodetool Editor<br>ReactJS]) -->|HTTP/WebSocket| B([API Server])
-A <-->|WebSocket| C([WebSocket Runner])
+A[NodeTool Editor<br>ReactJS] -->|HTTP/WebSocket| B[API Server]
+A <-->|WebSocket| C[WebSocket Runner]
 B <-->|Internal Communication| C
-C <-->|WebSocket| D([Worker with ML Models<br> CPU+GPU <br>local / cloud])
+C <-->|WebSocket| D[Worker with ML Models<br>CPU/GPU<br>Local/Cloud]
 D <-->|HTTP Callbacks| B
 E[Other Apps/Websites] -->|HTTP| B
 E <-->|WebSocket| C
@@ -146,25 +146,22 @@ NodeTool's architecture is designed for flexibility. Here's a breakdown of the m
 
 4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability. Can also call external APIs like OpenAI, Replicate, and others.
 
-## Key Features:
-- **Build anything, run from anywhere**: Create your AI workflows in a node-based editor, then run them from anywhere using the API
-- **Real-time Communication**: WebSocket connections enable live updates and interactive workflow execution.
-- **Scalable Processing**: The Worker architecture allows for distributed processing of node tasks.
-- **Flexible Node System**: Easy integration of new node types and AI services.
+### Key Features
 
-## Data Flow:
+- **Build Anything, Run Anywhere**: Create AI workflows in a node-based editor, run them from anywhere using the API.
+- **Real-Time Communication**: WebSocket connections enable live updates and interactive workflow execution.
+- **Scalable Processing**: Worker architecture allows distributed processing of node tasks.
+- **Flexible Node System**: Easily integrate new node types and AI services.
 
-1. User interacts with the React Frontend to create or modify workflows.
-2. Frontend communicates with the API Server to save workflows and initiate execution.
-3. API Server delegates workflow execution to the WebSocket Runner.
-4. WebSocket Runner coordinates the execution of individual nodes through Workers.
-5. Results are sent back to the Frontend in real-time via WebSocket connections.
+### Data Flow
 
+1. User interacts with the React frontend to create or modify workflows.
+2. Frontend communicates with the API server to save workflows and initiate execution.
+3. API server delegates workflow execution to the WebSocket Runner.
+4. WebSocket Runner coordinates execution of nodes via Workers.
+5. Results are sent back to the frontend in real-time via WebSocket connections.
 
-This architecture enables NodeTool to handle complex AI workflows efficiently, providing a seamless experience for users while maintaining the flexibility to incorporate various AI services and custom nodes.
-
-
-## 🛠️ Implementing Custom Nodes
+## Implementing Custom Nodes 🛠️
 
 Extend NodeTool's functionality by creating custom nodes:
 
@@ -177,23 +174,20 @@ class MyAgent(BaseNode):
         return llm.generate(self.prompt)
 ```
 
-# 🔌 Using the Workflow API
+## Using the Workflow API 🔌
 
-NodeTool provides a powerful Workflow API that allows you to integrate and run your AI workflows programmatically. Here's a quick guide on how to use it:
+NodeTool provides a powerful Workflow API that allows you to integrate and run your AI workflows programmatically.
 
-## 🚀 Getting Started
+### Getting Started
 
 1. **Obtain an API Token**: Log in to your NodeTool account and generate an API token from your user settings.
-
-2. **Connect to the API**: Use the following endpoints:
+2. **Connect to the API**:
    - API URL: `https://api.nodetool.ai/api`
    - WebSocket URL: `wss://api.nodetool.ai/predict`
 
-## 📡 API Usage
+### API Usage
 
-### Loading Workflows
-
-To retrieve available workflows:
+#### Loading Workflows
 
 ```javascript
 const response = await fetch("https://api.nodetool.ai/api/workflows", {
@@ -204,47 +198,43 @@ const response = await fetch("https://api.nodetool.ai/api/workflows", {
 const workflows = await response.json();
 ```
 
-### Running a Workflow
-
-Establish a connection and send the job request:
+#### Running a Workflow
 
 ```javascript
-const socket = new WebSocket('wss://api.nodetool.ai/predict');
+const socket = new WebSocket("wss://api.nodetool.ai/predict");
+
 const request = {
-    type: 'run_job_request',
-    api_url: 'https://api.nodetool.ai/api',
-    workflow_id: 'YOUR_WORKFLOW_ID',
-    job_type: 'workflow',
-    auth_token: 'YOUR_API_TOKEN',
-    params: { / workflow parameters / }
- };
-socket.send(msgpack.encode({
-    command: 'run_job',
+  type: "run_job_request",
+  api_url: "https://api.nodetool.ai/api",
+  workflow_id: "YOUR_WORKFLOW_ID",
+  job_type: "workflow",
+  auth_token: "YOUR_API_TOKEN",
+  params: {
+    /* workflow parameters */
+  },
+};
+
+socket.send(
+  msgpack.encode({
+    command: "run_job",
     data: request,
-}));
-```
+  })
+);
 
-While runnning handle responses:
-
-```javascript
 socket.onmessage = async (event) => {
-    const data = msgpack.decode(new Uint8Array(await event.data.arrayBuffer()));
-    if (data.type === 'job_update' && data.status === 'completed') {
-        // Handle completed job
-        console.log('Workflow completed:', data.result);
-    } else if (data.type === 'node_progress') {
-        // Handle progress updates
-        console.log('Progress:', data.progress / data.total 100);
-    }
-    // Handle other message types as needed
+  const data = msgpack.decode(new Uint8Array(await event.data.arrayBuffer()));
+  if (data.type === "job_update" && data.status === "completed") {
+    console.log("Workflow completed:", data.result);
+  } else if (data.type === "node_progress") {
+    console.log("Progress:", (data.progress / data.total) * 100);
+  }
+  // Handle other message types as needed
 };
 ```
 
-## 🧩 Example Implementation
+### Example Implementation
 
-For a complete example of how to implement the Workflow API in a web application, refer to our [API Demo](api-demo.html).
-
-You can reuse the existing WorkflowRunner class:
+You can reuse the existing `WorkflowRunner` class:
 
 ```javascript
 class WorkflowRunner {
@@ -260,19 +250,16 @@ class WorkflowRunner {
     return new Promise((resolve, reject) => {
       this.socket = new WebSocket(this.workerUrl);
       this.socket.onopen = () => {
-        console.log("WebSocket connected");
         this.state = "connected";
         resolve();
       };
       this.socket.onerror = (error) => {
-        console.error("WebSocket error:", error);
         this.state = "error";
         reject(error);
       };
       this.socket.onmessage = (event) => {
-        const arrayBuffer = event.data;
-        const data = msgpack.decode(new Uint8Array(arrayBuffer));
-        updateWsMessages(JSON.stringify(data, null, 2));
+        const data = msgpack.decode(new Uint8Array(event.data));
+        // Handle incoming messages
       };
     });
   }
@@ -293,8 +280,6 @@ class WorkflowRunner {
       params: params,
     };
 
-    console.log("Sending request:", request);
-
     this.socket.send(
       msgpack.encode({
         command: "run_job",
@@ -304,9 +289,9 @@ class WorkflowRunner {
 
     return new Promise((resolve, reject) => {
       this.socket.onmessage = async (event) => {
-        const arrayBuffer = await event.data.arrayBuffer();
-        const data = msgpack.decode(new Uint8Array(arrayBuffer));
-        console.log("Received message:", data);
+        const data = msgpack.decode(
+          new Uint8Array(await event.data.arrayBuffer())
+        );
         if (data.type === "job_update" && data.status === "completed") {
           this.state = "idle";
           resolve(data.result);
@@ -316,38 +301,39 @@ class WorkflowRunner {
         } else if (data.type === "error") {
           this.state = "idle";
           reject(new Error(data.error));
-        } else {
-          // Handle other updates (optional)
         }
+        // Handle other updates as needed
       };
     });
   }
 }
 ```
 
-## 📊 Response Handling
+### Response Handling
 
 - The API uses MessagePack for efficient data serialization.
 - Responses include various types such as job updates, node progress, and results.
 - Results may contain different data types (e.g., text, images) based on your workflow output.
 
-By leveraging this API, you can seamlessly integrate NodeTool's powerful AI workflows into your own applications, enabling advanced AI capabilities with just a few lines of code.
+By leveraging this API, you can seamlessly integrate NodeTool's powerful AI workflows into your own applications, enabling advanced AI capabilities with minimal code.
 
-## Requirements
+## Development Setup 🛠️
+
+### Requirements
 
 - Python 3.10+
-- NodeJS 20+
+- Node.js 20+
 
-## Run backend
+### Run Backend
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 pip install -r requirements.txt
 ./scripts/server
 ```
 
-## Run frontend
+### Run Frontend
 
 ```bash
 cd web
@@ -357,36 +343,45 @@ npm start
 
 Now, open your browser and navigate to `http://localhost:3000` to access the NodeTool interface.
 
-## Run Electron App
+### Run Electron App
 
-If you want to run the Electron App, you need to install the dependencies and start the frontend and backend.
+If you want to run the Electron app:
 
 ```bash
 cd electron
+npm install
 npm start
 ```
 
-## Sync dependencies
+### Sync Dependencies
 
 Dependencies are managed in `pyproject.toml` and must be synced to `requirements.txt` using:
 
-```
+```bash
 poetry export -f requirements.txt --output requirements.txt --without-hashes
 ```
 
-## Contribution
+## Contributing 🤝
 
-We welcome contributions from the community! To contribute to Nodetool, please adhere to our contribution guidelines. Your efforts help us improve and evolve this project.
+We welcome contributions from the community! To contribute to NodeTool:
 
-# License
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/YourFeature`).
+3. Commit your changes (`git commit -am 'Add some feature'`).
+4. Push to the branch (`git push origin feature/YourFeature`).
+5. Open a Pull Request.
 
-Nodetool is made available under the terms of the [GPL3 License](LICENSE.txt), promoting open-source collaboration and sharing.
+Please adhere to our contribution guidelines.
 
-# Contact
+## License 📄
+
+NodeTool is licensed under the [GPLv3 License](LICENSE.txt), promoting open-source collaboration and sharing.
+
+## Contact 📬
 
 For inquiries, suggestions, or contributions, please reach out to the core team:
 
-- Matthias Georgi
-- David Bürer
+- **Matthias Georgi**
+- **David Bürer**
 
-**GitHub:** [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)
+**GitHub**: [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)

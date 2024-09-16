@@ -263,10 +263,12 @@ class WorkflowRunner:
         log.info("Initializing graph nodes")
         for node in graph.nodes:
             try:
-                log.debug(f"Initializing node: {node.id}")
+                log.debug(f"Initializing node: {node.get_title()} ({node.id})")
                 await node.initialize(context)
             except Exception as e:
-                log.error(f"Error initializing node {node.id}: {str(e)}")
+                log.error(
+                    f"Error initializing node {node.get_title()} ({node.id}): {str(e)}"
+                )
                 context.post_message(
                     NodeUpdate(
                         node_id=node.id,
@@ -318,15 +320,19 @@ class WorkflowRunner:
             - Handles special processing for GroupNodes.
             - Posts node status updates (running, completed, error) to the context.
         """
-        log.info(f"Processing node: {node._id}")
+        log.info(f"Processing node: {node.get_title()} ({node._id})")
         if self.is_cancelled:
-            log.info(f"Skipping node {node._id} due to cancellation")
+            log.info(
+                f"Skipping node {node.get_title()} ({node._id}) due to cancellation"
+            )
             return
 
         self.current_node = node._id
 
         if node._id in context.processed_nodes:
-            log.info(f"Node {node._id} already processed, skipping")
+            log.info(
+                f"Node {node.get_title()} ({node._id}) already processed, skipping"
+            )
             return
 
         retries = 0
@@ -337,14 +343,20 @@ class WorkflowRunner:
                     log.info(f"Running group node: {node._id}")
                     await self.run_group_node(node, context)
                 else:
-                    log.info(f"Processing regular node: {node._id}")
+                    log.info(
+                        f"Processing regular node: {node.get_title()} ({node._id})"
+                    )
                     await self.process_regular_node(context, node)
                 break
             except torch.cuda.OutOfMemoryError as e:
+                log.error(
+                    f"VRAM OOM error for node {node.get_title()} ({node._id}): {str(e)}"
+                )
                 retries += 1
                 if torch.cuda.is_available():
                     torch.cuda.synchronize()
                     vram_before_cleanup = get_available_vram()
+                    log.error(f"VRAM before cleanup: {vram_before_cleanup} GB")
 
                     ModelManager.clear()
                     gc.collect()
@@ -357,7 +369,7 @@ class WorkflowRunner:
                     torch.cuda.empty_cache()
                     torch.cuda.synchronize()
                     additional_vram = vram_before_cleanup - get_available_vram()
-
+                    log.error(f"VRAM after cleanup: {get_available_vram()} GB")
                     if retries >= MAX_RETRIES:
                         raise
                 else:
@@ -395,7 +407,7 @@ class WorkflowRunner:
             - Retrieves inputs for the GroupNode from the context.
             - Calls process_subgraph to handle the execution of the subgraph.
         """
-        log.info(f"Running group node: {group_node._id}")
+        log.info(f"Running group node: {group_node.get_title()} ({group_node._id})")
         group_inputs = context.get_node_inputs(group_node._id)
 
         result = await self.process_subgraph(context, group_node, group_inputs)
@@ -427,12 +439,11 @@ class WorkflowRunner:
             - Manages timing information for node execution.
             - Prepares and posts detailed node updates including properties and results.
         """
-        log.info(f"Processing regular node: {node._id}")
         started_at = datetime.now()
 
         try:
             inputs = context.get_node_inputs(node.id)
-            log.debug(f"Node {node._id} inputs: {inputs}")
+            log.debug(f"{node.get_title()} ({node._id}) inputs: {inputs}")
 
             for name, value in inputs.items():
                 try:
@@ -440,38 +451,42 @@ class WorkflowRunner:
                 except Exception as e:
                     log.warn(f"Error assigning property {name} to node {node.id}: {e}")
 
-            log.debug(f"Pre-processing node: {node._id}")
+            log.debug(f"Pre-processing node: {node.get_title()} ({node._id})")
             await node.pre_process(context)
 
             if node.is_cacheable():
-                log.debug(f"Checking cache for node: {node._id}")
+                log.debug(f"Checking cache for node: {node.get_title()} ({node._id})")
                 cached_result = context.get_cached_result(node)
             else:
                 cached_result = None
 
             if cached_result is not None:
-                log.info(f"Using cached result for node: {node._id}")
+                log.info(
+                    f"Using cached result for node: {node.get_title()} ({node._id})"
+                )
                 result = cached_result
             else:
-                log.info(f"Processing node: {node._id}")
+                log.info(f"Processing node: {node.get_title()} ({node._id})")
                 node.send_update(context, "running")
                 await node.move_to_device(self.device)
                 result = await node.process(context)
                 result = await node.convert_output(context, result)
 
-                log.debug(f"Moving node {node._id} to CPU")
                 await node.move_to_device("cpu")
                 self.log_vram_usage(f"after node {node.id}: ")
 
                 if node.is_cacheable():
-                    log.debug(f"Caching result for node: {node._id}")
+                    log.debug(
+                        f"Caching result for node: {node.get_title()} ({node._id})"
+                    )
                     context.cache_result(node, result)
 
-            log.info(f"Node {node._id} completed")
             node.send_update(context, "completed", result)
 
         except Exception as e:
-            log.error(f"Error processing node {node._id}: {str(e)}")
+            log.error(
+                f"Error processing node {node.get_title()} ({node._id}): {str(e)}"
+            )
             context.post_message(
                 NodeUpdate(
                     node_id=node.id,
@@ -484,7 +499,9 @@ class WorkflowRunner:
 
         context.processed_nodes.add(node._id)
         context.set_result(node._id, result)
-        log.info(f"Node {node._id} processing time: {datetime.now() - started_at}")
+        log.info(
+            f"{node.get_title()} ({node._id}) processing time: {datetime.now() - started_at}"
+        )
 
     async def process_subgraph(
         self, context: ProcessingContext, group_node: GroupNode, inputs: dict[str, Any]
