@@ -21,7 +21,7 @@ const nodeInfoStyles = (theme: any) =>
     overflowY: "auto",
     gap: ".5em",
     paddingRight: "1em",
-    maxHeight: "60vh",
+    maxHeight: "55vh",
     ".node-title": {
       fontSize: theme.fontSizeSmall,
       fontWeight: "600",

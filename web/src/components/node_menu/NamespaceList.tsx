@@ -55,12 +55,12 @@ const namespaceStyles = (theme: any) =>
     ".namespace-list": {
       overflowY: "scroll",
       overflowX: "hidden",
-      maxHeight: "60vh",
+      maxHeight: "55vh",
       minWidth: "220px",
       flexShrink: "1"
     },
     ".node-list": {
-      maxHeight: "60vh",
+      maxHeight: "55vh",
       minWidth: "300px",
       paddingRight: ".5em",
       paddingBottom: "1em",

@@ -104,8 +104,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     connectDirection: ConnectDirection = null,
     activeNode: string = ""
   ) => {
-    const maxPosX = window.innerWidth - get().menuWidth;
-    const maxPosY = window.innerHeight - get().menuHeight;
+    const maxPosX = window.innerWidth - get().menuWidth + 150;
+    const maxPosY = window.innerHeight - get().menuHeight + 100;
     const constrainedX = Math.min(Math.max(x, 0), maxPosX) - 20;
     const constrainedY = Math.min(Math.max(y, 0), maxPosY) + 90;
     set({

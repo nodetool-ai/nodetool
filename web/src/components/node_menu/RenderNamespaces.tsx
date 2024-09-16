@@ -27,7 +27,7 @@ const namespaceStyles = (theme: any) =>
       transition: "all 0.25s",
 
       p: {
-        fontSize: "1em",
+        fontSize: theme.fontSizeSmall,
         fontFamily: "Inter"
       }
     },

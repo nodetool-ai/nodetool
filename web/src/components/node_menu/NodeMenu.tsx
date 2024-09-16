@@ -60,7 +60,6 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     connectDirection,
     activeNode,
     setActiveNode,
-
     searchResults,
     setSearchResults,
     setHighlightedNamespaces,

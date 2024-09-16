@@ -11,6 +11,8 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { iconForType } from "../../config/data_types";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useDelayedHover } from "../../hooks/useDelayedHover";
+import { InfoOutlined } from "@mui/icons-material";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -22,6 +24,7 @@ interface NodeItemProps {
   isHovered: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onInfoClick: () => void;
   onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
   onClick: () => void;
 }
@@ -38,9 +41,9 @@ const nodeStyles = (theme: any) =>
       borderRadius: "3px",
       cursor: "pointer",
       ".node-button": {
-        padding: ".2em .5em",
+        padding: ".1em .5em",
         "& .MuiTypography-root": {
-          fontSize: theme.fontSizeNormal
+          fontSize: theme.fontSizeSmall
         }
       }
     },
@@ -48,8 +51,15 @@ const nodeStyles = (theme: any) =>
       color: theme.palette.c_hl1
     },
     ".namespace-text": {
-      color: theme.palette.c_hl1,
-      margin: "1em 0 0"
+      color: theme.palette.c_gray6,
+      fontWeight: "normal",
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      borderTop: `1px solid ${theme.palette.c_gray3}`,
+      padding: ".25em 0",
+      margin: "1em 0 .5em"
+    },
+    ".node-info:hover": {
+      color: theme.palette.c_hl1
     }
   });
 
@@ -60,6 +70,7 @@ const NodeItem: React.FC<NodeItemProps> = memo(
     onMouseEnter,
     onMouseLeave,
     onDragStart,
+    onInfoClick,
     onClick
   }: NodeItemProps) => {
     const outputType = node.outputs.length > 0 ? node.outputs[0].type.type : "";
@@ -67,8 +78,6 @@ const NodeItem: React.FC<NodeItemProps> = memo(
     return (
       <div
         className={`node ${isHovered ? "hovered" : ""}`}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
         draggable
         onDragStart={onDragStart}
       >
@@ -96,6 +105,19 @@ const NodeItem: React.FC<NodeItemProps> = memo(
             primary={<Typography fontSize="small">{node.title}</Typography>}
           />
         </ListItemButton>
+        <span
+          style={{
+            color: isHovered
+              ? ThemeNodetool.palette.c_hl1
+              : ThemeNodetool.palette.c_gray3
+          }}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+          onClick={onInfoClick}
+          className="node-info"
+        >
+          <InfoOutlined />
+        </span>
       </div>
     );
   }
@@ -116,7 +138,7 @@ const groupNodes = (nodes: NodeMetadata[]) => {
 
 const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
-  hoverDelay = 150
+  hoverDelay = 400
 }) => {
   const { hoveredNode, setHoveredNode, setDragToCreate } = useNodeMenuStore(
     (state) => ({
@@ -127,8 +149,10 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   );
 
   const handleCreateNode = useCreateNode();
-
   const currentHoveredNodeRef = useRef<NodeMetadata | null>(null);
+  const onInfoClick = useCallback(() => {
+    setHoveredNode(currentHoveredNodeRef.current);
+  }, [setHoveredNode]);
 
   const { handleMouseEnter, handleMouseLeave } = useDelayedHover(
     useCallback(() => {
@@ -159,6 +183,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           key={`${node.namespace}-${node.title}`}
           node={node}
           isHovered={isHovered}
+          onInfoClick={onInfoClick}
           onMouseEnter={() => {
             currentHoveredNodeRef.current = node;
             handleMouseEnter();
@@ -176,6 +201,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       hoveredNode,
       handleMouseEnter,
       handleMouseLeave,
+      onInfoClick,
       handleDragStart,
       handleCreateNode
     ]

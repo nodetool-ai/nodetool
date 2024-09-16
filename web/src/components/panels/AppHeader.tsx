@@ -213,6 +213,21 @@ const AppHeader: React.FC = React.memo(() => {
           </Button>
         </Tooltip>
 
+        <Tooltip title="Example Workflows" enterDelay={TOOLTIP_DELAY}>
+          <Button
+            className={`nav-button ${path === "/examples" ? "active" : ""}`}
+            onClick={() => navigate("/examples")}
+            style={{
+              color: path.startsWith("/examples")
+                ? ThemeNodetool.palette.c_hl1
+                : ThemeNodetool.palette.c_white
+            }}
+          >
+            <ExamplesIcon />
+            Examples
+          </Button>
+        </Tooltip>
+
         <Tooltip title="View and manage Assets" enterDelay={TOOLTIP_DELAY}>
           <Button
             className={`nav-button ${path === "/assets" ? "active" : ""}`}
@@ -247,25 +262,9 @@ const AppHeader: React.FC = React.memo(() => {
             Assets
           </Button>
         </Tooltip>
-        <Tooltip title="Browse example workflows" enterDelay={TOOLTIP_DELAY}>
-          <Button
-            className={`nav-button ${path === "/examples" ? "active" : ""}`}
-            onClick={() => navigate("/examples")}
-            style={{
-              color: path.startsWith("/examples")
-                ? ThemeNodetool.palette.c_hl1
-                : ThemeNodetool.palette.c_white
-            }}
-          >
-            <ExamplesIcon />
-            Examples
-          </Button>
-        </Tooltip>
+
         {path.startsWith("/editor") && (
-          <Tooltip
-            title="Open Nodetool Chat Assistant"
-            enterDelay={TOOLTIP_DELAY}
-          >
+          <Tooltip title="Nodetool Chat Assistant" enterDelay={TOOLTIP_DELAY}>
             <Button className="action-button" onClick={toggleChat}>
               <ChatIcon />
               Chat
