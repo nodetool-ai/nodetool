@@ -8,6 +8,7 @@ NodeTool is a powerful no-code platform for building AI workflows and applicatio
 
    - **Local LLMs via Ollama**: Run large language models directly on your machine.
    - **Local Models via Hugging Face Transformers and Diffusers**: Access hundreds of models locally.
+   - **Local ComfyUI**: Leverage the ComfyUI ecosystem for advanced image processing workflows.
 
 2. **Remote Execution**:
    - **Replicate, OpenAI, and Anthropic**: Outsource heavy GPU workloads to cloud services, allowing you to leverage powerful models without the need for expensive hardware.
