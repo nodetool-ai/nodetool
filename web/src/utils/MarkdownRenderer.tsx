@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import React, { useRef, useState, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
 import DraggableNodeDocumentation from "../components/content/Help/DraggableNodeDocumentation";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";

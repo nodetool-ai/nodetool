@@ -25,13 +25,11 @@ import {
   DialogContentText,
   DialogTitle
 } from "@mui/material";
-import axios from "axios";
 import { LlamaModel, UnifiedModel } from "../../stores/ApiTypes";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import {
   prettifyModelType,
-  OllamaModel,
   groupModelsByType,
   sortModelTypes
 } from "./ModelUtils";
@@ -145,7 +143,6 @@ const ModelList: React.FC = () => {
         {}
       );
       if (error) throw error;
-      console.log("data", data);
       return data.map(
         (model: any): UnifiedModel => ({
           id: model.repo_id,

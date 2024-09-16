@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CircularProgress } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { ModelComponentProps, fetchOllamaModelInfo } from "./ModelUtils";
@@ -183,77 +183,76 @@ const styles = (theme: any) =>
     }
   });
 
-const ModelCard: React.FC<ModelComponentProps> = React.memo(
-  ({ model, onDownload, handleDelete }) => {
-    const [tagsExpanded, setTagsExpanded] = useState(false);
-    const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
+const ModelCard: React.FC<ModelComponentProps> = React.memo(function ModelCard({
+  model,
+  onDownload,
+  handleDelete
+}) {
+  const [tagsExpanded, setTagsExpanded] = useState(false);
+  const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
 
-    const isHuggingFace = model.type.startsWith("hf.");
-    const isOllama = model.type.toLowerCase().includes("llama_model");
-    const downloaded = model.type.startsWith("hf.lora_sd")
-      ? model.downloaded ?? false
-      : !!(model.size_on_disk && model.size_on_disk > 0);
+  const isHuggingFace = model.type.startsWith("hf.");
+  const isOllama = model.type.toLowerCase().includes("llama_model");
+  const downloaded = model.type.startsWith("hf.lora_sd")
+    ? model.downloaded ?? false
+    : !!(model.size_on_disk && model.size_on_disk > 0);
 
-    const { data: modelData, isLoading } = useQuery({
-      queryKey: ["modelInfo", model.id],
-      queryFn: () => {
-        if (isHuggingFace) {
-          return fetchModelInfo(model.repo_id || "");
-        } else if (isOllama) {
-          return fetchOllamaModelInfo(model.id);
-        }
-        return null;
-      },
-      staleTime: Infinity,
-      gcTime: 1000 * 60,
-      refetchOnWindowFocus: false
-    });
+  const { data: modelData, isLoading } = useQuery({
+    queryKey: ["modelInfo", model.id],
+    queryFn: () => {
+      if (isHuggingFace) {
+        return fetchModelInfo(model.repo_id || "");
+      } else if (isOllama) {
+        return fetchOllamaModelInfo(model.id);
+      }
+      return null;
+    },
+    staleTime: Infinity,
+    gcTime: 1000 * 60,
+    refetchOnWindowFocus: false
+  });
 
-    const toggleTags = () => setTagsExpanded(!tagsExpanded);
+  const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
-    if (isLoading) {
-      return (
-        <Card className="model-card" css={styles}>
-          <CardContent
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "100%"
-            }}
-          >
-            <CircularProgress />
-          </CardContent>
-        </Card>
-      );
-    }
-
+  if (isLoading) {
     return (
-      <Card
-        className={`model-card ${!modelData ? "missing" : ""}`}
-        css={styles}
-      >
-        <ModelCardContent
-          model={model}
-          modelData={modelData}
-          downloaded={downloaded}
-          tagsExpanded={tagsExpanded}
-          toggleTags={toggleTags}
-          readmeDialogOpen={readmeDialogOpen}
-          setReadmeDialogOpen={setReadmeDialogOpen}
-        />
-        <ModelCardActions
-          model={model}
-          modelData={modelData}
-          isHuggingFace={isHuggingFace}
-          isOllama={isOllama}
-          handleDelete={handleDelete}
-          onDownload={onDownload}
-          downloaded={downloaded}
-        />
+      <Card className="model-card" css={styles}>
+        <CardContent
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%"
+          }}
+        >
+          <CircularProgress />
+        </CardContent>
       </Card>
     );
   }
-);
+
+  return (
+    <Card className={`model-card ${!modelData ? "missing" : ""}`} css={styles}>
+      <ModelCardContent
+        model={model}
+        modelData={modelData}
+        downloaded={downloaded}
+        tagsExpanded={tagsExpanded}
+        toggleTags={toggleTags}
+        readmeDialogOpen={readmeDialogOpen}
+        setReadmeDialogOpen={setReadmeDialogOpen}
+      />
+      <ModelCardActions
+        model={model}
+        modelData={modelData}
+        isHuggingFace={isHuggingFace}
+        isOllama={isOllama}
+        handleDelete={handleDelete}
+        onDownload={onDownload}
+        downloaded={downloaded}
+      />
+    </Card>
+  );
+});
 
 export default ModelCard;

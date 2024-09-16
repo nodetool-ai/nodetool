@@ -1,5 +1,5 @@
 import React from "react";
-import { UnifiedModel, CachedModel } from "../../stores/ApiTypes";
+import { UnifiedModel } from "../../stores/ApiTypes";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import DeleteButton from "../buttons/DeleteButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
