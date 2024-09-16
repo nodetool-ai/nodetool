@@ -164,7 +164,7 @@ D -->|Optional API Calls| F[OpenAI<br>Replicate<br>Anthropic<br>Others]
 
 ### Components Overview
 
-1. **🖥️ React Frontend**: The user interface is built with React, providing an intuitive way for users to create and manage workflows.
+1. **🖥️ Frontend**: Nodetool Editor for workflows, assets, models. Built with ReactJS, Reactflow, Mui v5, typescript.
 2. **🌐 API Server**: Handles HTTP and WebSocket connections from the frontend, managing user sessions, workflow storage, and coordination between components.
 3. **🔌 WebSocket Runner**: Executes workflows in real-time, maintaining the state of running workflows, and managing communication between nodes.
 4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability. It integrates seamlessly with:
