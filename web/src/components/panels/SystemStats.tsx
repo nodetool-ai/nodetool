@@ -18,7 +18,7 @@ const SystemStatsDisplay: React.FC = () => {
       const res = await client.GET("/api/models/system_stats");
       return res.data;
     },
-    refetchInterval: 1000
+    refetchInterval: anchorEl ? 500 : 5000
   });
 
   const stats = useMemo(
@@ -41,7 +41,7 @@ const SystemStatsDisplay: React.FC = () => {
   if (!systemStats) return null;
 
   return (
-    <>
+    <Box className="system-stats" sx={{ mr: 2 }}>
       <Tooltip title="System Stats (click to expand)">
         <Box
           onClick={handleClick}
@@ -60,7 +60,7 @@ const SystemStatsDisplay: React.FC = () => {
               variant="determinate"
               value={stat.value}
               sx={{
-                height: 5,
+                height: 2,
                 borderRadius: 2,
                 backgroundColor: "rgba(255, 255, 255, 0.1)",
                 "& .MuiLinearProgress-bar": {
@@ -90,7 +90,7 @@ const SystemStatsDisplay: React.FC = () => {
           ))}
         </Box>
       </Popover>
-    </>
+    </Box>
   );
 };
 
@@ -98,20 +98,20 @@ const StatItem: React.FC<{ label: string; value: number }> = ({
   label,
   value
 }) => (
-  <Box>
+  <Box className="system-stats-popover">
     <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
       <Typography variant="caption" sx={{ opacity: 0.7 }}>
         {label}
       </Typography>
       <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-        {value.toFixed(1)}%
+        {value.toFixed(0)}%
       </Typography>
     </Box>
     <LinearProgress
       variant="determinate"
       value={value}
       sx={{
-        height: 8,
+        height: 4,
         borderRadius: 4,
         backgroundColor: "rgba(255, 255, 255, 0.1)",
         "& .MuiLinearProgress-bar": {

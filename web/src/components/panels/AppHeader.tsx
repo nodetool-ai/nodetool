@@ -44,9 +44,8 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
 import { useEffect, useState } from "react";
-import { client, isProduction } from "../../stores/ApiClient";
-import { useQuery } from "@tanstack/react-query";
 import SystemStatsDisplay from "./SystemStats";
+import { isProduction } from "../../stores/ApiClient";
 
 const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
   css({
@@ -62,12 +61,12 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
       overflow: "visible"
     },
     ".nodetool-logo": {
-      margin: "0 2em 0 0em"
+      margin: "0 1em 0 0em"
     },
     button: {
       fontSize:
         buttonAppearance === "text" || buttonAppearance === "both"
-          ? theme.fontSizeSmall
+          ? theme.fontSizeSmaller
           : "0",
       color: theme.palette.c_white,
       "&:hover": {
@@ -79,10 +78,9 @@ const styles = (theme: any, buttonAppearance: "text" | "icon" | "both") =>
         buttonAppearance === "icon" || buttonAppearance === "both"
           ? "block"
           : "none",
-      minWidth: "25px",
-      minHeight: "25px",
-      width: "100%",
-      height: "100%",
+      width: "20px",
+      height: "18px",
+
       fontSize:
         buttonAppearance === "icon" || buttonAppearance === "both"
           ? theme.fontSizeSmall
@@ -226,26 +224,27 @@ const AppHeader: React.FC = React.memo(() => {
                 : ThemeNodetool.palette.c_white
             }}
           >
-            {iconForType(
-              "asset",
-              {
-                fill: path.startsWith("/assets")
-                  ? ThemeNodetool.palette.c_hl1
-                  : ThemeNodetool.palette.c_white,
+            {(buttonAppearance === "icon" || buttonAppearance === "both") &&
+              iconForType(
+                "asset",
+                {
+                  fill: path.startsWith("/assets")
+                    ? ThemeNodetool.palette.c_hl1
+                    : ThemeNodetool.palette.c_white,
 
-                containerStyle: {
-                  borderRadius: "0 0 3px 0",
-                  marginLeft: "0.1em",
-                  marginTop: "0"
+                  containerStyle: {
+                    borderRadius: "0 0 3px 0",
+                    marginLeft: "0.1em",
+                    marginTop: "0"
+                  },
+                  bgStyle: {
+                    backgroundColor: "transparent",
+                    width: "30px",
+                    height: "20px"
+                  }
                 },
-                bgStyle: {
-                  backgroundColor: "#333",
-                  width: "30px",
-                  height: "20px"
-                }
-              },
-              false
-            )}
+                false
+              )}
             Assets
           </Button>
         </Tooltip>
@@ -276,7 +275,7 @@ const AppHeader: React.FC = React.memo(() => {
         )}
       </Box>
     ),
-    [path, navigate]
+    [path, toggleChat, navigate]
   );
 
   const RightSideButtons = useMemo(
@@ -296,22 +295,23 @@ const AppHeader: React.FC = React.memo(() => {
                     : ThemeNodetool.palette.c_white
                 }}
               >
-                {iconForType(
-                  "model",
-                  {
-                    fill: path.startsWith("/models")
-                      ? ThemeNodetool.palette.c_hl1
-                      : "#fff",
-                    bgStyle: {
-                      backgroundColor: "transparent",
-                      width: "28px",
-                      marginRight: ".5em"
+                {(buttonAppearance === "icon" || buttonAppearance === "both") &&
+                  iconForType(
+                    "model",
+                    {
+                      fill: path.startsWith("/models")
+                        ? ThemeNodetool.palette.c_hl1
+                        : "#fff",
+                      bgStyle: {
+                        backgroundColor: "transparent",
+                        width: "28px",
+                        marginRight: ".5em"
+                      },
+                      width: "15px",
+                      height: "15px"
                     },
-                    width: "15px",
-                    height: "15px"
-                  },
-                  false
-                )}
+                    false
+                  )}
                 Models
               </Button>
             </Tooltip>

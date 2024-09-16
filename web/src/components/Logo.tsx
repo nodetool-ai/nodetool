@@ -31,7 +31,7 @@ const logoStyles = (
       height: height,
       backgroundColor: "transparent",
       opacity: opacity,
-      marginLeft: "0.5em",
+      marginTop: "1px",
       transition: "opacity 1s ease-in-out .2s"
     },
     ".nodetool": {
@@ -45,12 +45,11 @@ const logoStyles = (
       fontSize: fontSize,
       lineHeight: "1em",
       padding: "0px",
-      color: "#ccc",
+      color: theme.palette.c_white,
       borderRadius: ".1em",
       boxShadow: small ? `0` : "0 0 24px rgba(200,200,200,0.3)",
       cursor: "pointer",
       boxSizing: "border-box",
-      // backgroundColor: "white",
       transition: "all .4s ease-in-out"
     },
     ".nt:hover .nodetool": {
