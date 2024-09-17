@@ -1,6 +1,25 @@
 import { create } from "zustand";
-import { NodeMetadata } from "./ApiTypes";
+import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
+import Fuse from "fuse.js";
+import { filterDataByType } from "../components/node_menu/typeFilterUtils";
+const fuseOptions = {
+  keys: [
+    { name: "title", weight: 0.5 },
+    { name: "namespace", weight: 0.3 },
+    { name: "tags", weight: 0.2 }
+  ],
+  includeMatches: true,
+  ignoreLocation: true,
+  threshold: 0.2,
+  distance: 100,
+  shouldSort: true,
+  includeScore: true,
+  minMatchCharLength: 2,
+  useExtendedSearch: true,
+  tokenize: true,
+  matchAllTokens: false
+};
 
 type NodeMenuStore = {
   isMenuOpen: boolean;
@@ -15,13 +34,18 @@ type NodeMenuStore = {
   menuWidth: number;
   menuHeight: number;
   searchTerm: string;
+  metadata: NodeMetadata[];
+  setMetadata: (metadata: NodeMetadata[]) => void;
+  selectedInputType: string;
+  setSelectedInputType: (inputType: string) => void;
+  selectedOutputType: string;
+  setSelectedOutputType: (outputType: string) => void;
   setSearchTerm: (term: string) => void;
   selectedPath: string[];
   setSelectedPath: (path: string[]) => void;
-  activeNode: string | null;
-  setActiveNode: (node: string | null) => void;
   showNamespaceTree: boolean;
   toggleNamespaceTree: () => void;
+  performSearch: (term: string) => void;
 
   openNodeMenu: (
     x: number,
@@ -59,6 +83,19 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   openedByDrop: false,
   dropType: "",
   dragToCreate: false,
+  metadata: [],
+  setMetadata: (metadata) => {
+    set({ metadata });
+  },
+  selectedInputType: "",
+  setSelectedInputType: (inputType) => {
+    set({ selectedInputType: inputType });
+  },
+  selectedOutputType: "",
+  setSelectedOutputType: (outputType) => {
+    set({ selectedOutputType: outputType });
+  },
+
   setDragToCreate: (dragToCreate) => {
     set({ dragToCreate });
   },
@@ -80,17 +117,12 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     set({
       searchTerm: term
     });
+    get().performSearch(term);
   },
   selectedPath: [],
   setSelectedPath: (path) => {
     set({
       selectedPath: path
-    });
-  },
-  activeNode: null,
-  setActiveNode: (node) => {
-    set({
-      activeNode: node
     });
   },
   showNamespaceTree: true,
@@ -102,7 +134,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     openedByDrop: boolean = false,
     dropType: string = "",
     connectDirection: ConnectDirection = null,
-    activeNode: string = ""
   ) => {
     const maxPosX = window.innerWidth - get().menuWidth + 150;
     const maxPosY = window.innerHeight - get().menuHeight + 100;
@@ -114,7 +145,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       openedByDrop: openedByDrop,
       dropType: dropType,
       connectDirection: connectDirection,
-      activeNode: activeNode
     });
   },
 
@@ -136,6 +166,67 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       isMenuOpen: false,
       menuPosition: { x: 100, y: 100 }
     });
+  },
+
+  performSearch: (term: string) => {
+    const metadata = get().metadata;
+    const selectedInputType = get().selectedInputType;
+    const selectedOutputType = get().selectedOutputType;
+
+    if (metadata.length === 0) {
+      console.warn("No metadata found");
+      return;
+    }
+    if (term.length <= 1) {
+      set({ searchResults: metadata });
+      return;
+    }
+
+    const filteredMetadata = filterDataByType(
+      metadata,
+      selectedInputType as TypeName,
+      selectedOutputType as TypeName
+    );
+    const newHighlightedNamespaces = new Set(
+      filteredMetadata.flatMap((result) => {
+        const parts = result.namespace.split(".");
+        return parts.map((_, index) => parts.slice(0, index + 1).join("."));
+      })
+    );
+    set({ highlightedNamespaces: [...newHighlightedNamespaces] });
+    const entries = filteredMetadata.map((node: NodeMetadata) => {
+      const lines = node.description.split("\n");
+      const tags = lines.length > 1 ? lines[1].split(",") : [];
+      return {
+        title: node.title,
+        node_type: node.node_type,
+        tags: tags,
+        metadata: node
+      };
+    });
+
+    const fuse = new Fuse(entries, fuseOptions);
+
+    const searchTermWords = Array.from(new Set(term.trim().split(" ")));
+
+    const searchResults = searchTermWords.reduce(
+      (acc: NodeMetadata[], word: string) => {
+        const searchResults = fuse
+          .search(word)
+          .map((result) => result.item.metadata)
+          .sort((a, b) => a.node_type.localeCompare(b.node_type));
+
+        if (acc.length === 0) {
+          return searchResults;
+        } else {
+          return [...acc, ...searchResults].filter(
+            (v, i, a) => a.findIndex((t) => t.title === v.title) === i
+          );
+        }
+      },
+      [] as NodeMetadata[]
+    );
+    set({ searchResults });
   },
 
   searchResults: [],

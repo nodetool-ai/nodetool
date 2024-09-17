@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 // mui
 import {
@@ -19,15 +19,12 @@ import { ExpandCircleDown } from "@mui/icons-material";
 // components
 import SearchComponent from "./SearchComponent";
 import TypeFilter from "./TypeFilter";
-import KeyboardNavigation from "./KeyboardNavigation";
 import NamespaceList from "./NamespaceList";
 // store
-import { NodeMetadata, TypeName } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 // utils
 import Draggable from "react-draggable";
-import { filterDataByType } from "./typeFilterUtils";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 // theme
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -45,11 +42,6 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     error: metadataError
   } = useMetadata();
   const namespaceTree = useNamespaceTree();
-  const [selectedInputType, setSelectedInputType] = useState("");
-  const [selectedOutputType, setSelectedOutputType] = useState("");
-  const [metadataFilteredByTypes, setMetadataFilteredByTypes] = useState<
-    NodeMetadata[]
-  >([]);
   const {
     isMenuOpen,
     closeNodeMenu,
@@ -58,11 +50,14 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     menuPosition,
     dropType,
     connectDirection,
-    activeNode,
-    setActiveNode,
     searchResults,
-    setSearchResults,
-    setHighlightedNamespaces,
+    selectedInputType,
+    setSelectedInputType,
+    selectedOutputType,
+    setSelectedOutputType,
+    searchTerm,
+    setSearchTerm,
+    setMetadata,
     showNamespaceTree,
     toggleNamespaceTree
   } = useNodeMenuStore((state) => ({
@@ -73,13 +68,14 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     menuPosition: state.menuPosition,
     dropType: state.dropType,
     connectDirection: state.connectDirection,
-    activeNode: state.activeNode,
-    setActiveNode: state.setActiveNode,
     searchResults: state.searchResults,
-    setSearchResults: state.setSearchResults,
-    setHighlightedNamespaces: state.setHighlightedNamespaces,
-    selectedPath: state.selectedPath,
-    setSelectedPath: state.setSelectedPath,
+    selectedInputType: state.selectedInputType,
+    setSelectedInputType: state.setSelectedInputType,
+    selectedOutputType: state.selectedOutputType,
+    setSelectedOutputType: state.setSelectedOutputType,
+    searchTerm: state.searchTerm,
+    setSearchTerm: state.setSearchTerm,
+    setMetadata: state.setMetadata,
     showNamespaceTree: state.showNamespaceTree,
     toggleNamespaceTree: state.toggleNamespaceTree
   }));
@@ -97,43 +93,9 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     }
   }, [dropType, connectDirection]);
 
-  // RESET TYPE FILTERS
   useEffect(() => {
-    if (!isMenuOpen) {
-      setSelectedInputType("");
-      setSelectedOutputType("");
-    }
-  }, [isMenuOpen, dropType]);
-
-  // FILTER DATA BASED ON SELECTED TYPES
-  useEffect(() => {
-    if (metadata === undefined) return;
-
-    const filteredData = filterDataByType(
-      metadata.metadata,
-      selectedInputType as TypeName,
-      selectedOutputType as TypeName
-    );
-    setMetadataFilteredByTypes(filteredData);
-  }, [metadata, selectedInputType, selectedOutputType]);
-
-  // KEYBOARD NAVIGATION
-  <KeyboardNavigation activeNode={activeNode} setActiveNode={setActiveNode} />;
-
-  // HANDLE SEARCH RESULT
-  const handleSearchResult = useCallback(
-    (filteredMetadata: NodeMetadata[]) => {
-      setSearchResults(filteredMetadata);
-      const newHighlightedNamespaces = new Set(
-        filteredMetadata.flatMap((result) => {
-          const parts = result.namespace.split(".");
-          return parts.map((_, index) => parts.slice(0, index + 1).join("."));
-        })
-      );
-      setHighlightedNamespaces([...newHighlightedNamespaces]);
-    },
-    [setSearchResults, setHighlightedNamespaces]
-  );
+    setMetadata(metadata?.metadata || []);
+  }, [metadata]);
 
   const treeStyles = (theme: any) =>
     css({
@@ -282,12 +244,12 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
             </Tooltip>
 
             <SearchComponent
-              metadata={metadataFilteredByTypes}
-              handleSearchResult={handleSearchResult}
               focusSearchInput={true}
               focusOnTyping={true}
               placeholder="Search for nodes..."
-              debounceTime={20}
+              debounceTime={300}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
             />
             {/* <Tooltip
               title="Clear namespace selection"

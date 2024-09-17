@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { iconForType, datatypeByName } from "../../config/data_types";
+import { IconForType, datatypeByName } from "../../config/data_types";
 import { Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -20,7 +20,7 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
             color:
               index === parts.length - 1
                 ? ThemeNodes.palette.c_gray6
-                : "inherit",
+                : "inherit"
           }}
         >
           {part}
@@ -50,7 +50,7 @@ export const footerStyles = (theme: any) =>
     overflow: "hidden",
     ".pretty-namespace": {
       marginTop: "-0.4em",
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeSmall
     },
     ".namespace-button": {
       display: "block",
@@ -64,15 +64,15 @@ export const footerStyles = (theme: any) =>
       textTransform: "uppercase",
       textAlign: "left",
       flexGrow: 1,
-      overflow: "hidden",
+      overflow: "hidden"
     },
     ".namespace-button:hover": {
       backgroundColor: "transparent",
-      color: theme.palette.c_hl1,
+      color: theme.palette.c_hl1
     },
     ".icon": {
-      paddingLeft: "auto",
-    },
+      paddingLeft: "auto"
+    }
   });
 
 export const NodeFooter = memo<NodeFooterProps>(
@@ -82,43 +82,54 @@ export const NodeFooter = memo<NodeFooterProps>(
       openNodeMenu,
       setHighlightedNamespaces,
       setSelectedPath,
-      setHoveredNode,
+      setHoveredNode
     } = useNodeMenuStore((state) => ({
       openNodeMenu: state.openNodeMenu,
       setHighlightedNamespaces: state.setHighlightedNamespaces,
       setSelectedPath: state.setSelectedPath,
-      setHoveredNode: state.setHoveredNode,
+      setHoveredNode: state.setHoveredNode
     }));
 
-    const handleOpenNodeMenu = useMemo(() => () => {
-      openNodeMenu(500, 200, false, metadata.namespace);
-      requestAnimationFrame(() => {
-        setSelectedPath(metadata.namespace.split("."));
-        setHoveredNode(metadata);
-        setHighlightedNamespaces(metadata.namespace.split("."));
-      });
-    }, [metadata, openNodeMenu, setSelectedPath, setHoveredNode, setHighlightedNamespaces]);
-    const memoizedIcon = useMemo(() =>
-      datatype && iconForType(datatype.value, {
-        fill: datatype.textColor,
-        containerStyle: {
+    const handleOpenNodeMenu = useMemo(
+      () => () => {
+        openNodeMenu(500, 200, false, metadata.namespace);
+        requestAnimationFrame(() => {
+          setSelectedPath(metadata.namespace.split("."));
+          setHoveredNode(metadata);
+          setHighlightedNamespaces(metadata.namespace.split("."));
+        });
+      },
+      [
+        metadata,
+        openNodeMenu,
+        setSelectedPath,
+        setHoveredNode,
+        setHighlightedNamespaces
+      ]
+    );
+    const icon = datatype && (
+      <IconForType
+        iconName={datatype.value}
+        containerStyle={{
           borderRadius: "0 0 3px 0",
           marginLeft: "0.1em",
-          marginTop: "0",
-        },
-        bgStyle: {
+          marginTop: "0"
+        }}
+        bgStyle={{
           backgroundColor: datatype.color,
           margin: "0",
           padding: "1px",
           borderRadius: "0 0 3px 0",
           boxShadow: "inset 1px 1px 2px #00000044",
           width: "15px",
-          height: "15px",
-        },
-        width: "10px",
-        height: "10px",
-      }),
-      [datatype]);
+          height: "15px"
+        }}
+        svgProps={{
+          width: "10px",
+          height: "10px"
+        }}
+      />
+    );
 
     return (
       <div className="node-footer" css={footerStyles}>
@@ -134,9 +145,7 @@ export const NodeFooter = memo<NodeFooterProps>(
             <PrettyNamespace namespace={nodeNamespace} />
           </Button>
         </Tooltip>
-        <div className="icon">
-          {memoizedIcon}
-        </div>
+        <div className="icon">{icon}</div>
       </div>
     );
   }

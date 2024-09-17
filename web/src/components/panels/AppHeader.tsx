@@ -22,7 +22,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import ExamplesIcon from "@mui/icons-material/AutoAwesome"; // Add this import
 
 // nodetool icons
-import { iconForType } from "../../config/data_types";
+import { IconForType } from "../../config/data_types";
 
 // mui
 import {
@@ -238,27 +238,26 @@ const AppHeader: React.FC = React.memo(() => {
                 : ThemeNodetool.palette.c_white
             }}
           >
-            {buttonAppearance !== "text" &&
-              iconForType(
-                "asset",
-                {
+            {buttonAppearance !== "text" && (
+              <IconForType
+                iconName="asset"
+                svgProps={{
                   fill: path.startsWith("/assets")
                     ? ThemeNodetool.palette.c_hl1
-                    : ThemeNodetool.palette.c_white,
-
-                  containerStyle: {
-                    borderRadius: "0 0 3px 0",
-                    marginLeft: "0.1em",
-                    marginTop: "0"
-                  },
-                  bgStyle: {
-                    backgroundColor: "transparent",
-                    width: "30px",
-                    height: "20px"
-                  }
-                },
-                false
-              )}
+                    : ThemeNodetool.palette.c_white
+                }}
+                containerStyle={{
+                  borderRadius: "0 0 3px 0",
+                  marginLeft: "0.1em",
+                  marginTop: "0"
+                }}
+                bgStyle={{
+                  backgroundColor: "transparent",
+                  width: "30px",
+                  height: "20px"
+                }}
+              />
+            )}
             Assets
           </Button>
         </Tooltip>
@@ -293,23 +292,21 @@ const AppHeader: React.FC = React.memo(() => {
                     : ThemeNodetool.palette.c_white
                 }}
               >
-                {buttonAppearance !== "text" &&
-                  iconForType(
-                    "model",
-                    {
+                {buttonAppearance !== "text" && (
+                  <IconForType
+                    iconName="model"
+                    svgProps={{
                       fill: path.startsWith("/models")
                         ? ThemeNodetool.palette.c_hl1
-                        : "#fff",
-                      bgStyle: {
-                        backgroundColor: "transparent",
-                        width: "28px",
-                        marginRight: ".5em"
-                      },
-                      width: "15px",
-                      height: "15px"
-                    },
-                    false
-                  )}
+                        : "#fff"
+                    }}
+                    bgStyle={{
+                      backgroundColor: "transparent",
+                      width: "28px",
+                      marginRight: ".5em"
+                    }}
+                  />
+                )}
                 Models
               </Button>
             </Tooltip>

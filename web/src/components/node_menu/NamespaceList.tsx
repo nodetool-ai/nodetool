@@ -128,6 +128,38 @@ const namespaceStyles = (theme: any) =>
     },
     ".highlighted-text": {
       color: theme.palette.c_hl1
+    },
+    ".nodes": {
+      display: "flex",
+      flexDirection: "column"
+    },
+    ".node": {
+      display: "flex",
+      alignItems: "center",
+      margin: "0",
+      padding: "0.025em",
+      borderRadius: "3px",
+      cursor: "pointer",
+      ".node-button": {
+        padding: ".1em .5em",
+        "& .MuiTypography-root": {
+          fontSize: theme.fontSizeSmall
+        }
+      }
+    },
+    ".node.hovered": {
+      color: theme.palette.c_hl1
+    },
+    ".namespace-text": {
+      color: theme.palette.c_gray6,
+      fontWeight: "normal",
+      borderBottom: `1px solid ${theme.palette.c_gray3}`,
+      borderTop: `1px solid ${theme.palette.c_gray3}`,
+      padding: ".25em 0",
+      margin: "1em 0 .5em"
+    },
+    ".node-info:hover": {
+      color: theme.palette.c_hl1
     }
   });
 
@@ -266,10 +298,6 @@ const NamespaceList: React.FC<NamespaceListProps> = React.memo(
                   click on <span className="highlighted">highlighted </span>
                   namespaces to find results.
                 </li>
-                <li>
-                  clear the search with [ESC] or by clicking on the X in the
-                  search bar
-                </li>
                 <li>just start typing to enter a new search term</li>
               </ul>
             </div>
@@ -285,11 +313,9 @@ const NamespaceList: React.FC<NamespaceListProps> = React.memo(
 
                 <Typography variant="h5">Search Nodes</Typography>
                 <Typography variant="body1">
-                  Just start typing while the NodeMenu is open. <br />
-                  <br />
-                  To clear the search term:
-                  <br />
-                  Press ESC key or the X icon in the search input.
+                  <ul>
+                    <li>Type in the search bar to search for nodes.</li>
+                  </ul>
                 </Typography>
 
                 <Typography variant="h5">Create Nodes</Typography>

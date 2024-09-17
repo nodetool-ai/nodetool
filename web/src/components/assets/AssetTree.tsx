@@ -15,7 +15,7 @@ import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
 import { devError } from "../../utils/DevLog";
-import { iconForType } from "../../config/data_types";
+import { IconForType } from "../../config/data_types";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
@@ -43,17 +43,17 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
   const getAssetsRecursive = useAssetStore((state) => state.getAssetsRecursive);
-  const folderIcon = iconForType("folder");
-  const imageIcon = iconForType("image");
-  const audioIcon = iconForType("audio");
-  const videoIcon = iconForType("video");
-  const textIcon = iconForType("text");
-  const pdfIcon = iconForType("pdf");
-  const wordIcon = iconForType("word");
-  const excelIcon = iconForType("excel");
-  const powerpointIcon = iconForType("powerpoint");
-  const zipIcon = iconForType("zip");
-  const unknownIcon = iconForType("unknown");
+  const folderIcon = <IconForType iconName="folder" />;
+  const imageIcon = <IconForType iconName="image" />;
+  const audioIcon = <IconForType iconName="audio" />;
+  const videoIcon = <IconForType iconName="video" />;
+  const textIcon = <IconForType iconName="text" />;
+  const pdfIcon = <IconForType iconName="pdf" />;
+  const wordIcon = <IconForType iconName="word" />;
+  const excelIcon = <IconForType iconName="excel" />;
+  const powerpointIcon = <IconForType iconName="powerpoint" />;
+  const zipIcon = <IconForType iconName="zip" />;
+  const unknownIcon = <IconForType iconName="unknown" />;
 
   const calculateTotalAssets = useCallback((node: Asset): number => {
     if (node.content_type === "folder" && (node as AssetTreeNode).children) {

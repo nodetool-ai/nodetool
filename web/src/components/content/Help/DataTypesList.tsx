@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import { useState } from "react";
 import { Typography, Button, Divider } from "@mui/material";
-import { DATA_TYPES, iconForType } from "../../../config/data_types";
+import { DATA_TYPES, IconForType } from "../../../config/data_types";
 import SearchInput from "../../search/SearchInput";
 
 const DataTypesList = () => {
@@ -51,9 +51,9 @@ const DataTypesList = () => {
         List of available DataTypes
       </Typography>
       <Divider />
-      <div style={{ margin: "1em 0" }} className="tools">
+      {/* <div style={{ margin: "1em 0" }} className="tools">
         <SearchInput onSearchChange={handleSearchChange} focusOnTyping={true} />
-      </div>
+      </div> */}
       <div
         className="datatype-list"
         style={{ height: "100%", overflowY: "auto" }}
@@ -71,16 +71,15 @@ const DataTypesList = () => {
               borderBottom: "1px solid #333"
             }}
           >
-            {iconForType(
-              type.value,
-              {
+            <IconForType
+              iconName={type.value}
+              containerStyle={{
                 fill: type.textColor,
-                bgStyle: { backgroundColor: type.color, padding: "6px" },
                 width: "32px",
                 height: "32px"
-              },
-              false
-            )}
+              }}
+              bgStyle={{ backgroundColor: type.color, padding: "6px" }}
+            />
             <Button
               disabled={true}
               disableRipple={true}

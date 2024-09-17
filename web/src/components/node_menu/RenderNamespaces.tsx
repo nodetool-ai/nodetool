@@ -83,12 +83,12 @@ function toPascalCase(input: string): string {
 
 const RenderNamespaces: React.FC<RenderNamespacesProps> = React.memo(
   ({ tree, currentPath = [], handleNamespaceClick }) => {
-    const { highlightedNamespaces, selectedPath, activeNode } =
-      useNodeMenuStore((state) => ({
+    const { highlightedNamespaces, selectedPath } = useNodeMenuStore(
+      (state) => ({
         highlightedNamespaces: state.highlightedNamespaces,
-        selectedPath: state.selectedPath,
-        activeNode: state.activeNode
-      }));
+        selectedPath: state.selectedPath
+      })
+    );
 
     const memoizedTree = useMemo(
       () =>
@@ -140,7 +140,6 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = React.memo(
               hasChildren={hasChildren}
               tree={tree}
               selectedPath={selectedPath}
-              activeNode={activeNode || "---"}
               handleNamespaceClick={memoizedHandleClick}
             />
           )
@@ -158,7 +157,6 @@ interface NamespaceItemProps {
   hasChildren: boolean;
   tree: NamespaceTree;
   selectedPath: string[];
-  activeNode: string;
   handleNamespaceClick: (newPath: string[]) => void;
 }
 const NamespaceItem = React.memo(
@@ -170,7 +168,6 @@ const NamespaceItem = React.memo(
     hasChildren,
     tree,
     selectedPath,
-    activeNode,
     handleNamespaceClick
   }: NamespaceItemProps) => {
     return (
@@ -178,10 +175,7 @@ const NamespaceItem = React.memo(
         <ListItemButton
           style={namespaceStyle}
           className={`list-item ${state}`}
-          selected={
-            selectedPath.join(".") === newPath.join(".") ||
-            newPath.join(".").includes(activeNode || "---")
-          }
+          selected={selectedPath.join(".") === newPath.join(".")}
           onClick={() => handleNamespaceClick(newPath)}
         >
           <ListItemText

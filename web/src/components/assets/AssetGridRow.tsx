@@ -1,7 +1,7 @@
 import React from "react";
 import { AssetOrDivider, DIVIDER_HEIGHT } from "./assetGridUtils";
 import AssetItem from "./AssetItem";
-import { colorForType, iconForType } from "../../config/data_types";
+import { colorForType, IconForType } from "../../config/data_types";
 import { Asset } from "../../stores/ApiTypes";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { IconButton, Typography } from "@mui/material";
@@ -87,22 +87,19 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           }}
         />
         <span style={{ marginLeft: "8px" }}>
-          {iconForType(
-            divider.type,
-            {
-              fill: colorForType(divider.type),
-              containerStyle: {
-                borderRadius: "0 0 3px 0",
-                marginLeft: "0.1em",
-                marginTop: "0"
-              },
-              bgStyle: {
-                backgroundColor: "transparent",
-                width: "15px"
-              }
-            },
-            false
-          )}
+          <IconForType
+            iconName={divider.type}
+            containerStyle={{
+              borderRadius: "0 0 3px 0",
+              marginLeft: "0.1em",
+              marginTop: "0"
+            }}
+            bgStyle={{
+              backgroundColor: "transparent",
+              width: "15px"
+            }}
+            showTooltip={false}
+          />
         </span>
 
         <IconButton size="small">

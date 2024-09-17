@@ -8,7 +8,7 @@ import { ListItemButton, ListItemText, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
-import { iconForType } from "../../config/data_types";
+import { IconForType } from "../../config/data_types";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useDelayedHover } from "../../hooks/useDelayedHover";
 import { InfoOutlined } from "@mui/icons-material";
@@ -28,41 +28,6 @@ interface NodeItemProps {
   onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
   onClick: () => void;
 }
-
-const nodeStyles = (theme: any) =>
-  css({
-    display: "flex",
-    flexDirection: "column",
-    ".node": {
-      display: "flex",
-      alignItems: "center",
-      margin: "0",
-      padding: "0.025em",
-      borderRadius: "3px",
-      cursor: "pointer",
-      ".node-button": {
-        padding: ".1em .5em",
-        "& .MuiTypography-root": {
-          fontSize: theme.fontSizeSmall
-        }
-      }
-    },
-    ".node.hovered": {
-      color: theme.palette.c_hl1
-    },
-    ".namespace-text": {
-      color: theme.palette.c_gray6,
-      fontWeight: "normal",
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
-      borderTop: `1px solid ${theme.palette.c_gray3}`,
-      padding: ".25em 0",
-      margin: "1em 0 .5em"
-    },
-    ".node-info:hover": {
-      color: theme.palette.c_hl1
-    }
-  });
-
 const NodeItem: React.FC<NodeItemProps> = memo(
   ({
     node,
@@ -98,14 +63,14 @@ const NodeItem: React.FC<NodeItemProps> = memo(
         draggable
         onDragStart={onDragStart}
       >
-        {iconForType(outputType, {
-          fill: "#fff",
-          containerStyle: {
+        <IconForType
+          iconName={outputType}
+          containerStyle={{
             borderRadius: "0 0 3px 0",
             marginLeft: "0.1em",
             marginTop: "0"
-          },
-          bgStyle: {
+          }}
+          bgStyle={{
             backgroundColor: "#333",
             margin: "0",
             padding: "1px",
@@ -113,10 +78,12 @@ const NodeItem: React.FC<NodeItemProps> = memo(
             boxShadow: "inset 1px 1px 2px #00000044",
             width: "20px",
             height: "20px"
-          },
-          width: "15px",
-          height: "15px"
-        })}
+          }}
+          svgProps={{
+            width: "15px",
+            height: "15px"
+          }}
+        />
         <ListItemButton className="node-button" onClick={onClick}>
           <ListItemText
             primary={<Typography fontSize="small">{node.title}</Typography>}
@@ -193,7 +160,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
       return (
         <NodeItem
-          key={`${node.namespace}-${node.title}`}
+          key={node.node_type}
           node={node}
           isHovered={isHovered}
           onInfoClick={onInfoClick}
@@ -236,11 +203,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     );
   }, [groupedNodes, renderNode]);
 
-  return (
-    <div className="nodes" css={nodeStyles}>
-      {elements}
-    </div>
-  );
+  return <div className="nodes">{elements}</div>;
 };
 
 export default RenderNodes;

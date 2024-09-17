@@ -50,6 +50,7 @@ import video from "../icons/video.svg?react";
 import { Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../components/node/BaseNode";
 import ThemeNodetool from "../components/themes/ThemeNodetool";
+import { memo } from "react";
 // import comfy_taesd from "../icons/comfy.taesd.svg?react";
 // import comfy_clip from "../icons/comfy.clip.svg?react";
 // import comfy_clip_vision from "../icons/comfy.clip_vision.svg?react";
@@ -613,15 +614,25 @@ export function datatypeByName(name: string) {
   return foundItem || null;
 }
 
-export function iconForType(
-  iconName: string,
-  props?: IconProps,
+interface IconForTypeProps extends IconProps {
+  iconName: string;
+  showTooltip?: boolean;
+  props?: IconProps;
+  containerStyle?: React.CSSProperties;
+  bgStyle?: React.CSSProperties;
+  svgProps?: React.SVGProps<SVGSVGElement>;
+}
+
+export const IconForType = memo(function IconForType({
+  iconName,
+  containerStyle,
+  bgStyle,
+  svgProps,
   showTooltip = true
-) {
+}: IconForTypeProps) {
   const name = iconName.replace("nodetool.", "");
   const description = datatypeByName(name)?.description || "";
   const IconComponent = iconMap[name] || iconMap["any"];
-  const { containerStyle, bgStyle, ...svgProps } = props || {};
 
   return (
     <div css={iconStyles} style={containerStyle} className="icon-container">
@@ -654,7 +665,7 @@ export function iconForType(
       </Tooltip>
     </div>
   );
-}
+});
 
 export function colorForType(type: string): string {
   const foundType = DATA_TYPES.find((dt) => dt.value === type);

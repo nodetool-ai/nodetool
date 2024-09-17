@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import { useHotkeys } from "react-hotkeys-hook";
-import { debounce } from "lodash";
+import { useDebouncedCallback } from "use-debounce";
 
 const styles = (theme: any) =>
   css({
@@ -73,82 +72,63 @@ const styles = (theme: any) =>
   });
 
 interface SearchInputProps {
-  onSearchChange: (value: string) => void;
-  onSearchClear?: () => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
-  debounceTime?: number;
   placeholder?: string;
-  focusOnEscapeKey?: boolean;
+  debounceTime?: number;
   maxWidth?: string;
-  value?: string;
+  searchTerm?: string;
+  setSearchTerm?: (searchTerm: string) => void;
+  setSelectedPath?: (path: string[]) => void;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
-  onSearchChange,
-  onSearchClear = () => {},
   focusSearchInput = true,
   focusOnTyping = false,
-  focusOnEscapeKey = true,
-  debounceTime = 0,
   placeholder = "Search...",
   maxWidth = "unset",
-  value: externalValue = ""
+  debounceTime = 300,
+  searchTerm: externalSearchTerm = "",
+  setSearchTerm = (term: string) => {},
+  setSelectedPath = (path: string[]) => {}
 }) => {
-  const [value, setValue] = useState(externalValue || "ttt");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
   );
 
-  const setSearchFocused = () => {
-    inputRef.current?.focus();
-  };
+  const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
+    setSearchTerm(value);
+  }, debounceTime);
 
-  const debouncedSearchChange = useRef(
-    debounce((nextValue: string) => {
-      onSearchChange(nextValue);
-    }, debounceTime)
+  const resetSearch = useCallback(() => {
+    setLocalSearchTerm("");
+    debouncedSetSearchTerm("");
+    setSelectedPath([]);
+  }, [debouncedSetSearchTerm, setSelectedPath]);
+
+  const handleInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = event.target.value;
+      setLocalSearchTerm(newValue);
+      debouncedSetSearchTerm(newValue);
+    },
+    [debouncedSetSearchTerm]
   );
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextValue = event.target.value;
-    setValue(nextValue);
-    debouncedSearchChange.current(nextValue);
-  };
+  const clearSearch = useCallback(() => {
+    resetSearch();
+    inputRef.current?.focus();
+  }, [resetSearch]);
 
-  const clearSearch = () => {
-    setValue("");
-    onSearchChange("");
-    onSearchClear();
-    setSearchFocused();
-  };
-
-  const clearSearchOnEscape = () => {
-    if (focusOnEscapeKey || document.activeElement === inputRef.current) {
-      setValue("");
-      onSearchChange("");
-      onSearchClear();
-      setSearchFocused();
-    }
-  };
-
-  useHotkeys("Escape", clearSearchOnEscape, {
-    enableOnFormTags: ["input"]
-  });
-
-  // focus on mount
-  useLayoutEffect(() => {
-    if (focusSearchInput && inputRef.current) {
-      if (inputRef.current) {
-        inputRef.current?.focus();
-      }
-      // setValue("");
+  React.useEffect(() => {
+    if (focusSearchInput) {
+      inputRef.current?.focus();
     }
   }, [focusSearchInput]);
 
-  // focus on keydown
-  useEffect(() => {
+  React.useEffect(() => {
     if (focusOnTyping) {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (controlKeyPressed) return;
@@ -156,29 +136,16 @@ const SearchInput: React.FC<SearchInputProps> = ({
           if (document.activeElement !== inputRef.current) {
             event.preventDefault();
             inputRef.current?.focus();
-            const newSearchTerm = event.key;
-            if (
-              inputRef.current &&
-              document.activeElement !== inputRef.current
-            ) {
-              inputRef.current.value = newSearchTerm;
-            }
-            setValue(newSearchTerm);
+            setLocalSearchTerm(event.key);
+            debouncedSetSearchTerm(event.key);
           }
         }
       };
 
       window.addEventListener("keydown", handleKeyDown);
-
-      return () => {
-        window.removeEventListener("keydown", handleKeyDown);
-      };
+      return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [focusOnTyping, controlKeyPressed]);
-
-  useEffect(() => {
-    setValue(externalValue);
-  }, [externalValue]);
+  }, [focusOnTyping, controlKeyPressed, debouncedSetSearchTerm]);
 
   return (
     <div
@@ -192,7 +159,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         ref={inputRef}
         type="text"
         placeholder={placeholder}
-        value={value}
+        value={localSearchTerm}
         onChange={handleInputChange}
         autoCorrect="off"
         autoCapitalize="none"
@@ -201,7 +168,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
       />
 
       <button
-        className={`clear-search-btn ${value.trim() === "" ? "disabled" : ""}`}
+        className={`clear-search-btn ${
+          localSearchTerm.trim() === "" ? "disabled" : ""
+        }`}
         onClick={clearSearch}
       >
         <BackspaceIcon />
@@ -210,4 +179,4 @@ const SearchInput: React.FC<SearchInputProps> = ({
   );
 };
 
-export default SearchInput;
+export default React.memo(SearchInput);
