@@ -59,20 +59,20 @@ interface AssetActionsMenuProps {
   maxItemSize: number;
 }
 
-const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
-  maxItemSize,
-}) => {
+const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
-  const setSelectedAssetIds = useAssetGridStore((state) => state.setSelectedAssetIds);
-  const setAssetSearchTerm = useAssetGridStore((state) => state.setAssetSearchTerm);
+  const setSelectedAssetIds = useAssetGridStore(
+    (state) => state.setSelectedAssetIds
+  );
+  const setAssetSearchTerm = useAssetGridStore(
+    (state) => state.setAssetSearchTerm
+  );
   const { folderFiles } = useAssets();
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
 
-  const {
-    handleSelectAllAssets,
-    handleDeselectAssets,
-  } = useAssetSelection(folderFiles);
+  const { handleSelectAllAssets, handleDeselectAssets } =
+    useAssetSelection(folderFiles);
 
   const onSearchChange = useCallback(
     (newSearchTerm: string) => {
@@ -81,18 +81,13 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
     [setAssetSearchTerm]
   );
 
-  const onSearchClear = useCallback(() => {
-    setAssetSearchTerm("");
-  }, [setAssetSearchTerm]);
-
   return (
     <Box className="asset-menu" css={styles}>
       <SearchInput
-        onSearchChange={onSearchChange}
-        onSearchClear={onSearchClear}
+        setSearchTerm={onSearchChange}
         focusOnTyping={false}
         focusSearchInput={false}
-        focusOnEscapeKey={false}
+        // focusOnEscapeKey={false}
         maxWidth={"9em"}
       />
       <AssetActions
