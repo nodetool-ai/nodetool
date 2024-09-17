@@ -102,7 +102,9 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
   }, [dropType, connectDirection, setSelectedInputType, setSelectedOutputType]);
 
   useEffect(() => {
-    setMetadata(metadata?.metadata || []);
+    if (metadata) {
+      setMetadata(metadata?.metadata);
+    }
   }, [metadata, setMetadata]);
 
   const treeStyles = (theme: any) =>
