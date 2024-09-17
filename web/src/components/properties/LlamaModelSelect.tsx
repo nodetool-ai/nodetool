@@ -46,22 +46,32 @@ export default function LlamaModelSelect({
 
   return (
     <Select
-      value={value}
+      value={value || ""}
       onChange={handleChange}
       variant="standard"
       className="mui-select nodrag"
       disableUnderline={true}
     >
-      {isLoading && <MenuItem value="">Loading models...</MenuItem>}
-      {isError && <MenuItem value="">Error loading models</MenuItem>}
+      <MenuItem value="" key="select-model">
+        Select a model
+      </MenuItem>
+      {isLoading && (
+        <MenuItem value="" key="loading">
+          Loading models...
+        </MenuItem>
+      )}
+      {isError && (
+        <MenuItem value="" key="error">
+          Error loading models
+        </MenuItem>
+      )}
       {isSuccess && values.length === 0 && (
-        <MenuItem value="">
+        <MenuItem value="" key="no-models">
           No models found. Click RECOMMENDED MODELS above to find models.
         </MenuItem>
       )}
-      {isSuccess && values.length > 0 && <MenuItem value="">None</MenuItem>}
-      {values?.map(({ value, label }) => (
-        <MenuItem key={value} value={value}>
+      {values?.map(({ value: modelValue, label }, index) => (
+        <MenuItem key={`model-${modelValue}`} value={modelValue}>
           {label}
         </MenuItem>
       ))}
