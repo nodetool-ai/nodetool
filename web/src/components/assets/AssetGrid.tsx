@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useEffect, useRef, useMemo } from "react";
+import useResizeObserver from "@react-hook/resize-observer";
 import { Box, Divider, Typography } from "@mui/material";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -95,6 +96,12 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
     }));
 
     const containerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = React.useState(0);
+
+    useResizeObserver(containerRef, (entry) => {
+      setContainerWidth(entry.contentRect.width);
+    });
+
     const { uploadAsset } = useAssetUpload();
 
     const handleClickOutside = useCallback(
@@ -164,7 +171,9 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
               onClose={() => setOpenAsset(null)}
             />
           )}
-          <AssetActionsMenu maxItemSize={maxItemSize} />
+          {containerWidth > 300 && (
+            <AssetActionsMenu maxItemSize={maxItemSize} />
+          )}
           <Dropzone onDrop={uploadFiles}>
             <div
               style={{
@@ -173,7 +182,9 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
                 flexDirection: isHorizontal ? "row" : "column"
               }}
             >
-              <FolderList isHorizontal={isHorizontal} />
+              {containerWidth > 300 && (
+                <FolderList isHorizontal={isHorizontal} />
+              )}
               <AssetGridContent
                 itemSpacing={itemSpacing}
                 onDoubleClick={handleDoubleClick}
@@ -218,7 +229,8 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
         spaceKeyPressed,
         openMenuType,
         selectedAssetIds,
-        setOpenAsset
+        setOpenAsset,
+        containerWidth // Add containerWidth to the dependency array
       ]
     );
 
