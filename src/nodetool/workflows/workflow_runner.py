@@ -165,13 +165,9 @@ class WorkflowRunner:
 
         with self.torch_context(context):
             try:
-                log.info("Validating graph")
                 await self.validate_graph(context, graph)
-                log.info("Clearing unused models")
                 await self.clear_unused_models(graph)
-                log.info("Initializing graph")
                 await self.initialize_graph(context, graph)
-                log.info("Processing graph")
                 await self.process_graph(context, graph)
             except torch.cuda.OutOfMemoryError as e:
                 error_message = f"VRAM OOM error: {str(e)}. No additional VRAM available after retries."

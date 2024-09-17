@@ -1,4 +1,5 @@
 import asyncio
+import base64
 from enum import Enum
 import json
 import time
@@ -8,6 +9,7 @@ from typing import Any
 from anthropic import BaseModel
 from fastapi import WebSocket, WebSocketDisconnect
 from nodetool.common.environment import Environment
+from nodetool.metadata.types import AssetRef
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.workflows.run_workflow import run_workflow
 from nodetool.workflows.run_job_request import RunJobRequest
@@ -21,11 +23,17 @@ class CommandType(str, Enum):
     RUN_JOB = "run_job"
     CANCEL_JOB = "cancel_job"
     GET_STATUS = "get_status"
+    SET_MODE = "set_mode"  # New command type
 
 
 class WebSocketCommand(BaseModel):
     command: CommandType
     data: dict
+
+
+class WebSocketMode(str, Enum):
+    BINARY = "binary"
+    TEXT = "text"
 
 
 class WebSocketRunner:
@@ -41,6 +49,7 @@ class WebSocketRunner:
         runner (WorkflowRunner | None): The workflow runner for job execution.
         pre_run_hook (Any): A hook function to be executed before running a job.
         post_run_hook (Any): A hook function to be executed after running a job.
+        mode (WebSocketMode): The current mode for WebSocket communication.
     """
 
     websocket: WebSocket | None = None
@@ -51,6 +60,7 @@ class WebSocketRunner:
     runner: WorkflowRunner | None = None
     pre_run_hook: Any
     post_run_hook: Any
+    mode: WebSocketMode = WebSocketMode.BINARY
 
     def __init__(
         self,
@@ -69,6 +79,7 @@ class WebSocketRunner:
         self.pre_run_hook = pre_run_hook
         self.post_run_hook = post_run_hook
         self.use_thread = use_thread
+        self.mode = WebSocketMode.BINARY
 
     async def connect(self, websocket: WebSocket):
         """
@@ -79,24 +90,29 @@ class WebSocketRunner:
         """
         await websocket.accept()
         self.websocket = websocket
+        log.info("WebSocket connection established")
 
     async def disconnect(self):
         """
         Closes the WebSocket connection and cancels any active job.
         """
+        log.info("Disconnecting WebSocket")
         if self.active_job:
             try:
                 self.active_job.cancel()
-            except Exception:
-                pass
+                log.info("Active job cancelled during disconnect")
+            except Exception as e:
+                log.error(f"Error cancelling active job during disconnect: {e}")
         if self.websocket:
             try:
                 await self.websocket.close()
-            except Exception:
-                pass
+                log.info("WebSocket closed successfully")
+            except Exception as e:
+                log.error(f"Error closing WebSocket: {e}")
         self.websocket = None
         self.active_job = None
         self.job_id = None
+        log.info("WebSocket disconnected and resources cleaned up")
 
     async def run_job(
         self,
@@ -118,27 +134,40 @@ class WebSocketRunner:
             self.job_id = uuid.uuid4().hex
             self.runner = WorkflowRunner(job_id=self.job_id)
 
-            log.info("Running job: %s", self.job_id)
+            log.info(f"Starting job execution: {self.job_id}")
             if self.pre_run_hook:
+                log.debug("Executing pre-run hook")
                 self.pre_run_hook()
 
             async for msg in run_workflow(
                 req, self.runner, self.context, use_thread=True
             ):
                 try:
+                    if self.mode == WebSocketMode.TEXT:
+                        if msg.type == "job_update":
+                            if msg.status == "completed":
+                                result = msg.result
+                                for key, value in result.items():
+                                    if isinstance(value, AssetRef) and value.data:
+                                        if isinstance(value.data, bytes):
+                                            value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data).decode('utf-8')}"
+                                        elif isinstance(value.data, list):
+                                            # TODO: handle multiple assets
+                                            value.uri = f"data:application/octet-stream;base64,{base64.b64encode(value.data[0]).decode('utf-8')}"
+                                        value.data = None
                     msg_dict = msg.model_dump()
 
                     # Only wrap the result if explicit_types is True
                     if req.explicit_types and "result" in msg_dict:
                         msg_dict["result"] = wrap_primitive_types(msg_dict["result"])
 
-                    packed_message = msgpack.packb(msg_dict, use_bin_type=True)
-
-                    await self.websocket.send_bytes(packed_message)  # type: ignore
+                    await self.send_message(msg_dict)
+                    log.debug(f"Sent message for job {self.job_id}: {msg.type}")
                 except Exception as e:
                     log.exception(f"Error processing message in job {self.job_id}: {e}")
 
             if self.post_run_hook:
+                log.debug("Executing post-run hook")
                 self.post_run_hook()
 
             total_time = time.time() - start_time
@@ -153,6 +182,21 @@ class WebSocketRunner:
         # TODO: Implement bookkeeping for credits used
         self.active_job = None
         self.job_id = None
+        log.info(f"Job {self.job_id} resources cleaned up")
+
+    async def send_message(self, message: dict):
+        """Send a message using the current mode."""
+        assert self.websocket, "WebSocket is not connected"
+        try:
+            if self.mode == WebSocketMode.BINARY:
+                packed_message = msgpack.packb(message, use_bin_type=True)
+                await self.websocket.send_bytes(packed_message)  # type: ignore
+                log.debug(f"Sent binary message: {message['type']}")
+            else:
+                await self.websocket.send_text(json.dumps(message))
+                log.debug(f"Sent text message: {message['type']}")
+        except Exception as e:
+            log.error(f"Error sending message: {e}")
 
     async def send_job_update(self, status: str, error: str | None = None):
         msg = {
@@ -161,8 +205,7 @@ class WebSocketRunner:
             "error": error,
             "job_id": self.job_id,
         }
-        packed_message = msgpack.packb(msg, use_bin_type=True)
-        await self.websocket.send_bytes(packed_message)  # type: ignore
+        await self.send_message(msg)
 
     async def cancel_job(self):
         """
@@ -171,16 +214,19 @@ class WebSocketRunner:
         Returns:
             dict: A dictionary with a message indicating the job was cancelled, or an error if no active job exists.
         """
-        print("Cancelling job")
+        log.info(f"Attempting to cancel job: {self.job_id}")
         if self.active_job:
             if self.runner:
                 self.runner.cancel()
+                log.info(f"Cancelled runner for job: {self.job_id}")
             await self.send_job_update("cancelled")
             await asyncio.sleep(3.0)
             self.active_job.cancel()
+            log.info(f"Cancelled active job task: {self.job_id}")
             self.active_job = None
             self.job_id = None
             return {"message": "Job cancelled"}
+        log.warning("No active job to cancel")
         return {"error": "No active job to cancel"}
 
     def get_status(self):
@@ -205,8 +251,10 @@ class WebSocketRunner:
         Returns:
             dict: A dictionary with the response to the command.
         """
+        log.info(f"Handling command: {command.command}")
         if command.command == CommandType.RUN_JOB:
             if self.active_job:
+                log.warning("Attempted to start a job while another is running")
                 return {"error": "A job is already running"}
             req = RunJobRequest(**command.data)
             log.info(f"Starting workflow: {req.workflow_id}")
@@ -215,8 +263,16 @@ class WebSocketRunner:
         elif command.command == CommandType.CANCEL_JOB:
             return await self.cancel_job()
         elif command.command == CommandType.GET_STATUS:
-            return self.get_status()
+            status = self.get_status()
+            log.debug(f"Current status: {status}")
+            return status
+        elif command.command == CommandType.SET_MODE:
+            new_mode = WebSocketMode(command.data["mode"])
+            self.mode = new_mode
+            log.info(f"WebSocket mode set to: {new_mode}")
+            return {"message": f"Mode set to {new_mode}"}
         else:
+            log.warning(f"Unknown command received: {command.command}")
             return {"error": "Unknown command"}
 
     async def run(self, websocket: WebSocket):
@@ -232,17 +288,21 @@ class WebSocketRunner:
                 assert self.websocket, "WebSocket is not connected"
                 message = await self.websocket.receive()
                 if message["type"] == "websocket.disconnect":
+                    log.info("Received websocket disconnect message")
                     break
                 if "bytes" in message:
-                    data = message["bytes"]
-                    command = WebSocketCommand(**msgpack.unpackb(data))  # type: ignore
-                    response = await self.handle_command(command)
-                    await self.websocket.send_bytes(msgpack.packb(response, use_bin_type=True))  # type: ignore
+                    data = msgpack.unpackb(message["bytes"])  # type: ignore
+                    log.debug("Received binary message")
                 elif "text" in message:
-                    data = message["text"]
-                    command = WebSocketCommand(**json.loads(data))
-                    response = await self.handle_command(command)
-                    await self.websocket.send_text(json.dumps(response))
+                    data = json.loads(message["text"])
+                    log.debug("Received text message")
+                else:
+                    log.warning("Received message with unknown format")
+                    continue
+
+                command = WebSocketCommand(**data)
+                response = await self.handle_command(command)
+                await self.send_message(response)
         except WebSocketDisconnect:
             log.info("WebSocket disconnected")
         except Exception as e:
