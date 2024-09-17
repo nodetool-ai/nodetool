@@ -352,7 +352,7 @@
             }
 
             async loadWorkflows() {
-                const response = await fetch(`${this.apiUrl}/workflows`, {
+                const response = await fetch(`${this.apiUrl}/workflows/`, {
                     headers: {
                         'Authorization': `Bearer ${this.token}`
                     }
