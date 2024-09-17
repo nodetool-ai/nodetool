@@ -1,6 +1,6 @@
 <h1 style="display: inline;">
   <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
-  NodeTool
+  NodeTool - The Complete AI Toolbox
 </h1>
 
 NodeTool is an all-in-one platform for AI professionals and innovators. It brings together a wide range of AI tools and models in a simple, visual interface. Whether you're an artist, developer, data scientist or complete beginner, NodeTool has everything you need to power your AI projects.
