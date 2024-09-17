@@ -91,11 +91,11 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     if (connectDirection === "target") {
       setSelectedOutputType(dropType);
     }
-  }, [dropType, connectDirection]);
+  }, [dropType, connectDirection, setSelectedInputType, setSelectedOutputType]);
 
   useEffect(() => {
     setMetadata(metadata?.metadata || []);
-  }, [metadata]);
+  }, [metadata, setMetadata]);
 
   const treeStyles = (theme: any) =>
     css({

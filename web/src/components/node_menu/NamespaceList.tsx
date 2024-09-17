@@ -335,4 +335,6 @@ const NamespaceList: React.FC<NamespaceListProps> = React.memo(
   }
 );
 
+NamespaceList.displayName = "NamespaceList";
+
 export default NamespaceList;
