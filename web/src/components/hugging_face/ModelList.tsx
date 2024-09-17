@@ -402,6 +402,8 @@ const ModelList: React.FC = () => {
             focusSearchInput={false}
             focusOnEscapeKey={false}
             maxWidth={"9em"}
+            setSearchTerm={setModelSearchTerm}
+            searchTerm={modelSearchTerm}
           />
           <ToggleButtonGroup
             value={viewMode}

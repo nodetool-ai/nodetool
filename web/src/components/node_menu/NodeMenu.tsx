@@ -30,6 +30,8 @@ import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import { useMetadata } from "../../serverState/useMetadata";
+import { useHotkeys } from "react-hotkeys-hook";
+import SearchInput from "../search/SearchInput";
 
 type NodeMenuProps = {
   focusSearchInput?: boolean;
@@ -58,6 +60,7 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     searchTerm,
     setSearchTerm,
     setMetadata,
+    setSelectedPath,
     showNamespaceTree,
     toggleNamespaceTree
   } = useNodeMenuStore((state) => ({
@@ -75,10 +78,15 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
     setSelectedOutputType: state.setSelectedOutputType,
     searchTerm: state.searchTerm,
     setSearchTerm: state.setSearchTerm,
+    setSelectedPath: state.setSelectedPath,
     setMetadata: state.setMetadata,
     showNamespaceTree: state.showNamespaceTree,
     toggleNamespaceTree: state.toggleNamespaceTree
   }));
+
+  useHotkeys("Escape", () => {
+    closeNodeMenu();
+  });
 
   // SET SELECTED TYPE FILTER
   // dropping a handle from left or right side of a node
@@ -243,13 +251,14 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
               </Button>
             </Tooltip>
 
-            <SearchComponent
+            <SearchInput
               focusSearchInput={true}
               focusOnTyping={true}
               placeholder="Search for nodes..."
               debounceTime={300}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
+              setSelectedPath={setSelectedPath}
             />
             {/* <Tooltip
               title="Clear namespace selection"
