@@ -54,9 +54,9 @@ def test_get_workflow(client: TestClient, workflow: Workflow, headers: dict[str,
                 "default": 10,
                 "minimum": 0,
                 "maximum": 100,
-                "description": "",
             },
         },
+        "required": ["in1"],
     }
 
 
@@ -79,9 +79,9 @@ def test_get_public_workflow(
                 "default": 10,
                 "minimum": 0,
                 "maximum": 100,
-                "description": "",
             },
         },
+        "required": ["in1"],
     }
 
 

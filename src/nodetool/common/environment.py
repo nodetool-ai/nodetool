@@ -155,7 +155,7 @@ class Environment(object):
         """
         Is the environment test?
         """
-        return cls.get_env() == "test"
+        return os.environ.get("PYTEST_CURRENT_TEST") is not None
 
     @classmethod
     def set_remote_auth(cls, remote_auth: bool):
@@ -234,7 +234,10 @@ class Environment(object):
         """
         The database url is the url of the database.
         """
-        return cls.get("DB_PATH")
+        if cls.is_test():
+            return "/tmp/nodetool_test.db"
+        else:
+            return cls.get("DB_PATH")
 
     @classmethod
     def get_postgres_params(cls):
@@ -617,24 +620,28 @@ class Environment(object):
         Get the storage adapter for assets.
         """
         if not hasattr(cls, "asset_storage"):
-            if cls.is_production() or cls.get_s3_access_key_id() is not None or use_s3:
-                return cls.get_s3_storage(
+            base_url = cls.get_storage_api_url() + cls.get_asset_bucket()
+            if cls.is_test():
+                from nodetool.storage.memory_storage import MemoryStorage
+
+                cls.get_logger().info(f"Using memory storage for asset storage")
+
+                cls.asset_storage = MemoryStorage(base_url=base_url)
+            elif (
+                cls.is_production() or cls.get_s3_access_key_id() is not None or use_s3
+            ):
+                cls.get_logger().info(f"Using S3 storage for asset storage")
+                cls.asset_storage = cls.get_s3_storage(
                     cls.get_asset_bucket(), cls.get_asset_domain()
                 )
             else:
                 from nodetool.storage.file_storage import FileStorage
 
-                base_url = cls.get_storage_api_url() + cls.get_asset_bucket()
-                if cls.is_test():
-                    from nodetool.storage.memory_storage import MemoryStorage
-
-                    cls.asset_storage = MemoryStorage(base_url=base_url)
-                else:
-                    cls.get_logger().info(f"Using local file storage for asset storage")
-                    cls.asset_storage = FileStorage(
-                        base_path=cls.get_asset_folder(),
-                        base_url=base_url,
-                    )
+                cls.get_logger().info(f"Using local file storage for asset storage")
+                cls.asset_storage = FileStorage(
+                    base_path=cls.get_asset_folder(),
+                    base_url=base_url,
+                )
 
         assert cls.asset_storage is not None
         return cls.asset_storage

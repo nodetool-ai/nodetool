@@ -1,4 +1,5 @@
 import asyncio
+import os
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock
 from fastapi import FastAPI
@@ -6,6 +7,8 @@ from fastapi.testclient import TestClient
 import httpx
 import pytest
 from nodetool.api.server import create_app
+from nodetool.common.settings import SettingsModel
+from nodetool.storage.memory_storage import MemoryStorage
 from nodetool.types.graph import Node, Edge
 from nodetool.common.environment import Environment
 from nodetool.models.message import Message
@@ -21,16 +24,13 @@ from datetime import datetime, timedelta
 import io
 import uuid
 import PIL.Image
+from nodetool.common.environment import DEFAULT_ENV
 
 
 @pytest.fixture(autouse=True, scope="function")
 def setup_and_teardown():
     Environment.set_remote_auth(True)
 
-    Environment.settings = {
-        "ENV": "test",
-        "DB_PATH": "/tmp/nodetool_test.db",
-    }
     create_all_tables()
 
     yield
@@ -70,10 +70,11 @@ def make_user(verified: bool = False) -> User:
     return user
 
 
-async def upload_test_image(image: Asset, width: int = 512, height: int = 512):
+def upload_test_image(image: Asset, width: int = 512, height: int = 512):
     storage = Environment.get_asset_storage()
+    assert isinstance(storage, MemoryStorage)
     img = PIL.Image.new("RGB", (width, height))
-    await storage.upload(image.file_name, io.BytesIO(pil_to_bytes(img)))
+    storage.storage[image.file_name] = pil_to_bytes(img)
 
 
 def make_image(
@@ -90,9 +91,7 @@ def make_image(
         content_type="image/jpeg",
         workflow_id=workflow_id,
     )
-    asyncio.run_coroutine_threadsafe(
-        upload_test_image(image, width, height), asyncio.get_event_loop()
-    )
+    upload_test_image(image, width, height)
     return image
 
 
