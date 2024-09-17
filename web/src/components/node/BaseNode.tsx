@@ -181,7 +181,9 @@ export default memo(
             <NodeErrors id={props.id} />
             <NodeStatus status={status} />
             {!isProduction && <ModelRecommendations nodeType={props.type} />}
-            <ApiKeyValidation nodeNamespace={node_namespace} />
+            {!isProduction && (
+              <ApiKeyValidation nodeNamespace={node_namespace} />
+            )}
           </>
         )}
         <NodeContent
