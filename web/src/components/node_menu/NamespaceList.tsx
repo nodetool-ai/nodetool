@@ -131,165 +131,182 @@ const namespaceStyles = (theme: any) =>
     }
   });
 
-const NamespaceList: React.FC<NamespaceListProps> = ({
-  namespaceTree,
-  metadata
-}) => {
-  const {
-    searchTerm,
-    highlightedNamespaces,
-    selectedPath,
-    setSelectedPath,
-    searchResults,
-    hoveredNode,
-    setHoveredNode,
-    showNamespaceTree
-  } = useNodeMenuStore((state) => ({
-    searchTerm: state.searchTerm,
-    highlightedNamespaces: state.highlightedNamespaces,
-    selectedPath: state.selectedPath,
-    setSelectedPath: state.setSelectedPath,
-    searchResults: state.searchResults,
-    hoveredNode: state.hoveredNode,
-    setHoveredNode: state.setHoveredNode,
-    showNamespaceTree: state.showNamespaceTree
-  }));
+const NamespaceList: React.FC<NamespaceListProps> = React.memo(
+  ({ namespaceTree, metadata }) => {
+    const {
+      searchTerm,
+      highlightedNamespaces,
+      selectedPath,
+      setSelectedPath,
+      searchResults,
+      hoveredNode,
+      setHoveredNode,
+      showNamespaceTree
+    } = useNodeMenuStore((state) => ({
+      searchTerm: state.searchTerm,
+      highlightedNamespaces: state.highlightedNamespaces,
+      selectedPath: state.selectedPath,
+      setSelectedPath: state.setSelectedPath,
+      searchResults: state.searchResults,
+      hoveredNode: state.hoveredNode,
+      setHoveredNode: state.setHoveredNode,
+      showNamespaceTree: state.showNamespaceTree
+    }));
 
-  const handleNamespaceClick = useCallback(
-    (namespacePath: string[]) => {
-      setHoveredNode(null);
-      if (selectedPath.join(".") === namespacePath.join(".")) {
-        setSelectedPath(selectedPath.slice(0, -1));
-      } else {
-        setSelectedPath(namespacePath);
-      }
-    },
-    [selectedPath, setHoveredNode, setSelectedPath]
-  );
-
-  const selectedPathString = selectedPath.join(".");
-
-  const currentNodes = useMemo(() => {
-    if (!metadata) return [];
-
-    return metadata
-      .filter((node) => {
-        const startsWithPath = node.namespace.startsWith(
-          selectedPathString + "."
+    const handleNamespaceClick = useCallback(
+      (namespacePath: string[]) => {
+        setHoveredNode(null);
+        setSelectedPath(
+          selectedPath.join(".") === namespacePath.join(".")
+            ? selectedPath.slice(0, -1)
+            : namespacePath
         );
-        return (
-          (selectedPathString === "" && searchTerm !== "") ||
-          node.namespace === selectedPathString ||
-          startsWithPath
-        );
-      })
-      .sort((a, b) => {
-        const namespaceComparison = a.namespace.localeCompare(b.namespace);
-        return namespaceComparison !== 0
-          ? namespaceComparison
-          : a.title.localeCompare(b.title);
-      });
-  }, [metadata, selectedPathString, searchTerm]);
+      },
+      [setHoveredNode, setSelectedPath, selectedPath]
+    );
 
-  return (
-    <div css={namespaceStyles}>
-      <Box className="header">
-        <Tooltip
-          title={
-            <span
-              style={{
-                color: "#eee",
-                fontSize: "1.25em"
-              }}
-            >
-              showing the amount of nodes found: <br />
-              [in selected namespace | total search results]
-            </span>
-          }
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          leaveDelay={TOOLTIP_LEAVE_DELAY}
-          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-          placement="bottom"
-        >
-          <Typography className="result-info">
-            <span>
-              [{currentNodes?.length} | {searchResults.length}]
-            </span>
-          </Typography>
-        </Tooltip>
-      </Box>
+    const selectedPathString = useMemo(
+      () => selectedPath.join("."),
+      [selectedPath]
+    );
 
-      <Box className="list-box">
-        <List
-          className="namespace-list"
-          sx={{ display: showNamespaceTree ? "block" : "none" }}
-        >
-          <RenderNamespaces
-            tree={namespaceTree}
-            handleNamespaceClick={handleNamespaceClick}
-          />
-        </List>
-        {currentNodes && currentNodes.length > 0 ? (
-          <>
-            <List className="node-list">
-              <RenderNodes nodes={currentNodes} />
-            </List>
-            {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}
-          </>
-        ) : searchTerm.length > 0 && highlightedNamespaces.length > 0 ? (
-          <div className="no-selection">
-            <p>
-              Nothing found in this namespace for
-              <strong className="highlighted-text">
-                {" "}
-                &quot;{searchTerm}&quot;
-              </strong>
-            </p>
-            <ul className="no-results">
-              <li>
-                click on <span className="highlighted">highlighted </span>
-                namespaces to find results.
-              </li>
-              <li>
-                clear the search with [ESC] or by clicking on the X in the
-                search bar
-              </li>
-              <li>just start typing to enter a new search term</li>
-            </ul>
-          </div>
-        ) : (
-          <div className="no-selection">
-            <div className="explanation">
-              <Typography variant="h5" style={{ marginTop: 0 }}>
-                Browse Nodes
-              </Typography>
-              <ul>
-                <li>Click on the namespaces to the left</li>
-              </ul>
+    const currentNodes = useMemo(() => {
+      if (!metadata) return [];
 
-              <Typography variant="h5">Search Nodes</Typography>
-              <Typography variant="body1">
-                Just start typing while the NodeMenu is open. <br />
-                <br />
-                To clear the search term:
-                <br />
-                Press ESC key or the X icon in the search input.
-              </Typography>
+      return metadata
+        .filter((node) => {
+          const startsWithPath = node.namespace.startsWith(
+            selectedPathString + "."
+          );
+          return (
+            (selectedPathString === "" && searchTerm !== "") ||
+            node.namespace === selectedPathString ||
+            startsWithPath
+          );
+        })
+        .sort((a, b) => {
+          const namespaceComparison = a.namespace.localeCompare(b.namespace);
+          return namespaceComparison !== 0
+            ? namespaceComparison
+            : a.title.localeCompare(b.title);
+        });
+    }, [metadata, selectedPathString, searchTerm]);
 
-              <Typography variant="h5">Create Nodes</Typography>
-              <ul>
-                <li>Click on a node</li>
-                <li>Drag nodes on canvas</li>
+    const renderNamespaces = useMemo(
+      () => (
+        <RenderNamespaces
+          tree={namespaceTree}
+          handleNamespaceClick={handleNamespaceClick}
+        />
+      ),
+      [namespaceTree, handleNamespaceClick]
+    );
+
+    const renderNodes = useMemo(
+      () => <RenderNodes nodes={currentNodes} />,
+      [currentNodes]
+    );
+
+    const renderNodeInfo = useMemo(
+      () => hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />,
+      [hoveredNode]
+    );
+
+    return (
+      <div css={namespaceStyles}>
+        <Box className="header">
+          <Tooltip
+            title={
+              <span
+                style={{
+                  color: "#eee",
+                  fontSize: "1.25em"
+                }}
+              >
+                showing the amount of nodes found: <br />
+                [in selected namespace | total search results]
+              </span>
+            }
+            enterDelay={TOOLTIP_ENTER_DELAY}
+            leaveDelay={TOOLTIP_LEAVE_DELAY}
+            enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+            placement="bottom"
+          >
+            <Typography className="result-info">
+              <span>
+                [{currentNodes?.length} | {searchResults.length}]
+              </span>
+            </Typography>
+          </Tooltip>
+        </Box>
+
+        <Box className="list-box">
+          <List
+            className="namespace-list"
+            sx={{ display: showNamespaceTree ? "block" : "none" }}
+          >
+            {renderNamespaces}
+          </List>
+          {currentNodes && currentNodes.length > 0 ? (
+            <>
+              <List className="node-list">{renderNodes}</List>
+              {renderNodeInfo}
+            </>
+          ) : searchTerm.length > 0 && highlightedNamespaces.length > 0 ? (
+            <div className="no-selection">
+              <p>
+                Nothing found in this namespace for
+                <strong className="highlighted-text">
+                  {" "}
+                  &quot;{searchTerm}&quot;
+                </strong>
+              </p>
+              <ul className="no-results">
+                <li>
+                  click on <span className="highlighted">highlighted </span>
+                  namespaces to find results.
+                </li>
+                <li>
+                  clear the search with [ESC] or by clicking on the X in the
+                  search bar
+                </li>
+                <li>just start typing to enter a new search term</li>
               </ul>
             </div>
-            <List className="node-info">
-              <Typography className="node-title"></Typography>
-            </List>
-          </div>
-        )}
-      </Box>
-    </div>
-  );
-};
+          ) : (
+            <div className="no-selection">
+              <div className="explanation">
+                <Typography variant="h5" style={{ marginTop: 0 }}>
+                  Browse Nodes
+                </Typography>
+                <ul>
+                  <li>Click on the namespaces to the left</li>
+                </ul>
+
+                <Typography variant="h5">Search Nodes</Typography>
+                <Typography variant="body1">
+                  Just start typing while the NodeMenu is open. <br />
+                  <br />
+                  To clear the search term:
+                  <br />
+                  Press ESC key or the X icon in the search input.
+                </Typography>
+
+                <Typography variant="h5">Create Nodes</Typography>
+                <ul>
+                  <li>Click on a node</li>
+                  <li>Drag nodes on canvas</li>
+                </ul>
+              </div>
+              <List className="node-info">
+                <Typography className="node-title"></Typography>
+              </List>
+            </div>
+          )}
+        </Box>
+      </div>
+    );
+  }
+);
 
 export default NamespaceList;

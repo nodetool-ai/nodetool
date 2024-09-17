@@ -15,7 +15,9 @@ import { useCreateNode } from "../../hooks/useCreateNode";
 const styles = (theme: any) => css`
   .MuiDialog-paper {
     max-width: 800px;
-    width: 30vw;
+    width: 40vw;
+    background: transparent;
+    box-shadow: none;
   }
   .command-menu {
     width: 100%;
@@ -28,135 +30,115 @@ const styles = (theme: any) => css`
 
   [cmdk-root] {
     width: 100%;
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
     padding: 8px;
     color: ${theme.palette.c_gray1};
-    font-family:
-    box-shadow: 0 16px 8px rgb(0 0 0 / 20%);
-    border: 1px solid ${theme.palette.c_gray8};
-    background: ${theme.palette.c_gray1};
-  }
-  [cmdk-linear-badge] {
-    height: 24px;
-    padding: 0 8px;
-    font-size: 12px;
-    color: ${theme.palette.c_gray11};
-    background: ${theme.palette.c_gray3};
-    border-radius: 4px;
-    width: fit-content;
-    display: flex;
-    align-items: center;
-    margin: 16px 16px 0;
-  }
-  [cmdk-linear-shortcuts] {
-    display: flex;
-    margin-left: auto;
-    gap: 8px;
-  }
-  [cmdk-linear-shortcuts] kbd {
     font-family: ${theme.fontFamily1};
-    font-size: 13px;
-    color: ${theme.palette.c_gray11};
+    box-shadow: 0 20px 68px rgba(0, 0, 0, 0.55);
+    border: 1px solid ${theme.palette.c_gray8};
+    background: rgba(18, 18, 18, 0.8);
+    backdrop-filter: blur(10px);
   }
+
   [cmdk-input] {
     font-family: ${theme.fontFamily1};
-    width: calc(100% - 20px);
-    margin: 10px 5px 10px 10px;
-    padding: 10px;
+    width: calc(100% - 32px);
+    margin: 16px;
+    padding: 12px 16px;
     font-size: 20px;
-    border: 1px solid ${theme.palette.c_gray2};
-    outline: 0;
-    background: ${theme.palette.c_gray1};
+    border: none;
+    outline: none;
+    background: rgba(255, 255, 255, 0.06);
     color: ${theme.palette.c_white};
-    border-radius: 2px;
-    transition: background 0.2s;
+    border-radius: 8px;
+    transition: all 0.2s ease;
   }
 
   [cmdk-input]:hover,
-  [cmdk-input]:focus,
-  [cmdk-input]:active {
-    background: ${theme.palette.c_gray2};
-    border: 1px solid transparent;
+  [cmdk-input]:focus {
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 2px ${theme.palette.c_hl1};
   }
+
   [cmdk-input]::placeholder {
     color: ${theme.palette.c_gray9};
   }
+
   [cmdk-item] {
     position: relative;
     content-visibility: auto;
     cursor: pointer;
-    height: 28px;
-    font-size: 14px;
+    height: 40px;
+    font-size: 16px;
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 32px;
-    color: ${theme.palette.c_white};
+    padding: 0 16px;
+    color: ${theme.palette.c_gray6};
     user-select: none;
     will-change: background, color;
     transition: all 150ms ease;
-    transition-property: none;
+    border-radius: 8px;
+    margin: 0 8px;
   }
+
   [cmdk-item][data-selected="true"] {
-    background: ${theme.palette.c_gray2};
+    background: rgba(255, 255, 255, 0.1);
+    color: ${theme.palette.c_white};
   }
-  [cmdk-item][data-selected="true"] {
-    color: ${theme.palette.c_gray6};
-  }
-  [cmdk-item][data-selected="true"] svg {
-    color: ${theme.palette.c_gray6};
-  }
+
   [cmdk-item][data-selected="true"]:after {
     content: "";
     position: absolute;
     left: 0;
-    z-index: 123;
     width: 3px;
-    height: 100%;
+    height: 20px;
     background: ${theme.palette.c_hl1};
+    border-radius: 0 3px 3px 0;
+    transition: all 150ms ease;
   }
-  [cmdk-item][data-disabled="true"] {
-    color: ${theme.palette.c_gray3};
-    cursor: not-allowed;
-  }
+
   [cmdk-item]:active {
-    transition-property: background;
-    background: ${theme.palette.c_gray2};
+    background: rgba(255, 255, 255, 0.2);
   }
-  [cmdk-item] + [cmdk-item] {
-    margin-top: 4px;
-  }
+
   [cmdk-item] svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     color: ${theme.palette.c_gray5};
   }
+
   [cmdk-list] {
-    height: 300px;
+    height: 330px;
     max-height: 400px;
     overflow: auto;
     overscroll-behavior: contain;
     transition: 100ms ease;
     transition-property: height;
+    scrollbar-width: thin;
+    scrollbar-color: ${theme.palette.c_gray6} transparent;
   }
-  [cmdk-list-sizer] {
-    padding-bottom: 20px;
+
+  [cmdk-list]::-webkit-scrollbar {
+    width: 6px;
   }
+
+  [cmdk-list]::-webkit-scrollbar-thumb {
+    background-color: ${theme.palette.c_gray6};
+    border-radius: 3px;
+  }
+
   [cmdk-group-heading] {
     user-select: none;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
-    margin: 20px 10px 10px;
-    color: ${theme.palette.c_gray6};
-    border-bottom: 1px solid ${theme.palette.c_gray2};
-    padding: 8px;
-    display: flex;
-    align-items: center;
+    margin: 16px 16px 8px;
+    color: ${theme.palette.c_gray3};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
-  [cmdk-group-items] {
-    width: 90%;
-  }
+
   [cmdk-empty] {
     font-size: 14px;
     display: flex;
@@ -310,7 +292,7 @@ const CommandMenu = memo(function CommandMenu({
                         executeAndClose(() => handleCreateNode(meta))
                       }
                     >
-                      {meta.node_type.split(".").pop()}
+                      {meta.title}
                     </Command.Item>
                   ))}
                 </Command.Group>

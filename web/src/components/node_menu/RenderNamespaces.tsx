@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Box, ListItemButton, ListItemText, Typography } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -81,73 +81,129 @@ function toPascalCase(input: string): string {
   }, "");
 }
 
-const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
-  tree,
-  currentPath = [],
-  handleNamespaceClick
-}) => {
-  const { highlightedNamespaces, selectedPath, activeNode } = useNodeMenuStore(
-    (state) => ({
-      highlightedNamespaces: state.highlightedNamespaces,
-      selectedPath: state.selectedPath,
-      activeNode: state.activeNode
-    })
-  );
+const RenderNamespaces: React.FC<RenderNamespacesProps> = React.memo(
+  ({ tree, currentPath = [], handleNamespaceClick }) => {
+    const { highlightedNamespaces, selectedPath, activeNode } =
+      useNodeMenuStore((state) => ({
+        highlightedNamespaces: state.highlightedNamespaces,
+        selectedPath: state.selectedPath,
+        activeNode: state.activeNode
+      }));
 
-  return (
-    <div className="namespaces" css={namespaceStyles}>
-      {Object.keys(tree).map((namespace) => {
-        const currentFullPath = [...currentPath, namespace].join(".");
-        const isHighlighted = highlightedNamespaces.includes(currentFullPath);
-        const isExpanded =
-          currentPath.length > 0
-            ? selectedPath.includes(currentPath[currentPath.length - 1])
-            : true;
-        const newPath = [...currentPath, namespace];
-        const hasChildren = Object.keys(tree[namespace].children).length > 0;
-        const state = isExpanded ? "expanded" : "collapsed";
-        const namespaceStyle = isHighlighted
-          ? { borderLeft: `2px solid ${ThemeNodes.palette.c_hl1}` }
-          : {};
-        return (
-          <motion.div
-            key={newPath.join(".")}
-            initial="collapsed"
-            animate={state}
-            variants={listVariants}
-          >
-            <ListItemButton
-              style={namespaceStyle}
-              className={`list-item ${state}`}
-              selected={
-                selectedPath.join(".") === newPath.join(".") ||
-                newPath.join(".").includes(activeNode || "---")
-              }
-              onClick={() => handleNamespaceClick(newPath)}
-            >
-              <ListItemText
-                primary={
-                  <>
-                    <Typography fontSize="small">
-                      {toPascalCase(namespace)}
-                    </Typography>
-                  </>
-                }
-              />
-            </ListItemButton>
-            {hasChildren && (
-              <Box className="sublist">
-                <RenderNamespaces
-                  tree={tree[namespace].children}
-                  currentPath={newPath}
-                  handleNamespaceClick={handleNamespaceClick}
-                />
-              </Box>
-            )}
-          </motion.div>
-        );
-      })}
-    </div>
-  );
-};
+    const memoizedTree = useMemo(
+      () =>
+        Object.keys(tree).map((namespace) => {
+          const currentFullPath = [...currentPath, namespace].join(".");
+          const isHighlighted = highlightedNamespaces.includes(currentFullPath);
+          const isExpanded =
+            currentPath.length > 0
+              ? selectedPath.includes(currentPath[currentPath.length - 1])
+              : true;
+          const newPath = [...currentPath, namespace];
+          const hasChildren = Object.keys(tree[namespace].children).length > 0;
+          const state = isExpanded ? "expanded" : "collapsed";
+          const namespaceStyle = isHighlighted
+            ? { borderLeft: `2px solid ${ThemeNodes.palette.c_hl1}` }
+            : {};
+
+          return {
+            namespace,
+            currentFullPath,
+            isHighlighted,
+            isExpanded,
+            newPath,
+            hasChildren,
+            state,
+            namespaceStyle
+          };
+        }),
+      [tree, currentPath, highlightedNamespaces, selectedPath]
+    );
+
+    const memoizedHandleClick = useCallback(
+      (newPath: string[]) => {
+        handleNamespaceClick(newPath);
+      },
+      [handleNamespaceClick]
+    );
+
+    return (
+      <div className="namespaces" css={namespaceStyles}>
+        {memoizedTree.map(
+          ({ namespace, newPath, state, namespaceStyle, hasChildren }) => (
+            <NamespaceItem
+              key={newPath.join(".")}
+              namespace={namespace}
+              newPath={newPath}
+              state={state}
+              namespaceStyle={namespaceStyle}
+              hasChildren={hasChildren}
+              tree={tree}
+              selectedPath={selectedPath}
+              activeNode={activeNode || "---"}
+              handleNamespaceClick={memoizedHandleClick}
+            />
+          )
+        )}
+      </div>
+    );
+  }
+);
+
+interface NamespaceItemProps {
+  namespace: string;
+  newPath: string[];
+  state: string;
+  namespaceStyle: React.CSSProperties;
+  hasChildren: boolean;
+  tree: NamespaceTree;
+  selectedPath: string[];
+  activeNode: string;
+  handleNamespaceClick: (newPath: string[]) => void;
+}
+const NamespaceItem = React.memo(
+  ({
+    namespace,
+    newPath,
+    state,
+    namespaceStyle,
+    hasChildren,
+    tree,
+    selectedPath,
+    activeNode,
+    handleNamespaceClick
+  }: NamespaceItemProps) => {
+    return (
+      <motion.div initial="collapsed" animate={state} variants={listVariants}>
+        <ListItemButton
+          style={namespaceStyle}
+          className={`list-item ${state}`}
+          selected={
+            selectedPath.join(".") === newPath.join(".") ||
+            newPath.join(".").includes(activeNode || "---")
+          }
+          onClick={() => handleNamespaceClick(newPath)}
+        >
+          <ListItemText
+            primary={
+              <Typography fontSize="small">
+                {toPascalCase(namespace)}
+              </Typography>
+            }
+          />
+        </ListItemButton>
+        {hasChildren && (
+          <Box className="sublist">
+            <RenderNamespaces
+              tree={tree[namespace].children}
+              currentPath={newPath}
+              handleNamespaceClick={handleNamespaceClick}
+            />
+          </Box>
+        )}
+      </motion.div>
+    );
+  }
+);
+
 export default RenderNamespaces;
