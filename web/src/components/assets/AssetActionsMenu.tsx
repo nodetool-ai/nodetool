@@ -81,18 +81,13 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
     [setAssetSearchTerm]
   );
 
-  const onSearchClear = useCallback(() => {
-    setAssetSearchTerm("");
-  }, [setAssetSearchTerm]);
-
   return (
     <Box className="asset-menu" css={styles}>
       <SearchInput
-        onSearchChange={onSearchChange}
-        onSearchClear={onSearchClear}
+        setSearchTerm={onSearchChange}
         focusOnTyping={false}
         focusSearchInput={false}
-        focusOnEscapeKey={false}
+        // focusOnEscapeKey={false}
         maxWidth={"9em"}
       />
       <AssetActions

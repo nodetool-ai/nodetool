@@ -66,6 +66,7 @@ from diffusers import AutoPipelineForInpainting  # type: ignore
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel  # type: ignore
 from diffusers import StableDiffusionControlNetInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
+from diffusers import StableDiffusionLatentUpscalePipeline # type: ignore
 from diffusers import StableDiffusionUpscalePipeline  # type: ignore
 from diffusers import UNet2DConditionModel  # type: ignore
 from diffusers import DiffusionPipeline  # type: ignore
@@ -2190,6 +2191,8 @@ class PlaygroundV2(HuggingFacePipelineNode):
         return await context.image_from_pil(image)
 
 
+
+
 class StableDiffusionBaseNode(HuggingFacePipelineNode):
     model: HFStableDiffusion = Field(
         default=HFStableDiffusion(),
@@ -2240,8 +2243,26 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         le=1.0,
         description="Strength of the IP adapter image",
     )
-
+    upscale_steps: int = Field(
+        default=0,
+        ge=1,
+        le=100,
+        description="Number of inference steps for upscaling",
+    )
+    hires_steps: int = Field(
+        default=0,
+        ge=1,
+        le=100,
+        description="Number of inference steps for high-resolution generation",
+    )
+    hires_strength: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Strength of the high-resolution generation",
+    )
     _pipeline: Any = None
+    _upscaler: StableDiffusionLatentUpscalePipeline | None = None
 
     @classmethod
     def get_recommended_models(cls):
@@ -2256,6 +2277,16 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                         "models/*.safetensors",
                     ],
                 ),
+                HFStableDiffusion(
+                    repo_id="stabilityai/sd-x2-latent-upscaler",
+                    allow_patterns=[
+                        "README.md",
+                        "**/*.safetensors",
+                        "**/*.json",
+                        "**/*.txt",
+                        "*.json",
+                    ],
+                ),
             ]
         )
 
@@ -2264,7 +2295,13 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         return cls is not StableDiffusionBaseNode
 
     async def initialize(self, context: ProcessingContext):
-        raise NotImplementedError("Subclasses must implement this method")
+        if self.hires_steps > 0:
+            self._upscaler = await self.load_model(
+                context=context,
+                model_class=StableDiffusionLatentUpscalePipeline,
+                model_id="stabilityai/sd-x2-latent-upscaler",
+                variant=None,
+            )
 
     async def pre_process(self, context: ProcessingContext):
         if self.seed == -1:
@@ -2320,6 +2357,8 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
             self._pipeline.to(device)
+        if self._upscaler is not None:
+            self._upscaler.to(device)
 
     def _setup_generator(self):
         generator = torch.Generator(device="cpu")
@@ -2327,17 +2366,117 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             generator = generator.manual_seed(self.seed)
         return generator
 
-    def progress_callback(self, context: ProcessingContext):
-        def callback(step: int, timestep: int, latents: torch.FloatTensor) -> None:
+    def progress_callback(
+        self,
+        context: ProcessingContext,
+        offset: int | None = None,
+        total: int | None = None,
+    ):
+        if offset is None:
+            offset = 0
+        if total is None:
+            total = self.num_inference_steps
+
+        def callback(step: int, timestep: int, latents: torch.Tensor) -> None:
             context.post_message(
                 NodeProgress(
                     node_id=self.id,
-                    progress=step,
-                    total=self.num_inference_steps,
+                    progress=offset + step,
+                    total=total,
                 )
             )
 
         return callback
+
+    async def run_pipeline(self, context: ProcessingContext, **kwargs) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = self._setup_generator()
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
+
+        if self.upscale_steps > 0:
+            total = self.num_inference_steps + self.upscale_steps + self.hires_steps
+            # Generate low-res latents
+            low_res_latents = self._pipeline(
+                prompt=self.prompt,
+                negative_prompt=self.negative_prompt,
+                num_inference_steps=self.num_inference_steps,
+                guidance_scale=self.guidance_scale,
+                generator=generator,
+                ip_adapter_image=ip_adapter_image,
+                cross_attention_kwargs={"scale": self.lora_scale},
+                callback=self.progress_callback(context, 0, total),
+                callback_steps=1,
+                output_type="latent",
+                **kwargs,
+            ).images
+
+            assert self._upscaler is not None
+
+            # Upscale latents
+            upscaled_latents: torch.Tensor = self._upscaler(
+                prompt=self.prompt,
+                image=low_res_latents,
+                num_inference_steps=self.upscale_steps,
+                guidance_scale=self.guidance_scale,
+                generator=generator,
+                output_type="latent",
+                callback=self.progress_callback(
+                    context, self.num_inference_steps, total
+                ),
+                callback_steps=1,
+            ).images[  # type: ignore
+                0
+            ]
+
+            img2img_pipe = StableDiffusionImg2ImgPipeline(
+                vae=self._pipeline.vae,
+                text_encoder=self._pipeline.text_encoder,
+                tokenizer=self._pipeline.tokenizer,
+                unet=self._pipeline.unet,
+                scheduler=self._pipeline.scheduler,
+                safety_checker=self._pipeline.safety_checker,
+                feature_extractor=self._pipeline.feature_extractor,
+            )
+
+            # Generate final high-res image
+            image = img2img_pipe(
+                image=upscaled_latents.unsqueeze(0),
+                strength=self.hires_strength,
+                prompt=self.prompt,
+                negative_prompt=self.negative_prompt,
+                num_inference_steps=self.hires_steps,
+                guidance_scale=self.guidance_scale,
+                generator=generator,
+                ip_adapter_image=ip_adapter_image,
+                cross_attention_kwargs={"scale": self.lora_scale},
+                callback=self.progress_callback(
+                    context, self.num_inference_steps + self.upscale_steps, total
+                ),
+                callback_steps=1,
+                **kwargs,
+            ).images[0]
+        else:
+            # Generate image normally
+            image = self._pipeline(
+                prompt=self.prompt,
+                negative_prompt=self.negative_prompt,
+                num_inference_steps=self.num_inference_steps,
+                guidance_scale=self.guidance_scale,
+                generator=generator,
+                ip_adapter_image=ip_adapter_image,
+                cross_attention_kwargs={"scale": self.lora_scale},
+                callback=self.progress_callback(context, self.num_inference_steps),
+                callback_steps=1,
+                **kwargs,
+            ).images[0]
+
+        return await context.image_from_pil(image)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         raise NotImplementedError("Subclasses must implement this method")
@@ -2368,6 +2507,7 @@ class StableDiffusion(StableDiffusionBaseNode):
         return "Stable Diffusion"
 
     async def initialize(self, context: ProcessingContext):
+        await super().initialize(context)
         self._pipeline = await self.load_model(
             context=context,
             model_class=StableDiffusionPipeline,
@@ -2381,33 +2521,7 @@ class StableDiffusion(StableDiffusionBaseNode):
         self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
-        generator = self._setup_generator()
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
-
-        image = self._pipeline(
-            prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            width=self.width,
-            height=self.height,
-            generator=generator,
-            ip_adapter_image=ip_adapter_image,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            callback=self.progress_callback(context),
-            callback_steps=1,
-        ).images[  # type: ignore
-            0
-        ]
-
-        return await context.image_from_pil(image)
+        return await self.run_pipeline(context, width=self.width, height=self.height)
 
 
 class StableDiffusionControlNetNode(StableDiffusionBaseNode):
@@ -2515,6 +2629,7 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
         return "Stable Diffusion ControlNet"
 
     async def initialize(self, context: ProcessingContext):
+        await super().initialize(context)
         controlnet = await self.load_model(
             context=context,
             model_class=ControlNetModel,
@@ -2534,37 +2649,14 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
         await self._load_lora(context)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
         control_image = await context.image_to_pil(self.control_image)
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
-        generator = self._setup_generator()
-
-        image = self._pipeline(
-            prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
+        return await self.run_pipeline(
+            context,
             image=control_image,
-            ip_adapter_image=ip_adapter_image,
             width=control_image.width,
             height=control_image.height,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
             controlnet_conditioning_scale=self.controlnet_conditioning_scale,
-            generator=generator,
-            callback=self.progress_callback(context),
-            callback_steps=1,
-            ip_adapter_scale=self.ip_adapter_scale,
-            cross_attention_kwargs={"scale": self.lora_scale},
-        ).images[  # type: ignore
-            0
-        ]  # type: ignore
-
-        return await context.image_from_pil(image)
+        )
 
 
 class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
@@ -2599,6 +2691,7 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
         return "Stable Diffusion (Img2Img)"
 
     async def initialize(self, context: ProcessingContext):
+        await super().initialize(context)
         self._pipeline = await self.load_model(
             context=context,
             model_class=StableDiffusionImg2ImgPipeline,
@@ -2614,37 +2707,14 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
         self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
-        generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
-
-        image = self._pipeline(
-            prompt=self.prompt,
+        return await self.run_pipeline(
+            context,
             image=init_image,
-            ip_adapter_image=ip_adapter_image,
-            negative_prompt=self.negative_prompt,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            ip_adapter_scale=self.ip_adapter_scale,
-            cross_attention_kwargs={"scale": self.lora_scale},
             width=init_image.width,
             height=init_image.height,
             strength=self.strength,
-            generator=generator,
-            callback=self.progress_callback(context),
-            callback_steps=1,
-        ).images[  # type: ignore
-            0
-        ]
-
-        return await context.image_from_pil(image)
+        )
 
 
 class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
@@ -2694,6 +2764,7 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
         return "Stable Diffusion ControlNet Inpaint"
 
     async def initialize(self, context: ProcessingContext):
+        await super().initialize(context)
         controlnet = await self.load_pipeline(
             context,
             "controlnet",
@@ -2713,40 +2784,18 @@ class StableDiffusionControlNetInpaintNode(StableDiffusionBaseNode):
         self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
         init_image = await context.image_to_pil(self.init_image)
         mask_image = await context.image_to_pil(self.mask_image)
         control_image = await context.image_to_pil(self.control_image)
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
-        generator = self._setup_generator()
-
-        image = self._pipeline(
-            prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
+        return await self.run_pipeline(
+            context,
             image=init_image,
             mask_image=mask_image,
             control_image=control_image,
-            ip_adapter_image=ip_adapter_image,
             width=init_image.width,
             height=init_image.height,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
             controlnet_conditioning_scale=self.controlnet_conditioning_scale,
-            ip_adapter_scale=self.ip_adapter_scale,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            generator=generator,
-            callback=self.progress_callback(context),
-            callback_steps=1,
-        ).images[  # type: ignore
-            0
-        ]
-
-        return await context.image_from_pil(image)
+        )
 
 
 class StableDiffusionInpaintNode(StableDiffusionBaseNode):
@@ -2784,12 +2833,15 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
         return "Stable Diffusion (Inpaint)"
 
     async def initialize(self, context: ProcessingContext):
+        await super().initialize(context)
         if self._pipeline is None:
-            self._pipeline = await self.load_pipeline(
-                context,
-                "stable-diffusion-inpaint",
-                self.model.repo_id,
-                device=context.device,
+            self._pipeline = await self.load_model(
+                context=context,
+                model_class=StableDiffusionInpaintPipeline,
+                model_id=self.model.repo_id,
+                path=self.model.path,
+                safety_checker=None,
+                config="Lykon/DreamShaper",
             )
             assert self._pipeline is not None
             self._load_ip_adapter()
@@ -2797,39 +2849,16 @@ class StableDiffusionInpaintNode(StableDiffusionBaseNode):
             await self._load_lora(context)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
-        generator = self._setup_generator()
         init_image = await context.image_to_pil(self.init_image)
         mask_image = await context.image_to_pil(self.mask_image)
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
-
-        image = self._pipeline(
-            prompt=self.prompt,
+        return await self.run_pipeline(
+            context,
             image=init_image,
             mask_image=mask_image,
-            negative_prompt=self.negative_prompt,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
             width=init_image.width,
             height=init_image.height,
             strength=self.strength,
-            generator=generator,
-            ip_adapter_image=ip_adapter_image,
-            ip_adapter_scale=self.ip_adapter_scale,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            callback=self.progress_callback(context),
-            callback_steps=1,
-        ).images[  # type: ignore
-            0
-        ]
-
-        return await context.image_from_pil(image)
+        )
 
 
 class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
@@ -2867,6 +2896,7 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         return "Stable Diffusion ControlNet (Img2Img)"
 
     async def initialize(self, context: ProcessingContext):
+        await super().initialize(context)
         if not context.is_huggingface_model_cached(self.controlnet.repo_id):
             raise ValueError(
                 f"ControlNet model {self.controlnet.repo_id} must be downloaded first"
@@ -2893,32 +2923,14 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
 
         input_image = await context.image_to_pil(self.image)
         control_image = await context.image_to_pil(self.control_image)
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
 
-        generator = torch.Generator(device="cpu").manual_seed(self.seed)
-
-        image = self._pipeline(
-            prompt=self.prompt,
+        return await self.run_pipeline(
+            context,
             image=input_image,
             control_image=control_image,
-            ip_adapter_image=ip_adapter_image,
-            ip_adapter_scale=self.ip_adapter_scale,
             width=input_image.width,
             height=input_image.height,
-            num_inference_steps=self.num_inference_steps,
-            generator=generator,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            callback=self.progress_callback(context),
-            callback_steps=1,
-        ).images[  # type: ignore
-            0
-        ]
-
-        return await context.image_from_pil(image)
+        )
 
 
 class StableDiffusionUpscale(HuggingFacePipelineNode):
@@ -2992,7 +3004,6 @@ class StableDiffusionUpscale(HuggingFacePipelineNode):
         ]
 
     async def initialize(self, context: ProcessingContext):
-
         self._pipeline = await self.load_model(
             context=context,
             model_class=StableDiffusionUpscalePipeline,
@@ -3200,6 +3211,35 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
 
         return callback
 
+    async def run_pipeline(self, context: ProcessingContext, **kwargs) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        generator = self._setup_generator()
+        ip_adapter_image = (
+            await context.image_to_pil(self.ip_adapter_image)
+            if self.ip_adapter_image.is_set()
+            else None
+        )
+
+        image = self._pipeline(
+            prompt=self.prompt,
+            negative_prompt=self.negative_prompt,
+            num_inference_steps=self.num_inference_steps,
+            guidance_scale=self.guidance_scale,
+            width=self.width,
+            height=self.height,
+            ip_adapter_image=ip_adapter_image,
+            ip_adapter_scale=self.ip_adapter_scale,
+            cross_attention_kwargs={"scale": self.lora_scale},
+            callback=self.progress_callback(context),
+            callback_steps=1,
+            generator=generator,
+            **kwargs,
+        ).images[0]
+
+        return await context.image_from_pil(image)
+
     async def process(self, context: ProcessingContext) -> ImageRef:
         raise NotImplementedError("Subclasses must implement this method")
 
@@ -3235,46 +3275,194 @@ class StableDiffusionXL(StableDiffusionXLBase):
         self._load_ip_adapter()
 
     async def process(self, context) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
+        return await self.run_pipeline(context)
 
-        generator = self._setup_generator()
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
+
+class StableDiffusionXLImg2Img(StableDiffusionXLBase):
+    """
+    Transforms existing images based on text prompts using Stable Diffusion XL.
+    image, generation, AI, image-to-image
+
+    Use cases:
+    - Modifying existing images to fit a specific style or theme
+    - Enhancing or altering photographs
+    - Creating variations of existing artwork
+    - Applying text-guided edits to images
+    """
+
+    init_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The initial image for Image-to-Image generation.",
+    )
+    strength: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Strength for Image-to-Image generation. Higher values allow for more deviation from the original image.",
+    )
+    _pipeline: StableDiffusionXLImg2ImgPipeline | None = None
+
+    def required_inputs(self):
+        return ["init_image"]
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion XL (Img2Img)"
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableDiffusionXLImg2ImgPipeline,
+            model_id=self.model.repo_id,
+            path=self.model.path,
+            safety_checker=None,
+        )
+        assert self._pipeline is not None
+        self._pipeline.enable_model_cpu_offload()
+        self._set_scheduler(self.scheduler)
+        await self._load_lora(context)
+        self._load_ip_adapter()
+
+    async def process(self, context) -> ImageRef:
+        init_image = await context.image_to_pil(self.init_image)
+        init_image = init_image.resize((self.width, self.height))
+        return await self.run_pipeline(
+            context, image=init_image, strength=self.strength
         )
 
-        image = self._pipeline(
-            prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            width=self.width,
-            height=self.height,
-            ip_adapter_image=ip_adapter_image,
-            ip_adapter_scale=self.ip_adapter_scale,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            callback=self.progress_callback(context),
-            callback_steps=1,
-            generator=generator,
-        ).images[  # type: ignore
-            0
-        ]
 
-        return await context.image_from_pil(image)
+class StableDiffusionXLInpainting(StableDiffusionXLBase):
+    """
+    Performs inpainting on images using Stable Diffusion XL.
+    image, inpainting, AI
+
+    Use cases:
+    - Remove unwanted objects from images
+    - Fill in missing parts of images
+    - Modify specific areas of images while preserving the rest
+    """
+
+    image: ImageRef = Field(
+        default=ImageRef(),
+        description="The initial image to be inpainted.",
+    )
+    mask_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The mask image indicating areas to be inpainted.",
+    )
+    strength: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Strength for inpainting. Higher values allow for more deviation from the original image.",
+    )
+    _pipeline: StableDiffusionXLInpaintPipeline | None = None
+
+    def required_inputs(self):
+        return ["image", "mask_image"]
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion XL (Inpaint)"
+
+    async def initialize(self, context: ProcessingContext):
+        if self._pipeline is None:
+            self._pipeline = await self.load_model(
+                context=context,
+                model_class=StableDiffusionXLInpaintPipeline,
+                model_id=self.model.repo_id,
+                path=self.model.path,
+                safety_checker=None,
+            )
+            assert self._pipeline is not None
+            self._load_ip_adapter()
+            self._set_scheduler(self.scheduler)
+            await self._load_lora(context)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        input_image = await context.image_to_pil(self.image)
+        mask_image = await context.image_to_pil(self.mask_image)
+        mask_image = mask_image.resize((self.width, self.height))
+        return await self.run_pipeline(
+            context,
+            image=input_image,
+            mask_image=mask_image,
+            strength=self.strength,
+            width=input_image.width,
+            height=input_image.height,
+        )
 
 
-# class StableDiffusionXLLightning(StableDiffusionXLBase):
-#     """
-#     Generates images from text prompts using Stable Diffusion XL in 4 steps.
-#     image, generation, AI, text-to-image
+class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
+    """
+    Transforms existing images using Stable Diffusion XL with ControlNet guidance.
+    image, generation, AI, image-to-image, controlnet
 
-#     Use cases:
-#     - Creating custom illustrations for marketing materials
-#     - Generating concept art for game and film development
-#     - Producing unique stock imagery for websites and publications
-#     - Visualizing interior design concepts for clients
+    Use cases:
+    - Modify existing images with precise control over composition and structure
+    - Apply specific styles or concepts to photographs or artwork with guided transformations
+    - Create variations of existing visual content while maintaining certain features
+    - Enhance image editing capabilities with AI-guided transformations
+    """
+
+    controlnet: HFControlNet = Field(
+        default=HFControlNet(),
+        description="The ControlNet model to use for guidance.",
+    )
+    control_image: ImageRef = Field(
+        default=ImageRef(),
+        description="The control image to guide the transformation.",
+    )
+    controlnet_conditioning_scale: float = Field(
+        default=1.0,
+        description="The scale for ControlNet conditioning.",
+        ge=0.0,
+        le=2.0,
+    )
+
+    _pipeline: StableDiffusionXLControlNetPipeline | None = None
+
+    def required_inputs(self):
+        return ["control_image"]
+
+    @classmethod
+    def get_title(cls):
+        return "Stable Diffusion XL ControlNet"
+
+    async def initialize(self, context: ProcessingContext):
+        controlnet = await self.load_model(
+            context=context,
+            model_class=ControlNetModel,
+            model_id=self.controlnet.repo_id,
+            path=self.controlnet.path,
+            variant=None,
+        )
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableDiffusionXLControlNetPipeline,
+            model_id=self.model.repo_id,
+            path=self.model.path,
+            controlnet=controlnet,
+        )
+        self._load_ip_adapter()
+        await self._load_lora(context)
+
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        control_image = await context.image_to_pil(self.control_image)
+        init_image = None
+        if not self.init_image.is_empty():
+            init_image = await context.image_to_pil(self.init_image)
+            init_image = init_image.resize((self.width, self.height))
+
+        return await self.run_pipeline(
+            context,
+            init_image=init_image,
+            image=control_image,
+            strength=self.strength,
+            controlnet_conditioning_scale=self.controlnet_conditioning_scale,
+        )
+
+
 #     """
 
 #     num_inference_steps: int = Field(
@@ -3338,268 +3526,268 @@ class StableDiffusionXL(StableDiffusionXLBase):
 #         return await context.image_from_pil(image)
 
 
-class StableDiffusionXLImg2Img(StableDiffusionXLBase):
-    """
-    Transforms existing images based on text prompts using Stable Diffusion XL.
-    image, generation, AI, image-to-image
+# class StableDiffusionXLImg2Img(StableDiffusionXLBase):
+#     """
+#     Transforms existing images based on text prompts using Stable Diffusion XL.
+#     image, generation, AI, image-to-image
 
-    Use cases:
-    - Modifying existing images to fit a specific style or theme
-    - Enhancing or altering stock photos for unique marketing materials
-    - Transforming rough sketches into detailed illustrations
-    - Creating variations of existing artwork or designs
-    """
+#     Use cases:
+#     - Modifying existing images to fit a specific style or theme
+#     - Enhancing or altering stock photos for unique marketing materials
+#     - Transforming rough sketches into detailed illustrations
+#     - Creating variations of existing artwork or designs
+#     """
 
-    init_image: ImageRef = Field(
-        default=ImageRef(),
-        description="The initial image for Image-to-Image generation.",
-    )
-    strength: float = Field(
-        default=0.8,
-        ge=0.0,
-        le=1.0,
-        description="Strength for Image-to-Image generation.",
-    )
+#     init_image: ImageRef = Field(
+#         default=ImageRef(),
+#         description="The initial image for Image-to-Image generation.",
+#     )
+#     strength: float = Field(
+#         default=0.8,
+#         ge=0.0,
+#         le=1.0,
+#         description="Strength for Image-to-Image generation.",
+#     )
 
-    _pipeline: StableDiffusionXLImg2ImgPipeline | None = None
+#     _pipeline: StableDiffusionXLImg2ImgPipeline | None = None
 
-    def required_inputs(self):
-        return ["init_image"]
+#     def required_inputs(self):
+#         return ["init_image"]
 
-    @classmethod
-    def get_title(cls):
-        return "Stable Diffusion XL (Img2Img)"
+#     @classmethod
+#     def get_title(cls):
+#         return "Stable Diffusion XL (Img2Img)"
 
-    async def initialize(self, context: ProcessingContext):
-        self._pipeline = await self.load_model(
-            context=context,
-            model_class=StableDiffusionXLImg2ImgPipeline,
-            model_id=self.model.repo_id,
-            path=self.model.path,
-        )
-        assert self._pipeline is not None
-        self._set_scheduler(self.scheduler)
+#     async def initialize(self, context: ProcessingContext):
+#         self._pipeline = await self.load_model(
+#             context=context,
+#             model_class=StableDiffusionXLImg2ImgPipeline,
+#             model_id=self.model.repo_id,
+#             path=self.model.path,
+#         )
+#         assert self._pipeline is not None
+#         self._set_scheduler(self.scheduler)
 
-    async def process(self, context) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
+#     async def process(self, context) -> ImageRef:
+#         if self._pipeline is None:
+#             raise ValueError("Pipeline not initialized")
 
-        await self._load_lora(context)
-        generator = self._setup_generator()
-        init_image = await context.image_to_pil(self.init_image)
-        init_image = init_image.resize((self.width, self.height))
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
+#         await self._load_lora(context)
+#         generator = self._setup_generator()
+#         init_image = await context.image_to_pil(self.init_image)
+#         init_image = init_image.resize((self.width, self.height))
+#         ip_adapter_image = (
+#             await context.image_to_pil(self.ip_adapter_image)
+#             if self.ip_adapter_image.is_set()
+#             else None
+#         )
 
-        image = self._pipeline(
-            prompt=self.prompt,
-            image=init_image,
-            negative_prompt=self.negative_prompt,
-            num_inference_steps=self.num_inference_steps,
-            strength=self.strength,
-            guidance_scale=self.guidance_scale,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            ip_adapter_image=ip_adapter_image,
-            ip_adapter_scale=self.ip_adapter_scale,
-            callback=self.progress_callback(context),
-            callback_steps=1,
-            generator=generator,
-        ).images[  # type: ignore
-            0
-        ]
+#         image = self._pipeline(
+#             prompt=self.prompt,
+#             image=init_image,
+#             negative_prompt=self.negative_prompt,
+#             num_inference_steps=self.num_inference_steps,
+#             strength=self.strength,
+#             guidance_scale=self.guidance_scale,
+#             cross_attention_kwargs={"scale": self.lora_scale},
+#             ip_adapter_image=ip_adapter_image,
+#             ip_adapter_scale=self.ip_adapter_scale,
+#             callback=self.progress_callback(context),
+#             callback_steps=1,
+#             generator=generator,
+#         ).images[  # type: ignore
+#             0
+#         ]
 
-        return await context.image_from_pil(image)
-
-
-class StableDiffusionXLInpainting(StableDiffusionXLBase):
-    """
-    Performs inpainting on images using Stable Diffusion XL.
-    image, inpainting, AI, image-editing
-
-    Use cases:
-    - Removing unwanted objects from images
-    - Adding new elements to existing images
-    - Repairing damaged or incomplete images
-    - Creating creative image edits and modifications
-    """
-
-    image: ImageRef = Field(
-        default=ImageRef(),
-        description="The input image to be inpainted.",
-    )
-    mask_image: ImageRef = Field(
-        default=ImageRef(),
-        description="The mask image indicating the area to be inpainted.",
-    )
-    strength: float = Field(
-        default=0.99,
-        ge=0.0,
-        le=1.0,
-        description="Strength of the inpainting. Values below 1.0 work best.",
-    )
-
-    def required_inputs(self):
-        return ["image", "mask_image"]
-
-    @classmethod
-    def get_title(cls):
-        return "Stable Diffusion XL (Inpainting)"
-
-    @classmethod
-    def get_recommended_models(cls):
-        return [
-            HFStableDiffusionXL(
-                repo_id="stabilityai/stable-diffusion-xl-inpainting-0.1",
-                allow_patterns=[
-                    "README.md",
-                    "**/*.fp16.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
-            )
-        ]
-
-    async def initialize(self, context: ProcessingContext):
-        if self._pipeline is None:
-            self._pipeline = await self.load_model(
-                context=context,
-                model_class=AutoPipelineForInpainting,
-                model_id=self.model.repo_id,
-            )
-            assert self._pipeline is not None
-            self._set_scheduler(self.scheduler)
-
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
-
-        generator = self._setup_generator()
-        input_image = await context.image_to_pil(self.image)
-        mask_image = await context.image_to_pil(self.mask_image)
-        mask_image = mask_image.resize((self.width, self.height))
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
-
-        output = self._pipeline(
-            prompt=self.prompt,
-            image=input_image,
-            mask_image=mask_image,
-            negative_prompt=self.negative_prompt,
-            num_inference_steps=self.num_inference_steps,
-            guidance_scale=self.guidance_scale,
-            strength=self.strength,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            ip_adapter_image=ip_adapter_image,
-            ip_adapter_scale=self.ip_adapter_scale,
-            generator=generator,
-            width=input_image.width,
-            height=input_image.height,
-            callback=self.progress_callback(context),
-            callback_steps=1,
-        )
-
-        return await context.image_from_pil(output.images[0])
+#         return await context.image_from_pil(image)
 
 
-class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
-    """
-    Generates images using Stable Diffusion XL with ControlNet.
-    image, generation, AI, text-to-image, controlnet
+# class StableDiffusionXLInpainting(StableDiffusionXLBase):
+#     """
+#     Performs inpainting on images using Stable Diffusion XL.
+#     image, inpainting, AI, image-editing
 
-    Use cases:
-    - Generate high-quality images with precise control over structures and features
-    - Create variations of existing images while maintaining specific characteristics
-    - Artistic image generation with guided outputs based on various control types
-    """
+#     Use cases:
+#     - Removing unwanted objects from images
+#     - Adding new elements to existing images
+#     - Repairing damaged or incomplete images
+#     - Creating creative image edits and modifications
+#     """
 
-    class StableDiffusionXLControlNetModel(str, Enum):
-        CANNY = "diffusers/controlnet-canny-sdxl-1.0"
-        DEPTH = "diffusers/controlnet-depth-sdxl-1.0"
-        ZOE_DEPTH = "diffusers/controlnet-zoe-depth-sdxl-1.0"
+#     image: ImageRef = Field(
+#         default=ImageRef(),
+#         description="The input image to be inpainted.",
+#     )
+#     mask_image: ImageRef = Field(
+#         default=ImageRef(),
+#         description="The mask image indicating the area to be inpainted.",
+#     )
+#     strength: float = Field(
+#         default=0.99,
+#         ge=0.0,
+#         le=1.0,
+#         description="Strength of the inpainting. Values below 1.0 work best.",
+#     )
 
-    control_image: ImageRef = Field(
-        default=ImageRef(),
-        description="The control image to guide the generation process (already processed).",
-    )
-    control_model: StableDiffusionXLControlNetModel = Field(
-        default=StableDiffusionXLControlNetModel.CANNY,
-        description="The type of ControlNet model to use.",
-    )
-    controlnet_conditioning_scale: float = Field(
-        default=0.5,
-        description="The scale of the ControlNet conditioning.",
-        ge=0.0,
-        le=2.0,
-    )
+#     def required_inputs(self):
+#         return ["image", "mask_image"]
 
-    def required_inputs(self):
-        return ["control_image"]
+#     @classmethod
+#     def get_title(cls):
+#         return "Stable Diffusion XL (Inpainting)"
 
-    @classmethod
-    def get_title(cls):
-        return "Stable Diffusion XL ControlNet"
+#     @classmethod
+#     def get_recommended_models(cls):
+#         return [
+#             HFStableDiffusionXL(
+#                 repo_id="stabilityai/stable-diffusion-xl-inpainting-0.1",
+#                 allow_patterns=[
+#                     "README.md",
+#                     "**/*.fp16.safetensors",
+#                     "**/*.json",
+#                     "**/*.txt",
+#                     "*.json",
+#                 ],
+#             )
+#         ]
 
-    _pipeline: StableDiffusionXLControlNetPipeline | None = None
+#     async def initialize(self, context: ProcessingContext):
+#         if self._pipeline is None:
+#             self._pipeline = await self.load_model(
+#                 context=context,
+#                 model_class=AutoPipelineForInpainting,
+#                 model_id=self.model.repo_id,
+#             )
+#             assert self._pipeline is not None
+#             self._set_scheduler(self.scheduler)
 
-    async def initialize(self, context: ProcessingContext):
-        controlnet = self.load_model(
-            context=context,
-            model_class=ControlNetModel,
-            model_id=self.control_model.value,
-        )
-        self._pipeline = await self.load_model(
-            context=context,
-            model_class=StableDiffusionXLControlNetPipeline,
-            model_id=self.model.repo_id,
-        )
+#     async def process(self, context: ProcessingContext) -> ImageRef:
+#         if self._pipeline is None:
+#             raise ValueError("Pipeline not initialized")
 
-        self._set_scheduler(self.scheduler)
+#         generator = self._setup_generator()
+#         input_image = await context.image_to_pil(self.image)
+#         mask_image = await context.image_to_pil(self.mask_image)
+#         mask_image = mask_image.resize((self.width, self.height))
+#         ip_adapter_image = (
+#             await context.image_to_pil(self.ip_adapter_image)
+#             if self.ip_adapter_image.is_set()
+#             else None
+#         )
 
-    async def process(self, context: ProcessingContext) -> ImageRef:
-        if self._pipeline is None:
-            raise ValueError("Pipeline not initialized")
+#         output = self._pipeline(
+#             prompt=self.prompt,
+#             image=input_image,
+#             mask_image=mask_image,
+#             negative_prompt=self.negative_prompt,
+#             num_inference_steps=self.num_inference_steps,
+#             guidance_scale=self.guidance_scale,
+#             strength=self.strength,
+#             cross_attention_kwargs={"scale": self.lora_scale},
+#             ip_adapter_image=ip_adapter_image,
+#             ip_adapter_scale=self.ip_adapter_scale,
+#             generator=generator,
+#             width=input_image.width,
+#             height=input_image.height,
+#             callback=self.progress_callback(context),
+#             callback_steps=1,
+#         )
 
-        await self._load_lora(context)
-        generator = self._setup_generator()
+#         return await context.image_from_pil(output.images[0])
 
-        control_image = await context.image_to_pil(self.control_image)
 
-        if not self.init_image.is_empty():
-            init_image = await context.image_to_pil(self.init_image)
-            init_image = init_image.resize((self.width, self.height))
-        else:
-            init_image = None
+# class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
+#     """
+#     Generates images using Stable Diffusion XL with ControlNet.
+#     image, generation, AI, text-to-image, controlnet
 
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
+#     Use cases:
+#     - Generate high-quality images with precise control over structures and features
+#     - Create variations of existing images while maintaining specific characteristics
+#     - Artistic image generation with guided outputs based on various control types
+#     """
 
-        output = self._pipeline(
-            prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
-            init_image=init_image,
-            image=control_image,
-            strength=self.strength,
-            ip_adapter_image=ip_adapter_image,
-            ip_adapter_scale=self.ip_adapter_scale,
-            cross_attention_kwargs={"scale": self.lora_scale},
-            controlnet_conditioning_scale=self.controlnet_conditioning_scale,
-            num_inference_steps=self.num_inference_steps,
-            generator=generator,
-            callback=self.progress_callback(context),
-            callback_steps=1,
-        )
+#     class StableDiffusionXLControlNetModel(str, Enum):
+#         CANNY = "diffusers/controlnet-canny-sdxl-1.0"
+#         DEPTH = "diffusers/controlnet-depth-sdxl-1.0"
+#         ZOE_DEPTH = "diffusers/controlnet-zoe-depth-sdxl-1.0"
 
-        return await context.image_from_pil(output.images[0])  # type: ignore
+#     control_image: ImageRef = Field(
+#         default=ImageRef(),
+#         description="The control image to guide the generation process (already processed).",
+#     )
+#     control_model: StableDiffusionXLControlNetModel = Field(
+#         default=StableDiffusionXLControlNetModel.CANNY,
+#         description="The type of ControlNet model to use.",
+#     )
+#     controlnet_conditioning_scale: float = Field(
+#         default=0.5,
+#         description="The scale of the ControlNet conditioning.",
+#         ge=0.0,
+#         le=2.0,
+#     )
+
+#     def required_inputs(self):
+#         return ["control_image"]
+
+#     @classmethod
+#     def get_title(cls):
+#         return "Stable Diffusion XL ControlNet"
+
+#     _pipeline: StableDiffusionXLControlNetPipeline | None = None
+
+#     async def initialize(self, context: ProcessingContext):
+#         controlnet = self.load_model(
+#             context=context,
+#             model_class=ControlNetModel,
+#             model_id=self.control_model.value,
+#         )
+#         self._pipeline = await self.load_model(
+#             context=context,
+#             model_class=StableDiffusionXLControlNetPipeline,
+#             model_id=self.model.repo_id,
+#         )
+
+#         self._set_scheduler(self.scheduler)
+
+#     async def process(self, context: ProcessingContext) -> ImageRef:
+#         if self._pipeline is None:
+#             raise ValueError("Pipeline not initialized")
+
+#         await self._load_lora(context)
+#         generator = self._setup_generator()
+
+#         control_image = await context.image_to_pil(self.control_image)
+
+#         if not self.init_image.is_empty():
+#             init_image = await context.image_to_pil(self.init_image)
+#             init_image = init_image.resize((self.width, self.height))
+#         else:
+#             init_image = None
+
+#         ip_adapter_image = (
+#             await context.image_to_pil(self.ip_adapter_image)
+#             if self.ip_adapter_image.is_set()
+#             else None
+#         )
+
+#         output = self._pipeline(
+#             prompt=self.prompt,
+#             negative_prompt=self.negative_prompt,
+#             init_image=init_image,
+#             image=control_image,
+#             strength=self.strength,
+#             ip_adapter_image=ip_adapter_image,
+#             ip_adapter_scale=self.ip_adapter_scale,
+#             cross_attention_kwargs={"scale": self.lora_scale},
+#             controlnet_conditioning_scale=self.controlnet_conditioning_scale,
+#             num_inference_steps=self.num_inference_steps,
+#             generator=generator,
+#             callback=self.progress_callback(context),
+#             callback_steps=1,
+#         )
+
+#         return await context.image_from_pil(output.images[0])  # type: ignore
 
 
 # throws an error

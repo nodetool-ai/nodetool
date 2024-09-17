@@ -65,7 +65,6 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         torch_dtype: torch.dtype = torch.float16,
         path: str | None = None,
         skip_cache: bool = False,
-        config: str | None = None,
         **kwargs: Any,
     ) -> T:
         if model_id == "":
@@ -85,7 +84,6 @@ class HuggingFacePipelineNode(HuggingfaceNode):
                 cache_path,
                 torch_dtype=torch_dtype,
                 variant=variant,
-                config=config,
                 **kwargs,
             )
         else:
@@ -96,7 +94,6 @@ class HuggingFacePipelineNode(HuggingfaceNode):
                 model_id,
                 torch_dtype=torch_dtype,
                 variant=variant,
-                config=config,
                 **kwargs,
             )
 
