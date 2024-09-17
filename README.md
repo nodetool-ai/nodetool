@@ -1,17 +1,14 @@
-<img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="nodetool_logo" width="32" height="auto">
+<h1 style="display: inline;">
+  <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
+  NodeTool
+</h1>
 
-## NodeTool
+NodeTool is an all-in-one platform for AI professionals and innovators. It brings together a wide range of AI tools and models in a simple, visual interface. Whether you're an artist, developer, data scientist or complete beginner, NodeTool has everything you need to power your AI projects.
 
-NodeTool is a powerful no-code platform for building AI workflows and applications, **seamlessly integrating leading AI models and services like OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI**. It offers **two flexible ways of running models**:
+With NodeTool, you can:
 
-1. **Local Execution**:
-
-   - **Local LLMs via Ollama**: Run large language models directly on your machine.
-   - **Local Models via Hugging Face Transformers and Diffusers**: Access hundreds of models locally.
-   - **Local ComfyUI**: Leverage the ComfyUI ecosystem for advanced image processing workflows.
-
-2. **Remote Execution**:
-   - **Replicate, OpenAI, and Anthropic**: Outsource heavy GPU workloads to cloud services, allowing you to leverage powerful models without the need for expensive hardware.
+- **Run models locally**: Utilize your own hardware to run large language models via Ollama and access hundreds of models via Hugging Face Transformers and Diffusers. Leverage the ComfyUI ecosystem for advanced image processing workflows.
+- **Run models remotely**: Outsource heavy GPU workloads to cloud services like Replicate, OpenAI, and Anthropic, allowing you to leverage powerful models without the need for expensive hardware.
 
 ![NodeTool](nodetool.png)
 
@@ -25,29 +22,15 @@ By simplifying access to advanced AI technologies, NodeTool provides a creative 
 - **Dual Model Execution Modes**:
   - **Local Execution**: Run models locally using Ollama and Hugging Face, leveraging your own hardware.
   - **Remote Execution**: Outsource processing to cloud services like Replicate, OpenAI, and Anthropic.
-- **Model Manager**: Browse and manage cached local models; download recommended models directly from the Hugging Face Hub.
-- **Asset Browser**: Import and manage media assets in your workflows.
-- **ComfyUI**: Import ComfyUI workflows and nodes into NodeTool.
-- **Model-Agnostic Integration**: Utilize state-of-the-art AI models from various sources.
+- **Model Manager**: Browse and manage cached local models
+- **HuggingFace**: Download models directly from the Hugging Face Hub.
+- **Asset Browser**: Import, browse and preview media assets in folders.
+- **ComfyUI (alpha)**: Import ComfyUI workflows and nodes into NodeTool.
 - **Multimodal Support**: Handle images, text, audio, video, and more in a single workflow.
-- **API Integration**: Run AI tools from websites or mobile apps.
+- **API Integration (alpha)**: Run AI tools from websites or mobile apps.
 - **Customizable Nodes**: Extend functionality with Python.
 - **Real-Time Execution**: WebSocket-based architecture for live processing.
-- **Scalable Processing**: Distributed worker architecture for efficient scaling.
-- **Workflow API**: Programmatically integrate workflows into existing applications.
-- **Cross-Platform Compatibility**: Available on web and desktop (Electron).
-
-## Use Cases 🎨
-
-- **Combine AI Models**: Explore and creatively combine hundreds of ML models.
-- **Stable Diffusion**: Generate custom image pipelines from the ground up.
-- **Run Anywhere**: Create AI tools accessible from websites or mobile apps.
-- **Music Generation**: Produce musical ideas and compositions based on text descriptions or themes.
-- **Sound-to-Visual Art**: Transform audio into visual masterpieces.
-- **Audio-to-Story Generator**: Create stories inspired by audio inputs.
-- **Image Enhancement**: Improve image quality with AI-powered techniques.
-- **Multilingual Content Creation**: Produce and translate content across languages.
-- **Data Visualization**: Turn complex datasets into intuitive, visual representations.
+- **Cross-Platform Compatibility**: Available as standalone app on Mac and Windows.
 
 ## Quickstart 🚀
 
@@ -58,6 +41,18 @@ Download the latest release from our [Releases Page](https://github.com/nodetool
 1. **Download**: Get the latest release from the [Releases Page](https://github.com/nodetool-ai/nodetool/releases).
 2. **Extract**: Unzip the downloaded archive.
 3. **Install**: Run the installer and follow the instructions.
+
+## Use Cases 🎨
+
+- 🧠 **Combine AI Models**: Explore and creatively combine hundreds of ML models.
+- 🎨 **Stable Diffusion**: Generate custom image pipelines from the ground up.
+- 🌐 **Run Anywhere**: Create AI tools accessible from websites or mobile apps.
+- 🎶 **Music Generation**: Produce musical ideas and compositions based on text descriptions or themes.
+- 🔊 **Sound-to-Visual Art**: Transform audio into visual masterpieces.
+- 🎧 **Audio-to-Story Generator**: Create stories inspired by audio inputs.
+- 🖼️ **Image Enhancement**: Improve image quality with AI-powered techniques.
+- 🌍 **Multilingual Content Creation**: Produce and translate content across languages.
+- 📊 **Data Visualization**: Turn complex datasets into intuitive, visual representations.
 
 ## Node Overview 🧩
 
@@ -82,7 +77,6 @@ nodes
 │   └── text
 ├── huggingface
 │   ├── audio
-│   ├── huggingface_pipeline
 │   ├── image
 │   ├── multimodal
 │   ├── text
@@ -133,7 +127,7 @@ NodeTool includes a **Model Manager** that simplifies the process of handling AI
 
 ## Architecture 🏗️
 
-NodeTool's architecture is designed for flexibility and scalability, enabling smooth integration with platforms like OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI.
+NodeTool's architecture is designed to be flexible and extensible.
 
 ```mermaid
 graph TD
@@ -164,9 +158,9 @@ D -->|Optional API Calls| F[OpenAI<br>Replicate<br>Anthropic<br>Others]
 
 ### Components Overview
 
-1. **🖥️ Frontend**: Nodetool Editor for workflows, assets, models. Built with ReactJS, Reactflow, Mui v5, typescript.
+1. **🖥️ Frontend**: NodeTool Editor for workflows, assets, models. Built with ReactJS, Reactflow, MUI v5, TypeScript.
 2. **🌐 API Server**: Handles HTTP and WebSocket connections from the frontend, managing user sessions, workflow storage, and coordination between components.
-3. **🔌 WebSocket Runner**: Executes workflows in real-time, maintaining the state of running workflows, and managing communication between nodes.
+3. **🔌 WebSocket Runner**: Executes workflows in real-time, maintaining the state of running workflows and managing communication between nodes.
 4. **⚙️ Worker**: Performs the actual processing of individual nodes, allowing for parallel execution and scalability. It integrates seamlessly with:
 
    - **Local Models**: Run models locally using Ollama and Hugging Face Transformers and Diffusers.
@@ -193,16 +187,18 @@ class MyAgent(BaseNode):
         return llm.generate(self.prompt)
 ```
 
-## Using the Workflow API 🔌
+## Using the Workflow API (Alpha) 🔌
 
 NodeTool provides a powerful Workflow API that allows you to integrate and run your AI workflows programmatically.
+
+You can use the API locally now, `api.nodetool.ai` access is limited to Alpha users.
 
 ### Getting Started
 
 1. **Obtain an API Token**: Log in to your NodeTool account and generate an API token from your user settings.
 2. **Connect to the API**:
-   - API URL: `https://api.nodetool.ai/api`
-   - WebSocket URL: `wss://api.nodetool.ai/predict`
+   - API URL: `https://api.nodetool.ai/api` or `http://localhost:8000/api` for local
+   - WebSocket URL: `wss://api.nodetool.ai/predict` or `http://localhost:8000/predict` for local
 
 ### API Usage
 
@@ -251,82 +247,16 @@ socket.onmessage = async (event) => {
 };
 ```
 
-### Example Implementation
+### API Demo
 
-You can reuse the existing `WorkflowRunner` class:
-
-```javascript
-class WorkflowRunner {
-  constructor(apiUrl, workerUrl) {
-    this.apiUrl = apiUrl;
-    this.workerUrl = workerUrl;
-    this.socket = null;
-    this.state = "idle";
-    this.token = "";
-  }
-
-  async connect() {
-    return new Promise((resolve, reject) => {
-      this.socket = new WebSocket(this.workerUrl);
-      this.socket.onopen = () => {
-        this.state = "connected";
-        resolve();
-      };
-      this.socket.onerror = (error) => {
-        this.state = "error";
-        reject(error);
-      };
-      this.socket.onmessage = (event) => {
-        const data = msgpack.decode(new Uint8Array(event.data));
-        // Handle incoming messages
-      };
-    });
-  }
-
-  async run(workflowId, params = {}) {
-    if (!this.socket || this.state !== "connected") {
-      await this.connect();
-    }
-
-    this.state = "running";
-
-    const request = {
-      type: "run_job_request",
-      api_url: this.apiUrl,
-      workflow_id: workflowId,
-      job_type: "workflow",
-      auth_token: this.token,
-      params: params,
-    };
-
-    this.socket.send(
-      msgpack.encode({
-        command: "run_job",
-        data: request,
-      })
-    );
-
-    return new Promise((resolve, reject) => {
-      this.socket.onmessage = async (event) => {
-        const data = msgpack.decode(
-          new Uint8Array(await event.data.arrayBuffer())
-        );
-        if (data.type === "job_update" && data.status === "completed") {
-          this.state = "idle";
-          resolve(data.result);
-        } else if (data.type === "job_update" && data.status === "failed") {
-          this.state = "idle";
-          reject(new Error(data.error));
-        } else if (data.type === "error") {
-          this.state = "idle";
-          reject(new Error(data.error));
-        }
-        // Handle other updates as needed
-      };
-    });
-  }
-}
-```
+- Check out this simple [html page](api-demo.html). 
+- Download the [html file]((api-demo.html))
+- Open in a browser locally.
+- Select the endpoint, local or api.nodetool.ai (for alpha users)
+- Enter API token (from Nodetool settings dialog)
+- Select workflow
+- Run workflow
+- The page will live stream the output from the local or remote API
 
 ### Response Handling
 
