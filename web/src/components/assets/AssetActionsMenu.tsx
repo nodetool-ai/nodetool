@@ -34,24 +34,6 @@ const styles = (theme: any) =>
     ".file-upload-button button": {
       width: "100%",
       maxWidth: "155px"
-    },
-    ".current-folder": {
-      minWidth: "100px",
-      fontSize: ThemeNodetool.fontSizeSmall,
-      color: theme.palette.c_gray5,
-      padding: "0.5em 0 0 .25em"
-    },
-    ".folder-slash": {
-      color: theme.palette.c_hl1,
-      fontWeight: 600,
-      marginRight: "0.25em",
-      userSelect: "none"
-    },
-    ".selected-info": {
-      fontSize: "12px !important",
-      color: theme.palette.c_gray4,
-      minHeight: "25px",
-      display: "block"
     }
   });
 
@@ -60,8 +42,6 @@ interface AssetActionsMenuProps {
 }
 
 const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
-  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
-  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
   const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
   );
@@ -69,8 +49,6 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
     (state) => state.setAssetSearchTerm
   );
   const { folderFiles } = useAssets();
-  const currentFolder = useAssetGridStore((state) => state.currentFolder);
-
   const { handleSelectAllAssets, handleDeselectAssets } =
     useAssetSelection(folderFiles);
 
@@ -81,13 +59,18 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
     [setAssetSearchTerm]
   );
 
+  const onSearchClear = useCallback(() => {
+    setAssetSearchTerm("");
+  }, [setAssetSearchTerm]);
+
   return (
     <Box className="asset-menu" css={styles}>
       <SearchInput
-        setSearchTerm={onSearchChange}
+        onSearchChange={onSearchChange}
+        onSearchClear={onSearchClear}
         focusOnTyping={false}
         focusSearchInput={false}
-        // focusOnEscapeKey={false}
+        focusOnEscapeKey={false}
         maxWidth={"9em"}
       />
       <AssetActions

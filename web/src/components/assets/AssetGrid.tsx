@@ -25,6 +25,7 @@ import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
@@ -54,6 +55,24 @@ const styles = (theme: any) =>
       width: "100%",
       padding: "0.5em",
       backgroundColor: theme.palette.c_gray1
+    },
+    ".current-folder": {
+      minWidth: "100px",
+      fontSize: ThemeNodetool.fontSizeSmall,
+      color: theme.palette.c_gray5,
+      padding: "0.5em 0 0 .25em"
+    },
+    ".folder-slash": {
+      color: theme.palette.c_hl1,
+      fontWeight: 600,
+      marginRight: "0.25em",
+      userSelect: "none"
+    },
+    ".selected-info": {
+      fontSize: "12px !important",
+      color: theme.palette.c_gray4,
+      minHeight: "25px",
+      display: "block"
     }
   });
 
@@ -67,7 +86,10 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
   ({ maxItemSize = 100, itemSpacing = 5, isHorizontal }) => {
     const { error } = useAssets();
     const openAsset = useAssetGridStore((state) => state.openAsset);
+    const currentFolder = useAssetGridStore((state) => state.currentFolder);
     const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
+    const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
+
     const selectedAssetIds = useAssetGridStore(
       (state) => state.selectedAssetIds
     );
@@ -177,6 +199,37 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
           {containerWidth > 200 && (
             <AssetActionsMenu maxItemSize={maxItemSize} />
           )}
+          {containerWidth > 300 && (
+            <>
+              <Typography className="current-folder">
+                <span className="folder-slash">/</span>
+                {currentFolder && `${currentFolder.name}`}
+              </Typography>
+              <div className="selected-asset-info">
+                <Typography variant="body1" className="selected-info">
+                  {selectedAssetIds.length > 0 && (
+                    <>
+                      {selectedAssetIds.length}{" "}
+                      {selectedAssetIds.length === 1 ? "item " : "items "}
+                      selected
+                    </>
+                  )}
+                </Typography>
+                {selectedAssetIds.length === 1 && (
+                  <Typography variant="body2" className="asset-info">
+                    <span style={{ color: "white", fontSize: "small" }}>
+                      {selectedAssets[0]?.name}{" "}
+                    </span>
+                    <br />
+                    {selectedAssets[0]?.content_type}
+                    <br />
+                    {/* Add prettyDate function or import it */}
+                    {/* {prettyDate(selectedAssets[0]?.created_at)} */}
+                  </Typography>
+                )}
+              </div>
+            </>
+          )}
           <Dropzone onDrop={uploadFiles}>
             <div
               style={{
@@ -223,7 +276,10 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
       [
         error,
         openAsset,
+        containerWidth,
         maxItemSize,
+        selectedAssetIds,
+        selectedAssets,
         uploadFiles,
         isHorizontal,
         itemSpacing,
@@ -231,9 +287,7 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
         currentAudioAsset,
         spaceKeyPressed,
         openMenuType,
-        selectedAssetIds,
-        setOpenAsset,
-        containerWidth
+        setOpenAsset
       ]
     );
 
