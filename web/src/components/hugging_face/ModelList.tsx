@@ -285,6 +285,17 @@ const ModelList: React.FC = () => {
     }
   };
 
+  const onSearchChange = useCallback(
+    (newSearchTerm: string) => {
+      setModelSearchTerm(newSearchTerm);
+    },
+    [setModelSearchTerm]
+  );
+
+  const onSearchClear = useCallback(() => {
+    setModelSearchTerm("");
+  }, [setModelSearchTerm]);
+
   const renderModels = (models: UnifiedModel[]) => {
     if (models.length === 0) {
       return (
@@ -385,8 +396,11 @@ const ModelList: React.FC = () => {
           }}
         >
           <SearchInput
+            onSearchChange={onSearchChange}
+            onSearchClear={onSearchClear}
             focusOnTyping={true}
             focusSearchInput={false}
+            focusOnEscapeKey={false}
             maxWidth={"9em"}
           />
           <ToggleButtonGroup

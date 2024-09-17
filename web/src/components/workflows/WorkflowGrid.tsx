@@ -406,6 +406,19 @@ const WorkflowGrid = () => {
         return b.updated_at.localeCompare(a.updated_at);
       }) || [];
 
+  // make names breakable
+  function addBreaks(text: string) {
+    return text.replace(/([-_.])/g, "$1<wbr>");
+  }
+
+  const handleSearchChange = (newSearchTerm: string) => {
+    setFilterValue(newSearchTerm);
+  };
+
+  const handleSearchClear = () => {
+    setFilterValue("");
+  };
+
   const workflowsToDeleteList = (
     <ul className="asset-names">
       {workflowsToDelete.map((workflow) => (
@@ -458,7 +471,11 @@ const WorkflowGrid = () => {
         </div>
 
         <div className="tools">
-          <SearchInput focusOnTyping={true} />
+          <SearchInput
+            onSearchChange={handleSearchChange}
+            onSearchClear={handleSearchClear}
+            focusOnTyping={true}
+          />
           <ToggleButtonGroup
             exclusive
             value={settings.workflowLayout}

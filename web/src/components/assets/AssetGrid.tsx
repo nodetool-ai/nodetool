@@ -85,9 +85,13 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
     );
     const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
     const openMenuType = useContextMenuStore((state) => state.openMenuType);
-    const handleDoubleClick = (asset: Asset) => {
-      setOpenAsset(asset);
-    };
+    const handleDoubleClick = useCallback(
+      (asset: Asset) => {
+        setOpenAsset(asset);
+      },
+      [setOpenAsset]
+    );
+
     const { user } = useAuth();
 
     const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore((state) => ({
@@ -156,7 +160,6 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
 
     const { navigateToFolderId } = useAssets();
 
-    // Memoize the content of the component
     const memoizedContent = useMemo(
       () => (
         <Box css={styles} className="asset-grid-container" ref={containerRef}>
@@ -171,7 +174,7 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
               onClose={() => setOpenAsset(null)}
             />
           )}
-          {containerWidth > 300 && (
+          {containerWidth > 200 && (
             <AssetActionsMenu maxItemSize={maxItemSize} />
           )}
           <Dropzone onDrop={uploadFiles}>
@@ -182,7 +185,7 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
                 flexDirection: isHorizontal ? "row" : "column"
               }}
             >
-              {containerWidth > 300 && (
+              {containerWidth > 200 && (
                 <FolderList isHorizontal={isHorizontal} />
               )}
               <AssetGridContent
@@ -230,7 +233,7 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
         openMenuType,
         selectedAssetIds,
         setOpenAsset,
-        containerWidth // Add containerWidth to the dependency array
+        containerWidth
       ]
     );
 
@@ -245,5 +248,5 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
     return memoizedContent;
   }
 );
-
+AssetGrid.displayName = "AssetGrid";
 export default AssetGrid;

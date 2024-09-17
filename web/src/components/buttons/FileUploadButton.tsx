@@ -56,14 +56,14 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
           className="upload-file"
           variant="outlined"
           onClick={handleClick}
-          style={{ display: "flex", alignItems: "center", gap: "0.5em" }}
+          style={{ padding: "0" }}
         >
           <FileUploadIcon />
           <Typography
             variant="inherit"
             // style={{ position: "relative", }}
           >
-            Upload
+            {/* Upload */}
           </Typography>
         </Button>
       </Tooltip>

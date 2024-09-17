@@ -59,20 +59,20 @@ interface AssetActionsMenuProps {
   maxItemSize: number;
 }
 
-const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
-  maxItemSize,
-}) => {
+const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
-  const setSelectedAssetIds = useAssetGridStore((state) => state.setSelectedAssetIds);
-  const setAssetSearchTerm = useAssetGridStore((state) => state.setAssetSearchTerm);
+  const setSelectedAssetIds = useAssetGridStore(
+    (state) => state.setSelectedAssetIds
+  );
+  const setAssetSearchTerm = useAssetGridStore(
+    (state) => state.setAssetSearchTerm
+  );
   const { folderFiles } = useAssets();
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
 
-  const {
-    handleSelectAllAssets,
-    handleDeselectAssets,
-  } = useAssetSelection(folderFiles);
+  const { handleSelectAllAssets, handleDeselectAssets } =
+    useAssetSelection(folderFiles);
 
   const onSearchChange = useCallback(
     (newSearchTerm: string) => {
@@ -101,33 +101,6 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         handleDeselectAssets={handleDeselectAssets}
         maxItemSize={maxItemSize}
       />
-      <Typography className="current-folder">
-        <span className="folder-slash">/</span>
-        {currentFolder && `${currentFolder.name}`}
-      </Typography>
-      <div className="selected-asset-info">
-        <Typography variant="body1" className="selected-info">
-          {selectedAssetIds.length > 0 && (
-            <>
-              {selectedAssetIds.length}{" "}
-              {selectedAssetIds.length === 1 ? "item " : "items "}
-              selected
-            </>
-          )}
-        </Typography>
-        {selectedAssetIds.length === 1 && (
-          <Typography variant="body2" className="asset-info">
-            <span style={{ color: "white", fontSize: "small" }}>
-              {selectedAssets[0]?.name}{" "}
-            </span>
-            <br />
-            {selectedAssets[0]?.content_type}
-            <br />
-            {/* Add prettyDate function or import it */}
-            {/* {prettyDate(selectedAssets[0]?.created_at)} */}
-          </Typography>
-        )}
-      </div>
     </Box>
   );
 };
