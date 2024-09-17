@@ -62,6 +62,7 @@
     "string-to-color": "^2.2.2",
     "tabulator-tables": "^6.2.1",
     "typescript": "^4.9.5",
+    "use-debounce": "^10.0.3",
     "uuid": "^9.0.1",
     "vite": "^5.1.6",
     "vite-plugin-svgr": "^4.2.0",
