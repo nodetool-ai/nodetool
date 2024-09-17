@@ -263,6 +263,12 @@
         <div class="left-container">
             <div class="inputs-container">
                 <form id="tokenForm">
+                    <label for="apiEndpoint">API Endpoint:</label>
+                    <select id="apiEndpoint">
+                        <option value="https://api.nodetool.ai">api.nodetool.ai</option>
+                        <option value="http://localhost:8000">localhost:8000</option>
+                    </select>
+
                     <label for="token">Auth Token:</label>
                     <input type="text" id="token" required>
                     <button type="submit" id="loadWorkflowsBtn">Load Workflows</button>
@@ -311,12 +317,17 @@
     <script src="https://unpkg.com/msgpack-lite@0.1.26/dist/msgpack.min.js"></script>
     <script>
         class WorkflowRunner {
-            constructor(apiUrl, workerUrl) {
-                this.apiUrl = apiUrl;
-                this.workerUrl = workerUrl;
+            constructor() {
+                this.apiUrl = '';
+                this.workerUrl = '';
                 this.socket = null;
                 this.state = 'idle';
                 this.token = '';
+            }
+
+            setEndpoint(endpoint) {
+                this.apiUrl = `${endpoint}/api`;
+                this.workerUrl = endpoint.replace('http', 'ws') + '/predict';
             }
 
             async connect() {
@@ -420,12 +431,21 @@
             }
         }
 
-        const workflowRunner = new WorkflowRunner('https://api.nodetool.ai/api', 'wss://api.nodetool.ai/predict');
+        const workflowRunner = new WorkflowRunner();
 
+        const apiEndpointSelect = document.getElementById('apiEndpoint');
         const loadWorkflowsBtn = document.getElementById('loadWorkflowsBtn');
         const runWorkflowBtn = document.getElementById('runWorkflowBtn');
         let workflows = [];
         let inputs = [];
+
+        apiEndpointSelect.addEventListener('change', (e) => {
+            const selectedEndpoint = e.target.value;
+            workflowRunner.setEndpoint(selectedEndpoint);
+        });
+
+        // Set initial endpoint
+        workflowRunner.setEndpoint(apiEndpointSelect.value);
 
         document.getElementById('tokenForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -436,7 +456,7 @@
             try {
                 updateOutput('Loading workflows...');
                 const response = await workflowRunner.loadWorkflows();
-                console.log('Workflows response:', response);  // Add this line for debugging
+                console.log('Workflows response:', response);
                 if (response && response.workflows) {
                     workflows = response.workflows.sort((a, b) => a.name.localeCompare(b.name));
                     createWorkflowSelectionWidget(workflows);
@@ -446,7 +466,7 @@
                     throw new Error('Invalid response format');
                 }
             } catch (error) {
-                console.error('Error loading workflows:', error);  // Add this line for debugging
+                console.error('Error loading workflows:', error);
                 updateOutput(`Error loading workflows: ${error.message}`);
             } finally {
                 loadWorkflowsBtn.disabled = false;
