@@ -187,29 +187,18 @@ class MyAgent(BaseNode):
         return llm.generate(self.prompt)
 ```
 
-## Using the Workflow API (Alpha) 🔌
+## Using the Workflow API 🔌
 
 NodeTool provides a powerful Workflow API that allows you to integrate and run your AI workflows programmatically.
 
 You can use the API locally now, `api.nodetool.ai` access is limited to Alpha users.
-
-### Getting Started
-
-1. **Obtain an API Token**: Log in to your NodeTool account and generate an API token from your user settings.
-2. **Connect to the API**:
-   - API URL: `https://api.nodetool.ai/api` or `http://localhost:8000/api` for local
-   - WebSocket URL: `wss://api.nodetool.ai/predict` or `http://localhost:8000/predict` for local
 
 ### API Usage
 
 #### Loading Workflows
 
 ```javascript
-const response = await fetch("https://api.nodetool.ai/api/workflows", {
-  headers: {
-    Authorization: "Bearer YOUR_API_TOKEN",
-  },
-});
+const response = await fetch("http://localhost:8000/api/workflows/");
 const workflows = await response.json();
 ```
 
@@ -257,20 +246,17 @@ These updates include:
 The final result of the workflow is also streamed as a single job_update with the status "completed".
 
 ```javascript
-const response = await fetch(
-  "https://api.nodetool.ai/api/jobs/run?stream=true",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer YOUR_API_TOKEN",
-    },
-    body: JSON.stringify({
-      workflow_id: workflowId,
-      params: params,
-    }),
-  }
-);
+const response = await fetch("http://localhost:8000/api/jobs/run?stream=true", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: "Bearer YOUR_API_TOKEN",
+  },
+  body: JSON.stringify({
+    workflow_id: workflowId,
+    params: params,
+  }),
+});
 
 const reader = response.body.getReader();
 const decoder = new TextDecoder();
@@ -369,14 +355,6 @@ socket.send(msgpack.encode({ command: "get_status" }));
 - Run workflow
 - The page will live stream the output from the local or remote API
 
-### Response Handling
-
-- The API uses MessagePack for efficient data serialization.
-- Responses include various types such as job updates, node progress, and results.
-- Results may contain different data types (e.g., text, images) based on your workflow output.
-
-By leveraging this API, you can seamlessly integrate NodeTool's powerful AI workflows into your own applications, enabling advanced AI capabilities with minimal code.
-
 ## Development Setup 🛠️
 
 ### Requirements
@@ -405,10 +383,13 @@ Now, open your browser and navigate to `http://localhost:3000` to access the Nod
 
 ### Run Electron App
 
-If you want to run the Electron app:
+The Electron app starts the frontend and backend.
 
 ```bash
-cd electron
+cd web
+npm install
+npm run build
+cd ../electron
 npm install
 npm start
 ```
@@ -435,7 +416,7 @@ Please adhere to our contribution guidelines.
 
 ## License 📄
 
-NodeTool is licensed under the [GPLv3 License](LICENSE.txt), promoting open-source collaboration and sharing.
+NodeTool is licensed under the [GPLv3 License](LICENSE.txt)
 
 ## Contact 📬
 
