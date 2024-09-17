@@ -7,6 +7,7 @@ services:
     volumes:
       - "./key.pem:/app/key.pem"
       - "./cert.pem:/app/cert.pem"
+      - ${HF_HOME:-./huggingface}:/app/huggingface
     command:
       [
         "uvicorn",
@@ -18,7 +19,7 @@ services:
         "--ssl-keyfile",
         "/app/key.pem",
         "--ssl-certfile",
-        "/app/cert.pem"
+        "/app/cert.pem",
       ]
     ports:
       - "443:443"
@@ -42,6 +43,7 @@ services:
       CHROMA_URL: http://chroma:9000
       OLLAMA_API_URL: http://ollama:11434
       WORKER_URL: http://worker:5001
+      HF_HOME: /app/huggingface
   worker:
     restart: unless-stopped
     build:
@@ -86,7 +88,7 @@ services:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [ gpu ]
+              capabilities: [gpu]
   memcached:
     image: memcached:bookworm
     restart: unless-stopped
@@ -106,7 +108,7 @@ services:
         "--port",
         "9000",
         "--path",
-        "/chroma-data"
+        "/chroma-data",
       ]
     expose:
       - "9000"
@@ -132,7 +134,7 @@ services:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [ gpu ]
+              capabilities: [gpu]
 
   # minio:
   #   container_name: minio
