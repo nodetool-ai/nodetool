@@ -17,7 +17,6 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { ExpandCircleDown } from "@mui/icons-material";
 
 // components
-import SearchComponent from "./SearchComponent";
 import TypeFilter from "./TypeFilter";
 import NamespaceList from "./NamespaceList";
 // store
@@ -36,7 +35,7 @@ import SearchInput from "../search/SearchInput";
 type NodeMenuProps = {
   focusSearchInput?: boolean;
 };
-export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
+export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
   const nodeRef = useRef(null);
   const {
     data: metadata,
@@ -254,7 +253,7 @@ export default function NodeMenu({ focusSearchInput }: NodeMenuProps) {
             </Tooltip>
 
             <SearchInput
-              focusSearchInput={true}
+              focusSearchInput={focusSearchInput}
               focusOnTyping={true}
               placeholder="Search for nodes..."
               debounceTime={300}
