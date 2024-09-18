@@ -72,6 +72,8 @@ const styles = (theme: any) =>
   });
 
 interface SearchInputProps {
+  onSearchChange: (value: string) => void;
+  onSearchClear?: () => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   placeholder?: string;
@@ -83,6 +85,8 @@ interface SearchInputProps {
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
+  onSearchChange,
+  onSearchClear = () => {},
   focusSearchInput = true,
   focusOnTyping = false,
   placeholder = "Search...",
@@ -100,13 +104,15 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
     setSearchTerm(value);
+    onSearchChange(value);
   }, debounceTime);
 
   const resetSearch = useCallback(() => {
     setLocalSearchTerm("");
     debouncedSetSearchTerm("");
     setSelectedPath([]);
-  }, [debouncedSetSearchTerm, setSelectedPath]);
+    onSearchClear();
+  }, [debouncedSetSearchTerm, setSelectedPath, onSearchClear]);
 
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
