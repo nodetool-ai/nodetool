@@ -70,7 +70,6 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
         onSearchClear={onSearchClear}
         focusOnTyping={false}
         focusSearchInput={false}
-        focusOnEscapeKey={false}
         maxWidth={"9em"}
       />
       <AssetActions
