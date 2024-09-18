@@ -72,7 +72,7 @@ const styles = (theme: any) =>
   });
 
 interface SearchInputProps {
-  onSearchChange: (value: string) => void;
+  onSearchChange?: (value: string) => void;
   onSearchClear?: () => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
@@ -104,7 +104,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
     setSearchTerm(value);
-    onSearchChange(value);
+    onSearchChange?.(value);
   }, debounceTime);
 
   const resetSearch = useCallback(() => {
