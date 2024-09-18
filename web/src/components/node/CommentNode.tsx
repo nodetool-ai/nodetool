@@ -243,18 +243,21 @@ export default memo(
       setModalOpen(false);
     };
 
-    const handleSearchChange = (search: string) => {
-      // filter datatypes by search string:
-      setDataTypesFiltered(
-        DATA_TYPES.filter((datatype) =>
-          datatype.label.toLowerCase().includes(search.toLowerCase())
-        )
-      );
-    };
-
-    const handleSearchClear = () => {
-      setDataTypesFiltered(DATA_TYPES);
-    };
+    const handleSearchChange = useCallback(
+      (search: string) => {
+        if (search === "") {
+          setDataTypesFiltered(DATA_TYPES);
+        } else {
+          // filter datatypes by search string:
+          setDataTypesFiltered(
+            DATA_TYPES.filter((datatype) =>
+              datatype.label.toLowerCase().includes(search.toLowerCase())
+            )
+          );
+        }
+      },
+      [setDataTypesFiltered]
+    );
 
     const handleModalOpen = () => {
       setModalOpen(true);
@@ -292,7 +295,6 @@ export default memo(
           <div className="search">
             <SearchInput
               onSearchChange={handleSearchChange}
-              onSearchClear={handleSearchClear}
               focusOnTyping={true}
             />
           </div>

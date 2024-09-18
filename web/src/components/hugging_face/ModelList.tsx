@@ -388,7 +388,7 @@ const ModelList: React.FC = () => {
             focusOnTyping={true}
             focusSearchInput={false}
             maxWidth={"9em"}
-            setSearchTerm={setModelSearchTerm}
+            onSearchChange={setModelSearchTerm}
             searchTerm={modelSearchTerm}
           />
           <ToggleButtonGroup

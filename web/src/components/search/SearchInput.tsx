@@ -72,28 +72,24 @@ const styles = (theme: any) =>
   });
 
 interface SearchInputProps {
-  onSearchChange?: (value: string) => void;
-  onSearchClear?: () => void;
+  onSearchChange: (value: string) => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   placeholder?: string;
   debounceTime?: number;
   maxWidth?: string;
   searchTerm?: string;
-  setSearchTerm?: (searchTerm: string) => void;
   setSelectedPath?: (path: string[]) => void;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
   onSearchChange,
-  onSearchClear = () => {},
   focusSearchInput = true,
   focusOnTyping = false,
   placeholder = "Search...",
   maxWidth = "unset",
   debounceTime = 300,
   searchTerm: externalSearchTerm = "",
-  setSearchTerm = (term: string) => {},
   setSelectedPath = (path: string[]) => {}
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -103,16 +99,15 @@ const SearchInput: React.FC<SearchInputProps> = ({
   );
 
   const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
-    setSearchTerm(value);
-    onSearchChange?.(value);
+    onSearchChange(value);
   }, debounceTime);
 
   const resetSearch = useCallback(() => {
     setLocalSearchTerm("");
     debouncedSetSearchTerm("");
     setSelectedPath([]);
-    onSearchClear();
-  }, [debouncedSetSearchTerm, setSelectedPath, onSearchClear]);
+    onSearchChange("");
+  }, [debouncedSetSearchTerm, setSelectedPath, onSearchChange]);
 
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {

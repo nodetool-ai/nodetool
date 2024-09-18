@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import AssetActions from "./AssetActions";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -59,15 +59,10 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
     [setAssetSearchTerm]
   );
 
-  const onSearchClear = useCallback(() => {
-    setAssetSearchTerm("");
-  }, [setAssetSearchTerm]);
-
   return (
     <Box className="asset-menu" css={styles}>
       <SearchInput
         onSearchChange={onSearchChange}
-        onSearchClear={onSearchClear}
         focusOnTyping={false}
         focusSearchInput={false}
         maxWidth={"9em"}

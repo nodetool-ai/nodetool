@@ -258,7 +258,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
               placeholder="Search for nodes..."
               debounceTime={300}
               searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
+              onSearchChange={setSearchTerm}
               setSelectedPath={setSelectedPath}
             />
             {/* <Tooltip

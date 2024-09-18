@@ -473,7 +473,6 @@ const WorkflowGrid = () => {
         <div className="tools">
           <SearchInput
             onSearchChange={handleSearchChange}
-            onSearchClear={handleSearchClear}
             focusOnTyping={true}
           />
           <ToggleButtonGroup
