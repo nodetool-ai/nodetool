@@ -74,7 +74,7 @@
 .react-flow__edge-path,
 .react-flow__connection-path {
   stroke: var(--c_gray4);
-  stroke-width: 2;
+  stroke-width: 3 !important;
 }
 
 /* edge hover */
@@ -91,7 +91,12 @@
   stroke-dasharray: 6;
   stroke-width: 5;
 }
-
+/* zoomed out */
+.zoomed-out .react-flow__edge .react-flow__edge-path,
+.zoomed-out .react-flow__connection .react-flow__connection-path {
+  stroke: var(--c_gray4);
+  stroke-width: 6 !important;
+}
 /* HANDLE */
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);

@@ -20,5 +20,5 @@ export const CHAT_HISTORY_AMOUNT = 10;
 
 // EDITOR
 export const DUPLICATE_SPACING_X = 200;
-export const MIN_ZOOM = 0.35;
+export const MIN_ZOOM = 0.38;
 export const MAX_ZOOM = 3.5;

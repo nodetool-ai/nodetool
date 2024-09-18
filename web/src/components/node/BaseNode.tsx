@@ -170,14 +170,15 @@ export default memo(
             : ThemeNodes.palette.c_node_bg
         }}
       >
+        <NodeHeader
+          id={props.id}
+          nodeTitle={node_title}
+          isLoading={isLoading}
+          hasParent={hasParent}
+          isMinZoom={isMinZoom}
+        />
         {!isMinZoom && (
           <>
-            <NodeHeader
-              id={props.id}
-              nodeTitle={node_title}
-              isLoading={isLoading}
-              hasParent={hasParent}
-            />
             <NodeErrors id={props.id} />
             <NodeStatus status={status} />
             {!isProduction && <ModelRecommendations nodeType={props.type} />}

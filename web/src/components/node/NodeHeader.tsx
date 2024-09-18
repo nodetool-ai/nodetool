@@ -14,6 +14,7 @@ export interface NodeHeaderProps {
   isLoading?: boolean;
   hasParent?: boolean;
   showMenu?: boolean;
+  isMinZoom?: boolean;
 }
 
 export const loadingEffect = keyframes`
@@ -29,7 +30,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
   css({
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     width: "100%",
     minHeight: "2em",
     background: hasParent
@@ -42,13 +43,33 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       scale: 0.8,
       opacity: 1
     },
+    "&.min-zoom": {
+      padding: "0",
+      height: "100%",
+      flexGrow: 1,
+      display: "flex",
+      alignItems: "center",
+      color: theme.palette.c_gray6,
+      backgroundColor: theme.palette.c_gray1
+    },
+    "&.min-zoom .node-title": {
+      width: "100%",
+      fontSize: "2.75em",
+      fontWeight: "300",
+      padding: ".1em 0 0 .1em",
+      fontFamily: theme.fontFamily2,
+      wordSpacing: "-2px",
+      textTransform: "uppercase"
+    },
+    "&.min-zoom .node-title:hover": {
+      opacity: 0.9
+    },
     "&.loading": {
       background: `linear-gradient(to left, ${theme.palette.c_gray1} 25%, ${theme.palette.c_gray2} 50%, ${theme.palette.c_gray3} 75%, ${theme.palette.c_gray1} 100%)`,
       backgroundSize: "200% 100%",
       animation: `${loadingEffect} 1s infinite linear`
     },
     "&:hover": {
-      // opacity: 0.8,
       transition: "opacity 0.15s",
       color: theme.palette.c_gray6
     },
@@ -94,7 +115,8 @@ export const NodeHeader = memo(
     nodeTitle,
     isLoading,
     hasParent,
-    showMenu = true
+    showMenu = true,
+    isMinZoom
   }: NodeHeaderProps) => {
     const openContextMenu = useContextMenuStore(
       (state) => state.openContextMenu
@@ -119,7 +141,7 @@ export const NodeHeader = memo(
       () =>
         css({
           '[role~="tooltip"][data-microtip-position|="top"]::after': {
-            fontSize: currentZoom < 1.5 ? "1em" : ".7em",
+            fontSize: currentZoom < 1.5 ? "1.1em" : ".7em",
             maxWidth: "250px",
             padding: "1em",
             textAlign: "left",
@@ -162,15 +184,18 @@ export const NodeHeader = memo(
     );
 
     const headerClassName = useMemo(
-      () => `node-header ${isLoading ? "loading" : ""}`,
-      [isLoading]
+      () =>
+        `node-header ${isLoading ? "loading" : ""} ${
+          isMinZoom ? "min-zoom" : ""
+        }`,
+      [isLoading, isMinZoom]
     );
 
     return (
       <div className={headerClassName} css={memoizedHeaderStyle}>
-        <span className="node-title">{nodeTitle}</span>
+        <span className="isMinZoom node-title">{nodeTitle}</span>
 
-        {showMenu && (
+        {showMenu && !isMinZoom && (
           <div className="menu-button" css={tooltipStyle}>
             <button
               className="menu-button"
