@@ -156,6 +156,8 @@ export default function useConnectionHandlers() {
     (connection: Connection) => {
       connectionCreated.current = true;
       devLog("Connection Created", connection);
+      // Call the onConnect function from NodeStore
+      useNodeStore.getState().onConnect(connection);
     },
     [connectionCreated]
   );
@@ -167,7 +169,43 @@ export default function useConnectionHandlers() {
     (event: any) => {
       const targetIsGroup = event.target.classList.contains("loop-node");
       const targetIsPane = event.target.classList.contains("react-flow__pane");
+      const targetIsNode = event.target.closest(".react-flow__node") !== null;
 
+      // targetIsNode: try to connect to first possible input
+      if (!connectionCreated.current && targetIsNode) {
+        const nodeId = event.target.closest(".react-flow__node").dataset.id;
+        const node = findNode(nodeId);
+        if (!node || !metadata) {
+          return;
+        }
+
+        const nodeMetadata = metadata.metadataByType[node.type || ""];
+        if (!nodeMetadata) {
+          return;
+        }
+        // Check if a connection is possible
+        const possibleInputs = nodeMetadata.properties.filter(
+          (prop) => prop.type.type === connectType?.type
+        );
+
+        if (possibleInputs.length > 0) {
+          // Connect to the first possible input
+          const firstInput = possibleInputs[0];
+          const newConnection = {
+            source: connectNodeId || "",
+            sourceHandle: connectHandleId || "",
+            target: nodeId,
+            targetHandle: firstInput.name
+          };
+
+          handleOnConnect(newConnection);
+          endConnecting();
+        } else {
+          endConnecting();
+        }
+      }
+
+      // targetIsPane: open context menu for output
       if (!connectionCreated.current && (targetIsPane || targetIsGroup)) {
         if (connectDirection === "source") {
           openContextMenu(
@@ -200,12 +238,14 @@ export default function useConnectionHandlers() {
     [
       setConnectionAttempted,
       endConnecting,
-      connectDirection,
-      openContextMenu,
-      connectNodeId,
+      findNode,
+      metadata,
       connectType,
+      connectNodeId,
       connectHandleId,
-      connectionCreated
+      handleOnConnect,
+      connectDirection,
+      openContextMenu
     ]
   );
 
