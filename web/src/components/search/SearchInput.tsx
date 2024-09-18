@@ -98,8 +98,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
-  const controlKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("Control")
+  const isControlOrMetaPressed = useKeyPressedStore(
+    (state) => state.isKeyPressed("control") || state.isKeyPressed("meta")
   );
 
   const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
@@ -135,9 +135,18 @@ const SearchInput: React.FC<SearchInputProps> = ({
   }, [focusSearchInput]);
 
   React.useEffect(() => {
-    if (focusOnTyping) {
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (controlKeyPressed) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        (event.key === "Delete" || event.key === "Backspace") &&
+        isControlOrMetaPressed
+      ) {
+        event.preventDefault();
+        clearSearch();
+        return;
+      }
+
+      if (focusOnTyping) {
+        if (isControlOrMetaPressed) return;
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
           if (document.activeElement !== inputRef.current) {
             event.preventDefault();
@@ -146,12 +155,17 @@ const SearchInput: React.FC<SearchInputProps> = ({
             debouncedSetSearchTerm(event.key);
           }
         }
-      };
+      }
+    };
 
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [focusOnTyping, controlKeyPressed, debouncedSetSearchTerm]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    focusOnTyping,
+    isControlOrMetaPressed,
+    debouncedSetSearchTerm,
+    clearSearch
+  ]);
 
   return (
     <div
