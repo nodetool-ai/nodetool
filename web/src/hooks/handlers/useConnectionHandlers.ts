@@ -171,7 +171,7 @@ export default function useConnectionHandlers() {
       const targetIsPane = event.target.classList.contains("react-flow__pane");
       const targetIsNode = event.target.closest(".react-flow__node") !== null;
 
-      // targetIsNode: try to connect to first possible input
+      // targetIsNode: try to auto-connect
       if (!connectionCreated.current && targetIsNode) {
         const nodeId = event.target.closest(".react-flow__node").dataset.id;
         const node = findNode(nodeId);
@@ -183,25 +183,44 @@ export default function useConnectionHandlers() {
         if (!nodeMetadata) {
           return;
         }
-        // Check if a connection is possible
-        const possibleInputs = nodeMetadata.properties.filter(
-          (prop) => prop.type.type === connectType?.type
-        );
+        if (connectDirection === "source") {
+          const possibleInputs = nodeMetadata.properties.filter(
+            (prop) => prop.type.type === connectType?.type
+          );
 
-        if (possibleInputs.length > 0) {
-          // Connect to the first possible input
-          const firstInput = possibleInputs[0];
-          const newConnection = {
-            source: connectNodeId || "",
-            sourceHandle: connectHandleId || "",
-            target: nodeId,
-            targetHandle: firstInput.name
-          };
+          if (possibleInputs.length > 0) {
+            // connect first possible input
+            const firstInput = possibleInputs[0];
+            const newConnection = {
+              source: connectNodeId || "",
+              sourceHandle: connectHandleId || "",
+              target: nodeId,
+              targetHandle: firstInput.name
+            };
 
-          handleOnConnect(newConnection);
-          endConnecting();
-        } else {
-          endConnecting();
+            handleOnConnect(newConnection);
+            endConnecting();
+          } else {
+            endConnecting();
+          }
+        } else if (connectDirection === "target") {
+          const possibleOutputs = nodeMetadata.outputs.filter(
+            (prop) => prop.type.type === connectType?.type
+          );
+          if (possibleOutputs.length > 0) {
+            // connect to first possible output
+            const firstOutput = possibleOutputs[0];
+            const newConnection = {
+              source: nodeId,
+              sourceHandle: firstOutput.name,
+              target: connectNodeId || "",
+              targetHandle: connectHandleId || ""
+            };
+            handleOnConnect(newConnection);
+            endConnecting();
+          } else {
+            endConnecting();
+          }
         }
       }
 
