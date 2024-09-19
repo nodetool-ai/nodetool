@@ -16,12 +16,7 @@ class ModelManager:
         if not Environment.is_production():
             key = f"{model_id}_{task}_{path}"
             model = cls._models.get(key)
-            if model:
-                logger.info(f"Retrieved model: {key}")
-            else:
-                logger.warning(f"Model not found: {key}")
             return model
-        logger.info("Production environment: No model retrieved")
         return None
 
     @classmethod
@@ -32,9 +27,6 @@ class ModelManager:
             key = f"{model_id}_{task}_{path}"
             cls._models[key] = model
             cls._models_by_node[node_id] = key
-            logger.info(f"Set model: {key} for node: {node_id}")
-        else:
-            logger.info("Production environment: Model not set")
 
     @classmethod
     def clear_unused(cls, node_ids: list[str]):

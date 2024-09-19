@@ -489,6 +489,7 @@ class WorkflowRunner:
             log.error(
                 f"Error processing node {node.get_title()} ({node._id}): {str(e)}"
             )
+            log.exception(e)
             context.post_message(
                 NodeUpdate(
                     node_id=node.id,
