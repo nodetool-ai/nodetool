@@ -859,6 +859,80 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
 #         )
 
 
+class TextToSpeech(HuggingFacePipelineNode):
+    """
+    A generic Text-to-Speech node that can work with various Hugging Face TTS models.
+    tts, audio, speech, huggingface
+
+    Use cases:
+    - Generate speech from text for various applications
+    - Create voice content for apps, websites, or virtual assistants
+    - Produce audio narrations for videos, presentations, or e-learning content
+    """
+
+    model: HFTextToSpeech = Field(
+        default=HFTextToSpeech(),
+        title="Model ID on Huggingface",
+        description="The model ID to use for text-to-speech generation",
+    )
+    text: str = Field(
+        default="Hello, this is a test of the text-to-speech system.",
+        title="Input Text",
+        description="The text to convert to speech",
+    )
+    _pipeline: Pipeline | None = None
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToSpeech(
+                repo_id="facebook/mms-tts-eng",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+            HFTextToSpeech(
+                repo_id="facebook/mms-tts-kor",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+            HFTextToSpeech(
+                repo_id="facebook/mms-tts-fra",
+                allow_patterns=["*.bin", "*.json", "*.txt"],
+            ),
+        ]
+
+    def get_model_id(self):
+        return self.model.repo_id
+
+    async def initialize(self, context: ProcessingContext):
+        self._pipeline = await self.load_pipeline(
+            context,
+            "text-to-speech",
+            self.get_model_id(),
+            device=context.device,
+            torch_dtype=torch.float32,
+        )
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.model.to(device)  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        assert self._pipeline is not None, "Pipeline not initialized"
+
+        result = self._pipeline(self.text)
+
+        if isinstance(result, dict) and "audio" in result:
+            audio_array = result["audio"]
+        elif isinstance(result, tuple) and len(result) == 2:
+            audio_array, sample_rate = result
+        else:
+            raise ValueError("Unexpected output format from the TTS pipeline")
+
+        # Assuming a default sample rate of 16000 if not provided
+        sample_rate = getattr(self._pipeline, "sampling_rate", 16000)
+
+        return await context.audio_from_numpy(audio_array, sample_rate)
+
+
 # class LoadSpeakerEmbedding(BaseNode):
 #     """
 #     Loads a speaker embedding from a dataset.
