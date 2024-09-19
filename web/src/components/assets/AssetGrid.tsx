@@ -239,12 +239,16 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
               }}
             >
               {containerWidth > 200 && (
-                <FolderList isHorizontal={isHorizontal} />
+                <div style={{ flexShrink: 0, position: "relative" }}>
+                  <FolderList isHorizontal={isHorizontal} />
+                </div>
               )}
-              <AssetGridContent
-                itemSpacing={itemSpacing}
-                onDoubleClick={handleDoubleClick}
-              />
+              <div style={{ flexGrow: 1, minHeight: 0, overflow: "auto" }}>
+                <AssetGridContent
+                  itemSpacing={itemSpacing}
+                  onDoubleClick={handleDoubleClick}
+                />
+              </div>
             </div>
           </Dropzone>
           <Divider />
