@@ -80,7 +80,9 @@
 /* edge hover */
 .react-flow .react-flow__edge.hovered .react-flow__edge-path,
 .react-flow .react-flow__edge.hovered .react-flow__connection-path {
-  stroke-width: 4 !important;
+  stroke-width: 3.5 !important;
+  filter: drop-shadow(0 0 1px var(--c_gray4));
+  filter: saturate(1.1) brightness(1.1);
 }
 
 /* edge selected */
@@ -91,12 +93,21 @@
   stroke-dasharray: 6;
   stroke-width: 5;
 }
+
 /* zoomed out */
 .zoomed-out .react-flow__edge .react-flow__edge-path,
 .zoomed-out .react-flow__connection .react-flow__connection-path {
   stroke: var(--c_gray4);
   stroke-width: 6 !important;
 }
+
+.react-flow__edge .react-flow__edge-text {
+  visibility: visible !important;
+  fill: #000;
+  font-size: var(--font-size-tinyer);
+  transition: all 0.8s;
+}
+
 /* HANDLE */
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);

@@ -19,11 +19,13 @@ export default function useEdgeHandlers(resumeHistoryAndSave: () => void) {
   const onEdgeMouseEnter = useCallback(
     (event: React.MouseEvent, edge: any) => {
       const hovered_edge = findEdge(edge.id);
-      if (hovered_edge && hovered_edge?.selected) {
-        hovered_edge.animated = true;
+      if (hovered_edge) {
         hovered_edge.label = edge.className
           ?.replace(" hovered", "")
           .toUpperCase();
+      }
+      if (hovered_edge && hovered_edge.selected) {
+        hovered_edge.animated = true;
       }
       if (hovered_edge?.className) {
         if (!hovered_edge.className.includes("hovered")) {

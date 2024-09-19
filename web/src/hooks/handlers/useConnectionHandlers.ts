@@ -208,7 +208,7 @@ export default function useConnectionHandlers() {
             (prop) => prop.type.type === connectType?.type
           );
           if (possibleOutputs.length > 0) {
-            // connect to first possible output
+            // connect first possible output
             const firstOutput = possibleOutputs[0];
             const newConnection = {
               source: nodeId,
