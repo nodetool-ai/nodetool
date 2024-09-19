@@ -71,7 +71,8 @@ from diffusers import StableDiffusionLatentUpscalePipeline  # type: ignore
 from diffusers import StableDiffusionUpscalePipeline  # type: ignore
 from diffusers import UNet2DConditionModel  # type: ignore
 from diffusers import DiffusionPipeline  # type: ignore
-from diffusers import LCMScheduler  # type: ignore
+from diffusers import FluxPipeline  # type: ignore
+
 from transformers import ImageClassificationPipeline  # type: ignore
 from transformers import ImageSegmentationPipeline  # type: ignore
 import PIL.Image
@@ -2454,7 +2455,8 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 0
             ]
         else:
-            # Generate image normally
+            if self.enable_tiling:
+                self._pipeline.vae.enable_tiling()
             image = self._pipeline(
                 prompt=self.prompt,
                 negative_prompt=self.negative_prompt,
@@ -2970,6 +2972,10 @@ class StableDiffusionUpscale(HuggingFacePipelineNode):
         le=2**32 - 1,
         description="Seed for the random number generator. Use -1 for a random seed.",
     )
+    enable_tiling: bool = Field(
+        default=False,
+        description="Enable tiling to save VRAM",
+    )
 
     def required_inputs(self):
         return ["image"]
@@ -3010,6 +3016,8 @@ class StableDiffusionUpscale(HuggingFacePipelineNode):
             self._pipeline.scheduler = scheduler_class.from_config(
                 self._pipeline.scheduler.config
             )
+            if self.enable_tiling:
+                self._pipeline.vae.enable_tiling()
 
     async def move_to_device(self, device: str):
         if self._pipeline is not None:
@@ -3452,220 +3460,132 @@ class StableDiffusionXLControlNetNode(StableDiffusionXLImg2Img):
             image=control_image,
             strength=self.strength,
             controlnet_conditioning_scale=self.controlnet_conditioning_scale,
+            num_inference_steps=self.num_inference_steps,
+            generator=generator,
+            callback=self.progress_callback(context),
+            callback_steps=1,
         )
 
-
-# throws an error
-# class DocumentQuestionAnswering(HuggingFacePipelineNode):
-#     """
-#     Answers questions based on a given document.
-#     text, question answering, document, natural language processing
-
-#     Use cases:
-#     - Information retrieval from long documents
-#     - Automated document analysis
-#     - Enhancing search functionality in document repositories
-#     - Assisting in research and data extraction tasks
-#     """
-
-#     class DocumentQuestionAnsweringModelId(str, Enum):
-#         IMPIRA_LAYOUTLM_DOCUMENT_QA = "impira/layoutlm-document-qa"
-
-#     model: DocumentQuestionAnsweringModelId = Field(
-#         default=DocumentQuestionAnsweringModelId.IMPIRA_LAYOUTLM_DOCUMENT_QA,
-#         title="Model ID on Huggingface",
-#         description="The model ID to use for document question answering",
-#     )
-#     image: ImageRef = Field(
-#         default=ImageRef(),
-#         title="Document Image",
-#         description="The image of the document to analyze",
-#     )
-#     question: str = Field(
-#         default="",
-#         title="Question",
-#         description="The question to be answered based on the document",
-#     )
-
-#     def get_model_id(self):
-#         return self.model.value
-
-#     async def get_inputs(self, context: ProcessingContext):
-#         image = await context.image_to_pil(self.image)
-#         return {
-#             "image": image,
-#             "question": self.question,
-#         }
-
-#     @property
-#     def pipeline_task(self) -> str:
-#         return 'document-question-answering'
-
-#     async def process_remote_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
-#         return await self.process_local_result(context, result)
-
-#     async def process_local_result(self, context: ProcessingContext, result: Any) -> dict[str, Any]:
-#         return {
-#             "answer": result["answer"],
-#             "score": result["score"],
-#         }
-
-#     async def process(self, context: ProcessingContext) -> dict[str, Any]:
-#         return await super().process(context)
+        return await context.image_from_pil(output.images[0])  # type: ignore
 
 
-class ImageFeatureExtraction(HuggingFacePipelineNode):
+class FluxSchnell(HuggingFacePipelineNode):
     """
-    Extracts features from images using pre-trained models.
-    image, feature extraction, embeddings, computer vision
+    Generates images using the FLUX.1-schnell model.
+    image, generation, AI, text-to-image, fast
 
     Use cases:
-    - Image similarity comparison
-    - Clustering images
-    - Input for machine learning models
-    - Content-based image retrieval
+    - Rapid image generation from text descriptions
+    - Quick concept visualization for creative projects
+    - Fast prototyping of visual ideas
+    - Efficient batch image generation for various applications
     """
 
-    model: HFImageFeatureExtraction = Field(
-        default=HFImageFeatureExtraction(),
-        title="Model ID on Huggingface",
-        description="The model ID to use for image feature extraction",
+    prompt: str = Field(
+        default="A cat holding a sign that says hello world",
+        description="A text prompt describing the desired image.",
     )
-    image: ImageRef = Field(
-        default=ImageRef(),
-        title="Input Image",
-        description="The image to extract features from",
-    )
-
-    @classmethod
-    def get_recommended_models(cls):
-        return [
-            HFImageFeatureExtraction(
-                repo_id="google/vit-base-patch16-224-in21k",
-                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
-            ),
-            HFImageFeatureExtraction(
-                repo_id="facebook/dinov2-base",
-                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
-            ),
-            HFImageFeatureExtraction(
-                repo_id="facebook/dinov2-small",
-                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
-            ),
-        ]
-
-    def required_inputs(self):
-        return ["image"]
-
-    async def initialize(self, context: ProcessingContext):
-        self._pipeline = await self.load_pipeline(
-            context=context,
-            pipeline_task="image-feature-extraction",
-            model_id=self.model.repo_id,
-        )
-
-    async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)  # type: ignore
-
-    async def process(self, context: ProcessingContext) -> Tensor:
-        # The result is typically a list with a single numpy array
-        # We'll return this array as a Tensor
-        assert self._pipeline is not None
-        image = await context.image_to_pil(self.image)
-        result = self._pipeline(image)
-        assert isinstance(result, list)
-        assert len(result) == 1
-        return Tensor.from_numpy(np.array(result[0]))
-
-
-class MaskGeneration(HuggingFacePipelineNode):
-    """
-    Generates masks for images using segmentation models.
-    image, segmentation, mask generation, computer vision
-
-    Use cases:
-    - Object segmentation in images
-    - Background removal
-    - Image editing and manipulation
-    - Scene understanding and analysis
-    """
-
-    class MaskGenerationModelId(str, Enum):
-        FACEBOOK_SAM_VIT_BASE = "facebook/sam-vit-base"
-        FACEBOOK_SAM_VIT_HUGE = "facebook/sam-vit-huge"
-        FACEBOOK_SAM_VIT_LARGE = "facebook/sam-vit-large"
-
-    model: HFMaskGeneration = Field(
-        default=HFMaskGeneration(),
-        title="Model ID on Huggingface",
-        description="The model ID to use for mask generation",
-    )
-    image: ImageRef = Field(
-        default=ImageRef(),
-        title="Input Image",
-        description="The image to generate masks for",
-    )
-    points_per_side: int = Field(
-        default=128,
-        title="Points per Side",
-        description="Number of points to be sampled along each side of the image",
-        ge=1,
-        le=512,
-    )
-    pred_iou_thresh: float = Field(
-        default=0.88,
-        title="Prediction Threshold",
-        description="Threshold for the prediction IoU confidence",
+    guidance_scale: float = Field(
+        default=0.0,
+        description="The scale for classifier-free guidance.",
         ge=0.0,
-        le=1.0,
+        le=20.0,
+    )
+    width: int = Field(
+        default=1360, description="The width of the generated image.", ge=64, le=2048
+    )
+    height: int = Field(
+        default=768, description="The height of the generated image.", ge=64, le=2048
+    )
+    num_inference_steps: int = Field(
+        default=4, description="The number of denoising steps.", ge=1, le=50
+    )
+    max_sequence_length: int = Field(
+        default=256, description="Maximum sequence length for the prompt.", ge=1, le=512
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for the random number generator. Use -1 for a random seed.",
+        ge=-1,
+    )
+    enable_tiling: bool = Field(
+        default=False,
+        description="Enable tiling to save VRAM",
     )
 
+    _pipeline: FluxPipeline | None = None
+
     @classmethod
-    def get_recommended_models(cls):
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
-            HFMaskGeneration(
-                repo_id="facebook/sam-vit-base",
-                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
-            ),
-            HFMaskGeneration(
-                repo_id="facebook/sam-vit-huge",
-                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
-            ),
-            HFMaskGeneration(
-                repo_id="facebook/sam-vit-large",
-                allow_patterns=["README.md", "*.safetensors", "*.txt", "*,json"],
+            HuggingFaceModel(
+                repo_id="black-forest-labs/FLUX.1-schnell",
+                allow_patterns=[
+                    "**/*.safetensors",
+                    "**/*.json",
+                    "**/*.txt",
+                    "*.json",
+                ],
             ),
         ]
 
-    def required_inputs(self):
-        return ["image"]
+    @classmethod
+    def get_title(cls) -> str:
+        return "FLUX.1-schnell"
+
+    def get_model_id(self):
+        return "black-forest-labs/FLUX.1-schnell"
 
     async def initialize(self, context: ProcessingContext):
-        self._pipeline = await self.load_pipeline(
+        self._pipeline = await self.load_model(
             context=context,
-            pipeline_task="mask-generation",
-            model_id=self.model.repo_id,
-            torch_dtype=None,
+            model_id=self.get_model_id(),
+            model_class=FluxPipeline,
+            torch_dtype=torch.bfloat16,
+            variant=None,
+            device="cpu",
         )
 
     async def move_to_device(self, device: str):
-        self._pipeline.model.to(device)  # type: ignore
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+            # throws VRAM error on 24GB
+            if self.enable_tiling:
+                self._pipeline.enable_sequential_cpu_offload()
+                self._pipeline.vae.enable_slicing()
+                self._pipeline.vae.enable_tiling()
 
-    async def process(self, context: ProcessingContext) -> list[ImageRef]:
-        assert self._pipeline is not None
-        image = await context.image_to_pil(self.image)
-        result = self._pipeline(
-            image,
-            points_per_side=self.points_per_side,
-            pred_iou_thresh=self.pred_iou_thresh,
+    async def process(self, context: ProcessingContext) -> ImageRef:
+        if self._pipeline is None:
+            raise ValueError("Pipeline not initialized")
+
+        # Set up the generator for reproducibility
+        generator = None
+        if self.seed != -1:
+            generator = torch.Generator(device="cpu").manual_seed(self.seed)
+
+        def callback(step: int, timestep: int, latents: torch.Tensor) -> None:
+            context.post_message(
+                NodeProgress(
+                    node_id=self.id,
+                    progress=step,
+                    total=self.num_inference_steps,
+                )
+            )
+
+        # Generate the image
+        output = self._pipeline(
+            prompt=self.prompt,
+            guidance_scale=self.guidance_scale,
+            height=self.height,
+            width=self.width,
+            num_inference_steps=self.num_inference_steps,
+            max_sequence_length=self.max_sequence_length,
+            generator=generator,
+            callback=callback,
+            callback_steps=1,
         )
-        assert isinstance(result, dict)
-        mask_images = []
-        for mask in result["masks"]:
-            # Convert boolean mask to uint8 (0 and 255)
-            mask_uint8 = (mask * 255).astype(np.uint8)
-            # Create PIL Image from the mask
-            mask_image = PIL.Image.fromarray(mask_uint8, mode="L")
-            mask_ref = await context.image_from_pil(mask_image)
-            mask_images.append(mask_ref)
-        return mask_images
+
+        image = output.images[0]  # type: ignore
+
+        return await context.image_from_pil(image)
