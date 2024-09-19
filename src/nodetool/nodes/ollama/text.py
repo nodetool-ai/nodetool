@@ -95,6 +95,8 @@ class Ollama(BaseNode):
             },
         )
 
+        return str(res["message"]["content"])
+
 
 class OllamaChat(BaseNode):
     """

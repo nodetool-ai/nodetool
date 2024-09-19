@@ -28,6 +28,7 @@ def load_example(name: str) -> Workflow:
             return Workflow(
                 id="",
                 name=f"[ERROR] {name}",
+                tags=[],
                 graph=Graph(nodes=[], edges=[]),
                 access="",
                 created_at=now_str,

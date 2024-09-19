@@ -2439,6 +2439,8 @@ export interface components {
        * @default
        */
       name?: string;
+      /** Tags */
+      tags?: string[];
       /**
        * Description
        * @default
@@ -2463,6 +2465,8 @@ export interface components {
       name: string;
       /** Description */
       description: string;
+      /** Tags */
+      tags?: string[] | null;
       /** Thumbnail */
       thumbnail?: string | null;
       /** Thumbnail Url */
@@ -2499,8 +2503,10 @@ export interface components {
     WorkflowRequest: {
       /** Name */
       name: string;
+      /** Tags */
+      tags?: string[] | null;
       /** Description */
-      description: string;
+      description?: string | null;
       /** Thumbnail */
       thumbnail?: string | null;
       /** Access */

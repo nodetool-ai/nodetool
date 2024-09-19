@@ -9,7 +9,6 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
-import { useNodeStore } from "../../stores/NodeStore";
 
 const styles = () =>
   css({
@@ -22,6 +21,14 @@ const styles = () =>
       margin: "20px",
       maxWidth: "200px",
       cursor: "pointer"
+    },
+    ".loading-indicator": {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      flexDirection: "column",
+      height: "50vh",
+      width: "100%"
     },
     ".image-wrapper": {
       width: "200px",
@@ -40,9 +47,6 @@ const ExampleGrid = () => {
   const navigate = useNavigate();
   const copyWorkflow = useWorkflowStore((state) => state.copy);
   const loadWorkflows = useWorkflowStore((state) => state.loadExamples);
-  const setShouldAutoLayout = useNodeStore(
-    (state) => state.setShouldAutoLayout
-  );
 
   const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>({
     queryKey: ["examples"],
@@ -65,7 +69,12 @@ const ExampleGrid = () => {
         Example Workflows
       </Typography>
       <Box className="container">
-        {isLoading && <CircularProgress />}
+        {isLoading && (
+          <div className="loading-indicator">
+            <CircularProgress />
+            <Typography variant="h4">Loading Examples</Typography>
+          </div>
+        )}
         {isError && (
           <ErrorOutlineRounded>
             <Typography>{error?.message}</Typography>

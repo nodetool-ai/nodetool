@@ -60,7 +60,9 @@ const styles = (theme: any) =>
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      flexDirection: "column"
+      flexDirection: "column",
+      height: "50vh",
+      width: "100%"
     },
     ".workflow": {
       outline: `0px solid transparent`,
@@ -534,12 +536,10 @@ const WorkflowGrid = () => {
 
         <div className="status">
           {isLoading && (
-            <>
-              <div className="loading-indicator">
-                <CircularProgress />
-                <Typography variant="h4">Loading Workflows</Typography>
-              </div>
-            </>
+            <div className="loading-indicator">
+              <CircularProgress />
+              <Typography variant="h4">Loading Workflows</Typography>
+            </div>
           )}
           {isError && (
             <div style={{ display: "flex", gap: "1em", alignItems: "center" }}>

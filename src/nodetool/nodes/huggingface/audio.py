@@ -11,6 +11,10 @@ from nodetool.metadata.types import (
     HuggingFaceModel,
 )
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
+from parler_tts import ParlerTTSForConditionalGeneration
+from transformers import AutoTokenizer
+
+from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
@@ -85,12 +89,12 @@ class AudioClassifier(HuggingFacePipelineNode):
         return self.model.repo_id
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        samples, _, _ = await context.audio_to_numpy(self.audio)
         result = self._pipeline(
             samples,
             top_k=self.top_k,
-        )
-        return {item["label"]: item["score"] for item in result}
+        )  # type: ignore
+        return {item["label"]: item["score"] for item in result}  # type: ignore
 
 
 class Bark(HuggingFacePipelineNode):
@@ -140,7 +144,8 @@ class Bark(HuggingFacePipelineNode):
             context, "text-to-speech", self.get_model_id(), device=context.device
         )
 
-    async def process(self, context: ProcessingContext) -> dict[str, float]:
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        assert self._pipeline is not None, "Pipeline not initialized"
         result = self._pipeline(self.prompt, forward_params={"do_sample": True})
         audio = await context.audio_from_numpy(result["audio"], 24_000)  # type: ignore
         return audio
@@ -212,8 +217,8 @@ class MusicGen(HuggingfaceNode):
         if not context.is_huggingface_model_cached(self.model.repo_id):
             raise ValueError(f"Download the model {self.model.repo_id} first")
 
-        self._processor = self.load_model(context, AutoProcessor, self.model.repo_id)
-        self._model = self.load_model(
+        self._processor = self.load_model(context, AutoProcessor, self.model.repo_id)  # type: ignore
+        self._model = self.load_model(  # type: ignore
             context, MusicgenForConditionalGeneration, self.model.repo_id
         )
 
@@ -762,11 +767,95 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
         return {}
 
     async def process(self, context: ProcessingContext) -> dict[str, float]:
-        samples, _, _ = await context.audio_to_numpy(self.inputs)
+        assert self._pipeline is not None, "Pipeline not initialized"
+        samples, _, _ = await context.audio_to_numpy(self.audio)
         result = self._pipeline(
             samples, candidate_labels=self.candidate_labels.split(",")
         )
-        return {item["label"]: item["score"] for item in result}
+        return {item["label"]: item["score"] for item in result}  # type: ignore
+
+
+class ParlerTTS(HuggingFacePipelineNode):
+    """
+    Generates speech from text using the Parler TTS model.
+    tts, audio, speech, huggingface
+
+    Use cases:
+    - Create voice content for apps and websites
+    - Generate natural-sounding speech for various applications
+    - Produce audio narrations for videos or presentations
+    """
+
+    model: HFTextToSpeech = Field(
+        default=HFTextToSpeech(),
+        title="Model ID on Huggingface",
+        description="The model ID to use for text-to-speech generation",
+    )
+    prompt: str = Field(
+        default="Hey, how are you doing today?",
+        title="Prompt",
+        description="The text to convert to speech",
+    )
+    description: str = Field(
+        default="A female speaker delivers a slightly expressive and animated speech with a moderate speed and pitch. The recording is of very high quality, with the speaker's voice sounding clear and very close up.",
+        title="Description",
+        description="A description of the desired speech characteristics",
+    )
+
+    _model: ParlerTTSForConditionalGeneration | None = None
+    _tokenizer: AutoTokenizer | None = None
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        return [
+            HFTextToSpeech(
+                repo_id="parler-tts/parler-tts-mini-v1",
+            ),
+            HFTextToSpeech(
+                repo_id="parler-tts/parler-tts-large-v1",
+            ),
+        ]
+
+    def get_model_id(self):
+        return self.model.repo_id
+
+    async def initialize(self, context: ProcessingContext):
+        self._model = await self.load_model(
+            context=context,
+            model_class=ParlerTTSForConditionalGeneration,
+            model_id=self.get_model_id(),
+            variant=None,
+            torch_dtype=torch.float32,
+        )
+        self._tokenizer = AutoTokenizer.from_pretrained(self.get_model_id())  # type: ignore
+
+    async def move_to_device(self, device: str):
+        if self._model is not None:
+            self._model.to(device)  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        if self._model is None or self._tokenizer is None:
+            raise ValueError("Model or tokenizer not initialized")
+
+        device = context.device
+
+        input_ids = self._tokenizer(self.description, return_tensors="pt").input_ids.to(  # type: ignore
+            device
+        )
+        prompt_input_ids = self._tokenizer(
+            self.prompt, return_tensors="pt"
+        ).input_ids.to(  # type: ignore
+            device
+        )
+
+        generation = self._model.generate(
+            input_ids=input_ids, prompt_input_ids=prompt_input_ids
+        )
+        audio_arr = generation.cpu().numpy().squeeze()  # type: ignore
+
+        return await context.audio_from_numpy(
+            audio_arr, self._model.config.sampling_rate
+        )
 
 
 # class LoadSpeakerEmbedding(BaseNode):

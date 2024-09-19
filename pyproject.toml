@@ -110,6 +110,7 @@ websockets = "*"
 yacs = "*"
 yapf = "*"
 zipp = "*"
+parler-tts = { git = "https://github.com/huggingface/parler-tts.git" }
 
 [tool.poetry.group.test.dependencies]
 pytest = "*"

@@ -68,11 +68,6 @@ class DataframeAgent(BaseNode):
     )
 
     async def process(self, context: ProcessingContext) -> DataframeRef:
-        user_message = Message(
-            role="user",
-            content=self.prompt + "\n\n" + self.input_text,
-        )
-
         columns_str = ", ".join(
             [
                 f"{col.name}: {col.data_type} ({col.description})"
@@ -118,7 +113,7 @@ class DataframeAgent(BaseNode):
                         ]
                         """,
                     },
-                    {"role": "user", "content": self.prompt},
+                    {"role": "user", "content": self.prompt + "\n\n" + self.input_text},
                 ],
                 "options": {
                     "temperature": self.temperature,

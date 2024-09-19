@@ -20,6 +20,7 @@ class Workflow(BaseModel):
     updated_at: str
     name: str
     description: str
+    tags: list[str] | None = None
     thumbnail: str | None = None
     thumbnail_url: str | None = None
     graph: Graph
@@ -36,6 +37,7 @@ class Workflow(BaseModel):
             created_at=workflow.created_at.isoformat(),
             updated_at=workflow.updated_at.isoformat(),
             name=workflow.name,
+            tags=workflow.tags,
             description=workflow.description or "",
             thumbnail=workflow.thumbnail or "",
             thumbnail_url=find_thumbnail(workflow),
@@ -47,7 +49,8 @@ class Workflow(BaseModel):
 
 class WorkflowRequest(BaseModel):
     name: str
-    description: str
+    tags: list[str] | None = None
+    description: str | None = None
     thumbnail: str | None = None
     access: str
     graph: Graph | None = None
