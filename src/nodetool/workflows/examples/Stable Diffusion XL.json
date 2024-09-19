@@ -4,6 +4,9 @@
   "created_at": "2024-07-06T20:13:38.331865",
   "updated_at": "2024-07-06T20:23:13.098945",
   "name": "Stable Diffusion XL in Comfy",
+  "tags": [
+    "comfy"
+  ],
   "description": "",
   "thumbnail": "",
   "thumbnail_url": "/examples/stable_diffusion_xl.jpg",

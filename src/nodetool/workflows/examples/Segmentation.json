@@ -7,6 +7,9 @@
   "description": "Segment images and visualize the segments",
   "thumbnail": "",
   "thumbnail_url": "/examples/segmentation.jpg",
+  "tags": [
+    "huggingface"
+  ],
   "graph": {
     "edges": [
       {

@@ -4,6 +4,9 @@
   "created_at": "2024-07-06T19:13:40.477460",
   "updated_at": "2024-07-06T19:23:59.712727",
   "name": "Stable Diffusion in Comfy",
+  "tags": [
+    "comfy"
+  ],
   "description": "Stable Diffusion Image Generation",
   "thumbnail": "",
   "thumbnail_url": "/examples/stable_diffusion.jpg",

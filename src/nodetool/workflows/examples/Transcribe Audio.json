@@ -4,6 +4,9 @@
   "created_at": "2024-07-02T01:37:52.738062",
   "updated_at": "2024-07-04T22:25:14.822324",
   "name": "Transcribe Audio",
+  "tags": [
+    "openai"
+  ],
   "description": "",
   "thumbnail": "",
   "thumbnail_url": "/examples/transcribe_audio.jpg",

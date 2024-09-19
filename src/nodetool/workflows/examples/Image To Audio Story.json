@@ -34,9 +34,9 @@
       {
         "id": "2",
         "parent_id": null,
-        "type": "anthropic.text.Claude",
+        "type": "ollama.text.Ollama",
         "data": {
-          "model": "claude-3-5-sonnet-20240620",
+          "model": "",
           "system": "You are a friendly assistant.",
           "prompt": "write a fictional short story about this image. the story should follow classical principles, short and witty, with a surprise at the end. written in the wild style of the 60s.",
           "image": {
@@ -83,12 +83,10 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "openai.audio.TextToSpeech",
+        "type": "huggingface.audio.TextToSpeech",
         "data": {
-          "model": "tts-1",
-          "voice": "alloy",
-          "input": "The scene was electric, baby. Groovy cats and hip chicks mingling under the hazy lights. Our dapper hero, all specs and wild hair, leaned in close to whisper sweet nothings. His dolled-up date sipped champagne, eyes darting, secrets swimming behind those lashes.\n\nBut dig this - across the room, a square in a suit watched. His eyes narrowed behind horn-rims. Was it jealousy?",
-          "speed": 1
+          "model": "",
+          "prompt": ""
         },
         "ui_properties": {
           "selected": false,

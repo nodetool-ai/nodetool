@@ -7,6 +7,9 @@
   "description": "Slices an audio file into segments.",
   "thumbnail": "",
   "thumbnail_url": "/examples/segment_audio.jpg",
+  "tags": [
+    "audio"
+  ],
   "graph": {
     "edges": [
       {

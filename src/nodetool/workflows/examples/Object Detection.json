@@ -5,6 +5,9 @@
   "updated_at": "2024-08-09T18:00:14.672164",
   "name": "Object Detection",
   "description": "Detect objects in an image and visualize the detections",
+  "tags": [
+    "huggingface"
+  ],
   "thumbnail": "",
   "thumbnail_url": "/examples/object_detection.jpg",
   "graph": {

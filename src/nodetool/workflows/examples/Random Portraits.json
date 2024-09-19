@@ -5,6 +5,9 @@
   "updated_at": "2024-08-12T13:14:12.761526",
   "name": "Random Portraits",
   "description": "Use DataframeAgent and Loop node to create random portraits.",
+  "tags": [
+    "batch_processing"
+  ],
   "thumbnail": "",
   "thumbnail_url": "/examples/random_images.jpg",
   "graph": {

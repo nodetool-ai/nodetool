@@ -4,6 +4,9 @@
   "created_at": "2024-07-06T19:28:22.497157",
   "updated_at": "2024-07-06T20:04:04.210928",
   "name": "Audio To Spectrogram",
+  "tags": [
+    "multimodal"
+  ],
   "description": "Ceate a spectrogram from an audio file and use creative upscaling, then hang it on your wall.",
   "thumbnail": "",
   "thumbnail_url": "/examples/audio_to_spectrogram.jpg",

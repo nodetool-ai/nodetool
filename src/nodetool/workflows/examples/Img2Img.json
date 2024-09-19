@@ -4,6 +4,9 @@
   "created_at": "2024-07-06T20:13:38.331865",
   "updated_at": "2024-07-06T20:23:13.098945",
   "name": "Image to Image in Comfy",
+  "tags": [
+    "comfy"
+  ],
   "description": "Learn how to convert an image to another image using Comfy nodes",
   "thumbnail": "",
   "thumbnail_url": "/examples/image_to_image.jpg",

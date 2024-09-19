@@ -177,8 +177,8 @@
         "data": {
           "model": {
             "type": "hf.stable_diffusion",
-            "repo_id": "Yntec/DreamShaperRemix",
-            "path": "DreamShaperRemix.safetensors"
+            "repo_id": "Yntec/AbsoluteReality",
+            "path": "absolutereality_v16.safetensors"
           },
           "prompt": "",
           "negative_prompt": "",

@@ -4,6 +4,9 @@
   "created_at": "2024-07-08T00:22:18.460585",
   "updated_at": "2024-07-08T00:28:34.160873",
   "name": "Generate Music",
+  "tags": [
+    "comfy"
+  ],
   "description": "Generate 3 musical ideas and generate audio for each idea.",
   "thumbnail": "",
   "thumbnail_url": "/examples/generate_music.jpg",

@@ -4,6 +4,9 @@
   "created_at": "2024-07-06T20:13:38.331865",
   "updated_at": "2024-07-06T20:23:13.098945",
   "name": "Audio To Image",
+  "tags": [
+    "multimodal"
+  ],
   "description": "Convert any audio speech into an image",
   "thumbnail": "",
   "thumbnail_url": "/examples/audio_to_image.jpg",

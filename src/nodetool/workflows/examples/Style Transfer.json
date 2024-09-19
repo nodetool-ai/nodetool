@@ -4,6 +4,9 @@
   "created_at": "2024-08-18T18:14:40.909434",
   "updated_at": "2024-08-18T18:33:51.638639",
   "name": "Style Transfer",
+  "tags": [
+    "huggingface"
+  ],
   "description": "Apply the style of an image to another image",
   "thumbnail": "",
   "thumbnail_url": "/examples/style_transfer.jpg",

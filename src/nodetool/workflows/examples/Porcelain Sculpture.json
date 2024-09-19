@@ -4,6 +4,9 @@
   "created_at": "2024-08-12T12:24:12.667168",
   "updated_at": "2024-08-12T12:33:08.480280",
   "name": "Porcelain Sculpture",
+  "tags": [
+    "batch_processing"
+  ],
   "description": "Generate a seriese of images showing sculptures with different emotional and mental states.\n",
   "thumbnail": "",
   "thumbnail_url": "/examples/porcelain_sculpture.jpg",

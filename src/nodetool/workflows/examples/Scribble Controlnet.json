@@ -7,6 +7,9 @@
   "description": "",
   "thumbnail": "",
   "thumbnail_url": "/examples/input_scribble_example.jpg",
+  "tags": [
+    "comfy"
+  ],
   "graph": {
     "edges": [
       {

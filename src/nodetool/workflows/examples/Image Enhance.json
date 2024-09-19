@@ -173,18 +173,15 @@
       {
         "id": "24e1c003-8549-4109-8092-6e423b9f69d3",
         "parent_id": null,
-        "type": "replicate.image.generate.StableDiffusionXLLightning",
+        "type": "huggingface.image.StableDiffusionXL",
         "data": {
           "seed": 3060378157,
           "width": 1024,
           "height": 1024,
           "prompt": "super detailed flower, intricate",
           "scheduler": "EulerDiscrete",
-          "num_outputs": 1,
-          "guidance_scale": 0,
           "negative_prompt": "low quality",
-          "num_inference_steps": 4,
-          "disable_safety_checker": false
+          "num_inference_steps": 25
         },
         "ui_properties": {
           "selected": false,

@@ -1,8 +1,14 @@
 /** @jsxImportSource @emotion/react */
 
-import { Typography, Box, CircularProgress } from "@mui/material";
+import {
+  Typography,
+  Box,
+  CircularProgress,
+  Button,
+  ButtonGroup
+} from "@mui/material";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate } from "react-router-dom";
 import ThemeNodetool from "../themes/ThemeNodetool";
@@ -10,7 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
 
-const styles = () =>
+const styles = (theme: any) =>
   css({
     ".container": {
       display: "flex",
@@ -36,10 +42,32 @@ const styles = () =>
       overflow: "hidden",
       position: "relative"
     },
+    ".image-wrapper:hover": {
+      animation: "sciFiPulse 2s infinite",
+      boxShadow: `0 0 10px ${theme.palette.c_hl1}`,
+      outline: `2px solid ${theme.palette.c_hl1}`
+    },
+    "@keyframes sciFiPulse": {
+      "0%": {
+        boxShadow: `0 0 5px ${theme.palette.c_hl1}`,
+        filter: "brightness(1)"
+      },
+      "50%": {
+        boxShadow: `0 0 20px ${theme.palette.c_hl1}`,
+        filter: "brightness(1.2)"
+      },
+      "100%": {
+        boxShadow: `0 0 5px ${theme.palette.c_hl1}`,
+        filter: "brightness(1)"
+      }
+    },
     ".workflow img": {
       width: "100%",
       height: "100%",
       objectFit: "cover"
+    },
+    ".tag-menu": {
+      marginBottom: "20px"
     }
   });
 
@@ -47,6 +75,7 @@ const ExampleGrid = () => {
   const navigate = useNavigate();
   const copyWorkflow = useWorkflowStore((state) => state.copy);
   const loadWorkflows = useWorkflowStore((state) => state.loadExamples);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>({
     queryKey: ["examples"],
@@ -55,7 +84,6 @@ const ExampleGrid = () => {
 
   const onClickWorkflow = useCallback(
     (workflow: Workflow) => {
-      // setShouldAutoLayout(true);
       copyWorkflow(workflow).then((workflow) => {
         navigate("/editor/" + workflow.id);
       });
@@ -63,11 +91,43 @@ const ExampleGrid = () => {
     [copyWorkflow, navigate]
   );
 
+  const groupedWorkflows = useMemo(() => {
+    if (!data) return {};
+    return data.workflows.reduce((acc, workflow) => {
+      workflow.tags?.forEach((tag) => {
+        if (!acc[tag]) acc[tag] = [];
+        acc[tag].push(workflow);
+      });
+      return acc;
+    }, {} as Record<string, Workflow[]>);
+  }, [data]);
+
+  const filteredWorkflows = useMemo(() => {
+    if (!selectedTag || !groupedWorkflows[selectedTag])
+      return data?.workflows || [];
+    return groupedWorkflows[selectedTag];
+  }, [selectedTag, groupedWorkflows, data]);
+
   return (
     <div className="workflow-grid" css={styles}>
       <Typography variant="h4" component="h1" sx={{ ml: 5, mt: 5 }}>
         Example Workflows
       </Typography>
+      <Box className="tag-menu">
+        <ButtonGroup variant="outlined">
+          <Button onClick={() => setSelectedTag(null)}>All</Button>
+          {Object.keys(groupedWorkflows).map((tag) => (
+            <Button
+              key={tag}
+              onClick={() => setSelectedTag(tag)}
+              variant={selectedTag === tag ? "contained" : "outlined"}
+              className={selectedTag === tag ? "selected" : ""}
+            >
+              {tag}
+            </Button>
+          ))}
+        </ButtonGroup>
+      </Box>
       <Box className="container">
         {isLoading && (
           <div className="loading-indicator">
@@ -80,7 +140,7 @@ const ExampleGrid = () => {
             <Typography>{error?.message}</Typography>
           </ErrorOutlineRounded>
         )}
-        {data?.workflows.map((workflow) => (
+        {filteredWorkflows.map((workflow) => (
           <Box
             key={workflow.id}
             className="workflow"
