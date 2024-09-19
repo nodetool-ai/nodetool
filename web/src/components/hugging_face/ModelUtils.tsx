@@ -5,6 +5,7 @@ import DeleteButton from "../buttons/DeleteButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { client, isProduction } from "../../stores/ApiClient";
 import ModelIcon from "../../icons/model.svg";
+import DownloadIcon from "@mui/icons-material/Download";
 
 export type OllamaModel = {
   name: string;
@@ -114,7 +115,7 @@ export const ModelDownloadButton: React.FC<{ onClick: () => void }> = ({
   onClick
 }) => (
   <Button className="model-download-button" onClick={onClick}>
-    Download
+    <DownloadIcon />
   </Button>
 );
 

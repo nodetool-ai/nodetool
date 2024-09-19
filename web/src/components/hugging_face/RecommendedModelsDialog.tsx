@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -9,22 +9,32 @@ import {
   Grid,
   Tooltip,
   IconButton,
-  Typography
+  Typography,
+  ToggleButton,
+  ToggleButtonGroup,
+  List
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { RepoPath, UnifiedModel } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import ModelCard from "./ModelCard";
+import ModelListItem from "./ModelListItem";
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 
-const styles = css({
-  ".recommended-models-grid": {
-    maxHeight: "650px",
-    overflow: "auto",
-    paddingRight: "1em"
-  }
-});
+const styles = (theme: any) =>
+  css({
+    ".recommended-models-grid": {
+      maxHeight: "650px",
+      overflow: "auto",
+      paddingRight: "1em"
+    },
+    ".model-download-button": {
+      color: theme.palette.c_hl1
+    }
+  });
 
 interface RecommendedModelsDialogProps {
   open: boolean;
@@ -60,6 +70,8 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   startDownload,
   openDialog
 }) => {
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
   const { data: hfModels } = useQuery({
     queryKey: ["huggingFaceModels"],
     queryFn: async () => {
@@ -102,6 +114,15 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
     });
   }, [recommendedModels, hfModels, downloadedModels]);
 
+  const handleViewModeChange = (
+    event: React.MouseEvent<HTMLElement>,
+    newViewMode: "grid" | "list" | null
+  ) => {
+    if (newViewMode !== null) {
+      setViewMode(newViewMode);
+    }
+  };
+
   return (
     <Dialog
       css={styles}
@@ -113,6 +134,20 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
     >
       <DialogTitle style={{ marginBottom: 2 }}>
         Recommended Models
+        <ToggleButtonGroup
+          value={viewMode}
+          exclusive
+          onChange={handleViewModeChange}
+          aria-label="view mode"
+          sx={{ position: "absolute", right: 48, top: 8 }}
+        >
+          <ToggleButton value="grid" aria-label="grid view">
+            <ViewModuleIcon />
+          </ToggleButton>
+          <ToggleButton value="list" aria-label="list view">
+            <ViewListIcon />
+          </ToggleButton>
+        </ToggleButtonGroup>
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Close | ESC">
           <IconButton
             aria-label="close"
@@ -131,11 +166,34 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
 
       <DialogContent sx={{ paddingBottom: "3em" }}>
         <>
-          <Grid container spacing={3} className="recommended-models-grid">
-            {modelsWithSize.map((model) => (
-              <Grid item xs={12} sm={6} md={4} key={model.id}>
-                <ModelCard
+          {viewMode === "grid" ? (
+            <Grid container spacing={3} className="recommended-models-grid">
+              {modelsWithSize.map((model) => (
+                <Grid item xs={12} sm={6} md={4} key={model.id}>
+                  <ModelCard
+                    model={model}
+                    onDownload={() => {
+                      startDownload(
+                        model.repo_id || "",
+                        model.type,
+                        model.path ?? null,
+                        model.allow_patterns ?? null,
+                        model.ignore_patterns ?? null
+                      );
+                      openDialog();
+                      onClose();
+                    }}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <List>
+              {modelsWithSize.map((model) => (
+                <ModelListItem
+                  key={model.id}
                   model={model}
+                  handleDelete={() => {}}
                   onDownload={() => {
                     startDownload(
                       model.repo_id || "",
@@ -148,9 +206,9 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
                     onClose();
                   }}
                 />
-              </Grid>
-            ))}
-          </Grid>
+              ))}
+            </List>
+          )}
           <Typography variant="body1" sx={{ marginTop: "1em" }}>
             Models will be downloaded to your local cache folder in the standard
             location for Huggingface and Ollama.
