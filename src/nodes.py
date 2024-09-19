@@ -15,6 +15,11 @@ from PIL.PngImagePlugin import PngInfo
 
 import numpy as np
 import safetensors.torch
+import matplotlib
+
+# Hack to prevent matplotlib from trying to open a hidden window on import
+# see https://stackoverflow.com/questions/27147300/matplotlib-tcl-asyncdelete-async-handler-deleted-by-the-wrong-thread
+matplotlib.use("Agg")
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "comfy"))
 
