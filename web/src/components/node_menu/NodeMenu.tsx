@@ -260,6 +260,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
               debounceTime={300}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
+              onPressEscape={closeNodeMenu}
               setSelectedPath={setSelectedPath}
             />
             {/* <Tooltip

@@ -73,6 +73,7 @@ const styles = (theme: any) =>
 
 interface SearchInputProps {
   onSearchChange: (value: string) => void;
+  onPressEscape?: () => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   placeholder?: string;
@@ -84,6 +85,7 @@ interface SearchInputProps {
 
 const SearchInput: React.FC<SearchInputProps> = ({
   onSearchChange,
+  onPressEscape,
   focusSearchInput = true,
   focusOnTyping = false,
   placeholder = "Search...",
@@ -140,6 +142,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
         return;
       }
 
+      if (event.key === "Escape") {
+        onPressEscape?.();
+        return;
+      }
+
       if (focusOnTyping) {
         if (isControlOrMetaPressed) return;
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
@@ -158,6 +165,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   }, [
     focusOnTyping,
     isControlOrMetaPressed,
+    onPressEscape,
     debouncedSetSearchTerm,
     clearSearch
   ]);
