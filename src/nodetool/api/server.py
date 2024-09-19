@@ -112,6 +112,12 @@ def create_app(
             from nodetool.api.websocket_runner import WebSocketRunner
 
             await WebSocketRunner().run(websocket)
+            
+        @app.websocket("/chat")
+        async def chat_websocket_endpoint(websocket: WebSocket):
+            from nodetool.api.chat_websocket_runner import ChatWebSocketRunner
+
+            await ChatWebSocketRunner().run(websocket)
 
     if static_folder and os.path.exists(static_folder):
         print(f"Mounting static folder: {static_folder}")

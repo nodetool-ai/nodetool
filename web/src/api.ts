@@ -67,8 +67,12 @@ export interface paths {
      * @description Returns all assets for a given user or workflow.
      */
     get: operations["index_api_jobs__get"];
+    /** Create */
+    post: operations["create_api_jobs__post"];
+  };
+  "/api/jobs/run": {
     /** Run */
-    post: operations["run_api_jobs__post"];
+    post: operations["run_api_jobs_run_post"];
   };
   "/api/auth/oauth/login": {
     /** Oauth Login */
@@ -210,14 +214,6 @@ export interface paths {
      * @description Deletes the task with the given id.
      */
     delete: operations["delete_api_tasks__id__delete"];
-  };
-  "/api/models/llama_models": {
-    /** Llama Model */
-    get: operations["llama_model_api_models_llama_models_get"];
-  };
-  "/api/models/function_models": {
-    /** Function Model */
-    get: operations["function_model_api_models_function_models_get"];
   };
   "/api/models/recommended_models": {
     /** Recommended Models */
@@ -453,35 +449,6 @@ export interface components {
       asset_id?: string | null;
       /** Data */
       data?: string | string[] | null;
-    };
-    /** FunctionModel */
-    FunctionModel: {
-      /**
-       * Type
-       * @default function_model
-       * @constant
-       * @enum {string}
-       */
-      type?: "function_model";
-      /** @default empty */
-      provider?: components["schemas"]["Provider"];
-      /**
-       * Name
-       * @default
-       */
-      name?: string;
-      /**
-       * Repo Id
-       * @default
-       */
-      repo_id?: string;
-      /**
-       * Filename
-       * @default
-       */
-      filename?: string;
-      /** Local Path */
-      local_path?: string | null;
     };
     /** Graph */
     Graph: {
@@ -1465,14 +1432,6 @@ export interface components {
       /** Data */
       data?: string | string[] | null;
     };
-    /** ImageUrl */
-    ImageUrl: {
-      /**
-       * Url
-       * @default
-       */
-      url?: string;
-    };
     /** Job */
     Job: {
       /** Id */
@@ -1567,6 +1526,10 @@ export interface components {
       type?: string;
       /** Id */
       id?: string | null;
+      /** Auth Token */
+      auth_token?: string | null;
+      /** Workflow Id */
+      workflow_id?: string | null;
       /** Thread Id */
       thread_id?: string | null;
       /** User Id */
@@ -1584,7 +1547,7 @@ export interface components {
        */
       name?: string;
       /** Content */
-      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"])[]) | null;
       /** Tool Calls */
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
@@ -1603,6 +1566,10 @@ export interface components {
       type?: string;
       /** Id */
       id?: string | null;
+      /** Auth Token */
+      auth_token?: string | null;
+      /** Workflow Id */
+      workflow_id?: string | null;
       /** Thread Id */
       thread_id?: string | null;
       /** User Id */
@@ -1620,11 +1587,28 @@ export interface components {
        */
       name?: string;
       /** Content */
-      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"])[]) | null;
       /** Tool Calls */
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
       created_at?: string | null;
+    };
+    /** MessageAudioContent */
+    MessageAudioContent: {
+      /**
+       * Type
+       * @default audio
+       * @constant
+       * @enum {string}
+       */
+      type?: "audio";
+      /**
+       * @default {
+       *   "type": "audio",
+       *   "uri": ""
+       * }
+       */
+      audio?: components["schemas"]["AudioRef"];
     };
     /** MessageCreateRequest */
     MessageCreateRequest: {
@@ -1645,7 +1629,7 @@ export interface components {
        */
       name?: string;
       /** Content */
-      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"])[]) | null;
+      content?: string | ((components["schemas"]["MessageTextContent"] | components["schemas"]["MessageImageContent"] | components["schemas"]["MessageAudioContent"] | components["schemas"]["MessageVideoContent"])[]) | null;
       /** Tool Calls */
       tool_calls?: components["schemas"]["ToolCall"][] | null;
       /** Created At */
@@ -1663,10 +1647,11 @@ export interface components {
       type?: "image_url";
       /**
        * @default {
-       *   "url": ""
+       *   "type": "image",
+       *   "uri": ""
        * }
        */
-      image_url?: components["schemas"]["ImageUrl"];
+      image?: components["schemas"]["ImageRef"];
     };
     /** MessageList */
     MessageList: {
@@ -1689,6 +1674,23 @@ export interface components {
        * @default
        */
       text?: string;
+    };
+    /** MessageVideoContent */
+    MessageVideoContent: {
+      /**
+       * Type
+       * @default video
+       * @constant
+       * @enum {string}
+       */
+      type?: "video";
+      /**
+       * @default {
+       *   "type": "video",
+       *   "uri": ""
+       * }
+       */
+      video?: components["schemas"]["VideoRef"];
     };
     /** ModelFile */
     ModelFile: {
@@ -2040,6 +2042,8 @@ export interface components {
       job_type?: string;
       /** Params */
       params?: unknown;
+      /** Messages */
+      messages?: components["schemas"]["Message-Input"][] | null;
       /**
        * Workflow Id
        * @default
@@ -2850,9 +2854,42 @@ export interface operations {
       };
     };
   };
-  /** Run */
-  run_api_jobs__post: {
+  /** Create */
+  create_api_jobs__post: {
     parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RunJobRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Run */
+  run_api_jobs_run_post: {
+    parameters: {
+      query?: {
+        stream?: boolean;
+      };
       header?: {
         authorization?: string | null;
       };
@@ -3700,56 +3737,6 @@ export interface operations {
       200: {
         content: {
           "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Llama Model */
-  llama_model_api_models_llama_models_get: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["LlamaModel"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  /** Function Model */
-  function_model_api_models_function_models_get: {
-    parameters: {
-      header?: {
-        authorization?: string | null;
-      };
-      cookie?: {
-        auth_cookie?: string | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          "application/json": components["schemas"]["FunctionModel"][];
         };
       };
       /** @description Validation Error */

@@ -661,11 +661,18 @@ class Environment(object):
                 "ERROR": "\033[0;31m",  # Red
                 "CRITICAL": "\033[0;35m",  # Magenta
             }
+            GREY = "\033[0;37m"
+            LIGHT_BLUE = "\033[0;94m"
             RESET = "\033[0m"
 
             def format(self, record):
-                log_message = super().format(record)
-                return f"{self.COLORS.get(record.levelname, self.RESET)}{log_message}{self.RESET}"
+                levelname = f"{self.COLORS.get(record.levelname, self.RESET)}{record.levelname}{self.RESET}"
+                asctime = (
+                    f"{self.GREY}{self.formatTime(record, self.datefmt)}{self.RESET}"
+                )
+                message = f"{self.LIGHT_BLUE}{record.getMessage()}{self.RESET}"
+
+                return f"{levelname} [{asctime}] - {message}"
 
         if not hasattr(cls, "logger"):
             cls.logger = logging.getLogger("nodetool")

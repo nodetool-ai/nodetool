@@ -23,12 +23,16 @@ export const WORKER_URL =
   BASE_URL.replace("http://", "ws://").replace("https://", "wss://") +
   "/predict";
 
+export const CHAT_URL =
+  BASE_URL.replace("http://", "ws://").replace("https://", "wss://") + "/chat";
+
 export const DOWNLOAD_URL =
   BASE_URL.replace("http://", "ws://").replace("https://", "wss://") +
   "/hf/download";
 
 console.log("BASE_URL", BASE_URL);
 console.log("WORKER_URL", WORKER_URL);
+console.log("CHAT_URL", CHAT_URL);
 console.log("isLocalhost", isLocalhost);
 console.log("isProduction", isProduction);
 console.log("useRemoteAuth", useRemoteAuth);

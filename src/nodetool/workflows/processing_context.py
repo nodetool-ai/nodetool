@@ -126,9 +126,7 @@ class ProcessingContext:
         self.message_queue = message_queue if message_queue else asyncio.Queue()
         self.device = device
         self.models = models if models else {}
-        self.variables = (
-            variables if variables else {"seed": random.randint(0, 2**32 - 1)}
-        )
+        self.variables: dict[str, Any] = {}
         self.http_client = (
             httpx.AsyncClient(follow_redirects=True, timeout=600)
             if http_client is None

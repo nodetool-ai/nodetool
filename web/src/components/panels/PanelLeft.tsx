@@ -1,14 +1,16 @@
-import { Drawer, IconButton, Tooltip } from "@mui/material";
-import WorkflowForm from "../workflows/WorkflowForm";
+import { Drawer, IconButton, Tooltip, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import "../../styles/panel.css";
-// hooks
 import { useHotkeys } from "react-hotkeys-hook";
 import HelpChat from "../assistants/HelpChat";
+import WorkflowChat from "../assistants/WorkflowChat";
+import { useState, useCallback } from "react";
+import { useNodeStore } from "../../stores/NodeStore";
 
 function PanelLeft() {
+  const [activeTab, setActiveTab] = useState(0);
   const {
     ref: panelRef,
     size: panelSize,
@@ -16,6 +18,8 @@ function PanelLeft() {
     handleMouseDown,
     handlePanelToggle
   } = useResizePanel("left");
+
+  const workflowId = useNodeStore((state) => state.workflow.id);
 
   useHotkeys("1", () => {
     if (
@@ -27,6 +31,13 @@ function PanelLeft() {
       handlePanelToggle();
     }
   });
+
+  const handleTabChange = useCallback(
+    (event: React.SyntheticEvent, newValue: number) => {
+      setActiveTab(newValue);
+    },
+    []
+  );
 
   return (
     <div className={`panel-container ${panelSize > 80 ? "open" : "closed"}`}>
@@ -66,7 +77,12 @@ function PanelLeft() {
         anchor="left"
         open={true}
       >
-        <HelpChat />
+        <Tabs value={activeTab} onChange={handleTabChange}>
+          <Tab label="Help" />
+          <Tab label="Workflow" />
+        </Tabs>
+        {activeTab === 0 && <HelpChat />}
+        {activeTab === 1 && <WorkflowChat workflow_id={workflowId} />}
       </Drawer>
     </div>
   );

@@ -1,9 +1,13 @@
 from typing import Any
 from pydantic import Field
-from nodetool.metadata.types import asset_to_ref
+from nodetool.metadata.types import Message, asset_to_ref
 from nodetool.models.asset import Asset
 from nodetool.metadata.types import FolderRef
 from nodetool.metadata.types import AssetRef
+from nodetool.metadata.types import (
+    MessageImageContent,
+    MessageTextContent,
+)
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import AudioRef
 from nodetool.metadata.types import ImageRef
@@ -30,15 +34,6 @@ class FloatInput(InputNode):
     async def process(self, context: ProcessingContext) -> float:
         return min(max(self.value, self.min), self.max)
 
-    def get_json_schema(self):
-        return {
-            "type": "number",
-            "description": self.description,
-            "default": self.value,
-            "minimum": self.min,
-            "maximum": self.max,
-        }
-
 
 class BooleanInput(InputNode):
     """
@@ -55,13 +50,6 @@ class BooleanInput(InputNode):
 
     async def process(self, context: ProcessingContext) -> bool:
         return self.value
-
-    def get_json_schema(self):
-        return {
-            "type": "boolean",
-            "description": self.description,
-            "default": self.value,
-        }
 
 
 class IntegerInput(InputNode):
@@ -82,15 +70,6 @@ class IntegerInput(InputNode):
     async def process(self, context: ProcessingContext) -> int:
         return min(max(self.value, self.min), self.max)
 
-    def get_json_schema(self):
-        return {
-            "type": "integer",
-            "description": self.description,
-            "default": self.value,
-            "minimum": self.min,
-            "maximum": self.max,
-        }
-
 
 class StringInput(InputNode):
     """
@@ -108,13 +87,6 @@ class StringInput(InputNode):
     async def process(self, context: ProcessingContext) -> str:
         return self.value
 
-    def get_json_schema(self):
-        return {
-            "type": "string",
-            "description": self.description,
-            "default": self.value,
-        }
-
 
 class ChatInput(InputNode):
     """
@@ -127,17 +99,12 @@ class ChatInput(InputNode):
     - Provide instructions to language models
     """
 
-    value: str = ""
+    value: list[Message] = Field(
+        Message(), description="The chat message to use as input."
+    )
 
-    async def process(self, context: ProcessingContext) -> str:
+    async def process(self, context: ProcessingContext) -> list[Message]:
         return self.value
-
-    def get_json_schema(self):
-        return {
-            "type": "string",
-            "description": self.description,
-            "default": self.value,
-        }
 
 
 class TextInput(InputNode):
@@ -156,34 +123,8 @@ class TextInput(InputNode):
     async def process(self, context: ProcessingContext) -> TextRef:
         return self.value
 
-    def get_json_schema(self):
-        return {
-            "type": "string",
-            "description": self.description,
-            "default": self.value,
-        }
 
-
-class AssetSchemaMixin:
-    def get_json_schema(self):
-        return {
-            "type": "object",
-            "description": self.description,  # type: ignore
-            "properties": {
-                "uri": {
-                    "type": "string",
-                    "description": "The URI of the image.",
-                    "format": "uri",
-                },
-                "asset_id": {
-                    "type": "string",
-                    "description": "The Asset ID of the image.",
-                },
-            },
-        }
-
-
-class ImageInput(AssetSchemaMixin, InputNode):
+class ImageInput(InputNode):
     """
     Image asset input for workflows.
     input, parameter, image
@@ -200,7 +141,7 @@ class ImageInput(AssetSchemaMixin, InputNode):
         return self.value
 
 
-class VideoInput(AssetSchemaMixin, InputNode):
+class VideoInput(InputNode):
     """
     Video asset input for workflows.
     input, parameter, video
@@ -217,7 +158,7 @@ class VideoInput(AssetSchemaMixin, InputNode):
         return self.value
 
 
-class AudioInput(AssetSchemaMixin, InputNode):
+class AudioInput(InputNode):
     """
     Audio asset input for workflows.
     input, parameter, audio
@@ -234,7 +175,7 @@ class AudioInput(AssetSchemaMixin, InputNode):
         return self.value
 
 
-class Folder(AssetSchemaMixin, InputNode):
+class Folder(InputNode):
     """
     Folder of assets input for workflows.
     input, parameter, folder

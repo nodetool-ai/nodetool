@@ -31,15 +31,6 @@ class ListOutput(OutputNode):
     async def process(self, context: ProcessingContext) -> list[Any]:
         return self.value
 
-    def get_json_schema(self):
-        return {
-            "type": "array",
-            "items": {
-                "type": "object",
-            },
-            "description": self.description,
-        }
-
 
 class ChatOutput(OutputNode):
     """
@@ -60,21 +51,6 @@ class ChatOutput(OutputNode):
     async def process(self, context: ProcessingContext) -> list[Message]:
         return self.value
 
-    def get_json_schema(self):
-        return {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "thread_id": {"type": "string"},
-                    "role": {"type": "string"},
-                    "content": {"type": "string"},
-                },
-            },
-            "description": self.description,
-        }
-
 
 class ImageListOutput(OutputNode):
     """
@@ -94,19 +70,6 @@ class ImageListOutput(OutputNode):
     async def process(self, context: ProcessingContext) -> list[ImageRef]:
         return self.value
 
-    def get_json_schema(self):
-        return {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "uri": {"type": "string"},
-                    "type": {"type": "string"},
-                },
-            },
-            "description": self.description,
-        }
-
 
 class IntegerOutput(OutputNode):
     """
@@ -123,12 +86,6 @@ class IntegerOutput(OutputNode):
 
     async def process(self, context: ProcessingContext) -> int:
         return self.value
-
-    def get_json_schema(self):
-        return {
-            "type": "integer",
-            "description": self.description,
-        }
 
 
 class FloatOutput(OutputNode):
@@ -147,12 +104,6 @@ class FloatOutput(OutputNode):
     async def process(self, context: ProcessingContext) -> float:
         return self.value
 
-    def get_json_schema(self):
-        return {
-            "type": "number",
-            "description": self.description,
-        }
-
 
 class BooleanOutput(OutputNode):
     """
@@ -169,12 +120,6 @@ class BooleanOutput(OutputNode):
 
     async def process(self, context: ProcessingContext) -> bool:
         return self.value
-
-    def get_json_schema(self):
-        return {
-            "type": "boolean",
-            "description": self.description,
-        }
 
 
 class StringOutput(OutputNode):
@@ -193,12 +138,6 @@ class StringOutput(OutputNode):
     async def process(self, context: ProcessingContext) -> str:
         return self.value
 
-    def get_json_schema(self):
-        return {
-            "type": "string",
-            "description": self.description,
-        }
-
 
 class TextOutput(OutputNode):
     """
@@ -216,12 +155,6 @@ class TextOutput(OutputNode):
     async def process(self, context: ProcessingContext) -> TextRef:
         return self.value
 
-    def get_json_schema(self):
-        return {
-            "type": "string",
-            "description": self.description,
-        }
-
 
 class ImageOutput(OutputNode):
     """
@@ -238,22 +171,6 @@ class ImageOutput(OutputNode):
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         return self.value
-
-    def get_json_schema(self):
-        return {
-            "type": "object",
-            "description": self.description,
-            "properties": {
-                "uri": {
-                    "type": "string",
-                    "description": "The URI of the image.",
-                },
-                "asset_type": {
-                    "type": "string",
-                    "description": "The type of the asset.",
-                },
-            },
-        }
 
 
 class VideoOutput(OutputNode):

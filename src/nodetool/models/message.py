@@ -1,33 +1,8 @@
 from datetime import datetime
-from typing import Any, Literal
 
-from pydantic import BaseModel
+from nodetool.metadata.types import MessageContent, ToolCall
 from nodetool.models.base_model import DBModel, DBField, create_time_ordered_uuid
 from nodetool.models.condition_builder import Field
-
-
-class ToolCall(BaseModel):
-    id: str = ""
-    name: str = ""
-    args: dict[str, Any] = {}
-    result: Any = None
-
-
-class MessageTextContent(BaseModel):
-    type: Literal["text"] = "text"
-    text: str = ""
-
-
-class ImageUrl(BaseModel):
-    url: str = ""
-
-
-class MessageImageContent(BaseModel):
-    type: Literal["image_url"] = "image_url"
-    image_url: ImageUrl = ImageUrl(url="")
-
-
-MessageContent = MessageTextContent | MessageImageContent
 
 
 class Message(DBModel):

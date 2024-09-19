@@ -2,15 +2,11 @@
 import { css, keyframes } from "@emotion/react";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
+import { LinearProgress, Typography } from "@mui/material";
 // mui
-import {
-  Button,
-  CircularProgress,
-  TextareaAutosize,
-  Tooltip,
-  Typography
-} from "@mui/material";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import { Box, Button, TextareaAutosize, Tooltip } from "@mui/material";
+import SendIcon from "@mui/icons-material/Send";
+import { useTheme } from "@mui/material/styles";
 
 // store
 import {
@@ -24,6 +20,7 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
+import OutputRenderer from "../node/OutputRenderer";
 // import { useAuth } from "../../stores/useAuth";
 
 const styles = (theme: any) =>
@@ -88,38 +85,47 @@ const styles = (theme: any) =>
       marginLeft: "10px"
     },
     ".compose-message": {
+      position: "relative",
       height: "auto",
       width: "100%",
       backgroundColor: theme.palette.c_gray1,
-      display: "flex"
+      border: "1px solid",
+      borderColor: theme.palette.c_gray3,
+      display: "flex",
+      alignItems: "center",
+      borderRadius: "20px",
+      padding: "0",
+      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)"
     },
     ".compose-message textarea": {
-      position: "relative",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      backgroundColor: theme.palette.c_gray1,
+      backgroundColor: "transparent",
       color: theme.palette.c_white,
-      padding: "1em 1em",
-      border: `1px solid ${theme.palette.c_gray2}`,
+      border: "none",
       resize: "none",
       overflowY: "auto",
-      margin: "0.5em",
-      width: "calc(100% - 38px)" /* Subtract the width of the button */,
+      width: "calc(100% - 48px)",
       height: "100%",
       flexGrow: 1,
-      borderRadius: "5px"
-    },
-    ".compose-message textarea:focus, .compose-message textarea:active": {
-      outline: 0,
-      border: `1px solid ${theme.c_gray3} !important`
+      padding: "1em 2em",
+      "&::placeholder": {
+        color: theme.palette.c_gray3
+      }
     },
     ".compose-message button": {
-      position: "relative",
-      backgroundColor: theme.palette.c_gray2,
-      flexGrow: 0,
-      top: "7px",
-      height: "48px",
-      width: "48px"
+      position: "absolute",
+      right: "8px",
+      backgroundColor: "transparent",
+      color: theme.palette.c_hl1,
+      padding: "8px",
+      minWidth: "unset",
+      borderRadius: "50%",
+      transition: "transform 0.2s ease-in-out",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        transform: "scale(1.1)"
+      }
     },
     ".compose-message-label": {
       color: theme.palette.c_gray3,
@@ -151,6 +157,22 @@ const styles = (theme: any) =>
       borderRadius: "50%",
       backgroundColor: theme.palette.c_hl1,
       margin: "0 5px"
+    },
+    ".node-status": {
+      textAlign: "center",
+      color: theme.palette.c_gray3,
+      fontSize: theme.fontSizeSmall,
+      margin: "0.5em 0"
+    },
+    ".node-progress": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      margin: "2em 0"
+    },
+    ".progress-bar": {
+      width: "80%",
+      marginBottom: "0.5em"
     }
   });
 
@@ -160,7 +182,10 @@ const bounce = keyframes`
 `;
 
 type ChatViewProps = {
-  isLoading?: boolean;
+  status: "disconnected" | "connecting" | "connected" | "loading" | "error";
+  currentNodeName: string | null;
+  progress: number;
+  total: number;
   messages: Array<Message>;
   sendMessage: (prompt: string) => Promise<void>;
 };
@@ -173,6 +198,7 @@ const MessageView = (msg: Message) => {
   } else if (msg.role === "assistant") {
     messageClass += " assistant";
   }
+
   const content = msg.content as
     | Array<MessageTextContent | MessageImageContent>
     | string;
@@ -186,7 +212,11 @@ const MessageView = (msg: Message) => {
           if (c.type === "text") {
             return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
           } else if (c.type === "image_url") {
-            return <img key={i} src={c.image_url?.url} alt="" />;
+            return <OutputRenderer key={i} value={c.image} />;
+          } else if (c.type === "audio") {
+            return <OutputRenderer key={i} value={c.audio} />;
+          } else if (c.type === "video") {
+            return <OutputRenderer key={i} value={c.video} />;
           } else {
             return <></>;
           }
@@ -195,7 +225,51 @@ const MessageView = (msg: Message) => {
   );
 };
 
-const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
+export const Progress = ({
+  progress,
+  total
+}: {
+  progress: number;
+  total: number;
+}) => {
+  const [eta, setEta] = useState<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (startTimeRef.current === null) {
+      startTimeRef.current = Date.now();
+    }
+
+    const remainingItems = total - progress;
+    const elapsedTime = Date.now() - (startTimeRef.current || Date.now());
+    const itemsPerMs = progress / elapsedTime;
+    const remainingTimeMs = remainingItems / itemsPerMs;
+    const etaSeconds = Math.round(remainingTimeMs / 1000);
+    setEta(etaSeconds);
+  }, [progress, total]);
+
+  return (
+    <div className="node-progress">
+      <div className="progress-bar">
+        <LinearProgress
+          variant="determinate"
+          value={(progress * 100) / total}
+          color="primary"
+        />
+      </div>
+      <Typography variant="caption">{eta && `ETA: ${eta}s`}</Typography>
+    </div>
+  );
+};
+
+const ChatView = ({
+  status,
+  currentNodeName,
+  progress,
+  total,
+  messages,
+  sendMessage
+}: ChatViewProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesListRef = useRef<HTMLUListElement | null>(null);
   const { metaKeyPressed, altKeyPressed, shiftKeyPressed } = useKeyPressedStore(
@@ -206,8 +280,6 @@ const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
     })
   );
   const [submitted, setSubmitted] = useState(false);
-  // const readFromStorage = useAuth((state) => state.readFromStorage);
-  // const user = readFromStorage();
   const [prompt, setPrompt] = useState("");
   const loading = false;
 
@@ -234,7 +306,7 @@ const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
         setPrompt("");
         sendMessage(prompt);
       } catch (error) {
-        console.error("Error sending help message:", error);
+        console.error("Error sending message:", error);
       }
     }
   }, [loading, prompt, sendMessage]);
@@ -254,32 +326,43 @@ const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const LoadingAnimation = () => (
-    <div className="loading-container">
-      <div className="loading-dots">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="dot"
-            css={css`
-              animation: ${bounce} 1.4s infinite ease-in-out;
-              animation-delay: ${i * 0.16}s;
-            `}
-          />
-        ))}
+  const LoadingIndicator = () => {
+    return (
+      <div className="loading-container">
+        <div className="loading-dots">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="dot"
+              css={css`
+                animation: ${bounce} 1.4s infinite ease-in-out;
+                animation-delay: ${i * 0.16}s;
+              `}
+            />
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div css={styles}>
       <ul className="messages" ref={messagesListRef}>
         {messages.map(MessageView)}
-        {isLoading && <LoadingAnimation />}
+        {status === "loading" && progress === 0 && (
+          <li>
+            <LoadingIndicator />
+          </li>
+        )}
+        {progress > 0 && (
+          <li>
+            <Progress progress={progress} total={total} />
+          </li>
+        )}
+        {currentNodeName && (
+          <li className="node-status">running {currentNodeName}...</li>
+        )}
       </ul>
-
-      {/* Remove this line as it's redundant */}
-      {/* {isLoading && <CircularProgress size={24} />} */}
 
       <div className="chat-controls">
         <div className="compose-message">
@@ -292,6 +375,7 @@ const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
             onKeyDown={(e) => {
               if (
                 e.key === "Enter" &&
+                status === "connected" &&
                 !metaKeyPressed &&
                 !altKeyPressed &&
                 !shiftKeyPressed
@@ -302,8 +386,8 @@ const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
             }}
             disabled={submitted}
             minRows={1}
-            maxRows={8}
-            placeholder="message ..."
+            maxRows={4}
+            placeholder="Type your message..."
             autoCorrect="off"
             autoCapitalize="none"
             spellCheck="false"
@@ -320,14 +404,14 @@ const ChatView = ({ isLoading, messages, sendMessage }: ChatViewProps) => {
           >
             <>
               <Button
-                disabled={loading || submitted}
+                disabled={status !== "connected" || prompt.trim() === ""}
                 onClick={() => {
                   if (!submitted) {
                     chatPost();
                   }
                 }}
               >
-                <ArrowUpwardIcon />
+                <SendIcon fontSize="small" />
               </Button>
             </>
           </Tooltip>

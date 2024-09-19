@@ -7,9 +7,10 @@ import {
   LoaderFunctionArgs,
   Navigate,
   RouterProvider,
-  createBrowserRouter,
-  useRouteError
+  createBrowserRouter
 } from "react-router-dom";
+
+import ErrorBoundary from "./ErrorBoundary";
 
 import NodeEditor from "./components/node_editor/NodeEditor";
 import initiateEditor from "./core/initiateEditor";
@@ -47,6 +48,7 @@ import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import NodeDocumentation from "./components/content/Help/NodeDocumentation";
+import WorkflowChat from "./components/assistants/WorkflowChat";
 
 initSentry();
 
@@ -76,12 +78,6 @@ const NavigateToStart = () => {
   }
   return <div>Error!</div>;
 };
-
-function ErrorBoundary() {
-  const error = useRouteError();
-  console.error(error);
-  return <div>Error!</div>;
-}
 
 function getRoutes() {
   const routes: RouteObject[] = [

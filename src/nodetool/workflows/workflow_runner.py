@@ -10,7 +10,7 @@ from nodetool.metadata.types import DataframeRef
 from nodetool.model_manager import ModelManager
 from nodetool.nodes.nodetool.output import GroupOutput
 from nodetool.types.job import JobUpdate, JobCancelledException
-from nodetool.nodes.nodetool.input import GroupInput
+from nodetool.nodes.nodetool.input import ChatInput, GroupInput
 from nodetool.workflows.base_node import GroupNode, BaseNode
 from nodetool.workflows.types import NodeProgress, NodeUpdate
 from nodetool.workflows.run_job_request import RunJobRequest
@@ -22,7 +22,7 @@ from nodetool.common.environment import Environment
 
 log = Environment.get_logger()
 
-MAX_RETRIES = 5
+MAX_RETRIES = 2
 BASE_DELAY = 1  # seconds
 MAX_DELAY = 60  # seconds
 
@@ -162,6 +162,17 @@ class WorkflowRunner:
 
                 node = input_nodes[key]
                 node.assign_property("value", value)
+
+        if req.messages:
+            # find chat input node
+            chat_input_node = next(
+                (node for node in context.graph.nodes if isinstance(node, ChatInput)),
+                None,
+            )
+            if chat_input_node is None:
+                raise ValueError("Chat input node not found")
+
+            chat_input_node.value = req.messages
 
         with self.torch_context(context):
             try:
@@ -336,12 +347,8 @@ class WorkflowRunner:
         while retries < MAX_RETRIES:
             try:
                 if isinstance(node, GroupNode):
-                    log.info(f"Running group node: {node._id}")
                     await self.run_group_node(node, context)
                 else:
-                    log.info(
-                        f"Processing regular node: {node.get_title()} ({node._id})"
-                    )
                     await self.process_regular_node(context, node)
                 break
             except torch.cuda.OutOfMemoryError as e:
@@ -462,7 +469,6 @@ class WorkflowRunner:
                 )
                 result = cached_result
             else:
-                log.info(f"Processing node: {node.get_title()} ({node._id})")
                 node.send_update(context, "running")
                 await node.move_to_device(self.device)
                 result = await node.process(context)

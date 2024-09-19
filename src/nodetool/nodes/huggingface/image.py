@@ -1,4 +1,5 @@
 from enum import Enum
+import random
 import numpy as np
 import PIL.Image
 from nodetool.common.environment import Environment
@@ -66,7 +67,7 @@ from diffusers import AutoPipelineForInpainting  # type: ignore
 from diffusers import StableDiffusionControlNetPipeline, ControlNetModel  # type: ignore
 from diffusers import StableDiffusionControlNetInpaintPipeline  # type: ignore
 from diffusers import StableDiffusionControlNetImg2ImgPipeline  # type: ignore
-from diffusers import StableDiffusionLatentUpscalePipeline # type: ignore
+from diffusers import StableDiffusionLatentUpscalePipeline  # type: ignore
 from diffusers import StableDiffusionUpscalePipeline  # type: ignore
 from diffusers import UNet2DConditionModel  # type: ignore
 from diffusers import DiffusionPipeline  # type: ignore
@@ -2191,8 +2192,6 @@ class PlaygroundV2(HuggingFacePipelineNode):
         return await context.image_from_pil(image)
 
 
-
-
 class StableDiffusionBaseNode(HuggingFacePipelineNode):
     model: HFStableDiffusion = Field(
         default=HFStableDiffusion(),
@@ -2305,7 +2304,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
 
     async def pre_process(self, context: ProcessingContext):
         if self.seed == -1:
-            self.seed = context.get("seed", 0)
+            self.seed = random.randint(0, 2**32 - 1)
 
     def should_skip_cache(self):
         if self.ip_adapter_model != IPAdapter_SD15_Model.NONE:
@@ -3142,7 +3141,7 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
 
     async def pre_process(self, context: ProcessingContext):
         if self.seed == -1:
-            self.seed = context.get("seed", 0)
+            self.seed = random.randint(0, 2**32 - 1)
 
     def should_skip_cache(self):
         if self.ip_adapter_model != IPAdapter_SDXL_Model.NONE:

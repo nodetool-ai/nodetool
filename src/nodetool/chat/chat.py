@@ -32,7 +32,7 @@ from nodetool.metadata.types import (
     Provider,
     ToolCall,
 )
-from nodetool.models.message import (
+from nodetool.metadata.types import (
     MessageContent,
     MessageImageContent,
     MessageTextContent,
@@ -87,7 +87,7 @@ def message_content_to_openai_content_part(
     if isinstance(content, MessageTextContent):
         return {"type": "text", "text": content.text}
     elif isinstance(content, MessageImageContent):
-        return {"type": "image_url", "image_url": {"url": content.image_url.url}}
+        return {"type": "image_url", "image_url": {"url": content.image.uri}}
     else:
         raise ValueError(f"Unknown content type {content}")
 

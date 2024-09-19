@@ -56,6 +56,7 @@ async def run_workflow(
             # Must be done in the same event loop as the runner
             # TODO: Create a job model and save it to the database
             if req.graph is None:
+                log.info(f"Loading workflow graph for {req.workflow_id}")
                 workflow = await context.get_workflow(req.workflow_id)
                 req.graph = workflow.graph
             await runner.run(req, context)
@@ -66,6 +67,7 @@ async def run_workflow(
             )
 
     if use_thread:
+        log.info(f"Running workflow in thread for {req.workflow_id}")
         with ThreadedEventLoop() as tel:
             run_future = tel.run_coroutine(run())
 

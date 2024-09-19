@@ -85,9 +85,12 @@ const HelpChat: React.FC = () => {
         </>
       )}
       <ChatView
-        isLoading={isLoading}
+        status={isLoading ? "loading" : "connected"}
         messages={messages}
         sendMessage={handleSendMessage}
+        currentNodeName={null}
+        progress={0}
+        total={0}
       />
     </div>
   );

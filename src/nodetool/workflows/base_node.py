@@ -819,6 +819,10 @@ class InputNode(BaseNode):
     def is_visible(cls):
         return cls is not InputNode
 
+    @classmethod
+    def is_cacheable(cls):
+        return False
+
 
 class OutputNode(BaseNode):
     """
@@ -845,6 +849,10 @@ class OutputNode(BaseNode):
     def result_for_client(self, result: dict[str, Any]) -> dict[str, Any]:
         return self.result_for_all_outputs(result)
 
+    @classmethod
+    def is_cacheable(cls):
+        return False
+
 
 class Comment(BaseNode):
     """
@@ -860,6 +868,10 @@ class Comment(BaseNode):
         default="#f0f0f0", description="The color for the comment."
     )
     _visible: bool = False
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
 
 
 class Preview(BaseNode):

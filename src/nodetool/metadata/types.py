@@ -1,4 +1,3 @@
-import base64
 from enum import Enum
 import enum
 from pathlib import Path
@@ -10,7 +9,6 @@ from typing import Literal
 
 from nodetool.metadata.type_metadata import TypeMetadata
 from nodetool.models.asset import Asset
-from nodetool.models.message import Message as MessageModel, MessageContent, ToolCall
 from nodetool.models.task import Task as TaskModel
 
 
@@ -727,46 +725,6 @@ class Task(BaseType):
         )
 
 
-class FunctionDefinition(BaseModel):
-    name: str
-    description: str
-    parameters: Any
-
-
-class ChatToolParam(BaseModel):
-    type: Literal["function"]
-    function: FunctionDefinition
-
-
-class ChatMessageParam(BaseModel):
-    role: str
-
-
-class ChatSystemMessageParam(ChatMessageParam):
-    role: Literal["system"]
-    content: str
-    name: Optional[str] = None
-
-
-class ChatUserMessageParam(ChatMessageParam):
-    role: Literal["user"]
-    content: str | list[MessageContent]
-    name: Optional[str] = None
-
-
-class ChatAssistantMessageParam(ChatMessageParam):
-    role: Literal["assistant"]
-    content: Optional[str] = None
-    name: Optional[str] = None
-    tool_calls: Optional[list] = None
-
-
-class ChatToolMessageParam(ChatMessageParam):
-    role: Literal["tool"]
-    content: Any
-    tool_call_id: str
-
-
 class Tensor(BaseType):
     type: Literal["tensor"] = "tensor"
     value: list[Any] = []
@@ -932,6 +890,78 @@ def asset_to_ref(asset: Asset):
         raise ValueError(f"Unknown asset type: {asset.content_type}")
 
 
+class FunctionDefinition(BaseModel):
+    name: str
+    description: str
+    parameters: Any
+
+
+class ToolCall(BaseModel):
+    id: str = ""
+    name: str = ""
+    args: dict[str, Any] = {}
+    result: Any = None
+
+
+class MessageTextContent(BaseModel):
+    type: Literal["text"] = "text"
+    text: str = ""
+
+
+class MessageImageContent(BaseModel):
+    type: Literal["image_url"] = "image_url"
+    image: ImageRef = ImageRef()
+
+
+class MessageAudioContent(BaseModel):
+    type: Literal["audio"] = "audio"
+    audio: AudioRef = AudioRef()
+
+
+class MessageVideoContent(BaseModel):
+    type: Literal["video"] = "video"
+    video: VideoRef = VideoRef()
+
+
+MessageContent = (
+    MessageTextContent | MessageImageContent | MessageAudioContent | MessageVideoContent
+)
+
+
+class ChatToolParam(BaseModel):
+    type: Literal["function"]
+    function: FunctionDefinition
+
+
+class ChatMessageParam(BaseModel):
+    role: str
+
+
+class ChatSystemMessageParam(ChatMessageParam):
+    role: Literal["system"]
+    content: str
+    name: Optional[str] = None
+
+
+class ChatUserMessageParam(ChatMessageParam):
+    role: Literal["user"]
+    content: str | list[MessageContent]
+    name: Optional[str] = None
+
+
+class ChatAssistantMessageParam(ChatMessageParam):
+    role: Literal["assistant"]
+    content: Optional[str] = None
+    name: Optional[str] = None
+    tool_calls: Optional[list] = None
+
+
+class ChatToolMessageParam(ChatMessageParam):
+    role: Literal["tool"]
+    content: Any
+    tool_call_id: str
+
+
 class Message(BaseType):
     """
     Abstract representation for a chat message.
@@ -942,6 +972,16 @@ class Message(BaseType):
     id: str | None = None
     """
     The unique identifier of the message.
+    """
+
+    auth_token: str | None = None
+    """
+    The authentication token for the user.
+    """
+
+    workflow_id: str | None = None
+    """
+    The unique identifier of the workflow the message should be processed within.
     """
 
     thread_id: str | None = None
@@ -986,7 +1026,7 @@ class Message(BaseType):
     """
 
     @staticmethod
-    def from_model(message: MessageModel):
+    def from_model(message: Any):
         """
         Convert a Model object to a Message object.
 
