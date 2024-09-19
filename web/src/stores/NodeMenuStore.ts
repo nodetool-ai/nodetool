@@ -86,6 +86,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   metadata: [],
   setMetadata: (metadata) => {
     set({ metadata });
+    get().performSearch(get().searchTerm);
   },
   selectedInputType: "",
   setSelectedInputType: (inputType) => {
@@ -133,7 +134,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     y,
     openedByDrop: boolean = false,
     dropType: string = "",
-    connectDirection: ConnectDirection = null,
+    connectDirection: ConnectDirection = null
   ) => {
     const maxPosX = window.innerWidth - get().menuWidth + 150;
     const maxPosY = window.innerHeight - get().menuHeight + 100;
@@ -144,7 +145,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       menuPosition: { x: constrainedX, y: constrainedY },
       openedByDrop: openedByDrop,
       dropType: dropType,
-      connectDirection: connectDirection,
+      connectDirection: connectDirection
     });
   },
 

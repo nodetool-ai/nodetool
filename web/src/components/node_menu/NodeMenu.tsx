@@ -37,11 +37,6 @@ type NodeMenuProps = {
 };
 export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
   const nodeRef = useRef(null);
-  const {
-    data: metadata,
-    isLoading: metadataLoading,
-    error: metadataError
-  } = useMetadata();
   const namespaceTree = useNamespaceTree();
   const {
     isMenuOpen,
@@ -99,6 +94,12 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
       setSelectedOutputType(dropType);
     }
   }, [dropType, connectDirection, setSelectedInputType, setSelectedOutputType]);
+
+  const {
+    data: metadata,
+    isLoading: metadataLoading,
+    error: metadataError
+  } = useMetadata();
 
   useEffect(() => {
     if (metadata) {
