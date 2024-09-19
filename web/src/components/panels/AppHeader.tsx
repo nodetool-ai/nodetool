@@ -302,8 +302,7 @@ const AppHeader: React.FC = React.memo(() => {
                     }}
                     bgStyle={{
                       backgroundColor: "transparent",
-                      width: "28px",
-                      marginRight: ".5em"
+                      width: "28px"
                     }}
                   />
                 )}
