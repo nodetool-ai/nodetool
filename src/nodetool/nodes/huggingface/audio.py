@@ -11,7 +11,8 @@ from nodetool.metadata.types import (
     HuggingFaceModel,
 )
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
-from parler_tts import ParlerTTSForConditionalGeneration
+
+# from parler_tts import ParlerTTSForConditionalGeneration
 from transformers import AutoTokenizer
 
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
@@ -775,87 +776,87 @@ class ZeroShotAudioClassifier(HuggingFacePipelineNode):
         return {item["label"]: item["score"] for item in result}  # type: ignore
 
 
-class ParlerTTS(HuggingFacePipelineNode):
-    """
-    Generates speech from text using the Parler TTS model.
-    tts, audio, speech, huggingface
+# class ParlerTTS(HuggingFacePipelineNode):
+#     """
+#     Generates speech from text using the Parler TTS model.
+#     tts, audio, speech, huggingface
 
-    Use cases:
-    - Create voice content for apps and websites
-    - Generate natural-sounding speech for various applications
-    - Produce audio narrations for videos or presentations
-    """
+#     Use cases:
+#     - Create voice content for apps and websites
+#     - Generate natural-sounding speech for various applications
+#     - Produce audio narrations for videos or presentations
+#     """
 
-    model: HFTextToSpeech = Field(
-        default=HFTextToSpeech(),
-        title="Model ID on Huggingface",
-        description="The model ID to use for text-to-speech generation",
-    )
-    prompt: str = Field(
-        default="Hey, how are you doing today?",
-        title="Prompt",
-        description="The text to convert to speech",
-    )
-    description: str = Field(
-        default="A female speaker delivers a slightly expressive and animated speech with a moderate speed and pitch. The recording is of very high quality, with the speaker's voice sounding clear and very close up.",
-        title="Description",
-        description="A description of the desired speech characteristics",
-    )
+#     model: HFTextToSpeech = Field(
+#         default=HFTextToSpeech(),
+#         title="Model ID on Huggingface",
+#         description="The model ID to use for text-to-speech generation",
+#     )
+#     prompt: str = Field(
+#         default="Hey, how are you doing today?",
+#         title="Prompt",
+#         description="The text to convert to speech",
+#     )
+#     description: str = Field(
+#         default="A female speaker delivers a slightly expressive and animated speech with a moderate speed and pitch. The recording is of very high quality, with the speaker's voice sounding clear and very close up.",
+#         title="Description",
+#         description="A description of the desired speech characteristics",
+#     )
 
-    _model: ParlerTTSForConditionalGeneration | None = None
-    _tokenizer: AutoTokenizer | None = None
+#     _model: ParlerTTSForConditionalGeneration | None = None
+#     _tokenizer: AutoTokenizer | None = None
 
-    @classmethod
-    def get_recommended_models(cls) -> list[HuggingFaceModel]:
-        return [
-            HFTextToSpeech(
-                repo_id="parler-tts/parler-tts-mini-v1",
-            ),
-            HFTextToSpeech(
-                repo_id="parler-tts/parler-tts-large-v1",
-            ),
-        ]
+#     @classmethod
+#     def get_recommended_models(cls) -> list[HuggingFaceModel]:
+#         return [
+#             HFTextToSpeech(
+#                 repo_id="parler-tts/parler-tts-mini-v1",
+#             ),
+#             HFTextToSpeech(
+#                 repo_id="parler-tts/parler-tts-large-v1",
+#             ),
+#         ]
 
-    def get_model_id(self):
-        return self.model.repo_id
+#     def get_model_id(self):
+#         return self.model.repo_id
 
-    async def initialize(self, context: ProcessingContext):
-        self._model = await self.load_model(
-            context=context,
-            model_class=ParlerTTSForConditionalGeneration,
-            model_id=self.get_model_id(),
-            variant=None,
-            torch_dtype=torch.float32,
-        )
-        self._tokenizer = AutoTokenizer.from_pretrained(self.get_model_id())  # type: ignore
+#     async def initialize(self, context: ProcessingContext):
+#         self._model = await self.load_model(
+#             context=context,
+#             model_class=ParlerTTSForConditionalGeneration,
+#             model_id=self.get_model_id(),
+#             variant=None,
+#             torch_dtype=torch.float32,
+#         )
+#         self._tokenizer = AutoTokenizer.from_pretrained(self.get_model_id())  # type: ignore
 
-    async def move_to_device(self, device: str):
-        if self._model is not None:
-            self._model.to(device)  # type: ignore
+#     async def move_to_device(self, device: str):
+#         if self._model is not None:
+#             self._model.to(device)  # type: ignore
 
-    async def process(self, context: ProcessingContext) -> AudioRef:
-        if self._model is None or self._tokenizer is None:
-            raise ValueError("Model or tokenizer not initialized")
+#     async def process(self, context: ProcessingContext) -> AudioRef:
+#         if self._model is None or self._tokenizer is None:
+#             raise ValueError("Model or tokenizer not initialized")
 
-        device = context.device
+#         device = context.device
 
-        input_ids = self._tokenizer(self.description, return_tensors="pt").input_ids.to(  # type: ignore
-            device
-        )
-        prompt_input_ids = self._tokenizer(
-            self.prompt, return_tensors="pt"
-        ).input_ids.to(  # type: ignore
-            device
-        )
+#         input_ids = self._tokenizer(self.description, return_tensors="pt").input_ids.to(  # type: ignore
+#             device
+#         )
+#         prompt_input_ids = self._tokenizer(
+#             self.prompt, return_tensors="pt"
+#         ).input_ids.to(  # type: ignore
+#             device
+#         )
 
-        generation = self._model.generate(
-            input_ids=input_ids, prompt_input_ids=prompt_input_ids
-        )
-        audio_arr = generation.cpu().numpy().squeeze()  # type: ignore
+#         generation = self._model.generate(
+#             input_ids=input_ids, prompt_input_ids=prompt_input_ids
+#         )
+#         audio_arr = generation.cpu().numpy().squeeze()  # type: ignore
 
-        return await context.audio_from_numpy(
-            audio_arr, self._model.config.sampling_rate
-        )
+#         return await context.audio_from_numpy(
+#             audio_arr, self._model.config.sampling_rate
+#         )
 
 
 # class LoadSpeakerEmbedding(BaseNode):

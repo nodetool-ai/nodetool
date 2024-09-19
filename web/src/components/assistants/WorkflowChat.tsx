@@ -2,8 +2,7 @@ import React, { useCallback, useEffect } from "react";
 import useWorkflowChatStore from "../../stores/WorkflowChatStore";
 import { Message } from "../../stores/ApiTypes";
 import ChatView from "./ChatView";
-import { Box, Button, IconButton, Tooltip } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import { Box, Button } from "@mui/material";
 import { ClearIcon } from "@mui/x-date-pickers/icons";
 
 interface WorkflowChatProps {

@@ -61,6 +61,7 @@ numpy = "<2"
 ollama = "*"
 omegaconf = "*"
 onnxruntime = "*"
+# onnx = "1.16.2"
 # onnxruntime-gpu = "*"
 open-clip-torch = "*"
 openai = ">=1.10.0"
@@ -110,7 +111,7 @@ websockets = "*"
 yacs = "*"
 yapf = "*"
 zipp = "*"
-parler-tts = { git = "https://github.com/huggingface/parler-tts.git" }
+# parler-tts = { git = "https://github.com/huggingface/parler-tts.git" }
 
 [tool.poetry.group.test.dependencies]
 pytest = "*"

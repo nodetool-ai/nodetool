@@ -150,8 +150,8 @@
         <div class="boot-text"></div>
     </div>
     <iframe id="content"></iframe>
+    <button id="log-toggle" style="display: none;">Hide Log</button>
     <div id="log-container" class="expanded">
-        <button id="log-toggle" style="display: none;">Hide Log</button>
         <div id="log"></div>
     </div>
 
@@ -228,8 +228,7 @@
         api.onServerStarted(() => {
             loadContentWithNoCaching();
             bootMessage.style.display = 'none';
-            logContainer.style.display = 'none';
-            logToggle.style.display = 'block';
+            toggleLog();
         });
 
         api.onBootMessage((message) => {

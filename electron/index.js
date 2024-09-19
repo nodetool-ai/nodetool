@@ -279,8 +279,8 @@ async function startOllama() {
   log("Starting Ollama");
   const ollamaPath =
     process.platform === "win32"
-      ? path.join(resourcesPath, "ollama.exe")
-      : path.join(resourcesPath, "ollama");
+      ? path.join(resourcesPath, "ollama", "ollama.exe")
+      : path.join(resourcesPath, "ollama", "ollama");
 
   log(`Ollama path: ${ollamaPath}`);
 

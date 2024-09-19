@@ -22,7 +22,7 @@ class Workflow(DBModel):
     created_at: datetime = DBField(default_factory=datetime.now)
     updated_at: datetime = DBField(default_factory=datetime.now)
     name: str = DBField(default="")
-    tags: list[str] = DBField(default_factory=list)
+    tags: list[str] | None = DBField(default_factory=list)
     description: str | None = DBField(default="")
     thumbnail: str | None = DBField(default=None)
     graph: dict = DBField(default_factory=dict)
@@ -42,9 +42,9 @@ class Workflow(DBModel):
             created_at=data["created_at"],
             updated_at=data["updated_at"],
             name=data["name"],
-            tags=data["tags"],
-            description=data["description"],
-            thumbnail=data["thumbnail"],
+            tags=data.get("tags", []),
+            description=data.get("description", ""),
+            thumbnail=data.get("thumbnail"),
             graph=data["graph"],
         )
 

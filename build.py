@@ -207,18 +207,38 @@ class Build:
 
     def ollama(self):
         logger.info("Downloading Ollama")
-        # if self.platform == "win":
-        #     self.run_command(
-        #         [
-        #             "curl",
-        #             "-L",
-        #             "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip",
-        #             "-o",
-        #             "ollama.zip",
-        #         ]
-        #     )
-        #     self.run_command(["unzip", "ollama.zip", "-d", "ollama"])
-        if self.platform == "mac":
+        system = platform.system().lower()
+        if system == "windows":
+            self.run_command(
+                [
+                    "curl",
+                    "-L",
+                    "https://github.com/ollama/ollama/releases/download/v0.3.9/ollama-windows-amd64.zip",
+                    "-o",
+                    "ollama.zip",
+                ]
+            )
+            self.run_command(["unzip", "ollama.zip", "-d", self.BUILD_DIR / "ollama"])
+            # remove cuda11 dlls
+            self.remove_file(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "rocblas.dll"
+            )
+            self.remove_file(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "cublas64_11.dll"
+            )
+            self.remove_file(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "cublasLt64_11.dll"
+            )
+            self.remove_directory(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "runners" / "cuda_v11"
+            )
+            self.remove_directory(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "rocblas"
+            )
+            self.remove_directory(
+                self.BUILD_DIR / "ollama" / "lib" / "ollama" / "runners" / "rocm_v6.1"
+            )
+        elif system == "darwin":
             self.run_command(
                 [
                     "curl",
@@ -229,6 +249,8 @@ class Build:
                 ]
             )
             self.run_command(["chmod", "+x", str(self.BUILD_DIR / "ollama")])
+        else:
+            raise BuildError(f"Unsupported platform: {system}")
 
     def python(self) -> None:
         """Package Python environment."""
@@ -377,7 +399,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--step",
-        choices=["setup", "python", "react", "electron", "ffmpeg"],
+        choices=["setup", "python", "react", "electron", "ffmpeg", "ollama"],
         help="Run a specific build step",
     )
 

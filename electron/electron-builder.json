@@ -11,6 +11,7 @@
         "index.html"
     ],
     "extraResources": [
+        "ollama",	
         "python_env",
         "src",
         "web",
