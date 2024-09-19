@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import { Typography } from "@mui/material";
 import AssetViewer from "../assets/AssetViewer";
 
@@ -7,21 +7,16 @@ interface ImageViewProps {
 }
 
 const ImageView: React.FC<ImageViewProps> = ({ source }) => {
-  const [openViewer, setOpenViewer] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [openViewer, setOpenViewer] = React.useState(false);
 
-  useEffect(() => {
-    if (source instanceof Uint8Array) {
-      const blob = new Blob([source], { type: 'image/png' });
-      const url = URL.createObjectURL(blob);
-      setImageUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setImageUrl(source);
-    }
+  const imageUrl = useMemo(() => {
+    if (!source) return undefined;
+    if (typeof source === "string") return source;
+
+    return URL.createObjectURL(new Blob([source], { type: "image/png" }));
   }, [source]);
 
-  if (!source) {
+  if (!imageUrl) {
     return <Typography>No Image found</Typography>;
   }
 
@@ -61,4 +56,4 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   );
 };
 
-export default ImageView;
+export default React.memo(ImageView);
