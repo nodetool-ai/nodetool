@@ -171,4 +171,6 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
   }
 );
 
+ModelCardContent.displayName = "ModelCardContent";
+
 export default ModelCardContent;
