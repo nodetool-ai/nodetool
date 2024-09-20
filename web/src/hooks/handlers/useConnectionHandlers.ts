@@ -6,6 +6,7 @@ import { TypeName } from "../../stores/ApiTypes";
 import { useMetadata } from "../../serverState/useMetadata";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { devLog } from "../../utils/DevLog";
+import { isConnectable } from "../../utils/TypeHandler";
 // import { ConnectDirection } from "../../stores/ConnectionStore";
 
 export const inputForType = (type: TypeName) => {
@@ -184,8 +185,11 @@ export default function useConnectionHandlers() {
           return;
         }
         if (connectDirection === "source") {
-          const possibleInputs = nodeMetadata.properties.filter(
-            (prop) => prop.type.type === connectType?.type
+          const possibleInputs = nodeMetadata.properties.filter((prop) =>
+            isConnectable(
+              { type: connectType?.type || "any" },
+              { type: prop.type.type as TypeName }
+            )
           );
 
           if (possibleInputs.length > 0) {
@@ -204,8 +208,11 @@ export default function useConnectionHandlers() {
             endConnecting();
           }
         } else if (connectDirection === "target") {
-          const possibleOutputs = nodeMetadata.outputs.filter(
-            (prop) => prop.type.type === connectType?.type
+          const possibleOutputs = nodeMetadata.outputs.filter((prop) =>
+            isConnectable(
+              { type: connectType?.type || "any" },
+              { type: prop.type.type as TypeName }
+            )
           );
           if (possibleOutputs.length > 0) {
             // connect first possible output
