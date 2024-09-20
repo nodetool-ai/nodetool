@@ -35,7 +35,12 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = React.memo(
           ignore_patterns: model.ignore_patterns ?? undefined
         }));
       } else if (node_namespace.startsWith("ollama.")) {
-        return llama_models;
+        return llama_models.map((model) => ({
+          id: model.id,
+          name: model.name,
+          type: "llama.model",
+          repo_id: model.id
+        }));
       }
       return [];
     }, [metadata, nodeType]);
