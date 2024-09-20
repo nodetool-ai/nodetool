@@ -193,10 +193,6 @@ const ModelCard: React.FC<ModelComponentProps> = React.memo(function ModelCard({
 
   const isHuggingFace = model.type.startsWith("hf.");
   const isOllama = model.type.toLowerCase().includes("llama_model");
-  const downloaded = model.type.startsWith("hf.lora_sd")
-    ? model.downloaded ?? false
-    : !!(model.size_on_disk && model.size_on_disk > 0);
-
   const { data: modelData, isLoading } = useQuery({
     queryKey: ["modelInfo", model.id],
     queryFn: () => {
@@ -211,6 +207,12 @@ const ModelCard: React.FC<ModelComponentProps> = React.memo(function ModelCard({
     gcTime: 1000 * 60,
     refetchOnWindowFocus: false
   });
+
+  const downloaded = model.type.startsWith("hf.lora_sd")
+    ? model.downloaded ?? false
+    : model.type.startsWith("hf.")
+    ? !!model.size_on_disk
+    : !!modelData;
 
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
 

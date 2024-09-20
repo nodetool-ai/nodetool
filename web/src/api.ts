@@ -2440,7 +2440,7 @@ export interface components {
        */
       name?: string;
       /** Tags */
-      tags?: string[];
+      tags?: string[] | null;
       /**
        * Description
        * @default
@@ -3897,7 +3897,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          "application/json": Record<string, never>;
+          "application/json": Record<string, never> | null;
         };
       };
       /** @description Validation Error */

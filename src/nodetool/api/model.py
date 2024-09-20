@@ -100,12 +100,12 @@ async def get_ollama_models(user: User = Depends(current_user)) -> list[LlamaMod
 @router.get("/ollama_model_info")
 async def get_ollama_model_info(
     model_name: str, user: User = Depends(current_user)
-) -> dict:
+) -> dict | None:
     ollama = Environment.get_ollama_client()
     try:
         res = await ollama.show(model_name)
     except Exception as e:
-        return {}
+        return None
     return dict(res)
 
 

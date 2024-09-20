@@ -38,7 +38,7 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = React.memo(
         return llama_models.map((model) => ({
           id: model.id,
           name: model.name,
-          type: "llama.model",
+          type: "llama_model",
           repo_id: model.id
         }));
       }

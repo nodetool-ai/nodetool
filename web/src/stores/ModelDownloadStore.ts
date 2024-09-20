@@ -10,14 +10,14 @@ interface SpeedDataPoint {
 
 interface Download {
   status:
-  | "pending"
-  | "idle"
-  | "running"
-  | "completed"
-  | "cancelled"
-  | "error"
-  | "start"
-  | "progress";
+    | "pending"
+    | "idle"
+    | "running"
+    | "completed"
+    | "cancelled"
+    | "error"
+    | "start"
+    | "progress";
   id: string;
   downloadedBytes: number;
   totalBytes: number;
@@ -200,12 +200,15 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       );
     } else if (modelType === "llama_model") {
       try {
-        const response = await fetch(BASE_URL + "/api/models/pull_ollama_model?model_name=" + id, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-        });
+        const response = await fetch(
+          BASE_URL + "/api/models/pull_ollama_model?model_name=" + id,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
