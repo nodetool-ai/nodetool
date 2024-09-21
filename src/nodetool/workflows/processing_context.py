@@ -856,6 +856,16 @@ class ProcessingContext:
         image = await self.image_to_pil(image_ref)
         return torch.tensor(np.array(image)).float() / 255.0
 
+    async def image_to_torch_tensor(self, image_ref: ImageRef) -> torch.Tensor:
+        """
+        Converts the image to a tensor.
+
+        Args:
+            context (ProcessingContext): The processing context.
+        """
+        image = await self.image_to_pil(image_ref)
+        return torch.tensor(np.array(image)).float() / 255.0
+
     async def image_to_base64(self, image_ref: ImageRef) -> str:
         """
         Converts the image to a PNG base64-encoded string.

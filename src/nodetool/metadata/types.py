@@ -198,6 +198,9 @@ class LlamaModel(BaseType):
     digest: str = ""
     details: dict = Field(default_factory=dict)
 
+    def is_set(self) -> bool:
+        return self.repo_id != ""
+
 
 class HuggingFaceModel(BaseType):
     type: str = "hf.model"
@@ -205,6 +208,12 @@ class HuggingFaceModel(BaseType):
     path: str | None = None
     allow_patterns: list[str] | None = None
     ignore_patterns: list[str] | None = None
+
+    def is_set(self) -> bool:
+        return self.repo_id != ""
+
+    def is_empty(self) -> bool:
+        return self.repo_id == ""
 
 
 class HFImageTextToText(HuggingFaceModel):
@@ -425,6 +434,18 @@ class HFVoiceActivityDetection(HuggingFaceModel):
     type: Literal["hf.voice_activity_detection"] = "hf.voice_activity_detection"
 
 
+class HFLoraSDConfig(BaseType):
+    type: Literal["hf.lora_sd_config"] = "hf.lora_sd_config"
+    lora: HFLoraSD = Field(default=HFLoraSD(), description="The LoRA model to use.")
+    strength: float = Field(default=0.5, ge=0.0, le=3.0, description="LoRA strength")
+
+
+class HFLoraSDXLConfig(BaseType):
+    type: Literal["hf.lora_sdxl_config"] = "hf.lora_sdxl_config"
+    lora: HFLoraSDXL = Field(default=HFLoraSDXL(), description="The LoRA model to use.")
+    strength: float = Field(default=0.5, ge=0.0, le=3.0, description="LoRA strength")
+
+
 CLASSNAME_TO_MODEL_TYPE = {
     "StableDiffusionPipeline": "hf.stable_diffusion",
     "StableDiffusionXLPipeline": "hf.stable_diffusion_xl",
@@ -493,6 +514,12 @@ model_file_types = set()
 
 class ModelFile(BaseType):
     name: str = ""
+
+    def is_set(self) -> bool:
+        return self.name != ""
+
+    def is_empty(self) -> bool:
+        return self.name == ""
 
     def __init_subclass__(cls):
         super().__init_subclass__()
@@ -636,6 +663,12 @@ class ComfyData(BaseType):
 
     def serialize(self):
         return None
+
+
+class LoRAConfig(BaseType):
+    type: Literal["comfy.lora_config"] = "comfy.lora_config"
+    lora: LORAFile = Field(default=LORAFile(), description="The LoRA model to use.")
+    strength: float = Field(default=1.0, ge=0.0, le=2.0, description="LoRA strength")
 
 
 class Conditioning(ComfyData):

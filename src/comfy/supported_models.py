@@ -31,6 +31,7 @@ class SD15(supported_models_base.BASE):
     }
 
     latent_format = latent_formats.SD15
+    memory_usage_factor = 1.0
 
     def process_clip_state_dict(self, state_dict):
         k = list(state_dict.keys())
@@ -77,6 +78,7 @@ class SD20(supported_models_base.BASE):
     }
 
     latent_format = latent_formats.SD15
+    memory_usage_factor = 1.0
 
     def model_type(self, state_dict, prefix=""):
         if self.unet_config["in_channels"] == 4: #SD2.0 inpainting models are not v prediction
@@ -140,6 +142,7 @@ class SDXLRefiner(supported_models_base.BASE):
     }
 
     latent_format = latent_formats.SDXL
+    memory_usage_factor = 1.0
 
     def get_model(self, state_dict, prefix="", device=None):
         return model_base.SDXLRefiner(self, device=device)
@@ -177,6 +180,8 @@ class SDXL(supported_models_base.BASE):
     }
 
     latent_format = latent_formats.SDXL
+
+    memory_usage_factor = 0.8
 
     def model_type(self, state_dict, prefix=""):
         if 'edm_mean' in state_dict and 'edm_std' in state_dict: #Playground V2.5
@@ -505,6 +510,9 @@ class SD3(supported_models_base.BASE):
 
     unet_extra_config = {}
     latent_format = latent_formats.SD3
+
+    memory_usage_factor = 1.2
+
     text_encoder_key_prefix = ["text_encoders."]
 
     def get_model(self, state_dict, prefix="", device=None):
@@ -631,7 +639,10 @@ class Flux(supported_models_base.BASE):
 
     unet_extra_config = {}
     latent_format = latent_formats.Flux
-    supported_inference_dtypes = [torch.bfloat16, torch.float32]
+
+    memory_usage_factor = 2.8
+
+    supported_inference_dtypes = [torch.bfloat16, torch.float16, torch.float32]
 
     vae_key_prefix = ["vae."]
     text_encoder_key_prefix = ["text_encoders."]
@@ -641,7 +652,12 @@ class Flux(supported_models_base.BASE):
         return out
 
     def clip_target(self, state_dict={}):
-        return supported_models_base.ClipTarget(comfy.text_encoders.flux.FluxTokenizer, comfy.text_encoders.flux.FluxClipModel)
+        pref = self.text_encoder_key_prefix[0]
+        t5_key = "{}t5xxl.transformer.encoder.final_layer_norm.weight".format(pref)
+        dtype_t5 = None
+        if t5_key in state_dict:
+            dtype_t5 = state_dict[t5_key].dtype
+        return supported_models_base.ClipTarget(comfy.text_encoders.flux.FluxTokenizer, comfy.text_encoders.flux.flux_clip(dtype_t5=dtype_t5))
 
 class FluxSchnell(Flux):
     unet_config = {

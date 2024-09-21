@@ -486,10 +486,12 @@ class WorkflowRunner:
             node.send_update(context, "completed", result)
 
         except Exception as e:
+            import traceback
+
             log.error(
                 f"Error processing node {node.get_title()} ({node._id}): {str(e)}"
             )
-            log.exception(e)
+            log.error(f"Exception stack trace:\n{traceback.format_exc()}")
             context.post_message(
                 NodeUpdate(
                     node_id=node.id,

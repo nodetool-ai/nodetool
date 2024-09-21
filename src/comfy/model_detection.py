@@ -131,14 +131,14 @@ def detect_unet_config(state_dict, key_prefix):
     if '{}double_blocks.0.img_attn.norm.key_norm.scale'.format(key_prefix) in state_dict_keys: #Flux
         dit_config = {}
         dit_config["image_model"] = "flux"
-        dit_config["in_channels"] = 64
+        dit_config["in_channels"] = 16
         dit_config["vec_in_dim"] = 768
         dit_config["context_in_dim"] = 4096
         dit_config["hidden_size"] = 3072
         dit_config["mlp_ratio"] = 4.0
         dit_config["num_heads"] = 24
-        dit_config["depth"] = 19
-        dit_config["depth_single_blocks"] = 38
+        dit_config["depth"] = count_blocks(state_dict_keys, '{}double_blocks.'.format(key_prefix) + '{}.')
+        dit_config["depth_single_blocks"] = count_blocks(state_dict_keys, '{}single_blocks.'.format(key_prefix) + '{}.')
         dit_config["axes_dim"] = [16, 56, 56]
         dit_config["theta"] = 10000
         dit_config["qkv_bias"] = True
@@ -472,9 +472,15 @@ def unet_config_from_diffusers_unet(state_dict, dtype=None):
             'transformer_depth': [0, 1, 1], 'channel_mult': [1, 2, 4], 'transformer_depth_middle': -2, 'use_linear_in_transformer': False,
             'context_dim': 768, 'num_head_channels': 64, 'transformer_depth_output': [0, 0, 1, 1, 1, 1],
             'use_temporal_attention': False, 'use_temporal_resblock': False}
+    
+    SD15_diffusers_inpaint = {'use_checkpoint': False, 'image_size': 32, 'out_channels': 4, 'use_spatial_transformer': True, 'legacy': False, 'adm_in_channels': None,
+            'dtype': dtype, 'in_channels': 9, 'model_channels': 320, 'num_res_blocks': [2, 2, 2, 2], 'transformer_depth': [1, 1, 1, 1, 1, 1, 0, 0],
+            'channel_mult': [1, 2, 4, 4], 'transformer_depth_middle': 1, 'use_linear_in_transformer': False, 'context_dim': 768, 'num_heads': 8,
+            'transformer_depth_output': [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+            'use_temporal_attention': False, 'use_temporal_resblock': False}  
 
 
-    supported_models = [SDXL, SDXL_refiner, SD21, SD15, SD21_uncliph, SD21_unclipl, SDXL_mid_cnet, SDXL_small_cnet, SDXL_diffusers_inpaint, SSD_1B, Segmind_Vega, KOALA_700M, KOALA_1B, SD09_XS, SD_XS, SDXL_diffusers_ip2p]
+    supported_models = [SDXL, SDXL_refiner, SD21, SD15, SD21_uncliph, SD21_unclipl, SDXL_mid_cnet, SDXL_small_cnet, SDXL_diffusers_inpaint, SSD_1B, Segmind_Vega, KOALA_700M, KOALA_1B, SD09_XS, SD_XS, SDXL_diffusers_ip2p, SD15_diffusers_inpaint]
 
     for unet_config in supported_models:
         matches = True
@@ -495,7 +501,12 @@ def model_config_from_diffusers_unet(state_dict):
 def convert_diffusers_mmdit(state_dict, output_prefix=""):
     out_sd = {}
 
-    if 'transformer_blocks.0.attn.add_q_proj.weight' in state_dict: #SD3
+    if 'transformer_blocks.0.attn.norm_added_k.weight' in state_dict: #Flux
+        depth = count_blocks(state_dict, 'transformer_blocks.{}.')
+        depth_single_blocks = count_blocks(state_dict, 'single_transformer_blocks.{}.')
+        hidden_size = state_dict["x_embedder.bias"].shape[0]
+        sd_map = comfy.utils.flux_to_diffusers({"depth": depth, "depth_single_blocks": depth_single_blocks, "hidden_size": hidden_size}, output_prefix=output_prefix)
+    elif 'transformer_blocks.0.attn.add_q_proj.weight' in state_dict: #SD3
         num_blocks = count_blocks(state_dict, 'transformer_blocks.{}.')
         depth = state_dict["pos_embed.proj.weight"].shape[0] // 64
         sd_map = comfy.utils.mmdit_to_diffusers({"depth": depth, "num_blocks": num_blocks}, output_prefix=output_prefix)
@@ -521,7 +532,12 @@ def convert_diffusers_mmdit(state_dict, output_prefix=""):
                     old_weight = out_sd.get(t[0], None)
                     if old_weight is None:
                         old_weight = torch.empty_like(weight)
-                        old_weight = old_weight.repeat([3] + [1] * (len(old_weight.shape) - 1))
+                    if old_weight.shape[offset[0]] < offset[1] + offset[2]:
+                        exp = list(weight.shape)
+                        exp[offset[0]] = offset[1] + offset[2]
+                        new = torch.empty(exp, device=weight.device, dtype=weight.dtype)
+                        new[:old_weight.shape[0]] = old_weight
+                        old_weight = new
 
                     w = old_weight.narrow(offset[0], offset[1], offset[2])
                 else:

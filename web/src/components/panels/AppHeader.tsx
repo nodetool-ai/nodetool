@@ -350,7 +350,14 @@ const AppHeader: React.FC = React.memo(() => {
         <SettingsMenu />
       </Box>
     ),
-    [path, navigate, helpOpen, handleCloseHelp, handleOpenHelp]
+    [
+      path,
+      buttonAppearance,
+      helpOpen,
+      handleCloseHelp,
+      navigate,
+      handleOpenHelp
+    ]
   );
 
   return (

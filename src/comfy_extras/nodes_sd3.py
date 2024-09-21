@@ -15,9 +15,9 @@ class TripleCLIPLoader:
     CATEGORY = "advanced/loaders"
 
     def load_clip(self, clip_name1, clip_name2, clip_name3):
-        clip_path1 = folder_paths.get_full_path("clip", clip_name1)
-        clip_path2 = folder_paths.get_full_path("clip", clip_name2)
-        clip_path3 = folder_paths.get_full_path("clip", clip_name3)
+        clip_path1 = folder_paths.get_full_path_or_raise("clip", clip_name1)
+        clip_path2 = folder_paths.get_full_path_or_raise("clip", clip_name2)
+        clip_path3 = folder_paths.get_full_path_or_raise("clip", clip_name3)
         clip = comfy.sd.load_clip(ckpt_paths=[clip_path1, clip_path2, clip_path3], embedding_directory=folder_paths.get_folder_paths("embeddings"))
         return (clip,)
 
@@ -99,4 +99,9 @@ NODE_CLASS_MAPPINGS = {
     "EmptySD3LatentImage": EmptySD3LatentImage,
     "CLIPTextEncodeSD3": CLIPTextEncodeSD3,
     "ControlNetApplySD3": ControlNetApplySD3,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    # Sampling
+    "ControlNetApplySD3": "ControlNetApply SD3 and HunyuanDiT",
 }

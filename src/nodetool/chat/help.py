@@ -194,7 +194,6 @@ def index_documentation(collection: chromadb.Collection):
     import nodetool.nodes.nodetool
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
-    import nodetool.nodes.stable_diffusion
     import nodetool.nodes.ollama
 
     ids = [c.get_node_type() for c in get_registered_node_classes()]
@@ -218,15 +217,11 @@ def index_examples(collection: chromadb.Collection):
 
 def get_doc_collection():
     collection = get_collection("docs")
-    if collection.count() == 0:
-        index_documentation(collection)
     return collection
 
 
 def get_example_collection():
     collection = get_collection("examples")
-    if collection.count() == 0:
-        index_examples(collection)
     return collection
 
 
@@ -816,3 +811,8 @@ async def create_help_answer(messages: list[Message]) -> list[Message]:
         answer.tool_calls = await process_tool_calls(context, answer.tool_calls, tools)
 
     return [answer]
+
+
+if __name__ == "__main__":
+    index_documentation(get_doc_collection())
+    index_examples(get_example_collection())

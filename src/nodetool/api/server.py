@@ -93,7 +93,6 @@ def create_app(
         import nodetool.nodes.nodetool
         import nodetool.nodes.openai
         import nodetool.nodes.replicate
-        import nodetool.nodes.stable_diffusion
         import nodetool.nodes.ollama
 
         if Environment.get_comfy_folder():
@@ -112,7 +111,7 @@ def create_app(
             from nodetool.api.websocket_runner import WebSocketRunner
 
             await WebSocketRunner().run(websocket)
-            
+
         @app.websocket("/chat")
         async def chat_websocket_endpoint(websocket: WebSocket):
             from nodetool.api.chat_websocket_runner import ChatWebSocketRunner

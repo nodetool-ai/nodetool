@@ -11,7 +11,6 @@ import nodetool.nodes.huggingface
 import nodetool.nodes.nodetool
 import nodetool.nodes.openai
 import nodetool.nodes.replicate
-import nodetool.nodes.stable_diffusion
 import nodetool.nodes.ollama
 from nodetool.workflows.base_node import get_registered_node_classes
 

@@ -426,7 +426,7 @@ const NodeEditor: React.FC<unknown> = () => {
         console.log("cached", files);
       });
     });
-  }, [fitScreen]);
+  }, [fitScreen, loadHuggingFaceModels, workflowModels]);
 
   // LOADING OVERLAY
   if (showLoading) {
