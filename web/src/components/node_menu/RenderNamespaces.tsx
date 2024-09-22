@@ -45,11 +45,12 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   currentPath = [],
   handleNamespaceClick
 }) => {
-  const { highlightedNamespaces, selectedPath, searchResults } =
+  const { highlightedNamespaces, selectedPath, searchResults, searchTerm } =
     useNodeMenuStore((state) => ({
       highlightedNamespaces: state.highlightedNamespaces,
       selectedPath: state.selectedPath,
-      searchResults: state.searchResults
+      searchResults: state.searchResults,
+      searchTerm: state.searchTerm
     }));
 
   const memoizedTree = useMemo(
@@ -65,25 +66,26 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
         const hasChildren = Object.keys(tree[namespace].children).length > 0;
         const state = isExpanded ? "expanded" : "collapsed";
 
-        // Check if this namespace or any of its children contain search results
-        const hasSearchResults = searchResults.some((result) =>
+        // Count search results for this namespace and its children
+        const searchResultCount = searchResults.filter((result) =>
           result.namespace.startsWith(currentFullPath)
-        );
+        ).length;
 
         const namespaceStyle =
-          isHighlighted && hasSearchResults
+          isHighlighted && searchResultCount > 0
             ? { borderLeft: `2px solid ${ThemeNodes.palette.c_hl1}` }
             : {};
 
         return {
           namespace,
           currentFullPath,
-          isHighlighted: isHighlighted && hasSearchResults,
+          isHighlighted: isHighlighted && searchResultCount > 0,
           isExpanded,
           newPath,
           hasChildren,
           state,
-          namespaceStyle
+          namespaceStyle,
+          searchResultCount
         };
       }),
     [tree, currentPath, highlightedNamespaces, selectedPath, searchResults]
@@ -99,7 +101,14 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   return (
     <div className="namespaces" css={namespaceStyles}>
       {memoizedTree.map(
-        ({ namespace, newPath, state, namespaceStyle, hasChildren }) => (
+        ({
+          namespace,
+          newPath,
+          state,
+          namespaceStyle,
+          hasChildren,
+          searchResultCount
+        }) => (
           <NamespaceItem
             key={newPath.join(".")}
             namespace={namespace}
@@ -110,6 +119,8 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
             tree={tree}
             selectedPath={selectedPath}
             handleNamespaceClick={memoizedHandleClick}
+            searchResultCount={searchResultCount}
+            searchTerm={searchTerm}
           />
         )
       )}

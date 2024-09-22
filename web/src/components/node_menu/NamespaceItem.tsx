@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ListItemButton, ListItemText, Typography, Box } from "@mui/material";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 import RenderNamespaces from "./RenderNamespaces";
+import ThemeNodes from "../themes/ThemeNodes";
 
 function toPascalCase(input: string): string {
   return input.split("_").reduce((result, word, index) => {
@@ -21,6 +22,8 @@ interface NamespaceItemProps {
   tree: NamespaceTree;
   selectedPath: string[];
   handleNamespaceClick: (newPath: string[]) => void;
+  searchResultCount: number;
+  searchTerm: string;
 }
 
 const listVariants = {
@@ -59,7 +62,9 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   hasChildren,
   tree,
   selectedPath,
-  handleNamespaceClick
+  handleNamespaceClick,
+  searchResultCount,
+  searchTerm
 }) => {
   return (
     <motion.div initial="collapsed" animate={state} variants={listVariants}>
@@ -71,7 +76,20 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
       >
         <ListItemText
           primary={
-            <Typography fontSize="small">{toPascalCase(namespace)}</Typography>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography fontSize="small">
+                {toPascalCase(namespace)}
+              </Typography>
+              {searchTerm && searchResultCount > 0 && (
+                <Typography fontSize="small" color={ThemeNodes.palette.c_gray3}>
+                  {searchResultCount}
+                </Typography>
+              )}
+            </Box>
           }
         />
       </ListItemButton>
