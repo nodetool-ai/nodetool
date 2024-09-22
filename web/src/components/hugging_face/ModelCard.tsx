@@ -191,7 +191,7 @@ const ModelCard: React.FC<ModelComponentProps> = React.memo(function ModelCard({
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
 
-  const isHuggingFace = model.type.startsWith("hf.");
+  const isHuggingFace = model.type && model.type.startsWith("hf.");
   const isOllama = model.type.toLowerCase().includes("llama_model");
   const { data: modelData, isLoading } = useQuery({
     queryKey: ["modelInfo", model.id],
@@ -208,11 +208,12 @@ const ModelCard: React.FC<ModelComponentProps> = React.memo(function ModelCard({
     refetchOnWindowFocus: false
   });
 
-  const downloaded = model.type.startsWith("hf.lora_sd")
-    ? model.downloaded ?? false
-    : model.type.startsWith("hf.")
-    ? !!model.size_on_disk
-    : !!modelData;
+  const downloaded =
+    model.type && model.type.startsWith("hf.lora_sd")
+      ? model.downloaded ?? false
+      : model.type && model.type.startsWith("hf.")
+      ? !!model.size_on_disk
+      : !!modelData;
 
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
