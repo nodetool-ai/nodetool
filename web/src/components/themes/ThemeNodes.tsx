@@ -111,7 +111,7 @@ const ThemeNodes: Theme = createTheme({
     c_node_bg_group: "#3c4044",
     c_node_header_bg: "#202020",
     c_node_header_bg_group: "#333333",
-    c_bg_loop: "#5661875e",
+    c_bg_loop: "#305c9d17",
 
     mode: "dark",
     primary: {
