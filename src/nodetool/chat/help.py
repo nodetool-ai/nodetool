@@ -194,6 +194,7 @@ def index_documentation(collection: chromadb.Collection):
     import nodetool.nodes.nodetool
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
+    import nodetool.nodes.luma
     import nodetool.nodes.ollama
 
     ids = [c.get_node_type() for c in get_registered_node_classes()]

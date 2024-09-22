@@ -826,6 +826,19 @@ class ProcessingContext:
             return await self.download_file(asset_ref.uri)
         raise ValueError(f"AssetRef is empty {asset_ref}")
 
+    async def upload_tmp_asset(self, asset: AssetRef):
+        if asset.uri:
+            return asset.uri
+
+        assert asset.data
+        assert isinstance(asset.data, bytes)
+
+        tmp_id = uuid.uuid4()
+
+        return await Environment.get_asset_storage().upload(
+            f"tmp/{tmp_id}", BytesIO(asset.data)
+        )
+
     async def image_to_pil(self, image_ref: ImageRef) -> PIL.Image.Image:
         """
         Converts the image to a PIL Image object.

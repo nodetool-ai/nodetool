@@ -52,6 +52,7 @@ jsonpath-ng = "*"
 jsonschema = "*"
 kornia = "*"
 librosa = "*"
+lumaai = "*"
 matplotlib = "*"
 modal = "*"
 moto = { version = "*", extras = ["s3"] }

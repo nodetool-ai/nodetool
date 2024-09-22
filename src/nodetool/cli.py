@@ -116,6 +116,7 @@ async def run(workflow_file: str):
     import nodetool.nodes.nodetool
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
+    import nodetool.nodes.luma
 
     from nodetool.workflows.run_workflow import run_workflow
     from nodetool.workflows.run_job_request import RunJobRequest

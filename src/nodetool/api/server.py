@@ -94,6 +94,7 @@ def create_app(
         import nodetool.nodes.openai
         import nodetool.nodes.replicate
         import nodetool.nodes.ollama
+        import nodetool.nodes.luma
 
         if Environment.get_comfy_folder():
             import comfy.cli_args

@@ -449,6 +449,12 @@ class Environment(object):
         return AsyncClient(cls.get_ollama_api_url())
 
     @classmethod
+    def get_lumaai_client(cls):
+        from lumaai import AsyncLumaAI
+
+        return AsyncLumaAI(auth_token=cls.get_lumaai_api_key())
+
+    @classmethod
     def get_chroma_token(cls):
         """
         The chroma token is the token of the chroma server.
@@ -518,9 +524,16 @@ class Environment(object):
     @classmethod
     def get_replicate_api_token(cls):
         """
-        The replicate api token is the api token of the replicate server.
+        The API token for replicate.com
         """
         return cls.get("REPLICATE_API_TOKEN")
+
+    @classmethod
+    def get_lumaai_api_key(cls):
+        """
+        The Luma AI API key
+        """
+        return cls.get("LUMAAI_API_KEY")
 
     @classmethod
     def get_huggingface_token(cls):
