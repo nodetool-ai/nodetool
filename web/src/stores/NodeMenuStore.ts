@@ -128,7 +128,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
   },
   showNamespaceTree: true,
   toggleNamespaceTree: () =>
-    set((state) => ({ showNamespaceTree: !state.showNamespaceTree })),
+    set((state) => ({
+      showNamespaceTree: !state.showNamespaceTree,
+      selectedPath: state.showNamespaceTree ? [] : state.selectedPath
+    })),
+
   openNodeMenu: (
     x,
     y,
