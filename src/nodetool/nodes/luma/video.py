@@ -50,32 +50,33 @@ class TextToVideo(BaseNode):
         )
         assert generation.id
 
-        video_url = await self._poll_for_completion(context, client, generation.id)
+        video_url = await poll_for_completion(client, generation.id)
 
         async with aiohttp.ClientSession() as session:
             async with session.get(video_url) as response:
                 content = await response.content.read()
                 return await context.video_from_io(BytesIO(content))
 
-    async def _poll_for_completion(
-        self,
-        context: ProcessingContext,
-        client: lumaai.AsyncClient,
-        generation_id: str,
-        max_attempts: int = 600,
-        delay: int = 1,
-    ) -> str:
-        for _ in range(max_attempts):
-            generation = await client.generations.get(id=generation_id)
-            print(generation)
-            if generation.state == "dreaming":
-                pass
-            if generation.state == "completed":
-                assert generation.assets
-                assert generation.assets.video
-                return generation.assets.video
-            await asyncio.sleep(delay)
-        raise TimeoutError("Video generation timed out")
+
+async def poll_for_completion(
+    client: lumaai.AsyncClient,
+    generation_id: str,
+    max_attempts: int = 600,
+    delay: int = 1,
+) -> str:
+    for _ in range(max_attempts):
+        generation = await client.generations.get(id=generation_id)
+        print(generation)
+        if generation.state == "dreaming":
+            pass
+        elif generation.state == "completed":
+            assert generation.assets
+            assert generation.assets.video
+            return generation.assets.video
+        elif generation.state == "failed":
+            raise RuntimeError(f"Video generation failed: {generation.error}")
+        await asyncio.sleep(delay)
+    raise TimeoutError("Video generation timed out")
 
 
 class ImageToVideo(BaseNode):
@@ -113,32 +114,12 @@ class ImageToVideo(BaseNode):
 
         assert generation
         assert generation.id
-        video_url = await self._poll_for_completion(context, client, generation.id)
+        video_url = await poll_for_completion(client, generation.id)
 
         async with aiohttp.ClientSession() as session:
             async with session.get(video_url) as response:
                 content = await response.content.read()
                 return await context.video_from_io(BytesIO(content))
-
-    async def _poll_for_completion(
-        self,
-        context: ProcessingContext,
-        client: lumaai.AsyncClient,
-        generation_id: str,
-        max_attempts: int = 600,
-        delay: int = 1,
-    ) -> str:
-        for _ in range(max_attempts):
-            generation = await client.generations.get(id=generation_id)
-            print(generation)
-            if generation.state == "dreaming":
-                pass
-            if generation.state == "completed":
-                assert generation.assets
-                assert generation.assets.video
-                return generation.assets.video
-            await asyncio.sleep(delay)
-        raise TimeoutError("Video generation timed out")
 
 
 # class LumaAIExtendVideo(BaseNode):
