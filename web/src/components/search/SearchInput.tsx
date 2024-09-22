@@ -107,9 +107,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const resetSearch = useCallback(() => {
     setLocalSearchTerm("");
     debouncedSetSearchTerm("");
-    setSelectedPath([]);
     onSearchChange("");
-  }, [debouncedSetSearchTerm, setSelectedPath, onSearchChange]);
+  }, [debouncedSetSearchTerm, onSearchChange]);
 
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
