@@ -30,10 +30,6 @@ const styles = (theme: any) =>
       fontSize: ThemeNodetool.fontSizeSmall,
       padding: "0.1em 0.2em",
       color: theme.palette.c_gray5
-    },
-    ".file-upload-button button": {
-      width: "100%",
-      maxWidth: "155px"
     }
   });
 

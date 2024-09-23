@@ -20,6 +20,9 @@ const styles = css({
   dropzoneDraggingOverlay: {
     display: "block",
     opacity: 1
+  },
+  ".file-upload-button": {
+    margin: ".5em 0 0"
   }
 });
 

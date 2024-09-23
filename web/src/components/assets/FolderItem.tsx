@@ -16,19 +16,26 @@ const styles = (theme: any) =>
       flexDirection: "row",
       alignItems: "flex-start",
       justifyContent: "start",
-      gap: ".5em",
+      gap: ".3em",
       width: "100%",
       height: "auto",
       cursor: "pointer",
       boxSizing: "border-box",
       backgroundColor: "transparent",
-      transition: "background-color 0.3s ease"
+      transition: "background-color 0.2s ease"
+    },
+    "&:hover p": {
+      color: theme.palette.c_gray6
     },
     ".folder-icon": {
       width: "25px",
       height: "100%",
       left: "0",
-      color: theme.palette.c_gray2
+      backgroundColor: theme.palette.c_gray1,
+      color: theme.palette.c_gray3
+    },
+    ".folder-icon:hover": {
+      color: theme.palette.c_gray4
     },
     "&.selected .folder-icon": {
       color: theme.palette.c_hl2

@@ -93,6 +93,7 @@ const styles = (theme: any) =>
     },
     // sort by
     ".sort-assets": {
+      width: "42px",
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase"
@@ -101,9 +102,10 @@ const styles = (theme: any) =>
       color: theme.palette.c_white
     },
     ".sort-assets .MuiSelect-select": {
-      width: "3em",
       border: "1px solid " + theme.palette.c_hl1,
+      borderRadius: ".25em",
       padding: "0 .2em",
+      textOverflow: "clip",
       backgroundColor: "transparent",
       textAlign: "center"
     },
