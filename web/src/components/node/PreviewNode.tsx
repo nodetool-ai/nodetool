@@ -6,7 +6,7 @@ import { NodeProps, NodeResizeControl, useStore } from "reactflow";
 import { Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
-import React from "react";
+import React, { useMemo } from "react";
 import { NodeHeader } from "../node/NodeHeader";
 import OutputRenderer from "./OutputRenderer";
 import useResultsStore from "../../stores/ResultsStore";
@@ -83,7 +83,7 @@ const styles = (theme: any) =>
     tableStyles(theme)
   ]);
 
-interface PreviewNodeProps extends NodeProps<NodeData> { }
+interface PreviewNodeProps extends NodeProps<NodeData> {}
 
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const currentZoom = useStore((state) => state.transform[2]);
@@ -91,6 +91,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const result = useResultsStore((state) =>
     state.getResult(props.data.workflow_id, props.id)
   );
+
+  const memoizedOutputRenderer = useMemo(() => {
+    return result?.output ? <OutputRenderer value={result.output} /> : null;
+  }, [result?.output]);
 
   return (
     <Container css={styles}>
@@ -126,7 +130,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         position={Position.Left}
         isConnectable={true}
       />
-      {result?.output && <OutputRenderer value={result?.output} />}
+      {memoizedOutputRenderer}
     </Container>
   );
 };

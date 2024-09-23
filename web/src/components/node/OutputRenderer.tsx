@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useRef, useEffect } from "react";
 import { css } from "@emotion/react";
 
 import { Asset, DataframeRef, Message, Tensor } from "../../stores/ApiTypes";
@@ -17,11 +17,6 @@ import ImageView from "./ImageView";
 import AssetGridContent from "../assets/AssetGridContent";
 import { uint8ArrayToDataUri } from "../../utils/binary";
 import TensorView from "./TensorView"; // We'll create this component
-
-// interface SortedAssetsByType {
-//   assetsByType: Record<string, Asset[]>;
-//   totalCount: number;
-// }
 
 export type OutputRendererProps = {
   value: any;
@@ -172,6 +167,21 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
     [writeClipboard, addNotification]
   );
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (type === "video" && videoRef.current) {
+      if (value?.uri === "") {
+        const blob = new Blob([value?.data], { type: "video/mp4" });
+        const url = URL.createObjectURL(blob);
+        videoRef.current.src = url;
+        return () => URL.revokeObjectURL(url);
+      } else {
+        videoRef.current.src = value?.uri;
+      }
+    }
+  }, [type, value]);
+
   const renderContent = useMemo(() => {
     if (value === null || value === undefined) {
       return null;
@@ -200,13 +210,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           </div>
         );
       case "video":
-        if (value?.uri === "") {
-          const blob = new Blob([value?.data], { type: "video/mp4" });
-          const url = URL.createObjectURL(blob);
-          return <video src={url} controls style={{ width: "100%" }} />;
-        } else {
-          return <video src={value?.uri} controls style={{ width: "100%" }} />;
-        }
+        return <video ref={videoRef} controls style={{ width: "100%" }} />;
       case "dataframe":
         return <DataTable dataframe={value as DataframeRef} editable={false} />;
       case "tensor":
