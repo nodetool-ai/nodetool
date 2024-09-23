@@ -11,9 +11,6 @@ import Inspector from "../Inspector";
 // hooks
 import { useHotkeys } from "react-hotkeys-hook";
 import WorkflowForm from "../workflows/WorkflowForm";
-// import AssetRenameConfirmation from "../assets/AssetRenameConfirmation";
-// import AssetItemContextMenu from "../context_menus/AssetItemContextMenu";
-// import AssetDeleteConfirmation from "../assets/AssetDeleteConfirmation";
 
 const styles = (theme: any) =>
   css({
