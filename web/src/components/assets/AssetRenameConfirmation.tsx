@@ -9,15 +9,15 @@ import {
   Button,
   TextField,
   Typography,
-  Alert,
+  Alert
 } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import { devLog } from "../../utils/DevLog";
-import { UseMutationResult } from "@tanstack/react-query";
-import { AssetUpdate, useAssetStore } from "../../stores/AssetStore";
+import { useAssetStore } from "../../stores/AssetStore";
 import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
+import useAssets from "../../serverState/useAssets";
 
 interface AssetRenameConfirmationProps {
   assets: string[];
@@ -34,6 +34,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const getAsset = useAssetStore((state) => state.get);
+  const { refetchAssetsAndFolders } = useAssets();
   const { mutation } = useAssetUpdate();
 
   useEffect(() => {
@@ -105,13 +106,13 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       name:
         assets.length === 1
           ? cleanedName
-          : `${cleanedName}_${String(index + 1).padStart(maxIndexLength, "0")}`,
+          : `${cleanedName}_${String(index + 1).padStart(maxIndexLength, "0")}`
     }));
 
     await mutation.mutateAsync(updatedAssetsToRename);
-
     setDialogOpen(false);
-  }, [baseNewName, assets, mutation, setDialogOpen]);
+    refetchAssetsAndFolders();
+  }, [baseNewName, assets, mutation, setDialogOpen, refetchAssetsAndFolders]);
 
   const screenWidth = window.innerWidth;
   const objectWidth = 400;
@@ -132,13 +133,13 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       componentsProps={{
         backdrop: {
           style: {
-            backgroundColor: "transparent",
-          },
-        },
+            backgroundColor: "transparent"
+          }
+        }
       }}
       style={{
         left: `${safeLeft}px`,
-        top: `${dialogPosition.y - 300}px`,
+        top: `${dialogPosition.y - 300}px`
       }}
     >
       <DialogTitle className="dialog-title" id="alert-dialog-title">
@@ -158,6 +159,11 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
           className="input-field"
           inputRef={inputRef}
           value={baseNewName}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleRename();
+            }
+          }}
           onChange={(e) => setBaseNewName(e.target.value)}
           fullWidth
           autoCorrect="off"

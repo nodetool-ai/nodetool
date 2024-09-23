@@ -73,6 +73,7 @@ const styles = (theme: any) =>
       color: theme.palette.c_white,
       backgroundColor: "transparent"
     },
+    // size slider
     ".asset-size-slider": {
       paddingLeft: "0.25em",
       flexGrow: 0.5,
@@ -90,11 +91,16 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       border: "none"
     },
+    // sort by
     ".sort-assets": {
       color: theme.palette.c_hl1,
       fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase"
     },
+    ".sort-assets:hover, .sort-assets [aria-expanded='true']": {
+      color: theme.palette.c_white
+    },
+
     ".sort-assets .MuiSelect-select": {
       width: "3em",
       border: "1px solid " + theme.palette.c_hl1,
@@ -113,24 +119,12 @@ const styles = (theme: any) =>
     ".sort-assets.MuiInput-root::after": {
       borderBottom: "none"
     },
-    ".sort-assets .MuiSelect-root:hover::before": {
+    ".sort-assets.MuiSelect-root:hover::before": {
       border: "none !important  "
     },
-    ".sort-assets .MuiSelect-root:hover::after": {
-      border: "none !important"
+    ".sort-assets.MuiSelect-root:hover::after": {
+      border: "none"
     }
-
-    // ".sort-assets button": {
-    //   color: theme.palette.c_gray4,
-    //   backgroundColor: "transparent",
-    //   border: 0,
-    //   padding: 0,
-
-    //   fontSize: theme.fontSizeSmaller
-    // },
-    // ".sort-assets button.Mui-selected": {
-    //   color: theme.palette.c_hl1
-    // }
   });
 
 const AssetActions = ({
@@ -247,7 +241,7 @@ const AssetActions = ({
         )}
       </ButtonGroup>
 
-      <Tooltip enterDelay={TOOLTIP_DELAY} title="Sort assets">
+      <Tooltip enterDelay={TOOLTIP_DELAY} title="Sort assets" placement="top">
         <Select
           variant="standard"
           className="sort-assets"

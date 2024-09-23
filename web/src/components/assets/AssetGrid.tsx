@@ -68,11 +68,12 @@ const styles = (theme: any) =>
       marginRight: "0.25em",
       userSelect: "none"
     },
-    ".selected-info": {
+    ".selected-asset-info": {
       fontSize: "12px !important",
       color: theme.palette.c_gray4,
       minHeight: "25px",
-      display: "block"
+      display: "block",
+      padding: "0.5em"
     }
   });
 
@@ -223,8 +224,6 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
                     <br />
                     {selectedAssets[0]?.content_type}
                     <br />
-                    {/* Add prettyDate function or import it */}
-                    {/* {prettyDate(selectedAssets[0]?.created_at)} */}
                   </Typography>
                 )}
               </div>
@@ -282,6 +281,7 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
         openAsset,
         containerWidth,
         maxItemSize,
+        currentFolder,
         selectedAssetIds,
         selectedAssets,
         uploadFiles,
