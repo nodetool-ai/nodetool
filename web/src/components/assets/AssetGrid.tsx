@@ -129,7 +129,7 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
       setContainerWidth(entry.contentRect.width);
     });
 
-    const { uploadAsset } = useAssetUpload();
+    const { uploadAsset, isUploading } = useAssetUpload();
 
     const handleClickOutside = useCallback(
       (e: MouseEvent) => {
@@ -189,7 +189,6 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
           {error && (
             <Typography sx={{ color: "red" }}>{error.message}</Typography>
           )}
-          <AssetUploadOverlay />
           {openAsset && (
             <AssetViewer
               asset={openAsset}
@@ -274,6 +273,7 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
           <AssetDeleteConfirmation assets={selectedAssetIds} />
           <AssetRenameConfirmation assets={selectedAssetIds} />
           <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
+          {isUploading && <AssetUploadOverlay />}
         </Box>
       ),
       [
@@ -291,7 +291,8 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
         currentAudioAsset,
         spaceKeyPressed,
         openMenuType,
-        setOpenAsset
+        setOpenAsset,
+        isUploading
       ]
     );
 
