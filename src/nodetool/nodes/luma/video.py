@@ -74,7 +74,7 @@ async def poll_for_completion(
             assert generation.assets.video
             return generation.assets.video
         elif generation.state == "failed":
-            raise RuntimeError(f"Video generation failed: {generation.error}")
+            raise RuntimeError(f"Video generation failed: {generation.failure_reason}")
         await asyncio.sleep(delay)
     raise TimeoutError("Video generation timed out")
 
