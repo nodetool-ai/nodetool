@@ -100,7 +100,6 @@ const styles = (theme: any) =>
     ".sort-assets:hover, .sort-assets [aria-expanded='true']": {
       color: theme.palette.c_white
     },
-
     ".sort-assets .MuiSelect-select": {
       width: "3em",
       border: "1px solid " + theme.palette.c_hl1,
@@ -119,10 +118,10 @@ const styles = (theme: any) =>
     ".sort-assets.MuiInput-root::after": {
       borderBottom: "none"
     },
-    ".sort-assets.MuiSelect-root:hover::before": {
+    ".sort-assets.MuiInput-root:hover::before": {
       border: "none !important  "
     },
-    ".sort-assets.MuiSelect-root:hover::after": {
+    ".sort-assets.MuiInput-root:hover::after": {
       border: "none"
     }
   });
