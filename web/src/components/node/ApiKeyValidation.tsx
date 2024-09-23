@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Typography, Button } from "@mui/material";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import ThemeNodes from "../themes/ThemeNodes";
 
 interface ApiKeyValidationProps {
   nodeNamespace: string;
@@ -46,17 +47,36 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
       if (!missingAPIKeys) return null;
 
       return (
-        <Typography className="node-status">
-          {missingAPIKeys} is missing!
+        <>
+          <Typography
+            className="node-status"
+            sx={{
+              width: "100%",
+              textAlign: "center",
+              textTransform: "uppercase",
+              padding: ".5em !important",
+              marginBottom: "0"
+            }}
+          >
+            {missingAPIKeys} is missing!
+          </Typography>
           <Button
             variant="contained"
             color="primary"
             size="small"
             onClick={() => setMenuOpen(true)}
+            sx={{
+              margin: "0 1em",
+              padding: ".2em 0 0",
+              height: "1.8em",
+              lineHeight: "1.2em",
+              fontSize: ThemeNodes.fontSizeSmaller,
+              borderRadius: ".1em"
+            }}
           >
             Add key in Settings
           </Button>
-        </Typography>
+        </>
       );
     }, [missingAPIKeys, setMenuOpen]);
 

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { ArrowDropDown } from "@mui/icons-material";
+import { ArrowDropDown, MoreHoriz } from "@mui/icons-material";
 import { css, keyframes } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -93,19 +93,22 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       fontSize: 28
     },
     ".menu-button": {
+      height: "2em",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       marginLeft: "0.2em",
       padding: 0,
-      height: 15,
-      color: theme.palette.c_gray5,
+      color: theme.palette.c_gray6,
       backgroundColor: "transparent",
       border: "none",
       cursor: "pointer",
       "&:hover": {
         color: theme.palette.c_white
       }
+    },
+    ".menu-button svg": {
+      scale: "0.5"
     }
   });
 
@@ -202,7 +205,8 @@ export const NodeHeader = memo(
               {...tooltipAttributes}
               onClick={handleOpenContextMenu}
             >
-              <ArrowDropDown />
+              {/* <ArrowDropDown /> */}
+              <MoreHoriz />
             </button>
           </div>
         )}
