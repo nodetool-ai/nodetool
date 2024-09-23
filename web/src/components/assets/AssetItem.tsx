@@ -76,7 +76,7 @@ const styles = (theme: any) =>
     ".info": {
       position: "absolute",
       pointerEvents: "none",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.palette.c_white,
       backgroundColor: "#11111188",
       margin: "0",
