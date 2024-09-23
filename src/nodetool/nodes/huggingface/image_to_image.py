@@ -376,7 +376,6 @@ class StableDiffusionImg2ImgNode(StableDiffusionBaseNode):
             config="Lykon/DreamShaper",
         )
         assert self._pipeline is not None
-        self._pipeline.enable_model_cpu_offload()
         self._set_scheduler(self.scheduler)
         self._load_ip_adapter()
 
@@ -545,13 +544,14 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
     - Enhance image editing capabilities with AI-guided transformations
     """
 
-    controlnet: HFControlNet = Field(
-        default=HFControlNet(),
-        description="The ControlNet model to use for guidance.",
-    )
     image: ImageRef = Field(
         default=ImageRef(),
         description="The input image to be transformed.",
+    )
+    strength: float = Field(default=0.5, description="Similarity to the input image")
+    controlnet: HFControlNet = Field(
+        default=HFControlNet(),
+        description="The ControlNet model to use for guidance.",
     )
     control_image: ImageRef = Field(
         default=ImageRef(),
@@ -579,14 +579,14 @@ class StableDiffusionControlNetImg2ImgNode(StableDiffusionBaseNode):
         controlnet = ControlNetModel.from_pretrained(
             self.controlnet.repo_id, torch_dtype=torch.float16, local_files_only=True
         )
-        self._pipeline = StableDiffusionControlNetImg2ImgPipeline.from_pretrained(
-            self.model.repo_id,
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=StableDiffusionControlNetImg2ImgPipeline,
+            model_id=self.model.repo_id,
             controlnet=controlnet,
-            torch_dtype=torch.float16,
-            local_files_only=True,
         )  # type: ignore
-        self._pipeline.enable_model_cpu_offload()  # type: ignore
         self._set_scheduler(self.scheduler)
+        self._load_ip_adapter()
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         if self._pipeline is None:

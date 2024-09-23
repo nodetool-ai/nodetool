@@ -510,11 +510,12 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         load_loras(self._pipeline, self.loras)
 
         generator = self._setup_generator()
-        ip_adapter_image = (
-            await context.image_to_pil(self.ip_adapter_image)
-            if self.ip_adapter_image.is_set()
-            else None
-        )
+        if self.ip_adapter_image.is_set():
+            if self.ip_adapter_model == IPAdapter_SD15_Model.NONE:
+                raise ValueError("Select an IP Adapter model")
+            ip_adapter_image = await context.image_to_pil(self.ip_adapter_image)
+        else:
+            ip_adapter_image = None
 
         if self.hires:
             low_res_steps = self.num_inference_steps // 4
@@ -563,10 +564,12 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             if self.enable_tiling:
                 img2img_pipe.vae.enable_tiling()
 
+            hires_kwargs = kwargs.copy()
+            del hires_kwargs["image"]
+
             # Generate final high-res image
             image = img2img_pipe(
                 image=upscaled_latents.unsqueeze(0),
-                strength=0.5,
                 prompt=self.prompt,
                 negative_prompt=self.negative_prompt,
                 num_inference_steps=hi_res_steps,
@@ -576,7 +579,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 cross_attention_kwargs={"scale": self.lora_scale},
                 callback=self.progress_callback(context, low_res_steps + 20, total),
                 callback_steps=1,
-                **kwargs,
+                **hires_kwargs,
             ).images[  # type: ignore
                 0
             ]
@@ -590,8 +593,8 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 guidance_scale=self.guidance_scale,
                 generator=generator,
                 ip_adapter_image=ip_adapter_image,
-                # cross_attention_kwargs={"scale": self.lora_scale},
-                callback=self.progress_callback(context, self.num_inference_steps),
+                cross_attention_kwargs={"scale": self.lora_scale},
+                callback=self.progress_callback(context, 0, self.num_inference_steps),
                 callback_steps=1,
                 **kwargs,
             ).images[0]

@@ -29,13 +29,14 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         self,
         context: ProcessingContext,
         pipeline_task: str,
-        model_id: str,
+        model_id: Any,
         device: str | None = None,
         torch_dtype: torch.dtype | None = torch.float16,
         **kwargs: Any,
     ) -> T:
-        if model_id == "":
+        if model_id == "" or model_id is None:
             raise ValueError("Please select a model")
+
         cached_model = ModelManager.get_model(model_id, pipeline_task)
         if cached_model:
             return cached_model
