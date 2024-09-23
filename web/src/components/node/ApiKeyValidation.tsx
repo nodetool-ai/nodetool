@@ -53,6 +53,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
             sx={{
               width: "100%",
               textAlign: "center",
+              fontSize: ThemeNodes.fontSizeTiny,
               textTransform: "uppercase",
               padding: ".5em !important",
               marginBottom: "0"
