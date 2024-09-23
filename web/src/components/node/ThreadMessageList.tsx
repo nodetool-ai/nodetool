@@ -1,9 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useRef } from "react";
 
-import {
-  Message
-} from "../../stores/ApiTypes";
+import { Message } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { css } from "@emotion/react";
 
@@ -12,7 +10,7 @@ const styles = (theme: any) =>
     "&": {
       maxHeight: "500px",
       width: "100%",
-      overflow: "auto",
+      overflow: "auto"
     },
     ".messages": {
       listStyleType: "none",
@@ -69,20 +67,19 @@ const MessageView = (msg: Message) => {
   }
   return (
     <li className={messageClass} key={msg.id}>
-      {typeof msg.content === "string" &&
+      {typeof msg.content === "string" && (
         <MarkdownRenderer key={msg.id} content={msg.content} />
-      }
-      {typeof msg.content === "object" && (
+      )}
+      {typeof msg.content === "object" &&
         msg.content?.map((c) => {
           if (c.type === "text") {
             return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
           } else if (c.type === "image_url") {
-            return <img key={c.image_url?.url} src={c.image_url?.url} alt="" />;
+            return <img key={c.image?.uri} src={c.image?.uri} alt="" />;
           } else {
             return <></>;
           }
-        })
-      )}
+        })}
     </li>
   );
 };

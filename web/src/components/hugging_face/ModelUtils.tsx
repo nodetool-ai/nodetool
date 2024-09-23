@@ -109,7 +109,7 @@ export const modelSize = (model: UnifiedModel) =>
 
 export const ModelDeleteButton: React.FC<{ onClick: () => void }> = ({
   onClick
-}) => !isProduction && <DeleteButton onClick={onClick} />;
+}) => <>{!isProduction && <DeleteButton onClick={onClick} />}</>;
 
 export const ModelDownloadButton: React.FC<{ onClick: () => void }> = ({
   onClick
