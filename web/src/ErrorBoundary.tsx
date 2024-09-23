@@ -1,81 +1,104 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import React from "react";
 import { useRouteError } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  Typography,
-  Box,
-  Button,
-  ThemeProvider,
-  createTheme
-} from "@mui/material";
+import { Typography, Box, Button, ThemeProvider } from "@mui/material";
+import ThemeNodetool from "./components/themes/ThemeNodetool";
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#6200EA"
+const errorBoundaryStyles = (theme: any) =>
+  css({
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "95vh",
+    textAlign: "center",
+    background: `linear-gradient(to bottom, ${theme.palette?.c_gray1}, ${theme.palette?.c_gray0})`,
+
+    ".logo": {
+      width: 100,
+      height: 100,
+      marginBottom: "1rem"
     },
-    background: {
-      default: "#E8EAF6"
+
+    ".error-title": {
+      color: theme.palette?.c_error,
+      marginBottom: theme.spacing?.(2) || "16px"
+    },
+
+    ".error-message": {
+      maxWidth: 600,
+      padding: "2em 0 1em",
+      marginBottom: theme.spacing?.(2) || "16px"
+    },
+    ".error-text": {
+      color: theme.palette.c_white,
+      backgroundColor: theme.palette?.c_gray0,
+      border: "1px solid " + theme.palette?.c_gray1,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmaller,
+      margin: "4em 0 0",
+      padding: "2em 3em"
+    },
+
+    ".issue-tracker-link": {
+      color: theme.palette?.c_link,
+      "&:hover": {
+        color: theme.palette?.c_link_visited
+      }
+    },
+
+    ".refresh-button": {
+      backgroundColor: theme.palette?.c_hl1,
+      color: theme.palette?.c_black,
+      "&:hover": {
+        backgroundColor: theme.palette?.c_hl2
+      }
     }
-  }
-});
+  });
 
 const ErrorBoundary: React.FC = () => {
   const error = useRouteError();
   console.error(error);
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        height="100vh"
-        textAlign="center"
-        padding={2}
-        sx={{
-          background: "linear-gradient(135deg, #A5D6A7 0%, #FFAB91 100%)",
-          boxShadow: "inset 0 0 100px rgba(0,0,0,0.1)"
-        }}
-      >
+    <ThemeProvider theme={ThemeNodetool}>
+      <Box css={errorBoundaryStyles}>
         <motion.div
-          initial={{ rotate: 0 }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.5 }}
         >
-          <Typography variant="h1" gutterBottom>
-            😱
-          </Typography>
+          <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
         </motion.div>
-        <Typography variant="h4" gutterBottom sx={{ color: "#303F9F" }}>
-          Oh no! Our code has been abducted by aliens!
+        <Typography variant="h2" className="error-title">
+          NodeTool has encountered an error
         </Typography>
-        <Typography variant="body1" paragraph sx={{ color: "#3F51B5" }}>
-          Please report this error in{" "}
+        <Typography variant="body2" className="error-message">
+          If this happens again, please let us know in the{" "}
           <a
-            href="https://github.com/nodetool-ai/nodetool/issues"
-            style={{ color: "#6200EA" }}
+            href="https:forum.nodetool.ai"
+            className="issue-tracker-link"
+            target="_blank"
+            rel="noreferrer"
           >
-            our issue tracker
+            forum
           </a>
           .
         </Typography>
-        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => window.location.reload()}
-            sx={{
-              backgroundColor: "#6200EA",
-              "&:hover": {
-                backgroundColor: "#3700B3"
-              }
-            }}
-          >
-            Attempt a daring rescue mission
-          </Button>
-        </motion.div>
+        <Button
+          variant="contained"
+          onClick={() => window.location.reload()}
+          className="refresh-button"
+        >
+          Refresh the page
+        </Button>
+
+        <Typography variant="body2" className="error-text">
+          {error instanceof Error ? error.message : "An unknown error occurred"}
+        </Typography>
       </Box>
     </ThemeProvider>
   );
