@@ -48,6 +48,8 @@ const styles = (theme: any) =>
       display: "flex",
       flexWrap: "wrap",
       gap: ".25em",
+      maxWidth: "500px",
+      flexGrow: 1,
       minHeight: "30px",
       backgroundColor: theme.palette.c_gray1
     },
@@ -76,10 +78,11 @@ const styles = (theme: any) =>
     // size slider
     ".asset-size-slider": {
       paddingLeft: "0.25em",
-      flexGrow: 0.5,
+      flexGrow: 1,
       flexShrink: 1,
+      paddingRight: "0.5em",
       minWidth: "80px",
-      maxWidth: "150px"
+      maxWidth: "250px"
     },
     ".asset-size-slider .MuiSlider-root": {
       height: "25px",

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
 import React from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
@@ -93,10 +94,10 @@ export interface FolderItemProps {
   folder: Asset;
   isParent?: boolean;
   isSelected?: boolean;
-  onSelect: () => void;
-  onClickParent?: (id: string) => void;
   enableContextMenu?: boolean;
   showDeleteButton?: boolean;
+  onSelect: () => void;
+  onClickParent?: (id: string) => void;
   openDeleteDialog?: () => void;
 }
 
