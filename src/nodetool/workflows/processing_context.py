@@ -904,7 +904,9 @@ class ProcessingContext:
         audio_bytes = await self.asset_to_io(audio_ref)
         return pydub.AudioSegment.from_file(audio_bytes)
 
-    async def audio_to_numpy(self, audio_ref: AudioRef) -> tuple[np.ndarray, int, int]:
+    async def audio_to_numpy(
+        self, audio_ref: AudioRef, sample_rate: int = 32_000, mono: bool = True
+    ) -> tuple[np.ndarray, int, int]:
         """
         Converts the audio to a np.float32 array.
 
@@ -912,6 +914,9 @@ class ProcessingContext:
             context (ProcessingContext): The processing context.
         """
         segment = await self.audio_to_audio_segment(audio_ref)
+        segment = segment.set_frame_rate(sample_rate)
+        if mono and segment.channels > 1:
+            segment = segment.set_channels(1)
         samples = np.array(segment.get_array_of_samples())
         max_value = float(2 ** (8 * segment.sample_width - 1))
         samples = samples.astype(np.float32) / max_value

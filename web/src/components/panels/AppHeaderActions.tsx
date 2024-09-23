@@ -170,7 +170,9 @@ export default function AppHeaderActions() {
   }, [createNewWorkflow, navigate]);
 
   useHotkeys("Alt+s", () => saveWorkflow().then(onWorkflowSaved));
-  useHotkeys("Meta+s", () => saveWorkflow().then(onWorkflowSaved));
+  useHotkeys("Meta+s", () => saveWorkflow().then(onWorkflowSaved), {
+    preventDefault: true
+  });
   useHotkeys("Ctrl+Space", () => openNodeMenu(400, 200));
 
   useGlobalHotkeys(runWorkflow);

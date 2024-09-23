@@ -1,3 +1,4 @@
+import torch
 from nodetool.metadata.types import (
     AudioRef,
     HFAutomaticSpeechRecognition,
@@ -6,14 +7,16 @@ from nodetool.metadata.types import (
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.workflows.processing_context import ProcessingContext
 
-
 from pydantic import Field
-
-
 from typing import Any
+from transformers import (
+    AutomaticSpeechRecognitionPipeline,
+    AutoModelForSpeechSeq2Seq,
+    AutoProcessor,
+)
 
 
-class AutomaticSpeechRecognition(HuggingFacePipelineNode):
+class Whisper(HuggingFacePipelineNode):
     """
     Transcribes spoken audio to text.
     asr, speech-to-text, audio, huggingface
@@ -35,6 +38,8 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         description="The input audio to transcribe",
     )
 
+    _pipeline: AutomaticSpeechRecognitionPipeline | None = None
+
     @classmethod
     def get_recommended_models(cls) -> list[HuggingFaceModel]:
         return [
@@ -53,25 +58,42 @@ class AutomaticSpeechRecognition(HuggingFacePipelineNode):
         ]
 
     def required_inputs(self):
-        return ["inputs"]
+        return ["audio"]
 
-    def get_model_id(self):
-        return self.model.repo_id
+    async def initialize(self, context: ProcessingContext):
+        torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
-    @property
-    def pipeline_task(self) -> str:
-        return "automatic-speech-recognition"
+        model = await self.load_model(
+            context=context,
+            model_class=AutoModelForSpeechSeq2Seq,
+            model_id=self.model.repo_id,
+            variant=None,
+            low_cpu_mem_usage=True,
+            use_safetensors=True,
+            torch_dtype=torch_dtype,
+        )
 
-    async def process_remote_result(
-        self, context: ProcessingContext, result: Any
-    ) -> AudioRef:
-        return result["text"]
+        processor = AutoProcessor.from_pretrained(self.model.repo_id)
 
-    async def process_local_result(
-        self, context: ProcessingContext, result: Any
-    ) -> AudioRef:
-        return result["text"]
+        self._pipeline = await self.load_pipeline(
+            context=context,
+            pipeline_task="automatic-speech-recognition",
+            model_id=model,
+            tokenizer=processor.tokenizer,
+            feature_extractor=processor.feature_extractor,
+            torch_dtype=torch_dtype,
+            device=context.device,
+        )
 
-    async def get_inputs(self, context: ProcessingContext):
-        samples, _, _ = await context.audio_to_numpy(self.audio)  # type: ignore
-        return samples
+    async def move_to_device(self, device: str):
+        assert self._pipeline
+        self._pipeline.model.to(device)  # type: ignore
+
+    async def process(self, context: ProcessingContext) -> str:
+        assert self._pipeline
+
+        samples, _, _ = await context.audio_to_numpy(self.audio, sample_rate=16_000)  # type: ignore
+
+        result = self._pipeline(samples)
+
+        return result["text"]  # type: ignore

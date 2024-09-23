@@ -8,46 +8,77 @@
   "thumbnail": "",
   "thumbnail_url": "/examples/image_enhance.jpg",
   "graph": {
-    "nodes": [
+    "edges": [
       {
-        "id": "1",
-        "parent_id": null,
-        "type": "replicate.image.generate.StableDiffusionXLLightning",
-        "data": {
-          "seed": 3060378157,
-          "width": 1024,
-          "height": 1024,
-          "prompt": "color photo portrait of a scientist explaining image enhancement, DSLR, low contrast",
-          "scheduler": "HeunDiscrete",
-          "num_outputs": 1,
-          "guidance_scale": 0.1,
-          "negative_prompt": "low quality",
-          "num_inference_steps": 4,
-          "disable_safety_checker": false
-        },
+        "id": "5b1aa42a-bdb8-461b-bebc-58386e28fd44",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "image",
         "ui_properties": {
-          "position": {
-            "x": 81,
-            "y": 147
-          },
-          "zIndex": 0,
-          "selectable": true
+          "className": "image"
         }
       },
       {
+        "id": "380ae2ba-c21e-4460-b411-4853fae085d4",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "1c1ec75c-b699-4fa2-ab15-bf87bd225401",
+        "source": "97877",
+        "sourceHandle": "output",
+        "target": "5b962592-953e-411e-9c8f-4d188607b1ad",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "27594e37-fde4-400f-9e5f-60f90ef03c30",
+        "source": "97877",
+        "sourceHandle": "output",
+        "target": "11",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "20f75457-d5e0-477b-b215-94152cd30d33",
+        "source": "5b962592-953e-411e-9c8f-4d188607b1ad",
+        "sourceHandle": "output",
+        "target": "4b900c04-d29b-4466-94fa-f2cf1229115a",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "a52249ae-aead-48e7-911a-7cb26faf00f2",
+        "source": "97877",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ],
+    "nodes": [
+      {
         "id": "3",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "name": "image_output_2024-07-06",
-          "value": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": "572b9ad8dfc84dbd9c40cfeee48a3154"
-          }
+          "name": "image_output_2024-07-06"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 970,
             "y": 197
@@ -60,18 +91,12 @@
       },
       {
         "id": "4",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          },
           "name": "image_output_2024-07-06"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 733,
             "y": 197
@@ -84,18 +109,12 @@
       },
       {
         "id": "6",
-        "parent_id": null,
         "type": "nodetool.image.enhance.Color",
         "data": {
-          "factor": 1.4,
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": "d4e9dccf87034a1986cdddcb0a23ef43"
-          }
+          "factor": 1.4
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 533,
             "y": 94
@@ -106,7 +125,6 @@
       },
       {
         "id": "8",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "comment": [
@@ -138,6 +156,7 @@
           "headline": "More Image.Enhance nodes"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 373,
             "y": 200
@@ -150,18 +169,12 @@
       },
       {
         "id": "11",
-        "parent_id": null,
         "type": "nodetool.image.enhance.AutoContrast",
         "data": {
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          },
           "cutoff": 0
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 371,
             "y": 94
@@ -171,95 +184,32 @@
         }
       },
       {
-        "id": "24e1c003-8549-4109-8092-6e423b9f69d3",
-        "parent_id": null,
-        "type": "huggingface.image.StableDiffusionXL",
-        "data": {
-          "seed": 3060378157,
-          "width": 1024,
-          "height": 1024,
-          "prompt": "super detailed flower, intricate",
-          "scheduler": "EulerDiscrete",
-          "negative_prompt": "low quality",
-          "num_inference_steps": 25
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 90,
-            "y": 630
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
         "id": "4b900c04-d29b-4466-94fa-f2cf1229115a",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": "e9edcffe39c14c62ac1558a3688ae408"
-          },
           "name": "image_output_2024-07-06"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 769,
-            "y": 630
+            "x": 731,
+            "y": 452
           },
           "zIndex": 0,
-          "width": 255,
-          "height": 212,
-          "selectable": true
-        }
-      },
-      {
-        "id": "97875ccb-a667-4ab7-a454-496d20452585",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "value": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          },
-          "name": "image_output_2024-07-06"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 469,
-            "y": 630
-          },
-          "zIndex": 0,
-          "width": 253,
-          "height": 209,
+          "width": 218,
+          "height": 216,
           "selectable": true
         }
       },
       {
         "id": "5b962592-953e-411e-9c8f-4d188607b1ad",
-        "parent_id": null,
         "type": "nodetool.image.enhance.Sharpen",
-        "data": {
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          }
-        },
+        "data": {},
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 312,
-            "y": 630
+            "x": 526,
+            "y": 421
           },
           "zIndex": 0,
           "selectable": true
@@ -267,7 +217,6 @@
       },
       {
         "id": "97876",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "headline": "Image Enhance",
@@ -309,87 +258,36 @@
           "height": 127,
           "selectable": true
         }
-      }
-    ],
-    "edges": [
-      {
-        "id": "5b1aa42a-bdb8-461b-bebc-58386e28fd44",
-        "source": "11",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
       },
       {
-        "id": "4b248c6c-5e3d-4cda-9f9f-d6150726c3db",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "image",
+        "id": "97877",
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://www.mauritshuis.nl/media/rgxggmkv/vermeer-meisje-met-de-parel-mh670-mauritshuis-den-haag.jpg?center=0.44178550792733645,0.47243107769423559&mode=crop&width=1200&height=0&rnd=133018598924500000&quality=70",
+            "type": "image"
+          }
+        },
         "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "380ae2ba-c21e-4460-b411-4853fae085d4",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "5604ffdb-a6c3-4604-b9c3-9d19602b4255",
-        "source": "24e1c003-8549-4109-8092-6e423b9f69d3",
-        "sourceHandle": "output",
-        "target": "5b962592-953e-411e-9c8f-4d188607b1ad",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "ad71fde1-42f1-4503-9957-38a6c4100e6f",
-        "source": "24e1c003-8549-4109-8092-6e423b9f69d3",
-        "sourceHandle": "output",
-        "target": "97875ccb-a667-4ab7-a454-496d20452585",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "051757cb-f91a-4722-810c-22250a67fd97",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "20f75457-d5e0-477b-b215-94152cd30d33",
-        "source": "5b962592-953e-411e-9c8f-4d188607b1ad",
-        "sourceHandle": "output",
-        "target": "4b900c04-d29b-4466-94fa-f2cf1229115a",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
+          "selected": false,
+          "position": {
+            "x": 152,
+            "y": 97
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       }
     ]
   },
   "input_schema": {
     "type": "object",
-    "properties": {}
+    "properties": {},
+    "required": []
   },
   "output_schema": {
     "type": "object",
-    "properties": {}
+    "properties": {},
+    "required": []
   }
 }

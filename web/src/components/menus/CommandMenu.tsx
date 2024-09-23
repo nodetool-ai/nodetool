@@ -10,6 +10,8 @@ import useWorkflowRunnner from "../../stores/WorkflowRunner";
 import { css } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useCreateNode } from "../../hooks/useCreateNode";
+import { useClipboard } from "../../hooks/browser/useClipboard";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 // does not work with object syntax
 const styles = (theme: any) => css`
@@ -176,8 +178,12 @@ const CommandMenu = memo(function CommandMenu({
   const alignNodes = useAlignNodes();
   const { data } = useMetadata();
   const handleCreateNode = useCreateNode();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   // const runSelected = useWorkflowRunnner((state) => state.runSelected);
   // const { handleCopy, handlePaste } = useCopyPaste();
+  const { writeClipboard } = useClipboard();
 
   useEffect(() => {
     const focusInput = () => {
@@ -219,6 +225,15 @@ const CommandMenu = memo(function CommandMenu({
     link.click();
   }, [workflowJSON, workflow.name]);
 
+  const copyWorkflow = useCallback(() => {
+    writeClipboard(JSON.stringify(workflow), true, true);
+    addNotification({
+      type: "info",
+      alert: true,
+      content: "Copied workflow JSON to Clipboard!"
+    });
+  }, [addNotification, workflow, writeClipboard]);
+
   const executeAndClose = useCallback(
     (action: () => void) => {
       action();
@@ -239,6 +254,9 @@ const CommandMenu = memo(function CommandMenu({
             </Command.Item>
             <Command.Item onSelect={() => executeAndClose(downloadWorkflow)}>
               Download Workflow as JSON
+            </Command.Item>
+            <Command.Item onSelect={() => executeAndClose(copyWorkflow)}>
+              Copy Workflow as JSON
             </Command.Item>
             <Command.Item onSelect={() => executeAndClose(saveWorkflow)}>
               Save Workflow

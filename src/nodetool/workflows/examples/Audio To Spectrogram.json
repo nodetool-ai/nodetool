@@ -11,10 +11,101 @@
   "thumbnail": "",
   "thumbnail_url": "/examples/audio_to_spectrogram.jpg",
   "graph": {
+    "edges": [
+      {
+        "id": "0047f77f-0fb1-4c3c-aeb1-b64246646e1b",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "6a3890ca-beaf-4d63-90d5-5cb2b64d97ae",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "f49fa87f-6a65-4ddb-a873-24c845f0af81",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "10838350-8991-4ac5-94ba-4fabccf77279",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "6",
+        "targetHandle": "tensor",
+        "ui_properties": {
+          "className": "tensor"
+        }
+      },
+      {
+        "id": "4c2e0fa7-3866-46b7-b44f-ba37eb30d15d",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "init_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "10838351",
+        "source": "29b6e4f4-ea71-41d5-9804-695fb0d5e11b",
+        "sourceHandle": "output",
+        "target": "30",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "b923fada-9925-4bf4-ab9f-ac3fa007a378",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "29b6e4f4-ea71-41d5-9804-695fb0d5e11b",
+        "targetHandle": "loras",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "8a1c37a3-bcb9-4323-8305-1c3e8496c7f4",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "de34482a-ab36-4e07-8885-b24ea73b9b83",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "29b6e4f4-ea71-41d5-9804-695fb0d5e11b",
+        "targetHandle": "init_image",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ],
     "nodes": [
       {
         "id": "1",
-        "parent_id": null,
         "type": "nodetool.constant.Audio",
         "data": {
           "value": {
@@ -27,8 +118,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 91,
-            "y": 54
+            "x": 17,
+            "y": 138.25
           },
           "zIndex": 0,
           "selectable": true
@@ -36,26 +127,19 @@
       },
       {
         "id": "2",
-        "parent_id": null,
         "type": "nodetool.audio.analysis.MelSpectrogram",
         "data": {
-          "audio": {
-            "type": "audio",
-            "uri": "http://localhost:8000/api/storage/temp/20d3427d37a24accb7b8055225b2ab62.mp3",
-            "asset_id": null,
-            "temp_id": "20d3427d37a24accb7b8055225b2ab62.mp3"
-          },
           "n_fft": 2048,
-          "hop_length": 4096,
-          "n_mels": 128,
+          "hop_length": 512,
+          "n_mels": 256,
           "fmin": 0,
           "fmax": 1000
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 383,
-            "y": 54
+            "x": 497.5,
+            "y": 138.25
           },
           "zIndex": 0,
           "selectable": true
@@ -63,48 +147,34 @@
       },
       {
         "id": "4",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "name": "image_output",
-          "value": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": "ba1cf02050a446f68a04b59a1d1ce8c6"
-          }
+          "name": "image_output"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 722,
-            "y": 54
+            "x": 930,
+            "y": 12
           },
           "zIndex": 0,
-          "width": 159,
-          "height": 162,
+          "width": 285,
+          "height": 306,
           "selectable": true
         }
       },
       {
         "id": "5",
-        "parent_id": null,
         "type": "nodetool.audio.transform.SliceAudio",
         "data": {
-          "audio": {
-            "type": "audio",
-            "uri": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/4f/An_address_by_Opposition_Leader_Anthony_Albanese.ogg/An_address_by_Opposition_Leader_Anthony_Albanese.ogg.mp3?download",
-            "asset_id": null,
-            "temp_id": null
-          },
           "start": 0,
           "end": 5
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 241,
-            "y": 54
+            "x": 304,
+            "y": 138.25
           },
           "zIndex": 0,
           "selectable": true
@@ -112,88 +182,20 @@
       },
       {
         "id": "6",
-        "parent_id": null,
         "type": "nodetool.tensor.ConvertToImage",
+        "data": {},
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 538,
-            "y": 54
+            "x": 677,
+            "y": 138.25
           },
           "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "7",
-        "parent_id": null,
-        "type": "replicate.image.upscale.ClarityUpscaler",
-        "data": {
-          "mask": null,
-          "seed": 2534742765,
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": "ba1cf02050a446f68a04b59a1d1ce8c6"
-          },
-          "prompt": "tokyo city, neon lights, global illumination",
-          "dynamic": 6,
-          "handfix": "disabled",
-          "sharpen": 2,
-          "sd_model": "juggernaut_reborn.safetensors [338b85bc4f]",
-          "scheduler": "DPM++ 3M SDE Karras",
-          "creativity": 0.37,
-          "lora_links": "",
-          "downscaling": false,
-          "resemblance": 0.5,
-          "scale_factor": 12,
-          "tiling_width": 112,
-          "output_format": "png",
-          "tiling_height": 144,
-          "custom_sd_model": "",
-          "negative_prompt": "bad",
-          "num_inference_steps": 20,
-          "downscaling_resolution": 768
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 722,
-            "y": 281
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "8",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "value": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          },
-          "name": "image_output_2024-07-06"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1001,
-            "y": 281
-          },
-          "zIndex": 0,
-          "width": 382,
-          "height": 395,
           "selectable": true
         }
       },
       {
         "id": "9",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "headline": "Audio To Spectrogram",
@@ -219,67 +221,170 @@
           "height": 81,
           "selectable": true
         }
-      }
-    ],
-    "edges": [
+      },
       {
-        "id": "10838350-8991-4ac5-94ba-4fabccf77279",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "tensor",
+        "id": "10",
+        "type": "huggingface.image_to_image.StableDiffusionImg2Img",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "Yntec/HyperRemix",
+            "path": "HyperRemix.safetensors"
+          },
+          "prompt": "city skyline at night, sci-fi, future",
+          "negative_prompt": "",
+          "seed": -1,
+          "num_inference_steps": 25,
+          "guidance_scale": 7.5,
+          "scheduler": "HeunDiscreteScheduler",
+          "loras": [],
+          "lora_scale": 0.5,
+          "ip_adapter_model": "",
+          "ip_adapter_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "ip_adapter_scale": 0.5,
+          "hires": true,
+          "enable_tiling": true,
+          "strength": 0.7
+        },
         "ui_properties": {
-          "className": "tensor"
+          "selected": false,
+          "position": {
+            "x": 1202.5,
+            "y": 264.5
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
-        "id": "0047f77f-0fb1-4c3c-aeb1-b64246646e1b",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "audio",
+        "id": "11",
+        "type": "huggingface.lora.LoRASelector",
+        "data": {
+          "lora1": {
+            "type": "hf.lora_sd",
+            "repo_id": "danbrown/loras",
+            "path": "add_detail.safetensors"
+          },
+          "strength1": 1,
+          "lora2": {
+            "type": "hf.lora_sd",
+            "repo_id": "",
+            "path": null,
+            "allow_patterns": null,
+            "ignore_patterns": null
+          },
+          "strength2": 1,
+          "lora3": {
+            "type": "hf.lora_sd",
+            "repo_id": "",
+            "path": null,
+            "allow_patterns": null,
+            "ignore_patterns": null
+          },
+          "strength3": 1,
+          "lora4": {
+            "type": "hf.lora_sd",
+            "repo_id": "",
+            "path": null,
+            "allow_patterns": null,
+            "ignore_patterns": null
+          },
+          "strength4": 1,
+          "lora5": {
+            "type": "hf.lora_sd",
+            "repo_id": "",
+            "path": null,
+            "allow_patterns": null,
+            "ignore_patterns": null
+          },
+          "strength5": 1
+        },
         "ui_properties": {
-          "className": "audio"
+          "selected": false,
+          "position": {
+            "x": 1202.5,
+            "y": 696
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
-        "id": "f49fa87f-6a65-4ddb-a873-24c845f0af81",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
+        "id": "12",
+        "type": "nodetool.image.transform.Resize",
+        "data": {
+          "width": 512,
+          "height": 512
+        },
         "ui_properties": {
-          "className": "image"
+          "selected": false,
+          "position": {
+            "x": 934,
+            "y": 351
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
-        "id": "4b381f6e-d297-4c9e-bae6-b3f04a311fe7",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "image",
+        "id": "29b6e4f4-ea71-41d5-9804-695fb0d5e11b",
+        "type": "huggingface.image_to_image.StableDiffusionImg2Img",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "Yntec/HyperRemix",
+            "path": "HyperRemix.safetensors"
+          },
+          "prompt": "city skyline at night, sci-fi, future",
+          "negative_prompt": "",
+          "seed": -1,
+          "num_inference_steps": 47,
+          "guidance_scale": 7.5,
+          "scheduler": "DPMSolverMultistepScheduler",
+          "lora_scale": 0.5,
+          "ip_adapter_model": "",
+          "ip_adapter_image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "ip_adapter_scale": 0.5,
+          "hires": true,
+          "enable_tiling": true,
+          "strength": 0.52
+        },
         "ui_properties": {
-          "className": "image"
+          "selected": false,
+          "position": {
+            "x": 1420,
+            "y": 480.25
+          },
+          "zIndex": 0,
+          "selectable": true
         }
       },
       {
-        "id": "10838351",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "8",
-        "targetHandle": "value",
+        "id": "30",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-09-23"
+        },
         "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "6a3890ca-beaf-4d63-90d5-5cb2b64d97ae",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "5",
-        "targetHandle": "audio",
-        "ui_properties": {
-          "className": "audio"
+          "selected": false,
+          "position": {
+            "x": 1665,
+            "y": 568
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
+          "selectable": true
         }
       }
     ]
