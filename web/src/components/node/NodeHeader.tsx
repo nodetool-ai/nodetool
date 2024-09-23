@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { ArrowDropDown, MoreHoriz } from "@mui/icons-material";
+import { MoreHoriz } from "@mui/icons-material";
 import { css, keyframes } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -205,7 +205,6 @@ export const NodeHeader = memo(
               {...tooltipAttributes}
               onClick={handleOpenContextMenu}
             >
-              {/* <ArrowDropDown /> */}
               <MoreHoriz />
             </button>
           </div>
