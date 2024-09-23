@@ -19,7 +19,9 @@ import {
   DialogContentText,
   DialogTitle,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  Select,
+  MenuItem
 } from "@mui/material";
 
 import useAssets from "../../serverState/useAssets";
@@ -45,7 +47,7 @@ const styles = (theme: any) =>
     "&": {
       display: "flex",
       flexWrap: "wrap",
-      gap: ".5em",
+      gap: ".25em",
       minHeight: "30px",
       backgroundColor: theme.palette.c_gray1
     },
@@ -56,7 +58,7 @@ const styles = (theme: any) =>
       width: "auto",
       display: "flex",
       alignItems: "center",
-      gap: "0.5em",
+      gap: "0.25em",
       border: 0,
       padding: 0
     },
@@ -72,9 +74,10 @@ const styles = (theme: any) =>
       backgroundColor: "transparent"
     },
     ".asset-size-slider": {
+      paddingLeft: "0.25em",
       flexGrow: 0.5,
       flexShrink: 1,
-      minWidth: "60px",
+      minWidth: "80px",
       maxWidth: "150px"
     },
     ".asset-size-slider .MuiSlider-root": {
@@ -88,22 +91,46 @@ const styles = (theme: any) =>
       border: "none"
     },
     ".sort-assets": {
-      marginTop: "0.5em",
-      height: "20px",
-      display: "flex",
-      gap: ".5em"
+      color: theme.palette.c_hl1,
+      fontSize: theme.fontSizeSmaller,
+      textTransform: "uppercase"
     },
-    ".sort-assets button": {
-      color: theme.palette.c_gray4,
+    ".sort-assets .MuiSelect-select": {
+      width: "3em",
+      border: "1px solid " + theme.palette.c_hl1,
+      padding: "0 .2em",
       backgroundColor: "transparent",
-      border: 0,
-      padding: 0,
-
-      fontSize: theme.fontSizeSmaller
+      textAlign: "center"
     },
-    ".sort-assets button.Mui-selected": {
-      color: theme.palette.c_hl1
+    ".sort-assets .MuiSelect-icon": {
+      display: "none",
+      color: theme.palette.c_hl1,
+      right: "0"
+    },
+    ".sort-assets.MuiInput-root::before": {
+      borderBottom: "none"
+    },
+    ".sort-assets.MuiInput-root::after": {
+      borderBottom: "none"
+    },
+    ".sort-assets .MuiSelect-root:hover::before": {
+      border: "none !important  "
+    },
+    ".sort-assets .MuiSelect-root:hover::after": {
+      border: "none !important"
     }
+
+    // ".sort-assets button": {
+    //   color: theme.palette.c_gray4,
+    //   backgroundColor: "transparent",
+    //   border: 0,
+    //   padding: 0,
+
+    //   fontSize: theme.fontSizeSmaller
+    // },
+    // ".sort-assets button.Mui-selected": {
+    //   color: theme.palette.c_hl1
+    // }
   });
 
 const AssetActions = ({
@@ -152,7 +179,17 @@ const AssetActions = ({
       setAssetItemSize(value as number);
     }
   };
-
+  const handleCreateFolder = () => {
+    setCreateFolderAnchor(null);
+    createFolder(currentFolder?.id || "", createFolderName).then(() => {
+      addNotification({
+        type: "success",
+        content: `CREATE FOLDER: ${createFolderName}`
+      });
+      setCreateFolderAnchor(null);
+      refetchAssetsAndFolders();
+    });
+  };
   return (
     <div className="asset-actions" css={styles}>
       <ButtonGroup className="asset-button-group">
@@ -209,20 +246,21 @@ const AssetActions = ({
           </div>
         )}
       </ButtonGroup>
-      <ToggleButtonGroup
-        className="sort-assets"
-        value={settings.assetsOrder}
-        onChange={handleOrderChange}
-        exclusive
-        aria-label="Sort assets"
-      >
-        <ToggleButton value="name" aria-label="Sort by name">
-          Name
-        </ToggleButton>
-        <ToggleButton value="date" aria-label="sort by date">
-          Date
-        </ToggleButton>
-      </ToggleButtonGroup>
+
+      <Tooltip enterDelay={TOOLTIP_DELAY} title="Sort assets">
+        <Select
+          variant="standard"
+          className="sort-assets"
+          value={settings.assetsOrder}
+          onChange={(e) => handleOrderChange(null, e.target.value)}
+          displayEmpty
+          inputProps={{ "aria-label": "Sort assets" }}
+        >
+          <MenuItem value="name">Name</MenuItem>
+          <MenuItem value="date">Date</MenuItem>
+        </Select>
+      </Tooltip>
+
       <div className="asset-size-slider">
         <SliderBasic
           defaultValue={settings.assetItemSize}
@@ -252,16 +290,19 @@ const AssetActions = ({
           {"Create Folder"}
         </DialogTitle>
         <DialogContent className="dialog-content">
-          <DialogContentText id="alert-dialog-description">
-            Enter a name for the new folder:
-          </DialogContentText>
           <div>
             <TextField
               className="input-field"
               inputRef={inputRef}
+              placeholder="Folder Name"
               autoFocus
               autoComplete="off"
               id="name"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleCreateFolder();
+                }
+              }}
               onChange={(e) => setCreateFolderName(e.target.value)}
               fullWidth
             />
@@ -274,21 +315,7 @@ const AssetActions = ({
           >
             Cancel
           </Button>
-          <Button
-            className="button-confirm"
-            onClick={() => {
-              setCreateFolderAnchor(null);
-              createFolder(currentFolder?.id || "", createFolderName).then(
-                () => {
-                  addNotification({
-                    type: "success",
-                    content: `CREATE FOLDER: ${createFolderName}`
-                  });
-                  refetchAssetsAndFolders();
-                }
-              );
-            }}
-          >
+          <Button className="button-confirm" onClick={handleCreateFolder}>
             Create Folder
           </Button>
         </DialogActions>
