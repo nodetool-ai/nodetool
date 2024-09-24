@@ -83,7 +83,10 @@ const styles = (theme: any) =>
     tableStyles(theme)
   ]);
 
-interface PreviewNodeProps extends NodeProps<NodeData> {}
+interface PreviewNodeProps extends NodeProps {
+  data: NodeData;
+  id: string;
+}
 
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const currentZoom = useStore((state) => state.transform[2]);
