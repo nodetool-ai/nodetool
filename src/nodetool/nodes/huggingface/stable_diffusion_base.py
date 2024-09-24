@@ -397,6 +397,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         default=False,
         description="Enable tiling to save VRAM",
     )
+    _loaded_adapters: set[str] = set()
     _pipeline: Any = None
     _upscaler: StableDiffusionLatentUpscalePipeline | None = None
 
@@ -459,7 +460,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             self._pipeline.load_ip_adapter(
                 "h94/IP-Adapter",
                 subfolder="models",
-                weight_name=self.ip_adapter_model,
+                weight_name=self.ip_adapter_model.value,
             )
             self._pipeline.set_ip_adapter_scale(self.ip_adapter_scale)
 
@@ -507,7 +508,11 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        load_loras(self._pipeline, self.loras)
+        loras = [
+            lora for lora in self.loras if not lora.lora.path in self._loaded_adapters
+        ]
+        load_loras(self._pipeline, loras)
+        self._loaded_adapters.update(lora.lora.path for lora in loras if lora.lora.path)
 
         generator = self._setup_generator()
         if self.ip_adapter_image.is_set():
@@ -565,7 +570,8 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 img2img_pipe.vae.enable_tiling()
 
             hires_kwargs = kwargs.copy()
-            del hires_kwargs["image"]
+            if "image" in hires_kwargs:
+                del hires_kwargs["image"]
 
             # Generate final high-res image
             image = img2img_pipe(
@@ -662,6 +668,7 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
         description="Strength of the IP adapter image",
     )
 
+    _loaded_adapters: set[str] = set()
     _pipeline: Any = None
 
     @classmethod
@@ -754,7 +761,11 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
         if self._pipeline is None:
             raise ValueError("Pipeline not initialized")
 
-        load_loras(self._pipeline, self.loras)
+        loras = [
+            lora for lora in self.loras if not lora.lora.path in self._loaded_adapters
+        ]
+        load_loras(self._pipeline, loras)
+        self._loaded_adapters.update(lora.lora.path for lora in loras if lora.lora.path)
 
         generator = self._setup_generator()
         ip_adapter_image = (
