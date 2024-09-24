@@ -87,7 +87,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
                 y: node.position.y - parentNode.position.y
               },
               parentId: parentId,
-              parentNode: parentId,
+              // parentNode: parentId,
               expandParent: true
             });
           }, 0);
@@ -108,7 +108,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
               y: node.position.y + (lastParentNode?.position.y || 0)
             },
             parentId: undefined,
-            parentNode: undefined,
+            // parentNode: undefined,
             expandParent: false
           });
           setLastParentNode(undefined);
