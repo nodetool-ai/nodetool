@@ -19,19 +19,17 @@ export const overviewContents: Section[] = [
         NodeTool is a user-friendly platform that helps you create AI workflows
         without needing to code.
         <br />
-        <br />
         With NodeTool, you can integrate advanced AI models to create and edit
         multimedia content like images, text, audio, and video, all within a
         single workflow.
         <br />
-        <br />
         NodeTool makes it simple to see and modify how data flows through your
-        project, giving you a clear picture of what's happening.
+        project, giving you a clear picture of what&apos;s happening.
         <br />
         <br />
         <b>
           Check out the pre-built examples in the Workflow menu to get started
-          and see what's possible.
+          and see what&apos;s possible.
         </b>
       </Typography>
     )
@@ -43,10 +41,20 @@ export const overviewContents: Section[] = [
       <>
         <ul>
           <li>
-            Click on "Workflows" in the top panel to browse and manage your
-            projects.
+            Click on &quot;Workflows&quot; in the top panel to browse and manage
+            your projects.
           </li>
-          <li>Edit your current workflow in the "Workflow" panel.</li>
+          <li>
+            Use &quot;New Workflow&quot; to start a new project from scratch.
+          </li>
+          <li>
+            Click &quot;Import&quot; to bring in existing projects or templates.
+          </li>
+          <li>Don&apos;t forget to save your work regularly!</li>
+          <li>
+            You&apos;ll find helpful tips and documentation in the
+            &quot;Help&quot; section.
+          </li>
           <li>
             Save your workflows using the save button.
             <br />
@@ -54,8 +62,14 @@ export const overviewContents: Section[] = [
             automatically.
           </li>
           <li>
-            Explore the pre-built examples in the "Workflow" menu to get started
-            quickly.
+            Explore the pre-built examples in the &quot;Workflow&quot; menu to
+            get started quickly.
+          </li>
+          <li>
+            Use &quot;New Workflow&quot; to start a new project from scratch.
+          </li>
+          <li>
+            Click &quot;Import&quot; to bring in existing projects or templates.
           </li>
         </ul>
         <Typography>
@@ -113,7 +127,7 @@ export const overviewContents: Section[] = [
           <li>Adjust number values by dragging horizontally or clicking</li>
         </ul>
         <Typography variant="h3">Connection Menu</Typography>
-        <Box sx={{ textAlign: "center", margin: "16px 0" }}>
+        <Box sx={{ margin: "16px 0" }}>
           <img
             src="/images/help/connection_menu.png"
             alt="Connection Menu"
@@ -146,6 +160,13 @@ export const overviewContents: Section[] = [
             </ul>
           </li>
         </ul>
+        <Typography variant="h3">Quick Connection</Typography>
+        <Typography variant="body1">
+          {" "}
+          Drag a connection and drop it anywhere inside another node to create
+          the first possible connection. <br />
+          This is the fastest way to connect compatiblenodes in both directions.
+        </Typography>
       </>
     )
   },
@@ -232,7 +253,7 @@ export const overviewContents: Section[] = [
       <Typography variant="body1">
         Open the SettingsMenu in the top right corner to adjust the interface.
         <br />
-        <b>Note:</b> The settings are only saved in your browser.
+        <b>Note: </b>Currently, the settings are only saved in your browser.
       </Typography>
     )
   },

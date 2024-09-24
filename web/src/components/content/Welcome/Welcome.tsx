@@ -53,17 +53,14 @@ const welcomeStyles = (theme: any) =>
     "&": {
       backgroundColor: "#222",
       padding: "2em",
-      borderRadius: "1em",
+      borderRadius: ".5em",
       position: "fixed",
-      width: "50vw",
-      minWidth: "600px",
-      maxWidth: "90vw",
-      height: "85vh",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
+      width: "100vw",
+      height: "100vh",
+      top: "0",
+      left: "0",
       overflowY: "hidden",
-      border: `2px solid ${theme.palette.c_gray4}`,
+      border: `8px solid ${theme.palette.c_gray0}`,
       display: "flex",
       flexDirection: "column"
     },
@@ -83,7 +80,7 @@ const welcomeStyles = (theme: any) =>
       padding: "1em",
       color: theme.palette.c_white,
       fontFamily: theme.fontFamily,
-      fontSize: theme.fontSizeBigger
+      fontSize: theme.fontSizeBig
     },
 
     ".content ul": {
@@ -146,7 +143,7 @@ const welcomeStyles = (theme: any) =>
     },
 
     ".link-body": {
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeNormal,
       backgroundColor: "transparent",
       color: theme.palette.c_gray6,
       marginTop: ".25em",
@@ -199,7 +196,7 @@ const welcomeStyles = (theme: any) =>
       backgroundColor: theme.palette.c_gray2,
       textTransform: "uppercase",
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeNormal,
       margin: "0 .5em"
     }
   });
