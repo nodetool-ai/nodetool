@@ -16,7 +16,7 @@ import {
   Typography
 } from "@mui/material";
 import { ErrorOutlineRounded } from "@mui/icons-material";
-import { prettyDate } from "../../utils/formatDateAndTime";
+import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
 import { useNavigate } from "react-router";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -97,7 +97,7 @@ const styles = (theme: any) =>
     }
   });
 
-const listStyles = () =>
+const listStyles = (theme: any) =>
   css({
     "&": {
       display: "flex",
@@ -132,20 +132,36 @@ const listStyles = () =>
       gap: "0.1em"
     },
     ".name": {
-      fontSize: ThemeNodetool.fontSizeNormal,
+      fontSize: theme.fontSizeNormal,
       margin: "0",
       lineHeight: "1em",
-      color: ThemeNodetool.palette.c_hl1
+      color: theme.palette.c_hl1
     },
     ".description": {
       margin: "0.1em 0 .1em"
     },
+    ".right": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.2em",
+      justifyContent: "flex-start",
+      alignItems: "flex-start",
+      minWidth: "220px",
+      marginLeft: "auto"
+    },
     ".date": {
       marginLeft: "auto",
       paddingRight: "1em",
-      fontFamily: ThemeNodetool.fontFamily2,
+      fontSize: theme.fontSizeSmall,
+      fontFamily: theme.fontFamily2,
+      wordSpacing: "-2px",
+      textAlign: "right",
       right: "0",
+      color: theme.palette.c_gray6,
       minWidth: "150px"
+    },
+    ".date.relative": {
+      color: theme.palette.c_gray5
     },
     ".image-wrapper": {
       flexShrink: 0,
@@ -153,15 +169,8 @@ const listStyles = () =>
       height: "40px",
       overflow: "hidden",
       position: "relative",
-      backgroundColor: ThemeNodetool.palette.c_gray3
-    },
-    ".right": {
-      display: "flex",
-      alignItems: "center",
-      minWidth: "200px",
-      marginLeft: "auto"
-    },
-    ".right button": {}
+      backgroundColor: theme.palette.c_gray3
+    }
   });
 
 const OpenOrCreateDialog = () => {
@@ -260,6 +269,9 @@ const OpenOrCreateDialog = () => {
           <div className="right">
             <Typography className="date">
               {prettyDate(workflow.updated_at, "verbose", settings)}
+            </Typography>
+            <Typography className="date relative">
+              {relativeTime(workflow.updated_at)}
             </Typography>
           </div>
         </Box>
