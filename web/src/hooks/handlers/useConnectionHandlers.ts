@@ -7,6 +7,7 @@ import { useMetadata } from "../../serverState/useMetadata";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { devLog } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 export const inputForType = (type: TypeName) => {
   switch (type) {
@@ -90,7 +91,9 @@ export const constantForType = (type: TypeName) => {
 export default function useConnectionHandlers() {
   // useRef is needed to track current connection state
   const connectionCreated = useRef(false);
-
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const { connecting, startConnecting, endConnecting } = useConnectionStore(
     (state) => ({
       connecting: state.connecting,
@@ -196,6 +199,11 @@ export default function useConnectionHandlers() {
             endConnecting();
           } else {
             endConnecting();
+            addNotification({
+              type: "warning",
+              alert: true,
+              content: "No possible connections found for this node"
+            });
           }
         } else if (connectDirection === "target") {
           const possibleOutputs = nodeMetadata.outputs.filter((prop) =>
