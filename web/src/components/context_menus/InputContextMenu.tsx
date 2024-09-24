@@ -13,7 +13,7 @@ import LoginIcon from "@mui/icons-material/Login";
 import { labelForType } from "../../config/data_types";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodeStore } from "../../stores/NodeStore";
-import { Edge, useReactFlow } from "reactflow";
+import { Edge, useReactFlow } from "@xyflow/react";
 import { Slugify } from "../../utils/TypeHandler";
 
 const InputContextMenu: React.FC = () => {

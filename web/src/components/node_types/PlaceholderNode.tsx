@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
-import { NodeProps } from "reactflow";
+import { NodeProps } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";

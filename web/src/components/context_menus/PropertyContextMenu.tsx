@@ -8,19 +8,17 @@ import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore
 import useContextMenuStore from "../../stores/ContextMenuStore";
 
 // TODO: WIP: reset property value to default, already implemented using the shortcut ctrl right-click in components/node/PropertyInput.tsx
-// import { useReactFlow } from "reactflow";
+// import { useReactFlow } from "@xyflow/react";
 // import { useNodeStore, NodeStore } from "../../stores/NodeStore";
 // import { NodeData } from "../../stores/NodeData";
 // import { useMetadata } from "../../serverState/useMetadata";
 // import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 
 const PropertyContextMenu: React.FC = () => {
-  const { menuPosition, closeContextMenu } = useContextMenuStore(
-    (state) => ({
-      menuPosition: state.menuPosition,
-      closeContextMenu: state.closeContextMenu
-    })
-  );
+  const { menuPosition, closeContextMenu } = useContextMenuStore((state) => ({
+    menuPosition: state.menuPosition,
+    closeContextMenu: state.closeContextMenu
+  }));
 
   //reset
   const handleReset = (event?: React.MouseEvent<HTMLElement>) => {

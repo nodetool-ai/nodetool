@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
-import { Handle, Position, useStore } from "reactflow";
+import { Handle, Position, useStore } from "@xyflow/react";
 import { Tooltip, Zoom } from "@mui/material";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { NodeData } from "../../stores/NodeData";

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { XYPosition } from "reactflow";
+import { XYPosition } from "@xyflow/react";
 import { TypeName } from "../../stores/ApiTypes";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useAssetGridStore } from "../../stores/AssetGridStore";

@@ -1,6 +1,6 @@
 import { shallow } from "zustand/shallow";
 import { NodeStore } from "./NodeStore";
-import { Edge, Node } from "reactflow";
+import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "./NodeData";
 
 function compareEdge(a: Edge, b: Edge) {

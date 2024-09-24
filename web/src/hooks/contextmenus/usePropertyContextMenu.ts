@@ -1,6 +1,6 @@
 import { Properties } from "property-information/lib/util/schema";
 import { useCallback, useState } from "react";
-import { Node } from "reactflow";
+import { Node } from "@xyflow/react";
 
 type MenuType = {
   id: string;

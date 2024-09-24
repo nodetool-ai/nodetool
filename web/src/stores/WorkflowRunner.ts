@@ -2,12 +2,12 @@ import { create } from "zustand";
 import { NodeData } from "./NodeData";
 import { BASE_URL, WORKER_URL } from "./ApiClient";
 import useResultsStore from "./ResultsStore";
-import { Edge, Node } from "reactflow";
+import { Edge, Node } from "@xyflow/react";
 import { useAssetStore } from "../stores/AssetStore";
 import {
   reactFlowEdgeToGraphEdge,
   reactFlowNodeToGraphNode,
-  useNodeStore,
+  useNodeStore
 } from "./NodeStore";
 import { devError, devLog } from "../utils/DevLog";
 import {
@@ -17,7 +17,7 @@ import {
   JobUpdate,
   RunJobRequest,
   AssetRef,
-  WorkflowAttributes,
+  WorkflowAttributes
 } from "./ApiTypes";
 import { Omit } from "lodash";
 import { uuidv4 } from "./uuidv4";
@@ -44,12 +44,12 @@ export type WorkflowRunner = {
   job_id: string | null;
   current_url: string;
   state:
-  | "idle"
-  | "connecting"
-  | "connected"
-  | "running"
-  | "error"
-  | "cancelled";
+    | "idle"
+    | "connecting"
+    | "connected"
+    | "running"
+    | "error"
+    | "cancelled";
   statusMessage: string | null;
   setStatusMessage: (message: string | null) => void;
   notifications: Notification[];
@@ -161,7 +161,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
             addNotification({
               type: "info",
               alert: true,
-              content: "Job completed",
+              content: "Job completed"
             });
             get().disconnect();
             break;
@@ -173,7 +173,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
             addNotification({
               type: "info",
               alert: true,
-              content: "Job cancelled",
+              content: "Job cancelled"
             });
             get().disconnect();
             break;
@@ -183,7 +183,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
               type: "error",
               alert: true,
               content: "Job failed " + job.error || "",
-              timeout: 30000,
+              timeout: 30000
             });
             get().disconnect();
             break;
@@ -221,7 +221,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
           addNotification({
             type: "error",
             alert: true,
-            content: update.error,
+            content: update.error
           });
           set({ state: "error" });
           setStatus(workflow.id, update.node_id, update.status);
@@ -266,7 +266,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
           if (nodeData) {
             updateNode(data.node_id, {
               ...nodeData,
-              properties: { ...nodeData.properties, ...update.properties },
+              properties: { ...nodeData.properties, ...update.properties }
             });
           }
         }
@@ -317,7 +317,7 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
 
     set({
       state: "running",
-      notifications: [],
+      notifications: []
     });
 
     const req: RunJobRequest = {
@@ -330,8 +330,8 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
       params: params || {},
       graph: {
         nodes: nodes.map(reactFlowNodeToGraphNode),
-        edges: edges.map(reactFlowEdgeToGraphEdge),
-      },
+        edges: edges.map(reactFlowEdgeToGraphEdge)
+      }
     };
 
     console.log(req);
@@ -339,13 +339,13 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     socket.send(
       msgpack.encode({
         command: "run_job",
-        data: req,
+        data: req
       })
     );
 
     set({
       state: "running",
-      notifications: [],
+      notifications: []
     });
   },
 
@@ -367,8 +367,8 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     set({
       notifications: [
         ...get().notifications,
-        { ...notification, id: uuidv4(), timestamp: new Date() },
-      ],
+        { ...notification, id: uuidv4(), timestamp: new Date() }
+      ]
     });
   },
 
@@ -384,11 +384,11 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
     socket.send(
       msgpack.encode({
         command: "cancel_job",
-        data: { job_id },
+        data: { job_id }
       })
     );
     set({ state: "cancelled" });
-  },
+  }
 }));
 
 export default useWorkflowRunnner;

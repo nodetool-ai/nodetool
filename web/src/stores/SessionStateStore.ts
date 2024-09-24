@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { Asset } from "./ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
-import { Node } from "reactflow";
+import { Node } from "@xyflow/react";
 
 interface SortedAssetsByType {
   assetsByType: Record<string, Asset[]>;
@@ -27,14 +27,14 @@ const useSessionStateStore = create<SessionStateStore>((set) => ({
   setSelectedNodes: (nodes: Node[]) => {
     set({
       selectedNodes: nodes,
-      selectedNodeIds: nodes.map((node) => node.id),
+      selectedNodeIds: nodes.map((node) => node.id)
     });
   },
   // CLIPBOARD
   clipboardData: null,
   isClipboardValid: false,
   setClipboardData: (data) => set({ clipboardData: data }),
-  setIsClipboardValid: (isValid) => set({ isClipboardValid: isValid }),
+  setIsClipboardValid: (isValid) => set({ isClipboardValid: isValid })
 }));
 
 export default useSessionStateStore;

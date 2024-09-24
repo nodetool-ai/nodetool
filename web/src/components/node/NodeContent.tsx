@@ -7,7 +7,7 @@ import { NodeLogs } from "./NodeLogs";
 import { NodeFooter } from "./NodeFooter";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
-import { Edge } from "reactflow";
+import { Edge } from "@xyflow/react";
 interface NodeContentProps {
   id: string;
   nodeType: string;

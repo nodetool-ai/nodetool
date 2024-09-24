@@ -3,7 +3,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { HistoryManager } from "../../HistoryManager";
 import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
 import { getMousePosition } from "../../utils/MousePosition";
-import { useReactFlow, Node } from "reactflow";
+import { useReactFlow, Node } from "@xyflow/react";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { NodeData } from "../../stores/NodeData";
 import useSessionStateStore from "../../stores/SessionStateStore";

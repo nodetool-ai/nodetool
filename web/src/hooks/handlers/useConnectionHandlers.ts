@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { OnConnectStartParams, Connection } from "reactflow";
+import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { TypeName } from "../../stores/ApiTypes";
@@ -8,6 +8,9 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { devLog } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
 // import { ConnectDirection } from "../../stores/ConnectionStore";
+//
+
+import { MouseEvent, TouchEvent } from "react";
 
 export const inputForType = (type: TypeName) => {
   switch (type) {
@@ -119,10 +122,7 @@ export default function useConnectionHandlers() {
 
   /* CONNECT START */
   const onConnectStart = useCallback(
-    (
-      _: React.MouseEvent | React.TouchEvent,
-      { nodeId, handleId, handleType }: OnConnectStartParams
-    ) => {
+    (event: any, { nodeId, handleId, handleType }: OnConnectStartParams) => {
       if (!nodeId || !handleId || !handleType || !metadata) {
         console.warn("Missing required data for connection start");
         return;

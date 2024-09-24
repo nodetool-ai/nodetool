@@ -1,6 +1,6 @@
 import { useNodeStore } from "../../stores/NodeStore";
 import { getMousePosition } from "../../utils/MousePosition";
-import { useReactFlow, Edge, Node } from "reactflow";
+import { useReactFlow, Edge, Node } from "@xyflow/react";
 import { uuidv4 } from "../../stores/uuidv4";
 import { devWarn } from "../../utils/DevLog";
 import useSessionStateStore from "../../stores/SessionStateStore";

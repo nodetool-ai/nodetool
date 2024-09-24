@@ -1,4 +1,4 @@
-import { Edge, Node } from "reactflow";
+import { Edge, Node } from "@xyflow/react";
 import { devWarn } from "../utils/DevLog";
 import dagre from "dagre";
 
@@ -159,8 +159,8 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
   nodes.forEach((node) => {
     if (node.type === "comment") return;
     dagreGraph.setNode(node.id, {
-      width: node.width,
-      height: node.height
+      width: node.measured?.width,
+      height: node.measured?.height
     });
   });
 

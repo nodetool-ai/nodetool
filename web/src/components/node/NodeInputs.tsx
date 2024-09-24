@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
 import PropertyField from "./PropertyField";
-import { Edge } from "reactflow";
+import { Edge } from "@xyflow/react";
 import { Property } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 

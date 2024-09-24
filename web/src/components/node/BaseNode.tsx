@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
-import { NodeProps, useStore } from "reactflow";
+import { NodeProps, useStore } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";

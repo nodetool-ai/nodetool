@@ -5,7 +5,7 @@ import {
   getBezierPath,
   getSmoothStepPath,
   getSimpleBezierPath
-} from "reactflow";
+} from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Viewport, useOnViewportChange } from "reactflow";
+import { Viewport, useOnViewportChange } from "@xyflow/react";
 
 const AxisMarker: React.FC = () => {
   let horizontalLineRef = React.useRef<HTMLDivElement>(null);
