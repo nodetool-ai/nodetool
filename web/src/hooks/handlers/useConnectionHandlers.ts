@@ -158,7 +158,9 @@ export default function useConnectionHandlers() {
         useConnectionStore.getState();
       const targetIsGroup = event.target.classList.contains("loop-node");
       const targetIsPane = event.target.classList.contains("react-flow__pane");
-      const targetIsNode = event.target.closest(".react-flow__node") !== null;
+      const targetIsNode =
+        event.target.closest(".react-flow__node") !== null &&
+        !event.target.classList.contains("loop-node");
 
       // targetIsNode: try to auto-connect
       if (!connectionCreated.current && targetIsNode) {
