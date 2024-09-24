@@ -7,10 +7,6 @@ import { useMetadata } from "../../serverState/useMetadata";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { devLog } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
-// import { ConnectDirection } from "../../stores/ConnectionStore";
-//
-
-import { MouseEvent, TouchEvent } from "react";
 
 export const inputForType = (type: TypeName) => {
   switch (type) {
@@ -95,23 +91,13 @@ export default function useConnectionHandlers() {
   // useRef is needed to track current connection state
   const connectionCreated = useRef(false);
 
-  const {
-    connecting,
-    startConnecting,
-    endConnecting,
-    connectType,
-    connectDirection,
-    connectNodeId,
-    connectHandleId
-  } = useConnectionStore((state) => ({
-    connecting: state.connecting,
-    startConnecting: state.startConnecting,
-    endConnecting: state.endConnecting,
-    connectType: state.connectType,
-    connectDirection: state.connectDirection,
-    connectNodeId: state.connectNodeId,
-    connectHandleId: state.connectHandleId
-  }));
+  const { connecting, startConnecting, endConnecting } = useConnectionStore(
+    (state) => ({
+      connecting: state.connecting,
+      startConnecting: state.startConnecting,
+      endConnecting: state.endConnecting
+    })
+  );
 
   const findNode = useNodeStore((state) => state.findNode);
   const setConnectionAttempted = useNodeStore(
@@ -168,6 +154,8 @@ export default function useConnectionHandlers() {
   const onConnectEnd = useCallback(
     // open contextMenu for input/output
     (event: any) => {
+      const { connectDirection, connectNodeId, connectHandleId, connectType } =
+        useConnectionStore.getState();
       const targetIsGroup = event.target.classList.contains("loop-node");
       const targetIsPane = event.target.classList.contains("react-flow__pane");
       const targetIsNode = event.target.closest(".react-flow__node") !== null;
@@ -266,11 +254,7 @@ export default function useConnectionHandlers() {
       endConnecting,
       findNode,
       metadata,
-      connectType,
-      connectNodeId,
-      connectHandleId,
       handleOnConnect,
-      connectDirection,
       openContextMenu
     ]
   );
