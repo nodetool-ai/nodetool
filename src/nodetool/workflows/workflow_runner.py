@@ -563,14 +563,6 @@ class WorkflowRunner:
         results = {node._id: [] for node in output_nodes}
         for i in range(len(input)):
             # passing global graph for lookups
-            sub_context = ProcessingContext(
-                graph=context.graph,
-                results=context.results.copy(),
-                user_id=context.user_id,
-                auth_token=context.auth_token,
-                workflow_id=context.workflow_id,
-                message_queue=context.message_queue,
-            )
             # set the result of the input node
             for input_node in input_nodes:
                 input_node._value = input[i]

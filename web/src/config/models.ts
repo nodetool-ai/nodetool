@@ -1,15 +1,29 @@
 import { UnifiedModel } from "../stores/ApiTypes";
 
-
 export const llama_models: UnifiedModel[] = [
+  {
+    id: "llama3.2:1b",
+    name: "Llama 3.2 - 1B",
+    type: "llama_model"
+  },
+  {
+    id: "llama3.2:latest",
+    name: "Llama 3.2",
+    type: "llama_model"
+  },
   {
     id: "llama3.1:8b",
     name: "Llama 3.1 - 8B",
-    type: "llama_model",
+    type: "llama_model"
   },
   {
-    id: "llava:7b",
-    name: "Llava - 7B",
+    id: "llava:13b",
+    name: "Llava - 13B",
+    type: "llama_model"
+  },
+  {
+    id: "llava:latest",
+    name: "Llava",
     type: "llama_model"
   },
   {
@@ -19,17 +33,17 @@ export const llama_models: UnifiedModel[] = [
   },
   {
     id: "gemma2:2b",
-    name: "gemma2 - 2B",
+    name: "Gemma2 - 2B",
     type: "llama_model"
   },
   {
     id: "qwen2:0.5b",
-    name: "qwen2 - 0.5B",
+    name: "Qwen2 - 0.5B",
     type: "llama_model"
   },
   {
     id: "qwen2:1.5b",
-    name: "qwen2 - 1.5B",
+    name: "Qwen2 - 1.5B",
     type: "llama_model"
   },
   {
@@ -38,23 +52,23 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
-    id: "phi3:mini",
-    name: "phi3 - 3B",
+    id: "phi3.5:latest",
+    name: "Phi3.5",
     type: "llama_model"
   },
   {
     id: "mistral:latest",
-    name: "mistral-nemo - 8B",
+    name: "Mistral",
     type: "llama_model"
   },
   {
     id: "codegemma:latest",
-    name: "coddegemma",
+    name: "Coddegemma",
     type: "llama_model"
   },
   {
     id: "codegemma:2b",
-    name: "codegemma - 2B",
+    name: "Codegemma - 2B",
     type: "llama_model"
   },
   {
@@ -63,13 +77,23 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
+    id: "nemotron-mini:latest",
+    name: "Memotron Mini",
+    type: "llama_model"
+  },
+  {
     id: "nomic-embed-text:latest",
-    name: "nomic-embed-text",
+    name: "Nomic Embed Text",
     type: "llama_model"
   },
   {
     id: "mistral-nemo:8b",
-    name: "mistral-nemo - 8B",
+    name: "Mistral Nemo - 8B",
+    type: "llama_model"
+  },
+  {
+    id: "mistral-small:latest",
+    name: "Mistral Small",
     type: "llama_model"
   }
 ];

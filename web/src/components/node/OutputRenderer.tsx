@@ -17,12 +17,16 @@ import ImageView from "./ImageView";
 import AssetGridContent from "../assets/AssetGridContent";
 import { uint8ArrayToDataUri } from "../../utils/binary";
 import TensorView from "./TensorView"; // We'll create this component
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 export type OutputRendererProps = {
   value: any;
 };
 
-function generateAssetGridContent(value: any) {
+function generateAssetGridContent(
+  value: Asset[],
+  onDoubleClick: (asset: Asset) => void
+) {
   const assets: Asset[] = value.map((item: any, index: number) => {
     let contentType: string;
     let name: string;
@@ -62,7 +66,13 @@ function generateAssetGridContent(value: any) {
     } as Asset;
   });
 
-  return <AssetGridContent assets={assets} />;
+  return (
+    <AssetGridContent
+      assets={assets}
+      onDoubleClick={onDoubleClick}
+      sortedAssets={value}
+    />
+  );
 }
 
 const styles = (theme: any) =>
@@ -152,8 +162,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
 
   const type = useMemo(() => typeFor(value), [value]);
+
+  const onDoubleClickAsset = useCallback(
+    (asset: Asset) => {
+      setOpenAsset(asset);
+    },
+    [setOpenAsset]
+  );
 
   const handleCopyToClipboard = useCallback(
     (value: string) => {
@@ -254,7 +272,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
               return <TaskTable data={value} />;
             }
             if (["image", "audio", "video"].includes(value[0].type)) {
-              return generateAssetGridContent(value);
+              return generateAssetGridContent(value, onDoubleClickAsset);
             }
             const columnType = (v: any): "string" | "float" | "object" => {
               if (typeof v === "string") {
@@ -315,7 +333,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
           </div>
         );
     }
-  }, [value, type, handleCopyToClipboard]);
+  }, [value, type, onDoubleClickAsset, handleCopyToClipboard]);
 
   return renderContent;
 };

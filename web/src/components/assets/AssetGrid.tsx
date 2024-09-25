@@ -136,10 +136,11 @@ interface AssetGridProps {
   maxItemSize?: number;
   itemSpacing?: number;
   isHorizontal?: boolean;
+  sortedAssets?: Asset[];
 }
 
 const AssetGrid: React.FC<AssetGridProps> = React.memo(
-  ({ maxItemSize = 100, itemSpacing = 5, isHorizontal }) => {
+  ({ maxItemSize = 100, itemSpacing = 5, isHorizontal, sortedAssets }) => {
     const { error } = useAssets();
     const openAsset = useAssetGridStore((state) => state.openAsset);
     const currentFolder = useAssetGridStore((state) => state.currentFolder);
@@ -247,6 +248,7 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
           {openAsset && (
             <AssetViewer
               asset={openAsset}
+              sortedAssets={sortedAssets}
               open={openAsset !== null}
               onClose={() => setOpenAsset(null)}
             />
@@ -337,6 +339,7 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
       [
         error,
         openAsset,
+        sortedAssets,
         containerWidth,
         maxItemSize,
         currentFolder,
@@ -349,8 +352,8 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
         currentAudioAsset,
         spaceKeyPressed,
         openMenuType,
-        setOpenAsset,
-        isUploading
+        isUploading,
+        setOpenAsset
       ]
     );
 

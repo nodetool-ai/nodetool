@@ -4,6 +4,7 @@ import { css } from "@emotion/react";
 import React from "react";
 import AssetGrid from "./AssetGrid";
 import { Box } from "@mui/material";
+import useAssets from "../../serverState/useAssets";
 
 const styles = (theme: any) =>
   css({
@@ -49,10 +50,16 @@ const styles = (theme: any) =>
   });
 
 const AssetExplorer: React.FC = () => {
+  const { folderFiles } = useAssets();
   return (
     <div css={styles}>
       <Box className="asset-explorer">
-        <AssetGrid maxItemSize={10} itemSpacing={2} isHorizontal={true} />
+        <AssetGrid
+          maxItemSize={10}
+          itemSpacing={2}
+          isHorizontal={true}
+          sortedAssets={folderFiles}
+        />
       </Box>
     </div>
   );
