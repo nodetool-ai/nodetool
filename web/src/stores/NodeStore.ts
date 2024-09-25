@@ -164,7 +164,7 @@ export interface NodeStore {
   getOutputEdges: (nodeId: string) => Edge[];
   getSelection: () => NodeSelection;
   setEdgeUpdateSuccessful: (value: boolean) => void;
-  onNodesChange: OnNodesChange;
+  onNodesChange: OnNodesChange<Node<NodeData>>;
   onEdgesChange: OnEdgesChange;
   onEdgeUpdate: (oldEdge: Edge, newConnection: Connection) => void;
   onConnect: OnConnect;
@@ -561,7 +561,7 @@ export const useNodeStore = create<NodeStore>()(
        *
        * @param node The node to add.
        */
-      addNode: (node: Node) => {
+      addNode: (node: Node<NodeData>) => {
         if (get().findNode(node.id)) {
           throw Error("node already exists");
         }
@@ -631,7 +631,7 @@ export const useNodeStore = create<NodeStore>()(
         get().setWorkflowDirty(true);
         set({
           nodes: get().nodes.map(
-            (n) => (n.id === id ? { ...n, ...node } : n) as Node
+            (n) => (n.id === id ? { ...n, ...node } : n) as Node<NodeData>
           )
         });
       },
@@ -649,7 +649,7 @@ export const useNodeStore = create<NodeStore>()(
             (node) =>
               (node.id === id
                 ? { ...node, data: { ...node.data, ...data, workflow_id } }
-                : node) as Node
+                : node) as Node<NodeData>
           )
         });
         get().setWorkflowDirty(true);
@@ -675,7 +675,7 @@ export const useNodeStore = create<NodeStore>()(
                       properties: { ...node.data.properties, ...properties }
                     }
                   }
-                : node) as Node
+                : node) as Node<NodeData>
           )
         });
         get().setWorkflowDirty(true);
@@ -726,7 +726,7 @@ export const useNodeStore = create<NodeStore>()(
        *
        * @param nodes The nodes of the workflow.
        */
-      setNodes: (nodes: Node[], setDirty: boolean = true) => {
+      setNodes: (nodes: Node<NodeData>[], setDirty: boolean = true) => {
         if (setDirty) {
           nodes.forEach((node) => {
             node.data.dirty = true;
@@ -752,7 +752,7 @@ export const useNodeStore = create<NodeStore>()(
        *
        * @param changes The changes to the nodes.
        */
-      onNodesChange: (changes: NodeChange[]) => {
+      onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => {
         const nodes = applyNodeChanges(changes, get().nodes);
         set({ nodes });
         get().setWorkflowDirty(true);
@@ -904,7 +904,18 @@ export const useNodeStore = create<NodeStore>()(
             id: uuidv4(),
             className: Slugify(srcType || "")
           };
-          setEdges(addEdge(newConnection, filteredEdges));
+
+          setEdges(
+            addEdge(
+              newConnection,
+              filteredEdges.map((edge) => ({
+                ...edge,
+                sourceHandle: edge.sourceHandle || null,
+                targetHandle: edge.targetHandle || null,
+                className: edge.className || ""
+              }))
+            )
+          );
         }
       }
     }),

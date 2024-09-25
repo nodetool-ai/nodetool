@@ -1,19 +1,13 @@
 /** @jsxImportSource @emotion/react */
 
 import { create } from "zustand";
-import { Asset } from "./ApiTypes";
-import { useAssetStore } from "../stores/AssetStore";
 import { Node } from "@xyflow/react";
-
-interface SortedAssetsByType {
-  assetsByType: Record<string, Asset[]>;
-  totalCount: number;
-}
+import { NodeData } from "./NodeData";
 
 type SessionStateStore = {
   selectedNodeIds: string[];
-  selectedNodes: Node[];
-  setSelectedNodes: (nodes: Node[]) => void;
+  selectedNodes: Node<NodeData>[];
+  setSelectedNodes: (nodes: Node<NodeData>[]) => void;
   clipboardData: string | null;
   setClipboardData: (data: string | null) => void;
   isClipboardValid: boolean;
@@ -24,7 +18,7 @@ const useSessionStateStore = create<SessionStateStore>((set) => ({
   // NODE SELECTION
   selectedNodeIds: [],
   selectedNodes: [],
-  setSelectedNodes: (nodes: Node[]) => {
+  setSelectedNodes: (nodes: Node<NodeData>[]) => {
     set({
       selectedNodes: nodes,
       selectedNodeIds: nodes.map((node) => node.id)
