@@ -114,7 +114,7 @@ class ProcessingContext:
             queue.Queue, asyncio.Queue, multiprocessing.Queue, None
         ] = None,
         http_client: httpx.AsyncClient | None = None,
-        device: str = "cpu",
+        device: str | None = None,
         models: dict[str, dict[str, Any]] | None = None,
     ):
         self.user_id = user_id
@@ -126,13 +126,27 @@ class ProcessingContext:
         self.message_queue = message_queue if message_queue else asyncio.Queue()
         self.device = device
         self.models = models if models else {}
-        self.variables: dict[str, Any] = {}
+        self.variables: dict[str, Any] = variables if variables else {}
         self.http_client = (
             httpx.AsyncClient(follow_redirects=True, timeout=600)
             if http_client is None
             else http_client
         )
         assert self.auth_token is not None, "Auth token is required"
+
+    def copy(self):
+        return ProcessingContext(
+            graph=self.graph,
+            results=self.results.copy(),
+            user_id=self.user_id,
+            auth_token=self.auth_token,
+            workflow_id=self.workflow_id,
+            message_queue=self.message_queue,
+            device=self.device,
+            variables=self.variables,
+            http_client=self.http_client,
+            models=self.models,
+        )
 
     @property
     def api_client(self) -> NodetoolAPIClient:
