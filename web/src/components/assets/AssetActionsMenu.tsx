@@ -22,7 +22,6 @@ const styles = (theme: any) =>
       transition: "max-height 0.5s ease-in-out"
     },
     ".selected-asset-info": {
-      backgroundColor: theme.palette.c_gray1,
       minHeight: "100px",
       minWidth: "200px",
       overflowY: "auto",

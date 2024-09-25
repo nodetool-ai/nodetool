@@ -50,8 +50,7 @@ const styles = (theme: any) =>
       gap: ".25em",
       maxWidth: "500px",
       flexGrow: 1,
-      minHeight: "30px",
-      backgroundColor: theme.palette.c_gray1
+      minHeight: "30px"
     },
     "& p": {
       display: "inline-block"

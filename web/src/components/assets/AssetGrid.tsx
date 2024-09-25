@@ -77,8 +77,7 @@ const styles = (theme: any) =>
     },
     ".folder-list-container": {
       padding: "0.5em",
-      borderRight: `1px solid ${theme.palette.divider}`,
-      backgroundColor: theme.palette.background.paper
+      borderRight: `1px solid ${theme.palette.divider}`
     },
     ".folder-list": {
       listStyleType: "none",
