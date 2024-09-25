@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo, useCallback } from "react";
-import { Handle, Position } from "reactflow";
+import { Handle, Position } from "@xyflow/react";
 import { Tooltip } from "@mui/material";
 import Zoom from "@mui/material/Zoom";
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -31,24 +31,29 @@ const tooltipStyles = css({
 
 const NodeOutput = React.memo(({ id, output }: NodeOutputProps) => {
   const connectType = useConnectionStore((state) => state.connectType);
-  const connectDirection = useConnectionStore((state) => state.connectDirection);
+  const connectDirection = useConnectionStore(
+    (state) => state.connectDirection
+  );
   const connectNodeId = useConnectionStore((state) => state.connectNodeId);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
 
-  const outputContextMenu = useCallback((event: React.MouseEvent, id: string, output: OutputSlot) => {
-    event.preventDefault();
-    setTimeout(() => {
-      openContextMenu(
-        "output-context-menu",
-        id,
-        event.clientX + 25,
-        event.clientY - 50,
-        "react-flow__pane",
-        output.type.type,
-        output.name
-      );
-    }, 0);
-  }, [openContextMenu]);
+  const outputContextMenu = useCallback(
+    (event: React.MouseEvent, id: string, output: OutputSlot) => {
+      event.preventDefault();
+      setTimeout(() => {
+        openContextMenu(
+          "output-context-menu",
+          id,
+          event.clientX + 25,
+          event.clientY - 50,
+          "react-flow__pane",
+          output.type.type,
+          output.name
+        );
+      }, 0);
+    },
+    [openContextMenu]
+  );
 
   const classConnectable = useMemo(() => {
     return connectType !== null &&
@@ -59,18 +64,21 @@ const NodeOutput = React.memo(({ id, output }: NodeOutputProps) => {
       : "not-connectable";
   }, [output.type, connectType, connectNodeId, id, connectDirection]);
 
-  const tooltipTitle = useMemo(() => (
-    <span
-      style={{
-        backgroundColor: colorForType(output.type.type),
-        color: textColorForType(output.type.type),
-        borderRadius: ".5em",
-        fontSize: ThemeNodetool.fontSizeSmall
-      }}
-    >
-      {output.name} :{typeToString(output.type)}
-    </span>
-  ), [output.name, output.type]);
+  const tooltipTitle = useMemo(
+    () => (
+      <span
+        style={{
+          backgroundColor: colorForType(output.type.type),
+          color: textColorForType(output.type.type),
+          borderRadius: ".5em",
+          fontSize: ThemeNodetool.fontSizeSmall
+        }}
+      >
+        {output.name} :{typeToString(output.type)}
+      </span>
+    ),
+    [output.name, output.type]
+  );
 
   return (
     <Tooltip

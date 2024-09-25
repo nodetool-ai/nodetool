@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import reportWebVitals from "./reportWebVitals";
-import { ReactFlowProvider } from "reactflow";
+import { ReactFlowProvider } from "@xyflow/react";
 
 import {
   LoaderFunctionArgs,
@@ -24,6 +24,8 @@ import ThemeNodetool from "./components/themes/ThemeNodetool";
 import ThemeNodes from "./components/themes/ThemeNodes";
 
 import AppHeader from "./components/panels/AppHeader";
+import "@xyflow/react/dist/style.css";
+import "@xyflow/react/dist/base.css";
 import "./styles/index.css";
 import "./styles/microtip.css";
 import "./styles/vars.css";
@@ -48,7 +50,6 @@ import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import NodeDocumentation from "./components/content/Help/NodeDocumentation";
-import WorkflowChat from "./components/assistants/WorkflowChat";
 
 initSentry();
 

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import useSessionStateStore from "../stores/SessionStateStore";
 import { useMetadataOrNull } from "../serverState/useMetadata";
 import PropertyField from "./node/PropertyField";
-import { Node } from "reactflow";
+import { Node } from "@xyflow/react";
 import { Button, Tooltip, Typography } from "@mui/material";
 import ThemeNodetool from "./themes/ThemeNodetool";
 import { useNodeStore } from "../stores/NodeStore";

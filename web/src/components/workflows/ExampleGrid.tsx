@@ -67,7 +67,10 @@ const styles = (theme: any) =>
       objectFit: "cover"
     },
     ".tag-menu": {
-      marginBottom: "20px"
+      margin: "20px"
+    },
+    ".tag-menu button": {
+      fontSize: "0.7em"
     }
   });
 
@@ -110,9 +113,6 @@ const ExampleGrid = () => {
 
   return (
     <div className="workflow-grid" css={styles}>
-      <Typography variant="h4" component="h1" sx={{ ml: 5, mt: 5 }}>
-        Example Workflows
-      </Typography>
       <Box className="tag-menu">
         <ButtonGroup variant="outlined">
           <Button onClick={() => setSelectedTag(null)}>All</Button>

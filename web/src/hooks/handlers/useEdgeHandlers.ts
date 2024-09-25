@@ -1,7 +1,7 @@
 import { useCallback, MouseEvent as ReactMouseEvent } from "react";
 import { useNodeStore, useTemporalStore } from "../../stores/NodeStore";
 import { HistoryManager } from "../../HistoryManager";
-import { Edge } from "reactflow";
+import { Edge } from "@xyflow/react";
 
 export default function useEdgeHandlers(resumeHistoryAndSave: () => void) {
   const findEdge = useNodeStore((state) => state.findEdge);

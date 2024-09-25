@@ -4,7 +4,7 @@ import { MoreHoriz } from "@mui/icons-material";
 import { css, keyframes } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useNodeStore } from "../../stores/NodeStore";
-import { useStore } from "reactflow";
+import { useStore } from "@xyflow/react";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 
@@ -196,18 +196,19 @@ export const NodeHeader = memo(
 
     return (
       <div className={headerClassName} css={memoizedHeaderStyle}>
-        <span className="isMinZoom node-title">{nodeTitle}</span>
-
         {showMenu && !isMinZoom && (
-          <div className="menu-button" css={tooltipStyle}>
-            <button
-              className="menu-button"
-              {...tooltipAttributes}
-              onClick={handleOpenContextMenu}
-            >
-              <MoreHoriz />
-            </button>
-          </div>
+          <>
+            <span className="node-title">{nodeTitle}</span>
+            <div className="menu-button" css={tooltipStyle}>
+              <button
+                className="menu-button"
+                {...tooltipAttributes}
+                onClick={handleOpenContextMenu}
+              >
+                <MoreHoriz />
+              </button>
+            </div>
+          </>
         )}
       </div>
     );

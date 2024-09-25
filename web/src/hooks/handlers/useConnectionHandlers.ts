@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { OnConnectStartParams, Connection } from "reactflow";
+import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import { TypeName } from "../../stores/ApiTypes";
@@ -7,7 +7,7 @@ import { useMetadata } from "../../serverState/useMetadata";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { devLog } from "../../utils/DevLog";
 import { isConnectable } from "../../utils/TypeHandler";
-// import { ConnectDirection } from "../../stores/ConnectionStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 export const inputForType = (type: TypeName) => {
   switch (type) {
@@ -91,24 +91,16 @@ export const constantForType = (type: TypeName) => {
 export default function useConnectionHandlers() {
   // useRef is needed to track current connection state
   const connectionCreated = useRef(false);
-
-  const {
-    connecting,
-    startConnecting,
-    endConnecting,
-    connectType,
-    connectDirection,
-    connectNodeId,
-    connectHandleId
-  } = useConnectionStore((state) => ({
-    connecting: state.connecting,
-    startConnecting: state.startConnecting,
-    endConnecting: state.endConnecting,
-    connectType: state.connectType,
-    connectDirection: state.connectDirection,
-    connectNodeId: state.connectNodeId,
-    connectHandleId: state.connectHandleId
-  }));
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+  const { connecting, startConnecting, endConnecting } = useConnectionStore(
+    (state) => ({
+      connecting: state.connecting,
+      startConnecting: state.startConnecting,
+      endConnecting: state.endConnecting
+    })
+  );
 
   const findNode = useNodeStore((state) => state.findNode);
   const setConnectionAttempted = useNodeStore(
@@ -119,10 +111,7 @@ export default function useConnectionHandlers() {
 
   /* CONNECT START */
   const onConnectStart = useCallback(
-    (
-      _: React.MouseEvent | React.TouchEvent,
-      { nodeId, handleId, handleType }: OnConnectStartParams
-    ) => {
+    (event: any, { nodeId, handleId, handleType }: OnConnectStartParams) => {
       if (!nodeId || !handleId || !handleType || !metadata) {
         console.warn("Missing required data for connection start");
         return;
@@ -168,9 +157,13 @@ export default function useConnectionHandlers() {
   const onConnectEnd = useCallback(
     // open contextMenu for input/output
     (event: any) => {
+      const { connectDirection, connectNodeId, connectHandleId, connectType } =
+        useConnectionStore.getState();
       const targetIsGroup = event.target.classList.contains("loop-node");
       const targetIsPane = event.target.classList.contains("react-flow__pane");
-      const targetIsNode = event.target.closest(".react-flow__node") !== null;
+      const targetIsNode =
+        event.target.closest(".react-flow__node") !== null &&
+        !event.target.classList.contains("loop-node");
 
       // targetIsNode: try to auto-connect
       if (!connectionCreated.current && targetIsNode) {
@@ -206,6 +199,11 @@ export default function useConnectionHandlers() {
             endConnecting();
           } else {
             endConnecting();
+            addNotification({
+              type: "warning",
+              alert: true,
+              content: "No possible connections found for this node"
+            });
           }
         } else if (connectDirection === "target") {
           const possibleOutputs = nodeMetadata.outputs.filter((prop) =>
@@ -266,11 +264,7 @@ export default function useConnectionHandlers() {
       endConnecting,
       findNode,
       metadata,
-      connectType,
-      connectNodeId,
-      connectHandleId,
       handleOnConnect,
-      connectDirection,
       openContextMenu
     ]
   );

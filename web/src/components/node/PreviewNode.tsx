@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import { memo } from "react";
-import { NodeProps, NodeResizeControl, useStore } from "reactflow";
+import { NodeProps, NodeResizeControl, useStore } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
@@ -10,7 +10,7 @@ import React, { useMemo } from "react";
 import { NodeHeader } from "../node/NodeHeader";
 import OutputRenderer from "./OutputRenderer";
 import useResultsStore from "../../stores/ResultsStore";
-import { Position, Handle } from "reactflow";
+import { Position, Handle } from "@xyflow/react";
 import { tableStyles } from "../../styles/TableStyles";
 import { MIN_ZOOM } from "../../config/constants";
 
@@ -83,7 +83,10 @@ const styles = (theme: any) =>
     tableStyles(theme)
   ]);
 
-interface PreviewNodeProps extends NodeProps<NodeData> {}
+interface PreviewNodeProps extends NodeProps {
+  data: NodeData;
+  id: string;
+}
 
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const currentZoom = useStore((state) => state.transform[2]);

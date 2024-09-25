@@ -74,6 +74,61 @@ const styles = (theme: any) =>
       minHeight: "25px",
       display: "block",
       padding: "0.5em"
+    },
+    ".folder-list-container": {
+      padding: "0.5em",
+      borderRight: `1px solid ${theme.palette.divider}`
+    },
+    ".folder-list": {
+      listStyleType: "none",
+      padding: 0,
+      margin: 0
+    },
+    ".folder-item": {
+      position: "relative",
+      padding: "0 0 4px 24px",
+      "&::before, &::after": {
+        content: '""',
+        position: "absolute",
+        left: "6px"
+      },
+      "&::before": {
+        top: "0",
+        height: "100%",
+        borderLeft: `1px solid ${theme.palette.divider}`
+      },
+      "&::after": {
+        top: "12px",
+        width: "12px",
+        borderTop: `1px solid ${theme.palette.divider}`
+      },
+      "&:last-child::before": {
+        height: "12px"
+      }
+    },
+    ".folder-icon": {
+      marginRight: "0.5em",
+      color: theme.palette.text.secondary,
+      verticalAlign: "middle"
+    },
+    ".folder-name": {
+      fontSize: ThemeNodetool.fontSizeSmall,
+      verticalAlign: "middle",
+      "&:hover": {
+        color: theme.palette.primary.main
+      }
+    },
+    ".selected-folder": {
+      backgroundColor: theme.palette.action.selected,
+      "&::before, &::after": {
+        borderColor: theme.palette.primary.main
+      }
+    },
+    ".root-folder": {
+      paddingLeft: "4px",
+      "&::before, &::after": {
+        display: "none"
+      }
     }
   });
 
@@ -237,7 +292,10 @@ const AssetGrid: React.FC<AssetGridProps> = React.memo(
               }}
             >
               {containerWidth > 200 && (
-                <div style={{ flexShrink: 0, position: "relative" }}>
+                <div
+                  className="folder-list-container"
+                  style={{ flexShrink: 0, position: "relative" }}
+                >
                   <FolderList isHorizontal={isHorizontal} />
                 </div>
               )}

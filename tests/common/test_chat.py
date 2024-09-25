@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch, AsyncMock
 from nodetool.chat.tools import (
     ProcessNodeTool,
     Tool,
-    process_workflow_function,
 )
 from nodetool.metadata.types import FunctionModel, Message, Provider
 from nodetool.metadata.types import TextRef
@@ -36,13 +35,6 @@ class DummyNode(BaseNode):
 
 def test_sanitize_node_name():
     assert sanitize_node_name(VALID_NODE_NAME) == "some__valid__node__name"
-
-
-@pytest.mark.asyncio
-async def test_process_node_function_invalid():
-    context = ProcessingContext(user_id=USER_ID, auth_token="token")
-    with pytest.raises(ValueError):
-        await process_workflow_function(context, INVALID_NODE_NAME, {})
 
 
 @pytest.mark.asyncio

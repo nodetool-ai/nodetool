@@ -1,7 +1,7 @@
 // create nodes from existing assets
 
 import { useCallback } from "react";
-import { XYPosition } from "reactflow";
+import { XYPosition } from "@xyflow/react";
 import { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";

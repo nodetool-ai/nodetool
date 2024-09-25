@@ -12,7 +12,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { devLog } from "../../utils/DevLog";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useNodeStore } from "../../stores/NodeStore";
-import { useReactFlow } from "reactflow";
+import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";

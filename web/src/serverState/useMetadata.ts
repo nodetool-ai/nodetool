@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { NodeTypes } from "reactflow";
+import { NodeTypes } from "@xyflow/react";
 import { HuggingFaceModel, NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
@@ -54,12 +54,22 @@ export const metadataQuery = async () => {
   const uniqueRecommendedModels = recommendedModels.filter(
     (model, index, self) =>
       index ===
-      self.findIndex((t) => t.type === model.type && t.repo_id === model.repo_id && t.path === model.path)
+      self.findIndex(
+        (t) =>
+          t.type === model.type &&
+          t.repo_id === model.repo_id &&
+          t.path === model.path
+      )
   );
 
   useMetadataStore.getState().setMetadata(metadataByType);
 
-  return { metadata: data, nodeTypes, metadataByType, recommendedModels: uniqueRecommendedModels };
+  return {
+    metadata: data,
+    nodeTypes,
+    metadataByType,
+    recommendedModels: uniqueRecommendedModels
+  };
 };
 
 export const useMetadata = () =>

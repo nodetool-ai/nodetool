@@ -43,7 +43,10 @@ def test_create_message_image_content(user: User):
         user_id=user.id,
         thread_id="th1",
         content=[
-            {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
+            {
+                "type": "image_url",
+                "image": {"type": "image", "uri": "https://example.com/image.jpg"},
+            }
         ],
     )
 
@@ -52,7 +55,7 @@ def test_create_message_image_content(user: User):
     assert type(message.content) == list
     assert len(message.content) == 1
     assert message.content[0].type == "image_url"
-    assert message.content[0].image_url.url == "https://example.com/image.jpg"
+    assert message.content[0].image.uri == "https://example.com/image.jpg"
 
 
 def test_create_message_mixed_content(user: User):
@@ -63,7 +66,7 @@ def test_create_message_mixed_content(user: User):
             {"type": "text", "text": "Hello"},
             {
                 "type": "image_url",
-                "image_url": {"url": "https://example.com/image.jpg"},
+                "image": {"type": "image", "uri": "https://example.com/image.jpg"},
             },
         ],
     )
@@ -76,4 +79,4 @@ def test_create_message_mixed_content(user: User):
     assert message.content[0].type == "text"
     assert message.content[0].text == "Hello"
     assert message.content[1].type == "image_url"
-    assert message.content[1].image_url.url == "https://example.com/image.jpg"
+    assert message.content[1].image.uri == "https://example.com/image.jpg"

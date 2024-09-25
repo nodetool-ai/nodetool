@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useReactFlow } from "reactflow";
+import { useReactFlow } from "@xyflow/react";
 import { useNodeStore } from "../stores/NodeStore";
 import { v4 as uuidv4 } from "uuid";
 import { DUPLICATE_SPACING_X } from "../config/constants";

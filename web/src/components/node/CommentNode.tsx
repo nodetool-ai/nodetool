@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useState, useCallback, useRef } from "react";
-import { NodeProps, NodeResizeControl } from "reactflow";
+import { NodeProps, NodeResizeControl } from "@xyflow/react";
 import { debounce, isEqual } from "lodash";
 import {
   Container,

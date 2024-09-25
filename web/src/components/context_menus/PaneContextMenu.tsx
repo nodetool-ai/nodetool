@@ -1,5 +1,5 @@
 import React from "react";
-import { useReactFlow } from "reactflow";
+import { useReactFlow } from "@xyflow/react";
 
 import { Divider, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";

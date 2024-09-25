@@ -1,6 +1,7 @@
-import { Edge, Node } from "reactflow";
+import { Edge, Node } from "@xyflow/react";
 import { devWarn } from "../utils/DevLog";
 import dagre from "dagre";
+import { NodeData } from "../stores/NodeData";
 
 /**
  * Topological sort of a graph.
@@ -17,7 +18,10 @@ import dagre from "dagre";
  * @param nodes The nodes of the graph.
  * @returns A list of sorted layers of nodes.
  */
-export function topologicalSort(edges: Edge[], nodes: Node[]): string[][] {
+export function topologicalSort(
+  edges: Edge[],
+  nodes: Node<NodeData>[]
+): string[][] {
   // handle empty edges case
   if (edges.length === 0) {
     return [nodes.map((node) => node.id)];
@@ -84,7 +88,7 @@ export function topologicalSort(edges: Edge[], nodes: Node[]): string[][] {
   return sortedNodes;
 }
 
-type Result = { edges: Edge[]; nodes: Node[] };
+type Result = { edges: Edge[]; nodes: Node<NodeData>[] };
 
 /**
  * Returns a subgraph of the given graph starting from the given start node.
@@ -96,7 +100,7 @@ type Result = { edges: Edge[]; nodes: Node[] };
  */
 export function subgraph(
   edges: Edge[],
-  nodes: Node[],
+  nodes: Node<NodeData>[],
   startNode: Node,
   stopNode: Node | null = null
 ): Result {
@@ -143,7 +147,10 @@ export function subgraph(
 type NodePosition = { x: number; y: number };
 type NodePositions = { [id: string]: NodePosition };
 
-export const autoLayout = (edges: Edge[], nodes: Node[]) => {
+export const autoLayout = (
+  edges: Edge[],
+  nodes: Node<NodeData>[]
+): Node<NodeData>[] => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({ rankdir: "LR" });
@@ -159,8 +166,8 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
   nodes.forEach((node) => {
     if (node.type === "comment") return;
     dagreGraph.setNode(node.id, {
-      width: node.width,
-      height: node.height
+      width: node.measured?.width,
+      height: node.measured?.height
     });
   });
 
@@ -189,7 +196,7 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
     )
   };
 
-  const layoutedNodes = nodes.map((node: Node) => {
+  const layoutedNodes = nodes.map((node: Node<NodeData>) => {
     if (node.type === "nodetool.workflows.base_node.Comment") return node;
     const dnode = dagreGraph.node(node.id);
     const position = {
@@ -198,8 +205,7 @@ export const autoLayout = (edges: Edge[], nodes: Node[]) => {
     };
     return {
       ...node,
-      position: position,
-      size: { width: dnode.width, height: dnode.height }
+      position: position
     };
   });
 

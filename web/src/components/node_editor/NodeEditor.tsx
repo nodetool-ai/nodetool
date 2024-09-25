@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState, useRef, useEffect, useMemo } from "react";
-import ReactFlow, {
+import {
   useStore,
   useReactFlow,
   Node,
@@ -8,10 +8,11 @@ import ReactFlow, {
   BackgroundVariant,
   FitViewOptions,
   useOnSelectionChange,
+  ReactFlow,
   Connection,
   SelectionMode,
   ConnectionMode
-} from "reactflow";
+} from "@xyflow/react";
 
 import { CircularProgress, Grid } from "@mui/material";
 // store
@@ -48,8 +49,6 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { useHotkeys } from "react-hotkeys-hook";
 //css
 import { generateCSS } from "../themes/GenerateCSS";
-import "reactflow/dist/style.css";
-// import "../../styles/node_editor.css";
 import "../../styles/base.css";
 import "../../styles/nodes.css";
 import "../../styles/collapsed.css";
@@ -249,7 +248,7 @@ const NodeEditor: React.FC<unknown> = () => {
   );
 
   const handlePaneContextMenu = useCallback(
-    (event: React.MouseEvent) => {
+    (event: any) => {
       event.preventDefault();
       event.stopPropagation();
       requestAnimationFrame(() => {
@@ -358,8 +357,8 @@ const NodeEditor: React.FC<unknown> = () => {
       const clickedElement = event.target as HTMLElement;
       if (clickedElement.classList.contains("node-title")) {
         updateNodeData(node.id, {
-          properties: { ...node.data.properties },
-          workflow_id: node.data.workflow_id || "",
+          properties: node.data.properties ? { ...node.data.properties } : {},
+          workflow_id: node.data.workflow_id as any,
           collapsed: !node.data.collapsed
         });
       }
@@ -530,9 +529,9 @@ const NodeEditor: React.FC<unknown> = () => {
                 onConnect={triggerOnConnect}
                 onConnectStart={onConnectStart}
                 onConnectEnd={onConnectEnd}
-                onEdgeUpdate={onEdgeUpdate}
-                onEdgeUpdateStart={onEdgeUpdateStart}
-                onEdgeUpdateEnd={onEdgeUpdateEnd}
+                onReconnect={onEdgeUpdate}
+                onReconnectStart={onEdgeUpdateStart}
+                onReconnectEnd={onEdgeUpdateEnd}
                 onNodesChange={handleNodesChange}
                 onNodeDragStart={onNodeDragStart}
                 onNodeDragStop={onNodeDragStop}

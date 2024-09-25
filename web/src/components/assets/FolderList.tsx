@@ -39,8 +39,7 @@ const styles = (theme: any) =>
       paddingBottom: "1em",
       paddingLeft: "1em",
       height: `calc(100% - ${RESIZE_HANDLE_HEIGHT}px)`,
-      overflow: "hidden auto",
-      backgroundColor: theme.palette.c_gray1
+      overflow: "hidden auto"
     },
     ".accordion": {
       height: ROW_HEIGHT + "em",

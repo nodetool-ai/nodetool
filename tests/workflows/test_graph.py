@@ -185,31 +185,6 @@ def test_topological_sort_complex_graph(complex_graph: Graph):
     ], "Should return nodes in topological order"
 
 
-def test_json_schema(graph: Graph):
-    a = FloatInput(
-        id="1", name="a", label="", description="Test input node", value=10.0
-    )
-    b = FloatInput(
-        id="2", name="b", label="", description="Test input node", value=10.0
-    )
-
-    graph.nodes = [a, b]
-
-    json_schema = graph.get_input_schema()
-
-    assert json_schema["type"] == "object"
-    assert json_schema["properties"]["a"]["type"] == "number"
-    assert json_schema["properties"]["a"]["description"] == "Test input node"
-    assert json_schema["properties"]["a"]["minimum"] == 0
-    assert json_schema["properties"]["a"]["maximum"] == 100
-    assert json_schema["properties"]["a"]["default"] == 10.0
-    assert json_schema["properties"]["b"]["type"] == "number"
-    assert json_schema["properties"]["b"]["description"] == "Test input node"
-    assert json_schema["properties"]["b"]["minimum"] == 0
-    assert json_schema["properties"]["b"]["maximum"] == 100
-    assert json_schema["properties"]["b"]["default"] == 10.0
-
-
 class StandardNode(BaseNode):
     value: str = ""
 

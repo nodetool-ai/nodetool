@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import { useNodeStore } from "../stores/NodeStore";
-import { Node } from "reactflow";
+import { Node } from "@xyflow/react";
 import useSessionStateStore from "../stores/SessionStateStore";
+import { NodeData } from "../stores/NodeData";
 
 type AlignNodesOptions = {
   arrangeSpacing: boolean;
@@ -26,7 +27,7 @@ const useAlignNodes = () => {
 
       const xRange = Math.max(...xCoordinates) - Math.min(...xCoordinates);
       const yRange = Math.max(...yCoordinates) - Math.min(...yCoordinates);
-      const arrangedNodes: Node[] = [...selectedNodes];
+      const arrangedNodes: Node<NodeData>[] = [...selectedNodes];
 
       if (xRange < yRange) {
         // align left

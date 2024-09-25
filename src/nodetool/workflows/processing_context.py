@@ -988,7 +988,11 @@ class ProcessingContext:
         """
         if data.dtype == np.int16:
             data_bytes = data.tobytes()
-        elif data.dtype == np.float32 or data.dtype == np.float64:
+        elif (
+            data.dtype == np.float32
+            or data.dtype == np.float64
+            or data.dtype == np.float16
+        ):
             data_bytes = (data * (2**14)).astype(np.int16).tobytes()
         else:
             raise ValueError(f"Unsupported dtype {data.dtype}")

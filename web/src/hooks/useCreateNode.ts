@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { NodeMetadata } from "../stores/ApiTypes";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useNodeStore } from "../stores/NodeStore";
-import { useReactFlow } from "reactflow";
+import { useReactFlow } from "@xyflow/react";
 import { useCreateLoopNode } from "./createnodes/useCreateLoopNode";
 
 export const useCreateNode = () => {

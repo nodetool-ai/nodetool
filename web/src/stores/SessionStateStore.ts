@@ -1,19 +1,13 @@
 /** @jsxImportSource @emotion/react */
 
 import { create } from "zustand";
-import { Asset } from "./ApiTypes";
-import { useAssetStore } from "../stores/AssetStore";
-import { Node } from "reactflow";
-
-interface SortedAssetsByType {
-  assetsByType: Record<string, Asset[]>;
-  totalCount: number;
-}
+import { Node } from "@xyflow/react";
+import { NodeData } from "./NodeData";
 
 type SessionStateStore = {
   selectedNodeIds: string[];
-  selectedNodes: Node[];
-  setSelectedNodes: (nodes: Node[]) => void;
+  selectedNodes: Node<NodeData>[];
+  setSelectedNodes: (nodes: Node<NodeData>[]) => void;
   clipboardData: string | null;
   setClipboardData: (data: string | null) => void;
   isClipboardValid: boolean;
@@ -24,17 +18,17 @@ const useSessionStateStore = create<SessionStateStore>((set) => ({
   // NODE SELECTION
   selectedNodeIds: [],
   selectedNodes: [],
-  setSelectedNodes: (nodes: Node[]) => {
+  setSelectedNodes: (nodes: Node<NodeData>[]) => {
     set({
       selectedNodes: nodes,
-      selectedNodeIds: nodes.map((node) => node.id),
+      selectedNodeIds: nodes.map((node) => node.id)
     });
   },
   // CLIPBOARD
   clipboardData: null,
   isClipboardValid: false,
   setClipboardData: (data) => set({ clipboardData: data }),
-  setIsClipboardValid: (isValid) => set({ isClipboardValid: isValid }),
+  setIsClipboardValid: (isValid) => set({ isClipboardValid: isValid })
 }));
 
 export default useSessionStateStore;

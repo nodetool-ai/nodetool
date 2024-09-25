@@ -1,7 +1,13 @@
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
 import { create, useStore } from "zustand";
-import { NodeMetadata, OutputSlot, Property, UnifiedModel, Workflow } from "./ApiTypes";
+import {
+  NodeMetadata,
+  OutputSlot,
+  Property,
+  UnifiedModel,
+  Workflow
+} from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import {
   Connection,
@@ -16,9 +22,9 @@ import {
   OnConnect,
   applyNodeChanges,
   applyEdgeChanges,
-  updateEdge,
+  reconnectEdge,
   Position
-} from "reactflow";
+} from "@xyflow/react";
 import { customEquality } from "./customEquality";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
@@ -26,7 +32,7 @@ import { useWorkflowStore } from "./WorkflowStore";
 import { useNotificationStore } from "./NotificationStore";
 import { uuidv4 } from "./uuidv4";
 import { devError, devLog, devWarn } from "../utils/DevLog";
-import { autoLayout, subgraph } from "../core/graph";
+import { autoLayout } from "../core/graph";
 import { Slugify, isConnectable } from "../utils/TypeHandler";
 import { WorkflowAttributes } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
@@ -59,18 +65,6 @@ function sanitizeNodes(nodes: Node<NodeData>[]): Node<NodeData>[] {
         `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentId}. Removing parent reference.`
       );
       delete sanitizedNode.parentId;
-    }
-
-    // Check for deprecated parentNode
-    if (
-      "parentNode" in sanitizedNode &&
-      sanitizedNode.parentNode &&
-      !nodeMap.has(sanitizedNode.parentNode)
-    ) {
-      devWarn(
-        `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentNode} using deprecated 'parentNode'. Removing parent reference.`
-      );
-      delete sanitizedNode.parentNode;
     }
 
     return sanitizedNode;
@@ -170,7 +164,7 @@ export interface NodeStore {
   getOutputEdges: (nodeId: string) => Edge[];
   getSelection: () => NodeSelection;
   setEdgeUpdateSuccessful: (value: boolean) => void;
-  onNodesChange: OnNodesChange;
+  onNodesChange: OnNodesChange<Node<NodeData>>;
   onEdgesChange: OnEdgesChange;
   onEdgeUpdate: (oldEdge: Edge, newConnection: Connection) => void;
   onConnect: OnConnect;
@@ -567,7 +561,7 @@ export const useNodeStore = create<NodeStore>()(
        *
        * @param node The node to add.
        */
-      addNode: (node: Node) => {
+      addNode: (node: Node<NodeData>) => {
         if (get().findNode(node.id)) {
           throw Error("node already exists");
         }
@@ -637,7 +631,7 @@ export const useNodeStore = create<NodeStore>()(
         get().setWorkflowDirty(true);
         set({
           nodes: get().nodes.map(
-            (n) => (n.id === id ? { ...n, ...node } : n) as Node
+            (n) => (n.id === id ? { ...n, ...node } : n) as Node<NodeData>
           )
         });
       },
@@ -655,7 +649,7 @@ export const useNodeStore = create<NodeStore>()(
             (node) =>
               (node.id === id
                 ? { ...node, data: { ...node.data, ...data, workflow_id } }
-                : node) as Node
+                : node) as Node<NodeData>
           )
         });
         get().setWorkflowDirty(true);
@@ -674,14 +668,14 @@ export const useNodeStore = create<NodeStore>()(
             (node) =>
               (node.id === id
                 ? {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    workflow_id,
-                    properties: { ...node.data.properties, ...properties }
+                    ...node,
+                    data: {
+                      ...node.data,
+                      workflow_id,
+                      properties: { ...node.data.properties, ...properties }
+                    }
                   }
-                }
-                : node) as Node
+                : node) as Node<NodeData>
           )
         });
         get().setWorkflowDirty(true);
@@ -732,7 +726,7 @@ export const useNodeStore = create<NodeStore>()(
        *
        * @param nodes The nodes of the workflow.
        */
-      setNodes: (nodes: Node[], setDirty: boolean = true) => {
+      setNodes: (nodes: Node<NodeData>[], setDirty: boolean = true) => {
         if (setDirty) {
           nodes.forEach((node) => {
             node.data.dirty = true;
@@ -758,7 +752,7 @@ export const useNodeStore = create<NodeStore>()(
        *
        * @param changes The changes to the nodes.
        */
-      onNodesChange: (changes: NodeChange[]) => {
+      onNodesChange: (changes: NodeChange<Node<NodeData>>[]) => {
         const nodes = applyNodeChanges(changes, get().nodes);
         set({ nodes });
         get().setWorkflowDirty(true);
@@ -816,7 +810,7 @@ export const useNodeStore = create<NodeStore>()(
               (oldEdge.target === connection.target &&
                 oldEdge.targetHandle === connection.targetHandle) // keep all edges if just changing the source
           );
-          get().setEdges(updateEdge(oldEdge, connection, filteredEdges));
+          get().setEdges(reconnectEdge(oldEdge, connection, filteredEdges));
         } else {
           set({ edgeUpdateSuccessful: false });
         }
@@ -910,7 +904,18 @@ export const useNodeStore = create<NodeStore>()(
             id: uuidv4(),
             className: Slugify(srcType || "")
           };
-          setEdges(addEdge(newConnection, filteredEdges));
+
+          setEdges(
+            addEdge(
+              newConnection,
+              filteredEdges.map((edge) => ({
+                ...edge,
+                sourceHandle: edge.sourceHandle || null,
+                targetHandle: edge.targetHandle || null,
+                className: edge.className || ""
+              }))
+            )
+          );
         }
       }
     }),
