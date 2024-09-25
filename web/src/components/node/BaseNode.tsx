@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
-import { NodeProps, useStore } from "@xyflow/react";
+import { Node, NodeProps, useStore } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -43,7 +43,7 @@ export function titleize(str: string) {
  */
 
 export default memo(
-  function BaseNode(props: NodeProps<NodeData>) {
+  function BaseNode(props: NodeProps<Node<NodeData>>) {
     // Flow and zoom-related state
     const currentZoom = useStore((state) => state.transform[2]);
     const isMinZoom = currentZoom === MIN_ZOOM;

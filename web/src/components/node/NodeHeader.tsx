@@ -196,18 +196,19 @@ export const NodeHeader = memo(
 
     return (
       <div className={headerClassName} css={memoizedHeaderStyle}>
-        <span className="isMinZoom node-title">{nodeTitle}</span>
-
         {showMenu && !isMinZoom && (
-          <div className="menu-button" css={tooltipStyle}>
-            <button
-              className="menu-button"
-              {...tooltipAttributes}
-              onClick={handleOpenContextMenu}
-            >
-              <MoreHoriz />
-            </button>
-          </div>
+          <>
+            <span className="node-title">{nodeTitle}</span>
+            <div className="menu-button" css={tooltipStyle}>
+              <button
+                className="menu-button"
+                {...tooltipAttributes}
+                onClick={handleOpenContextMenu}
+              >
+                <MoreHoriz />
+              </button>
+            </div>
+          </>
         )}
       </div>
     );
