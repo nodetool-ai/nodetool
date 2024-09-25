@@ -562,6 +562,7 @@ class WorkflowRunner:
         # Run the subgraph for each item in the input data.
         results = {node._id: [] for node in output_nodes}
         for i in range(len(input)):
+            sub_context = context.copy()
             # passing global graph for lookups
             # set the result of the input node
             for input_node in input_nodes:
