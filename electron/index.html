@@ -18,6 +18,24 @@
             border: none;
         }
 
+        #nodetool-icon {
+            position: fixed;
+            top: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 400px;
+            z-index: 10000;
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7));
+             filter: invert(1); 
+            pointer-events: none;
+        }
+
+        #nodetool-icon path {
+            stroke: #ffffff !important;
+            color: #ffffff !important;
+        }
+
         #log-container {
             position: fixed;
             bottom: 0;
@@ -146,8 +164,9 @@
 </head>
 
 <body>
+    <img src="./resources/icon_stroke.svg" id="nodetool-icon" alt="Nodetool">
     <div id="boot-message">
-        <div class="boot-text"></div>
+        <div class="boot-text">Installing Nodetool</div>
     </div>
     <iframe id="content"></iframe>
     <button id="log-toggle" style="display: none;">Hide Log</button>
@@ -246,5 +265,7 @@
         initializeApp();
     </script>
 </body>
+
+</html>
 
 </html>
