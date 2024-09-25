@@ -40,7 +40,7 @@ const styles = (theme: any) =>
       margin: "2em 1em 1em 1.5em"
     },
     ".tools button": {
-      fontSize: "0.75em",
+      fontSize: "0.7em",
       height: "2em"
     },
     ".filter": {
@@ -121,8 +121,6 @@ const styles = (theme: any) =>
     }
   });
 
-type WorkflowCategory = "user" | "examples";
-
 const WorkflowGrid = () => {
   const [filterValue, setFilterValue] = useState("");
   const { settings, setWorkflowLayout, setWorkflowOrder } = useSettingsStore(
@@ -146,20 +144,6 @@ const WorkflowGrid = () => {
   const copyWorkflow = useWorkflowStore((state) => state.copy);
   const updateWorkflow = useWorkflowStore((state) => state.update);
   const queryClient = useQueryClient();
-  const [workflowCategory, setWorkflowCategory] =
-    useState<WorkflowCategory>("user");
-
-  useEffect(() => {
-    const categoryFromURL = searchParams.get(
-      "category"
-    ) as WorkflowCategory | null;
-    if (
-      categoryFromURL &&
-      ["user", "examples", "public"].includes(categoryFromURL)
-    ) {
-      setWorkflowCategory(categoryFromURL);
-    }
-  }, [searchParams]);
 
   const setShouldAutoLayout = useNodeStore(
     (state) => state.setShouldAutoLayout
@@ -178,16 +162,8 @@ const WorkflowGrid = () => {
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
 
   const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>({
-    queryKey: ["workflows", workflowCategory],
-    queryFn: async () => {
-      if (workflowCategory === "user") {
-        return loadMyWorkflows("", 200);
-      } else if (workflowCategory === "examples") {
-        return loadExampleWorkflows();
-      } else {
-        throw new Error("Invalid workflow category");
-      }
-    }
+    queryKey: ["workflows"],
+    queryFn: async () => loadMyWorkflows("", 200)
   });
 
   const deleteWorkflow = useWorkflowStore((state) => state.delete);
@@ -197,49 +173,25 @@ const WorkflowGrid = () => {
   // OPEN WORKFLOW
   const onDoubleClickWorkflow = useCallback(
     (workflow: Workflow) => {
-      if (workflowCategory === "examples") {
-        // setShouldAutoLayout(true);
-        copyWorkflow(workflow).then((workflow) => {
-          navigate("/editor/" + workflow.id);
-        });
-      } else {
-        setShouldAutoLayout(false);
-        navigate("/editor/" + workflow.id);
-      }
+      setShouldAutoLayout(false);
+      navigate("/editor/" + workflow.id);
     },
-    [navigate, setShouldAutoLayout, copyWorkflow, workflowCategory]
+    [navigate, setShouldAutoLayout]
   );
   const onClickOpen = useCallback(
     (workflow: Workflow) => {
       if (controlKeyPressed || shiftKeyPressed) {
         return;
       }
-      if (workflowCategory === "examples") {
-        // setShouldAutoLayout(true);
-        copyWorkflow(workflow).then((workflow) => {
-          navigate("/editor/" + workflow.id);
-        });
-      } else {
-        setShouldAutoLayout(false);
-        navigate("/editor/" + workflow.id);
-      }
+      setShouldAutoLayout(false);
+      navigate("/editor/" + workflow.id);
     },
-    [
-      navigate,
-      setShouldAutoLayout,
-      copyWorkflow,
-      workflowCategory,
-      controlKeyPressed,
-      shiftKeyPressed
-    ]
+    [navigate, setShouldAutoLayout, controlKeyPressed, shiftKeyPressed]
   );
 
   // SELECT WORKFLOW
   const onSelect = useCallback(
     (workflow: Workflow) => {
-      if (workflowCategory === "examples") {
-        return;
-      }
       const sortedWorkflows = [...(data?.workflows || [])].sort((a, b) => {
         if (settings.workflowOrder === "name") {
           return a.name.localeCompare(b.name);
@@ -290,8 +242,7 @@ const WorkflowGrid = () => {
       shiftKeyPressed,
       controlKeyPressed,
       settings.workflowOrder,
-      selectedWorkflows,
-      workflowCategory
+      selectedWorkflows
     ]
   );
 
@@ -319,14 +270,6 @@ const WorkflowGrid = () => {
       document.removeEventListener("click", onDeselect);
     };
   }, [onDeselect]);
-
-  // WORKFLOW CATEGORY
-  const handleWorfklowCategoryChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newCategory: string | null
-  ) => {
-    setWorkflowCategory((newCategory as WorkflowCategory) || "user");
-  };
 
   // CREATE NEW WORKFLOW
   const handleCreateWorkflow = async () => {
@@ -362,7 +305,6 @@ const WorkflowGrid = () => {
     const newName = `${baseName} (${highestNumber + 1})`;
     newWorkflow.name = newName.substring(0, 50);
 
-    setWorkflowCategory("user");
     await updateWorkflow(newWorkflow);
     queryClient.invalidateQueries({ queryKey: ["workflows"] });
   };
@@ -454,31 +396,10 @@ const WorkflowGrid = () => {
         }
       />
       <div css={styles}>
-        <div className="workflow-buttons">
+        <div className="tools">
           <Button variant="outlined" onClick={handleCreateWorkflow}>
             Create New
           </Button>
-          <ToggleButtonGroup
-            className="toggle-category"
-            value={workflowCategory}
-            onChange={handleWorfklowCategoryChange}
-            exclusive
-            aria-label="Workflow category"
-          >
-            <ToggleButton color="primary" value="user" aria-label="user">
-              My Workflows
-            </ToggleButton>
-            <ToggleButton
-              color="primary"
-              value="examples"
-              aria-label="examples"
-            >
-              Examples
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </div>
-
-        <div className="tools">
           <SearchInput
             onSearchChange={handleSearchChange}
             focusOnTyping={true}
@@ -525,14 +446,12 @@ const WorkflowGrid = () => {
             </Button>
           )}
         </div>
-        {workflowCategory === "user" && !isLoading && (
-          <div className="explanations">
-            <Typography>
-              Select multiple workflows for deletion by holding SHIFT or CONTROL
-              keys.
-            </Typography>
-          </div>
-        )}
+        <div className="explanations">
+          <Typography>
+            Select multiple workflows for deletion by holding SHIFT or CONTROL
+            keys.
+          </Typography>
+        </div>
 
         <div className="status">
           {isLoading && (
@@ -559,7 +478,7 @@ const WorkflowGrid = () => {
             onDelete={onDelete}
             onSelect={onSelect}
             selectedWorkflows={selectedWorkflows}
-            workflowCategory={workflowCategory}
+            workflowCategory="user"
           />
         ) : (
           <RenderListView
@@ -570,7 +489,7 @@ const WorkflowGrid = () => {
             onDelete={onDelete}
             onSelect={onSelect}
             selectedWorkflows={selectedWorkflows}
-            workflowCategory={workflowCategory}
+            workflowCategory="user"
           />
         )}
       </div>
