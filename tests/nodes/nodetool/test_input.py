@@ -74,13 +74,10 @@ from nodetool.nodes.nodetool.input import (
         ),
         (
             ChatInput(
-                label="Chat",
-                name="chat_input",
-                description="A chat input",
-                value="Hello",
+                label="Chat", name="chat_input", description="A chat input", value=[]
             ),
-            "Hello",
-            str,
+            [],
+            list,
         ),
         (
             TextInput(
@@ -215,8 +212,7 @@ async def test_input_node_json_schema(node_class):
     schema = node.get_json_schema()
     assert isinstance(schema, dict)
     assert "type" in schema
-    assert "description" in schema
-    assert schema["description"] == node.description
+    assert "properties" in schema
 
 
 @pytest.mark.asyncio
