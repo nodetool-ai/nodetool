@@ -136,8 +136,9 @@
             width: 100vw;
             height: 2px;
             background: linear-gradient(to right, transparent, #ffffff, transparent);
-            transform: translateY(-50%);
-            animation: lineExpand 5s ease-in-out infinite;
+            transform: translateY(-50%) ;
+
+            animation: lineExpand 5s ease infinite;
         }
 
         .boot-text::before {
@@ -156,9 +157,11 @@
         }
 
         @keyframes lineExpand {
-            0%, 100% { width: 0; opacity: 0; }
-            50% { width: 100vw; opacity: 1; }
+            0% { width: 0; opacity: 0; }
+            50% { opacity: 0.25; }
+            100% { width: 50vw; opacity: 0; }
         }
+
         
         @keyframes blink {
             0%, 100% { opacity: 0; }
@@ -187,7 +190,7 @@
 
 
     <div id="boot-message">
-        <div class="boot-text"></div>
+        <div class="boot-text">installing nodetool</div>
     </div>
     <iframe id="content"></iframe>
     <button id="log-toggle" style="display: none;">Hide Log</button>
@@ -288,13 +291,41 @@
             const grayValue = Math.floor(Math.random() * 100);
             return `#${grayValue.toString(16).padStart(2, '0').repeat(3)}`;
         }
-        function updateColors() {
+
+        function getRandomColor() {
+            const randomColor = Math.floor(Math.random() * 16777215).toString(16);
+            return `#${randomColor.padStart(6, '0')}`;
+        }
+
+        function updateStroke() {
             const icon = document.querySelector('.nodetool-icon');
             icon.style.setProperty('--stroke-color', getRandomGrayColor());
+        }
+
+        function updateFill() {
+            const icon = document.querySelector('.nodetool-icon');
             icon.style.setProperty('--fill-color', getRandomGrayColor());
         }
-        setInterval(updateColors, 5000);
-        updateColors();
+
+        setInterval(updateStroke, 5000);
+        setTimeout(() => {
+            setInterval(updateFill, 5000);
+        }, 60000+2500);
+
+        setTimeout(() => {
+            setInterval(() => {
+                const icon = document.querySelector('.nodetool-icon');
+                icon.style.setProperty('--stroke-color', getRandomColor());
+            }, 5000);
+        }, 5*60000);
+        setTimeout(() => {
+            setInterval(() => {
+                const icon = document.querySelector('.nodetool-icon');
+                icon.style.setProperty('--fill-color', getRandomColor());
+            }, 5000);
+        }, 10*60000+2500);
+
+        updateStroke();
     </script>
 </body>
 
