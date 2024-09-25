@@ -12,10 +12,12 @@ import nodetool.nodes.huggingface.multimodal
 import nodetool.nodes.huggingface.object_detection
 import nodetool.nodes.huggingface.sentence_similarity
 import nodetool.nodes.huggingface.summarization
+import nodetool.nodes.huggingface.text_to_audio
 import nodetool.nodes.huggingface.text_classification
 import nodetool.nodes.huggingface.text_to_image
 import nodetool.nodes.huggingface.text_generation
 import nodetool.nodes.huggingface.text_to_speech
+import nodetool.nodes.huggingface.text_to_text
 import nodetool.nodes.huggingface.token_classification
 import nodetool.nodes.huggingface.translation
 import nodetool.nodes.huggingface.video

@@ -16,9 +16,10 @@ from pydantic import Field
 from transformers import AutoProcessor, MusicgenForConditionalGeneration
 
 from nodetool.workflows.types import NodeProgress
+from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 
 
-class MusicGen(HuggingfaceNode):
+class MusicGen(HuggingFacePipelineNode):
     """
     Generates audio (music or sound effects) from text descriptions.
     audio, music, generation, huggingface
@@ -84,9 +85,12 @@ class MusicGen(HuggingfaceNode):
         if not context.is_huggingface_model_cached(self.model.repo_id):
             raise ValueError(f"Download the model {self.model.repo_id} first")
 
-        self._processor = self.load_model(context, AutoProcessor, self.model.repo_id)  # type: ignore
-        self._model = self.load_model(  # type: ignore
-            context, MusicgenForConditionalGeneration, self.model.repo_id
+        self._processor = await self.load_model(context, AutoProcessor, self.model.repo_id)  # type: ignore
+        self._model = await self.load_model(  # type: ignore
+            context=context,
+            model_class=MusicgenForConditionalGeneration,
+            model_id=self.model.repo_id,
+            variant=None,
         )
 
     async def move_to_device(self, device: str):
@@ -106,7 +110,9 @@ class MusicGen(HuggingfaceNode):
         inputs["input_ids"] = inputs["input_ids"].to(context.device)
         inputs["attention_mask"] = inputs["attention_mask"].to(context.device)
 
-        audio_values = self._model.generate(**inputs, max_new_tokens=256)
+        audio_values = self._model.generate(
+            **inputs, max_new_tokens=self.max_new_tokens
+        )
         sampling_rate = self._model.config.audio_encoder.sampling_rate
 
         return await context.audio_from_numpy(
@@ -162,6 +168,10 @@ class MusicLDM(HuggingFacePipelineNode):
         self._pipeline = await self.load_model(
             context, MusicLDMPipeline, self.model.repo_id
         )
+
+    async def move_to_device(self, device: str):
+        if self._pipeline:
+            self._pipeline.to(device)
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         assert self._pipeline is not None, "Pipeline not initialized"
