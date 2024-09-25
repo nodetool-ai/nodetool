@@ -22,14 +22,14 @@
 
         .nodetool-icon {
             position: fixed;
-            top: 200px;
+            top: calc(50% - 420px);
             left: 50%;
             transform: translateX(-50%);
-            width: 400px;
-            height: 400px;
+            width: 350px;
+            height: 350px;
             z-index: 10000;
             --stroke-color: transparent;;
-            --fill-color: #222;
+            --fill-color: transparent;
             --transition-speed: .7s;
             stroke: var(--stroke-color);
             fill: var(--fill-color);
@@ -121,6 +121,10 @@
             text-align: center;
             overflow: hidden;
             z-index: 1000;
+            background: radial-gradient(circle, #252525,  #242424, #202020);
+            background-position-y: -20vh;
+            background-size: 100%;
+            background-repeat: no-repeat;
         }
 
         .boot-text {
