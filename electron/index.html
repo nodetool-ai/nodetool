@@ -3,13 +3,15 @@
 
 <head>
     <title>Nodetool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
         body, html {
             height: 100%;
             margin: 0;
             display: flex;
             flex-direction: column;
-            background-color: #000;
+            background-color: #2e2e2e;
             font-family: Arial, sans-serif;
         }
 
@@ -18,7 +20,7 @@
             border: none;
         }
 
-        #nodetool-icon {
+        .nodetool-icon {
             position: fixed;
             top: 200px;
             left: 50%;
@@ -26,14 +28,22 @@
             width: 400px;
             height: 400px;
             z-index: 10000;
-            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7));
-             filter: invert(1); 
-            pointer-events: none;
+            --stroke-color: transparent;;
+            --fill-color: #222;
+            --transition-speed: .7s;
+            stroke: var(--stroke-color);
+            fill: var(--fill-color);
+            transition: stroke var(--transition-speed) ease, fill var(--transition-speed) ease; 
+
+        }
+        .nodetool-icon path {
+            stroke: var(--stroke-color);
+            fill: var(--fill-color);
+            transition: stroke var(--transition-speed) ease, fill var(--transition-speed) ease; 
         }
 
-        #nodetool-icon path {
-            stroke: #ffffff !important;
-            color: #ffffff !important;
+        .inter-font {
+            font-family: 'Inter', sans-serif;
         }
 
         #log-container {
@@ -41,7 +51,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background-color: #000;
+            background-color: #212121;
             transition: height 0.3s ease-out;
             height: 30px;
             overflow: hidden;
@@ -72,7 +82,7 @@
         #log {
             height: 170px;
             overflow-y: auto;
-            color: #00ff00;
+            color: #fff;
             padding: 10px;
             font-family: 'Courier New', monospace;
             font-size: 10px;
@@ -100,10 +110,12 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #000;
+            background-color: #222222;
             color: #ffffff;
             font-size: 36px;
-            font-family: 'Arial Black', sans-serif;
+            font-weight: 200;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
             text-align: center;
             overflow: hidden;
             z-index: 1000;
@@ -111,7 +123,9 @@
 
         .boot-text {
             position: relative;
-            animation: zoomInOut 4s infinite, glowPulse 2s infinite;
+            font-size: 24px;
+            color: #eee;
+            font-family: 'Inter', sans-serif;
         }
 
         .boot-text::before,
@@ -121,9 +135,9 @@
             top: 50%;
             width: 100vw;
             height: 2px;
-            background: linear-gradient(to right, transparent, #4CAF50, transparent);
+            background: linear-gradient(to right, transparent, #ffffff, transparent);
             transform: translateY(-50%);
-            animation: lineExpand 2s ease-in-out infinite;
+            animation: lineExpand 5s ease-in-out infinite;
         }
 
         .boot-text::before {
@@ -139,11 +153,6 @@
         @keyframes zoomInOut {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
-        }
-
-        @keyframes glowPulse {
-            0%, 100% { text-shadow: 0 0 5px #4CAF50, 0 0 10px #4CAF50, 0 0 15px #4CAF50; }
-            50% { text-shadow: 0 0 10px #4CAF50, 0 0 20px #4CAF50, 0 0 30px #4CAF50; }
         }
 
         @keyframes lineExpand {
@@ -164,9 +173,21 @@
 </head>
 
 <body>
-    <img src="./resources/icon_stroke.svg" id="nodetool-icon" alt="Nodetool">
+
+    <svg class="nodetool-icon" width="396" height="404" viewBox="0 0 396 404" fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <path class="path-1" d="M128 176.5L195.5 139L70.5 70L2.5 108L1 112V403L126 323V180L128 176.5Z" fill="#2E2E2E" />
+        <path class="path-2" d="M394.5 403L267.5 323V180L394.5 108V403Z" fill="#2E2E2E" />
+        <path class="path-3" d="M394.5 108L195 1L70 69.5L268 179L394.5 108Z" fill="#2E2E2E" />
+        <path class="path-4" d="M195.5 138.5L69.3451 70L3.5 107L127 176.5L195.5 138.5Z" fill="#2E2E2E" />
+        <path class="path-5"
+            d="M394.5 108V403L267.5 323V180L394.5 108ZM394.5 108L195 1L70 69.5L268 179L394.5 108ZM195.5 139L128 176.5L126 180V323L1 403V112L2.5 108L70.5 70L195.5 139ZM69.3451 70L195.5 138.5L127 176.5L3.5 107L69.3451 70Z"
+            stroke="white" stroke-width="2" stroke-linejoin="round" />
+    </svg>
+
+
     <div id="boot-message">
-        <div class="boot-text">Installing Nodetool</div>
+        <div class="boot-text"></div>
     </div>
     <iframe id="content"></iframe>
     <button id="log-toggle" style="display: none;">Hide Log</button>
@@ -258,14 +279,23 @@
         api.onServerLog((message) => {
             matrixLogger.log(message);
         });
-
         logToggle.addEventListener('click', toggleLog);
-
-        // Initialize the app when the page loads
         initializeApp();
     </script>
-</body>
 
-</html>
+    <script>
+        function getRandomGrayColor() {
+            const grayValue = Math.floor(Math.random() * 100);
+            return `#${grayValue.toString(16).padStart(2, '0').repeat(3)}`;
+        }
+        function updateColors() {
+            const icon = document.querySelector('.nodetool-icon');
+            icon.style.setProperty('--stroke-color', getRandomGrayColor());
+            icon.style.setProperty('--fill-color', getRandomGrayColor());
+        }
+        setInterval(updateColors, 5000);
+        updateColors();
+    </script>
+</body>
 
 </html>
