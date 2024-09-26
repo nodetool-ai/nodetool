@@ -60,8 +60,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     };
     const newNode = createNode(
       metadata,
-      // reactFlowInstance.screenToFlowPosition({
-      reactFlowInstance.project({
+      reactFlowInstance.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY
       })
