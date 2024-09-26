@@ -9,6 +9,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import AddCommentIcon from "@mui/icons-material/AddComment";
+import GroupWorkIcon from "@mui/icons-material/GroupWork"; // Add this import for the group icon
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
@@ -49,12 +50,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       properties: [],
       title: "Comment",
       description: "Comment",
-      icon: "",
-      color: "",
       outputs: [],
       model_info: {},
-      primary_field: "",
-      secondary_field: "",
       layout: "default",
       recommended_models: []
     };
@@ -68,6 +65,32 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     newNode.width = 150;
     newNode.height = 100;
     newNode.style = { width: 150, height: 100 };
+    addNode(newNode);
+  };
+
+  // Add this new function to create a group node
+  const addGroupNode = (event: React.MouseEvent) => {
+    const metadata = {
+      namespace: "default",
+      node_type: "group",
+      properties: [],
+      title: "Group",
+      description: "Group Node",
+      outputs: [],
+      model_info: {},
+      layout: "default",
+      recommended_models: []
+    };
+    const newNode = createNode(
+      metadata,
+      reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY
+      })
+    );
+    newNode.width = 200;
+    newNode.height = 150;
+    newNode.style = { width: 200, height: 150 };
     addNode(newNode);
   };
 
@@ -140,6 +163,18 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         label="Add Comment"
         IconComponent={<AddCommentIcon />}
         tooltip={"C + Click or Drag"}
+      />
+      <ContextMenuItem
+        onClick={(e) => {
+          if (e) {
+            e.preventDefault();
+            addGroupNode(e);
+          }
+          closeContextMenu();
+        }}
+        label="Add Group"
+        IconComponent={<GroupWorkIcon />}
+        tooltip={"Add a group node"}
       />
     </Menu>
   );
