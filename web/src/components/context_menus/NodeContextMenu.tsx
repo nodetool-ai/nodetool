@@ -165,7 +165,7 @@ const NodeContextMenu: React.FC = () => {
         onClick={(event: any) => handleCopyClicked(event, nodeId)}
         label="Copy"
         IconComponent={<CopyAllIcon />}
-        tooltip="Shift+C"
+        tooltip="CTRL+C | Meta+C"
       />
       <ContextMenuItem
         onClick={(event: any) => handleCopyClicked(event, nodeId)}

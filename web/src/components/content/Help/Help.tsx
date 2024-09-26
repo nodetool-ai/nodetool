@@ -255,11 +255,11 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
             </div>
             <div className="help-item">
               <Typography>Copy selected nodes</Typography>
-              <Button>Shift+C</Button>
+              <Button>CTRL+C | Meta+C</Button>
             </div>
             <div className="help-item">
               <Typography>Paste selected nodes</Typography>
-              <Button>Shift+v</Button>
+              <Button>CTRL+V | Meta+V</Button>
             </div>
             <div className="help-item">
               <Typography>History Undo</Typography>

@@ -160,9 +160,12 @@ const NodeEditor: React.FC<unknown> = () => {
 
   // UPDATE SELECTED NODES in SessionStateStore
   useOnSelectionChange({
-    onChange: ({ nodes }) => {
-      setSelectedNodes(nodes);
-    }
+    onChange: useCallback(
+      ({ nodes }) => {
+        setSelectedNodes(nodes as Node<NodeData>[]);
+      },
+      [setSelectedNodes]
+    )
   });
 
   /* DUPLICATE SELECTION */
@@ -299,8 +302,8 @@ const NodeEditor: React.FC<unknown> = () => {
   });
   useHotkeys("Meta+a", () => alignNodes({ arrangeSpacing: true }));
   // copy paste
-  useHotkeys("Shift+c", () => handleCopy());
-  useHotkeys("Shift+v", () => handlePaste());
+  useHotkeys("Control+c", () => handleCopy());
+  useHotkeys("Control+v", () => handlePaste());
   useHotkeys("Meta+c", () => handleCopy()); // for mac
   useHotkeys("Meta+v", () => handlePaste()); // for mac
   // duplicate

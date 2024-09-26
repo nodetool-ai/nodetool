@@ -8,4 +8,8 @@ export type NodeData = {
     width: number;
     height: number;
   };
+  positionAbsolute?: {
+    x: number;
+    y: number;
+  };
 };

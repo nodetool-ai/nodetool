@@ -134,7 +134,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         onClick={() => handleCopy()}
         label="Copy"
         IconComponent={<CopyAllIcon />}
-        tooltip="Shift+CTRL+C | Meta+CTRL+C"
+        tooltip="CTRL+C | Meta+C"
       />
       <ContextMenuItem
         onClick={() => handleCollapseAll(false)}
@@ -155,8 +155,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         label="Align"
         IconComponent={<FormatAlignLeftIcon />}
         tooltip=""
-        addButtonClassName={`action ${(selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
-          }`}
+        addButtonClassName={`action ${
+          (selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
+        }`}
       />
       <ContextMenuItem
         onClick={() => {
@@ -165,8 +166,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         label="Arrange"
         IconComponent={<FormatAlignLeftIcon />}
         tooltip=""
-        addButtonClassName={`action ${(selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
-          }`}
+        addButtonClassName={`action ${
+          (selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
+        }`}
       />
       <Divider />
       <ContextMenuItem

@@ -3,6 +3,8 @@ import { useReactFlow } from "@xyflow/react";
 import { useNodeStore } from "../stores/NodeStore";
 import { v4 as uuidv4 } from "uuid";
 import { DUPLICATE_SPACING_X } from "../config/constants";
+import { Node } from "@xyflow/react";
+import { NodeData } from "../stores/NodeData";
 
 export const useDuplicateNodes = () => {
   const reactFlowInstance = useReactFlow();
@@ -46,17 +48,29 @@ export const useDuplicateNodes = () => {
         const newNodeId = uuidv4();
         duplicatedNodesIds.push(newNodeId);
 
-        const newNode = {
+        const newNode: Node = {
           ...originalNode,
           id: newNodeId,
           position: {
             x: originalNode.position.x + boundsWidth + DUPLICATE_SPACING_X,
             y: originalNode.position.y
           },
-          selected: true
+          selected: true,
+          data: {
+            ...originalNode.data,
+            workflow_id: originalNode.data.workflow_id
+          } as NodeData
         };
 
-        addNode(newNode);
+        addNode({
+          ...newNode,
+          data: {
+            ...newNode.data,
+            properties: {},
+            selectable: true,
+            workflow_id: ""
+          }
+        } as Node<NodeData>);
       });
     },
     [addNode, reactFlowInstance]

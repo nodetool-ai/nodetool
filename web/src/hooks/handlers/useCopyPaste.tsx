@@ -134,18 +134,16 @@ export const useCopyPaste = () => {
             x: node.position.x + (newParentId ? 0 : offset.x),
             y: node.position.y + (newParentId ? 0 : offset.y)
           },
+          positionAbsolute: node.positionAbsolute
+            ? {
+                x: node.positionAbsolute.x + offset.x,
+                y: node.positionAbsolute.y + offset.y
+              }
+            : undefined,
           selected: false
         };
 
-        if (newNode.positionAbsolute) {
-          newNode.positionAbsolute = {
-            x: newNode.positionAbsolute.x + offset.x,
-            y: newNode.positionAbsolute.y + offset.y
-          };
-        }
-
         delete (newNode as any).parentNode;
-
         newNodes.push(newNode);
       }
 
