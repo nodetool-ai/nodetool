@@ -25,7 +25,7 @@
     "@types/react-dom": "^18.2.7",
     "@types/uuid": "^9.0.4",
     "@vitejs/plugin-react": "^4.2.1",
-    "@xyflow/react": "^12.3.0",
+    "@xyflow/react": "^12.3.1",
     "axios": "^1.4.0",
     "browserslist-to-esbuild": "^2.1.1",
     "chroma-js": "^2.4.2",
