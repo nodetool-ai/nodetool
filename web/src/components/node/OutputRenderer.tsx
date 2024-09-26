@@ -66,13 +66,7 @@ function generateAssetGridContent(
     } as Asset;
   });
 
-  return (
-    <AssetGridContent
-      assets={assets}
-      onDoubleClick={onDoubleClick}
-      sortedAssets={value}
-    />
-  );
+  return <AssetGridContent assets={assets} onDoubleClick={onDoubleClick} />;
 }
 
 const styles = (theme: any) =>
