@@ -312,11 +312,9 @@ const NamespaceList: React.FC<NamespaceListProps> = React.memo(
                 </ul>
 
                 <Typography variant="h5">Search Nodes</Typography>
-                <Typography variant="body1">
-                  <ul>
-                    <li>Type in the search bar to search for nodes.</li>
-                  </ul>
-                </Typography>
+                <ul>
+                  <li>Type in the search bar to search for nodes.</li>
+                </ul>
 
                 <Typography variant="h5">Create Nodes</Typography>
                 <ul>
