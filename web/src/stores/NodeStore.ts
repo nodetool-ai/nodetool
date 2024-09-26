@@ -81,6 +81,7 @@ export function graphNodeToReactFlowNode(
     id: node.id,
     parentId: node.parent_id || undefined,
     dragHandle: ".node-header",
+    expandParent: true,
     selectable:
       node.type == "nodetool.group.Loop" ? false : ui_properties?.selectable,
     data: {
