@@ -2,8 +2,13 @@
 import { css } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
 
-import { memo, useEffect, useRef } from "react";
-import { NodeProps, NodeResizeControl, ResizeDragEvent } from "@xyflow/react";
+import { memo, useCallback, useEffect, useRef } from "react";
+import {
+  Node,
+  NodeProps,
+  NodeResizeControl,
+  ResizeDragEvent
+} from "@xyflow/react";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import { Tooltip } from "@mui/material";
 // components
@@ -110,21 +115,16 @@ const styles = (theme: any) =>
     }
   });
 
-const LoopNode = (props: NodeProps<NodeData>) => {
-  const {
-    data: metadata,
-    isLoading: metadataLoading,
-    error: metadataError
-  } = useMetadata();
-
+const LoopNode = (props: NodeProps<Node<NodeData>>) => {
+  const { data: metadata } = useMetadata();
   const nodeRef = useRef<HTMLDivElement>(null);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
-  const { controlKeyPressed, spaceKeyPressed } = useKeyPressedStore(
-    (state) => ({
+  const { controlKeyPressed, shiftKeyPressed, spaceKeyPressed } =
+    useKeyPressedStore((state) => ({
       controlKeyPressed: state.isKeyPressed("Control"),
+      shiftKeyPressed: state.isKeyPressed("Shift"),
       spaceKeyPressed: state.isKeyPressed(" ")
-    })
-  );
+    }));
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
@@ -132,72 +132,51 @@ const LoopNode = (props: NodeProps<NodeData>) => {
     state.hoveredNodes.includes(props.id)
   );
   const edges = getInputEdges(props.id);
-  const handleResize = (event: ResizeDragEvent) => {
-    const newWidth = event.x;
-    const newHeight = event.y;
-    updateNodeData(props.id, {
-      ...props.data,
-      size: { width: newWidth, height: newHeight }
-    });
-  };
+  const handleResize = useCallback(
+    (event: ResizeDragEvent) => {
+      const newWidth = event.x;
+      const newHeight = event.y;
+      updateNodeData(props.id, {
+        ...props.data,
+        size: { width: newWidth, height: newHeight }
+      });
+    },
+    [props.id, props.data, updateNodeData]
+  );
 
-  const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    openNodeMenu(getMousePosition().x, getMousePosition().y, false, "", "");
-  };
+  const handleOpenNodeMenu = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      openNodeMenu(getMousePosition().x, getMousePosition().y, false, "", "");
+    },
+    [openNodeMenu]
+  );
+
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const clickedElement = e.target as HTMLElement;
+      if (clickedElement.classList.contains("node-header")) {
+        updateNodeData(id, { collapsed: !props.data.collapsed });
+      } else {
+        handleOpenNodeMenu();
+      }
+    },
+    [props.data.collapsed, updateNodeData, handleOpenNodeMenu]
+  );
 
   useEffect(() => {
-    /*
-     * HACK: allow panning the canvas when clicking inside the node
-     * Observe parent elements' classes and remove the "nopan" class
-     */
-    const removeNoPanClass = () => {
-      if (nodeRef.current) {
-        const parent = nodeRef.current.closest(".react-flow__node");
-        if (parent && parent.classList.contains("nopan")) {
-          parent.classList.remove("nopan");
-        }
-      }
-    };
-    removeNoPanClass();
-    const observer = new MutationObserver(() => {
-      removeNoPanClass();
-    });
-    if (nodeRef.current) {
-      const parent = nodeRef.current.closest(".react-flow__node");
-      if (parent) {
-        observer.observe(parent, {
-          attributes: true,
-          attributeFilter: ["class"]
-        });
-      }
-    }
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  const handleDoubleClick = (e: React.MouseEvent, id: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const clickedElement = e.target as HTMLElement;
-    if (clickedElement.classList.contains("node-header")) {
-      updateNodeData(id, { collapsed: !props.data.collapsed });
-    } else {
-      handleOpenNodeMenu();
-    }
-  };
-  useEffect(() => {
-    // Selectable when ctrl key is pressed
-    if (controlKeyPressed) {
+    // Selectable loop node when shift orctrl key is pressed
+    if (controlKeyPressed || shiftKeyPressed) {
       updateNode(props.id, { selectable: true });
     } else {
       updateNode(props.id, { selectable: false });
     }
-  }, [controlKeyPressed, updateNode, props.id]);
+  }, [controlKeyPressed, shiftKeyPressed, updateNode, props.id]);
 
   if (!metadata) {
     return <div>Loading...</div>;
