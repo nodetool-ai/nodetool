@@ -21,10 +21,6 @@
         }
 
         .nodetool-icon {
-            position: fixed;
-            top: calc(50% - 420px);
-            left: 50%;
-            transform: translateX(-50%);
             width: 350px;
             height: 350px;
             z-index: 10000;
@@ -34,7 +30,9 @@
             stroke: var(--stroke-color);
             fill: var(--fill-color);
             transition: stroke var(--transition-speed) ease, fill var(--transition-speed) ease; 
-
+        }
+        .nodetool-icon:hover .path-4 {
+            fill: var(--stroke-color);
         }
         .nodetool-icon path {
             stroke: var(--stroke-color);
@@ -103,6 +101,8 @@
 
         #boot-message {
             display: flex;
+            gap: 12px;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             position: fixed;
@@ -183,6 +183,7 @@
 
 <body>
 
+    <div id="boot-message">
     <svg class="nodetool-icon" width="396" height="404" viewBox="0 0 396 404" fill="none"
         xmlns="http://www.w3.org/2000/svg">
         <path class="path-1" d="M128 176.5L195.5 139L70.5 70L2.5 108L1 112V403L126 323V180L128 176.5Z" fill="#2E2E2E" />
@@ -195,7 +196,6 @@
     </svg>
 
 
-    <div id="boot-message">
         <div class="boot-text">installing nodetool</div>
     </div>
     <iframe id="content"></iframe>
