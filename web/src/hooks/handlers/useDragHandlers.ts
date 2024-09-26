@@ -156,11 +156,13 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
 
   /* SELECTION END */
   const onSelectionEnd = useCallback(() => {
-    const selectedNodes = reactFlow.getNodes().filter((n) => n.selected);
+    const selectedNodes = reactFlow
+      .getNodes()
+      .filter((n) => n.selected) as Node<NodeData>[];
     setSelectedNodes(selectedNodes);
+
     if (CKeyPressed) {
       const mousePos = getMousePosition();
-      // const projectedEndPos = reactFlow.screenToFlowPosition({
       const projectedEndPos = reactFlow.screenToFlowPosition({
         x: mousePos.x,
         y: mousePos.y
