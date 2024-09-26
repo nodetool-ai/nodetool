@@ -7,6 +7,7 @@ import {
   Node,
   NodeProps,
   NodeResizeControl,
+  NodeResizer,
   ResizeDragEvent
 } from "@xyflow/react";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
@@ -54,6 +55,7 @@ const styles = (theme: any) =>
       left: "10px",
       top: "0px"
     },
+    // resize control
     ".tools .react-flow__resize-control.handle.bottom.right": {
       opacity: 1,
       right: "-8px",
@@ -64,6 +66,19 @@ const styles = (theme: any) =>
       height: "1.5em",
       background: "#222 !important"
     },
+    ".node-resizer .react-flow__resize-control.handle": {
+      opacity: 0
+    },
+    ".node-resizer .react-flow__resize-control.line": {
+      opacity: 0,
+      borderWidth: "1px",
+      borderColor: theme.palette.c_gray2,
+      transition: "all 0.15s ease-in-out"
+    },
+    ".node-resizer .react-flow__resize-control.line:hover": {
+      opacity: 1
+    },
+    // header
     ".node-header": {
       height: "3em",
       backgroundColor: "rgba(0,0,0,0.1)"
@@ -219,9 +234,9 @@ const LoopNode = (props: NodeProps<Node<NodeData>>) => {
         </Tooltip>
       </div>
       <NodeHeader id={props.id} nodeTitle={"Loop"} />
-      {nodeHovered && (
+      {/* {nodeHovered && (
         <div className="info">Hold SPACE key to move nodes out of the loop</div>
-      )}
+      )} */}
       <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
       <Tooltip
         title="Returns the data of the GroupOutput outside the loop."
@@ -241,6 +256,9 @@ const LoopNode = (props: NodeProps<Node<NodeData>>) => {
         >
           <SouthEastIcon />
         </NodeResizeControl>
+      </div>
+      <div className="node-resizer">
+        <NodeResizer minWidth={100} minHeight={30} />
       </div>
     </div>
   );
