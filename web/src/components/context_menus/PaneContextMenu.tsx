@@ -10,11 +10,15 @@ import SouthEastIcon from "@mui/icons-material/SouthEast";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import AddCommentIcon from "@mui/icons-material/AddComment";
 import GroupWorkIcon from "@mui/icons-material/GroupWork"; // Add this import for the group icon
+import LoopIcon from "@mui/icons-material/Loop"; // Add this import for the loop icon
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNodeStore } from "../../stores/NodeStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { useCallback } from "react";
+import { useCreateLoopNode } from "../../hooks/createnodes/useCreateLoopNode";
+import { useMetadata } from "../../serverState/useMetadata";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -68,31 +72,49 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     addNode(newNode);
   };
 
-  // Add this new function to create a group node
-  const addGroupNode = (event: React.MouseEvent) => {
-    const metadata = {
-      namespace: "default",
-      node_type: "group",
-      properties: [],
-      title: "Group",
-      description: "Group Node",
-      outputs: [],
-      model_info: {},
-      layout: "default",
-      recommended_models: []
-    };
-    const newNode = createNode(
-      metadata,
-      reactFlowInstance.screenToFlowPosition({
+  const addGroupNode = useCallback(
+    (event: React.MouseEvent) => {
+      const metadata = {
+        namespace: "default",
+        node_type: "nodetool.workflows.base_node.Group",
+        properties: [],
+        title: "Group",
+        description: "Group Node",
+        outputs: [],
+        model_info: {},
+        layout: "default",
+        recommended_models: []
+      };
+      const newNode = createNode(
+        metadata,
+        reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY
+        })
+      );
+      addNode(newNode);
+    },
+    [createNode, addNode, reactFlowInstance]
+  );
+
+  const createLoopNode = useCreateLoopNode();
+  const { data: metadata } = useMetadata();
+
+  const addLoopNode = useCallback(
+    (event: React.MouseEvent) => {
+      const position = {
         x: event.clientX,
         y: event.clientY
-      })
-    );
-    newNode.width = 200;
-    newNode.height = 150;
-    newNode.style = { width: 200, height: 150 };
-    addNode(newNode);
-  };
+      };
+      if (metadata) {
+        createLoopNode(
+          metadata.metadataByType["nodetool.group.Loop"],
+          position
+        );
+      }
+    },
+    [createLoopNode, metadata]
+  );
 
   if (!menuPosition) {
     return null;
@@ -176,8 +198,20 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         IconComponent={<GroupWorkIcon />}
         tooltip={"Add a group node"}
       />
+      <ContextMenuItem
+        onClick={(e) => {
+          if (e) {
+            e.preventDefault();
+            addLoopNode(e);
+          }
+          closeContextMenu();
+        }}
+        label="Add Loop"
+        IconComponent={<LoopIcon />}
+        tooltip={"Add a loop node"}
+      />
     </Menu>
   );
 };
 
-export default PaneContextMenu;
+export default React.memo(PaneContextMenu);

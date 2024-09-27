@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useState, useCallback, useRef } from "react";
-import { NodeProps, NodeResizeControl } from "@xyflow/react";
+import { NodeProps, NodeResizeControl, Node } from "@xyflow/react";
 import { debounce, isEqual } from "lodash";
 import {
   Container,
@@ -163,7 +163,7 @@ declare module "slate" {
 }
 
 export default memo(
-  function CommentNode(props: NodeProps<NodeData>) {
+  function CommentNode(props: NodeProps<Node<NodeData>>) {
     const className = `comment-node ${
       props.data.collapsed ? "collapsed " : ""
     }${props.selected ? "selected" : ""}`.trim();

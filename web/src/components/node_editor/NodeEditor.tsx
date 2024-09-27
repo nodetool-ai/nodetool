@@ -75,6 +75,7 @@ import { ErrorBoundary } from "@sentry/react";
 import { NodeData } from "../../stores/NodeData";
 import useModelStore from "../../stores/ModelStore";
 import { tryCacheFiles } from "../tryCacheFiles";
+import GroupNode from "../node/GroupNode";
 
 declare global {
   interface Window {
@@ -139,6 +140,7 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* DEFINE NODE TYPES */
   nodeTypes["nodetool.group.Loop"] = LoopNode;
+  nodeTypes["nodetool.workflows.base_node.Group"] = GroupNode;
   nodeTypes["nodetool.workflows.base_node.Comment"] = CommentNode;
   nodeTypes["nodetool.workflows.base_node.Preview"] = PreviewNode;
   nodeTypes["default"] = PlaceholderNode;

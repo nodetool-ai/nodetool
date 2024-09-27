@@ -112,6 +112,7 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
 
   if (
     node.type === "nodetool.group.Loop" ||
+    node.type === "nodetool.workflows.base_node.Group" ||
     node.type === "nodetool.workflows.base_node.Comment" ||
     node.type === "nodetool.workflows.base_node.Preview"
   ) {

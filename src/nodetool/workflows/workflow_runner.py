@@ -538,42 +538,47 @@ class WorkflowRunner:
         input_nodes = [n for n in child_nodes if isinstance(n, GroupInput)]
         output_nodes = [n for n in child_nodes if isinstance(n, GroupOutput)]
 
-        if len(input_nodes) == 0:
-            raise ValueError("Loop node must have at least one input node.")
+        if group_node.get_node_type() == "nodetool.group.Loop":
+            if len(input_nodes) == 0:
+                raise ValueError("Loop node must have at least one input node.")
 
-        input = inputs.get("input", [])
+            input = inputs.get("input", [])
 
-        if isinstance(input, DataframeRef):
-            df = await context.dataframe_to_pandas(input)
-            df_dict = df.to_dict(orient="index")
-            input = []
-            for index, row in df_dict.items():
-                row["index"] = index
-                input.append(row)
-        elif isinstance(input, list):
-            pass
-        elif isinstance(input, dict):
-            input = list([{"key": k, "value": v} for k, v in input.items()])
+            if isinstance(input, DataframeRef):
+                df = await context.dataframe_to_pandas(input)
+                df_dict = df.to_dict(orient="index")
+                input = []
+                for index, row in df_dict.items():
+                    row["index"] = index
+                    input.append(row)
+            elif isinstance(input, list):
+                pass
+            elif isinstance(input, dict):
+                input = list([{"key": k, "value": v} for k, v in input.items()])
+            else:
+                raise ValueError(
+                    f"Input data must be a list or dataframe but got: {type(input)}"
+                )
+
+            # Run the subgraph for each item in the input data.
+            results = {node._id: [] for node in output_nodes}
+            for i in range(len(input)):
+                sub_context = context.copy()
+                # passing global graph for lookups
+                # set the result of the input node
+                for input_node in input_nodes:
+                    input_node._value = input[i]
+
+                graph = Graph(nodes=child_nodes, edges=context.graph.edges)
+                await self.process_graph(sub_context, graph, parent_id=group_node._id)
         else:
-            raise ValueError(
-                f"Input data must be a list or dataframe but got: {type(input)}"
-            )
-
-        # Run the subgraph for each item in the input data.
-        results = {node._id: [] for node in output_nodes}
-        for i in range(len(input)):
             sub_context = context.copy()
-            # passing global graph for lookups
-            # set the result of the input node
-            for input_node in input_nodes:
-                input_node._value = input[i]
-
             graph = Graph(nodes=child_nodes, edges=context.graph.edges)
             await self.process_graph(sub_context, graph, parent_id=group_node._id)
 
-            # Get the result of the subgraph and add it to the results.
-            for output_node in output_nodes:
-                results[output_node._id].append(output_node.input)
+        # Get the result of the subgraph and add it to the results.
+        for output_node in output_nodes:
+            results[output_node._id].append(output_node.input)
 
         # Mark the nodes as processed.
         for n in child_nodes:
