@@ -374,7 +374,9 @@ export const useNodeStore = create<NodeStore>()(
 
         set({
           nodes: nodes,
-          edges: get().edges.filter((edge) => edge.source !== id)
+          edges: get().edges.filter(
+            (edge) => edge.source !== id && edge.target !== id
+          )
         });
       },
       /**
