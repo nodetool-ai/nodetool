@@ -571,14 +571,19 @@ class WorkflowRunner:
 
                 graph = Graph(nodes=child_nodes, edges=context.graph.edges)
                 await self.process_graph(sub_context, graph, parent_id=group_node._id)
+
+            # Get the result of the subgraph and add it to the results.
+            for output_node in output_nodes:
+                results[output_node._id].append(output_node.input)
         else:
             sub_context = context.copy()
             graph = Graph(nodes=child_nodes, edges=context.graph.edges)
             await self.process_graph(sub_context, graph, parent_id=group_node._id)
 
-        # Get the result of the subgraph and add it to the results.
-        for output_node in output_nodes:
-            results[output_node._id].append(output_node.input)
+            # Get the result of the subgraph
+            results = {}
+            for output_node in output_nodes:
+                results[output_node._id] = output_node.input
 
         # Mark the nodes as processed.
         for n in child_nodes:
