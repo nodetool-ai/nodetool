@@ -159,6 +159,37 @@ const LoopNode = (props: NodeProps<Node<NodeData>>) => {
     [props.id, props.data, updateNodeData]
   );
 
+  useEffect(() => {
+    /*
+     * HACK: allow panning the canvas when clicking inside the node
+     * Observe parent elements' classes and remove the "nopan" class
+     */
+    const removeNoPanClass = () => {
+      if (nodeRef.current) {
+        const parent = nodeRef.current.closest(".react-flow__node");
+        if (parent && parent.classList.contains("nopan")) {
+          parent.classList.remove("nopan");
+        }
+      }
+    };
+    removeNoPanClass();
+    const observer = new MutationObserver(() => {
+      removeNoPanClass();
+    });
+    if (nodeRef.current) {
+      const parent = nodeRef.current.closest(".react-flow__node");
+      if (parent) {
+        observer.observe(parent, {
+          attributes: true,
+          attributeFilter: ["class"]
+        });
+      }
+    }
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   const handleOpenNodeMenu = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {
       if (event) {
