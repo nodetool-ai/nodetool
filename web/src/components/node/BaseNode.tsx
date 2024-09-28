@@ -159,6 +159,10 @@ export default memo(
       );
     }
 
+    if (parentIsCollapsed) {
+      return null;
+    }
+
     return (
       <Container
         className={className}

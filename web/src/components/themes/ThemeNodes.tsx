@@ -109,9 +109,9 @@ const ThemeNodes: Theme = createTheme({
     c_error: "#ff5555",
     c_delete: "#ff2222",
     c_node_bg: "#2b2e31",
-    c_node_bg_group: "#3c4044",
+    c_node_bg_group: "#464b51",
     c_node_header_bg: "#202020",
-    c_node_header_bg_group: "#333333",
+    c_node_header_bg_group: "#444",
     c_bg_loop: "#305c9d17",
     c_bg_group: "#9bcfdb17",
 

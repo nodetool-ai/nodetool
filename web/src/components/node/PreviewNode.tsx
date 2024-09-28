@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { memo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NodeProps, NodeResizeControl, useStore } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -13,6 +13,8 @@ import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "@xyflow/react";
 import { tableStyles } from "../../styles/TableStyles";
 import { MIN_ZOOM } from "../../config/constants";
+import ThemeNodes from "../themes/ThemeNodes";
+import { useNodeStore } from "../../stores/NodeStore";
 
 const styles = (theme: any) =>
   css([
@@ -62,6 +64,7 @@ const styles = (theme: any) =>
       },
       ".description": {
         position: "absolute",
+        opacity: 0,
         textAlign: "center",
         top: "50%",
         left: "50%",
@@ -70,6 +73,9 @@ const styles = (theme: any) =>
         fontFamily: theme.fontFamily2,
         width: "100%",
         color: theme.palette.c_gray5
+      },
+      "&:hover .description": {
+        opacity: 1
       },
       // tensor
       "& .tensor": {
@@ -90,7 +96,16 @@ interface PreviewNodeProps extends NodeProps {
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const currentZoom = useStore((state) => state.transform[2]);
   const isMinZoom = currentZoom === MIN_ZOOM;
+  const node = useNodeStore(
+    useCallback((state) => state.findNode(props.id), [props.id])
+  );
   const hasParent = props.parentId !== undefined;
+  const parentNode = useNodeStore(
+    useCallback(
+      (state) => (hasParent ? state.findNode(node?.parentId || "") : null),
+      [hasParent, node?.parentId]
+    )
+  );
   const result = useResultsStore((state) =>
     state.getResult(props.data.workflow_id, props.id)
   );
@@ -99,13 +114,31 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     return result?.output ? <OutputRenderer value={result.output} /> : null;
   }, [result?.output]);
 
+  const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
+  useEffect(() => {
+    // Set parentIsCollapsed state based on parent node
+    if (hasParent) {
+      setParentIsCollapsed(parentNode?.data.collapsed || false);
+    }
+  }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
+
+  if (parentIsCollapsed) {
+    return null;
+  }
+
   return (
     <Container
       css={styles}
+      style={{
+        display: parentIsCollapsed ? "none" : "flex",
+        backgroundColor: hasParent
+          ? ThemeNodes.palette.c_node_bg_group
+          : ThemeNodes.palette.c_node_bg
+      }}
       className={`preview-node ${hasParent ? "hasParent" : ""}`}
     >
       <Handle
-        style={{ top: "50%" }}
+        style={{ top: "50%", backgroundColor: "white" }}
         id="value"
         type="target"
         position={Position.Left}
@@ -135,7 +168,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         <Typography className="description">Preview any output</Typography>
       )}
       <Handle
-        style={{ top: "50%" }}
+        style={{ top: "50%", backgroundColor: "white" }}
         id="value"
         type="target"
         position={Position.Left}
