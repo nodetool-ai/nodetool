@@ -203,7 +203,8 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
       if (spaceKeyPressed) {
         if (node.expandParent) {
           updateNode(node.id, {
-            expandParent: false
+            expandParent: false,
+            parentId: undefined
           });
         }
       }
