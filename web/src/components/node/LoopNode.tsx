@@ -159,6 +159,31 @@ const LoopNode = (props: NodeProps<Node<NodeData>>) => {
     [props.id, props.data, updateNodeData]
   );
 
+  const handleOpenNodeMenu = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      openNodeMenu(getMousePosition().x, getMousePosition().y, false, "", "");
+    },
+    [openNodeMenu]
+  );
+
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const clickedElement = e.target as HTMLElement;
+      if (clickedElement.classList.contains("node-header")) {
+        updateNodeData(id, { collapsed: !props.data.collapsed });
+      } else {
+        handleOpenNodeMenu();
+      }
+    },
+    [props.data.collapsed, updateNodeData, handleOpenNodeMenu]
+  );
+
   useEffect(() => {
     /*
      * HACK: allow panning the canvas when clicking inside the node
@@ -190,40 +215,21 @@ const LoopNode = (props: NodeProps<Node<NodeData>>) => {
     };
   }, []);
 
-  const handleOpenNodeMenu = useCallback(
-    (event?: React.MouseEvent<HTMLElement>) => {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      openNodeMenu(getMousePosition().x, getMousePosition().y, false, "", "");
-    },
-    [openNodeMenu]
-  );
-
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent, id: string) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const clickedElement = e.target as HTMLElement;
-      if (clickedElement.classList.contains("node-header")) {
-        updateNodeData(id, { collapsed: !props.data.collapsed });
-      } else {
-        handleOpenNodeMenu();
-      }
-    },
-    [props.data.collapsed, updateNodeData, handleOpenNodeMenu]
-  );
-
   useEffect(() => {
-    // Selectable loop node when shift or ctrl key is pressed
-    if (controlKeyPressed || shiftKeyPressed) {
+    // Selectable group nodes when spacekey is pressed
+    // (enables the use of the selection rectangle inside group nodes)
+    if (spaceKeyPressed) {
       updateNode(props.id, { selectable: true });
     } else {
       updateNode(props.id, { selectable: false });
     }
-  }, [controlKeyPressed, shiftKeyPressed, updateNode, props.id]);
-
+  }, [
+    controlKeyPressed,
+    shiftKeyPressed,
+    updateNode,
+    props.id,
+    spaceKeyPressed
+  ]);
   if (!metadata) {
     return <div>Loading...</div>;
   }

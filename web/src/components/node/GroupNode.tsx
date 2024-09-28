@@ -147,13 +147,20 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
   );
 
   useEffect(() => {
-    // Selectable group node when shift or ctrl key is pressed
-    if (controlKeyPressed || shiftKeyPressed) {
+    // Selectable group nodes when spacekey is pressed
+    // (enables the use of the selection rectangle inside group nodes)
+    if (spaceKeyPressed) {
       updateNode(props.id, { selectable: true });
     } else {
       updateNode(props.id, { selectable: false });
     }
-  }, [controlKeyPressed, shiftKeyPressed, updateNode, props.id]);
+  }, [
+    controlKeyPressed,
+    shiftKeyPressed,
+    updateNode,
+    props.id,
+    spaceKeyPressed
+  ]);
 
   if (!metadata) {
     return <div>Loading...</div>;
@@ -176,11 +183,11 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
       }
     >
       <NodeHeader id={props.id} nodeTitle={"Group"} />
-      {nodeHovered && (
+      {/* {nodeHovered && (
         <div className="info">
           Hold SPACE key to move nodes out of the group
         </div>
-      )}
+      )} */}
       <div className="tools">
         <NodeResizeControl
           style={{ background: "transparent", border: "none" }}
