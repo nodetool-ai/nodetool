@@ -146,7 +146,6 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
   const onSelectionStart = useCallback(() => {
     // get mouse position for creating comment node
     const mousePos = getMousePosition();
-    // const projectedStartPos = reactFlow.screenToFlowPosition({
     const projectedStartPos = reactFlow.screenToFlowPosition({
       x: mousePos.x,
       y: mousePos.y
