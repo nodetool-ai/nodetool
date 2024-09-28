@@ -82,8 +82,7 @@ export function graphNodeToReactFlowNode(
     parentId: node.parent_id || undefined,
     dragHandle: ".node-header",
     expandParent: true,
-    selectable:
-      node.type == "nodetool.group.Loop" ? false : ui_properties?.selectable,
+    selectable: ui_properties?.selectable,
     data: {
       properties: node.data || {},
       selectable: ui_properties?.selectable,
@@ -96,7 +95,11 @@ export function graphNodeToReactFlowNode(
       width: ui_properties?.width,
       height: ui_properties?.height
     },
-    zIndex: node.type == "nodetool.group.Loop" ? -10 : ui_properties?.zIndex
+    zIndex:
+      node.type == "nodetool.group.Loop" ||
+      node.type == "nodetool.workflows.base_node.Group"
+        ? -10
+        : ui_properties?.zIndex
   };
 }
 
@@ -116,8 +119,8 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     node.type === "nodetool.workflows.base_node.Comment" ||
     node.type === "nodetool.workflows.base_node.Preview"
   ) {
-    ui_properties.width = node.width || 200;
-    ui_properties.height = node.height || 200;
+    ui_properties.width = node.measured?.width || 200;
+    ui_properties.height = node.measured?.height || 200;
   }
 
   if (node.type === "nodetool.group.Loop") {
