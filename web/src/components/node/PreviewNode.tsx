@@ -48,7 +48,6 @@ const styles = (theme: any) =>
         left: 0,
         margin: 0,
         padding: 0,
-        backgroundColor: theme.palette.c_gray1,
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {
@@ -91,6 +90,7 @@ interface PreviewNodeProps extends NodeProps {
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const currentZoom = useStore((state) => state.transform[2]);
   const isMinZoom = currentZoom === MIN_ZOOM;
+  const hasParent = props.parentId !== undefined;
   const result = useResultsStore((state) =>
     state.getResult(props.data.workflow_id, props.id)
   );
@@ -100,7 +100,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   }, [result?.output]);
 
   return (
-    <Container css={styles}>
+    <Container
+      css={styles}
+      className={`preview-node ${hasParent ? "hasParent" : ""}`}
+    >
       <Handle
         style={{ top: "50%" }}
         id="value"
@@ -119,7 +122,12 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           >
             <SouthEastIcon />
           </NodeResizeControl>
-          <NodeHeader id={props.id} nodeTitle="Preview" isLoading={false} />
+          <NodeHeader
+            id={props.id}
+            nodeTitle="Preview"
+            isLoading={false}
+            hasParent={hasParent}
+          />
         </>
       )}
 
