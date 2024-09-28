@@ -289,7 +289,7 @@ const LoopNode = (props: NodeProps<Node<NodeData>>) => {
         </NodeResizeControl>
       </div>
       <div className="node-resizer">
-        <NodeResizer minWidth={100} minHeight={30} />
+        <NodeResizer minWidth={400} minHeight={250} />
       </div>
     </div>
   );

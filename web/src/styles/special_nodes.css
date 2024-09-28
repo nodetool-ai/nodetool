@@ -12,6 +12,16 @@
   min-height: 100px;
   background-color: transparent;
   box-shadow: none;
+  pointer-events: none !important; /* allow selection rectangle inside node*/
+}
+.react-flow__node-nodetool\.group\.Loop .node-header,
+.react-flow__node-nodetool\.group\.Loop .node-resizer,
+.react-flow__node-nodetool\.group\.Loop .tools,
+.react-flow__node-nodetool\.workflows\.base_node\.Group .node-header,
+.react-flow__node-nodetool\.workflows\.base_node\.Group .node-resizer,
+.react-flow__node-nodetool\.workflows\.base_node\.Group .tools
+ {
+  pointer-events: all;
 }
 
 /* Group Input/Output node */
