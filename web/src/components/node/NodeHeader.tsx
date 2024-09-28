@@ -33,7 +33,7 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
     alignItems: "flex-start",
     width: "100%",
     minHeight: "2em",
-    background: hasParent
+    backgroundColor: hasParent
       ? theme.palette.c_node_header_bg_group
       : theme.palette.c_node_header_bg,
     color: theme.palette.c_white,

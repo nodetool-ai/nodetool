@@ -29,7 +29,6 @@ import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { devLog } from "../../utils/DevLog";
 import { useMetadata } from "../../serverState/useMetadata";
-import { useNavigate } from "react-router-dom";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 const NodeContextMenu: React.FC = () => {
@@ -159,7 +158,7 @@ const NodeContextMenu: React.FC = () => {
         onClick={handleDuplicateNodes}
         label="Duplicate"
         IconComponent={<QueueIcon />}
-        tooltip="Alt+D | Meta+D"
+        tooltip="Space+D"
       />
       <ContextMenuItem
         onClick={(event: any) => handleCopyClicked(event, nodeId)}

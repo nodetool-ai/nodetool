@@ -128,7 +128,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         onClick={() => handleDuplicateNodes()}
         label="Duplicate"
         IconComponent={<QueueIcon />}
-        tooltip={<span className="tooltip-1">Alt+D | Meta+D</span>}
+        tooltip={<span className="tooltip-1">Space+D</span>}
       />
       <ContextMenuItem
         onClick={() => handleCopy()}

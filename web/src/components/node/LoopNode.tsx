@@ -216,7 +216,7 @@ const LoopNode = (props: NodeProps<Node<NodeData>>) => {
   );
 
   useEffect(() => {
-    // Selectable loop node when shift orctrl key is pressed
+    // Selectable loop node when shift or ctrl key is pressed
     if (controlKeyPressed || shiftKeyPressed) {
       updateNode(props.id, { selectable: true });
     } else {

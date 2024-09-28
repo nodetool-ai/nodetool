@@ -172,7 +172,9 @@ const NodeEditor: React.FC<unknown> = () => {
 
   /* DUPLICATE SELECTION */
   const handleDuplicate = useCallback(() => {
-    if (selectedNodeIds.length) duplicateNodes(selectedNodeIds);
+    if (selectedNodeIds.length) {
+      duplicateNodes(selectedNodeIds);
+    }
   }, [selectedNodeIds, duplicateNodes]);
 
   /* SETTINGS */

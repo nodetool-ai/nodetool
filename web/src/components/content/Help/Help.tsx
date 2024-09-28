@@ -262,6 +262,10 @@ const Help = ({ handleClose }: { handleClose: () => void }) => {
               <Button>CTRL+V | Meta+V</Button>
             </div>
             <div className="help-item">
+              <Typography>Duplicate selected nodes</Typography>
+              <Button>SPACE+D</Button>
+            </div>
+            <div className="help-item">
               <Typography>History Undo</Typography>
               <Button>CTRL+z</Button>
               <Button>Option+z</Button>
