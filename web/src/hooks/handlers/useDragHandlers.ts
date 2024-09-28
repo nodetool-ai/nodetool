@@ -189,12 +189,16 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
     (event: MouseEvent, node: Node) => {
       const intersections = reactFlow
         .getIntersectingNodes(node)
-        .filter((n) => n.type === "nodetool.group.Loop")
+        .filter(
+          (n) =>
+            n.type === "nodetool.group.Loop" ||
+            n.type === "nodetool.workflows.base_node.Group"
+        )
         .map((n) => n.id);
       setHoveredNodes(intersections);
       if (intersections.length > 0) {
-        const lp = findNode(intersections[0]);
-        setLastParentNode(lp);
+        const lastParent = findNode(intersections[0]);
+        setLastParentNode(lastParent);
       }
       if (spaceKeyPressed) {
         if (node.expandParent) {

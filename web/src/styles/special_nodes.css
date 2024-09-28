@@ -4,8 +4,9 @@
  * Styles for special node types in the node editor
  */
 
-/* Loop node */
-.react-flow__node-nodetool\.group\.Loop {
+/* Loop + Group node */
+.react-flow__node-nodetool\.group\.Loop,
+.react-flow__node-nodetool\.workflows\.base_node\.Group {
   z-index: -1 !important;
   min-width: 100px;
   min-height: 100px;
@@ -67,7 +68,8 @@
 }
 
 .react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Comment,
-.react-flow.zoomed-out .react-flow__node-nodetool\.group\.Loop {
+.react-flow.zoomed-out .react-flow__node-nodetool\.group\.Loop,
+.react-flow.zoomed-out .react-flow__node-nodetool\.group\.Group {
   background-color: #0002;
 }
 

@@ -7,6 +7,7 @@ import {
   Node,
   NodeProps,
   NodeResizeControl,
+  NodeResizer,
   ResizeDragEvent
 } from "@xyflow/react";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
@@ -40,7 +41,7 @@ const styles = (theme: any) =>
     display: "flex",
     borderRadius: "5px",
     border: `1px solid ${theme.palette.c_gray2}`,
-    backgroundColor: `rgba(0.9,0.9,0.9,0.5)`,
+    backgroundColor: theme.palette.c_bg_group,
     h6: {
       display: "block",
       position: "absolute",
@@ -49,16 +50,7 @@ const styles = (theme: any) =>
       top: "0px",
       color: theme.palette.c_black
     },
-    ".tools .react-flow__resize-control.handle.bottom.right": {
-      opacity: 1,
-      right: "-8px",
-      bottom: "-8px",
-      margin: 0,
-      borderRadius: "0 0 5px 0",
-      width: "1.5em",
-      height: "1.5em",
-      background: "#222 !important"
-    },
+
     ".node-header": {
       height: "3em",
       backgroundColor: "rgba(0,0,0,0.1)"
@@ -75,6 +67,29 @@ const styles = (theme: any) =>
       color: theme.palette.c_black,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal
+    },
+    // resizer
+    ".tools .react-flow__resize-control.handle.bottom.right": {
+      opacity: 1,
+      right: "-8px",
+      bottom: "-8px",
+      margin: 0,
+      borderRadius: "0 0 5px 0",
+      width: "1.5em",
+      height: "1.5em",
+      background: "#222 !important"
+    },
+    ".node-resizer .react-flow__resize-control.handle": {
+      opacity: 0
+    },
+    ".node-resizer .react-flow__resize-control.line": {
+      opacity: 0,
+      borderWidth: "1px",
+      borderColor: theme.palette.c_gray2,
+      transition: "all 0.15s ease-in-out"
+    },
+    ".node-resizer .react-flow__resize-control.line:hover": {
+      opacity: 1
     }
   });
 
@@ -146,6 +161,7 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
 
   return (
     <div
+      css={styles}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} ${
         spaceKeyPressed ? "space-pressed" : ""
@@ -153,7 +169,6 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
       onDoubleClick={(e) => {
         handleDoubleClick(e, props.id);
       }}
-      css={styles}
       style={
         nodeHovered
           ? { border: `2px solid ${ThemeNodetool.palette.c_hl1}` }
@@ -175,6 +190,9 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
         >
           <SouthEastIcon />
         </NodeResizeControl>
+      </div>
+      <div className="node-resizer">
+        <NodeResizer minWidth={400} minHeight={250} />
       </div>
     </div>
   );
