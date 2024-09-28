@@ -26,23 +26,19 @@ export const useCopyPaste = () => {
         !focusedElement.classList.contains("action")) ||
       focusedElement.tagName === "TEXTAREA"
     ) {
-      return;
+      return { nodesToCopy: [], connectedEdges: [] };
     }
 
     let nodesToCopy: Node[];
     if (nodeId && nodeId !== "") {
       // Find the node with the given nodeId
       const node = nodes.find((node: any) => node.id === nodeId);
-      if (node) {
-        nodesToCopy = [node];
-      } else {
-        nodesToCopy = [];
-      }
+      nodesToCopy = node ? [node] : [];
     } else {
       nodesToCopy = selectedNodes;
     }
     if (nodesToCopy.length === 0) {
-      return;
+      return { nodesToCopy: [], connectedEdges: [] };
     }
     const nodesToCopyIds = nodesToCopy.map((node) => node.id);
     const connectedEdges = edges.filter(
@@ -55,6 +51,26 @@ export const useCopyPaste = () => {
       edges: connectedEdges
     });
     await writeClipboard(serializedData);
+
+    return { nodesToCopy, connectedEdges };
+  };
+
+  const handleCut = async (nodeId?: string) => {
+    const { nodesToCopy, connectedEdges } = await handleCopy(nodeId);
+
+    if (nodesToCopy.length === 0) {
+      return;
+    }
+
+    const filteredNodes = nodes.filter(
+      (node) => !nodesToCopy.some((n) => n.id === node.id)
+    );
+    setNodes(filteredNodes);
+
+    const filteredEdges = edges.filter(
+      (edge) => !connectedEdges.some((e) => e.id === edge.id)
+    );
+    setEdges(filteredEdges);
   };
 
   const handlePaste = async () => {
@@ -169,5 +185,5 @@ export const useCopyPaste = () => {
     }
   };
 
-  return { handleCopy, handlePaste };
+  return { handleCopy, handlePaste, handleCut };
 };

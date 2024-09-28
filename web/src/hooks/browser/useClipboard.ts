@@ -34,7 +34,7 @@ export const useClipboard = () => {
         Array.isArray(parsedData.edges);
       return hasNodes && hasValidEdges;
     } catch (error) {
-      devLog("useClipboard: Validating data ERROR");
+      devLog("useClipboard: Validating data error:", error);
       return false;
     }
   };

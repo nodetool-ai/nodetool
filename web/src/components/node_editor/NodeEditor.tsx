@@ -149,7 +149,7 @@ const NodeEditor: React.FC<unknown> = () => {
   const [openCommandMenu, setOpenCommandMenu] = useState(false);
 
   /* UTILS */
-  const { handleCopy, handlePaste } = useCopyPaste();
+  const { handleCopy, handlePaste, handleCut } = useCopyPaste();
   const alignNodes = useAlignNodes();
   const selectedNodeIds = useSessionStateStore(
     (state) => state.selectedNodeIds
@@ -308,8 +308,10 @@ const NodeEditor: React.FC<unknown> = () => {
   // copy paste
   useHotkeys("Control+c", () => handleCopy());
   useHotkeys("Control+v", () => handlePaste());
+  useHotkeys("Control+x", () => handleCut());
   useHotkeys("Meta+c", () => handleCopy()); // for mac
   useHotkeys("Meta+v", () => handlePaste()); // for mac
+  useHotkeys("Meta+x", () => handleCut()); // for mac
   // duplicate
   useHotkeys("Space+d", handleDuplicate);
   // history
