@@ -85,6 +85,7 @@ export const useCopyPaste = () => {
 
     if (
       elementUnderCursor?.classList.contains("react-flow__pane") ||
+      elementUnderCursor?.classList.contains("loop-node") ||
       (elementUnderCursor?.classList.contains("action") &&
         !document.activeElement?.classList.contains("MuiInputBase-input"))
     ) {
