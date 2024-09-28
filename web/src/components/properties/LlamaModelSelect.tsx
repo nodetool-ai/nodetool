@@ -44,9 +44,11 @@ export default function LlamaModelSelect({
     [onChange]
   );
 
+  const isValueMissing = value && !values.some((v) => v.value === value);
+
   return (
     <Select
-      value={value || ""}
+      value={isValueMissing ? "" : value || ""}
       onChange={handleChange}
       variant="standard"
       className="mui-select nodrag"
@@ -68,6 +70,16 @@ export default function LlamaModelSelect({
       {isSuccess && values.length === 0 && (
         <MenuItem value="" key="no-models">
           No models found. Click RECOMMENDED MODELS above to find models.
+        </MenuItem>
+      )}
+      {isValueMissing && (
+        <MenuItem
+          value=""
+          disabled
+          style={{ color: "red" }}
+          key="missing-model"
+        >
+          {value} (missing)
         </MenuItem>
       )}
       {values?.map(({ value: modelValue, label }, index) => (

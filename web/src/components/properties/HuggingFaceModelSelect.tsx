@@ -97,9 +97,12 @@ export default function HuggingFaceModelSelect({
     return value?.repo_id || "";
   }, [value]);
 
+  const isValueMissing =
+    selectValue && !values.some((v) => v.value === selectValue);
+
   return (
     <Select
-      value={selectValue}
+      value={isValueMissing ? "" : selectValue}
       onChange={handleChange}
       variant="standard"
       className="mui-select nodrag"
@@ -113,6 +116,11 @@ export default function HuggingFaceModelSelect({
         </MenuItem>
       )}
       {isSuccess && values.length > 0 && <MenuItem value="">None</MenuItem>}
+      {isValueMissing && (
+        <MenuItem value="" disabled style={{ color: "red" }}>
+          {selectValue} (missing)
+        </MenuItem>
+      )}
       {values?.map(({ value, label }) => (
         <MenuItem key={value} value={value}>
           {label}

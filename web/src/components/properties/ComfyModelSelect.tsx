@@ -46,9 +46,11 @@ export default function ComfyModelSelect({
     [onChange, modelType]
   );
 
+  const isValueMissing = value && !values.some((v) => v.value === value);
+
   return (
     <Select
-      value={value}
+      value={isValueMissing ? "" : value}
       onChange={handleChange}
       variant="standard"
       className="mui-select nodrag"
@@ -59,6 +61,11 @@ export default function ComfyModelSelect({
       {isSuccess && values.length === 0 && (
         <MenuItem value="">
           No models found. Place models in the models folder.
+        </MenuItem>
+      )}
+      {isValueMissing && (
+        <MenuItem value="" disabled style={{ color: "red" }}>
+          {value} (missing)
         </MenuItem>
       )}
       {values?.map(({ value, label }) => (
