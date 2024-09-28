@@ -77,6 +77,7 @@ import useModelStore from "../../stores/ModelStore";
 import { tryCacheFiles } from "../tryCacheFiles";
 import GroupNode from "../node/GroupNode";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { useAddToGroup } from "../../hooks/createnodes/useAddToGroup";
 
 declare global {
   interface Window {
@@ -133,7 +134,7 @@ const NodeEditor: React.FC<unknown> = () => {
   const { data: queryMetadata, isLoading: loadingMetadata } = useMetadata();
   const metadata = queryMetadata?.metadata;
   const nodeTypes = useNodeTypes();
-  const { uploadAsset, isUploading } = useAssetUpload();
+  const { isUploading } = useAssetUpload();
   const nodeHistory: HistoryManager = useTemporalStore((state) => state);
   const { shouldFitToScreen, setShouldFitToScreen } = useWorkflowStore(
     (state: any) => state
@@ -160,6 +161,7 @@ const NodeEditor: React.FC<unknown> = () => {
   );
 
   const duplicateNodes = useDuplicateNodes();
+  const addToGroup = useAddToGroup();
 
   // UPDATE SELECTED NODES in SessionStateStore
   useOnSelectionChange({
@@ -320,6 +322,10 @@ const NodeEditor: React.FC<unknown> = () => {
   useHotkeys("Meta+x", () => handleCut()); // for mac
   // duplicate
   useHotkeys("Space+d", handleDuplicate);
+  // group
+  useHotkeys("Space+g", () => {
+    addToGroup({ selectedNodeIds });
+  });
   // history
   useHotkeys("Control+z", () => nodeHistory.undo());
   useHotkeys("Control+Shift+z", () => nodeHistory.redo());
@@ -522,7 +528,6 @@ const NodeEditor: React.FC<unknown> = () => {
                   : {})}
                 elevateEdgesOnSelect={true}
                 connectionLineComponent={ConnectionLine}
-                // edgeTypes={edgeTypes}
                 connectionRadius={settings.connectionSnap}
                 attributionPosition="bottom-left"
                 selectNodesOnDrag={settings.selectNodesOnDrag}
@@ -536,6 +541,7 @@ const NodeEditor: React.FC<unknown> = () => {
                 onSelectionEnd={onSelectionEnd}
                 onSelectionContextMenu={handleSelectionContextMenu}
                 selectionMode={settings.selectionMode as SelectionMode}
+                // edgeTypes={edgeTypes}
                 onEdgesChange={onEdgesChange}
                 onEdgeMouseEnter={onEdgeMouseEnter}
                 onEdgeMouseLeave={onEdgeMouseLeave}

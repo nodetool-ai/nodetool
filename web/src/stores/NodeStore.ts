@@ -31,7 +31,7 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { useWorkflowStore } from "./WorkflowStore";
 import { useNotificationStore } from "./NotificationStore";
 import { uuidv4 } from "./uuidv4";
-import { devError, devLog, devWarn } from "../utils/DevLog";
+import { devLog, devWarn } from "../utils/DevLog";
 import { autoLayout } from "../core/graph";
 import { Slugify, isConnectable } from "../utils/TypeHandler";
 import { WorkflowAttributes } from "./ApiTypes";

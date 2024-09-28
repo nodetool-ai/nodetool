@@ -2,7 +2,9 @@ import { useCallback, useMemo } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
 import useMetadataStore from "../../stores/MetadataStore";
-
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { HistoryManager } from "../../HistoryManager";
+import { useTemporalStore } from "../../stores/NodeStore";
 const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
 
 export const useAddToGroup = () => {
@@ -11,6 +13,10 @@ export const useAddToGroup = () => {
   const getMetadata = useMetadataStore.getState().getMetadata;
   const updateNode = useNodeStore((state) => state.updateNode);
   const findNode = useNodeStore((state) => state.findNode);
+  const history: HistoryManager = useTemporalStore((state) => state);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const getBounds = useMemo(() => {
     return (selectedNodeIds: string[]) => {
@@ -21,10 +27,13 @@ export const useAddToGroup = () => {
           return {
             x: Math.min(bounds.x, node.position.x),
             y: Math.min(bounds.y, node.position.y),
-            width: Math.max(bounds.width, node.position.x + (node.width || 0)),
+            width: Math.max(
+              bounds.width,
+              node.position.x + (node.measured?.width || 0) + 40
+            ),
             height: Math.max(
               bounds.height,
-              node.position.y + (node.height || 0)
+              node.position.y + (node.measured?.height || 0) + 50
             )
           };
         },
@@ -35,12 +44,25 @@ export const useAddToGroup = () => {
 
   const addToGroup = useCallback(
     ({ selectedNodeIds }: { selectedNodeIds: string[] }) => {
+      const canAddToGroup = selectedNodeIds.every((id) => {
+        const node = findNode(id);
+        return node && !node.parentId;
+      });
+      if (!canAddToGroup) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: "Nodes already in a group cannot be added."
+        });
+        return;
+      }
+      history.pause();
       const groupMetadata = getMetadata(GROUP_NODE_TYPE) as NodeMetadata;
       const bounds = getBounds(selectedNodeIds);
 
       const groupNode = createNode(groupMetadata, {
         x: bounds.x - 20,
-        y: bounds.y - 20
+        y: bounds.y - 50
       });
       groupNode.width = Math.max(bounds.width - bounds.x + 40, 400);
       groupNode.height = Math.max(bounds.height - bounds.y + 40, 250);
@@ -59,13 +81,23 @@ export const useAddToGroup = () => {
             expandParent: true,
             position: {
               x: node.position.x - bounds.x + 20,
-              y: node.position.y - bounds.y + 20
+              y: node.position.y - bounds.y + 50
             }
           });
         }
       });
+      history.resume();
     },
-    [getMetadata, createNode, addNode, findNode, updateNode, getBounds]
+    [
+      history,
+      getMetadata,
+      getBounds,
+      createNode,
+      addNode,
+      findNode,
+      addNotification,
+      updateNode
+    ]
   );
 
   return addToGroup;

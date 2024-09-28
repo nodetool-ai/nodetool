@@ -1,28 +1,20 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
 import { memo, useState, useCallback, useRef } from "react";
 import { NodeProps, NodeResizeControl, Node } from "@xyflow/react";
 import { debounce, isEqual } from "lodash";
-import {
-  Container,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Button,
-  IconButton,
-  Typography
-} from "@mui/material";
+import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useNodeStore } from "../../stores/NodeStore";
 import { createEditor } from "slate";
 import { Slate, Editable, withReact, ReactEditor } from "slate-react";
 import { BaseEditor, Descendant } from "slate";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
-import ColorizeIcon from "@mui/icons-material/Colorize";
-import { DATA_TYPES } from "../../config/data_types";
-import ThemeNodetool from "../themes/ThemeNodetool";
-import SearchInput from "../search/SearchInput";
-import { hexToRgba, createLinearGradient } from "../../utils/ColorUtils";
+import { hexToRgba } from "../../utils/ColorUtils";
+import { NodeColorSelector } from "./NodeColorSelector";
+import ThemeNodes from "../../components/themes/ThemeNodes";
+
 type CustomElement = { type: "paragraph"; children: CustomText[] };
 type CustomText = { text: string };
 
@@ -82,75 +74,8 @@ const styles = (theme: any) =>
       outlineOffset: "0px",
       cursor: "auto"
     },
-    ".color-picker-button": {
-      opacity: 0,
-      position: "absolute",
-      bottom: "0",
-      margin: 0,
-      right: "1em",
-      left: "unset",
-      width: ".85em",
-      height: ".85em",
-      borderRadius: 0,
-      zIndex: 10000,
-      backgroundColor: theme.palette.c_gray2,
-      "& svg": {
-        color: theme.palette.c_gray5,
-        width: ".6em",
-        height: ".6em"
-      },
-      "&:hover svg": {
-        color: theme.palette.c_hl1
-      }
-    },
     "&:hover .color-picker-button": {
       opacity: 1
-    }
-  });
-
-const colorSelectStyles = (theme: any) =>
-  css({
-    ".color-button": {
-      width: "98%",
-      height: "2em",
-      borderRadius: "2px",
-      alignItems: "center",
-      justifyContent: "start",
-      border: "none",
-      "&:hover": {
-        opacity: 0.6
-      },
-      p: {
-        fontSize: ThemeNodetool.fontSizeSmall,
-        fontFamily: ThemeNodetool.fontFamily2,
-        wordSpacing: "-3px",
-        textAlign: "left",
-        fontWeight: "bold"
-      }
-    },
-    ".MuiDialog-paper": {
-      width: "300px",
-      height: "600px",
-      overflowY: "scroll",
-      padding: "0 .5em",
-      borderRadius: 0
-    },
-    ".MuiDialogTitle-root": {
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_gray5,
-      padding: "0.5em .75em"
-    },
-    ".MuiDialogContent-root": {
-      backgroundColor: theme.palette.c_gray2,
-      color: theme.palette.c_gray5,
-      padding: "0.5em .5em 2em .5em"
-    },
-    ".search": {
-      width: "100%",
-      padding: "0 .5em",
-      marginBottom: "1em",
-      backgroundColor: "transparent",
-      color: theme.palette.c_gray5
     }
   });
 
@@ -170,7 +95,7 @@ export default memo(
     const updateNodeData = useNodeStore((state) => state.updateNodeData);
     const [editor] = useState(() => withReact(createEditor()));
     const [color, setColor] = useState(
-      props.data.properties.comment_color || "white"
+      props.data.properties.comment_color || ThemeNodes.palette.c_bg_comment
     );
     const [headline, setHeadline] = useState(
       props.data.properties.headline || ""
@@ -181,9 +106,7 @@ export default memo(
         ? props.data.properties.comment
         : [{ type: "paragraph", children: [{ text: "" }] }];
     });
-    const [modalOpen, setModalOpen] = useState(false);
     const headerInputRef = useRef<HTMLInputElement>(null);
-    const [dataTypesFiltered, setDataTypesFiltered] = useState(DATA_TYPES);
 
     const handleChange = useCallback(
       (newValue: Descendant[]) => {
@@ -240,28 +163,6 @@ export default memo(
           comment_color: newColor
         }
       });
-      setModalOpen(false);
-    };
-
-    const handleSearchChange = useCallback(
-      (search: string) => {
-        if (search === "") {
-          setDataTypesFiltered(DATA_TYPES);
-        } else {
-          // filter datatypes by search string:
-          setDataTypesFiltered(
-            DATA_TYPES.filter((datatype) =>
-              datatype.label.toLowerCase().includes(search.toLowerCase())
-            )
-          );
-        }
-      },
-      [setDataTypesFiltered]
-    );
-
-    const handleModalOpen = () => {
-      setModalOpen(true);
-      setDataTypesFiltered(DATA_TYPES);
     };
 
     return (
@@ -277,55 +178,7 @@ export default memo(
         >
           <SouthEastIcon />
         </NodeResizeControl>
-        <IconButton
-          size="small"
-          className="color-picker-button"
-          onClick={handleModalOpen}
-        >
-          <ColorizeIcon />
-        </IconButton>
-        <Dialog
-          css={colorSelectStyles}
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-        >
-          <DialogTitle style={{ backgroundColor: "transparent" }}>
-            datatype colors
-          </DialogTitle>
-          <div className="search">
-            <SearchInput
-              onSearchChange={handleSearchChange}
-              focusOnTyping={true}
-            />
-          </div>
-          <DialogContent>
-            {dataTypesFiltered.map((datatype, index) => (
-              <div key={datatype.slug} className="dt">
-                <Button
-                  className="color-button"
-                  key={datatype + "_" + index}
-                  style={{
-                    background: createLinearGradient(
-                      datatype.color,
-                      140,
-                      "to right",
-                      "lighten"
-                    )
-                  }}
-                  onClick={() => handleColorChange(datatype.color)}
-                >
-                  <Typography
-                    style={{
-                      color: datatype.textColor
-                    }}
-                  >
-                    {datatype.label}
-                  </Typography>
-                </Button>
-              </div>
-            ))}
-          </DialogContent>
-        </Dialog>
+        <NodeColorSelector onColorChange={handleColorChange} />
         <div
           className="node-header"
           onClick={handleHeaderClick}

@@ -69,6 +69,7 @@ declare module "@mui/material/styles" {
     c_node_header_bg_group?: string;
     c_bg_loop?: string;
     c_bg_group?: string;
+    c_bg_comment?: string;
   }
 }
 
@@ -114,6 +115,7 @@ const ThemeNodes: Theme = createTheme({
     c_node_header_bg_group: "#444",
     c_bg_loop: "#305c9d17",
     c_bg_group: "#9bcfdb17",
+    c_bg_comment: "#fff",
 
     mode: "dark",
     primary: {

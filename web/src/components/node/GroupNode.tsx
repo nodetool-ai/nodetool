@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import ThemeNodetool from "../themes/ThemeNodetool";
+import ThemeNodes from "../themes/ThemeNodes";
 
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   Node,
   NodeProps,
@@ -11,9 +11,6 @@ import {
   ResizeDragEvent
 } from "@xyflow/react";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
-
-// components
-import { NodeHeader } from "./NodeHeader";
 
 // utils
 import { getMousePosition } from "../../utils/MousePosition";
@@ -26,6 +23,9 @@ import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { debounce } from "lodash";
+import { NodeColorSelector } from "./NodeColorSelector";
+import { hexToRgba } from "../../utils/ColorUtils";
 
 const styles = (theme: any) =>
   css({
@@ -50,11 +50,6 @@ const styles = (theme: any) =>
       top: "0px",
       color: theme.palette.c_black
     },
-
-    ".node-header": {
-      height: "3em",
-      backgroundColor: "rgba(0,0,0,0.1)"
-    },
     ".info": {
       position: "absolute",
       top: ".5em",
@@ -67,6 +62,33 @@ const styles = (theme: any) =>
       color: theme.palette.c_black,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal
+    },
+    // header
+    ".node-header": {
+      height: "3em",
+      backgroundColor: "rgba(0,0,0,0.1)",
+      width: "100%",
+      minHeight: "unset",
+      margin: 0,
+      padding: "0 0.5em",
+      left: "0px",
+      border: 0,
+      position: "absolute",
+      top: 0,
+      display: "flex",
+      alignItems: "center",
+      input: {
+        wordSpacing: "-3px",
+        fontFamily: theme.fontFamily2,
+        pointerEvents: "none"
+      }
+    },
+    ".node-header input": {
+      backgroundColor: "transparent",
+      color: "black",
+      border: 0,
+      outline: "none",
+      width: "90%"
     },
     // resizer
     ".tools .react-flow__resize-control.handle.bottom.right": {
@@ -96,17 +118,23 @@ const styles = (theme: any) =>
 const GroupNode = (props: NodeProps<Node<NodeData>>) => {
   const { data: metadata } = useMetadata();
   const nodeRef = useRef<HTMLDivElement>(null);
+  const headerInputRef = useRef<HTMLInputElement>(null);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
-  const { controlKeyPressed, shiftKeyPressed, spaceKeyPressed } =
-    useKeyPressedStore((state) => ({
-      controlKeyPressed: state.isKeyPressed("Control"),
-      shiftKeyPressed: state.isKeyPressed("Shift"),
-      spaceKeyPressed: state.isKeyPressed(" ")
-    }));
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const nodeHovered = useNodeStore((state) =>
     state.hoveredNodes.includes(props.id)
+  );
+  const { spaceKeyPressed } = useKeyPressedStore((state) => ({
+    spaceKeyPressed: state.isKeyPressed(" ")
+  }));
+
+  const [headline, setHeadline] = useState(
+    props.data.properties.headline || "Group"
+  );
+
+  const [color, setColor] = useState(
+    props.data.properties.group_color || ThemeNodes.palette.c_bg_group
   );
 
   const handleResize = useCallback(
@@ -146,21 +174,51 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
     [props.data.collapsed, updateNodeData, handleOpenNodeMenu]
   );
 
+  const handleHeaderClick = () => {
+    headerInputRef.current?.focus();
+    headerInputRef.current?.select();
+  };
+
+  const handleHeadlineChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const newHeadline = event.target.value;
+      setHeadline(newHeadline);
+      debounce((newData) => {
+        updateNodeData(props.id, {
+          ...props.data,
+          properties: {
+            ...props.data.properties,
+            ...newData
+          }
+        });
+      }, 500)({
+        headline: newHeadline
+      });
+    },
+    [props.data, props.id, updateNodeData]
+  );
+
+  const handleColorChange = useCallback(
+    (newColor: string) => {
+      setColor(newColor);
+      updateNodeData(props.id, {
+        ...props.data,
+        properties: {
+          ...props.data.properties,
+          group_color: newColor
+        }
+      });
+    },
+    [props.data, props.id, updateNodeData]
+  );
+
   useEffect(() => {
-    // Selectable group nodes when spacekey is pressed
-    // (enables the use of the selection rectangle inside group nodes)
     if (spaceKeyPressed) {
       updateNode(props.id, { selectable: true });
     } else {
       updateNode(props.id, { selectable: false });
     }
-  }, [
-    controlKeyPressed,
-    shiftKeyPressed,
-    updateNode,
-    props.id,
-    spaceKeyPressed
-  ]);
+  }, [updateNode, props.id, spaceKeyPressed]);
 
   if (!metadata) {
     return <div>Loading...</div>;
@@ -176,18 +234,29 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
       onDoubleClick={(e) => {
         handleDoubleClick(e, props.id);
       }}
-      style={
-        nodeHovered
-          ? { border: `2px solid ${ThemeNodetool.palette.c_hl1}` }
-          : {}
-      }
+      style={{
+        ...(nodeHovered
+          ? { border: `2px solid ${ThemeNodes.palette.c_hl1}` }
+          : {}),
+        backgroundColor: hexToRgba(color || ThemeNodes.palette.c_bg_group, 0.2)
+      }}
     >
-      <NodeHeader id={props.id} nodeTitle={"Group"} />
-      {/* {nodeHovered && (
-        <div className="info">
-          Hold SPACE key to move nodes out of the group
-        </div>
-      )} */}
+      <div
+        className="node-header"
+        onClick={handleHeaderClick}
+        onDoubleClick={(e) => e.stopPropagation()}
+      >
+        <input
+          ref={headerInputRef}
+          spellCheck={false}
+          className="nodrag"
+          type="text"
+          value={headline}
+          onChange={handleHeadlineChange}
+          placeholder="Group"
+        />
+      </div>
+      <NodeColorSelector onColorChange={handleColorChange} alwaysVisible />
       <div className="tools">
         <NodeResizeControl
           style={{ background: "transparent", border: "none" }}

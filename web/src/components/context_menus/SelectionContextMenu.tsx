@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { Divider, Typography, MenuItem, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //store
@@ -18,7 +18,6 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
-import { useNotificationStore } from "../../stores/NotificationStore";
 
 interface SelectionContextMenuProps {
   top?: number;
@@ -34,20 +33,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const alignNodes = useAlignNodes();
   const addToGroup = useAddToGroup();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
 
   const selectedNodeIds = useSessionStateStore(
     (state) => state.selectedNodeIds
   );
-
-  const canAddToGroup = useMemo(() => {
-    return selectedNodeIds.every((id) => {
-      const node = findNode(id);
-      return node && !node.parentId;
-    });
-  }, [selectedNodeIds, findNode]);
 
   //duplicate
   const handleDuplicateNodes = useCallback(() => {
@@ -186,21 +175,13 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       />
       <ContextMenuItem
         onClick={() => {
-          if (canAddToGroup) {
-            addToGroup({ selectedNodeIds: selectedNodeIds });
-          } else {
-            addNotification({
-              type: "warning",
-              alert: true,
-              content: "Nodes already in a group cannot be added."
-            });
-          }
+          addToGroup({ selectedNodeIds: selectedNodeIds });
         }}
         label="Add To Group"
         IconComponent={<GroupWorkIcon />}
         tooltip={<span className="tooltip-1">Space+G</span>}
         addButtonClassName={`action ${
-          !canAddToGroup || selectedNodeIds.length < 1 ? "disabled" : ""
+          selectedNodeIds.length < 1 ? "disabled" : ""
         }`}
       />
       <Divider />
