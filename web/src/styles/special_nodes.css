@@ -79,8 +79,8 @@
 
 .react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Comment,
 .react-flow.zoomed-out .react-flow__node-nodetool\.group\.Loop,
-.react-flow.zoomed-out .react-flow__node-nodetool\.group\.Group {
-  background-color: #0002;
+.react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Group {
+  background-color: #0001;
 }
 
 .react-flow__node-nodetool\.workflows\.base_node\.Comment.selected {
