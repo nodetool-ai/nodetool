@@ -76,6 +76,7 @@ import { NodeData } from "../../stores/NodeData";
 import useModelStore from "../../stores/ModelStore";
 import { tryCacheFiles } from "../tryCacheFiles";
 import GroupNode from "../node/GroupNode";
+import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 
 declare global {
   interface Window {
@@ -297,12 +298,17 @@ const NodeEditor: React.FC<unknown> = () => {
   };
 
   /* KEY LISTENER */
+  const { spaceKeyPressed } = useKeyPressedStore((state) => ({
+    spaceKeyPressed: state.isKeyPressed(" ")
+  }));
   // align
-  useHotkeys("space+a", () => {
+  useHotkeys("Space+a", () => {
     alignNodes({ arrangeSpacing: true });
   });
   useHotkeys("a", () => {
-    alignNodes({ arrangeSpacing: false });
+    if (!spaceKeyPressed) {
+      alignNodes({ arrangeSpacing: false });
+    }
   });
   useHotkeys("Meta+a", () => alignNodes({ arrangeSpacing: true }));
   // copy paste

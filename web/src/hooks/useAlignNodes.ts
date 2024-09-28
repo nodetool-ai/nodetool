@@ -36,7 +36,8 @@ const useAlignNodes = () => {
         arrangedNodes.forEach((node, index) => {
           node.position.x = leftMostX;
           if (arrangeSpacing && index > 0) {
-            const previousNodeHeight = arrangedNodes[index - 1].height ?? 0;
+            const previousNodeHeight =
+              arrangedNodes[index - 1].measured?.height ?? 0;
             node.position.y =
               arrangedNodes[index - 1].position.y +
               previousNodeHeight +
@@ -50,7 +51,8 @@ const useAlignNodes = () => {
         arrangedNodes.forEach((node, index) => {
           node.position.y = topMostY;
           if (arrangeSpacing && index > 0) {
-            const previousNodeWidth = arrangedNodes[index - 1].width ?? 0;
+            const previousNodeWidth =
+              arrangedNodes[index - 1].measured?.width ?? 0;
             node.position.x =
               arrangedNodes[index - 1].position.x +
               previousNodeWidth +
