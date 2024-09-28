@@ -576,7 +576,18 @@ export const useNodeStore = create<NodeStore>()(
         node.expandParent = true;
         node.data.workflow_id = get().workflow.id;
 
-        set({ nodes: [...get().nodes, node] });
+        const isGroupOrLoopNode =
+          node.type === "nodetool.workflows.base_node.Group" ||
+          node.type === "nodetool.group.Loop";
+
+        let updatedNodes;
+        if (isGroupOrLoopNode) {
+          updatedNodes = [node, ...get().nodes];
+        } else {
+          updatedNodes = [...get().nodes, node];
+        }
+
+        set({ nodes: updatedNodes });
         get().setWorkflowDirty(true);
 
         useNotificationStore.getState().addNotification({

@@ -3,7 +3,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { MoreHoriz } from "@mui/icons-material";
 import { css, keyframes } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
-import { useNodeStore } from "../../stores/NodeStore";
+import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import { useStore } from "@xyflow/react";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -193,9 +193,17 @@ export const NodeHeader = memo(
         }`,
       [isLoading, isMinZoom]
     );
+    const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
+    const handleHeaderClick = useCallback(() => {
+      updateNode(id, { selected: true });
+    }, [updateNode, id]);
 
     return (
-      <div className={headerClassName} css={memoizedHeaderStyle}>
+      <div
+        className={headerClassName}
+        css={memoizedHeaderStyle}
+        onClick={handleHeaderClick}
+      >
         {showMenu && !isMinZoom && (
           <>
             <span className="node-title">{nodeTitle}</span>

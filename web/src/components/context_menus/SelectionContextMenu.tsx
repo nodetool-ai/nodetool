@@ -9,6 +9,7 @@ import useSessionStateStore from "../../stores/SessionStateStore";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
+import { useAddToGroup } from "../../hooks/createnodes/useAddToGroup";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
@@ -16,6 +17,7 @@ import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
+import GroupWorkIcon from "@mui/icons-material/GroupWork";
 
 interface SelectionContextMenuProps {
   top?: number;
@@ -29,6 +31,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const findNode = useNodeStore((state) => state.findNode);
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
+  const addToGroup = useAddToGroup();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
 
   const selectedNodeIds = useSessionStateStore(
@@ -168,6 +171,17 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         tooltip=""
         addButtonClassName={`action ${
           (selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
+        }`}
+      />
+      <ContextMenuItem
+        onClick={() => {
+          addToGroup({ selectedNodeIds: selectedNodeIds });
+        }}
+        label="Add To Group"
+        IconComponent={<GroupWorkIcon />}
+        tooltip={<span className="tooltip-1">Space+G</span>}
+        addButtonClassName={`action ${
+          (selectedNodeIds?.length || 0) < 1 ? "disabled" : ""
         }`}
       />
       <Divider />
