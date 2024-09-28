@@ -1,7 +1,9 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
-import { Node, NodeProps, useStore } from "@xyflow/react";
+import { Node, NodeProps, NodeResizer, useStore } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -41,6 +43,28 @@ export function titleize(str: string) {
  *
  * @param props
  */
+
+const styles = (theme: any) =>
+  css({
+    // resizer
+
+    ".node-resizer .react-flow__resize-control.top.line, .node-resizer .react-flow__resize-control.bottom.line":
+      {
+        display: "none"
+      },
+    ".node-resizer .react-flow__resize-control.handle": {
+      opacity: 0
+    },
+    ".node-resizer .react-flow__resize-control.line": {
+      opacity: 0,
+      borderWidth: "1px",
+      borderColor: theme.palette.c_gray2,
+      transition: "all 0.15s ease-in-out"
+    },
+    ".node-resizer .react-flow__resize-control.line:hover": {
+      opacity: 1
+    }
+  });
 
 export default memo(
   function BaseNode(props: NodeProps<Node<NodeData>>) {
@@ -165,6 +189,7 @@ export default memo(
 
     return (
       <Container
+        css={styles}
         className={className}
         style={{
           display: parentIsCollapsed ? "none" : "flex",
@@ -205,6 +230,9 @@ export default memo(
           isMinZoom={isMinZoom}
           firstOutput={firstOutput}
         />
+        <div className="node-resizer">
+          <NodeResizer minWidth={100} minHeight={100} />
+        </div>
       </Container>
     );
   },
