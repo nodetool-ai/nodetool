@@ -26,6 +26,10 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { debounce } from "lodash";
 import { NodeColorSelector } from "./NodeColorSelector";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { Button, CircularProgress, Tooltip } from "@mui/material";
+import { TOOLTIP_DELAY } from "../../config/constants";
+import useWorkflowRunner from "../../stores/WorkflowRunner";
+import { PlayArrow } from "@mui/icons-material";
 
 const styles = (theme: any) =>
   css({
@@ -68,33 +72,45 @@ const styles = (theme: any) =>
       height: "3em",
       backgroundColor: "rgba(0,0,0,0.1)",
       width: "100%",
-      minHeight: "unset",
       margin: 0,
-      padding: "0 0.5em",
-      left: "0px",
+      padding: 0,
       border: 0,
       position: "absolute",
-      top: 0,
       display: "flex",
       alignItems: "center",
+      justifyContent: "flex-start",
+      ".title-input": {
+        flexGrow: 1,
+        padding: 0,
+        margin: 0,
+        overflow: "hidden"
+      },
       input: {
+        width: "100%",
         outline: "none",
         wordSpacing: "-.3em",
         fontFamily: theme.fontFamily2,
         pointerEvents: "none",
-        width: "90%",
         color: theme.palette.c_white,
         backgroundColor: "transparent",
+        padding: ".1em 0 0 .2em",
         border: 0,
-        padding: ".1em 0 0 .1em",
         fontSize: theme.fontSizeGiant,
         textShadow: "0 0 2px #2b2b2b",
         fontWeight: 300
       }
     },
-
+    // run stop button
+    ".workflow-actions": {
+      padding: 0
+    },
+    ".workflow-actions button": {
+      padding: 0,
+      margin: 0,
+      width: "1em",
+      height: "2em"
+    },
     // resizer
-
     ".tools .react-flow__resize-control.handle.bottom.right": {
       opacity: 1,
       right: "-8px",
@@ -133,6 +149,12 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+
+  const isWorkflowRunning = useWorkflowRunner(
+    (state) => state.state === "running"
+  );
+  const runWorkflow = useWorkflowRunner((state) => state.run);
+  const state = useWorkflowRunner((state) => state.state);
   const nodeHovered = useNodeStore((state) =>
     state.hoveredNodes.includes(props.id)
   );
@@ -147,7 +169,6 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
   const [color, setColor] = useState(
     props.data.properties.group_color || ThemeNodes.palette.c_bg_group
   );
-
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
       const newWidth = event.x;
@@ -257,15 +278,65 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
         onClick={handleHeaderClick}
         onDoubleClick={(e) => e.stopPropagation()}
       >
-        <input
-          ref={headerInputRef}
-          spellCheck={false}
-          className="nodrag"
-          type="text"
-          value={headline}
-          onChange={handleHeadlineChange}
-          placeholder="Group"
-        />
+        <div className="title-input">
+          <input
+            ref={headerInputRef}
+            spellCheck={false}
+            className="nodrag"
+            type="text"
+            value={headline}
+            onChange={handleHeadlineChange}
+            placeholder="Group"
+          />
+        </div>
+        <div className="workflow-actions">
+          <Tooltip
+            title={
+              <div
+                className="tooltip-span"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "0.1em"
+                }}
+              >
+                <span style={{ fontSize: "1.2em", color: "white" }}>
+                  Run Group
+                </span>
+                {/* <span style={{ fontSize: ".9em", color: "white" }}>
+                  CTRL+Enter
+                </span> */}
+              </div>
+            }
+            enterDelay={TOOLTIP_DELAY}
+          >
+            <Button
+              size="large"
+              className={`action-button run-stop-button run-workflow ${
+                isWorkflowRunning ? "disabled" : ""
+              }`}
+              onClick={() => !isWorkflowRunning && runWorkflow()}
+            >
+              {state === "connecting" || state === "connected" ? (
+                <>
+                  <span
+                    className={`run-status ${
+                      state === "connecting" ? "connecting-status" : ""
+                    }`}
+                  >
+                    {state === "connecting" ? "Connecting" : "Connected"}
+                  </span>
+                  <PlayArrow />
+                </>
+              ) : state === "running" ? (
+                <CircularProgress />
+              ) : (
+                <PlayArrow />
+              )}
+            </Button>
+          </Tooltip>
+        </div>
       </div>
       <NodeColorSelector onColorChange={handleColorChange} alwaysVisible />
       <div className="tools">

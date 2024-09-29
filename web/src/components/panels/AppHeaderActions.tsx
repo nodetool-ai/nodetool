@@ -23,7 +23,6 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { Workflow } from "../../stores/ApiTypes";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
