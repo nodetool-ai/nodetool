@@ -22,13 +22,14 @@ import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 
 // Tooltip timing constants
-export const TOOLTIP_ENTER_DELAY = 650; // Delay before tooltip appears on hover
-export const TOOLTIP_LEAVE_DELAY = 200; // Delay before tooltip disappears on mouse leave
-export const TOOLTIP_ENTER_NEXT_DELAY = 350; // Delay before next tooltip appears when hovering multiple elements
+export const TOOLTIP_ENTER_DELAY = 650;
+export const TOOLTIP_LEAVE_DELAY = 200;
+export const TOOLTIP_ENTER_NEXT_DELAY = 350;
 
 // Node sizing constants
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
+const MAX_NODE_WIDTH = 600;
 
 /**
  * Split a camelCase string into a space separated string.
@@ -231,7 +232,11 @@ export default memo(
           firstOutput={firstOutput}
         />
         <div className="node-resizer">
-          <NodeResizer minWidth={100} minHeight={100} />
+          <NodeResizer
+            minWidth={100}
+            minHeight={100}
+            maxWidth={MAX_NODE_WIDTH}
+          />
         </div>
       </Container>
     );
