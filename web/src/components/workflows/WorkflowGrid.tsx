@@ -64,6 +64,9 @@ const styles = (theme: any) =>
       height: "50vh",
       width: "100%"
     },
+    ".workflow-items": {
+      paddingTop: "2em"
+    },
     ".workflow": {
       outline: `0px solid transparent`,
       outlineOffset: ".4em",
@@ -356,17 +359,8 @@ const WorkflowGrid = () => {
         return b.updated_at.localeCompare(a.updated_at);
       }) || [];
 
-  // make names breakable
-  function addBreaks(text: string) {
-    return text.replace(/([-_.])/g, "$1<wbr>");
-  }
-
   const handleSearchChange = (newSearchTerm: string) => {
     setFilterValue(newSearchTerm);
-  };
-
-  const handleSearchClear = () => {
-    setFilterValue("");
   };
 
   const workflowsToDeleteList = (
@@ -469,29 +463,31 @@ const WorkflowGrid = () => {
             </div>
           )}
         </div>
-        {settings.workflowLayout === "grid" ? (
-          <RenderGridView
-            workflows={filteredAndSortedWorkflows}
-            onClickOpen={onClickOpen}
-            onDoubleClickWorkflow={onDoubleClickWorkflow}
-            onDuplicateWorkflow={duplicateWorkflow}
-            onDelete={onDelete}
-            onSelect={onSelect}
-            selectedWorkflows={selectedWorkflows}
-            workflowCategory="user"
-          />
-        ) : (
-          <RenderListView
-            workflows={filteredAndSortedWorkflows}
-            onClickOpen={onClickOpen}
-            onDoubleClickWorkflow={onDoubleClickWorkflow}
-            onDuplicateWorkflow={duplicateWorkflow}
-            onDelete={onDelete}
-            onSelect={onSelect}
-            selectedWorkflows={selectedWorkflows}
-            workflowCategory="user"
-          />
-        )}
+        <div className="workflow-items">
+          {settings.workflowLayout === "grid" ? (
+            <RenderGridView
+              workflows={filteredAndSortedWorkflows}
+              onClickOpen={onClickOpen}
+              onDoubleClickWorkflow={onDoubleClickWorkflow}
+              onDuplicateWorkflow={duplicateWorkflow}
+              onDelete={onDelete}
+              onSelect={onSelect}
+              selectedWorkflows={selectedWorkflows}
+              workflowCategory="user"
+            />
+          ) : (
+            <RenderListView
+              workflows={filteredAndSortedWorkflows}
+              onClickOpen={onClickOpen}
+              onDoubleClickWorkflow={onDoubleClickWorkflow}
+              onDuplicateWorkflow={duplicateWorkflow}
+              onDelete={onDelete}
+              onSelect={onSelect}
+              selectedWorkflows={selectedWorkflows}
+              workflowCategory="user"
+            />
+          )}
+        </div>
       </div>
     </>
   );

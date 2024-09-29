@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
-import { prettyDate } from "../../utils/formatDateAndTime";
+import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
 import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -167,6 +167,7 @@ export const RenderGridView: React.FC<RenderGridViewProps> = ({
           </Typography>
 
           <Typography className="date">
+            {relativeTime(workflow.updated_at)} <br />
             {prettyDate(workflow.updated_at, "verbose", settings)}
           </Typography>
 

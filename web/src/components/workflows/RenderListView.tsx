@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
-import { prettyDate } from "../../utils/formatDateAndTime";
+import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
 import DeleteButton from "../buttons/DeleteButton";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -75,7 +75,8 @@ const listStyles = (theme: any) =>
       fontFamily: theme.fontFamily2,
       right: "0",
       minWidth: "150px",
-      userSelect: "none"
+      userSelect: "none",
+      textAlign: "right"
     },
     ".image-wrapper": {
       flexShrink: 0,
@@ -87,8 +88,20 @@ const listStyles = (theme: any) =>
     ".actions": {
       display: "flex",
       alignItems: "center",
-      minWidth: "200px",
-      marginLeft: "auto"
+      minWidth: "350px",
+      marginLeft: "auto",
+      gap: "0.5em",
+      button: {
+        backgroundColor: theme.palette.c_gray2,
+        color: theme.palette.c_gray6,
+        padding: "0 0.5em",
+        "&:hover": {
+          backgroundColor: theme.palette.c_gray3
+        },
+        "&.delete-button:hover": {
+          backgroundColor: theme.palette.c_delete
+        }
+      }
     }
   });
 
@@ -144,12 +157,13 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
           </Box>
           <div className="actions">
             <Typography className="date">
+              {relativeTime(workflow.updated_at)} <br />
               {prettyDate(workflow.updated_at, "verbose", settings)}
             </Typography>
 
             <Tooltip
               title="DoubleClick a workflow to open it directly"
-              placement="top"
+              placement="bottom"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
               <Button
@@ -164,7 +178,7 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
               <>
                 <Tooltip
                   title="Make a copy of this workflow"
-                  placement="top"
+                  placement="bottom"
                   enterDelay={TOOLTIP_ENTER_DELAY}
                 >
                   <Button
@@ -176,7 +190,11 @@ export const RenderListView: React.FC<RenderListViewProps> = ({
                   </Button>
                 </Tooltip>
                 {workflowCategory === "user" && (
-                  <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
+                  <DeleteButton<Workflow>
+                    item={workflow}
+                    onClick={onDelete}
+                    tooltip="Delete selected Workflows"
+                  />
                 )}
               </>
             )}
