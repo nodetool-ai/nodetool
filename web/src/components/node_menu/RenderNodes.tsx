@@ -1,6 +1,3 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
 import { memo, useCallback, useMemo, useRef } from "react";
 // mui
 import { ListItemButton, ListItemText, Typography } from "@mui/material";
@@ -39,6 +36,19 @@ const NodeItem: React.FC<NodeItemProps> = memo(
     onClick
   }: NodeItemProps) => {
     const outputType = node.outputs.length > 0 ? node.outputs[0].type.type : "";
+    const searchTerm = useNodeMenuStore((state) => state.searchTerm);
+
+    const highlightNodeTitle = useCallback(
+      (title: string): string => {
+        if (!searchTerm) return title;
+        const regex = new RegExp(`(${searchTerm})`, "gi");
+        return title.replace(
+          regex,
+          `<span class="highlight" style="border-bottom: 1px solid ${ThemeNodetool.palette.c_hl1}">$1</span>`
+        );
+      },
+      [searchTerm]
+    );
 
     const infoStyle = useMemo(
       () => ({
@@ -48,7 +58,6 @@ const NodeItem: React.FC<NodeItemProps> = memo(
       }),
       [isHovered]
     );
-
     const handleInfoMouseEnter = useCallback(() => {
       onMouseEnter();
     }, [onMouseEnter]);
@@ -86,7 +95,19 @@ const NodeItem: React.FC<NodeItemProps> = memo(
         />
         <ListItemButton className="node-button" onClick={onClick}>
           <ListItemText
-            primary={<Typography fontSize="small">{node.title}</Typography>}
+            primary={
+              <Typography fontSize="small">
+                {searchTerm ? (
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: highlightNodeTitle(node.title)
+                    }}
+                  />
+                ) : (
+                  node.title
+                )}
+              </Typography>
+            }
           />
         </ListItemButton>
         <span
