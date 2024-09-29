@@ -2,25 +2,29 @@ import { css } from "@emotion/react";
 
 export const tableStyles = (theme: any) =>
   css({
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    width: "100%",
     // Main container
     ".dicttable, .datatable": {
       width: "100%",
       height: "calc(100% - 20px)",
       maxHeight: "800px",
       position: "relative",
-      overflow: "hidden",
+      overflow: "hidden"
     },
 
     // Tabulator base
     ".tabulator": {
       fontSize: theme.fontSizeSmall,
       fontFamily: theme.fontFamily1,
-      height: "200px",
+      height: "200px"
     },
     ".tabulator-tableholder": {
       overflow: "auto",
       paddingBottom: "4em",
-      backgroundColor: theme.palette.c_gray2,
+      backgroundColor: theme.palette.c_gray2
     },
 
     // Column resize handle
@@ -31,14 +35,14 @@ export const tableStyles = (theme: any) =>
       width: "6px",
       margin: "0 -3px",
       zIndex: 11,
-      verticalAlign: "middle",
+      verticalAlign: "middle"
     },
 
     // Row
     ".tabulator-row": {
       minHeight: "15px",
       minWidth: "20px",
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeSmall
     },
 
     // Header
@@ -48,31 +52,31 @@ export const tableStyles = (theme: any) =>
       maxHeight: "30px",
       fontSize: theme.fontSizeSmall,
       color: theme.palette.c_gray5,
-      fontWeight: "normal",
+      fontWeight: "normal"
     },
     ".tabulator .tabulator-header .tabulator-col": {
-      minHeight: "2em",
+      minHeight: "2em"
     },
     // Sorting arrow
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        transition: "border 0.2s",
+        transition: "border 0.2s"
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderBottom: `4px solid ${theme.palette.c_hl1}`,
+        borderBottom: `4px solid ${theme.palette.c_hl1}`
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=descending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        borderTop: `4px solid ${theme.palette.c_hl1}`,
+        borderTop: `4px solid ${theme.palette.c_hl1}`
       },
 
     // Frozen column
     ".tabulator-row .tabulator-cell.tabulator-frozen": {
-      paddingLeft: "2px !important",
+      paddingLeft: "2px !important"
     },
     ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
-      padding: "5px 0px 0px 2px",
+      padding: "5px 0px 0px 2px"
     },
 
     // Table action buttons
@@ -85,7 +89,7 @@ export const tableStyles = (theme: any) =>
       alignItems: "flex-start",
       height: "2em",
       "& .disabled": {
-        opacity: 0.5,
+        opacity: 0.5
       },
       "& button": {
         height: "3em",
@@ -101,9 +105,9 @@ export const tableStyles = (theme: any) =>
         borderRadius: "0",
         backgroundColor: theme.palette.c_gray0,
         "&:hover": {
-          color: theme.palette.c_hl1,
-        },
-      },
+          color: theme.palette.c_hl1
+        }
+      }
     },
 
     // Toggle button
@@ -125,22 +129,22 @@ export const tableStyles = (theme: any) =>
         textAlign: "left",
         padding: ".5em",
         "&:hover, &.Mui-selected:hover": {
-          color: theme.palette.c_hl1,
+          color: theme.palette.c_hl1
         },
         "&.Mui-selected": {
-          color: theme.palette.c_white,
-        },
-      },
+          color: theme.palette.c_white
+        }
+      }
     },
 
     // Datetime picker
     ".datetime-picker": {
-      backgroundColor: theme.palette.c_hl1,
+      backgroundColor: theme.palette.c_hl1
     },
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
       borderRadius: "0",
-      backgroundColor: "white",
+      backgroundColor: "white"
     },
     ".datetime": {
       "& button": {
@@ -153,17 +157,17 @@ export const tableStyles = (theme: any) =>
         borderRadius: "0",
         backgroundColor: "white",
         "&:hover svg": {
-          color: theme.palette.c_hl1,
+          color: theme.palette.c_hl1
         },
         "& svg": {
           color: theme.palette.c_black,
           width: "100%",
-          height: "100%",
-        },
+          height: "100%"
+        }
       },
       "& fieldset": {
-        border: 0,
-      },
+        border: 0
+      }
     },
 
     // Cell editing
@@ -172,8 +176,8 @@ export const tableStyles = (theme: any) =>
       color: theme.palette.c_black,
       fontSize: theme.fontSizeSmall,
       "&::selection": {
-        backgroundColor: theme.palette.c_hl1,
-      },
+        backgroundColor: theme.palette.c_hl1
+      }
     },
 
     // Row select
@@ -182,6 +186,6 @@ export const tableStyles = (theme: any) =>
         width: "25px !important",
         minWidth: "25px !important",
         textAlign: "left",
-        padding: "0 !important",
-      },
+        padding: "0 !important"
+      }
   });
