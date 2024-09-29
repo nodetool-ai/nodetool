@@ -28,13 +28,15 @@ export const colorPickerButtonStyles = (theme: any, alwaysVisible: boolean) =>
       left: "unset",
       width: ".85em",
       height: ".85em",
-      borderRadius: 0,
       zIndex: 10000,
       backgroundColor: theme.palette.c_gray2,
+      borderRadius: ".1em 0  0 0",
       "& svg": {
         color: theme.palette.c_gray5,
         width: ".6em",
-        height: ".6em"
+        height: ".6em",
+        scale: ".9",
+        rotate: "-86deg"
       },
       "&:hover svg": {
         color: theme.palette.c_hl1
