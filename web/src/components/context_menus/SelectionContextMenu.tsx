@@ -157,7 +157,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         }}
         label="Align"
         IconComponent={<FormatAlignLeftIcon />}
-        tooltip=""
+        tooltip={<span className="tooltip-1">A</span>}
         addButtonClassName={`action ${
           (selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
         }`}
@@ -168,7 +168,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         }}
         label="Arrange"
         IconComponent={<FormatAlignLeftIcon />}
-        tooltip=""
+        tooltip={<span className="tooltip-1">Space+A</span>}
         addButtonClassName={`action ${
           (selectedNodeIds?.length || 0) <= 1 ? "disabled" : ""
         }`}
