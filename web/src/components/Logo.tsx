@@ -61,6 +61,7 @@ const logoStyles = (
       boxShadow: small ? `0` : `0 0 11px ${bgColor}`
     },
     ".logo-image": {
+      cursor: "pointer",
       width: "20px",
       height: "20px"
     }
