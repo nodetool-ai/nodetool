@@ -149,7 +149,11 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       menuPosition: { x: constrainedX, y: constrainedY },
       openedByDrop: openedByDrop,
       dropType: dropType,
-      connectDirection: connectDirection
+      connectDirection: connectDirection,
+      searchTerm: "",
+      searchResults: get().metadata,
+      selectedPath: [],
+      highlightedNamespaces: []
     });
   },
 
