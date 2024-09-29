@@ -52,18 +52,6 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       color: theme.palette.c_gray6,
       backgroundColor: theme.palette.c_gray1
     },
-    "&.min-zoom .node-title": {
-      width: "100%",
-      fontSize: "2.75em",
-      fontWeight: "300",
-      padding: ".1em 0 0 .1em",
-      fontFamily: theme.fontFamily2,
-      wordSpacing: "-2px",
-      textTransform: "uppercase"
-    },
-    "&.min-zoom .node-title:hover": {
-      opacity: 0.9
-    },
     "&.loading": {
       background: `linear-gradient(to left, ${theme.palette.c_gray1} 25%, ${theme.palette.c_gray2} 50%, ${theme.palette.c_gray3} 75%, ${theme.palette.c_gray1} 100%)`,
       backgroundSize: "200% 100%",
@@ -80,10 +68,22 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       wordWrap: "break-word",
       lineHeight: "1em",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeNormal,
       fontFeatureSettings: '"smcp"',
       margin: 0,
-      padding: "0.5em 0.5em 0.5em 1em"
+      padding: "0.5em 0.5em 0.5em .6em"
+    },
+    "&.min-zoom .node-title": {
+      width: "100%",
+      fontSize: "2.75em",
+      fontWeight: "300",
+      padding: ".1em 0 0 .1em",
+      fontFamily: theme.fontFamily2,
+      wordSpacing: "-2px",
+      textTransform: "uppercase"
+    },
+    "&.min-zoom .node-title:hover": {
+      opacity: 0.9
     },
     ".big": {
       flex: 1,
