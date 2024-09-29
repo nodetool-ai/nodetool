@@ -113,7 +113,7 @@ export const useAssetActions = (asset: Asset) => {
     async (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       const assetData = event.dataTransfer.getData("selectedAssetIds");
-
+      setIsDragHovered(false);
       try {
         const selectedAssetIds = JSON.parse(assetData);
         if (asset.content_type === "folder") {
