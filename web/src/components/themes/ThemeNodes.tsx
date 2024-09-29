@@ -15,6 +15,7 @@ declare module "@mui/system/createTheme" {
   interface ThemeOptions {
     fontSizeBig?: string;
     fontSizeBigger?: string;
+    fontSizeGiant?: string;
     fontSizeNormal?: string;
     fontSizeSmall?: string;
     fontSizeSmaller?: string;
@@ -26,6 +27,7 @@ declare module "@mui/system/createTheme" {
   interface Theme {
     fontSizeBig: string;
     fontSizeBigger: string;
+    fontSizeGiant: string;
     fontSizeNormal: string;
     fontSizeSmall: string;
     fontSizeSmaller: string;
@@ -74,6 +76,7 @@ declare module "@mui/material/styles" {
 }
 
 const ThemeNodes: Theme = createTheme({
+  fontSizeGiant: "2.5em", // 26.25px
   fontSizeBigger: "1.25em", // 15px
   fontSizeBig: "1.125em", // 13.5px
   fontSizeNormal: "12px", // 12px

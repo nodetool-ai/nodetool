@@ -78,19 +78,23 @@ const styles = (theme: any) =>
       display: "flex",
       alignItems: "center",
       input: {
-        wordSpacing: "-3px",
+        outline: "none",
+        wordSpacing: "-.3em",
         fontFamily: theme.fontFamily2,
-        pointerEvents: "none"
+        pointerEvents: "none",
+        width: "90%",
+        color: theme.palette.c_white,
+        backgroundColor: "transparent",
+        border: 0,
+        padding: ".1em 0 0 .1em",
+        fontSize: theme.fontSizeGiant,
+        textShadow: "0 0 2px #2b2b2b",
+        fontWeight: 300
       }
     },
-    ".node-header input": {
-      backgroundColor: "transparent",
-      color: "black",
-      border: 0,
-      outline: "none",
-      width: "90%"
-    },
+
     // resizer
+
     ".tools .react-flow__resize-control.handle.bottom.right": {
       opacity: 1,
       right: "-8px",
@@ -99,7 +103,14 @@ const styles = (theme: any) =>
       borderRadius: "0 0 5px 0",
       width: "1.5em",
       height: "1.5em",
-      background: "#222 !important"
+      backgroundColor: theme.palette.c_gray2,
+      pointerEvents: "all",
+      "&:hover": {
+        backgroundColor: theme.palette.c_gray3
+      }
+    },
+    ".tools .react-flow__resize-control.handle:hover": {
+      backgroundColor: theme.palette.c_gray3
     },
     ".node-resizer .react-flow__resize-control.handle": {
       opacity: 0
