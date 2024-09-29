@@ -316,7 +316,7 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
               className={`action-button run-stop-button run-workflow ${
                 isWorkflowRunning ? "disabled" : ""
               }`}
-              onClick={() => !isWorkflowRunning && runWorkflow()}
+              onClick={() => !isWorkflowRunning && runWorkflow({}, props.id)}
             >
               {state === "connecting" || state === "connected" ? (
                 <>

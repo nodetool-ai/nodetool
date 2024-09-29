@@ -61,7 +61,7 @@ export type WorkflowRunner = {
     notification: Omit<Notification, "id" | "timestamp">
   ) => void;
   cancel: () => Promise<void>;
-  run: (params?: any, noCache?: boolean) => Promise<void>;
+  run: (params?: any, groupId?: string) => Promise<void>;
   connect: (url: string) => Promise<void>;
   disconnect: () => void;
 };
@@ -279,11 +279,28 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
   /**
    * Run the current workflow.
    *
+   * @param params - The parameters to run the workflow with.
+   * @param groupId - Only run the workflow on the specified group.
+   *
    * @returns The results of the workflow.
    */
-  run: async (params?: any) => {
-    const edges = useNodeStore.getState().edges;
-    const nodes = useNodeStore.getState().nodes;
+  run: async (params?: any, groupId?: string) => {
+    const nodes = groupId
+      ? useNodeStore
+          .getState()
+          .nodes.filter(
+            (node) => node.id === groupId || node.parentId === groupId
+          )
+      : useNodeStore.getState().nodes;
+    const edges = groupId
+      ? useNodeStore
+          .getState()
+          .edges.filter(
+            (edge) =>
+              nodes.find((node) => node.id === edge.source) &&
+              nodes.find((node) => node.id === edge.target)
+          )
+      : useNodeStore.getState().edges;
     const workflow = useNodeStore.getState().workflow;
     const getUser = useAuth.getState().getUser;
     const clearStatuses = useStatusStore.getState().clearStatuses;
