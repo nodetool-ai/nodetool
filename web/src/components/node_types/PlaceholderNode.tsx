@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
-import { NodeProps } from "@xyflow/react";
+import { Node, NodeProps } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -13,6 +13,14 @@ import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
 import { NodeFooter } from "../node/NodeFooter";
 import { Typography } from "@mui/material";
+
+interface PlaceholderNodeData extends Node<NodeData> {
+  data: NodeData & {
+    workflow_id?: string;
+    collapsed?: boolean;
+    dirty?: boolean;
+  };
+}
 
 const styles = (theme: any) =>
   css({
@@ -37,7 +45,7 @@ const styles = (theme: any) =>
     }
   });
 
-const PlaceholderNode = (props: NodeProps<NodeData>) => {
+const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const [nodeType, setNodeType] = useState<string | null>(null);
   const [nodeData, setNodeData] = useState<any>(null);
   const [nodeTitle, setNodeTitle] = useState<string | null>(null);
@@ -49,7 +57,7 @@ const PlaceholderNode = (props: NodeProps<NodeData>) => {
   );
 
   useEffect(() => {
-    if (props.data && props.data.workflow_id) {
+    if (props.data?.workflow_id) {
       const workflow = getFromCache(props.data.workflow_id);
       if (workflow && workflow.graph && workflow.graph.nodes) {
         const node = workflow.graph.nodes.find((n) => n.id === props.id);
@@ -65,7 +73,7 @@ const PlaceholderNode = (props: NodeProps<NodeData>) => {
         }
       }
     }
-  }, [props.id, props.data, getFromCache, props]);
+  }, [props.id, props.data.workflow_id, getFromCache]);
 
   const relevantEdges = useMemo(() => {
     return edges.filter((edge) => edge.target === props.id);
