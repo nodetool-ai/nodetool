@@ -219,10 +219,11 @@ class WebSocketRunner:
             if self.runner:
                 self.runner.cancel()
                 log.info(f"Cancelled runner for job: {self.job_id}")
-            await self.send_job_update("cancelled")
-            await asyncio.sleep(3.0)
-            self.active_job.cancel()
-            log.info(f"Cancelled active job task: {self.job_id}")
+            # give the runner a chance to cancel
+            await asyncio.sleep(1.0)
+            if self.active_job:
+                self.active_job.cancel()
+                log.info(f"Cancelled active job task: {self.job_id}")
             self.active_job = None
             self.job_id = None
             return {"message": "Job cancelled"}
@@ -237,7 +238,7 @@ class WebSocketRunner:
             dict: A dictionary with the status ("running" or "idle") and the job ID.
         """
         return {
-            "status": "running" if self.active_job else "idle",
+            "status": self.runner.status if self.runner else "idle",
             "job_id": self.job_id,
         }
 
