@@ -1,7 +1,8 @@
 import React from "react";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 const pulse = keyframes`
   0% {
@@ -46,6 +47,7 @@ const OverallDownloadProgress: React.FC = () => {
 
   return (
     <Box
+      className="overall-download-progress"
       sx={{
         width: "80px",
         mt: 1,
@@ -57,6 +59,16 @@ const OverallDownloadProgress: React.FC = () => {
         openDialog();
       }}
     >
+      <Typography
+        style={{
+          fontSize: "0.65em",
+          padding: 0,
+          lineHeight: ".6em",
+          color: ThemeNodetool.palette.c_gray5
+        }}
+      >
+        DOWNLOADING
+      </Typography>
       <Box sx={{ fontSize: "0.6em", float: "left", marginRight: "10px" }}>
         {progress.toFixed(0)}%
       </Box>
