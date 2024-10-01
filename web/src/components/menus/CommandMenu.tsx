@@ -157,14 +157,15 @@ type CommandMenuProps = {
   setOpen: (open: boolean) => void;
   undo: (steps?: number | undefined) => void;
   redo: (steps?: number | undefined) => void;
-  // reactFlowWrapper: React.RefObject<HTMLDivElement>;
+  reactFlowWrapper: React.RefObject<HTMLDivElement>;
 };
 
 const CommandMenu = memo(function CommandMenu({
   open,
   setOpen,
   undo,
-  redo
+  redo,
+  reactFlowWrapper
 }: CommandMenuProps) {
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
   const newWorkflow = useNodeStore((state) => state.newWorkflow);
@@ -177,7 +178,15 @@ const CommandMenu = memo(function CommandMenu({
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const alignNodes = useAlignNodes();
   const { data } = useMetadata();
-  const handleCreateNode = useCreateNode();
+  const { width: reactFlowWidth, height: reactFlowHeight } =
+    reactFlowWrapper.current?.getBoundingClientRect() ?? {
+      width: 800,
+      height: 600
+    };
+  const handleCreateNode = useCreateNode({
+    x: reactFlowWidth / 2,
+    y: reactFlowHeight / 2
+  });
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );

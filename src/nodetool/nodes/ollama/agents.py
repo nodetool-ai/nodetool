@@ -17,7 +17,7 @@ from nodetool.workflows.base_node import BaseNode
 from pydantic import Field
 
 
-class DataframeAgent(BaseNode):
+class DataGenerator(BaseNode):
     """
     LLM Agent to create a dataframe based on a user prompt.
     llm, dataframe creation, data structuring
@@ -35,10 +35,6 @@ class DataframeAgent(BaseNode):
     prompt: str = Field(
         default="",
         description="The user prompt",
-    )
-    input_text: str = Field(
-        default="",
-        description="The input text to be analyzed by the agent.",
     )
     temperature: float = Field(
         default=1.0,
@@ -113,7 +109,7 @@ class DataframeAgent(BaseNode):
                         ]
                         """,
                     },
-                    {"role": "user", "content": self.prompt + "\n\n" + self.input_text},
+                    {"role": "user", "content": self.prompt + ". Respond using JSON."},
                 ],
                 "options": {
                     "temperature": self.temperature,
@@ -132,7 +128,9 @@ class DataframeAgent(BaseNode):
         end = content.rfind("]")
 
         if start == -1 or end == -1:
-            raise ValueError("No valid JSON data found in the response")
+            raise ValueError(
+                f"No valid JSON data found in the response: {content[:1000]}"
+            )
 
         content = content[start : end + 1]
 

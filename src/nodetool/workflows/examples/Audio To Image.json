@@ -13,21 +13,31 @@
   "graph": {
     "edges": [
       {
-        "id": "92a6a72a-681d-4398-9655-7ed37c6f38fe",
-        "source": "14",
-        "sourceHandle": "output",
-        "target": "10",
-        "targetHandle": "values",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
         "id": "05c9cd53-cd41-4211-b852-e3afe84defea",
         "source": "12",
         "sourceHandle": "output",
         "target": "13",
         "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "909f3c44-2cf8-4c75-959e-8c4b4cc176e6",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "14",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "92a6a72a-681d-4398-9655-7ed37c6f38fe",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "10",
+        "targetHandle": "values",
         "ui_properties": {
           "className": "str"
         }
@@ -61,16 +71,6 @@
         "ui_properties": {
           "className": "str"
         }
-      },
-      {
-        "id": "909f3c44-2cf8-4c75-959e-8c4b4cc176e6",
-        "source": "15",
-        "sourceHandle": "output",
-        "target": "14",
-        "targetHandle": "audio",
-        "ui_properties": {
-          "className": "audio"
-        }
       }
     ],
     "nodes": [
@@ -79,6 +79,7 @@
         "type": "nodetool.workflows.base_node.Preview",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 641,
             "y": 34
@@ -94,6 +95,7 @@
         "type": "nodetool.workflows.base_node.Preview",
         "data": {},
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 827,
             "y": 196
@@ -111,6 +113,7 @@
           "string": "interpret this text as an image, describe vividly as if giving painting instructions: {0}"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 457,
             "y": 128
@@ -160,6 +163,7 @@
           ]
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 30,
             "y": 20
@@ -191,6 +195,7 @@
           "keep_alive": "300"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 466,
             "y": 272
@@ -205,12 +210,12 @@
         "data": {
           "model": {
             "type": "hf.stable_diffusion",
-            "repo_id": "Yntec/InsaneSurreality",
-            "path": "InsaneSurreality.safetensors"
+            "repo_id": "Yntec/realistic-vision-v13",
+            "path": "Realistic_Vision_V1.3.safetensors"
           },
           "negative_prompt": "",
           "seed": -1,
-          "num_inference_steps": 25,
+          "num_inference_steps": 50,
           "guidance_scale": 7.5,
           "scheduler": "HeunDiscreteScheduler",
           "loras": [],
@@ -226,12 +231,14 @@
           "hires": true,
           "enable_tiling": false,
           "width": 512,
-          "height": 512
+          "height": 512,
+          "detail_level": 0.6
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 648,
-            "y": 200
+            "x": 641,
+            "y": 195
           },
           "zIndex": 0,
           "selectable": true
@@ -247,9 +254,10 @@
           }
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 190,
-            "y": 155
+            "x": 224,
+            "y": 158
           },
           "zIndex": 0,
           "selectable": true

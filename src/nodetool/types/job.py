@@ -41,6 +41,7 @@ class JobUpdate(BaseModel):
     type: Literal["job_update"] = "job_update"
     status: str
     job_id: str | None = None
+    message: str | None = None
     result: dict | None = None
     error: str | None = None
 

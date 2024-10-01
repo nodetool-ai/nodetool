@@ -144,7 +144,7 @@ class Agent(BaseNode):
         return created_tasks
 
 
-class DataframeAgent(BaseNode):
+class DataGenerator(BaseNode):
     """
     LLM Agent to create a dataframe based on a user prompt.
     llm, dataframe creation, data structuring

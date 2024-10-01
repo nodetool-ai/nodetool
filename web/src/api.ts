@@ -1471,6 +1471,8 @@ export interface components {
       status: string;
       /** Job Id */
       job_id?: string | null;
+      /** Message */
+      message?: string | null;
       /** Result */
       result?: Record<string, never> | null;
       /** Error */

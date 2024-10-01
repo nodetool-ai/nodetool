@@ -92,7 +92,7 @@
       },
       {
         "id": "5",
-        "type": "nodetool.agents.DataframeAgent",
+        "type": "nodetool.agents.DataGenerator",
         "data": {
           "image": {
             "uri": "",
