@@ -73,8 +73,19 @@ HF_STABLE_DIFFUSION_MODELS = [
     HFStableDiffusion(
         repo_id="Yntec/epiCPhotoGasm", path="epiCPhotoGasmVAE.safetensors"
     ),
+    HFStableDiffusion(
+        repo_id="Yntec/YiffyMix",
+        path="yiffymix_v31_vae.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/DreamPhotoGASM",
+        path="DreamPhotoGASM.safetensors",
+    ),
     HFStableDiffusion(repo_id="Yntec/epiCEpic", path="epiCEpic.safetensors"),
-    HFStableDiffusion(repo_id="Yntec/VisionVision", path="VisionVision.safetensors"),
+    HFStableDiffusion(
+        repo_id="Yntec/HyperRealism",
+        path="Hyper_Realism_1.2_fp16.safetensors",
+    ),
     HFStableDiffusion(
         repo_id="Yntec/AbsoluteReality",
         path="absolutereality_v16.safetensors",
@@ -84,8 +95,46 @@ HF_STABLE_DIFFUSION_MODELS = [
         path="Realistic_Vision_V1.3.safetensors",
     ),
     HFStableDiffusion(
+        repo_id="Yntec/RealLife",
+        path="reallife_v20.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/beLIEve",
+        path="beLIEve.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/photoMovieXFinal",
+        path="photoMovieXFinal.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/aMovieX",
+        path="AmovieX.safetensors",
+    ),
+    HFStableDiffusion(repo_id="Yntec/Paramount", path="Paramount.safetensors"),
+    HFStableDiffusion(
         repo_id="Yntec/realisticStockPhoto3",
         path="realisticStockPhoto_v30SD15.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/Analog",
+        path="Analog.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/insaneRealistic_v2",
+        path="Yntec/insaneRealistic_v2",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/CyberRealistic",
+        path="CyberRealistic20.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/photoMovieRealistic",
+        path="photoMovieRealistic-no-ema.safetensors",
+    ),
+    HFStableDiffusion(repo_id="Yntec/VisionVision", path="VisionVision.safetensors"),
+    HFStableDiffusion(
+        repo_id="Yntec/Timeless",
+        path="Timeless.safetensors",
     ),
     HFStableDiffusion(
         repo_id="Yntec/HyperRemix",
@@ -130,6 +179,10 @@ HF_STABLE_DIFFUSION_MODELS = [
         path="AnimephilesAnonymous.safetensors",
     ),
     HFStableDiffusion(
+        repo_id="Yntec/GrandPrix",
+        path="GrandPrix.safetensors",
+    ),
+    HFStableDiffusion(
         repo_id="Yntec/InsaneSurreality",
         path="InsaneSurreality.safetensors",
     ),
@@ -142,6 +195,14 @@ HF_STABLE_DIFFUSION_MODELS = [
         path="DreamShaperRemix.safetensors",
     ),
     HFStableDiffusion(
+        repo_id="Yntec/epiCVision",
+        path="epiCVision.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/IncredibleWorld2",
+        path="incredibleWorld_v20.safetensors",
+    ),
+    HFStableDiffusion(
         repo_id="Yntec/CrystalReality",
         path="CrystalReality.safetensors",
     ),
@@ -152,6 +213,10 @@ HF_STABLE_DIFFUSION_MODELS = [
     HFStableDiffusion(
         repo_id="Yntec/DreamWorks",
         path="DreamWorks.safetensors",
+    ),
+    HFStableDiffusion(
+        repo_id="Yntec/AnythingV7",
+        path="AnythingV7.safetensors",
     ),
     HFStableDiffusion(
         repo_id="Yntec/ICantBelieveItSNotPhotography",
@@ -224,7 +289,6 @@ HF_STABLE_DIFFUSION_MODELS = [
         repo_id="Yntec/ArthemyComics",
         path="arthemyComics_v10Bakedvae.safetensors",
     ),
-    HFStableDiffusion(repo_id="Yntec/Paramount", path="Paramount.safetensors"),
 ]
 
 HF_STABLE_DIFFUSION_XL_MODELS = [
@@ -309,6 +373,12 @@ def get_scheduler_class(scheduler: StableDiffusionScheduler):
         return KDPM2AncestralDiscreteScheduler
 
 
+class StableDiffusionDetailLevel(str, Enum):
+    LOW = "Low"
+    MEDIUM = "Medium"
+    HIGH = "High"
+
+
 def load_loras(pipeline: Any, loras: list[HFLoraSDConfig] | list[HFLoraSDXLConfig]):
     log.info(f"Loading LORAS {loras}")
 
@@ -345,7 +415,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     )
     prompt: str = Field(default="", description="The prompt for image generation.")
     negative_prompt: str = Field(
-        default="",
+        default="(nsfw, naked, nude, deformed iris, deformed pupils, semi-realistic, mutated hands and fingers:1.4), (deformed, distorted, disfigured:1.3), bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, mutated, ugly, disgusting, amputation",
         description="The negative prompt to guide what should not appear in the generated image.",
     )
     seed: int = Field(
@@ -396,6 +466,12 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
     enable_tiling: bool = Field(
         default=False,
         description="Enable tiling to save VRAM",
+    )
+    detail_level: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Level of detail for the hi-res pass. 0.0 is low detail, 1.0 is high detail.",
     )
     _loaded_adapters: set[str] = set()
     _pipeline: Any = None
@@ -523,11 +599,32 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             ip_adapter_image = None
 
         if self.hires:
-            low_res_steps = self.num_inference_steps // 4
+            # Calculate ratio on a continuous scale
+            if self.num_inference_steps <= 50:
+                low_res_ratio = 1 / 3 + (self.num_inference_steps - 25) / 75
+            else:
+                low_res_ratio = (
+                    1 / 3 + (50 - 25) / 75 + (self.num_inference_steps - 50) / 300
+                )
+
+            low_res_ratio = min(1 / 3, max(1 / 5, low_res_ratio))
+            low_res_steps = max(int(self.num_inference_steps * low_res_ratio), 1)
             hi_res_steps = self.num_inference_steps - low_res_steps
-            total = self.num_inference_steps + 20
+
+            total = self.num_inference_steps + 20  # Include upscaler steps
+
+            # Calculate denoising strength and guidance scale based on detail_level
+            denoising_strength = 0.3 + (self.detail_level * 0.4)  # Range: 0.3 to 0.7
+            hi_res_guidance_scale = self.guidance_scale + (
+                self.detail_level * self.guidance_scale
+            )
+
+            # Ensure values are within valid ranges
+            denoising_strength = max(0.0, min(1.0, denoising_strength))
+            hi_res_guidance_scale = max(0.0, hi_res_guidance_scale)
+
             # Generate low-res latents
-            low_res_latents = self._pipeline(
+            low_res_result = self._pipeline(
                 prompt=self.prompt,
                 negative_prompt=self.negative_prompt,
                 num_inference_steps=low_res_steps,
@@ -538,12 +635,13 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 callback_steps=1,
                 output_type="latent",
                 **kwargs,
-            ).images
+            )
+            low_res_latents = low_res_result.images
 
             assert self._upscaler is not None
 
             # Upscale latents
-            upscaled_latents: torch.Tensor = self._upscaler(
+            upscaled_latents = self._upscaler(
                 prompt=self.prompt,
                 negative_prompt=self.negative_prompt,
                 image=low_res_latents,
@@ -557,6 +655,7 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
                 0
             ]
 
+            # Prepare img2img pipeline for hi-res pass
             img2img_pipe = StableDiffusionImg2ImgPipeline(
                 vae=self._pipeline.vae,
                 text_encoder=self._pipeline.text_encoder,
@@ -569,17 +668,18 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
             if self.enable_tiling:
                 img2img_pipe.vae.enable_tiling()
 
+            # Generate final high-res image
             hires_kwargs = kwargs.copy()
+            hires_kwargs["strength"] = denoising_strength
             if "image" in hires_kwargs:
                 del hires_kwargs["image"]
 
-            # Generate final high-res image
             image = img2img_pipe(
-                image=upscaled_latents.unsqueeze(0),
-                prompt=self.prompt,
+                image=upscaled_latents.unsqueeze(0),  # type: ignore
+                prompt=self.prompt + ", detailed, 4k, hires, high resolution",
                 negative_prompt=self.negative_prompt,
                 num_inference_steps=hi_res_steps,
-                guidance_scale=self.guidance_scale,
+                guidance_scale=hi_res_guidance_scale,
                 generator=generator,
                 ip_adapter_image=ip_adapter_image,
                 cross_attention_kwargs={"scale": self.lora_scale},
