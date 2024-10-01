@@ -4,11 +4,13 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Link,
   Typography
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useQuery } from "@tanstack/react-query";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface ReadmeDialogProps {
   open: boolean;
@@ -16,10 +18,13 @@ interface ReadmeDialogProps {
   modelId: string;
 }
 
+const getReadmeUrl = (modelId: string) => {
+  const [org, model] = modelId.split("/");
+  return `https://huggingface.co/${org}/${model}/raw/main/README.md`;
+};
+
 const fetchModelReadme = async (modelId: string) => {
-  const response = await fetch(
-    `https://huggingface.co/${modelId}/raw/main/README.md`
-  );
+  const response = await fetch(getReadmeUrl(modelId));
   if (response.ok) {
     return response.text();
   }
@@ -36,7 +41,7 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
     queryFn: () => fetchModelReadme(modelId),
     refetchOnWindowFocus: false,
     gcTime: 1000 * 60 * 60 * 24,
-    enabled: open // Only fetch when the dialog is open
+    enabled: open
   });
 
   const formattedReadme = useMemo(() => {
@@ -62,7 +67,18 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
         {formattedReadme ? (
           <MarkdownRenderer content={formattedReadme} isReadme={true} />
         ) : (
-          <Typography>No README available</Typography>
+          <Typography>
+            No README available found at{" "}
+            <Link
+              className="readme-link"
+              style={{ color: ThemeNodetool.palette.c_link }}
+              target="_blank"
+              href={`https://huggingface.co/${modelId}/raw/main/README.md`}
+              rel="noreferrer"
+            >
+              {`https://huggingface.co/${modelId}/raw/main/README.md`}
+            </Link>
+          </Typography>
         )}
       </DialogContent>
     </Dialog>
