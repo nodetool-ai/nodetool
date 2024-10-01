@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { useMetadata } from "../../../serverState/useMetadata";
 import NodeInfo from "../../node_menu/NodeInfo";
 import { css } from "@emotion/react";
@@ -68,6 +68,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
 }) => {
   const { data, isLoading } = useMetadata();
   const nodeMetadata = nodeType ? data?.metadataByType[nodeType] : null;
+  const nodeRef = useRef(null);
 
   const content = useMemo(() => {
     if (isLoading) return <div className="loading">Loading...</div>;
@@ -77,8 +78,8 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   }, [isLoading, nodeMetadata]);
 
   return (
-    <Draggable handle=".handle" defaultPosition={position}>
-      <div css={styles}>
+    <Draggable handle=".handle" defaultPosition={position} nodeRef={nodeRef}>
+      <div css={styles} ref={nodeRef}>
         <div className="handle"></div>
         <button className="close-button" onClick={onClose}>
           ×
