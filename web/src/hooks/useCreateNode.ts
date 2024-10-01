@@ -5,7 +5,9 @@ import { useNodeStore } from "../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
 import { useCreateLoopNode } from "./createnodes/useCreateLoopNode";
 
-export const useCreateNode = () => {
+export const useCreateNode = (
+  centerPosition: { x: number; y: number } | undefined = undefined
+) => {
   const menuPosition = useNodeMenuStore((state) => state.menuPosition);
   const reactFlowInstance = useReactFlow();
   const addNode = useNodeStore((state) => state.addNode);
@@ -17,11 +19,19 @@ export const useCreateNode = () => {
 
   const handleCreateNode = useCallback(
     (metadata: NodeMetadata) => {
-      if (!menuPosition || !reactFlowInstance) return;
-      const position = {
-        x: menuPosition.x,
-        y: menuPosition.y
-      };
+      if (!reactFlowInstance) return;
+
+      const position = centerPosition
+        ? {
+            x: centerPosition.x,
+            y: centerPosition.y
+          }
+        : {
+            x: menuPosition.x,
+            y: menuPosition.y
+          };
+
+      console.log(position);
 
       if (metadata.node_type === LOOP_NODE_TYPE) {
         createLoopNode(metadata, position);
@@ -31,7 +41,15 @@ export const useCreateNode = () => {
         addNode(newNode);
       }
     },
-    [menuPosition, reactFlowInstance, createLoopNode, createNode, addNode]
+    [
+      reactFlowInstance,
+      centerPosition,
+      menuPosition.x,
+      menuPosition.y,
+      createLoopNode,
+      createNode,
+      addNode
+    ]
   );
 
   return handleCreateNode;

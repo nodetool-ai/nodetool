@@ -167,6 +167,13 @@ const useWorkflowRunnner = create<WorkflowRunner>((set, get) => ({
             break;
           case "running":
             set({ state: "running" });
+            if (job.message) {
+              addNotification({
+                type: "info",
+                alert: true,
+                content: job.message
+              });
+            }
             break;
           case "cancelled":
             set({ state: "idle" });

@@ -463,6 +463,7 @@ const NodeEditor: React.FC<unknown> = () => {
         setOpen={setOpenCommandMenu}
         undo={nodeHistory.undo}
         redo={nodeHistory.redo}
+        reactFlowWrapper={reactFlowWrapper}
       />
       {showDocumentation && selectedNodeType && (
         <DraggableNodeDocumentation

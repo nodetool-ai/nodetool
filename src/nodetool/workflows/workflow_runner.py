@@ -52,7 +52,6 @@ class WorkflowRunner:
     Attributes:
         job_id (str): Unique identifier for the current workflow execution.
         status (str): Current state of the workflow. Possible values: "running", "completed", "cancelled", "error".
-        is_cancelled (bool): Flag indicating whether the job has been manually cancelled.
         current_node (Optional[str]): Identifier of the node currently being processed, or None if no node is active.
 
     Note:
@@ -72,7 +71,6 @@ class WorkflowRunner:
 
         self.job_id = job_id
         self.status = "running"
-        self.is_cancelled = False
         self.current_node: Optional[str] = None
         if device:
             self.device = device
@@ -99,16 +97,11 @@ class WorkflowRunner:
         """
         Marks the workflow for cancellation.
 
-        Post-conditions:
-            - Sets status to "cancelled".
-            - Sets is_cancelled to True.
-
         Note:
             This method does not immediately stop execution. The cancellation is checked
             and acted upon at specific points during the workflow execution.
         """
         self.status = "cancelled"
-        self.is_cancelled = True
         # send node update to cancel the current node
         if self.current_node and self.context:
             self.context.post_message(
@@ -194,11 +187,10 @@ class WorkflowRunner:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-        if self.is_cancelled:
+        if self.status == "cancelled":
             log.info(f"Job {self.job_id} cancelled")
             context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
-            self.status = "cancelled"
-            return
+            raise JobCancelledException()
 
         log.info(f"Job {self.job_id} completed successfully")
         output = {
@@ -297,6 +289,9 @@ class WorkflowRunner:
             graph (Graph): The directed acyclic graph of nodes to be processed.
             parent_id (str | None): Identifier of the parent node, if this is a subgraph. Defaults to None.
 
+        Raises:
+            JobCancelledException: If the job is cancelled during graph processing.
+
         Note:
             - Uses topological sorting to determine the execution order.
             - Executes nodes at each level in parallel using asyncio.gather.
@@ -307,6 +302,10 @@ class WorkflowRunner:
         for level in sorted_nodes:
             log.debug(f"Processing level: {level}")
             nodes = [graph.find_node(i) for i in level if i]
+            if self.status == "cancelled":
+                log.info(f"Job {self.job_id} cancelled")
+                context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
+                raise JobCancelledException()
             await asyncio.gather(
                 *[self.process_node(context, node) for node in nodes if node]
             )
@@ -328,11 +327,10 @@ class WorkflowRunner:
             - Posts node status updates (running, completed, error) to the context.
         """
         log.info(f"Processing node: {node.get_title()} ({node._id})")
-        if self.is_cancelled:
-            log.info(
-                f"Skipping node {node.get_title()} ({node._id}) due to cancellation"
-            )
-            return
+        if self.status == "cancelled":
+            log.info(f"Job {self.job_id} cancelled")
+            context.post_message(JobUpdate(job_id=self.job_id, status="cancelled"))
+            raise JobCancelledException()
 
         self.current_node = node._id
 
@@ -572,9 +570,9 @@ class WorkflowRunner:
                 graph = Graph(nodes=child_nodes, edges=context.graph.edges)
                 await self.process_graph(sub_context, graph, parent_id=group_node._id)
 
-            # Get the result of the subgraph and add it to the results.
-            for output_node in output_nodes:
-                results[output_node._id].append(output_node.input)
+                # Get the result of the subgraph and add it to the results.
+                for output_node in output_nodes:
+                    results[output_node._id].append(output_node.input)
         else:
             sub_context = context.copy()
             graph = Graph(nodes=child_nodes, edges=context.graph.edges)

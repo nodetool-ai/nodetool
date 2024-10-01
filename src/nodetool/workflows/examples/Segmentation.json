@@ -85,7 +85,7 @@
       },
       {
         "id": "2",
-        "type": "huggingface.image.Segmentation",
+        "type": "huggingface.image_segmentation.Segmentation",
         "data": {
           "model": "nvidia/segformer-b3-finetuned-ade-512-512"
         },
@@ -101,7 +101,7 @@
       },
       {
         "id": "3",
-        "type": "huggingface.image.VisualizeSegmentation",
+        "type": "huggingface.image_segmentation.VisualizeSegmentation",
         "data": {},
         "ui_properties": {
           "selected": false,

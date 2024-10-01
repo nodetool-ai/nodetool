@@ -16,7 +16,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "nodetool.cli",
-            "justMyCode": false,
+            // "justMyCode": false,
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
             },

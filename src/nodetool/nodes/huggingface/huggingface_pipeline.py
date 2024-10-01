@@ -1,6 +1,7 @@
 import torch
 from nodetool.common.environment import Environment
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
+from nodetool.types.job import JobUpdate
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
 from transformers import Pipeline, pipeline
@@ -33,7 +34,7 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         device: str | None = None,
         torch_dtype: torch.dtype | None = torch.float16,
         **kwargs: Any,
-    ) -> T:
+    ):
         if model_id == "" or model_id is None:
             raise ValueError("Please select a model")
 
@@ -47,6 +48,12 @@ class HuggingFacePipelineNode(HuggingfaceNode):
         if device is None:
             device = context.device
 
+        context.post_message(
+            JobUpdate(
+                status="running",
+                message=f"Loading pipeline {type(model_id) == str and model_id or pipeline_task} from HuggingFace",
+            )
+        )
         model = pipeline(
             pipeline_task,
             model=model_id,
@@ -81,6 +88,12 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             if not cache_path:
                 raise ValueError(f"Model {model_id} must be downloaded first")
             log.info(f"Loading model {model_id} from {cache_path}")
+            context.post_message(
+                JobUpdate(
+                    status="running",
+                    message=f"Loading model {model_id} from {cache_path}",
+                )
+            )
             model = model_class.from_single_file(  # type: ignore
                 cache_path,
                 torch_dtype=torch_dtype,
@@ -91,6 +104,12 @@ class HuggingFacePipelineNode(HuggingfaceNode):
             # if not await context.is_huggingface_model_cached(model_id):
             #     raise ValueError(f"Model {model_id} must be downloaded first")
             log.info(f"Loading model {model_id} from HuggingFace")
+            context.post_message(
+                JobUpdate(
+                    status="running",
+                    message=f"Loading model {model_id} from HuggingFace",
+                )
+            )
             model = model_class.from_pretrained(  # type: ignore
                 model_id,
                 torch_dtype=torch_dtype,

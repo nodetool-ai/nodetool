@@ -23,7 +23,17 @@
         }
       },
       {
-        "id": "0473634a-947e-48eb-9764-9ef9d1dc05d9",
+        "id": "2e0676a6-ee69-4397-bac7-2273f9a5edac",
+        "source": "3",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "b978dc9d-a6ad-4e08-81aa-1038a397d3b1",
         "source": "4",
         "sourceHandle": "output",
         "target": "5",
@@ -33,21 +43,21 @@
         }
       },
       {
-        "id": "1c469370-cef3-460c-85ad-d83a2cd103dd",
-        "source": "5",
+        "id": "888cbd63-d235-42f4-8968-da52084429db",
+        "source": "3",
         "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "value",
+        "target": "5",
+        "targetHandle": "image",
         "ui_properties": {
           "className": "image"
         }
       },
       {
-        "id": "5ad3627a-3cb3-47ae-8bec-7c0d000b9dab",
-        "source": "3",
+        "id": "4a0a0913-c240-4e62-9f6b-1d6d5e881091",
+        "source": "5",
         "sourceHandle": "output",
-        "target": "5",
-        "targetHandle": "image",
+        "target": "2",
+        "targetHandle": "value",
         "ui_properties": {
           "className": "image"
         }
@@ -63,8 +73,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 603,
-            "y": 10
+            "x": 636,
+            "y": 13
           },
           "zIndex": 0,
           "width": 240,
@@ -93,17 +103,20 @@
       },
       {
         "id": "4",
-        "type": "huggingface.image.ObjectDetection",
+        "type": "huggingface.object_detection.ObjectDetection",
         "data": {
-          "model": "facebook/detr-resnet-50",
+          "model": {
+            "type": "hf.object_detection",
+            "repo_id": "facebook/detr-resnet-50"
+          },
           "threshold": 0.9,
           "top_k": 5
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 216,
-            "y": 10
+            "x": 224,
+            "y": 25
           },
           "zIndex": 0,
           "selectable": true
@@ -111,13 +124,13 @@
       },
       {
         "id": "5",
-        "type": "huggingface.image.VisualizeObjectDetection",
+        "type": "huggingface.object_detection.VisualizeObjectDetection",
         "data": {},
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 405,
-            "y": 10
+            "x": 417,
+            "y": 49
           },
           "zIndex": 0,
           "selectable": true
