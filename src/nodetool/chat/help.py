@@ -59,6 +59,32 @@ class AddNodeTool(Tool):
         return params
 
 
+class TutorialTool(Tool):
+    """
+    Tool for starting a tutorial.
+    """
+
+    def __init__(self):
+        self.name = "start_tutorial"
+        self.description = f"Start the tutorial with the given name."
+        self.input_schema = {
+            "type": "object",
+            "properties": {
+                "tutorial_name": {
+                    "type": "string",
+                    "description": "The name of the tutorial to start.",
+                    "enum": [
+                        "welcome",
+                    ],
+                }
+            },
+            "required": ["tutorial_name"],
+        }
+
+    async def process(self, context: ProcessingContext, params: dict):
+        return params
+
+
 class WorkflowTool(Tool):
     """
     Tool for creating a new workflow.
@@ -787,6 +813,7 @@ async def create_help_answer(messages: list[Message]) -> list[Message]:
         provider=Provider.OpenAI,
         name="gpt-4o-mini",
     )
+    tools.append(TutorialTool())
 
     for node_class in classes[:10]:
         try:

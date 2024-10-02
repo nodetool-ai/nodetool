@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
 import { useChatStore } from "../../stores/ChatStore";
 import {
@@ -10,9 +10,14 @@ import {
   Button
 } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
+import { useTutorialStore } from "../../stores/TutorialStore";
+import { useNodeStore } from "../../stores/NodeStore";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
+  const { isInTutorial, getStep, nextStep } = useTutorialStore();
+  const step = getStep();
+  const { nodes } = useNodeStore();
 
   const handleSendMessage = useCallback(
     async (prompt: string) => {
@@ -26,7 +31,16 @@ const HelpChat: React.FC = () => {
 
   const handleResetChat = useCallback(() => {
     setMessages([]);
+    useTutorialStore.getState().endTutorial();
   }, [setMessages]);
+
+  useEffect(() => {
+    if (isInTutorial) {
+      if (step && step.isCompleted({ nodes })) {
+        nextStep();
+      }
+    }
+  }, [step, isInTutorial, nextStep, nodes]);
 
   return (
     <div className="help-chat" style={{ margin: ".5em" }}>

@@ -1,12 +1,7 @@
 import { create } from "zustand";
-import { v4 as uuidv4 } from "uuid";
-import { Message, MessageCreateRequest, Workflow } from "./ApiTypes";
-import { client } from "./ApiClient";
-import { useNodeStore } from "./NodeStore";
-import { Node } from "@xyflow/react";
-import { NodeData } from "./NodeData";
-import useMetadataStore from "./MetadataStore";
+import { Message, Workflow } from "./ApiTypes";
 import { ToolCall } from "./ApiTypes";
+import { useTutorialStore } from "./TutorialStore";
 
 interface ChatStore {
   messages: Message[];
@@ -15,7 +10,6 @@ interface ChatStore {
   addMessages: (messages: Message[]) => void;
   setIsLoading: (isLoading: boolean) => void;
   sendMessage: (message: Message) => Promise<void>;
-  handleWorkflowTool: (workflow: Workflow) => void;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -33,7 +27,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const response = await fetch(
         "https://api.nodetool.ai/api/messages/help",
         {
-          // const response = await fetch('http://localhost:8000/api/messages/help', {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -47,7 +40,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       }
 
       const data = await response.json();
-      get().addMessages(data);
+
+      get().addMessages(
+        data.filter(
+          (msg: Message) =>
+            msg.tool_calls === undefined ||
+            msg.tool_calls === null ||
+            msg.tool_calls.length === 0
+        )
+      );
 
       // Check for workflow tool calls
       data.forEach((response: Message) => {
@@ -57,32 +58,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             // if (toolCall.name === 'workflow_tool') {
             //     get().handleWorkflowTool(toolCall.result as Workflow);
             // }
-            if (toolCall.name?.startsWith("add_node")) {
-              const metadata = useMetadataStore.getState().metadata;
-              if (!data) {
-                console.error("Metadata not loaded");
-                return;
-              }
-              if (toolCall.result) {
-                const result = toolCall.result as { [key: string]: any };
-                const nodeMetadata = metadata[result["type"]];
-                if (!nodeMetadata) {
-                  console.error(
-                    "Node metadata not found for type:",
-                    result["type"]
-                  );
-                  return;
-                }
-                const node = useNodeStore
-                  .getState()
-                  .createNode(
-                    nodeMetadata,
-                    { x: 0, y: 0 },
-                    toolCall.result as Node<NodeData>
-                  );
-                console.log("node", node);
-                useNodeStore.getState().addNode(node);
-              }
+            if (toolCall.name === "start_tutorial") {
+              const result = toolCall.result as { [key: string]: any };
+              useTutorialStore
+                .getState()
+                .startTutorial(result["tutorial_name"]);
             }
           });
         }
@@ -92,11 +72,5 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     } finally {
       set({ isLoading: false });
     }
-  },
-  handleWorkflowTool: (workflow: Workflow) => {
-    console.log("Workflow tool called with:", workflow);
-    workflow.id = uuidv4();
-    useNodeStore.getState().setShouldAutoLayout(true);
-    useNodeStore.getState().setWorkflow(workflow);
   }
 }));
