@@ -146,7 +146,6 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
       },
       ".search-toolbar": {
         display: "flex",
-
         flexDirection: "row",
         alignItems: "flex-start",
         gap: "0.5em",
@@ -155,7 +154,10 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
         overflow: "hidden",
         width: "100%",
         margin: 0,
-        padding: ".5em 1em 0"
+        padding: ".5em 1em 0",
+        ".search-input-container": {
+          minWidth: "240px"
+        }
       },
       ".toggle-tree": {
         minWidth: "30px",
