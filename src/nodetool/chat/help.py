@@ -377,46 +377,6 @@ You don't have to use them exactly.
 You can use them as inspiration to create new and exciting workflows.
 
 
-## Tutorial 3: Text-to-Speech and Audio Manipulation
-
-1. Add a Constant String node with text
-2. Add TextToSpeech node (OpenAI.Audio category), connect to String node
-3. Add RemoveSilence node (Nodetool.Audio.Transform), connect to TextToSpeech
-4. Add Preview node, connect to RemoveSilence
-5. Run the workflow and listen to the result
-
-## Tutorial 4: Video Processing with Loop
-
-1. Add LoadVideo node (Nodetool.Video), choose a short video file
-2. Add ExtractFrames node (Nodetool.Video.Transform), connect to LoadVideo
-3. Add Loop node (Nodetool.Group), connect to ExtractFrames
-4. Inside Loop: Add Posterize node (Nodetool.Image), set bits to 2
-5. Connect GroupInput to Posterize, then Posterize to GroupOutput
-6. Add CreateVideo node (Nodetool.Video.Transform), set FPS to 5.0, connect to Loop
-7. Add Preview node, connect to CreateVideo
-8. Run workflow to see processed video
-
-## Tutorial 5: AI-Assisted Urban Planning Visualization
-
-1. Add Constant String node with urban design prompt
-2. Add Flux node (StableDiffusion), set model to "Flux Schnell", connect to String
-3. Add GPT node (OpenAI.Text), use "gpt-4o" model, connect Flux image output to GPT image input
-4. Set GPT prompt for urban design analysis
-5. Add two Preview nodes: one for Flux output, one for GPT output
-6. Run workflow and view results
-7. Iterate on design by modifying the prompt
-8. Create multiple versions on canvas to compare different designs
-
-## Tutorial 6: Image-to-Image Transformation with ControlNet
-
-1. Drop an image onto the Nodetool canvas to create an image node
-2. Add Canny node (Nodetool.Image.Analysis), connect to Constant Image
-3. Add ControlNet node (StableDiffusion category)
-4. Connect CannyEdgeDetection output to control_image input
-5. Set control_model to CANNY
-6. Enter a prompt describing the desired image transformation
-7. Add Preview node, connect to StableDiffusionXLControlNetNode output
-8. Run the workflow to see the guided image generation
 
 """
 

@@ -13,6 +13,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import { useTutorialStore } from "../../stores/TutorialStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
+import { tutorials } from "../../stores/TutorialStore";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
@@ -20,6 +21,7 @@ const HelpChat: React.FC = () => {
   const { state } = useWorkflowRunnner();
   const step = getStep();
   const { nodes, edges } = useNodeStore();
+  const { startTutorial } = useTutorialStore();
 
   const handleSendMessage = useCallback(
     async (prompt: string) => {
@@ -71,7 +73,8 @@ const HelpChat: React.FC = () => {
           <Box sx={{ mb: 2 }}>
             <Typography>I&apos;m your experimental AI assistant!</Typography>
             <Typography sx={{ mt: 2 }}>
-              Ask me anything about Nodetool&apos;s features, like:
+              Ask me anything about Nodetool&apos;s features, or try one of the
+              following tutorials:
             </Typography>
           </Box>
           <Box
@@ -81,21 +84,24 @@ const HelpChat: React.FC = () => {
             }}
           >
             <List sx={{ listStyleType: "square", pl: 2 }}>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Getting started" />
-              </ListItem>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Working with nodes, models, and assets" />
-              </ListItem>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Example workflows" />
-              </ListItem>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Shortcuts" />
-              </ListItem>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Settings" />
-              </ListItem>
+              {Object.keys(tutorials).map((name) => (
+                <ListItem key={name} sx={{ display: "list-item", p: 0 }}>
+                  <Button
+                    component="a"
+                    href={`#${name}`}
+                    onClick={() => startTutorial(name)}
+                    sx={{
+                      textTransform: "none",
+                      "&:hover": {
+                        backgroundColor: "transparent",
+                        textDecoration: "underline"
+                      }
+                    }}
+                  >
+                    {name}
+                  </Button>
+                </ListItem>
+              ))}
             </List>
           </Box>
         </>

@@ -78,12 +78,17 @@ const configureNodeStep = (
   }
 });
 
-// Tutorial definitions
+// Updated tutorial definitions
 export const tutorials: Record<string, TutorialStep[]> = {
-  welcome: [
+  "Welcome to Nodetool": [
     addNodeStep(
       "nodetool.constant.Float",
       "Double click on the Node editor to open the Node menu. Add a 'nodetool.constant.Float' node."
+    ),
+    configureNodeStep(
+      "nodetool.constant.Float",
+      (properties) => properties.value !== 0.0,
+      "Configure the Float node: Enter a value in the 'value' field."
     ),
     connectNodesStep(
       "nodetool.constant.Float",
@@ -91,11 +96,16 @@ export const tutorials: Record<string, TutorialStep[]> = {
       "Drag a connection from the float node and let it drop. Select PreviewNode in the menu."
     ),
     {
+      step: "Click 'Run' at the top toolbar and wait for completion.",
+      isCompleted: (context: TutorialContext) =>
+        context.workflowState === "running"
+    },
+    {
       step: "Congratulations! You've completed the tutorial.",
       isCompleted: () => false
     }
   ],
-  image_generation: [
+  "Create Your First AI Image": [
     {
       step: "Click on 'New' on the toolbar.",
       isCompleted: (context: TutorialContext) => context.nodes.length === 0
@@ -115,7 +125,7 @@ export const tutorials: Record<string, TutorialStep[]> = {
       "Drag the StableDiffusion node's blue output handle to the canvas and select 'Create Preview Node' from the menu."
     ),
     {
-      step: "Click 'Run' at the bottom and wait for completion.",
+      step: "Click 'Run' at the top toolbar and wait for completion.",
       isCompleted: (context: TutorialContext) =>
         context.workflowState === "running"
     },
@@ -124,7 +134,7 @@ export const tutorials: Record<string, TutorialStep[]> = {
       isCompleted: () => false
     }
   ],
-  video_processing: [
+  "Video Transformation Basics": [
     {
       step: "Click 'New' on the toolbar to start a fresh workflow.",
       isCompleted: (context: TutorialContext) => context.nodes.length === 0
@@ -190,8 +200,95 @@ export const tutorials: Record<string, TutorialStep[]> = {
       "Add a Preview node and connect it to the CreateVideo node."
     ),
     {
-      step: "Click 'Run' at the bottom to process the video. Wait for completion and check the Preview node for the result. Congratulations, you've created your first video processing workflow!",
+      step: "Click 'Run' at the top toolbar to process the video. Wait for completion and check the Preview node for the result. Congratulations, you've created your first video processing workflow!",
       isCompleted: (context: TutorialContext) => false
+    }
+  ],
+  "Text-to-Speech Workflow": [
+    {
+      step: "Click 'New' on the toolbar to start a fresh workflow.",
+      isCompleted: (context: TutorialContext) => context.nodes.length === 0
+    },
+    addNodeStep(
+      "nodetool.constant.String",
+      "Add a Constant String node from the Nodetool.Constant category."
+    ),
+    configureNodeStep(
+      "nodetool.constant.String",
+      (properties) => properties.value !== "",
+      "Enter some text in the String node's 'value' field."
+    ),
+    addNodeStep(
+      "huggingface.text_to_speech.TextToSpeech",
+      "Add a TextToSpeech node from the Huggingface / Text To Speech category."
+    ),
+    connectNodesStep(
+      "nodetool.constant.String",
+      "huggingface.text_to_speech.TextToSpeech",
+      "Connect the String node to the TextToSpeech node."
+    ),
+    addNodeStep(
+      "nodetool.audio.transform.RemoveSilence",
+      "Add a RemoveSilence node from the Nodetool.Audio.Transform category."
+    ),
+    connectNodesStep(
+      "huggingface.text_to_speech.TextToSpeech",
+      "nodetool.audio.transform.RemoveSilence",
+      "Connect the TextToSpeech node to the RemoveSilence node."
+    ),
+    connectNodesStep(
+      "nodetool.audio.transform.RemoveSilence",
+      "nodetool.workflows.base_node.Preview",
+      "Add a Preview node and connect it to the RemoveSilence node."
+    ),
+    {
+      step: "Click 'Run' at the top toolbar to process the audio. Wait for completion and check the Preview node to listen to the result. Congratulations, you've created your first text-to-speech and audio manipulation workflow!",
+      isCompleted: () => false
+    }
+  ],
+  "Image Editing with ControlNet": [
+    {
+      step: "Drop an image onto the Nodetool canvas to create an image node.",
+      isCompleted: (context: TutorialContext) =>
+        hasNodeOfType(context.nodes, "nodetool.constant.Image")
+    },
+    addNodeStep(
+      "nodetool.image.transform.Canny",
+      "Add a Canny node from the Nodetool.Image.Analysis category."
+    ),
+    connectNodesStep(
+      "nodetool.constant.Image",
+      "nodetool.image.transform.Canny",
+      "Connect the Constant Image node to the Canny node."
+    ),
+    addNodeStep(
+      "huggingface.image_to_image.StableDiffusionControlNet",
+      "Add a StableDiffusionControlNet node from the Huggingface / Text To Image category."
+    ),
+    connectNodesStep(
+      "nodetool.image.transform.Canny",
+      "huggingface.image_to_image.StableDiffusionControlNet",
+      "Connect the Canny node's output to the StableDiffusionControlNet node's control_image input."
+    ),
+    configureNodeStep(
+      "huggingface.image_to_image.StableDiffusionControlNet",
+      (properties) =>
+        properties.controlnet_model === "lllyasviel/sd-controlnet-canny",
+      "Set the Controlnet Model to lllyasviel/sd-controlnet-canny in the StableDiffusionControlNet node."
+    ),
+    configureNodeStep(
+      "huggingface.image_to_image.StableDiffusionControlNet",
+      (properties) => properties.prompt !== "",
+      "Enter a prompt describing the desired image transformation in the StableDiffusionControlNet node."
+    ),
+    connectNodesStep(
+      "huggingface.image_to_image.StableDiffusionControlNet",
+      "nodetool.workflows.base_node.Preview",
+      "Add a Preview node and connect it to the StableDiffusionControlNet output."
+    ),
+    {
+      step: "Click 'Run' at the top toolbar to process the image. Wait for completion and check the Preview node for the result. Congratulations, you've created your first image-to-image transformation with ControlNet!",
+      isCompleted: () => false
     }
   ]
 };
