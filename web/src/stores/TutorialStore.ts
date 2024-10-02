@@ -315,7 +315,8 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
       {
         id: uuidv4(),
         role: "assistant",
-        content: tutorials[tutorialName][0].step
+        content: tutorials[tutorialName][0].step,
+        tool_calls: []
       }
     ]);
   },
@@ -333,7 +334,8 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
       {
         id: uuidv4(),
         role: "assistant",
-        content: tutorials[tutorialName][currentStepIndex + 1].step
+        content: tutorials[tutorialName][currentStepIndex + 1].step,
+        tool_calls: []
       }
     ]);
   },

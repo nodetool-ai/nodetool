@@ -83,26 +83,21 @@ const HelpChat: React.FC = () => {
               margin: ".5em 0 1em 0"
             }}
           >
-            <List sx={{ listStyleType: "square", pl: 2 }}>
-              {Object.keys(tutorials).map((name) => (
-                <ListItem key={name} sx={{ display: "list-item", p: 0 }}>
-                  <Button
-                    component="a"
-                    href={`#${name}`}
-                    onClick={() => startTutorial(name)}
-                    sx={{
-                      textTransform: "none",
-                      "&:hover": {
-                        backgroundColor: "transparent",
-                        textDecoration: "underline"
-                      }
-                    }}
-                  >
-                    {name}
-                  </Button>
-                </ListItem>
-              ))}
-            </List>
+            {Object.keys(tutorials).map((name) => (
+              <Button
+                key={name}
+                variant="outlined"
+                component="a"
+                href=""
+                onClick={() => startTutorial(name)}
+                sx={{
+                  textTransform: "none",
+                  margin: ".25em"
+                }}
+              >
+                {name}
+              </Button>
+            ))}
           </Box>
         </>
       )}

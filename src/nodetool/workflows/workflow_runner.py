@@ -163,7 +163,9 @@ class WorkflowRunner:
                 None,
             )
             if chat_input_node is None:
-                raise ValueError("Chat input node not found")
+                raise ValueError(
+                    "Chat input node not found. Make sure you have a ChatInput node in your graph."
+                )
 
             chat_input_node.value = req.messages
 

@@ -91,7 +91,10 @@ class ChatWebSocketRunner:
 
             except Exception as e:
                 log.error(f"Error processing message: {str(e)}")
-                raise e
+                error_message = {"type": "error", "message": str(e)}
+                await self.send_message(error_message)
+                # Optionally, you can decide whether to break the loop or continue
+                # break
 
     async def process_messages(self) -> dict:
         job_id = str(uuid.uuid4())
