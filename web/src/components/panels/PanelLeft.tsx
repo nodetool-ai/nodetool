@@ -1,3 +1,6 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
 import { useState, useCallback } from "react";
 import { Drawer, IconButton, Tooltip, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
@@ -8,6 +11,26 @@ import { useHotkeys } from "react-hotkeys-hook";
 import HelpChat from "../assistants/HelpChat";
 import WorkflowChat from "../assistants/WorkflowChat";
 import { useNodeStore } from "../../stores/NodeStore";
+
+const styles = (theme: any) =>
+  css({
+    ".panel-tabs ": {
+      minHeight: "2em"
+    },
+    ".panel-tabs button": {
+      display: "flex",
+      alignItems: "flex-start",
+      padding: "0 0 0 .5em",
+      minWidth: "unset",
+      minHeight: "unset",
+      marginRight: "4px",
+      textAlign: "left",
+      fontSize: theme.fontSizeSmaller
+    },
+    ".panel-tabs button:hover:not(.Mui-selected)": {
+      color: theme.palette.c_gray6
+    }
+  });
 
 function PanelLeft() {
   const [activeTab, setActiveTab] = useState(0);
@@ -41,7 +64,10 @@ function PanelLeft() {
   );
 
   return (
-    <div className={`panel-container ${panelSize > 80 ? "open" : "closed"}`}>
+    <div
+      css={styles}
+      className={`panel-container ${panelSize > 80 ? "open" : "closed"}`}
+    >
       <Tooltip
         className="tooltip-1"
         title={
@@ -80,7 +106,11 @@ function PanelLeft() {
       >
         {panelSize > 40 && (
           <>
-            <Tabs value={activeTab} onChange={handleTabChange}>
+            <Tabs
+              className="panel-tabs"
+              value={activeTab}
+              onChange={handleTabChange}
+            >
               <Tab label="Help" />
               <Tab label="Workflow" />
             </Tabs>

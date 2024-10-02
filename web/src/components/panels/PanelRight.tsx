@@ -25,7 +25,7 @@ const styles = (theme: any) =>
       minHeight: "unset",
       marginRight: "4px",
       textAlign: "left",
-      fontSize: "12px"
+      fontSize: theme.fontSizeSmaller
     },
     ".panel-tabs button:hover:not(.Mui-selected)": {
       color: theme.palette.c_gray6
