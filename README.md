@@ -1,33 +1,32 @@
 <h1 style="display: inline;">
   <img src="https://github.com/user-attachments/assets/823b1091-78cd-423f-9b41-14f33b787c7d" alt="NodeTool Logo" height="24" style="vertical-align: -30px;"/>
-  NodeTool - The Complete AI Toolbox
+  NodeTool - Your Creative AI Playground
 </h1>
 
-NodeTool is an all-in-one platform for AI professionals and innovators. It brings together a wide range of AI tools and models in a simple, visual interface. Whether you're an artist, developer, data scientist or complete beginner, NodeTool has everything you need to power your AI projects.
+NodeTool is the ultimate platform for AI enthusiasts, innovators, and creators. It brings together a wide range of AI tools and models in a simple, visual interface. Whether you're an artist, developer, data scientist, or complete beginner, NodeTool has everything you need to power your AI projects and bring your ideas to life.
 
 With NodeTool, you can:
 
-- **Run models locally**: Utilize your own hardware to run large language models via Ollama and access hundreds of models via Hugging Face Transformers and Diffusers. Leverage the ComfyUI ecosystem for advanced image processing workflows.
-- **Run models remotely**: Outsource heavy GPU workloads to cloud services like Replicate, OpenAI, and Anthropic, allowing you to leverage powerful models without the need for expensive hardware.
+- **Prototype ideas quickly**: Experiment with thousands of models in a friendly, visual interface.
+- **Run models locally**: Utilize your own GPU to run large language models via Ollama and access hundreds of models via Hugging Face Transformers and Diffusers.
+- **Leverage cloud services**: Outsource heavy GPU workloads to services like Replicate, OpenAI, and Anthropic for powerful model access without expensive hardware.
 
 ![NodeTool](nodetool.png)
 
-By simplifying access to advanced AI technologies, NodeTool provides a creative space for both newcomers and experienced users to build powerful solutions for content creation, data analysis, automation, and more.
+NodeTool simplifies access to advanced AI technologies, providing a creative space for both newcomers and experienced users to build powerful solutions for content creation, data analysis, automation, and more.
 
 ## Features ✨
 
-- **No-Code Development**: Create complex AI workflows without programming knowledge.
-- **Visual Editor**: Intuitive, node-based workflow design.
-- **Seamless Integration with Leading AI Platforms**: Easily incorporate models from OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI into your workflows.
+- **Visual Editor | No-Code Development**: Create complex AI workflows visually—no coding needed! Dive into an intuitive, node-based design and let your creativity flow.
+- **Seamless Integration with Leading AI Platforms**: Mix and match models from OpenAI, Hugging Face, Anthropic, Ollama, and ComfyUI for endless possibilities.
+- **Model Manager**: Browse and manage your favorite models locally. Download recommended models directly from the Hugging Face Hub and run them on your GPU.
+- **Asset Browser**: Easily import and manage media assets to use in your AI creations.
+- **ComfyUI Integration**: Bring in ComfyUI workflows and nodes to expand your playground.
+- **Multimodal Support**: Play with images, text, audio, video, and more — all in one place.
+- **API Integration**: Connect your AI tools with websites or apps seamlessly.
 - **Dual Model Execution Modes**:
   - **Local Execution**: Run models locally using Ollama and Hugging Face, leveraging your own hardware.
   - **Remote Execution**: Outsource processing to cloud services like Replicate, OpenAI, and Anthropic.
-- **Model Manager**: Browse and manage cached local models
-- **HuggingFace**: Download models directly from the Hugging Face Hub.
-- **Asset Browser**: Import, browse and preview media assets in folders.
-- **ComfyUI (alpha)**: Import ComfyUI workflows and nodes into NodeTool.
-- **Multimodal Support**: Handle images, text, audio, video, and more in a single workflow.
-- **API Integration (alpha)**: Run AI tools from websites or mobile apps.
 - **Customizable Nodes**: Extend functionality with Python.
 - **Real-Time Execution**: WebSocket-based architecture for live processing.
 - **Cross-Platform Compatibility**: Available as standalone app on Mac and Windows.
@@ -44,15 +43,13 @@ Download the latest release from our [Releases Page](https://github.com/nodetool
 
 ## Use Cases 🎨
 
-- 🧠 **Combine AI Models**: Explore and creatively combine hundreds of ML models.
-- 🎨 **Stable Diffusion**: Generate custom image pipelines from the ground up.
-- 🌐 **Run Anywhere**: Create AI tools accessible from websites or mobile apps.
-- 🎶 **Music Generation**: Produce musical ideas and compositions based on text descriptions or themes.
-- 🔊 **Sound-to-Visual Art**: Transform audio into visual masterpieces.
-- 🎧 **Audio-to-Story Generator**: Create stories inspired by audio inputs.
-- 🖼️ **Image Enhancement**: Improve image quality with AI-powered techniques.
-- 🌍 **Multilingual Content Creation**: Produce and translate content across languages.
-- 📊 **Data Visualization**: Turn complex datasets into intuitive, visual representations.
+- 🎨 **Image Generation**: Craft custom image pipelines from scratch.
+- 🎶 **Music Generation**: Generate musical pieces based on text descriptions or themes.
+- 🔊 **Sound-to-Visual Art**: Turn audio into visual masterpieces.
+- 📚 **Audio-to-Story Generator**: Create stories inspired by sounds.
+- ✨ **Image Enhancement**: Improve image quality with AI-powered techniques.
+- 🌍 **Multilingual Content Creation**: Create and translate content across multiple languages.
+- 📊 **Data Visualization**: Turn complex data into intuitive visuals.
 
 ## Node Overview 🧩
 
@@ -118,11 +115,11 @@ nodes
 
 ## Model Manager 🗂️
 
-NodeTool includes a **Model Manager** that simplifies the process of handling AI models:
+NodeTool's Model Manager simplifies handling AI models:
 
-- **Browse Cached Models**: View and manage models that are already downloaded to your local machine.
+- **Browse Cached Models**: View and manage models already downloaded to your local machine.
 - **Download Recommended Models**: Easily access and download popular models from the Hugging Face Hub.
-- **Efficient Storage**: Manage disk space by selectively caching models you frequently use.
+- **Efficient Storage**: Manage disk space by selectively caching frequently used models.
 - **Seamless Integration**: Downloaded models are immediately available within your workflows.
 
 ## Architecture 🏗️
@@ -420,9 +417,8 @@ NodeTool is licensed under the [GPLv3 License](LICENSE.txt)
 
 ## Contact 📬
 
-For inquiries, suggestions, or contributions, please reach out to the core team:
+Got ideas, suggestions, or just want to say hi? We'd love to hear from you!
 
-- **Matthias Georgi**
-- **David Bürer**
-
-**GitHub**: [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)
+- **Email**: [hello@nodetool.ai](mailto:hello@nodetool.ai)
+- **Forum**: [Nodetool Forum](https://forum.nodetool.ai)
+- **GitHub**: [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)
