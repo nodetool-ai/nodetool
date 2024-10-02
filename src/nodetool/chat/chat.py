@@ -520,16 +520,6 @@ async def run_tool(
     result = await tool.process(context, tool_call.args)
 
     content = json.dumps(result, default=default_serializer)
-    message = await context.create_message(
-        MessageCreateRequest(
-            role="tool",
-            user_id=context.user_id,
-            tool_call_id=tool_call.id,
-            name=tool_call.name,
-            content=content,
-        )
-    )
-
     print(f"******* [[TOOL RESULT]] {result} *******")
 
     return ToolCall(
