@@ -7,11 +7,7 @@ import chromadb
 from nodetool.chat.chat import process_messages, process_tool_calls
 from nodetool.chat.tools import Tool, sanitize_node_name
 from nodetool.common.environment import Environment
-from nodetool.common.get_files import get_content, get_files
 from nodetool.metadata.types import FunctionModel, Message, Provider
-from nodetool.models.user import User
-from nodetool.models.workflow import Workflow
-from nodetool.types.chat import MessageCreateRequest
 from nodetool.workflows.base_node import (
     BaseNode,
     get_node_class,
@@ -170,8 +166,10 @@ def get_collection(name) -> chromadb.Collection:
     from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction  # type: ignore
     from chromadb.config import DEFAULT_DATABASE, DEFAULT_TENANT
 
+    log.info(f"Using collection {name} from {Environment.get_chroma_path()}")
+
     client = chromadb.PersistentClient(
-        path="docs.chromadb",
+        path=Environment.get_chroma_path(),
         tenant=DEFAULT_TENANT,
         database=DEFAULT_DATABASE,
     )
