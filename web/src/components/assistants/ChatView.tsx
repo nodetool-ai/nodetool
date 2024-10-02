@@ -4,9 +4,8 @@ import { css, keyframes } from "@emotion/react";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { LinearProgress, Typography } from "@mui/material";
 // mui
-import { Box, Button, TextareaAutosize, Tooltip } from "@mui/material";
+import { Button, TextareaAutosize, Tooltip } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
-import { useTheme } from "@mui/material/styles";
 
 // store
 import {
@@ -348,19 +347,23 @@ const ChatView = ({
   return (
     <div css={styles}>
       <ul className="messages" ref={messagesListRef}>
-        {messages.map(MessageView)}
+        {messages.map((msg, index) => (
+          <MessageView key={msg.id || `msg-${index}`} {...msg} />
+        ))}
         {status === "loading" && progress === 0 && (
-          <li>
+          <li key="loading-indicator">
             <LoadingIndicator />
           </li>
         )}
         {progress > 0 && (
-          <li>
+          <li key="progress-indicator">
             <Progress progress={progress} total={total} />
           </li>
         )}
         {currentNodeName && (
-          <li className="node-status">running {currentNodeName}...</li>
+          <li key="node-status" className="node-status">
+            running {currentNodeName}...
+          </li>
         )}
       </ul>
 
