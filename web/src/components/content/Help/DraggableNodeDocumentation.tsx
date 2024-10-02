@@ -9,6 +9,7 @@ import { useNodeStore } from "../../../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import ThemeNodetool from "../../themes/ThemeNodetool";
+import useSessionStateStore from "../../../stores/SessionStateStore";
 
 const styles = (theme: any) => css`
   position: absolute;
@@ -73,22 +74,21 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
 }) => {
   const { data, isLoading } = useMetadata();
   const nodeMetadata = nodeType ? data?.metadataByType[nodeType] : null;
-  const nodeRef = useRef(null);
+  const nodeRef = useRef<HTMLDivElement>(null);
   const { createNode, addNode } = useNodeStore();
   const reactFlowInstance = useReactFlow();
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-
+  const { leftPanelWidth } = useSessionStateStore();
   const handleAddNode = useCallback(() => {
-    if (nodeMetadata) {
-      const { x: centerX, y: centerY } = reactFlowInstance.getViewport();
+    if (nodeMetadata && nodeRef.current) {
+      const rect = nodeRef.current.getBoundingClientRect();
       const newPosition = reactFlowInstance.screenToFlowPosition({
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2
+        x: rect.right + 20,
+        y: rect.top
       });
-      newPosition.x += 100 - centerX;
-      newPosition.y += 100 - centerY;
 
       const newNode = createNode(nodeMetadata, newPosition);
+      newNode.selected = true;
       addNode(newNode);
       onClose();
     }
@@ -97,14 +97,14 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const handleOpenNodeMenu = useCallback(() => {
     if (nodeType) {
       const { x, y } = reactFlowInstance.screenToFlowPosition({
-        x: window.innerWidth / 2,
+        x: window.innerWidth / 2 + leftPanelWidth,
         y: window.innerHeight / 2
       });
       const searchTerm = nodeType.replace(/\./g, " ");
       openNodeMenu(x, y, false, "", null, searchTerm);
       onClose();
     }
-  }, [nodeType, reactFlowInstance, openNodeMenu, onClose]);
+  }, [nodeType, reactFlowInstance, leftPanelWidth, openNodeMenu, onClose]);
 
   const content = useMemo(() => {
     if (isLoading) return <div className="loading">Loading...</div>;
