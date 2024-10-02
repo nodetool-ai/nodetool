@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from nodetool.api import prediction
 from nodetool.api.websocket_proxy import WebSocketProxy
 from nodetool.common.environment import Environment
+from nodetool.chat.help import index_documentation, index_examples, get_collection
 
 from nodetool.common.huggingface_cache import (
     websocket_endpoint as hf_websocket_endpoint,
@@ -73,6 +74,10 @@ def create_app(
         return "OK"
 
     worker_url = Environment.get_worker_url()
+    
+    if Environment.is_production():
+        index_documentation(get_collection("docs"))
+        index_examples(get_collection("examples"))
 
     if not Environment.is_production():
         app.add_websocket_route("/hf/download", hf_websocket_endpoint)
