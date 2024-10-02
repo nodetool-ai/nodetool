@@ -703,18 +703,8 @@ Comfy IP Adapter: Multimodal image generation similar to ControlNet, but with a 
 Comfy Insight Face: 2D and 3D face analysis, including recognition, detection, and alignment
 Comfy Style Model: A model that applies a style to an image, used in Stable Diffusion
 TAESD: Tiny Autoencoder for Stable Diffusion previews, a lightweight alternative to VAE
-WorkflowRef: Reference to a workflow
-NodeRef: Reference to a node
-Provider: Enumeration of AI service providers (e.g., OpenAI, Anthropic, Replicate, HuggingFace, Ollama, Comfy, Local)
 LlamaModel: Represents a Llama model with various attributes
-HuggingFaceModel: Base class for HuggingFace models
-ModelFile: Base class for model files
-ComfyModel: Base class for Comfy models
-ComfyData: Base class for Comfy data types
 Task: Represents a task with various attributes like id, status, and result
-FunctionDefinition: Defines a function with name, description, and parameters
-ChatToolParam: Represents a chat tool parameter
-ChatMessageParam: Base class for chat message parameters
 RankingResult: Represents a ranking result with score and text
 ImageSegmentationResult: Represents an image segmentation result with label and mask
 BoundingBox: Represents a bounding box with coordinates
@@ -768,6 +758,9 @@ Examples:
 - [Hugging Face Stable Diffusion](/help/huggingface.image.StableDiffusion)
 
 Always double-check that the node type is correct and the URL is properly formatted.
+DO NOT make up node types.
+DO NOT ADD protocol (e.g. http:// or https://) to the URL.
+DO NOT ADD domain (e.g. nodetool.ai) to the URL.
 
 Use following documentation for related node types to answer user questions:
 {docs_str}
