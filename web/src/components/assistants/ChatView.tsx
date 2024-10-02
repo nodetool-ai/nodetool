@@ -21,7 +21,6 @@ import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import OutputRenderer from "../node/OutputRenderer";
 // import { useAuth } from "../../stores/useAuth";
-import { useTutorialStore } from "../../stores/TutorialStore";
 
 const styles = (theme: any) =>
   css({
@@ -246,9 +245,7 @@ const ChatView = ({
   const [submitted, setSubmitted] = useState(false);
   const [prompt, setPrompt] = useState("");
   const loading = false;
-  const { isInTutorial } = useTutorialStore();
 
-  // handle input change
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       setPrompt(event.target.value);
@@ -317,10 +314,6 @@ const ChatView = ({
       messageClass += " user";
     } else if (msg.role === "assistant") {
       messageClass += " assistant";
-    }
-
-    if (isInTutorial && msg.role === "assistant") {
-      messageClass += " tutorial-step";
     }
 
     const content = msg.content as

@@ -12,12 +12,14 @@ import {
 import ClearIcon from "@mui/icons-material/Clear";
 import { useTutorialStore } from "../../stores/TutorialStore";
 import { useNodeStore } from "../../stores/NodeStore";
+import useWorkflowRunnner from "../../stores/WorkflowRunner";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
   const { isInTutorial, getStep, nextStep } = useTutorialStore();
+  const { state } = useWorkflowRunnner();
   const step = getStep();
-  const { nodes } = useNodeStore();
+  const { nodes, edges } = useNodeStore();
 
   const handleSendMessage = useCallback(
     async (prompt: string) => {
@@ -36,11 +38,11 @@ const HelpChat: React.FC = () => {
 
   useEffect(() => {
     if (isInTutorial) {
-      if (step && step.isCompleted({ nodes })) {
+      if (step && step.isCompleted({ nodes, edges, workflowState: state })) {
         nextStep();
       }
     }
-  }, [step, isInTutorial, nextStep, nodes]);
+  }, [step, isInTutorial, nextStep, nodes, edges, state]);
 
   return (
     <div className="help-chat" style={{ margin: ".5em" }}>
