@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { Drawer, IconButton, Tooltip, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
@@ -6,11 +7,11 @@ import "../../styles/panel.css";
 import { useHotkeys } from "react-hotkeys-hook";
 import HelpChat from "../assistants/HelpChat";
 import WorkflowChat from "../assistants/WorkflowChat";
-import { useState, useCallback } from "react";
 import { useNodeStore } from "../../stores/NodeStore";
 
 function PanelLeft() {
   const [activeTab, setActiveTab] = useState(0);
+
   const {
     ref: panelRef,
     size: panelSize,
@@ -77,12 +78,16 @@ function PanelLeft() {
         anchor="left"
         open={true}
       >
-        <Tabs value={activeTab} onChange={handleTabChange}>
-          <Tab label="Help" />
-          <Tab label="Workflow" />
-        </Tabs>
-        {activeTab === 0 && <HelpChat />}
-        {activeTab === 1 && <WorkflowChat workflow_id={workflowId} />}
+        {panelSize > 40 && (
+          <>
+            <Tabs value={activeTab} onChange={handleTabChange}>
+              <Tab label="Help" />
+              <Tab label="Workflow" />
+            </Tabs>
+            {activeTab === 0 && <HelpChat />}
+            {activeTab === 1 && <WorkflowChat workflow_id={workflowId} />}
+          </>
+        )}
       </Drawer>
     </div>
   );

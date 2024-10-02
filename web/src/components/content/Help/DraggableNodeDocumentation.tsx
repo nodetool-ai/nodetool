@@ -1,9 +1,14 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useCallback } from "react";
 import { useMetadata } from "../../../serverState/useMetadata";
 import NodeInfo from "../../node_menu/NodeInfo";
 import { css } from "@emotion/react";
 import Draggable from "react-draggable";
+import { Button } from "@mui/material";
+import { useNodeStore } from "../../../stores/NodeStore";
+import { useReactFlow } from "@xyflow/react";
+import useNodeMenuStore from "../../../stores/NodeMenuStore";
+import ThemeNodetool from "../../themes/ThemeNodetool";
 
 const styles = (theme: any) => css`
   position: absolute;
@@ -35,9 +40,9 @@ const styles = (theme: any) => css`
     color: ${theme.palette.text.secondary};
   }
 
-  .error {
+  .warning {
     font-size: 1rem;
-    color: ${theme.palette.error.main};
+    color: ${theme.palette.c_warning};
   }
   .content {
     padding: 10px;
@@ -69,13 +74,71 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const { data, isLoading } = useMetadata();
   const nodeMetadata = nodeType ? data?.metadataByType[nodeType] : null;
   const nodeRef = useRef(null);
+  const { createNode, addNode } = useNodeStore();
+  const reactFlowInstance = useReactFlow();
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+
+  const handleAddNode = useCallback(() => {
+    if (nodeMetadata) {
+      const { x: centerX, y: centerY } = reactFlowInstance.getViewport();
+      const newPosition = reactFlowInstance.screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+      });
+      newPosition.x += 100 - centerX;
+      newPosition.y += 100 - centerY;
+
+      const newNode = createNode(nodeMetadata, newPosition);
+      addNode(newNode);
+      onClose();
+    }
+  }, [nodeMetadata, createNode, addNode, reactFlowInstance, onClose]);
+
+  const handleOpenNodeMenu = useCallback(() => {
+    if (nodeType) {
+      const { x, y } = reactFlowInstance.screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+      });
+      const searchTerm = nodeType.replace(/\./g, " ");
+      openNodeMenu(x, y, false, "", null, searchTerm);
+      onClose();
+    }
+  }, [nodeType, reactFlowInstance, openNodeMenu, onClose]);
 
   const content = useMemo(() => {
     if (isLoading) return <div className="loading">Loading...</div>;
     if (!nodeMetadata)
-      return <div className="error">No data available for this node type.</div>;
-    return <NodeInfo nodeMetadata={nodeMetadata} />;
-  }, [isLoading, nodeMetadata]);
+      return (
+        <div className="warning">
+          {nodeType} <br />
+          <span style={{ color: ThemeNodetool.palette.c_gray6 }}>
+            Sorry, this node does not exist.
+          </span>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={handleOpenNodeMenu}
+            style={{ marginTop: "10px" }}
+          >
+            Search for similar nodes
+          </Button>
+        </div>
+      );
+    return (
+      <>
+        <NodeInfo nodeMetadata={nodeMetadata} />
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleAddNode}
+          style={{ marginTop: "10px", marginRight: "10px" }}
+        >
+          Add Node
+        </Button>
+      </>
+    );
+  }, [isLoading, nodeMetadata, nodeType, handleAddNode, handleOpenNodeMenu]);
 
   return (
     <Draggable handle=".handle" defaultPosition={position} nodeRef={nodeRef}>

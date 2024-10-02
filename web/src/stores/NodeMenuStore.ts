@@ -53,7 +53,7 @@ type NodeMenuStore = {
     openedByDrop?: boolean,
     dropType?: string,
     connectDirection?: ConnectDirection,
-    activeNode?: string
+    searchTerm?: string
   ) => void;
   closeNodeMenu: () => void;
 
@@ -64,7 +64,7 @@ type NodeMenuStore = {
   hoveredNode: NodeMetadata | null;
   setHoveredNode: (node: NodeMetadata | null) => void;
 
-  // New properties for DraggableNodeDocumentation
+  // DraggableNodeDocumentation
   selectedNodeType: string | null;
   setSelectedNodeType: (nodeType: string | null) => void;
   documentationPosition: { x: number; y: number };
@@ -138,7 +138,8 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     y,
     openedByDrop: boolean = false,
     dropType: string = "",
-    connectDirection: ConnectDirection = null
+    connectDirection: ConnectDirection = null,
+    searchTerm: string = ""
   ) => {
     const maxPosX = window.innerWidth - get().menuWidth + 150;
     const maxPosY = window.innerHeight - get().menuHeight + 100;
@@ -150,11 +151,15 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       openedByDrop: openedByDrop,
       dropType: dropType,
       connectDirection: connectDirection,
-      searchTerm: "",
-      searchResults: get().metadata,
+      searchTerm: searchTerm,
       selectedPath: [],
       highlightedNamespaces: []
     });
+
+    // Use setTimeout to delay the search until after the current call stack is clear
+    setTimeout(() => {
+      get().performSearch(searchTerm);
+    }, 0);
   },
 
   closeNodeMenu: () => {
@@ -249,7 +254,7 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
     set({ hoveredNode: node });
   },
 
-  // New state and methods for DraggableNodeDocumentation
+  // DraggableNodeDocumentation
   selectedNodeType: null,
   setSelectedNodeType: (nodeType) => set({ selectedNodeType: nodeType }),
   documentationPosition: { x: 0, y: 0 },

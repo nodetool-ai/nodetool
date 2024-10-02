@@ -1,12 +1,18 @@
 import { useEffect, useCallback, useRef } from "react";
 import { usePanelStore } from "../../stores/PanelStore";
+import useSessionStateStore from "../../stores/SessionStateStore";
 
-export const useResizePanel = (
-  panelPosition: "left" | "right" = "left"
-) => {
-
+export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
   const { panels, setSize, setIsDragging, setHasDragged } = usePanelStore();
-  const { size, isDragging, hasDragged, maxWidth, minWidth } = panels[panelPosition];
+  const { size, isDragging, hasDragged, maxWidth, minWidth } =
+    panels[panelPosition];
+
+  const {
+    leftPanelWidth,
+    rightPanelWidth,
+    setLeftPanelWidth,
+    setRightPanelWidth
+  } = useSessionStateStore();
 
   const ref = useRef<HTMLDivElement>(null);
   const dragThreshold = 20;
@@ -22,8 +28,6 @@ export const useResizePanel = (
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(panelPosition, false);
-
-    // delay reset of hasDragged state
     setTimeout(() => setHasDragged(panelPosition, false), 0);
   }, [panelPosition, setHasDragged, setIsDragging]);
 
@@ -34,15 +38,20 @@ export const useResizePanel = (
       let newSize;
       if (panelPosition === "left") {
         newSize =
-          event.clientX -
-          30 -
-          (ref.current?.getBoundingClientRect().left || 0);
+          event.clientX - 30 - (ref.current?.getBoundingClientRect().left || 0);
       } else {
         newSize = window.innerWidth - event.clientX - 30;
       }
 
       newSize = Math.max(minWidth, Math.min(newSize, maxWidth));
       setSize(panelPosition, newSize);
+
+      // Update SessionStateStore
+      if (panelPosition === "left") {
+        setLeftPanelWidth(newSize);
+      } else {
+        setRightPanelWidth(newSize);
+      }
 
       const distance = Math.abs(
         event.clientX - (ref.current?.getBoundingClientRect().left || 0)
@@ -52,36 +61,50 @@ export const useResizePanel = (
         setHasDragged(panelPosition, true);
       }
     },
-    [isDragging, panelPosition, minWidth, maxWidth, setSize, setHasDragged]
+    [
+      isDragging,
+      panelPosition,
+      minWidth,
+      maxWidth,
+      setSize,
+      setHasDragged,
+      setLeftPanelWidth,
+      setRightPanelWidth
+    ]
   );
 
   const handlePanelToggle = useCallback(() => {
     if (!hasDragged) {
-      setSize(panelPosition, size > minWidth ? minWidth : Math.min(maxWidth / 2, 300));
+      const storedWidth =
+        panelPosition === "left" ? leftPanelWidth : rightPanelWidth;
+      const newSize = size > minWidth ? minWidth : storedWidth;
+      setSize(panelPosition, newSize);
     }
-  }, [hasDragged, setSize, panelPosition, size, minWidth, maxWidth]);
+  }, [
+    hasDragged,
+    setSize,
+    panelPosition,
+    size,
+    minWidth,
+    leftPanelWidth,
+    rightPanelWidth
+  ]);
 
   useEffect(() => {
-    const handleMouseUpOutside = () => {
-      setIsDragging(panelPosition, false);
-      setTimeout(() => setHasDragged(panelPosition, false), 0);
-    };
-
-    document.addEventListener("mouseup", handleMouseUpOutside);
+    document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("mousemove", handleMouseMove);
 
     return () => {
-      document.removeEventListener("mouseup", handleMouseUpOutside);
+      document.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("mousemove", handleMouseMove);
     };
-  }, [handleMouseMove, panelPosition, setHasDragged, setIsDragging]);
+  }, [handleMouseMove, handleMouseUp]);
 
   return {
     ref,
     size,
     isDragging,
     handleMouseDown,
-    handleMouseUp,
     handlePanelToggle
   };
 };

@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import DraggableNodeDocumentation from "../components/content/Help/DraggableNodeDocumentation";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-
+import useSessionStateStore from "../stores/SessionStateStore";
 interface MarkdownRendererProps {
   content: string;
   isReadme?: boolean;
@@ -51,6 +51,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNodeType, setSelectedNodeType] = useState<string | null>(null);
+  const { leftPanelWidth } = useSessionStateStore();
   const [documentationPosition, setDocumentationPosition] = useState({
     x: 0,
     y: 0
@@ -60,14 +61,20 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     setSelectedNodeType(null);
   }, []);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    if (e.target instanceof HTMLAnchorElement) {
-      const url = new URL(e.target.href);
-      setSelectedNodeType(url.pathname.split("/").pop() || "");
-      setDocumentationPosition({ x: e.clientX + 200, y: e.clientY - 100 });
-    }
-  }, []);
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (e.target instanceof HTMLAnchorElement) {
+        const url = new URL(e.target.href);
+        setSelectedNodeType(url.pathname.split("/").pop() || "");
+        setDocumentationPosition({
+          x: e.clientX + leftPanelWidth,
+          y: e.clientY - 150
+        });
+      }
+    },
+    [leftPanelWidth]
+  );
 
   const isExternalLink = (url: string) => {
     return /^https?:\/\//.test(url);
