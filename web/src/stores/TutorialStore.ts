@@ -68,13 +68,13 @@ const connectNodesStep = (
 
 const configureNodeStep = (
   nodeType: string,
-  propertyCheck: (node: Node<NodeData>) => boolean,
+  propertyCheck: (properties: any) => boolean,
   stepDescription: string
 ): TutorialStep => ({
   step: stepDescription,
   isCompleted: (context: TutorialContext) => {
     const node = getNodeByType(context.nodes, nodeType);
-    return node ? propertyCheck(node) : false;
+    return node ? propertyCheck(node.data?.properties) : false;
   }
 });
 
@@ -101,18 +101,16 @@ export const tutorials: Record<string, TutorialStep[]> = {
       isCompleted: (context: TutorialContext) => context.nodes.length === 0
     },
     addNodeStep(
-      "huggingface.image.StableDiffusion",
-      "Click 'Nodes' or double-click the canvas. Search for 'StableDiffusion' in the Huggingface (not Comfy) category and place the node on the canvas."
+      "huggingface.text_to_image.StableDiffusion",
+      "Click 'Nodes' or double-click the canvas. Search for 'StableDiffusion' in the Huggingface / Text To Image (not Comfy) category and place the node on the canvas."
     ),
     configureNodeStep(
-      "huggingface.image.StableDiffusion",
-      (node) =>
-        node.data?.properties.model === "Yntec/realistic-vision-v13" &&
-        node.data?.properties.prompt !== "",
+      "huggingface.text_to_image.StableDiffusion",
+      (properties) => properties.prompt !== "",
       "Configure the StableDiffusion node: Enter a prompt describing the desired image, change the model to Yntec/realistic-vision-v13, and leave other settings at default."
     ),
     connectNodesStep(
-      "huggingface.image.StableDiffusion",
+      "huggingface.text_to_image.StableDiffusion",
       "nodetool.workflows.base_node.Preview",
       "Drag the StableDiffusion node's blue output handle to the canvas and select 'Create Preview Node' from the menu."
     ),
@@ -159,7 +157,7 @@ export const tutorials: Record<string, TutorialStep[]> = {
     ),
     configureNodeStep(
       "nodetool.image.transform.Posterize",
-      (node) => node.data?.properties.bits === 2,
+      (properties) => properties.bits === 2,
       "Set the 'bits' parameter to 2."
     ),
     connectNodesStep(
@@ -178,7 +176,7 @@ export const tutorials: Record<string, TutorialStep[]> = {
     ),
     configureNodeStep(
       "nodetool.video.transform.CreateVideo",
-      (node) => node.data?.properties.fps === 5.0,
+      (properties) => properties.fps === 5.0,
       "Set the 'FPS' parameter to 5.0."
     ),
     connectNodesStep(
