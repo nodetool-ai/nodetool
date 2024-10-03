@@ -64,11 +64,6 @@ HF_LORA_SD_MODELS = [
     HFLoraSD(repo_id="danbrown/loras", path="water_vfx.safetensors"),
     HFLoraSD(repo_id="danbrown/loras", path="wlop_style.safetensors"),
     HFLoraSD(repo_id="danbrown/loras", path="zerotwo_darling.safetensors"),
-    HFLoraSD(repo_id="danbrown/loras", path="2d_sprite.safetensors"),
-    HFLoraSD(repo_id="danbrown/loras", path="ghibli_scenery.safetensors"),
-    HFLoraSD(repo_id="danbrown/loras", path="add_detail.safetensors"),
-    HFLoraSD(repo_id="danbrown/loras", path="colorwater.safetensors"),
-    HFLoraSD(repo_id="danbrown/loras", path="sxz_game_assets.safetensors"),
 ]
 
 
