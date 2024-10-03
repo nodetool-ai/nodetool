@@ -212,6 +212,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     contentType,
     onClose: handleClose
   } = props;
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentAsset, setCurrentAsset] = useState<Asset | undefined>(asset);
   const getAsset = useAssetStore((state) => state.get);
@@ -295,7 +296,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [handleChangeAsset, currentIndex, assetsToUse]
   );
 
-  useHotkeys("esc", handleClose);
+  useHotkeys("Escape", handleClose);
   useHotkeys("left", () => {
     changeAsset("left", false);
   });
