@@ -24,7 +24,6 @@ import { Asset } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import useAssets from "../../serverState/useAssets";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useNotificationStore } from "../../stores/NotificationStore";
 
 const containerStyles = css({
   width: "100%",
@@ -221,6 +220,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const prevNextAmount = 5;
 
+  const { folderFiles } = useAssets();
+
+  const assetsToUse = useMemo(
+    () => sortedAssets || folderFiles || [],
+    [sortedAssets, folderFiles]
+  );
+
   const handleDownload = useCallback(async () => {
     if (currentAsset && currentAsset.get_url) {
       window.open(currentAsset.get_url, "_blank");
@@ -234,14 +240,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       setTimeout(() => {
         setCurrentAsset(newAsset);
       }, 10);
-      if (sortedAssets) {
-        const index = sortedAssets.findIndex((item) => item.id === newAsset.id);
+      if (assetsToUse) {
+        const index = assetsToUse.findIndex((item) => item.id === newAsset.id);
         setCurrentIndex(index !== -1 ? index : null);
       } else {
         setCurrentIndex(null);
       }
     },
-    [sortedAssets, setCurrentAsset, setCurrentIndex]
+    [assetsToUse, setCurrentAsset, setCurrentIndex]
   );
 
   useEffect(() => {
@@ -255,38 +261,38 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   useEffect(() => {
     if (asset) {
       setCurrentAsset(asset);
-      const index = sortedAssets?.findIndex((item) => item.id === asset.id);
+      const index = assetsToUse?.findIndex((item) => item.id === asset.id);
       setCurrentIndex(index !== undefined ? index : null);
     }
-  }, [asset, sortedAssets]);
+  }, [asset, assetsToUse]);
 
   const changeAsset = useCallback(
     (direction: "left" | "right", controlKeyPressed: boolean) => {
-      if (currentIndex !== null && sortedAssets) {
+      if (currentIndex !== null && assetsToUse) {
         if (direction === "left" && currentIndex > 0) {
           if (controlKeyPressed) {
             handleChangeAsset(
-              sortedAssets[Math.max(currentIndex - prevNextAmount, 0)]
+              assetsToUse[Math.max(currentIndex - prevNextAmount, 0)]
             );
           } else {
-            handleChangeAsset(sortedAssets[currentIndex - 1]);
+            handleChangeAsset(assetsToUse[currentIndex - 1]);
           }
         } else if (
           direction === "right" &&
-          currentIndex < sortedAssets.length - 1
+          currentIndex < assetsToUse.length - 1
         )
           if (controlKeyPressed) {
             handleChangeAsset(
-              sortedAssets[
-                Math.min(currentIndex + prevNextAmount, sortedAssets.length - 1)
+              assetsToUse[
+                Math.min(currentIndex + prevNextAmount, assetsToUse.length - 1)
               ]
             );
           } else {
-            handleChangeAsset(sortedAssets[currentIndex + 1]);
+            handleChangeAsset(assetsToUse[currentIndex + 1]);
           }
       }
     },
-    [handleChangeAsset, currentIndex, sortedAssets]
+    [handleChangeAsset, currentIndex, assetsToUse]
   );
 
   useHotkeys("esc", handleClose);
@@ -337,15 +343,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const renderNavigation = () => {
     if (currentIndex === null) return null;
     const prevAssets =
-      sortedAssets?.slice(
+      assetsToUse?.slice(
         Math.max(0, currentIndex - prevNextAmount),
         currentIndex
       ) || [];
     const nextAssets =
-      sortedAssets?.slice(
-        currentIndex + 1,
-        currentIndex + prevNextAmount + 1
-      ) || [];
+      assetsToUse?.slice(currentIndex + 1, currentIndex + prevNextAmount + 1) ||
+      [];
     return (
       <>
         <IconButton
