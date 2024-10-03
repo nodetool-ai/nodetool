@@ -154,6 +154,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   const [zoom, setZoom] = useState(1);
   const [fitsContainer, setFitsContainer] = useState(true);
   const minimapId = useMemo(() => `minimap-${uuidv4()}`, []);
+  const [displayTime, setDisplayTime] = useState(0);
   const handlePlayPause = useCallback(() => {
     try {
       waveSurferRef.current?.playPause();
@@ -191,7 +192,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
 
   useEffect(() => {
     if (source instanceof Uint8Array) {
-      const blob = new Blob([source], { type: 'audio/mp3' });
+      const blob = new Blob([source], { type: "audio/mp3" });
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
       return () => URL.revokeObjectURL(url);
@@ -240,6 +241,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         const handleAudioProcess = throttle(() => {
           const currentTime = waveSurferRef.current?.getCurrentTime() || 0;
           currentTimeRef.current = currentTime;
+          setDisplayTime(currentTime);
         }, 100);
 
         const handleSeekingProcess = throttle(() => {
@@ -358,8 +360,9 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
       onClick={(e) => {
         e.stopPropagation();
       }}
-      className={`audio-controls-container${!fitsContainer ? " zoomed" : ""}${audioUrl === "" ? " disabled" : ""
-        }`}
+      className={`audio-controls-container${!fitsContainer ? " zoomed" : ""}${
+        audioUrl === "" ? " disabled" : ""
+      }`}
     >
       <Typography
         variant="body1"
@@ -373,7 +376,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         className={`${fontSize} filename`}
         style={{ color: "#999" }}
       >
-        {`${formatTime(currentTimeRef.current)} | ${formatTime(duration)}`}
+        {`${formatTime(displayTime)} | ${formatTime(duration)}`}
       </Typography>
       <div
         id="waveform"
@@ -394,10 +397,11 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
       ></div>
       <div
         id={minimapId}
-        className={`minimap ${waveSurferRef?.current && waveSurferRef.current.getDuration() > 15
-          ? "visible"
-          : ""
-          }`}
+        className={`minimap ${
+          waveSurferRef?.current && waveSurferRef.current.getDuration() > 15
+            ? "visible"
+            : ""
+        }`}
         style={{ height: `${minimapHeight}px` }}
       ></div>
       {(isReady || alwaysShowControls) && (
