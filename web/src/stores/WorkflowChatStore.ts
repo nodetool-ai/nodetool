@@ -71,7 +71,7 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
             total: 0,
             status: "connected"
           });
-        } else if (update.status === "error") {
+        } else if (update.status === "failed") {
           set({
             error: update.error,
             status: "error",
@@ -96,7 +96,6 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
 
     socket.onerror = (error) => {
       devError("Chat WebSocket error:", error);
-      set({ error: "WebSocket error occurred", status: "error" });
     };
 
     socket.onclose = () => {
@@ -130,6 +129,8 @@ const useWorkflowChatStore = create<WorkflowChatState>((set, get) => ({
     if (!user) {
       throw new Error("User is not logged in");
     }
+
+    set({ error: null });
 
     message.auth_token = user.auth_token;
 

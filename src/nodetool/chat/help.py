@@ -64,7 +64,7 @@ class TutorialTool(Tool):
     Tool for starting a tutorial.
     """
 
-    def __init__(self):
+    def __init__(self, tutorials: list[str]):
         self.name = "start_tutorial"
         self.description = f"Start the tutorial with the given name."
         self.input_schema = {
@@ -73,9 +73,7 @@ class TutorialTool(Tool):
                 "tutorial_name": {
                     "type": "string",
                     "description": "The name of the tutorial to start.",
-                    "enum": [
-                        "welcome",
-                    ],
+                    "enum": tutorials,
                 }
             },
             "required": ["tutorial_name"],
@@ -378,99 +376,7 @@ You don't have to use them in order.
 You don't have to use them exactly.
 You can use them as inspiration to create new and exciting workflows.
 
-## Tutorial 1: Build a Stable Diffusion Workflow
 
-1. Create a New Workflow
-   - Click on "Workflows" > "Create New"
-   - Name your workflow in the right sidebar
-
-2. Add a StableDiffusion Node
-   - Click "Nodes" or double-click the canvas
-   - Search for "StableDiffusion" in Huggingface.Image category
-   - Place the node on the canvas
-
-3. Configure the StableDiffusion Node
-   - Enter a prompt describing the desired image
-   - Change the model to Yntec/epiCPhotoGasm
-   - Leave other settings at default
-
-4. Add a Preview Node
-   - Drag the StableDiffusion node's blue output handle to the canvas
-   - Select "Create Preview Node" from the menu
-
-5. Run Your Workflow
-   - Click "Run" at the bottom
-   - Wait for completion
-
-6. View Your Result
-   - Check for completion notification
-   - Resize the Preview node as needed
-   - Double-click the image to enlarge
-
-## Tutorial 2: Audio Transcription and Analysis
-
-1. Add an Audio Input Node
-   - Add "Constant Audio" node from Nodetool.Constant category
-   - Record audio or import an audio file
-
-2. Transcribe the Audio
-   - Add "Transcribe" node from OpenAI.Audio category
-   - Connect Constant Audio output to Transcribe input
-
-3. Perform Sentiment Analysis
-   - Add "GPT" node from OpenAI.Text category
-   - Connect Transcribe output to GPT input
-   - Set GPT prompt for sentiment analysis
-
-4. Extract Sentiment Score
-   - Add "Regex" node from Nodetool.Text category
-   - Connect GPT output to Regex input
-   - Set Regex pattern to extract numerical score
-
-5. Visualize the Sentiment
-   - Add "StableDiffusion" node from HuggingFace.Image category
-   - Connect Regex output to StableDiffusion input
-
-## Tutorial 3: Text-to-Speech and Audio Manipulation
-
-1. Add a Constant String node with text
-2. Add TextToSpeech node (OpenAI.Audio category), connect to String node
-3. Add RemoveSilence node (Nodetool.Audio.Transform), connect to TextToSpeech
-4. Add Preview node, connect to RemoveSilence
-5. Run the workflow and listen to the result
-
-## Tutorial 4: Video Processing with Loop
-
-1. Add LoadVideo node (Nodetool.Video), choose a short video file
-2. Add ExtractFrames node (Nodetool.Video.Transform), connect to LoadVideo
-3. Add Loop node (Nodetool.Group), connect to ExtractFrames
-4. Inside Loop: Add Posterize node (Nodetool.Image), set bits to 2
-5. Connect GroupInput to Posterize, then Posterize to GroupOutput
-6. Add CreateVideo node (Nodetool.Video.Transform), set FPS to 5.0, connect to Loop
-7. Add Preview node, connect to CreateVideo
-8. Run workflow to see processed video
-
-## Tutorial 5: AI-Assisted Urban Planning Visualization
-
-1. Add Constant String node with urban design prompt
-2. Add Flux node (StableDiffusion), set model to "Flux Schnell", connect to String
-3. Add GPT node (OpenAI.Text), use "gpt-4o" model, connect Flux image output to GPT image input
-4. Set GPT prompt for urban design analysis
-5. Add two Preview nodes: one for Flux output, one for GPT output
-6. Run workflow and view results
-7. Iterate on design by modifying the prompt
-8. Create multiple versions on canvas to compare different designs
-
-## Tutorial 6: Image-to-Image Transformation with ControlNet
-
-1. Drop an image onto the Nodetool canvas to create an image node
-2. Add Canny node (Nodetool.Image.Analysis), connect to Constant Image
-3. Add ControlNet node (StableDiffusion category)
-4. Connect CannyEdgeDetection output to control_image input
-5. Set control_model to CANNY
-6. Enter a prompt describing the desired image transformation
-7. Add Preview node, connect to StableDiffusionXLControlNetNode output
-8. Run the workflow to see the guided image generation
 
 """
 
@@ -479,6 +385,7 @@ def system_prompt_for(
     prompt: str,
     docs: dict[str, str],
     examples: list[str],
+    available_tutorials: list[str],
 ) -> str:
     if "tutorial" in prompt:
         tutorial_str = TUTORIALS
@@ -762,6 +669,9 @@ DO NOT make up node types.
 DO NOT ADD protocol (e.g. http:// or https://) to the URL.
 DO NOT ADD domain (e.g. nodetool.ai) to the URL.
 
+Available Tutorials:
+{",".join(available_tutorials)}
+
 Use following documentation for related node types to answer user questions:
 {docs_str}
 
@@ -774,7 +684,6 @@ Instead of Bark node, you can use MusicGen node.
 Use the examples to recommend strategies and processes to the user.
 The user should be inspired to combine the examples in creative ways.
 {examples_str}
-{tutorial_str}
 
 REMEMBER, you are sitting in an AI application, so the expectations are high.
 Your audience is a sophisticated user who is looking for ways to use Nodetool to create amazing things.
@@ -785,7 +694,9 @@ Be creative and inspiring.
 """
 
 
-async def create_help_answer(messages: list[Message]) -> list[Message]:
+async def create_help_answer(
+    messages: list[Message], available_tutorials: list[str]
+) -> list[Message]:
     assert len(messages) > 0
 
     prompt = str(messages[-1].content)
@@ -796,7 +707,8 @@ async def create_help_answer(messages: list[Message]) -> list[Message]:
     docs_dict = dict(zip(node_types, docs))
 
     system_message = Message(
-        role="system", content=system_prompt_for(prompt, docs_dict, examples)
+        role="system",
+        content=system_prompt_for(prompt, docs_dict, examples, available_tutorials),
     )
     tools: list[Tool] = []
     classes = [
@@ -806,7 +718,7 @@ async def create_help_answer(messages: list[Message]) -> list[Message]:
         provider=Provider.OpenAI,
         name="gpt-4o-mini",
     )
-    tools.append(TutorialTool())
+    tools.append(TutorialTool(available_tutorials))
 
     for node_class in classes[:10]:
         try:

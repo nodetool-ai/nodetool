@@ -99,7 +99,6 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         css={styles}
         ref={containerRef}
         tabIndex={0}
-        onClick={handleClick}
       >
         {isReadme ? (
           <ReactMarkdown
@@ -118,7 +117,19 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             {content || ""}
           </ReactMarkdown>
         ) : (
-          <ReactMarkdown>{content || ""}</ReactMarkdown>
+          <ReactMarkdown
+            components={{
+              a: ({ href, children }) => {
+                return (
+                  <a href={href} onClick={handleClick}>
+                    {children}
+                  </a>
+                );
+              }
+            }}
+          >
+            {content || ""}
+          </ReactMarkdown>
         )}
       </div>
       {memoizedDocumentation}

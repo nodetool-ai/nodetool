@@ -57,12 +57,13 @@ def ensure_alternating_roles(messages):
 
 class HelpRequest(BaseModel):
     messages: list[Message]
+    available_tutorials: list[str]
 
 
 @router.post("/help")
 async def help(req: HelpRequest) -> list[Message]:
     messages = ensure_alternating_roles(req.messages)
-    return await create_help_answer(messages)
+    return await create_help_answer(messages, req.available_tutorials)
 
 
 @router.get("/{message_id}")

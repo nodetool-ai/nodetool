@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import { Message, Workflow } from "./ApiTypes";
+import { Message } from "./ApiTypes";
 import { ToolCall } from "./ApiTypes";
-import { useTutorialStore } from "./TutorialStore";
+import { tutorials, useTutorialStore } from "./TutorialStore";
 
 interface ChatStore {
   messages: Message[];
@@ -25,13 +25,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     get().addMessages([message]);
     try {
       const response = await fetch(
+        // "http://dev.nodetool.ai:8000/api/messages/help",
         "https://api.nodetool.ai/api/messages/help",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ messages })
+          body: JSON.stringify({
+            messages,
+            available_tutorials: Object.keys(tutorials)
+          })
         }
       );
 

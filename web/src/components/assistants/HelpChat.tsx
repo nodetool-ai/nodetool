@@ -12,12 +12,16 @@ import {
 import ClearIcon from "@mui/icons-material/Clear";
 import { useTutorialStore } from "../../stores/TutorialStore";
 import { useNodeStore } from "../../stores/NodeStore";
+import useWorkflowRunnner from "../../stores/WorkflowRunner";
+import { tutorials } from "../../stores/TutorialStore";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
   const { isInTutorial, getStep, nextStep } = useTutorialStore();
+  const { state } = useWorkflowRunnner();
   const step = getStep();
-  const { nodes } = useNodeStore();
+  const { nodes, edges } = useNodeStore();
+  const { startTutorial } = useTutorialStore();
 
   const handleSendMessage = useCallback(
     async (prompt: string) => {
@@ -36,11 +40,11 @@ const HelpChat: React.FC = () => {
 
   useEffect(() => {
     if (isInTutorial) {
-      if (step && step.isCompleted({ nodes })) {
+      if (step && step.isCompleted({ nodes, edges, workflowState: state })) {
         nextStep();
       }
     }
-  }, [step, isInTutorial, nextStep, nodes]);
+  }, [step, isInTutorial, nextStep, nodes, edges, state]);
 
   return (
     <div className="help-chat" style={{ margin: ".5em" }}>
@@ -69,7 +73,8 @@ const HelpChat: React.FC = () => {
           <Box sx={{ mb: 2 }}>
             <Typography>I&apos;m your experimental AI assistant!</Typography>
             <Typography sx={{ mt: 2 }}>
-              Ask me anything about Nodetool&apos;s features, like:
+              Ask me anything about Nodetool&apos;s features, or try one of the
+              following tutorials:
             </Typography>
           </Box>
           <Box
@@ -78,23 +83,24 @@ const HelpChat: React.FC = () => {
               margin: ".5em 0 1em 0"
             }}
           >
-            <List sx={{ listStyleType: "square", pl: 2 }}>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Getting started" />
-              </ListItem>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Working with nodes, models, and assets" />
-              </ListItem>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Example workflows" />
-              </ListItem>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Shortcuts" />
-              </ListItem>
-              <ListItem sx={{ display: "list-item", p: 0 }}>
-                <ListItemText primary="Settings" />
-              </ListItem>
-            </List>
+            {Object.keys(tutorials).map((name) => (
+              <Button
+                key={name}
+                variant="outlined"
+                component="a"
+                href=""
+                onClick={(e) => {
+                  e.preventDefault();
+                  startTutorial(name);
+                }}
+                sx={{
+                  textTransform: "none",
+                  margin: ".25em"
+                }}
+              >
+                {name}
+              </Button>
+            ))}
           </Box>
         </>
       )}

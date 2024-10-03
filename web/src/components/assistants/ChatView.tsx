@@ -20,7 +20,6 @@ import MarkdownRenderer from "../../utils/MarkdownRenderer";
 // constants
 import { TOOLTIP_DELAY } from "../../config/constants";
 import OutputRenderer from "../node/OutputRenderer";
-import { useTutorialStore } from "../../stores/TutorialStore";
 
 const styles = (theme: any) =>
   css({
@@ -245,7 +244,6 @@ const ChatView = ({
   const [submitted, setSubmitted] = useState(false);
   const [prompt, setPrompt] = useState("");
   const loading = false;
-  const { isInTutorial } = useTutorialStore();
 
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -306,47 +304,40 @@ const ChatView = ({
     );
   }, []);
 
-  const MessageView = useCallback(
-    (msg: Message) => {
-      let messageClass = "chat-message";
+  const MessageView = useCallback((msg: Message) => {
+    let messageClass = "chat-message";
 
-      if (msg.role === "user") {
-        messageClass += " user";
-      } else if (msg.role === "assistant") {
-        messageClass += " assistant";
-      }
+    if (msg.role === "user") {
+      messageClass += " user";
+    } else if (msg.role === "assistant") {
+      messageClass += " assistant";
+    }
 
-      if (isInTutorial && msg.role === "assistant") {
-        messageClass += " tutorial-step";
-      }
-
-      const content = msg.content as
-        | Array<MessageTextContent | MessageImageContent>
-        | string;
-      return (
-        <li className={messageClass} key={msg.id}>
-          {typeof msg.content === "string" && (
-            <MarkdownRenderer key={msg.id} content={msg.content || ""} />
-          )}
-          {Array.isArray(content) &&
-            content.map((c: MessageContent, i: number) => {
-              if (c.type === "text") {
-                return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
-              } else if (c.type === "image_url") {
-                return <OutputRenderer key={i} value={c.image} />;
-              } else if (c.type === "audio") {
-                return <OutputRenderer key={i} value={c.audio} />;
-              } else if (c.type === "video") {
-                return <OutputRenderer key={i} value={c.video} />;
-              } else {
-                return <></>;
-              }
-            })}
-        </li>
-      );
-    },
-    [isInTutorial]
-  );
+    const content = msg.content as
+      | Array<MessageTextContent | MessageImageContent>
+      | string;
+    return (
+      <li className={messageClass} key={msg.id}>
+        {typeof msg.content === "string" && (
+          <MarkdownRenderer key={msg.id} content={msg.content || ""} />
+        )}
+        {Array.isArray(content) &&
+          content.map((c: MessageContent, i: number) => {
+            if (c.type === "text") {
+              return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
+            } else if (c.type === "image_url") {
+              return <OutputRenderer key={i} value={c.image} />;
+            } else if (c.type === "audio") {
+              return <OutputRenderer key={i} value={c.audio} />;
+            } else if (c.type === "video") {
+              return <OutputRenderer key={i} value={c.video} />;
+            } else {
+              return <></>;
+            }
+          })}
+      </li>
+    );
+  }, []);
 
   return (
     <div css={styles}>

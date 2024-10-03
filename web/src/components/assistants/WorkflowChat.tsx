@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from "react";
 import useWorkflowChatStore from "../../stores/WorkflowChatStore";
 import { Message } from "../../stores/ApiTypes";
 import ChatView from "./ChatView";
-import { Box, Button } from "@mui/material";
+import { Alert, Box, Button, Typography } from "@mui/material";
 import { ClearIcon } from "@mui/x-date-pickers/icons";
 
 interface WorkflowChatProps {
@@ -18,7 +18,8 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({ workflow_id }) => {
     resetMessages,
     currentNodeName,
     progress,
-    total
+    total,
+    error
   } = useWorkflowChatStore();
 
   const handleSendMessage = useCallback(
@@ -63,6 +64,13 @@ const WorkflowChat: React.FC<WorkflowChatProps> = ({ workflow_id }) => {
         >
           Reset Chat
         </Button>
+      </Box>
+      {error && <Alert severity="error">{error}</Alert>}
+      <Box>
+        <Typography variant="body1" sx={{ margin: "0.5em" }}>
+          Chat with your workflow. You can ask it questions and it will respond.
+          You need to have one chat input and chat output node in your workflow.
+        </Typography>
       </Box>
       <ChatView
         status={status}

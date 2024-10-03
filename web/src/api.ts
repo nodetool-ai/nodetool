@@ -1390,6 +1390,8 @@ export interface components {
     HelpRequest: {
       /** Messages */
       messages: components["schemas"]["Message-Input"][];
+      /** Available Tutorials */
+      available_tutorials: string[];
     };
     /** HuggingFaceModel */
     HuggingFaceModel: {
