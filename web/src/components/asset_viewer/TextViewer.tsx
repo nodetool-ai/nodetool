@@ -44,16 +44,15 @@ const styles = (theme: any) =>
  */
 const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
   const [document, setDocument] = useState<string | null>(null);
+
   useEffect(() => {
     if (!asset?.get_url) return;
     axios
       .get(asset?.get_url, {
-        responseType: "arraybuffer"
-        // headers: { Range: "bytes=0-1000000" }
+        responseType: "text"
       })
       .then((response) => {
-        const data = new TextDecoder().decode(new Uint8Array(response.data));
-        setDocument(data);
+        setDocument(response.data);
       })
       .catch(devError);
   }, [asset?.get_url]);
@@ -61,7 +60,7 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
   return (
     <div className="output text-viewer" css={styles}>
       {!document && <CircularProgress className="progress" />}
-      <pre>{document}</pre>
+      <div>{document}</div>
     </div>
   );
 };

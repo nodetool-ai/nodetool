@@ -51,8 +51,14 @@ const createSingleAssetFile = (
       filename = `preview_${id}${suffix}.json`;
       mimeType = "application/json";
       break;
+    case "text":
+      content = data;
+      filename = `preview_${id}${suffix}.txt`;
+      mimeType = "text/plain";
+      break;
     default:
-      content = JSON.stringify(output, null, 2);
+      content =
+        typeof output === "string" ? output : JSON.stringify(output, null, 2);
       filename = `preview_${id}${suffix}.txt`;
       mimeType = "text/plain";
   }
