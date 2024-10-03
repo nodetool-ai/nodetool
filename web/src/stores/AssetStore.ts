@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { client, BASE_URL, authHeader } from "../stores/ApiClient";
 import { Asset, AssetList } from "../stores/ApiTypes";
-import { devError, devLog } from "../utils/DevLog";
+import { devError } from "../utils/DevLog";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
@@ -341,12 +341,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
   download: async (ids: string[]) => {
     try {
-      devLog("Starting download process");
-      devLog("IDs to download:", ids);
-
       const url = `${BASE_URL}/api/assets/download`;
-      devLog("Request URL:", url);
-
       const response = await axios({
         url: url,
         method: "POST",
@@ -355,9 +350,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         },
         responseType: "blob"
       });
-
-      devLog("Response received");
-      devLog("Response status:", response.status);
 
       const blob = new Blob([response.data], {
         type: response.headers["content-type"]
@@ -372,12 +364,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       a.click();
       a.remove();
       window.URL.revokeObjectURL(downloadUrl);
-
-      devLog("Download initiated");
-
       get().invalidateQueries(["assets"]);
-      devLog("Queries invalidated");
-
       return true;
     } catch (error) {
       devError("AssetStore download error:", error);
@@ -434,23 +421,27 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     parent_id?: string,
     onUploadProgress?: (progressEvent: any) => void
   ) => {
-    const asset = await createAsset(
-      BASE_URL + "/api/assets/",
-      "POST",
-      authHeader(),
-      {
-        workflow_id: workflow_id,
-        parent_id: parent_id,
-        content_type: file.type,
-        name: file.name
-      },
-      file,
-      onUploadProgress || ((_) => {})
-    );
-    get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
-    get().add(asset);
-
-    return asset;
+    try {
+      const asset = await createAsset(
+        BASE_URL + "/api/assets/",
+        "POST",
+        authHeader(),
+        {
+          workflow_id: workflow_id,
+          parent_id: parent_id,
+          content_type: file.type,
+          name: file.name
+        },
+        file,
+        onUploadProgress || ((_) => {})
+      );
+      get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);
+      get().add(asset);
+      return asset;
+    } catch (error) {
+      devError("Error in createAsset:", error);
+      throw error;
+    }
   },
 
   getAssetsRecursive: async (folderId: string): Promise<AssetTreeNode[]> => {

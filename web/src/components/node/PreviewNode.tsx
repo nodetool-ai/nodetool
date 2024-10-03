@@ -15,6 +15,14 @@ import { tableStyles } from "../../styles/TableStyles";
 import { MIN_ZOOM } from "../../config/constants";
 import ThemeNodes from "../themes/ThemeNodes";
 import { useNodeStore } from "../../stores/NodeStore";
+import { Button, Tooltip } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import { useAssetStore } from "../../stores/AssetStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { devLog, devWarn, devError } from "../../utils/DevLog";
+import { createAssetFile } from "../../utils/createAssetFile";
+import JSZip from "jszip";
 
 const styles = (theme: any) =>
   css([
@@ -62,6 +70,42 @@ const styles = (theme: any) =>
       "&:hover .react-flow__resize-control.handle.bottom.right": {
         opacity: 1
       },
+      "&:hover .actions": {
+        opacity: 1
+      },
+      ".actions": {
+        opacity: 0,
+        position: "absolute",
+        display: "flex",
+        gap: ".5em",
+        top: "unset",
+        bottom: ".1em",
+        left: "1em",
+        zIndex: 10,
+        transition: "opacity 0.2s"
+      },
+      ".actions button": {
+        color: theme.palette.c_gray5,
+        borderRadius: ".1em",
+        backgroundColor: theme.palette.c_gray2,
+
+        width: "17px",
+        height: "17px",
+        margin: 0,
+        padding: 0,
+        minWidth: "unset",
+        "&:hover": {
+          color: theme.palette.c_hl1
+        },
+        "& svg": {
+          width: "100%",
+          height: "100%"
+        }
+        // "&.download": {
+        //   width: "15px",
+        //   height: "15px"
+        // }
+      },
       ".description": {
         position: "absolute",
         opacity: 0,
@@ -96,6 +140,10 @@ interface PreviewNodeProps extends NodeProps {
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const currentZoom = useStore((state) => state.transform[2]);
   const isMinZoom = currentZoom === MIN_ZOOM;
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+  const createAsset = useAssetStore((state) => state.createAsset);
   const node = useNodeStore(
     useCallback((state) => state.findNode(props.id), [props.id])
   );
@@ -126,6 +174,91 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     return null;
   }
 
+  const handleAddToAssets = async () => {
+    devLog("handleAddToAssets called");
+    if (result?.output) {
+      devLog("Result output exists:", result.output);
+      try {
+        const assetFiles = createAssetFile(result.output, props.id);
+        devLog("Created asset files:", assetFiles);
+
+        for (const { file } of assetFiles) {
+          await createAsset(file);
+        }
+
+        addNotification({
+          type: "success",
+          content: `${assetFiles.length} file(s) added to assets successfully`
+        });
+      } catch (error) {
+        devError("Error in handleAddToAssets:", error);
+        addNotification({
+          type: "error",
+          content: "Failed to add preview to assets"
+        });
+      }
+    } else {
+      devWarn("No result output to add to assets");
+    }
+  };
+
+  const handleDownload = async () => {
+    devLog("handleDownload called");
+    if (result?.output) {
+      devLog("Result output exists:", result.output);
+      try {
+        const assetFiles = createAssetFile(result.output, props.id);
+        devLog("Created asset files:", assetFiles);
+
+        if (assetFiles.length === 1) {
+          // Single file download
+          const { file, filename } = assetFiles[0];
+          const url = URL.createObjectURL(file);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } else {
+          // Multiple files - create a zip
+          const zip = new JSZip();
+          assetFiles.forEach(({ file, filename }) => {
+            zip.file(filename, file);
+          });
+          const content = await zip.generateAsync({ type: "blob" });
+          const url = URL.createObjectURL(content);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `preview_${props.id}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+
+        devLog("File download initiated");
+        addNotification({
+          type: "success",
+          content: "Download started successfully"
+        });
+      } catch (error) {
+        devError("Error in handleDownload:", error);
+        addNotification({
+          type: "error",
+          content: "Failed to start download"
+        });
+      }
+    } else {
+      devWarn("No result output to download");
+      addNotification({
+        type: "warning",
+        content: "No content available to download"
+      });
+    }
+  };
+
   return (
     <Container
       css={styles}
@@ -155,12 +288,22 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           >
             <SouthEastIcon />
           </NodeResizeControl>
-          <NodeHeader
-            id={props.id}
-            nodeTitle="Preview"
-            isLoading={false}
-            hasParent={hasParent}
-          />
+          <NodeHeader id={props.id} nodeTitle="Preview" hasParent={hasParent} />
+          <div className="actions">
+            <Tooltip title="Download">
+              <Button
+                onClick={handleDownload}
+                className="action-button download"
+              >
+                <FileDownloadIcon />
+              </Button>
+            </Tooltip>
+            <Tooltip title="Add to Assets">
+              <Button onClick={handleAddToAssets} className="action-button">
+                <AddIcon />
+              </Button>
+            </Tooltip>
+          </div>
         </>
       )}
 

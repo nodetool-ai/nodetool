@@ -6,7 +6,6 @@ import { Asset } from "../../stores/ApiTypes";
 import axios from "axios";
 import { devError } from "../../utils/DevLog";
 import { CircularProgress } from "@mui/material";
-// import ThemeNodetool from "../themes/ThemeNodetool";
 
 interface TextViewerProps {
   asset?: Asset;
@@ -28,6 +27,11 @@ const styles = (theme: any) =>
     p: {
       fontFamily: theme.fontFamily1
     },
+    pre: {
+      whiteSpace: "pre-wrap",
+      wordWrap: "break-word",
+      fontFamily: theme.fontFamily1
+    },
     ".progress": {
       position: "absolute",
       top: "2em",
@@ -36,7 +40,7 @@ const styles = (theme: any) =>
   });
 
 /**
- * TextViewer component, used to display a text viewer for a given asset.
+ * TextViewer component, used to display a text for a given asset.
  */
 const TextViewer: React.FC<TextViewerProps> = ({ asset, url }) => {
   const [document, setDocument] = useState<string | null>(null);

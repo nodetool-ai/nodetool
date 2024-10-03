@@ -7,7 +7,7 @@ import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
-import { Button, ButtonGroup, Container } from "@mui/material";
+import { Button, ButtonGroup, Container, Tooltip } from "@mui/material";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import ListTable from "./DataTable/ListTable";
@@ -18,6 +18,7 @@ import AssetGridContent from "../assets/AssetGridContent";
 import { uint8ArrayToDataUri } from "../../utils/binary";
 import TensorView from "./TensorView"; // We'll create this component
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { TOOLTIP_ENTER_DELAY } from "./BaseNode";
 
 export type OutputRendererProps = {
   value: any;
@@ -120,21 +121,25 @@ const styles = (theme: any) =>
     },
     ".actions": {
       position: "absolute",
-      right: "2.5em",
-      top: "0px",
+      maxWidth: "50%",
+      left: "5.5em",
+      bottom: ".1em",
+      top: "unset",
       padding: "0",
       margin: "0",
       display: "flex",
       flexDirection: "row",
       gap: "0.5em",
-      zIndex: 1000
+      zIndex: 10
     },
     ".actions button": {
-      padding: "0 .2em",
       minWidth: "unset",
+      width: "auto",
+      lineHeight: "1.5em",
+      padding: ".3em .3em 0 .3em",
       color: theme.palette.c_gray5,
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller
+      fontSize: theme.fontSizeSmall
     }
   });
 
@@ -314,12 +319,17 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({ value }) => {
             {value !== null && (
               <>
                 <ButtonGroup className="actions">
-                  <Button
-                    size="small"
-                    onClick={() => handleCopyToClipboard(value?.toString())}
+                  <Tooltip
+                    title="Copy to Clipboard"
+                    enterDelay={TOOLTIP_ENTER_DELAY}
                   >
-                    Copy
-                  </Button>
+                    <Button
+                      size="small"
+                      onClick={() => handleCopyToClipboard(value?.toString())}
+                    >
+                      Copy
+                    </Button>
+                  </Tooltip>
                 </ButtonGroup>
                 <MarkdownRenderer content={value?.toString()} />
               </>

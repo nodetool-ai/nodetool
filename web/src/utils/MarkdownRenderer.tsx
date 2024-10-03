@@ -15,10 +15,11 @@ interface MarkdownRendererProps {
 const styles = (theme: any) =>
   css({
     "&": {
+      backgroundColor: theme.palette.c_gray1,
       width: "100%",
       height: "100%",
       overflowY: "auto",
-      padding: ".5em"
+      padding: "1em 1em 2em 1em"
     },
     p: {
       fontFamily: theme.fontFamily1,
