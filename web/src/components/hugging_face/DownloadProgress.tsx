@@ -1,3 +1,7 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+import { keyframes } from "@emotion/react";
+
 import React, { useCallback, useMemo } from "react";
 import {
   Typography,
@@ -8,8 +12,24 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { keyframes } from "@emotion/react";
 import ThemeNodetool from "../themes/ThemeNodetool";
+
+const styles = (theme: any) =>
+  css({
+    border: `1px solid ${theme.palette.c_gray1}`,
+    borderRadius: "4px",
+    padding: "1em",
+    background: theme.palette.c_gray2,
+    position: "relative",
+    ".download-progress-text": {
+      fontFamily: theme.fontFamily2
+    },
+    ".download-status": {
+      padding: "1em 0",
+      textTransform: "uppercase",
+      fontFamily: theme.fontFamily2
+    }
+  });
 
 const pulse = keyframes`
   0% {
@@ -63,16 +83,7 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
   if (!download) return null;
 
   return (
-    <Box
-      mt={2}
-      sx={{
-        border: "1px solid #999",
-        borderRadius: "4px",
-        padding: "16px",
-        background: "#444",
-        position: "relative" // Add this
-      }}
-    >
+    <Box css={styles}>
       <IconButton
         onClick={handleRemove}
         size="small"
@@ -104,17 +115,29 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
         </Box>
       )}
       {download.status === "completed" && (
-        <Typography variant="body2" color={ThemeNodetool.palette.c_success}>
+        <Typography
+          className="download-status"
+          variant="body2"
+          color={ThemeNodetool.palette.c_success}
+        >
           Download completed
         </Typography>
       )}
       {download.status === "cancelled" && (
-        <Typography variant="body2" color={ThemeNodetool.palette.c_error}>
+        <Typography
+          className="download-status"
+          variant="body2"
+          color={ThemeNodetool.palette.c_error}
+        >
           Download cancelled
         </Typography>
       )}
       {download.status === "error" && (
-        <Typography variant="body2" color={ThemeNodetool.palette.c_error}>
+        <Typography
+          className="download-status"
+          variant="body2"
+          color={ThemeNodetool.palette.c_error}
+        >
           Download error
         </Typography>
       )}
@@ -147,23 +170,43 @@ export const DownloadProgress: React.FC<{ name: string }> = ({ name }) => {
               }}
             />
           </Box>
-          <Typography variant="body2" style={{ marginTop: "1em" }}>
+          <Typography
+            className="download-progress-text"
+            variant="body2"
+            style={{ marginTop: "1em" }}
+          >
             Size: {(download.downloadedBytes / 1024 / 1024).toFixed(2)} MB /{" "}
             {(download.totalBytes / 1024 / 1024).toFixed(2)} MB
           </Typography>
-          <Typography variant="body2" style={{ marginTop: "0.5em" }}>
+          <Typography
+            className="download-progress-text"
+            variant="body2"
+            style={{ marginTop: "0.5em" }}
+          >
             Files: {download.downloadedFiles} / {download.totalFiles}
           </Typography>
-          <Typography variant="body2" style={{ marginTop: "0.5em" }}>
+          <Typography
+            className="download-progress-text"
+            variant="body2"
+            style={{ marginTop: "0.5em" }}
+          >
             Downloading: {download.currentFiles?.join(", ")}
           </Typography>
           {download.speed !== null && (
             <>
-              <Typography variant="body2" style={{ marginTop: "0.5em" }}>
+              <Typography
+                className="download-progress-text"
+                variant="body2"
+                style={{ marginTop: "0.5em" }}
+              >
                 Speed: {(download.speed / 1024 / 1024).toFixed(2)} MB/s
               </Typography>
               {eta && (
-                <Typography variant="body2" style={{ marginTop: "0.5em" }}>
+                <Typography
+                  className="download-progress-text"
+                  variant="body2"
+                  style={{ marginTop: "0.5em" }}
+                >
                   ETA: {eta}
                 </Typography>
               )}
