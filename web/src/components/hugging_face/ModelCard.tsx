@@ -192,7 +192,9 @@ const ModelCard: React.FC<ModelComponentProps> = React.memo(function ModelCard({
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
 
   const isHuggingFace = Boolean(model.type && model.type.startsWith("hf."));
-  const isOllama = Boolean(model.type.toLowerCase().includes("llama_model"));
+  const isOllama = Boolean(
+    model.type && model.type.toLowerCase().includes("llama_model")
+  );
   const { data: modelData, isLoading } = useQuery({
     queryKey: ["modelInfo", model.id],
     queryFn: () => {

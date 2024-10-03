@@ -182,6 +182,7 @@ export const autoLayout = (
 
   nodes.forEach((node) => {
     if (node.type === "nodetool.workflows.base_node.Comment") return;
+    if (node.parentId) return;
     const dnode = dagreGraph.node(node.id);
     minX = Math.min(minX, dnode.x - dnode.width / 2);
     minY = Math.min(minY, dnode.y - dnode.height / 2);
@@ -198,6 +199,7 @@ export const autoLayout = (
 
   const layoutedNodes = nodes.map((node: Node<NodeData>) => {
     if (node.type === "nodetool.workflows.base_node.Comment") return node;
+    if (node.parentId) return node;
     const dnode = dagreGraph.node(node.id);
     const position = {
       x: dnode.x - minX + originalTopLeft.x - 50,
