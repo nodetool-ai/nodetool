@@ -89,7 +89,10 @@ const HelpChat: React.FC = () => {
                 variant="outlined"
                 component="a"
                 href=""
-                onClick={() => startTutorial(name)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  startTutorial(name);
+                }}
                 sx={{
                   textTransform: "none",
                   margin: ".25em"
