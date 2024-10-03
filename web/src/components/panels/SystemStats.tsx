@@ -42,7 +42,7 @@ const SystemStatsDisplay: React.FC = () => {
 
   return (
     <Box className="system-stats" sx={{ mr: 2 }}>
-      <Tooltip title="System Stats (click to expand)">
+      <Tooltip title="System Stats">
         <Box
           onClick={handleClick}
           sx={{

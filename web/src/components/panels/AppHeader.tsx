@@ -295,6 +295,7 @@ const AppHeader: React.FC = React.memo(() => {
                 {buttonAppearance !== "text" && (
                   <IconForType
                     iconName="model"
+                    showTooltip={false}
                     svgProps={{
                       fill: path.startsWith("/models")
                         ? ThemeNodetool.palette.c_hl1

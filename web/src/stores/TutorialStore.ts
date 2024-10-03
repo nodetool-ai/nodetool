@@ -254,7 +254,7 @@ export const tutorials: Record<string, TutorialStep[]> = {
     },
     addNodeStep(
       "nodetool.image.transform.Canny",
-      "Add a Canny node from the Nodetool.Image.Analysis category."
+      "Add a Canny node from the Nodetool.Image.Transform category."
     ),
     connectNodesStep(
       "nodetool.constant.Image",
