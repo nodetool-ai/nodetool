@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
@@ -45,10 +45,21 @@ export function titleize(str: string) {
  * @param props
  */
 
+const gradientAnimation = keyframes`
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+`;
+
 const styles = (theme: any) =>
   css({
     // resizer
-
     ".node-resizer .react-flow__resize-control.top.line, .node-resizer .react-flow__resize-control.bottom.line":
       {
         display: "none"
@@ -64,6 +75,31 @@ const styles = (theme: any) =>
     },
     ".node-resizer .react-flow__resize-control.line:hover": {
       opacity: 1
+    },
+
+    "&.loading": {
+      position: "relative",
+      "--glow-offset": "-3px",
+      "&::before": {
+        opacity: 0,
+        content: '""',
+        position: "absolute",
+        top: "var(--glow-offset)",
+        left: "var(--glow-offset)",
+        right: "var(--glow-offset)",
+        bottom: "var(--glow-offset)",
+        background: "linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff)",
+        backgroundSize: "200% 200%",
+        animation: `${gradientAnimation} 3s ease infinite`,
+        borderRadius: "inherit",
+        zIndex: -20,
+        transition: "opacity 0.5s ease-in-out"
+      }
+    },
+    "&.loading.is-loading": {
+      "&::before": {
+        opacity: 1
+      }
     }
   });
 
@@ -129,7 +165,8 @@ export default memo(
         `node-body ${props.data.collapsed ? "collapsed" : ""}
       ${hasParent ? "has-parent" : ""}
       ${isInputNode ? " input-node" : ""} ${isOutputNode ? " output-node" : ""}
-      ${props.data.dirty ? "dirty" : ""}`
+      ${props.data.dirty ? "dirty" : ""}
+      ${isLoading ? " loading is-loading" : " loading"}`
           .replace(/\s+/g, " ")
           .trim(),
       [
@@ -137,7 +174,8 @@ export default memo(
         hasParent,
         isInputNode,
         isOutputNode,
-        props.data.dirty
+        props.data.dirty,
+        isLoading
       ]
     );
 
@@ -179,7 +217,7 @@ export default memo(
     if (!nodeMetadata || metadataLoading || metadataError) {
       return (
         <Container className={className}>
-          <NodeHeader id={props.id} nodeTitle={node_title} isLoading={true} />
+          <NodeHeader id={props.id} nodeTitle={node_title} />
         </Container>
       );
     }
@@ -203,7 +241,6 @@ export default memo(
         <NodeHeader
           id={props.id}
           nodeTitle={node_title}
-          isLoading={isLoading}
           hasParent={hasParent}
           isMinZoom={isMinZoom}
         />

@@ -11,7 +11,6 @@ import ThemeNodes from "../themes/ThemeNodes";
 export interface NodeHeaderProps {
   id: string;
   nodeTitle: string;
-  isLoading?: boolean;
   hasParent?: boolean;
   showMenu?: boolean;
   isMinZoom?: boolean;
@@ -51,11 +50,6 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       alignItems: "center",
       color: theme.palette.c_gray6,
       backgroundColor: theme.palette.c_gray1
-    },
-    "&.loading": {
-      background: `linear-gradient(to left, ${theme.palette.c_gray1} 25%, ${theme.palette.c_gray2} 50%, ${theme.palette.c_gray3} 75%, ${theme.palette.c_gray1} 100%)`,
-      backgroundSize: "200% 100%",
-      animation: `${loadingEffect} 1s infinite linear`
     },
     "&:hover": {
       transition: "opacity 0.15s",
@@ -116,7 +110,6 @@ export const NodeHeader = memo(
   ({
     id,
     nodeTitle,
-    isLoading,
     hasParent,
     showMenu = true,
     isMinZoom
@@ -187,11 +180,8 @@ export const NodeHeader = memo(
     );
 
     const headerClassName = useMemo(
-      () =>
-        `node-header ${isLoading ? "loading" : ""} ${
-          isMinZoom ? "min-zoom" : ""
-        }`,
-      [isLoading, isMinZoom]
+      () => `node-header ${isMinZoom ? "min-zoom" : ""}`,
+      [isMinZoom]
     );
     const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
     const handleHeaderClick = useCallback(() => {
