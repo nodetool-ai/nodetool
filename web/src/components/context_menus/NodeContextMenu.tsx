@@ -1,6 +1,5 @@
-import React, { useCallback, useState, useMemo } from "react";
+import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
-import { createPortal } from "react-dom";
 //mui
 import {
   Checkbox,
@@ -87,7 +86,6 @@ const NodeContextMenu: React.FC = () => {
   ) => {
     event.stopPropagation();
     handleCopy(nodeId || "");
-    // closeContextMenu();
   };
 
   //delete
@@ -126,7 +124,6 @@ const NodeContextMenu: React.FC = () => {
   };
 
   const handleOpenDocumentation = () => {
-    // place it next to the node
     openDocumentation(node?.type || "", {
       x: (menuPosition?.x ?? 0) + 100,
       y: menuPosition?.y ?? 0

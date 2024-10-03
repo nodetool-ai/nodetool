@@ -156,7 +156,6 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
       highlightedNamespaces: []
     });
 
-    // Use setTimeout to delay the search until after the current call stack is clear
     setTimeout(() => {
       get().performSearch(searchTerm);
     }, 0);
@@ -184,22 +183,20 @@ const useNodeMenuStore = create<NodeMenuStore>((set, get) => ({
 
   performSearch: (term: string) => {
     const metadata = get().metadata;
-    const selectedInputType = get().selectedInputType;
-    const selectedOutputType = get().selectedOutputType;
-
     if (metadata.length === 0) {
-      console.warn("No metadata found");
+      set({ searchResults: metadata });
       return;
     }
-    if (term.length <= 1) {
+
+    if (!term.trim()) {
       set({ searchResults: metadata });
       return;
     }
 
     const filteredMetadata = filterDataByType(
       metadata,
-      selectedInputType as TypeName,
-      selectedOutputType as TypeName
+      get().selectedInputType as TypeName,
+      get().selectedOutputType as TypeName
     );
     const newHighlightedNamespaces = new Set(
       filteredMetadata.flatMap((result) => {

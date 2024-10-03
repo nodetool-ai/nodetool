@@ -59,6 +59,12 @@ const styles = (theme: any) => css`
     cursor: pointer;
     color: ${theme.palette.text.secondary};
   }
+
+  .open-node-menu-button {
+    color: ${theme.palette.c_hl1};
+    margin-top: 10px;
+    margin-right: 10px;
+  }
 `;
 
 interface DraggableNodeDocumentationProps {
@@ -96,15 +102,10 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
 
   const handleOpenNodeMenu = useCallback(() => {
     if (nodeType) {
-      const { x, y } = reactFlowInstance.screenToFlowPosition({
-        x: window.innerWidth / 2 + leftPanelWidth,
-        y: window.innerHeight / 2
-      });
       const searchTerm = nodeType.replace(/\./g, " ");
-      openNodeMenu(x, y, false, "", null, searchTerm);
-      onClose();
+      openNodeMenu(leftPanelWidth, 100, false, "", null, searchTerm);
     }
-  }, [nodeType, reactFlowInstance, leftPanelWidth, openNodeMenu, onClose]);
+  }, [nodeType, openNodeMenu, leftPanelWidth]);
 
   const content = useMemo(() => {
     if (isLoading) return <div className="loading">Loading...</div>;
@@ -117,7 +118,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
           </span>
           <Button
             variant="outlined"
-            color="primary"
+            className="open-node-menu-button"
             onClick={handleOpenNodeMenu}
             style={{ marginTop: "10px" }}
           >
