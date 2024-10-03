@@ -171,7 +171,7 @@ const ModelList: React.FC = () => {
         (model: LlamaModel): UnifiedModel => ({
           id: model.name ?? "",
           repo_id: model.repo_id ?? "",
-          type: "Ollama",
+          type: "llama_model",
           name: `${model.details?.family} - ${model.details?.parameter_size}`,
           description: "",
           size_on_disk: model.size
@@ -188,7 +188,7 @@ const ModelList: React.FC = () => {
   const modelTypes = useMemo(() => {
     const types = new Set(Object.keys(groupedHFModels));
     types.add("Other");
-    types.add("Ollama");
+    types.add("llama_model");
     return sortModelTypes(Array.from(types));
   }, [groupedHFModels]);
 
@@ -215,14 +215,14 @@ const ModelList: React.FC = () => {
         modelTypes.map((type) => [
           type,
           filteredAllModels.filter((model) =>
-            type === "Ollama"
+            type === "llama_model"
               ? model.type === type
               : model.type === type || (type === "Other" && !model.type)
           )
         ])
       );
-    } else if (selectedModelType === "Ollama") {
-      return { Ollama: (ollamaModels || []).filter(filterModel) };
+    } else if (selectedModelType === "llama_model") {
+      return { llama_model: (ollamaModels || []).filter(filterModel) };
     } else {
       return {
         [selectedModelType]: (groupedHFModels[selectedModelType] || []).filter(
@@ -311,7 +311,7 @@ const ModelList: React.FC = () => {
               <ModelCard
                 model={model}
                 handleDelete={
-                  model.type !== "Ollama" ? handleDeleteClick : () => {}
+                  model.type !== "llama_model" ? handleDeleteClick : () => {}
                 }
               />
             </Grid>
@@ -326,7 +326,7 @@ const ModelList: React.FC = () => {
               key={model.id}
               model={model}
               handleDelete={
-                model.type !== "Ollama" ? handleDeleteClick : () => {}
+                model.type !== "llama_model" ? handleDeleteClick : () => {}
               }
             />
           ))}

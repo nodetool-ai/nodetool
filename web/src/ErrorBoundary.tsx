@@ -56,12 +56,31 @@ const errorBoundaryStyles = (theme: any) =>
       "&:hover": {
         backgroundColor: theme.palette?.c_hl2
       }
+    },
+
+    ".error-stack-trace": {
+      color: theme.palette.c_white,
+      backgroundColor: theme.palette.c_gray0,
+      border: "1px solid " + theme.palette.c_gray1,
+      fontFamily: "monospace",
+      fontSize: theme.fontSizeSmaller,
+      margin: "1em 0 0",
+      padding: "1em",
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-all",
+      maxHeight: "200px",
+      overflowY: "auto"
     }
   });
 
 const ErrorBoundary: React.FC = () => {
   const error = useRouteError();
   console.error(error);
+
+  const errorMessage =
+    error instanceof Error ? error.message : "An unknown error occurred";
+  const stackTrace =
+    error instanceof Error ? error.stack : "No stack trace available";
 
   return (
     <ThemeProvider theme={ThemeNodetool}>
@@ -97,7 +116,10 @@ const ErrorBoundary: React.FC = () => {
         </Button>
 
         <Typography variant="body2" className="error-text">
-          {error instanceof Error ? error.message : "An unknown error occurred"}
+          {errorMessage}
+        </Typography>
+        <Typography variant="body2" className="error-stack-trace">
+          {stackTrace}
         </Typography>
       </Box>
     </ThemeProvider>

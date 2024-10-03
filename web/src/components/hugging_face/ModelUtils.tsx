@@ -24,7 +24,7 @@ export type OllamaModel = {
 export const prettifyModelType = (type: string) => {
   if (type === "All") return type;
 
-  if (type === "Ollama") {
+  if (type === "llama_model") {
     return (
       <>
         <img
@@ -239,6 +239,8 @@ export const sortModelTypes = (types: string[]) => {
     ...types.sort((a, b) => {
       if (a === "Other") return 1;
       if (b === "Other") return -1;
+      if (a === "llama_model") return -1;
+      if (b === "llama_model") return 1;
       return a.localeCompare(b);
     })
   ];
