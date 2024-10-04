@@ -280,6 +280,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
     ...section,
     originalContent: section.content
   }));
+  const { downloads } = useModelDownloadStore();
   const { settings, updateSettings } = useSettingsStore();
   const { settings: remoteSettings, secrets } = useRemoteSettingsStore();
 
@@ -625,13 +626,17 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     borderRadius: "20px"
                   }}
                 >
-                  <Typography variant="h3">Recommended Models</Typography>
+                  <Typography variant="h5">Recommended Models</Typography>
                   <RecommendedModels
                     recommendedModels={recommendedModels}
                     initialViewMode="list"
                     startDownload={startDownload}
                   />
-                  <OverallDownloadProgress />
+                  <Box mt={2}>
+                    {Object.keys(downloads).map((name) => (
+                      <DownloadProgress key={name} name={name} />
+                    ))}
+                  </Box>
                 </Box>
 
                 <Box

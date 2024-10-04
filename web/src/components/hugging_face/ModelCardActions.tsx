@@ -34,7 +34,11 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
             <Typography
               variant="body2"
               color="text.secondary"
-              style={{ display: "flex", alignItems: "center", gap: 5 }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5
+              }}
             >
               <Tooltip title="Downloads on HF last month">
                 <CloudDownloadIcon

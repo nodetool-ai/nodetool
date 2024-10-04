@@ -83,7 +83,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
   handleDelete
 }) => {
   const isHuggingFace = model.type.startsWith("hf.");
-  const isOllama = model.type.toLowerCase().includes("ollama");
+  const isOllama = model.type.toLowerCase().includes("llama_model");
   const downloaded = !!(model.size_on_disk && model.size_on_disk > 0);
 
   const { data: modelData, isLoading } = useQuery({
