@@ -27,9 +27,7 @@ class PorterDuffModeEnum(str, Enum):
 
 class PorterDuffImageComposite(ComfyNode):
     """
-    The Porter-Duff Image Composite node can be used to combine two images using various compositing modes.
-    This allows for complex image blending operations, useful for creating layered effects or combining
-    multiple image elements.
+    The Porter-Duff Image Composite node can be used to combine two images using various compositing modes. This allows for complex image blending operations, useful for creating layered effects or combining multiple image elements.
     """
 
     source: ImageRef = Field(default=ImageRef(), description="The source image.")
@@ -52,9 +50,7 @@ class PorterDuffImageComposite(ComfyNode):
 
 class SplitImageWithAlpha(ComfyNode):
     """
-    The Split Image with Alpha node can be used to separate an image with an alpha channel into
-    its color components and alpha mask. This is useful when you need to manipulate the image
-    and its transparency separately.
+    The Split Image with Alpha node can be used to separate an image with an alpha channel into its color components and alpha mask. This is useful when you need to manipulate the image and its transparency separately.
     """
 
     image: ImageRef = Field(
@@ -68,9 +64,7 @@ class SplitImageWithAlpha(ComfyNode):
 
 class JoinImageWithAlpha(ComfyNode):
     """
-    The Join Image with Alpha node can be used to combine an image and an alpha mask into a
-    single image with transparency. This is useful for creating images with varying levels of
-    opacity or for preparing images for compositing operations.
+    The Join Image with Alpha node can be used to combine an image and an alpha mask into a single image with transparency. This is useful for creating images with varying levels of opacity or for preparing images for compositing operations.
     """
 
     image: ImageRef = Field(
