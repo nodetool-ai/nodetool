@@ -74,6 +74,10 @@ HF_STABLE_DIFFUSION_MODELS = [
         repo_id="Yntec/epiCPhotoGasm", path="epiCPhotoGasmVAE.safetensors"
     ),
     HFStableDiffusion(
+        repo_id="SG161222/Realistic_Vision_V5.1_noVAE",
+        path="Realistic_Vision_V5.1_fp16-no-ema.safetensors",
+    ),
+    HFStableDiffusion(
         repo_id="Yntec/YiffyMix",
         path="yiffymix_v31_vae.safetensors",
     ),

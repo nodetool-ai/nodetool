@@ -74,7 +74,7 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import { ErrorBoundary } from "@sentry/react";
 import { NodeData } from "../../stores/NodeData";
 import useModelStore from "../../stores/ModelStore";
-import { tryCacheFiles } from "../tryCacheFiles";
+import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import GroupNode from "../node/GroupNode";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useAddToGroup } from "../../hooks/createnodes/useAddToGroup";

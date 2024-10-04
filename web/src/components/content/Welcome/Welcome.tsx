@@ -34,6 +34,12 @@ import { useSettingsStore } from "../../../stores/SettingsStore";
 import WhatsNew from "./WhatsNew";
 import useRemoteSettingsStore from "../../../stores/RemoteSettingStore";
 import RemoteSettingsMenu from "../../menus/RemoteSettingsMenu";
+import ThemeNodetool from "../../themes/ThemeNodetool";
+import RecommendedModels from "../../hugging_face/RecommendedModels";
+import { UnifiedModel } from "../../../stores/ApiTypes";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import { DownloadProgress } from "../../hugging_face/DownloadProgress";
+import OverallDownloadProgress from "../../hugging_face/OverallDownloadProgress";
 
 enum TabValue {
   Overview = 0,
@@ -198,6 +204,22 @@ const welcomeStyles = (theme: any) =>
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeNormal,
       margin: "0 .5em"
+    },
+    ".setup-tab h4, .setup-tab h5": {
+      fontFamily: theme.fontFamily,
+      marginBottom: "1em"
+    },
+    ".setup-tab .MuiListItemText-primary": {
+      fontWeight: "bold",
+      color: theme.palette.c_hl3
+    },
+    ".setup-tab .MuiListItemText-secondary": {
+      color: theme.palette.c_white
+    },
+    ".remote-settings-container": {
+      backgroundColor: theme.palette.c_gray1,
+      padding: "1.5em",
+      borderRadius: "8px"
     }
   });
 
@@ -214,6 +236,29 @@ function TabPanel(props: TabPanelProps) {
     </div>
   );
 }
+
+const recommendedModels: UnifiedModel[] = [
+  {
+    id: "SG161222/Realistic_Vision_V5.1_noVAE",
+    name: "Realistic Vision V6",
+    type: "hf.stable_diffusion",
+    repo_id: "SG161222/Realistic_Vision_V5.1_noVAE",
+    path: "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+  },
+  {
+    id: "stabilityai/sd-x2-latent-upscaler",
+    name: "SD XL Latent Upscaler",
+    type: "hf.stable_diffusion",
+    repo_id: "stabilityai/sd-x2-latent-upscaler",
+    allow_patterns: ["**/*.json", "**/*.txt", "**/*.json"]
+  },
+  {
+    id: "llama-3.2",
+    name: "Llama 3.2",
+    type: "llama_model",
+    repo_id: "llama-3.2"
+  }
+];
 
 const extractText = (node: ReactNode): string => {
   if (typeof node === "string") return node;
@@ -246,6 +291,8 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
     );
   }, [secrets]);
 
+  const theme = ThemeNodetool;
+
   // Add this useEffect to set the initial tab value
   useEffect(() => {
     if (!hasSetupKeys) {
@@ -256,6 +303,8 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
   const handleTabChange = (event: React.SyntheticEvent, newValue: TabValue) => {
     setTabValue(newValue);
   };
+
+  const { startDownload, openDialog } = useModelDownloadStore();
 
   const highlightText = (text: string, term: string) => {
     if (!term) return text;
@@ -465,51 +514,144 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
           </TabPanel>
 
           <TabPanel value={tabValue} index={TabValue.Setup}>
-            <>
-              <Typography variant="h2">Welcome to Nodetool</Typography>
-              <Typography variant="h4" sx={{ margin: "2em 0 1em" }}>
-                How to use AI models
+            <Box sx={{ display: "flex", flexDirection: "column", gap: "2em" }}>
+              <Typography variant="h4" sx={{ color: theme.palette.c_hl1 }}>
+                Welcome to Nodetool
               </Typography>
-              <Typography variant="body1" gutterBottom>
-                You can use local and remote AI models:
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="1. Use local models via HuggingFace"
-                    secondary={
-                      <>
-                        Download and run models locally, which is great for
-                        privacy and offline use.
-                        <br /> All nodes that can use local models come with a
-                        <span className="fake-button">Recommended Models</span>
-                        button <br />
-                        to download models directly from inside Nodetool.
-                        <br />
-                        Press the<span className="fake-button">Models</span>
-                        button in the top panel to see all existing models.
-                      </>
-                    }
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="2. Use remote models"
-                    secondary="Set up API keys to access cloud-based AI models."
-                  />
-                </ListItem>
-                <Typography variant="body1" gutterBottom>
-                  Choose the option that best suits your needs and project
-                  requirements.
-                </Typography>
-              </List>
 
-              <Typography variant="body1" gutterBottom>
-                You can enter your API keys now or go to the
-                <span className="fake-button">Settings</span>menu later.
-              </Typography>
-              <RemoteSettingsMenu />
-            </>
+              <Box sx={{ display: "flex", gap: "2em" }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="h5"
+                    sx={{ mb: 2, color: theme.palette.c_hl2 }}
+                  >
+                    How to Use AI Models
+                  </Typography>
+                  <Typography variant="body1" gutterBottom>
+                    You can use both local and remote AI models in Nodetool:
+                  </Typography>
+                  <List>
+                    <ListItem
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        mb: 2
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              fontWeight: "bold",
+                              color: theme.palette.c_hl1
+                            }}
+                          >
+                            1. Use Local Models via HuggingFace
+                          </Typography>
+                        }
+                        secondary={
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="body2">
+                              • Download and run models locally for privacy and
+                              offline use.
+                            </Typography>
+                            <Typography variant="body2">
+                              • Look for the{" "}
+                              <span className="fake-button">
+                                Recommended Models
+                              </span>{" "}
+                              button on compatible nodes.
+                            </Typography>
+                            <Typography variant="body2">
+                              • Use the{" "}
+                              <span className="fake-button">Models</span> button
+                              in the top panel to manage all models.
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                    <ListItem
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start"
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              fontWeight: "bold",
+                              color: theme.palette.c_hl1
+                            }}
+                          >
+                            2. Use Remote Models
+                          </Typography>
+                        }
+                        secondary={
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="body2">
+                              • Set up API keys to access cloud-based AI models.
+                            </Typography>
+                            <Typography variant="body2">
+                              • Ideal for more powerful models or when local
+                              resources are limited.
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                  </List>
+                  <Typography variant="body1" sx={{ mt: 2 }}>
+                    Choose the option that best suits your needs and project
+                    requirements.
+                  </Typography>
+                  <Typography variant="body1" sx={{ mt: 1 }}>
+                    You can enter your API keys now or access them later via the{" "}
+                    <span className="fake-button">Settings</span> menu.
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    flex: 1,
+                    color: theme.palette.c_hl2,
+                    backgroundColor: theme.palette.c_gray1,
+                    padding: "20px",
+                    borderRadius: "20px"
+                  }}
+                >
+                  <Typography variant="h3">Recommended Models</Typography>
+                  <RecommendedModels
+                    recommendedModels={recommendedModels}
+                    initialViewMode="list"
+                    startDownload={startDownload}
+                  />
+                  <OverallDownloadProgress />
+                </Box>
+
+                <Box
+                  sx={{
+                    flex: 1,
+                    backgroundColor: theme.palette.c_gray1,
+                    p: 3,
+                    borderRadius: "20px"
+                  }}
+                >
+                  <Typography
+                    variant="h5"
+                    sx={{ mb: 2, color: theme.palette.c_hl2 }}
+                  >
+                    Remote Model Setup
+                  </Typography>
+                  <RemoteSettingsMenu />
+                </Box>
+              </Box>
+            </Box>
           </TabPanel>
         </div>
       </div>

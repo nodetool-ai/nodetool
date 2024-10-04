@@ -4,7 +4,7 @@ import MenuItem from "@mui/material/MenuItem";
 import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { HuggingFaceModel } from "../../stores/ApiTypes";
-import { tryCacheFiles } from "../tryCacheFiles";
+import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import { useMetadata } from "../../serverState/useMetadata";
 
 interface HuggingFaceModelSelectProps {
