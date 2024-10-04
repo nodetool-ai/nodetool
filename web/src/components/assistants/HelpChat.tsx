@@ -14,6 +14,8 @@ import { useTutorialStore } from "../../stores/TutorialStore";
 import { useNodeStore } from "../../stores/NodeStore";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
 import { tutorials } from "../../stores/TutorialStore";
+import useModelStore from "../../stores/ModelStore";
+import { useQuery } from "@tanstack/react-query";
 
 const HelpChat: React.FC = () => {
   const { messages, isLoading, sendMessage, setMessages } = useChatStore();
@@ -22,6 +24,21 @@ const HelpChat: React.FC = () => {
   const step = getStep();
   const { nodes, edges } = useNodeStore();
   const { startTutorial } = useTutorialStore();
+  const loadHuggingFaceModels = useModelStore(
+    (state) => state.loadHuggingFaceModels
+  );
+  const loadLlamaModels = useModelStore((state) => state.loadLlamaModels);
+
+  const { data: huggingfaceModels, isLoading: isLoadingHuggingFaceModels } =
+    useQuery({
+      queryKey: ["huggingfaceModels"],
+      queryFn: loadHuggingFaceModels
+    });
+
+  const { data: llamaModels, isLoading: isLoadingLlamaModels } = useQuery({
+    queryKey: ["llamaModels"],
+    queryFn: loadLlamaModels
+  });
 
   const handleSendMessage = useCallback(
     async (prompt: string) => {
@@ -40,7 +57,16 @@ const HelpChat: React.FC = () => {
 
   useEffect(() => {
     if (isInTutorial) {
-      if (step && step.isCompleted({ nodes, edges, workflowState: state })) {
+      if (
+        step &&
+        step.isCompleted({
+          nodes,
+          edges,
+          workflowState: state,
+          huggingfaceModels,
+          llamaModels
+        })
+      ) {
         nextStep();
       }
     }
