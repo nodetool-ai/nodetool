@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
+import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
@@ -45,19 +46,17 @@ export function titleize(str: string) {
  * @param props
  */
 
-const gradientAnimation = keyframes`
-  0% {
-    background-position: 0% 50%;
+// Define the keyframes outside of the component
+const gradientAnimationKeyframes = keyframes`
+  from {
+    --gradient-angle: 0deg;
   }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
+  to {
+    --gradient-angle: 360deg;
   }
 `;
 
-const styles = (theme: any) =>
+const styles = (theme: any, colors: string[]) =>
   css({
     // resizer
     ".node-resizer .react-flow__resize-control.top.line, .node-resizer .react-flow__resize-control.bottom.line":
@@ -79,7 +78,8 @@ const styles = (theme: any) =>
 
     "&.loading": {
       position: "relative",
-      "--glow-offset": "-3px",
+      "--glow-offset": "-4px",
+
       "&::before": {
         opacity: 0,
         content: '""',
@@ -88,11 +88,19 @@ const styles = (theme: any) =>
         left: "var(--glow-offset)",
         right: "var(--glow-offset)",
         bottom: "var(--glow-offset)",
-        background: "linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff)",
-        backgroundSize: "200% 200%",
-        animation: `${gradientAnimation} 3s ease infinite`,
+        background: `conic-gradient(
+              from var(--gradient-angle), 
+              ${colors[0]},
+              ${colors[1]},
+              ${colors[2]},
+              ${colors[3]},
+              ${colors[4]},
+              ${colors[0]}
+            )`,
         borderRadius: "inherit",
         zIndex: -20,
+        animation: `${gradientAnimationKeyframes} 6s linear infinite`,
+
         transition: "opacity 0.5s ease-in-out"
       }
     },
@@ -111,7 +119,7 @@ export default memo(
 
     // Metadata and loading state
     const {
-      data: metadata, // Metadata for all node types
+      data: metadata,
       isLoading: metadataLoading,
       error: metadataError
     } = useMetadata();
@@ -134,7 +142,7 @@ export default memo(
       useCallback((state) => state.getInputEdges(props.id), [props.id])
     );
 
-    // Workflow and status information
+    // Workflow and status
     const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
     const status = useStatusStore((state) =>
       state.getStatus(workflowId, props.id)
@@ -166,7 +174,7 @@ export default memo(
       ${hasParent ? "has-parent" : ""}
       ${isInputNode ? " input-node" : ""} ${isOutputNode ? " output-node" : ""}
       ${props.data.dirty ? "dirty" : ""}
-      ${isLoading ? " loading is-loading" : " loading"}`
+      ${isLoading ? " loading is-loading" : " loading "}`
           .replace(/\s+/g, " ")
           .trim(),
       [
@@ -214,6 +222,33 @@ export default memo(
             }
           };
 
+    const nodeColors = useMemo(() => {
+      const outputColors = [
+        ...new Set(
+          nodeMetadata?.outputs?.map((output) =>
+            colorForType(output.type.type)
+          ) || []
+        )
+      ];
+      const inputColors = [
+        ...new Set(
+          nodeMetadata?.properties?.map((input) =>
+            colorForType(input.type.type)
+          ) || []
+        )
+      ];
+      const allColors = [...outputColors];
+      for (const color of inputColors) {
+        if (!allColors.includes(color)) {
+          allColors.push(color);
+        }
+      }
+      while (allColors.length < 5) {
+        allColors.push(allColors[allColors.length % allColors.length]);
+      }
+      return allColors.slice(0, 5);
+    }, [nodeMetadata]);
+
     if (!nodeMetadata || metadataLoading || metadataError) {
       return (
         <Container className={className}>
@@ -228,7 +263,7 @@ export default memo(
 
     return (
       <Container
-        css={styles}
+        css={styles(ThemeNodes, nodeColors)}
         className={className}
         style={{
           display: parentIsCollapsed ? "none" : "flex",

@@ -1,3 +1,9 @@
+@property --gradient-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 .hidden {
   display: none;
   visibility: hidden;
