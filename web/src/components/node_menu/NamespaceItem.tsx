@@ -16,7 +16,7 @@ function toPascalCase(input: string): string {
 interface NamespaceItemProps {
   namespace: string;
   newPath: string[];
-  state: string;
+  expandedState: string;
   namespaceStyle: React.CSSProperties;
   hasChildren: boolean;
   tree: NamespaceTree;
@@ -57,7 +57,7 @@ const listVariants = {
 const NamespaceItem: React.FC<NamespaceItemProps> = ({
   namespace,
   newPath,
-  state,
+  expandedState,
   namespaceStyle,
   hasChildren,
   tree,
@@ -67,25 +67,34 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   searchTerm
 }) => {
   return (
-    <motion.div initial="collapsed" animate={state} variants={listVariants}>
+    <motion.div
+      initial="collapsed"
+      animate={expandedState}
+      variants={listVariants}
+    >
       <ListItemButton
         style={namespaceStyle}
-        className={`list-item ${state}`}
+        className={`list-item ${expandedState}`}
         selected={selectedPath.join(".") === newPath.join(".")}
         onClick={() => handleNamespaceClick(newPath)}
       >
         <ListItemText
           primary={
             <Box
+              className="namespace-item"
               display="flex"
               justifyContent="space-between"
               alignItems="center"
             >
-              <Typography fontSize="small">
+              <Typography fontSize="small" className="namespace-item-name">
                 {toPascalCase(namespace)}
               </Typography>
               {searchTerm && searchResultCount > 0 && (
-                <Typography fontSize="small" color={ThemeNodes.palette.c_gray3}>
+                <Typography
+                  fontSize="small"
+                  className="namespace-item-count"
+                  color={ThemeNodes.palette.c_gray3}
+                >
                   {searchResultCount}
                 </Typography>
               )}

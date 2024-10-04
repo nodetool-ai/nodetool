@@ -64,7 +64,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
             : true;
         const newPath = [...currentPath, namespace];
         const hasChildren = Object.keys(tree[namespace].children).length > 0;
-        const state = isExpanded ? "expanded" : "collapsed";
+        const expandedState = isExpanded ? "expanded" : "collapsed";
 
         // Count search results for this namespace and its children
         const searchResultCount = searchResults.filter((result) =>
@@ -83,7 +83,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
           isExpanded,
           newPath,
           hasChildren,
-          state,
+          expandedState,
           namespaceStyle,
           searchResultCount
         };
@@ -104,7 +104,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
         ({
           namespace,
           newPath,
-          state,
+          expandedState,
           namespaceStyle,
           hasChildren,
           searchResultCount
@@ -113,7 +113,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
             key={newPath.join(".")}
             namespace={namespace}
             newPath={newPath}
-            state={state}
+            expandedState={expandedState}
             namespaceStyle={namespaceStyle}
             hasChildren={hasChildren}
             tree={tree}
