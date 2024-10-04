@@ -19,7 +19,8 @@ const styles = (theme: any) =>
       width: "100%",
       height: "100%",
       overflowY: "auto",
-      padding: "1em 1em 2em 1em"
+      padding: "1em 1em 2em 1em",
+      fontSize: theme.fontSizeSmall
     },
     p: {
       fontFamily: theme.fontFamily1,
@@ -43,6 +44,9 @@ const styles = (theme: any) =>
     th: {
       border: `1px solid ${theme.palette.c_gray3}`,
       padding: "0.5em"
+    },
+    "li, ol": {
+      paddingLeft: "1em"
     }
   });
 
