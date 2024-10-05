@@ -47,6 +47,10 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
   startDownload,
   openDialog
 }) => {
+  const;
+  const handleDelete = (repoId: string) => {
+    console.log("delete", repoId);
+  };
   return (
     <Dialog
       css={styles}
@@ -83,6 +87,7 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
             openDialog();
             onClose();
           }}
+          handleDelete={handleDelete}
         />
       </DialogContent>
     </Dialog>

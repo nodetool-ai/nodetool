@@ -626,10 +626,34 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                   }}
                 >
                   <Typography variant="h3">Recommended Models</Typography>
+                  <Typography variant="body1">
+                    These are the models that are recommended for you.
+                    <ul>
+                      <li>
+                        <Typography variant="body1">
+                          <b>Realistic Vision V6</b> - A highly detailed and
+                          realistic vision model.
+                        </Typography>
+                      </li>
+                      <li>
+                        <Typography variant="body1">
+                          <b>SD XL Latent Upscaler</b> - A model for generating
+                          high-resolution images.
+                        </Typography>
+                      </li>
+                      <li>
+                        <Typography variant="body1">
+                          <b>Llama 3.2</b> - A multilingual, general-purpose
+                          language model.
+                        </Typography>
+                      </li>
+                    </ul>
+                  </Typography>
                   <RecommendedModels
                     recommendedModels={recommendedModels}
                     initialViewMode="list"
                     startDownload={startDownload}
+                    showViewModeToggle={false}
                   />
                   <OverallDownloadProgress />
                 </Box>
