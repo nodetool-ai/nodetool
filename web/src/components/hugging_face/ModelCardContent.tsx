@@ -34,59 +34,6 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
   }) => {
     const isHuggingFace = model.type.startsWith("hf.");
     const isOllama = model.type.toLowerCase().includes("llama_model");
-    if (!modelData) {
-      return (
-        <CardContent sx={{ flexGrow: 1 }}>
-          <Typography
-            className="repo-name"
-            variant="h4"
-            component="div"
-            gutterBottom
-          >
-            {formatId(model.id)}
-          </Typography>
-          {model.path && (
-            <Typography
-              variant="h3"
-              style={{
-                color: ThemeNodetool.palette.c_gray3,
-                fontSize: "0.75em"
-              }}
-            >
-              {model.path}
-            </Typography>
-          )}
-          {isOllama && (
-            <Typography
-              variant="h5"
-              style={{ color: ThemeNodetool.palette.c_gray4 }}
-            >
-              Model not downloaded
-            </Typography>
-          )}
-          {isHuggingFace && (
-            <>
-              <Typography
-                variant="h5"
-                style={{ color: ThemeNodetool.palette.c_warning }}
-              >
-                Failed to find matching repository:
-              </Typography>
-              <Button
-                className="button-link"
-                size="small"
-                variant="contained"
-                href={`https://huggingface.co/${model.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {model.id}
-              </Button>
-            </>
-          )}
-        </CardContent>
-      );
-    }
 
     return (
       <CardContent sx={{ flexGrow: 1 }}>
@@ -99,72 +46,113 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           {formatId(model.id)}
         </Typography>
 
-        {renderModelSecondaryInfo(modelData, isHuggingFace)}
-
-        <Box>
-          {model.size_on_disk && (
-            <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title={"Size on disk"}>
-              <Typography variant="body2" className="text-model-size">
-                {modelSize(model)}
-              </Typography>
-            </Tooltip>
-          )}
-          {(modelData.cardData?.tags || modelData.tags) && (
-            <Box className="tags-container">
-              <Button className="pipeline-tag" onClick={toggleTags}>
-                {modelData.cardData?.pipeline_tag || "#"}
-              </Button>
-
-              <Box
-                className="tags-list"
-                style={{ display: tagsExpanded ? "block" : "none" }}
-              >
-                <Box mt={1}>
-                  {(modelData.cardData?.tags || modelData.tags).map(
-                    (tag: string) => (
-                      <Chip
-                        className="tag"
-                        key={tag}
-                        label={tag}
-                        size="small"
-                        sx={{ margin: "2px" }}
-                      />
-                    )
-                  )}
-                </Box>
-              </Box>
-            </Box>
-          )}
-        </Box>
-
-        {isHuggingFace && model.path && (
-          <Box mt={1}>
-            <Typography
-              variant="h3"
-              style={{
-                color: ThemeNodetool.palette.c_gray4,
-                fontSize: "0.75em"
-              }}
-            >
-              {model.path}
-            </Typography>
-          </Box>
+        {model.path && (
+          <Typography
+            variant="h3"
+            style={{
+              color: ThemeNodetool.palette.c_gray3,
+              fontSize: "0.75em"
+            }}
+          >
+            {model.path}
+          </Typography>
         )}
 
-        {isHuggingFace && (
-          <Box>
-            <Button
-              className="readme-toggle-button"
-              onClick={() => setReadmeDialogOpen(true)}
+        {isOllama && !modelData && (
+          <Typography
+            variant="h5"
+            style={{ color: ThemeNodetool.palette.c_gray4 }}
+          >
+            Model not downloaded
+          </Typography>
+        )}
+
+        {isHuggingFace && !modelData && (
+          <>
+            <Typography
+              variant="h5"
+              style={{ color: ThemeNodetool.palette.c_warning }}
             >
-              <Typography>README</Typography>
+              Failed to find matching repository:
+            </Typography>
+            <Button
+              className="button-link"
+              size="small"
+              variant="contained"
+              href={`https://huggingface.co/${model.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {model.id}
             </Button>
-            <ReadmeDialog
-              open={readmeDialogOpen}
-              onClose={() => setReadmeDialogOpen(false)}
-              modelId={model.id}
-            />
-          </Box>
+          </>
+        )}
+
+        {modelData ? (
+          <>
+            {renderModelSecondaryInfo(modelData, isHuggingFace)}
+
+            <Box>
+              {model.size_on_disk && (
+                <Tooltip
+                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  title={"Size on disk"}
+                >
+                  <Typography variant="body2" className="text-model-size">
+                    {modelSize(model)}
+                  </Typography>
+                </Tooltip>
+              )}
+              {(modelData.cardData?.tags || modelData.tags) && (
+                <Box className="tags-container">
+                  <Button className="pipeline-tag" onClick={toggleTags}>
+                    {modelData.cardData?.pipeline_tag || "#"}
+                  </Button>
+
+                  <Box
+                    className="tags-list"
+                    style={{ display: tagsExpanded ? "block" : "none" }}
+                  >
+                    <Box mt={1}>
+                      {(modelData.cardData?.tags || modelData.tags).map(
+                        (tag: string) => (
+                          <Chip
+                            className="tag"
+                            key={tag}
+                            label={tag}
+                            size="small"
+                            sx={{ margin: "2px" }}
+                          />
+                        )
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+            </Box>
+
+            {isHuggingFace && (
+              <Box>
+                <Button
+                  className="readme-toggle-button"
+                  onClick={() => setReadmeDialogOpen(true)}
+                >
+                  <Typography>README</Typography>
+                </Button>
+                <ReadmeDialog
+                  open={readmeDialogOpen}
+                  onClose={() => setReadmeDialogOpen(false)}
+                  modelId={model.id}
+                />
+              </Box>
+            )}
+          </>
+        ) : (
+          isHuggingFace && (
+            <Box mt={2}>
+              <Typography>Loading model data...</Typography>
+            </Box>
+          )
         )}
       </CardContent>
     );

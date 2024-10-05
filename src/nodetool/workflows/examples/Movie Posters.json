@@ -217,8 +217,8 @@
         "data": {
           "model": {
             "type": "hf.stable_diffusion",
-            "repo_id": "Yntec/realistic-vision-v13",
-            "path": "Realistic_Vision_V1.3.safetensors"
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
           },
           "negative_prompt": "nsfw, naked, nude, deformed, bad anatomy, mutated, ugly, disgusting, amputation",
           "seed": -1,

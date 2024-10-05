@@ -137,13 +137,13 @@ export const tutorials: Record<string, TutorialStep[]> = {
       "Double-click the canvas or click the '⭕️ Nodes' button. Search for 'StableDiffusion' in the 'Huggingface → Text To Image' category (not Comfy) and place the node on the canvas."
     ),
     downloadHuggingFaceModelStep(
-      "Yntec/realistic-vision-v13",
-      "Click on `Recommended Models` and download the 'Yntec/realistic-vision-v13' model."
+      "SG161222/Realistic_Vision_V5.1_noVAE",
+      "Click on `Recommended Models` and download the 'SG161222/Realistic_Vision_V5.1_noVAE' model."
     ),
     configureNodeStep(
       "huggingface.text_to_image.StableDiffusion",
-      (properties) => properties.model.repo_id === "Yntec/realistic-vision-v13",
-      "Change the model to 'Yntec/realistic-vision-v13' in the StableDiffusion node."
+      (properties) => properties.model.repo_id === "SG161222/Realistic_Vision_V5.1_noVAE",
+      "Change the model to 'SG161222/Realistic_Vision_V5.1_noVAE' in the StableDiffusion node."
     ),
     configureNodeStep(
       "huggingface.text_to_image.StableDiffusion",

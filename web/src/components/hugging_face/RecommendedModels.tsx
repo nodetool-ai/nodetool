@@ -18,6 +18,7 @@ import ThemeNodes from "../themes/ThemeNodes";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
+  showViewModeToggle?: boolean;
   initialViewMode: "grid" | "list";
   compactView?: boolean;
   startDownload: (
@@ -35,6 +36,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   initialViewMode,
   startDownload,
   onModelSelect,
+  showViewModeToggle = true,
   compactView = false
 }) => {
   const [viewMode, setViewMode] = useState<"grid" | "list">(initialViewMode);
@@ -92,20 +94,22 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
 
   return (
     <>
-      <ToggleButtonGroup
-        value={viewMode}
-        exclusive
-        onChange={handleViewModeChange}
-        aria-label="view mode"
-        sx={{ marginBottom: 2 }}
-      >
-        <ToggleButton value="grid" aria-label="grid view">
-          <ViewModuleIcon />
-        </ToggleButton>
-        <ToggleButton value="list" aria-label="list view">
-          <ViewListIcon />
-        </ToggleButton>
-      </ToggleButtonGroup>
+      {showViewModeToggle && (
+        <ToggleButtonGroup
+          value={viewMode}
+          exclusive
+          onChange={handleViewModeChange}
+          aria-label="view mode"
+          sx={{ marginBottom: 2 }}
+        >
+          <ToggleButton value="grid" aria-label="grid view">
+            <ViewModuleIcon />
+          </ToggleButton>
+          <ToggleButton value="list" aria-label="list view">
+            <ViewListIcon />
+          </ToggleButton>
+        </ToggleButtonGroup>
+      )}
 
       {viewMode === "grid" ? (
         <Grid container spacing={3} className="recommended-models-grid">
@@ -134,7 +138,6 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
               compactView={compactView}
               key={model.id}
               model={model}
-              handleDelete={() => {}}
               onDownload={() => {
                 startDownload(
                   model.repo_id || "",

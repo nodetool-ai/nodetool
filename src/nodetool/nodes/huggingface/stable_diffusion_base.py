@@ -95,10 +95,6 @@ HF_STABLE_DIFFUSION_MODELS = [
         path="absolutereality_v16.safetensors",
     ),
     HFStableDiffusion(
-        repo_id="Yntec/realistic-vision-v13",
-        path="Realistic_Vision_V1.3.safetensors",
-    ),
-    HFStableDiffusion(
         repo_id="Yntec/RealLife",
         path="reallife_v20.safetensors",
     ),
@@ -234,10 +230,6 @@ HF_STABLE_DIFFUSION_MODELS = [
     HFStableDiffusion(
         repo_id="Yntec/WinningBlunder",
         path="WinningBlunder.safetensors",
-    ),
-    HFStableDiffusion(
-        repo_id="Yntec/beLIEve",
-        path="beLIEve.safetensors",
     ),
     HFStableDiffusion(
         repo_id="Yntec/Neurogen",

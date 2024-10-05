@@ -39,7 +39,6 @@ import RecommendedModels from "../../hugging_face/RecommendedModels";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../../hugging_face/DownloadProgress";
-import OverallDownloadProgress from "../../hugging_face/OverallDownloadProgress";
 
 enum TabValue {
   Overview = 0,
@@ -253,16 +252,17 @@ const recommendedModels: UnifiedModel[] = [
     allow_patterns: ["**/*.json", "**/*.txt", "**/*.json"]
   },
   {
-    id: "Qwen 2",
-    name: "qwen2:0.5b",
+    id: "Qwen 2.5 - 0.5B",
+    name: "qwen2.5:0.5b",
     type: "llama_model",
     repo_id: "qwen2:0.5b"
   },
   {
-    id: "whisper-large-v3",
+    id: "openai/whisper-large-v3",
     name: "whisper-large-v3",
     type: "hf.automatic_speech_recognition",
-    repo_id: "openai/whisper-large-v3"
+    repo_id: "openai/whisper-large-v3",
+    allow_patterns: ["model.safetensors", "*.json", "*.txt"]
   }
 ];
 
@@ -526,12 +526,21 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                 Welcome to Nodetool
               </Typography>
 
-              <Box sx={{ display: "flex", gap: "2em" }}>
-                <Box sx={{ flex: 1 }}>
-                  <Typography
-                    variant="h5"
-                    sx={{ mb: 2, color: theme.palette.c_hl2 }}
-                  >
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: "2em"
+                }}
+              >
+                <Box
+                  sx={{
+                    flex: 1,
+                    backgroundColor: theme.palette.c_gray1,
+                    padding: "20px",
+                    borderRadius: "20px"
+                  }}
+                >
+                  <Typography variant="h3" sx={{ mb: 2 }}>
                     How to Use AI Models
                   </Typography>
                   <Typography variant="body1" gutterBottom>
@@ -626,17 +635,41 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                 <Box
                   sx={{
                     flex: 1,
-                    color: theme.palette.c_hl2,
                     backgroundColor: theme.palette.c_gray1,
                     padding: "20px",
                     borderRadius: "20px"
                   }}
                 >
-                  <Typography variant="h5">Recommended Models</Typography>
+                  <Typography variant="h3">Recommended Models</Typography>
+                  <p>
+                    We recommend the following models for you to run examples on
+                    your own GPU.
+                    <ul>
+                      <li>
+                        <Typography variant="body1">
+                          <b>Realistc Vision V6</b> - A realistic image
+                          generation model.
+                        </Typography>
+                      </li>
+                      <li>
+                        <Typography variant="body1">
+                          <b>SD XL Latent Upscaler</b> - To enable high-quality
+                          image scaling.
+                        </Typography>
+                      </li>
+                      <li>
+                        <Typography variant="body1">
+                          <b>Qwen 2.5</b> - A multilingual large language model.
+                        </Typography>
+                      </li>
+                    </ul>
+                  </p>
                   <RecommendedModels
                     recommendedModels={recommendedModels}
                     initialViewMode="list"
                     startDownload={startDownload}
+                    showViewModeToggle={false}
+                    gg
                     compactView={true}
                   />
                   <Box mt={2}>
@@ -654,12 +687,14 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     borderRadius: "20px"
                   }}
                 >
-                  <Typography
-                    variant="h5"
-                    sx={{ mb: 2, color: theme.palette.c_hl2 }}
-                  >
+                  <Typography variant="h3" sx={{ mb: 2 }}>
                     Remote Model Setup
                   </Typography>
+                  <p>
+                    To use the external API providers, you need to set up your
+                    API keys below. If you don&apos;t have a GPU, this is the
+                    only way to run models efficiently.
+                  </p>
                   <RemoteSettingsMenu />
                 </Box>
               </Box>

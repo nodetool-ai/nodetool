@@ -111,7 +111,7 @@ const RemoteSettings = () => {
         }
       }
     );
-  }, [settings, updateSettingsMutation]);
+  }, [addNotification, settings, updateSettingsMutation]);
 
   return (
     <>
