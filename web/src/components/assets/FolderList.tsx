@@ -14,11 +14,11 @@ import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { Asset } from "../../stores/ApiTypes";
 
-const INITIAL_FOLDER_LIST_HEIGHT = 200;
+const INITIAL_FOLDER_LIST_HEIGHT = 100;
 const MIN_FOLDER_LIST_HEIGHT = 100;
 const MAX_FOLDER_LIST_HEIGHT = 1500;
 const RESIZE_HANDLE_HEIGHT = 20;
-const ROW_HEIGHT = 2;
+const ROW_HEIGHT = 1.75;
 const LIST_MIN_WIDTH = "300px";
 const LEVEL_PADDING = 0.7;
 
@@ -28,16 +28,14 @@ const styles = (theme: any) =>
       position: "relative",
       height: "120px",
       overflow: "hidden",
-      paddingBottom: ".5em"
+      padding: ".5em 0 0 0"
     },
     ".folder-list": {
       display: "flex",
       flexDirection: "column",
       flexWrap: "nowrap",
       gap: "0",
-      padding: "10px",
-      paddingBottom: "1em",
-      paddingLeft: "1em",
+      padding: "0 0 2em 0",
       height: `calc(100% - ${RESIZE_HANDLE_HEIGHT}px)`,
       overflow: "hidden auto"
     },
@@ -90,12 +88,12 @@ const styles = (theme: any) =>
       color: theme.palette.c_hl1
     },
     ".MuiAccordionSummary-expandIconWrapper svg": {
-      width: "22px",
-      height: "22px",
+      width: "25px",
+      height: "25px",
       position: "absolute",
-      top: "-10px",
+      top: "-.6em",
       bottom: "0",
-      left: "2px",
+      left: "4px",
       right: "0",
       zIndex: 1000,
       color: theme.palette.c_gray5,
@@ -104,7 +102,7 @@ const styles = (theme: any) =>
       transition: "transform 0.25s ease"
     },
     ".MuiAccordionSummary-expandIconWrapper.Mui-expanded svg": {
-      color: theme.palette.c_gray6,
+      color: theme.palette.c_gray5,
       transform: "rotate(0deg)"
     },
     //

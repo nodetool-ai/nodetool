@@ -9,6 +9,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useAssets from "../../serverState/useAssets";
+import FileUploadButton from "../buttons/FileUploadButton";
 
 const styles = (theme: any) =>
   css({
@@ -62,6 +63,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
         focusSearchInput={false}
         maxWidth={"9em"}
       />
+      {/* <FileUploadButton onFileChange={props.onDrop} /> */}
       <AssetActions
         setSelectedAssetIds={setSelectedAssetIds}
         handleSelectAllAssets={handleSelectAllAssets}

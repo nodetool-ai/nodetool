@@ -76,8 +76,7 @@ const styles = (theme: any) =>
       padding: "0.5em"
     },
     ".folder-list-container": {
-      padding: "0.5em",
-      borderRight: `1px solid ${theme.palette.divider}`
+      padding: 0
     },
     ".folder-list": {
       listStyleType: "none",
@@ -86,7 +85,7 @@ const styles = (theme: any) =>
     },
     ".folder-item": {
       position: "relative",
-      padding: "0 0 4px 24px",
+      padding: "0 0 4px 2em",
       "&::before, &::after": {
         content: '""',
         position: "absolute",
@@ -107,7 +106,7 @@ const styles = (theme: any) =>
       }
     },
     ".folder-icon": {
-      marginRight: "0.5em",
+      marginRight: "0.1em",
       color: theme.palette.text.secondary,
       verticalAlign: "middle"
     },

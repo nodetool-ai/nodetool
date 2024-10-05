@@ -3,28 +3,42 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
 import FileUploadButton from "../buttons/FileUploadButton";
 import { css } from "@emotion/react";
 
-const styles = css({
-  draggingOverlay: {
-    display: "none",
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    zIndex: 1000,
-    pointerEvents: "none",
-    opacity: 0,
-    transition: "opacity 0.2s"
-  },
-  dropzoneDraggingOverlay: {
-    display: "block",
-    opacity: 1
-  },
-  ".file-upload-button": {
-    margin: ".5em 0 0"
-  }
-});
+const styles = (theme: any) =>
+  css({
+    draggingOverlay: {
+      display: "none",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      zIndex: 1000,
+      pointerEvents: "none",
+      opacity: 0,
+      transition: "opacity 0.2s"
+    },
+    dropzoneDraggingOverlay: {
+      display: "block",
+      opacity: 1
+    },
+    ".file-upload-button": {
+      position: "absolute",
+      width: "1em",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      top: ".5em",
+      left: "0.25em",
+      background: theme.palette.c_gray1,
+      border: "none",
+      outline: "none",
+      zIndex: 1
+    },
+    ".file-upload-button button": {
+      border: "none"
+    }
+  });
 
 export interface DropzoneProps {
   onDrop: (files: File[]) => void;
