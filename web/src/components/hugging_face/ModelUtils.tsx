@@ -115,8 +115,13 @@ export const ModelDeleteButton: React.FC<{ onClick: () => void }> = ({
 export const ModelDownloadButton: React.FC<{ onClick: () => void }> = ({
   onClick
 }) => (
-  <Button className="model-download-button" onClick={onClick}>
+  <Button
+    className="model-download-button"
+    onClick={onClick}
+    variant="outlined"
+  >
     <DownloadIcon />
+    Download
   </Button>
 );
 
