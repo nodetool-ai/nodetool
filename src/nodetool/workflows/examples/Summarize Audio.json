@@ -5,7 +5,8 @@
   "updated_at": "2024-08-15T10:28:09.059403",
   "name": "Summarize Audio",
   "tags": [
-    "openai"
+    "openai",
+    "start"
   ],
   "description": "Transcribe an audio file and summarize the text.",
   "thumbnail": "",

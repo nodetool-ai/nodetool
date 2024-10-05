@@ -5,7 +5,8 @@
   "updated_at": "2024-07-06T20:04:04.210928",
   "name": "Audio To Spectrogram",
   "tags": [
-    "multimodal"
+    "multimodal",
+    "start"
   ],
   "description": "Ceate a spectrogram from an audio file and use creative upscaling, then hang it on your wall.",
   "thumbnail": "",
@@ -13,20 +14,40 @@
   "graph": {
     "edges": [
       {
-        "id": "0047f77f-0fb1-4c3c-aeb1-b64246646e1b",
-        "source": "5",
+        "id": "6a3890ca-beaf-4d63-90d5-5cb2b64d97ae",
+        "source": "1",
         "sourceHandle": "output",
-        "target": "2",
+        "target": "5",
         "targetHandle": "audio",
         "ui_properties": {
           "className": "audio"
         }
       },
       {
-        "id": "6a3890ca-beaf-4d63-90d5-5cb2b64d97ae",
-        "source": "1",
+        "id": "10838350-8991-4ac5-94ba-4fabccf77279",
+        "source": "2",
         "sourceHandle": "output",
-        "target": "5",
+        "target": "6",
+        "targetHandle": "tensor",
+        "ui_properties": {
+          "className": "tensor"
+        }
+      },
+      {
+        "id": "8a1c37a3-bcb9-4323-8305-1c3e8496c7f4",
+        "source": "6",
+        "sourceHandle": "output",
+        "target": "12",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "0047f77f-0fb1-4c3c-aeb1-b64246646e1b",
+        "source": "5",
+        "sourceHandle": "output",
+        "target": "2",
         "targetHandle": "audio",
         "ui_properties": {
           "className": "audio"
@@ -43,16 +64,6 @@
         }
       },
       {
-        "id": "10838350-8991-4ac5-94ba-4fabccf77279",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "tensor",
-        "ui_properties": {
-          "className": "tensor"
-        }
-      },
-      {
         "id": "4c2e0fa7-3866-46b7-b44f-ba37eb30d15d",
         "source": "12",
         "sourceHandle": "output",
@@ -63,41 +74,11 @@
         }
       },
       {
-        "id": "10838351",
-        "source": "29b6e4f4-ea71-41d5-9804-695fb0d5e11b",
+        "id": "600c4f11-db49-4e41-a376-c36455132bbd",
+        "source": "10",
         "sourceHandle": "output",
         "target": "30",
         "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "b923fada-9925-4bf4-ab9f-ac3fa007a378",
-        "source": "11",
-        "sourceHandle": "output",
-        "target": "29b6e4f4-ea71-41d5-9804-695fb0d5e11b",
-        "targetHandle": "loras",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "8a1c37a3-bcb9-4323-8305-1c3e8496c7f4",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "12",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "de34482a-ab36-4e07-8885-b24ea73b9b83",
-        "source": "10",
-        "sourceHandle": "output",
-        "target": "29b6e4f4-ea71-41d5-9804-695fb0d5e11b",
-        "targetHandle": "init_image",
         "ui_properties": {
           "className": "image"
         }
@@ -116,10 +97,9 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 17,
-            "y": 138.25
+            "x": 30,
+            "y": 137.75
           },
           "zIndex": 0,
           "selectable": true
@@ -136,10 +116,9 @@
           "fmax": 1000
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 497.5,
-            "y": 138.25
+            "x": 373,
+            "y": 170
           },
           "zIndex": 0,
           "selectable": true
@@ -152,10 +131,9 @@
           "name": "image_output"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 930,
-            "y": 12
+            "x": 739,
+            "y": 14
           },
           "zIndex": 0,
           "width": 285,
@@ -171,10 +149,9 @@
           "end": 5
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 304,
-            "y": 138.25
+            "x": 212,
+            "y": 190
           },
           "zIndex": 0,
           "selectable": true
@@ -185,10 +162,9 @@
         "type": "nodetool.tensor.ConvertToImage",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 677,
-            "y": 138.25
+            "x": 553,
+            "y": 214
           },
           "zIndex": 0,
           "selectable": true
@@ -211,7 +187,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 0,
             "y": -91
@@ -228,15 +203,15 @@
         "data": {
           "model": {
             "type": "hf.stable_diffusion",
-            "repo_id": "Yntec/HyperRemix",
-            "path": "HyperRemix.safetensors"
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
           },
           "prompt": "city skyline at night, sci-fi, future",
           "negative_prompt": "",
           "seed": -1,
-          "num_inference_steps": 25,
+          "num_inference_steps": 50,
           "guidance_scale": 7.5,
-          "scheduler": "HeunDiscreteScheduler",
+          "scheduler": "DPMSolverMultistepScheduler",
           "loras": [],
           "lora_scale": 0.5,
           "ip_adapter_model": "",
@@ -248,67 +223,15 @@
           },
           "ip_adapter_scale": 0.5,
           "hires": true,
-          "enable_tiling": true,
-          "strength": 0.7
+          "enable_tiling": false,
+          "strength": 0.5,
+          "detail_level": 0.95
         },
         "ui_properties": {
-          "selected": false,
+          "selected": true,
           "position": {
-            "x": 1202.5,
-            "y": 264.5
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "11",
-        "type": "huggingface.lora.LoRASelector",
-        "data": {
-          "lora1": {
-            "type": "hf.lora_sd",
-            "repo_id": "danbrown/loras",
-            "path": "add_detail.safetensors"
-          },
-          "strength1": 1,
-          "lora2": {
-            "type": "hf.lora_sd",
-            "repo_id": "",
-            "path": null,
-            "allow_patterns": null,
-            "ignore_patterns": null
-          },
-          "strength2": 1,
-          "lora3": {
-            "type": "hf.lora_sd",
-            "repo_id": "",
-            "path": null,
-            "allow_patterns": null,
-            "ignore_patterns": null
-          },
-          "strength3": 1,
-          "lora4": {
-            "type": "hf.lora_sd",
-            "repo_id": "",
-            "path": null,
-            "allow_patterns": null,
-            "ignore_patterns": null
-          },
-          "strength4": 1,
-          "lora5": {
-            "type": "hf.lora_sd",
-            "repo_id": "",
-            "path": null,
-            "allow_patterns": null,
-            "ignore_patterns": null
-          },
-          "strength5": 1
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1202.5,
-            "y": 696
+            "x": 750,
+            "y": 336
           },
           "zIndex": 0,
           "selectable": true
@@ -322,48 +245,9 @@
           "height": 512
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 934,
-            "y": 351
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "29b6e4f4-ea71-41d5-9804-695fb0d5e11b",
-        "type": "huggingface.image_to_image.StableDiffusionImg2Img",
-        "data": {
-          "model": {
-            "type": "hf.stable_diffusion",
-            "repo_id": "Yntec/HyperRemix",
-            "path": "HyperRemix.safetensors"
-          },
-          "prompt": "city skyline at night, sci-fi, future",
-          "negative_prompt": "",
-          "seed": -1,
-          "num_inference_steps": 47,
-          "guidance_scale": 7.5,
-          "scheduler": "DPMSolverMultistepScheduler",
-          "lora_scale": 0.5,
-          "ip_adapter_model": "",
-          "ip_adapter_image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null
-          },
-          "ip_adapter_scale": 0.5,
-          "hires": true,
-          "enable_tiling": true,
-          "strength": 0.52
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1420,
-            "y": 480.25
+            "x": 602,
+            "y": 315
           },
           "zIndex": 0,
           "selectable": true
@@ -376,25 +260,16 @@
           "name": "image_output_2024-09-23"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 1665,
-            "y": 568
+            "x": 990,
+            "y": 336
           },
           "zIndex": 0,
-          "width": 160,
-          "height": 160,
+          "width": 460,
+          "height": 456,
           "selectable": true
         }
       }
     ]
-  },
-  "input_schema": {
-    "type": "object",
-    "properties": {}
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {}
   }
 }

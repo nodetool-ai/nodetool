@@ -5,7 +5,8 @@
   "updated_at": "2024-07-06T19:23:59.712727",
   "name": "Remove Silence and Transcribe Speech",
   "tags": [
-    "openai"
+    "openai",
+    "start"
   ],
   "description": "Remove silence from audio files.",
   "thumbnail": "",
