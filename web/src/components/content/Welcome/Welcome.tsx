@@ -252,8 +252,8 @@ const recommendedModels: UnifiedModel[] = [
     allow_patterns: ["**/*.json", "**/*.txt", "**/*.json"]
   },
   {
-    id: "Qwen 2",
-    name: "qwen2:0.5b",
+    id: "Qwen 2.5 - 0.5B",
+    name: "qwen2.5:0.5b",
     type: "llama_model",
     repo_id: "qwen2:0.5b"
   },
@@ -647,20 +647,19 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     <ul>
                       <li>
                         <Typography variant="body1">
-                          <b>Realistic Vision V6</b> - A highly detailed and
-                          realistic vision model.
+                          <b>Realistc Vision V6</b> - A realistic image
+                          generation model.
                         </Typography>
                       </li>
                       <li>
                         <Typography variant="body1">
-                          <b>SD XL Latent Upscaler</b> - A model for generating
-                          high-resolution images.
+                          <b>SD XL Latent Upscaler</b> - To enable high-quality
+                          image scaling.
                         </Typography>
                       </li>
                       <li>
                         <Typography variant="body1">
-                          <b>Llama 3.2</b> - A multilingual, general-purpose
-                          language model.
+                          <b>Qwen 2.5</b> - A multilingual large language model.
                         </Typography>
                       </li>
                     </ul>
@@ -670,6 +669,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     initialViewMode="list"
                     startDownload={startDownload}
                     showViewModeToggle={false}
+                    gg
                     compactView={true}
                   />
                   <Box mt={2}>
