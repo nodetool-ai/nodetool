@@ -1,10 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
+import { css, useTheme } from "@emotion/react";
 import { useState } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import TextareaAutosize from "react-textarea-autosize";
 import { PropertyProps } from "../node/PropertyInput";
+import TextEditorModal from "./TextEditorModal";
+import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
+import { Tooltip } from "@mui/material";
 
 const styles = (theme: any) =>
   css({
@@ -17,38 +19,32 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmaller,
       lineHeight: "1.1"
     },
-    ".container.expanded": {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "40vw",
-      height: "40vh",
-      zIndex: 1000,
-      backgroundColor: theme.palette.c_gray1,
-      padding: "20px",
-      display: "flex",
-      flexDirection: "column"
-    },
-    ".container.expanded textarea": {
-      width: "100%",
-      height: "100%",
-      flex: 1
+    ".container": {
+      position: "relative"
     },
     ".button-expand": {
       position: "absolute",
       zIndex: 0,
-      right: "4px",
-      top: "4px",
-      cursor: "pointer"
+      top: "-11px",
+      right: "0px",
+      cursor: "pointer",
+      width: "1em",
+      height: "1em",
+      fontSize: "1em",
+      padding: 0,
+      border: "none",
+      color: theme.palette.c_gray6,
+      backgroundColor: theme.palette.c_gray2,
+      fontWeight: "bold"
     },
-    ".expanded .button-expand": {
-      position: "absolute",
-      right: "4px",
-      top: "4px"
+    ".button-expand:hover": {
+      color: theme.palette.c_hl1,
+      backgroundColor: theme.palette.c_gray2
     }
   });
 
 export default function StringProperty(props: PropertyProps) {
+  const theme = useTheme();
   const id = `textfield-${props.property.name}-${props.propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -57,26 +53,14 @@ export default function StringProperty(props: PropertyProps) {
   };
 
   return (
-    <div css={styles}>
+    <div css={styles(theme)}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
         id={id}
       />
-      <div className={`container ${isExpanded ? "expanded" : ""}`}>
-        {isExpanded && (
-          <div>
-            <PropertyLabel
-              name={props.property.name}
-              description={props.property.description}
-              id={id}
-            />
-          </div>
-        )}
+      <div className="container">
         <TextareaAutosize
-          // causing too many re-renders, see https://stackoverflow.com/questions/64837884/material-ui-too-many-re-renders-the-layout-is-unstable-textareaautosize-limit
-          // > trying to fix this by using TextareaAutosize instead.
-          // > switched to TextareaAutosize from 'react-textarea-autosize'. seems to fix 'ResizeObserver loop limit exceeded'
           id={id}
           name={props.property.name}
           minRows={1}
@@ -90,11 +74,22 @@ export default function StringProperty(props: PropertyProps) {
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
+          // css={styles(theme).textarea}
         />
-        <button className="button-expand" onClick={toggleExpand}>
-          {isExpanded ? "↙" : "↗"}
-        </button>
+        <Tooltip title="Open Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
+          <button className="button-expand" onClick={toggleExpand}>
+            {isExpanded ? "↙" : "↗"}
+          </button>
+        </Tooltip>
       </div>
+      {isExpanded && (
+        <TextEditorModal
+          value={props.value || ""}
+          onChange={props.onChange}
+          onClose={toggleExpand}
+          propertyName={props.property.name}
+        />
+      )}
     </div>
   );
 }
