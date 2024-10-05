@@ -631,6 +631,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     recommendedModels={recommendedModels}
                     initialViewMode="list"
                     startDownload={startDownload}
+                    compactView={true}
                   />
                   <Box mt={2}>
                     {Object.keys(downloads).map((name) => (

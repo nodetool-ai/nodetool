@@ -86,6 +86,7 @@ export interface ModelComponentProps {
   model: UnifiedModel;
   handleDelete?: (repoId: string) => void;
   onDownload?: () => void;
+  compactView?: boolean;
 }
 
 export function formatId(id: string) {

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
 import React from "react";
 import {
   ListItem,
@@ -30,7 +31,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 
 const styles = (theme: any) =>
   css({
-    "&.model-list-item-container": {
+    "&.model-list-item": {
       padding: "0 0 1em 1em",
       marginBottom: ".5em",
       backgroundColor: theme.palette.c_gray1,
@@ -38,7 +39,17 @@ const styles = (theme: any) =>
       border: "1px solid transparent",
       borderRadius: "1em",
       transition: "border 0.125s ease-in",
-      "&.model-list-item-container:hover": {
+
+      "&.compact": {
+        padding: 0
+      },
+      "&.compact li": {
+        display: "flex",
+        flexDirection: "column",
+        gap: ".5em",
+        alignItems: "flex-start"
+      },
+      "&.model-list-item:hover": {
         border: "1px solid" + theme.palette.c_gray2
       },
       "& .model-name": {
@@ -58,8 +69,20 @@ const styles = (theme: any) =>
         alignItems: "center",
         gap: "1em",
         marginRight: "16px"
+      },
+      "& .secondary-action": {
+        display: "flex",
+        gap: ".1em",
+        alignItems: "center",
+        position: "absolute"
+      },
+      "&.compact .secondary-action": {
+        position: "relative",
+        right: "unset",
+        left: "1em"
       }
     },
+
     ".model-external-link-icon": {
       boxShadow: "none",
       cursor: "pointer",
@@ -80,7 +103,8 @@ const styles = (theme: any) =>
 const ModelListItem: React.FC<ModelComponentProps> = ({
   model,
   onDownload,
-  handleDelete
+  handleDelete,
+  compactView = false
 }) => {
   const isHuggingFace = model.type.startsWith("hf.");
   const isOllama = model.type.toLowerCase().includes("llama_model");
@@ -102,16 +126,24 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
 
   if (isLoading) {
     return (
-      <ListItem css={styles} className="model-list-item">
-        <CircularProgress size={24} />
-      </ListItem>
+      <Box
+        css={styles}
+        className={`model-list-item ${compactView ? "compact" : ""}`}
+      >
+        <ListItem className={`model-list-item ${compactView ? "compact" : ""}`}>
+          <CircularProgress size={24} />
+        </ListItem>
+      </Box>
     );
   }
 
   if (!modelData) {
     return (
-      <Box css={styles} className="model-list-item-container">
-        <ListItem>
+      <Box
+        css={styles}
+        className={`model-list-item ${compactView ? "compact" : ""}`}
+      >
+        <ListItem className={`model-list-item ${compactView ? "compact" : ""}`}>
           <ListItemText
             primary={formatId(model.id)}
             secondary={
@@ -124,13 +156,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
               )
             }
           />
-          <ListItemSecondaryAction
-            sx={{
-              display: "flex",
-              gap: "1em",
-              alignItems: "center"
-            }}
-          >
+          <ListItemSecondaryAction className="secondary-action">
             {isHuggingFace && <HuggingFaceLink modelId={model.id} />}
             {isOllama && <OllamaLink modelId={model.id} />}
             {renderModelActions(
@@ -144,8 +170,11 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
   }
 
   return (
-    <Box css={styles} className="model-list-item-container">
-      <ListItem className="model-list-item">
+    <Box
+      css={styles}
+      className={`model-list-item ${compactView ? "compact" : ""}`}
+    >
+      <ListItem>
         <ListItemText
           primary={<Typography className="model-name">{model.id}</Typography>}
           secondary={
@@ -171,13 +200,7 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
             </React.Fragment>
           }
         />
-        <ListItemSecondaryAction
-          sx={{
-            display: "flex",
-            gap: "1em",
-            alignItems: "center"
-          }}
-        >
+        <ListItemSecondaryAction className="secondary-action">
           {isHuggingFace && (
             <Box className="model-stats" sx={{ display: "flex", gap: ".5em" }}>
               <Tooltip title="Downloads on HF last month">
