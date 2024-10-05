@@ -5,6 +5,7 @@ import { useState } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import TextareaAutosize from "react-textarea-autosize";
 import { PropertyProps } from "../node/PropertyInput";
+import { Button } from "@mui/material";
 
 const styles = (theme: any) =>
   css({
@@ -21,8 +22,8 @@ const styles = (theme: any) =>
       position: "fixed",
       top: 0,
       left: 0,
-      width: "40vw",
-      height: "40vh",
+      width: "400px",
+      height: "200px",
       zIndex: 1000,
       backgroundColor: theme.palette.c_gray1,
       padding: "20px",
@@ -91,9 +92,9 @@ export default function StringProperty(props: PropertyProps) {
           autoCapitalize="off"
           spellCheck="false"
         />
-        <button className="button-expand" onClick={toggleExpand}>
+        <Button className="button-expand" onClick={toggleExpand}>
           {isExpanded ? "↙" : "↗"}
-        </button>
+        </Button>
       </div>
     </div>
   );
