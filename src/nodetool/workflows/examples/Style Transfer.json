@@ -5,7 +5,8 @@
   "updated_at": "2024-08-18T18:33:51.638639",
   "name": "Style Transfer",
   "tags": [
-    "huggingface"
+    "huggingface",
+    "start"
   ],
   "description": "Apply the style of an image to another image",
   "thumbnail": "",

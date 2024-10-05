@@ -5,7 +5,8 @@
   "updated_at": "2024-07-06T20:23:13.098945",
   "name": "Audio To Image",
   "tags": [
-    "multimodal"
+    "multimodal",
+    "start"
   ],
   "description": "Convert any audio speech into an image",
   "thumbnail": "",
@@ -180,7 +181,7 @@
         "data": {
           "model": {
             "type": "llama_model",
-            "repo_id": "qwen2:1.5b"
+            "repo_id": "qwen2:0.5b"
           },
           "system_prompt": "You are a painter.",
           "image": {

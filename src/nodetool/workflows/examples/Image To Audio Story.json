@@ -6,6 +6,10 @@
   "name": "Image To Audio Story",
   "description": "Tell a story about an image",
   "thumbnail": "",
+  "tags": [
+    "start",
+    "multimodal"
+  ]
   "thumbnail_url": "https://i.imgur.com/VMFPYVR.jpeg",
   "graph": {
     "nodes": [

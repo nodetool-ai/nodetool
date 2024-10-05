@@ -6,7 +6,8 @@
   "name": "Object Detection",
   "description": "Detect objects in an image and visualize the detections",
   "tags": [
-    "huggingface"
+    "huggingface",
+    "start"
   ],
   "thumbnail": "",
   "thumbnail_url": "/examples/object_detection.jpg",

@@ -253,10 +253,16 @@ const recommendedModels: UnifiedModel[] = [
     allow_patterns: ["**/*.json", "**/*.txt", "**/*.json"]
   },
   {
-    id: "llama-3.2",
-    name: "Llama 3.2",
+    id: "Qwen 2",
+    name: "qwen2:0.5b",
     type: "llama_model",
-    repo_id: "llama-3.2"
+    repo_id: "qwen2:0.5b"
+  },
+  {
+    id: "whisper-large-v3",
+    name: "whisper-large-v3",
+    type: "hf.automatic_speech_recognition",
+    repo_id: "openai/whisper-large-v3"
   }
 ];
 
@@ -280,6 +286,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
     ...section,
     originalContent: section.content
   }));
+  const { downloads } = useModelDownloadStore();
   const { settings, updateSettings } = useSettingsStore();
   const { settings: remoteSettings, secrets } = useRemoteSettingsStore();
 
@@ -654,8 +661,13 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     initialViewMode="list"
                     startDownload={startDownload}
                     showViewModeToggle={false}
+                    compactView={true}
                   />
-                  <OverallDownloadProgress />
+                  <Box mt={2}>
+                    {Object.keys(downloads).map((name) => (
+                      <DownloadProgress key={name} name={name} />
+                    ))}
+                  </Box>
                 </Box>
 
                 <Box

@@ -14,11 +14,13 @@ import ModelListItem from "./ModelListItem";
 import { useQuery } from "@tanstack/react-query";
 import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import { client } from "../../stores/ApiClient";
+import ThemeNodes from "../themes/ThemeNodes";
 
 interface RecommendedModelsProps {
   recommendedModels: UnifiedModel[];
   showViewModeToggle?: boolean;
   initialViewMode: "grid" | "list";
+  compactView?: boolean;
   startDownload: (
     repoId: string,
     modelType: string,
@@ -34,7 +36,8 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   initialViewMode,
   startDownload,
   onModelSelect,
-  showViewModeToggle = true
+  showViewModeToggle = true,
+  compactView = false
 }) => {
   const [viewMode, setViewMode] = useState<"grid" | "list">(initialViewMode);
 
@@ -132,6 +135,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
         <List>
           {modelsWithSize.map((model) => (
             <ModelListItem
+              compactView={compactView}
               key={model.id}
               model={model}
               onDownload={() => {
@@ -148,7 +152,10 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
           ))}
         </List>
       )}
-      <Typography variant="body1" sx={{ marginTop: "1em" }}>
+      <Typography
+        variant="body1"
+        sx={{ marginTop: "1em", color: ThemeNodes.palette.c_gray6 }}
+      >
         Models will be downloaded to your local cache folder in the standard
         location for Huggingface and Ollama.
       </Typography>

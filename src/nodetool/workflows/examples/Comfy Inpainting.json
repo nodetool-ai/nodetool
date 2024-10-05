@@ -349,7 +349,7 @@
       },
       {
         "id": "36",
-        "type": "huggingface.image.Segmentation",
+        "type": "huggingface.image_segmentation.Segmentation",
         "data": {
           "model": "mattmdjaga/segformer_b2_clothes"
         },
@@ -365,7 +365,7 @@
       },
       {
         "id": "37",
-        "type": "huggingface.image.FindSegment",
+        "type": "huggingface.image_segmentation.FindSegment",
         "data": {
           "segment_label": "Face"
         },
@@ -380,13 +380,5 @@
         }
       }
     ]
-  },
-  "input_schema": {
-    "type": "object",
-    "properties": {}
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {}
   }
 }
