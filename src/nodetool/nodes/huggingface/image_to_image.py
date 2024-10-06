@@ -25,6 +25,74 @@ from diffusers import AutoPipelineForImage2Image, ControlNetModel, StableDiffusi
 from pydantic import Field
 
 
+HF_CONTROLNET_MODELS: list[HFControlNet] = [
+    HFControlNet(
+        repo_id="lllyasviel/sd-controlnet-canny",
+        allow_patterns=[
+            "README.md",
+            "*.safetensors",
+            "*.json",
+        ],
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/sd-controlnet-depth",
+        allow_patterns=[
+            "README.md",
+            "*.safetensors",
+            "*.json",
+        ],
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/sd-controlnet-openpose",
+        allow_patterns=[
+            "README.md",
+            "*.safetensors",
+            "*.json",
+        ],
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/sd-controlnet-scribble",
+        allow_patterns=[
+            "README.md",
+            "*.safetensors",
+            "*.json",
+        ],
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/sd-controlnet-seg",
+        allow_patterns=[
+            "README.md",
+            "*.safetensors",
+            "*.json",
+        ],
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/sd-controlnet-hed",
+        allow_patterns=[
+            "README.md",
+            "*.safetensors",
+            "*.json",
+        ],
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/sd-controlnet-normal",
+        allow_patterns=[
+            "README.md",
+            "*.safetensors",
+            "*.json",
+        ],
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/sd-controlnet-mlsd",
+        allow_patterns=[
+            "README.md",
+            "*.safetensors",
+            "*.json",
+        ],
+    ),
+]
+
+
 class BaseImageToImage(HuggingFacePipelineNode):
     """
     Base class for image-to-image transformation tasks.
@@ -332,73 +400,8 @@ class StableDiffusionControlNetNode(StableDiffusionBaseNode):
     _pipeline: StableDiffusionControlNetPipeline | None = None
 
     @classmethod
-    def get_recommended_models(cls) -> list[HuggingFaceModel]:
-        return [
-            HFControlNet(
-                repo_id="lllyasviel/sd-controlnet-canny",
-                allow_patterns=[
-                    "README.md",
-                    "*.safetensors",
-                    "*.json",
-                ],
-            ),
-            HFControlNet(
-                repo_id="lllyasviel/sd-controlnet-depth",
-                allow_patterns=[
-                    "README.md",
-                    "*.safetensors",
-                    "*.json",
-                ],
-            ),
-            HFControlNet(
-                repo_id="lllyasviel/sd-controlnet-openpose",
-                allow_patterns=[
-                    "README.md",
-                    "*.safetensors",
-                    "*.json",
-                ],
-            ),
-            HFControlNet(
-                repo_id="lllyasviel/sd-controlnet-scribble",
-                allow_patterns=[
-                    "README.md",
-                    "*.safetensors",
-                    "*.json",
-                ],
-            ),
-            HFControlNet(
-                repo_id="lllyasviel/sd-controlnet-seg",
-                allow_patterns=[
-                    "README.md",
-                    "*.safetensors",
-                    "*.json",
-                ],
-            ),
-            HFControlNet(
-                repo_id="lllyasviel/sd-controlnet-hed",
-                allow_patterns=[
-                    "README.md",
-                    "*.safetensors",
-                    "*.json",
-                ],
-            ),
-            HFControlNet(
-                repo_id="lllyasviel/sd-controlnet-normal",
-                allow_patterns=[
-                    "README.md",
-                    "*.safetensors",
-                    "*.json",
-                ],
-            ),
-            HFControlNet(
-                repo_id="lllyasviel/sd-controlnet-mlsd",
-                allow_patterns=[
-                    "README.md",
-                    "*.safetensors",
-                    "*.json",
-                ],
-            ),
-        ]
+    def get_recommended_models(cls) -> list[HFControlNet]:
+        return HF_CONTROLNET_MODELS
 
     def required_inputs(self):
         return ["control_image"]

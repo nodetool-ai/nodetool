@@ -15,6 +15,7 @@ from nodetool.metadata.types import (
     ControlNetFile,
     GLIGENFile,
     HFStableDiffusion,
+    HFStableDiffusionXL,
     LORAFile,
     UNet,
     UNetFile,
@@ -24,6 +25,10 @@ from nodetool.metadata.types import (
     unCLIPFile,
 )
 from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.huggingface.stable_diffusion_base import (
+    HF_STABLE_DIFFUSION_MODELS,
+    HF_STABLE_DIFFUSION_XL_MODELS,
+)
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
@@ -89,6 +94,10 @@ class HuggingFaceCheckpointLoader(ComfyNode):
     def get_title(cls):
         return "Load Hugging Face Checkpoint"
 
+    @classmethod
+    def get_recommended_models(cls) -> list[HFStableDiffusion]:
+        return HF_STABLE_DIFFUSION_MODELS
+
     async def process(self, context: ProcessingContext):
         if self.model.repo_id == "":
             raise ValueError("Model repository ID must be selected.")
@@ -113,6 +122,21 @@ class HuggingFaceCheckpointLoader(ComfyNode):
             "clip": CLIP(name=self.model.repo_id),
             "vae": VAE(name=self.model.repo_id),
         }
+
+
+class HuggingFaceCheckpointLoaderXL(HuggingFaceCheckpointLoader):
+    model: HFStableDiffusionXL = Field(
+        default=HFStableDiffusionXL(),
+        description="The Stable Diffusion XL model to load.",
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Load Hugging Face Checkpoint XL"
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFStableDiffusionXL]:
+        return HF_STABLE_DIFFUSION_XL_MODELS
 
 
 class unCLIPCheckpointLoader(ComfyNode):
