@@ -22,7 +22,7 @@ const logoStyles = (
   css({
     display: "flex",
     alignItems: "center",
-    gap: "8px", // Add space between logo and text
+    gap: "8px",
     ".nt": {
       fontFamily: theme.fontFamily1,
       fontWeight: 600,
@@ -47,7 +47,7 @@ const logoStyles = (
       padding: "0px",
       color: theme.palette.c_white,
       borderRadius: ".1em",
-      boxShadow: small ? `0` : "0 0 24px rgba(200,200,200,0.3)",
+      // boxShadow: small ? `0` : "0 0 24px rgba(200,200,200,0.2)",
       cursor: "pointer",
       boxSizing: "border-box",
       transition: "all .4s ease-in-out"
@@ -114,7 +114,9 @@ const Logo = ({
         small
       )}
     >
-      <img className="logo-image" src="/nodetool_icon.png" alt="NodeTool" />
+      {small && (
+        <img className="logo-image" src="/nodetool_icon.png" alt="NodeTool" />
+      )}
       <div className="nt" onMouseEnter={handleMouseEnter}>
         <div className="nodetool">
           {singleLine ? (
