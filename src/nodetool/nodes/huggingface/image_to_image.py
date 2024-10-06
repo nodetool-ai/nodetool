@@ -1,6 +1,7 @@
 from enum import Enum
 import numpy as np
 import torch
+from RealESRGAN import RealESRGAN
 from huggingface_hub import try_to_load_from_cache
 from nodetool.metadata.types import (
     HFControlNet,
@@ -66,7 +67,7 @@ class BaseImageToImage(HuggingFacePipelineNode):
         return await context.image_from_pil(result)  # type: ignore
 
 
-class RealESRGAN(BaseNode):
+class RealESRGANNode(BaseNode):
     """
     Performs image super-resolution using the RealESRGAN model.
     image, super-resolution, enhancement, huggingface
@@ -87,21 +88,22 @@ class RealESRGAN(BaseNode):
     - Upscale images for better detail
     """
 
-    model: HFRealESRGAN = Field(
-        default=HFRealESRGAN(),
-        title="Model ID on HuggingFace",
-        description="The model ID to use for image super-resolution",
-    )
-    scale: int = Field(
-        default=4,
-        title="Scale Factor",
-        description="The scale factor for upscaling (e.g., 2, 4)",
-    )
+    class RealESRGANScale(str, Enum):
+        x2 = "x2"
+        x4 = "x4"
+        x8 = "x8"
+
     image: ImageRef = Field(
         default=ImageRef(),
         title="Input Image",
         description="The input image to transform",
     )
+    scale: RealESRGANScale = Field(
+        default=RealESRGANScale.x2,
+        title="Scale",
+        description="The scale factor for the image super-resolution",
+    )
+    _model: RealESRGAN | None = None
 
     @classmethod
     def get_recommended_models(cls) -> list[HFRealESRGAN]:
@@ -124,25 +126,42 @@ class RealESRGAN(BaseNode):
         return ["image"]
 
     async def initialize(self, context: ProcessingContext):
-        import torch
-        from RealESRGAN import RealESRGAN
+        model_id = "ai-forever/Real-ESRGAN"
 
-        model_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+        if self.scale == self.RealESRGANScale.x2:
+            model_path = "RealESRGAN_x2.pth"
+        elif self.scale == self.RealESRGANScale.x4:
+            model_path = "RealESRGAN_x4.pth"
+        elif self.scale == self.RealESRGANScale.x8:
+            model_path = "RealESRGAN_x8.pth"
+        else:
+            raise ValueError("Invalid scale factor")
+
+        if self.scale == self.RealESRGANScale.x2:
+            scale = 2
+        elif self.scale == self.RealESRGANScale.x4:
+            scale = 4
+        elif self.scale == self.RealESRGANScale.x8:
+            scale = 8
+        else:
+            raise ValueError("Invalid scale factor")
+
+        model_path = try_to_load_from_cache(model_id, model_path)
 
         if model_path is None:
-            raise ValueError("Download the model first")
+            raise ValueError("Download the model first from RECOMMENDED_MODELS above")
 
-        self.model = RealESRGAN("cpu", scale=self.scale)
-        self.model.load_weights(model_path, download=False)
+        self._model = RealESRGAN("cpu", scale=scale)
+        self._model.load_weights(model_path, download=False)
 
     async def move_to_device(self, device: str):
-        if self.model is not None:
-            self.model.device = device
-            self.model.model.to(device)
+        if self._model is not None:
+            self._model.device = device
+            self._model.model.to(device)
 
     async def process(self, context: ProcessingContext) -> ImageRef:
         image = await context.image_to_pil(self.image)
-        sr_image = self.model.predict(image)
+        sr_image = self._model.predict(image)
         return await context.image_from_pil(sr_image)
 
 
