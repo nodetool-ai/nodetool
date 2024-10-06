@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import ThemeNodes from "../themes/ThemeNodes";
 
+import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   Node,
@@ -31,12 +31,16 @@ import { TOOLTIP_DELAY } from "../../config/constants";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import { PlayArrow } from "@mui/icons-material";
 
-const styles = (theme: any) =>
+// constants
+const MIN_WIDTH = 200;
+const MIN_HEIGHT = 200;
+
+const styles = (theme: any, minWidth: number, minHeight: number) =>
   css({
     "&": {
       boxShadow: "none",
-      minWidth: "400px",
-      minHeight: "250px"
+      minWidth: minWidth + "px",
+      minHeight: minHeight + "px"
     },
     "&.hovered.space-pressed": {
       border: "2px dashed black !important"
@@ -258,7 +262,7 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
 
   return (
     <div
-      css={styles}
+      css={styles(ThemeNodes, MIN_WIDTH, MIN_HEIGHT)}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} ${
         spaceKeyPressed ? "space-pressed" : ""
@@ -342,15 +346,15 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
       <div className="tools">
         <NodeResizeControl
           style={{ background: "transparent", border: "none" }}
-          minWidth={400}
-          minHeight={250}
+          minWidth={MIN_WIDTH}
+          minHeight={MIN_HEIGHT}
           onResize={handleResize}
         >
           <SouthEastIcon />
         </NodeResizeControl>
       </div>
       <div className="node-resizer">
-        <NodeResizer minWidth={400} minHeight={250} />
+        <NodeResizer minWidth={MIN_WIDTH} minHeight={MIN_HEIGHT} />
       </div>
     </div>
   );
