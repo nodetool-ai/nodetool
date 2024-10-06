@@ -428,6 +428,9 @@ class HFZeroShotAudioClassification(HuggingFaceModel):
     type: Literal["hf.zero_shot_audio_classification"] = (
         "hf.zero_shot_audio_classification"
     )
+    
+class HFRealESRGAN(HuggingFaceModel):
+    type: Literal["hf.real_esrgan"] = "hf.real_esrgan"
 
 
 class HFVoiceActivityDetection(HuggingFaceModel):

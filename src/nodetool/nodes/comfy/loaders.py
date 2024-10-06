@@ -24,15 +24,9 @@ from nodetool.metadata.types import (
     unCLIPFile,
 )
 from nodetool.common.comfy_node import ComfyNode
-from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
-from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
-from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion import (
-    StableDiffusionPipeline,
-)
-import torch
 
 
 class CheckpointLoaderSimple(ComfyNode):

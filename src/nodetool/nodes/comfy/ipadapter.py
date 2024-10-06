@@ -8,7 +8,6 @@ from nodetool.metadata.types import (
     IPAdapter,
     IPAdapterFile,
     ImageRef,
-    InsightFace,
     Mask,
     UNet,
 )
@@ -173,59 +172,6 @@ class IPAdapterApplyEncoded(IPAdapterApply):
     @classmethod
     def return_type(cls):
         return {"unet": UNet}
-
-
-class IPAdapterApplyFaceID(ComfyNode):
-    ipadapter: IPAdapter = Field(default=IPAdapter(), description="The IPAdapter.")
-    clip_vision: CLIPVision = Field(
-        default=CLIPVision(), description="The CLIP vision."
-    )
-    insightface: InsightFace = Field(
-        default=InsightFace(), description="The InsightFace."
-    )
-    image: ImageRef = Field(default=ImageRef(), description="The image to use.")
-    model: UNet = Field(default=UNet(), description="The model to apply the IPAdapter.")
-    weight: float = Field(
-        default=1.0, description="The weight for processing.", ge=-1, le=3
-    )
-    noise: float = Field(
-        default=0.0, description="The noise level for processing.", ge=0.0, le=1.0
-    )
-    weight_type: WeightTypeEnum = Field(
-        default=WeightTypeEnum.ORIGINAL, description="The weight type to use."
-    )
-    start_at: float = Field(
-        default=0.0,
-        description="Start applying from this step (normalized).",
-        ge=0.0,
-        le=1.0,
-    )
-    end_at: float = Field(
-        default=1.0,
-        description="Ends applying at this step (normalized).",
-        ge=0.0,
-        le=1.0,
-    )
-    faceid_v2: bool = Field(
-        default=False, description="Flag to use faceId v2 algorithm."
-    )
-    weight_v2: float = Field(
-        default=1.0,
-        description="The weight for processing with faceId v2.",
-        ge=-1,
-        le=3,
-    )
-    unfold_batch: bool = Field(
-        default=False, description="Flag to unfold batches for processing."
-    )
-
-    attn_mask: Mask | None = Field(default=None, description="The attention mask.")
-
-    @classmethod
-    def return_type(cls):
-        # Assuming that the return type is an updated image after applying FaceID,
-        # if the return type is known and different, that specific type should be used instead.
-        return ImageRef
 
 
 class IPAdapterSaveEmbeds(ComfyNode):

@@ -11,7 +11,6 @@ interface ApiKeyValidationProps {
 const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
   ({ nodeNamespace }) => {
     const secrets = useRemoteSettingsStore((state) => state.secrets);
-    const settings = useRemoteSettingsStore((state) => state.settings);
     const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
 
     const missingAPIKeys = useMemo(() => {
@@ -34,14 +33,8 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
       ) {
         return "Anthropic API Key";
       }
-      if (
-        nodeNamespace.startsWith("comfy.") &&
-        (!settings.COMFY_FOLDER || settings.COMFY_FOLDER.trim() === "")
-      ) {
-        return "HuggingFace API Key";
-      }
       return null;
-    }, [nodeNamespace, secrets, settings]);
+    }, [nodeNamespace, secrets]);
 
     const content = useMemo(() => {
       if (!missingAPIKeys) return null;

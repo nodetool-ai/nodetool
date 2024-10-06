@@ -15,6 +15,8 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
+pip install git+https://github.com/sberbank-ai/Real-ESRGAN.git
+pip install git+https://github.com/sberbank-ai/Real-ESRGAN.git
 # xformers = "*"
 accelerate = "*"
 addict = "*"
@@ -111,6 +113,7 @@ websockets = "*"
 yacs = "*"
 yapf = "*"
 zipp = "*"
+RealESRGAN = { git = "https://github.com/ai-forever/Real-ESRGAN.git" }
 # parler-tts = { git = "https://github.com/huggingface/parler-tts.git" }
 
 [tool.poetry.group.test.dependencies]
