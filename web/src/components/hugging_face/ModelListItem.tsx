@@ -176,7 +176,11 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
     >
       <ListItem>
         <ListItemText
-          primary={<Typography className="model-name">{model.id}</Typography>}
+          primary={
+            <Typography component="span" className="model-name">
+              {model.id}{" "}
+            </Typography>
+          }
           secondary={
             <React.Fragment>
               <Typography component="span" className="model-info">
@@ -195,10 +199,12 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
                   label={modelData.cardData.pipeline_tag}
                   size="small"
                   className="pipeline-tag"
+                  component="span"
                 />
               )}
             </React.Fragment>
           }
+          secondaryTypographyProps={{ component: "div" }} // Add this line
         />
         <ListItemSecondaryAction className="secondary-action">
           {isHuggingFace && (
@@ -206,11 +212,11 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
               <Tooltip title="Downloads on HF last month">
                 <CloudDownloadIcon fontSize="small" />
               </Tooltip>
-              <Typography variant="body2">
+              <Typography component="span" variant="body2">
                 {modelData.downloads?.toLocaleString() || "N/A"}
               </Typography>
               <FavoriteIcon fontSize="small" />
-              <Typography variant="body2">
+              <Typography component="span" variant="body2">
                 {modelData.likes?.toLocaleString() || "N/A"}
               </Typography>
             </Box>
