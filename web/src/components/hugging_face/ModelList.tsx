@@ -145,7 +145,7 @@ const ModelList: React.FC = () => {
       if (error) throw error;
       return data.map(
         (model: any): UnifiedModel => ({
-          id: model.repo_id,
+          id: model.repo_id.replace(/\/+(null)?$/g, ""), // Remove "/null" suffix
           type: model.model_type || "hf.model",
           name: model.repo_id,
           repo_id: model.repo_id,
