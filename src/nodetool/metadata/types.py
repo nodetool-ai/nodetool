@@ -428,7 +428,8 @@ class HFZeroShotAudioClassification(HuggingFaceModel):
     type: Literal["hf.zero_shot_audio_classification"] = (
         "hf.zero_shot_audio_classification"
     )
-    
+
+
 class HFRealESRGAN(HuggingFaceModel):
     type: Literal["hf.real_esrgan"] = "hf.real_esrgan"
 
@@ -587,7 +588,7 @@ def comfy_model_to_folder(type_name: str) -> str:
         "comfy.control_net_file": "controlnet",
         "comfy.ip_adapter_file": "ipadapter",
         "comfy.gligen_file": "gligen",
-        "comfy.upscale_model_file": "upscale_models",
+        "comfy.upscale_model": "upscale_models",
         "comfy.lora_file": "loras",
         "comfy.unet_file": "unet",
         "comfy.instant_id_file": "instantid",

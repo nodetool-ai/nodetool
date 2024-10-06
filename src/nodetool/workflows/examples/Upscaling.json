@@ -1,0 +1,105 @@
+{
+  "id": "upscaling",
+  "access": "private",
+  "created_at": "2024-10-06T19:16:15.913456",
+  "updated_at": "2024-10-06T19:16:15.913456",
+  "name": "Upscaling",
+  "description": "Upscale an image to a higher resolution using a RealESRGAN model.",
+  "tags": ["image"],
+  "thumbnail": "",
+  "thumbnail_url": "/examples/lora.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "ce123eac-8ca8-43f5-b372-0f00f51b3705",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "1",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "1",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "1",
+        "type": "huggingface.image_to_image.RealESRGAN",
+        "data": {
+          "model": {
+            "type": "hf.real_esrgan",
+            "repo_id": "ai-forever/Real-ESRGAN",
+            "path": "RealESRGAN_x2.pth"
+          },
+          "scale": 2
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 406,
+            "y": 233
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "2",
+        "type": "nodetool.constant.Image",
+        "data": {
+          "value": {
+            "uri": "https://app.nodetool.ai/examples/ip_adapter.jpg",
+            "type": "image"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 204,
+            "y": 188
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_output_2024-10-06"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 579,
+            "y": 218
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
+          "selectable": true
+        }
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  }
+}
