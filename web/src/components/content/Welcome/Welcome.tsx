@@ -669,7 +669,6 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                     initialViewMode="list"
                     startDownload={startDownload}
                     showViewModeToggle={false}
-                    gg
                     compactView={true}
                   />
                   <Box mt={2}>

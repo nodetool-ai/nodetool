@@ -78,7 +78,7 @@ const ExampleGrid = () => {
   const navigate = useNavigate();
   const copyWorkflow = useWorkflowStore((state) => state.copy);
   const loadWorkflows = useWorkflowStore((state) => state.loadExamples);
-  const [selectedTag, setSelectedTag] = useState<string>("start");
+  const [selectedTag, setSelectedTag] = useState<string | null>("start");
 
   const { data, isLoading, isError, error } = useQuery<WorkflowList, Error>({
     queryKey: ["examples"],

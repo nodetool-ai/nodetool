@@ -63,14 +63,23 @@ const HelpChat: React.FC = () => {
           nodes,
           edges,
           workflowState: state,
-          huggingfaceModels,
-          llamaModels
+          huggingfaceModels: huggingfaceModels || [],
+          llamaModels: llamaModels || []
         })
       ) {
         nextStep();
       }
     }
-  }, [step, isInTutorial, nextStep, nodes, edges, state]);
+  }, [
+    step,
+    isInTutorial,
+    nextStep,
+    nodes,
+    edges,
+    state,
+    huggingfaceModels,
+    llamaModels
+  ]);
 
   return (
     <div className="help-chat" style={{ margin: ".5em" }}>
