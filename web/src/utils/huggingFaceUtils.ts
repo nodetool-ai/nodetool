@@ -19,7 +19,8 @@ export async function fetchModelInfo(repoId: string): Promise<any> {
       }
     } else {
       throw new Error(
-        `Unexpected error: ${error instanceof Error ? error.message : String(error)
+        `Unexpected error: ${
+          error instanceof Error ? error.message : String(error)
         }`
       );
     }

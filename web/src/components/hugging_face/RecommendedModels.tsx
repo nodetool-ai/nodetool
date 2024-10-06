@@ -69,18 +69,20 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
   });
 
   const modelsWithSize = useMemo(() => {
-    return recommendedModels.map((model) => {
+    const result = recommendedModels.map((model) => {
       const hfModel = hfModels?.find((m) => m.repo_id === model.repo_id);
       const loraModel = downloadedModels?.find(
         (path) => path.repo_id === model.repo_id && path.path === model.path
       );
-      return {
+      const modelWithSize = {
         ...model,
         size_on_disk: hfModel?.size_on_disk,
         downloaded: loraModel?.downloaded,
         readme: hfModel?.readme ?? ""
       };
+      return modelWithSize;
     });
+    return result;
   }, [recommendedModels, hfModels, downloadedModels]);
 
   const handleViewModeChange = (
@@ -113,9 +115,33 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
 
       {viewMode === "grid" ? (
         <Grid container spacing={3} className="recommended-models-grid">
-          {modelsWithSize.map((model) => (
-            <Grid item xs={12} sm={6} md={4} key={model.id}>
-              <ModelCard
+          {modelsWithSize.map((model) => {
+            return (
+              <Grid item xs={12} sm={6} md={4} key={model.id}>
+                <ModelCard
+                  model={model}
+                  onDownload={() => {
+                    startDownload(
+                      model.repo_id || "",
+                      model.type,
+                      model.path ?? null,
+                      model.allow_patterns ?? null,
+                      model.ignore_patterns ?? null
+                    );
+                    onModelSelect?.();
+                  }}
+                />
+              </Grid>
+            );
+          })}
+        </Grid>
+      ) : (
+        <List>
+          {modelsWithSize.map((model) => {
+            return (
+              <ModelListItem
+                compactView={compactView}
+                key={model.id}
                 model={model}
                 onDownload={() => {
                   startDownload(
@@ -128,28 +154,8 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
                   onModelSelect?.();
                 }}
               />
-            </Grid>
-          ))}
-        </Grid>
-      ) : (
-        <List>
-          {modelsWithSize.map((model) => (
-            <ModelListItem
-              compactView={compactView}
-              key={model.id}
-              model={model}
-              onDownload={() => {
-                startDownload(
-                  model.repo_id || "",
-                  model.type,
-                  model.path ?? null,
-                  model.allow_patterns ?? null,
-                  model.ignore_patterns ?? null
-                );
-                onModelSelect?.();
-              }}
-            />
-          ))}
+            );
+          })}
         </List>
       )}
       <Typography

@@ -32,15 +32,20 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = React.memo(
           repo_id: model.id
         }));
       } else {
-        return (nodeMetadata?.recommended_models || []).map((model) => ({
-          id: `${model.repo_id}/${model.path}`,
-          repo_id: model.repo_id || "",
-          name: model.repo_id || "",
-          type: model.type || "hf.model",
-          path: model.path ?? null,
-          allow_patterns: model.allow_patterns ?? undefined,
-          ignore_patterns: model.ignore_patterns ?? undefined
-        }));
+        return (nodeMetadata?.recommended_models || []).map((model) => {
+          const id = model.path
+            ? `${model.repo_id}/${model.path}`
+            : model.repo_id || "";
+          return {
+            id,
+            repo_id: model.repo_id || "",
+            name: model.repo_id || "",
+            type: model.type || "hf.model",
+            path: model.path ?? null,
+            allow_patterns: model.allow_patterns ?? undefined,
+            ignore_patterns: model.ignore_patterns ?? undefined
+          };
+        });
       }
     }, [metadata, nodeType]);
 
