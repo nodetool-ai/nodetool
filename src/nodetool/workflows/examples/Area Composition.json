@@ -1,65 +1,15 @@
 {
   "id": "",
   "access": "private",
-  "created_at": "2024-10-06T20:52:20.723522",
-  "updated_at": "2024-10-06T20:52:20.723522",
-  "name": "Comfy Area Composition 2",
+  "created_at": "2024-10-06T22:22:03.217782",
+  "updated_at": "2024-10-06T22:22:03.217782",
+  "name": "Comfy Area Composition",
   "description": "Compose an image with different areas of prompts",
-  "tags": [],
+  "tags": ["comfy"],
   "thumbnail": "",
-  "thumbnail_url": null,
+  "thumbnail_url": "/examples/area_composition.jpg",
   "graph": {
     "edges": [
-      {
-        "id": "1b27d8c7-50be-4fdb-9e8c-d21227cd7311",
-        "source": "47",
-        "sourceHandle": "clip",
-        "target": "26",
-        "targetHandle": "clip",
-        "ui_properties": {
-          "className": "comfy_clip"
-        }
-      },
-      {
-        "id": "5b84bb7b-7cd2-4e64-a5df-06a44280a73a",
-        "source": "27",
-        "sourceHandle": "conditioning",
-        "target": "24",
-        "targetHandle": "negative",
-        "ui_properties": {
-          "className": "comfy_conditioning"
-        }
-      },
-      {
-        "id": "5428a913-2e0e-4e67-8583-a52cb879602b",
-        "source": "22",
-        "sourceHandle": "latent",
-        "target": "24",
-        "targetHandle": "latent_image",
-        "ui_properties": {
-          "className": "comfy_latent"
-        }
-      },
-      {
-        "id": "7422c74e-5667-44a0-a985-a1d842b2abc7",
-        "source": "24",
-        "sourceHandle": "latent",
-        "target": "31",
-        "targetHandle": "samples",
-        "ui_properties": {
-          "className": "comfy_latent"
-        }
-      },
-      {
-        "id": "75ca1c15-9271-4d68-9e26-40d0d6c420cd",
-        "source": "31",
-        "sourceHandle": "image",
-        "target": "32",
-        "targetHandle": "images",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
       {
         "id": "2",
         "source": "5",
@@ -75,36 +25,6 @@
         "targetHandle": "images",
         "ui_properties": {
           "className": "image"
-        }
-      },
-      {
-        "id": "5ade8c95-5cfd-4ebb-ad26-d8ec721eb095",
-        "source": "46",
-        "sourceHandle": "vae",
-        "target": "31",
-        "targetHandle": "vae",
-        "ui_properties": {
-          "className": "comfy_vae"
-        }
-      },
-      {
-        "id": "6be693ea-e137-4e71-9d2a-e997d151c5aa",
-        "source": "47",
-        "sourceHandle": "clip",
-        "target": "27",
-        "targetHandle": "clip",
-        "ui_properties": {
-          "className": "comfy_clip"
-        }
-      },
-      {
-        "id": "f22b79d6-5d87-44f5-a126-2914aa0820ae",
-        "source": "46",
-        "sourceHandle": "vae",
-        "target": "8",
-        "targetHandle": "vae",
-        "ui_properties": {
-          "className": "comfy_vae"
         }
       },
       {
@@ -158,80 +78,10 @@
         }
       },
       {
-        "id": "67a6d695-0d88-4f68-a760-242ff410c5ea",
-        "source": "26",
-        "sourceHandle": "conditioning",
-        "target": "24",
-        "targetHandle": "positive",
-        "ui_properties": {
-          "className": "comfy_conditioning"
-        }
-      },
-      {
-        "id": "6462c297-724f-42be-b748-f4afca6339de",
-        "source": "10",
-        "sourceHandle": "conditioning",
-        "target": "19",
-        "targetHandle": "conditioning_2",
-        "ui_properties": {
-          "className": "comfy_conditioning"
-        }
-      },
-      {
-        "id": "1f67d9bd-bf73-402f-b909-bc25862acb47",
-        "source": "45",
-        "sourceHandle": "clip",
-        "target": "44",
-        "targetHandle": "clip",
-        "ui_properties": {
-          "className": "comfy_clip"
-        }
-      },
-      {
         "id": "27ca9351-b073-48a2-af87-0aa469a22e1b",
         "source": "44",
         "sourceHandle": "clip",
         "target": "c2055256-dd52-44df-a107-044b0c241906",
-        "targetHandle": "clip",
-        "ui_properties": {
-          "className": "comfy_clip"
-        }
-      },
-      {
-        "id": "c0e5ae78-bb66-48ff-91e6-1eafba921717",
-        "source": "3",
-        "sourceHandle": "latent",
-        "target": "8",
-        "targetHandle": "samples",
-        "ui_properties": {
-          "className": "comfy_latent"
-        }
-      },
-      {
-        "id": "c7cabe3f-6fc9-40cd-a542-48ec1954b1b8",
-        "source": "46",
-        "sourceHandle": "model",
-        "target": "24",
-        "targetHandle": "model",
-        "ui_properties": {
-          "className": "comfy_unet"
-        }
-      },
-      {
-        "id": "48207e91-3c25-447b-affb-29e916028471",
-        "source": "3",
-        "sourceHandle": "latent",
-        "target": "22",
-        "targetHandle": "samples",
-        "ui_properties": {
-          "className": "comfy_latent"
-        }
-      },
-      {
-        "id": "59fa069f-9a3e-4a9c-9cac-a652b3d72a55",
-        "source": "46",
-        "sourceHandle": "clip",
-        "target": "47",
         "targetHandle": "clip",
         "ui_properties": {
           "className": "comfy_clip"
@@ -308,23 +158,183 @@
         }
       },
       {
-        "id": "e891957e-f2ba-4a39-989d-161260466822",
+        "id": "d8ff89b7-8ba7-45f1-b6c2-1671faf7f97b",
         "source": "44",
         "sourceHandle": "clip",
-        "target": "22427e2c-253c-4be7-b4b5-3b30b74004c0",
+        "target": "b2c240f8-bd6b-4c9c-a299-09c0f33677a3",
         "targetHandle": "clip",
         "ui_properties": {
           "className": "comfy_clip"
         }
       },
       {
-        "id": "fd391084-31e8-4c12-b795-4265bfc84365",
-        "source": "b2c240f8-bd6b-4c9c-a299-09c0f33677a3",
-        "sourceHandle": "conditioning",
+        "id": "48a3a722-e76a-492c-965e-6e64335516d7",
+        "source": "ec870cc3-3802-4383-92fa-91eb37084665",
+        "sourceHandle": "clip",
+        "target": "44",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "6cc23950-e923-4e02-aa71-cb8cb40f810b",
+        "source": "ec870cc3-3802-4383-92fa-91eb37084665",
+        "sourceHandle": "model",
         "target": "3",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "e2b6c511-90fa-443e-a920-24c396711edd",
+        "source": "0ec3343e-6e50-4fbf-9616-2e0c35b6dcd1",
+        "sourceHandle": "latent",
+        "target": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
+        "targetHandle": "latent_image",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "b96f89a8-7f70-4244-9120-e823d83285a8",
+        "source": "3a0e403e-c69c-4077-ad97-756f5c8d8ef2",
+        "sourceHandle": "conditioning",
+        "target": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
+        "targetHandle": "positive",
+        "ui_properties": {
+          "className": "comfy_conditioning"
+        }
+      },
+      {
+        "id": "b7b08ba9-d026-409c-aa14-f0cb8b5c6a0c",
+        "source": "45374813-4c6d-494a-a304-0695d2fb41a4",
+        "sourceHandle": "clip",
+        "target": "3a0e403e-c69c-4077-ad97-756f5c8d8ef2",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "14e23f50-2eed-469f-87ce-cfed69874cda",
+        "source": "e4acecef-4bce-495a-9f6e-ab1e1fbdcbf5",
+        "sourceHandle": "conditioning",
+        "target": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
         "targetHandle": "negative",
         "ui_properties": {
           "className": "comfy_conditioning"
+        }
+      },
+      {
+        "id": "94500140-12e3-4d23-b38b-1d1dbd0cd414",
+        "source": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
+        "sourceHandle": "latent",
+        "target": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
+        "targetHandle": "samples",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "730033ae-e230-4efe-9114-d50b8202bdbd",
+        "source": "45374813-4c6d-494a-a304-0695d2fb41a4",
+        "sourceHandle": "clip",
+        "target": "e4acecef-4bce-495a-9f6e-ab1e1fbdcbf5",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "c5664cdc-3411-48f9-893f-0378ddc884e2",
+        "source": "5c5a3100-3747-417c-86f4-458e79a72163",
+        "sourceHandle": "clip",
+        "target": "45374813-4c6d-494a-a304-0695d2fb41a4",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "bea97ebd-d933-426f-98ed-40f7cc7cb6f0",
+        "source": "5c5a3100-3747-417c-86f4-458e79a72163",
+        "sourceHandle": "vae",
+        "target": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
+        "id": "e7a4c15b-0a9a-47ae-909f-32edbbd75b1d",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "0ec3343e-6e50-4fbf-9616-2e0c35b6dcd1",
+        "targetHandle": "samples",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "c0e5ae78-bb66-48ff-91e6-1eafba921717",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "e9a73546-4921-4793-8641-a78aeb3e627a",
+        "source": "5c5a3100-3747-417c-86f4-458e79a72163",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
+        "id": "94500141",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "45374816",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "94500142",
+        "source": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
+        "sourceHandle": "image",
+        "target": "45374817",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "13135858-70bc-4ec8-a780-099b04e2e4e8",
+        "source": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
+        "sourceHandle": "image",
+        "target": "1430452f-460a-4af1-8cb9-a0fd099f9613",
+        "targetHandle": "images",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "cae58274-68ec-4a23-ad98-666b438f2800",
+        "source": "5c5a3100-3747-417c-86f4-458e79a72163",
+        "sourceHandle": "model",
+        "target": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
         }
       },
       {
@@ -338,13 +348,13 @@
         }
       },
       {
-        "id": "d8036bb4-7034-44bb-80ac-df504de8e4d6",
-        "source": "45",
-        "sourceHandle": "model",
-        "target": "3",
-        "targetHandle": "model",
+        "id": "e891957e-f2ba-4a39-989d-161260466822",
+        "source": "44",
+        "sourceHandle": "clip",
+        "target": "22427e2c-253c-4be7-b4b5-3b30b74004c0",
+        "targetHandle": "clip",
         "ui_properties": {
-          "className": "comfy_unet"
+          "className": "comfy_clip"
         }
       },
       {
@@ -358,6 +368,16 @@
         }
       },
       {
+        "id": "6462c297-724f-42be-b748-f4afca6339de",
+        "source": "10",
+        "sourceHandle": "conditioning",
+        "target": "19",
+        "targetHandle": "conditioning_2",
+        "ui_properties": {
+          "className": "comfy_conditioning"
+        }
+      },
+      {
         "id": "6412955b-6d46-4f4c-8341-366605d19bad",
         "source": "11",
         "sourceHandle": "conditioning",
@@ -368,74 +388,17 @@
         }
       },
       {
-        "id": "d8ff89b7-8ba7-45f1-b6c2-1671faf7f97b",
-        "source": "44",
-        "sourceHandle": "clip",
-        "target": "b2c240f8-bd6b-4c9c-a299-09c0f33677a3",
-        "targetHandle": "clip",
+        "id": "fd391084-31e8-4c12-b795-4265bfc84365",
+        "source": "b2c240f8-bd6b-4c9c-a299-09c0f33677a3",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "negative",
         "ui_properties": {
-          "className": "comfy_clip"
+          "className": "comfy_conditioning"
         }
       }
     ],
     "nodes": [
-      {
-        "id": "50",
-        "type": "nodetool.workflows.base_node.Group",
-        "data": {
-          "headline": "Model",
-          "group_color": "#B39DDB"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 33,
-            "y": 327
-          },
-          "zIndex": 0,
-          "width": 400,
-          "height": 250,
-          "selectable": true
-        }
-      },
-      {
-        "id": "49",
-        "type": "nodetool.workflows.base_node.Group",
-        "data": {
-          "headline": "Model",
-          "group_color": "#B39DDB"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 2149,
-            "y": 758
-          },
-          "zIndex": 0,
-          "width": 400,
-          "height": 250,
-          "selectable": true
-        }
-      },
-      {
-        "id": "48",
-        "type": "nodetool.workflows.base_node.Group",
-        "data": {
-          "headline": "Upscale",
-          "group_color": "#FF9CF9"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 2652,
-            "y": 643
-          },
-          "zIndex": 0,
-          "width": 1108,
-          "height": 552,
-          "selectable": true
-        }
-      },
       {
         "id": "3",
         "type": "comfy.sampling.KSampler",
@@ -469,7 +432,7 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1855,
+            "x": 1863,
             "y": 707
           },
           "zIndex": 0,
@@ -547,8 +510,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1636,
-            "y": 608
+            "x": 1624,
+            "y": 587
           },
           "zIndex": 0,
           "selectable": true
@@ -601,117 +564,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1831,
+            "x": 1839,
             "y": 594
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "22",
-        "type": "comfy.latent.LatentUpscale",
-        "data": {
-          "upscale_method": "bilinear",
-          "width": 1088,
-          "height": 1920,
-          "crop": "disabled"
-        },
-        "parent_id": "48",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 493,
-            "y": 227
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "24",
-        "type": "comfy.sampling.KSampler",
-        "data": {
-          "seed": 1126615549,
-          "seed_control_mode": 1126615549,
-          "steps": 14,
-          "cfg": 7,
-          "sampler_name": "ddim",
-          "scheduler": "simple",
-          "denoise": 0.5
-        },
-        "parent_id": "48",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 674,
-            "y": 75
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "26",
-        "type": "comfy.conditioning.CLIPTextEncode",
-        "data": {
-          "text": "(best quality) beautiful (HDR:1.2) (realistic:1.2) landscape breathtaking amazing view nature scenery photograph forest mountains ocean daytime night evening morning, (sky:1.2)\n"
-        },
-        "parent_id": "48",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 269,
-            "y": 370
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "27",
-        "type": "comfy.conditioning.CLIPTextEncode",
-        "data": {
-          "text": "text, error, cropped, (jpeg artifacts:1.3), username, blurry, monochrome, sketch"
-        },
-        "parent_id": "48",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 272,
-            "y": 117
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "31",
-        "type": "comfy.latent.VAEDecode",
-        "data": {},
-        "parent_id": "48",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 816,
-            "y": 75
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "32",
-        "type": "comfy.image.SaveImage",
-        "data": {
-          "filename_prefix": "ComfyUI"
-        },
-        "parent_id": "48",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 970,
-            "y": 75
           },
           "zIndex": 0,
           "selectable": true
@@ -760,116 +614,10 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 542,
-            "y": 290
+            "x": 543,
+            "y": 276
           },
           "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "45",
-        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
-        "data": {
-          "model": {
-            "type": "hf.stable_diffusion",
-            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
-            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
-          }
-        },
-        "parent_id": "50",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 93,
-            "y": 52
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "46",
-        "type": "comfy.loaders.CheckpointLoaderSimple",
-        "data": {
-          "ckpt_name": {
-            "type": "comfy.checkpoint_file",
-            "name": "Realistic_Vision_V6.safetensors"
-          }
-        },
-        "parent_id": "49",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 88,
-            "y": 58
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "47",
-        "type": "comfy.conditioning.CLIPSetLastLayer",
-        "data": {
-          "stop_at_clip_layer": -2
-        },
-        "parent_id": "48",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 30,
-            "y": 274
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
-        "id": "55",
-        "type": "nodetool.workflows.base_node.Comment",
-        "data": {
-          "headline": "Upscale Prompt",
-          "comment": [
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": ""
-                }
-              ]
-            }
-          ]
-        },
-        "parent_id": "48",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 244,
-            "y": 320
-          },
-          "zIndex": 0,
-          "width": 207,
-          "height": 212,
-          "selectable": true
-        }
-      },
-      {
-        "id": "56",
-        "type": "nodetool.workflows.base_node.Comment",
-        "data": {
-          "headline": "Upscale Negative Prompt"
-        },
-        "parent_id": "48",
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 242,
-            "y": 72
-          },
-          "zIndex": 0,
-          "width": 207,
-          "height": 206,
           "selectable": true
         }
       },
@@ -1177,6 +925,303 @@
           "zIndex": 0,
           "width": 222,
           "height": 822,
+          "selectable": true
+        }
+      },
+      {
+        "id": "ec870cc3-3802-4383-92fa-91eb37084665",
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 152,
+            "y": 372
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3021449",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Model",
+          "comment_color": "#B39DDB"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 120,
+            "y": 324
+          },
+          "zIndex": 0,
+          "width": 276,
+          "height": 245,
+          "selectable": true
+        }
+      },
+      {
+        "id": "0ec3343e-6e50-4fbf-9616-2e0c35b6dcd1",
+        "type": "comfy.latent.LatentUpscale",
+        "data": {
+          "upscale_method": "bilinear",
+          "width": 1088,
+          "height": 1920,
+          "crop": "disabled"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3103,
+            "y": 891
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
+        "type": "comfy.sampling.KSampler",
+        "data": {
+          "seed": 1126615549,
+          "seed_control_mode": 1126615549,
+          "steps": 14,
+          "cfg": 7,
+          "sampler_name": "ddim",
+          "scheduler": "simple",
+          "denoise": 0.5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3284,
+            "y": 739
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "3a0e403e-c69c-4077-ad97-756f5c8d8ef2",
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "(best quality) beautiful (HDR:1.2) (realistic:1.2) landscape breathtaking amazing view nature scenery photograph forest mountains ocean daytime night evening morning, (sky:1.2)\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2796,
+            "y": 1030
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "e4acecef-4bce-495a-9f6e-ab1e1fbdcbf5",
+        "type": "comfy.conditioning.CLIPTextEncode",
+        "data": {
+          "text": "text, error, cropped, (jpeg artifacts:1.3), username, blurry, monochrome, sketch"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2799,
+            "y": 777
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
+        "type": "comfy.latent.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3426,
+            "y": 739
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "1430452f-460a-4af1-8cb9-a0fd099f9613",
+        "type": "comfy.image.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3609,
+            "y": 850
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "45374813-4c6d-494a-a304-0695d2fb41a4",
+        "type": "comfy.conditioning.CLIPSetLastLayer",
+        "data": {
+          "stop_at_clip_layer": -2
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2558,
+            "y": 908
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "0378f80b-32bb-4552-bd80-756c6a543f49",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Upscale Prompt",
+          "comment": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "text": ""
+                }
+              ]
+            }
+          ]
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2771,
+            "y": 980
+          },
+          "zIndex": 0,
+          "width": 254,
+          "height": 213,
+          "selectable": true
+        }
+      },
+      {
+        "id": "90ae6576-54b6-463a-bf02-508b13c5c2ab",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Upscale Negative Prompt"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2769,
+            "y": 732
+          },
+          "zIndex": 0,
+          "width": 253,
+          "height": 199,
+          "selectable": true
+        }
+      },
+      {
+        "id": "45374814",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Latent Upscale",
+          "comment_color": "#FF9CF9"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2515,
+            "y": 649
+          },
+          "zIndex": 0,
+          "width": 1051,
+          "height": 566,
+          "selectable": true
+        }
+      },
+      {
+        "id": "5c5a3100-3747-417c-86f4-458e79a72163",
+        "type": "comfy.loaders.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": {
+            "type": "comfy.checkpoint_file",
+            "name": "Realistic_Vision_V6.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2245,
+            "y": 734
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "45374815",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "headline": "Model",
+          "comment_color": "#B39DDB"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2207,
+            "y": 674
+          },
+          "zIndex": 0,
+          "width": 251,
+          "height": 243,
+          "selectable": true
+        }
+      },
+      {
+        "id": "45374816",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-10-06"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2654,
+            "y": 311
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
+          "selectable": true
+        }
+      },
+      {
+        "id": "45374817",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "image_image_2024-10-06"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3609,
+            "y": 670
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 160,
           "selectable": true
         }
       }
