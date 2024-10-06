@@ -8,6 +8,7 @@
   "tags": ["image"],
   "thumbnail": "",
   "thumbnail_url": "/examples/lora.jpg",
+  "thumbnail_url": null,
   "graph": {
     "edges": [
       {
@@ -36,12 +37,7 @@
         "id": "1",
         "type": "huggingface.image_to_image.RealESRGAN",
         "data": {
-          "model": {
-            "type": "hf.real_esrgan",
-            "repo_id": "ai-forever/Real-ESRGAN",
-            "path": "RealESRGAN_x2.pth"
-          },
-          "scale": 2
+          "scale": "x2"
         },
         "ui_properties": {
           "selected": false,
