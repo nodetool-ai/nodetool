@@ -204,8 +204,7 @@ const OpenOrCreateDialog = () => {
     navigate("/workflows");
   };
   const handleNavigateExampleWorkflows = () => {
-    navigate("/workflows?category=examples");
-    // navigate("/workflows");
+    navigate("/examples");
   };
 
   const onClickWorkflow = useCallback(
