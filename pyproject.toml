@@ -15,8 +15,6 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-pip install git+https://github.com/sberbank-ai/Real-ESRGAN.git
-pip install git+https://github.com/sberbank-ai/Real-ESRGAN.git
 # xformers = "*"
 accelerate = "*"
 addict = "*"
