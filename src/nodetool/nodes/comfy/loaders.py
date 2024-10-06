@@ -228,12 +228,20 @@ class HuggingFaceControlNetLoader(ComfyNode):
     )
 
     @classmethod
+    def return_type(cls):
+        return {"control_net": ControlNet}
+
+    @classmethod
     def get_recommended_models(cls) -> list[HFControlNet]:
         return HF_CONTROLNET_MODELS
 
     @classmethod
     def get_title(cls):
         return "Load HuggingFace ControlNet"
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
 
     async def process(self, context: ProcessingContext):
         if self.model.repo_id == "":
