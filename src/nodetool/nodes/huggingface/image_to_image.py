@@ -27,68 +27,60 @@ from pydantic import Field
 
 HF_CONTROLNET_MODELS: list[HFControlNet] = [
     HFControlNet(
-        repo_id="lllyasviel/sd-controlnet-canny",
-        allow_patterns=[
-            "README.md",
-            "*.safetensors",
-            "*.json",
-        ],
+        repo_id="lllyasviel/control_v11p_sd15_canny",
+        path="diffusion_pytorch_model.fp16.safetensors",
     ),
     HFControlNet(
-        repo_id="lllyasviel/sd-controlnet-depth",
-        allow_patterns=[
-            "README.md",
-            "*.safetensors",
-            "*.json",
-        ],
+        repo_id="lllyasviel/control_v11p_sd15_inpaint",
+        path="diffusion_pytorch_model.fp16.safetensors",
     ),
     HFControlNet(
-        repo_id="lllyasviel/sd-controlnet-openpose",
-        allow_patterns=[
-            "README.md",
-            "*.safetensors",
-            "*.json",
-        ],
+        repo_id="lllyasviel/control_v11p_sd15_mlsd",
+        path="diffusion_pytorch_model.fp16.safetensors",
     ),
     HFControlNet(
-        repo_id="lllyasviel/sd-controlnet-scribble",
-        allow_patterns=[
-            "README.md",
-            "*.safetensors",
-            "*.json",
-        ],
+        repo_id="lllyasviel/control_v11p_sd15_tile",
+        path="diffusion_pytorch_model.fp16.safetensors",
     ),
     HFControlNet(
-        repo_id="lllyasviel/sd-controlnet-seg",
-        allow_patterns=[
-            "README.md",
-            "*.safetensors",
-            "*.json",
-        ],
+        repo_id="lllyasviel/control_v11p_sd15_shuffle",
+        path="diffusion_pytorch_model.fp16.safetensors",
     ),
     HFControlNet(
-        repo_id="lllyasviel/sd-controlnet-hed",
-        allow_patterns=[
-            "README.md",
-            "*.safetensors",
-            "*.json",
-        ],
+        repo_id="lllyasviel/control_v11p_sd15_ip2p",
+        path="diffusion_pytorch_model.fp16.safetensors",
     ),
     HFControlNet(
-        repo_id="lllyasviel/sd-controlnet-normal",
-        allow_patterns=[
-            "README.md",
-            "*.safetensors",
-            "*.json",
-        ],
+        repo_id="lllyasviel/control_v11p_sd15_lineart",
+        path="diffusion_pytorch_model.fp16.safetensors",
     ),
     HFControlNet(
-        repo_id="lllyasviel/sd-controlnet-mlsd",
-        allow_patterns=[
-            "README.md",
-            "*.safetensors",
-            "*.json",
-        ],
+        repo_id="lllyasviel/control_v11p_sd15_lineart_anime",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_scribble",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_openpose",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_scribble",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_seg",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_hed",
+        path="diffusion_pytorch_model.fp16.safetensors",
+    ),
+    HFControlNet(
+        repo_id="lllyasviel/control_v11p_sd15_normalbae",
+        path="diffusion_pytorch_model.fp16.safetensors",
     ),
 ]
 

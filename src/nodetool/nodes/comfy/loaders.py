@@ -1,5 +1,6 @@
 from enum import Enum
 import comfy.sd
+import comfy.controlnet
 from huggingface_hub import try_to_load_from_cache
 from pydantic import Field, validator
 import folder_paths
@@ -14,6 +15,7 @@ from nodetool.metadata.types import (
     ControlNet,
     ControlNetFile,
     GLIGENFile,
+    HFControlNet,
     HFStableDiffusion,
     HFStableDiffusionXL,
     LORAFile,
@@ -29,6 +31,7 @@ from nodetool.nodes.huggingface.stable_diffusion_base import (
     HF_STABLE_DIFFUSION_MODELS,
     HF_STABLE_DIFFUSION_XL_MODELS,
 )
+from nodetool.nodes.huggingface.image_to_image import HF_CONTROLNET_MODELS
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
@@ -92,7 +95,7 @@ class HuggingFaceCheckpointLoader(ComfyNode):
 
     @classmethod
     def get_title(cls):
-        return "Load Hugging Face Checkpoint"
+        return "Load HuggingFace Checkpoint"
 
     @classmethod
     def get_recommended_models(cls) -> list[HFStableDiffusion]:
@@ -216,6 +219,34 @@ class ControlNetLoader(ComfyNode):
         (control_net,) = await self.call_comfy_node(context)
         context.add_model(ControlNet().type, self.control_net_name.name, control_net)
         return {"control_net": ControlNet(name=self.control_net_name.name)}
+
+
+class HuggingFaceControlNetLoader(ComfyNode):
+    model: HFControlNet = Field(
+        default=HFControlNet(),
+        description="The ControlNet model to load.",
+    )
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFControlNet]:
+        return HF_CONTROLNET_MODELS
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace ControlNet"
+
+    async def process(self, context: ProcessingContext):
+        if self.model.repo_id == "":
+            raise Exception("ControlNet name must be selected.")
+
+        assert self.model.path is not None, "Model must be single file"
+
+        controlnet_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        controlnet = comfy.controlnet.load_controlnet(controlnet_path)
+
+        context.add_model(ControlNet().type, self.model.repo_id, controlnet)
+        return {"control_net": ControlNet(name=self.model.repo_id)}
 
 
 class UpscaleModelLoader(ComfyNode):
