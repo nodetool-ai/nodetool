@@ -691,10 +691,6 @@ class ImageTensor(ComfyData):
     type: Literal["comfy.image_tensor"] = "comfy.image_tensor"
 
 
-class InsightFace(ComfyData):
-    type: Literal["comfy.insight_face"] = "comfy.insight_face"
-
-
 class Mask(ComfyData):
     type: Literal["comfy.mask"] = "comfy.mask"
 

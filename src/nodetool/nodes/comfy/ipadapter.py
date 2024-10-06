@@ -40,31 +40,6 @@ class ProviderEnum(str, Enum):
     ROCM = "ROCM"
 
 
-class InsightFaceLoader(ComfyNode):
-    provider: ProviderEnum = Field(default=ProviderEnum.CPU)
-
-    @classmethod
-    def return_type(cls):
-        return {"insight_face": InsightFace}
-
-
-class PrepImageForInsightFace(ComfyNode):
-    image: ImageRef = Field(default=ImageRef(), description="The image to prepare.")
-    crop_position: CropPosition = Field(
-        default=CropPosition.CENTER, description="The crop position to use."
-    )
-    sharpening: float = Field(
-        default=0.0, description="The amount of sharpening to apply."
-    )
-    pad_around: bool = Field(
-        default=True, description="Whether to pad around the image."
-    )
-
-    @classmethod
-    def return_type(cls):
-        return {"image": ImageRef}
-
-
 class PrepImageForClipVision(ComfyNode):
     image: ImageRef = Field(default=ImageRef(), description="The image to prepare.")
     interpolation: InterpolationMethod = Field(
