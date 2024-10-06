@@ -24,7 +24,14 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = React.memo(
       const nodeMetadata = metadata.metadataByType[nodeType];
       const node_namespace = nodeMetadata?.namespace || "";
 
-      if (node_namespace.startsWith("huggingface.")) {
+      if (node_namespace.startsWith("ollama.")) {
+        return llama_models.map((model) => ({
+          id: model.id,
+          name: model.name,
+          type: "llama_model",
+          repo_id: model.id
+        }));
+      } else {
         return (nodeMetadata?.recommended_models || []).map((model) => ({
           id: `${model.repo_id}/${model.path}`,
           repo_id: model.repo_id || "",
@@ -34,15 +41,7 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = React.memo(
           allow_patterns: model.allow_patterns ?? undefined,
           ignore_patterns: model.ignore_patterns ?? undefined
         }));
-      } else if (node_namespace.startsWith("ollama.")) {
-        return llama_models.map((model) => ({
-          id: model.id,
-          name: model.name,
-          type: "llama_model",
-          repo_id: model.id
-        }));
       }
-      return [];
     }, [metadata, nodeType]);
 
     const handleOpenModelDialog = useCallback(

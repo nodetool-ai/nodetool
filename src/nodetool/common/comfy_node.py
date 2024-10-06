@@ -68,6 +68,8 @@ class ComfyNode(BaseNode):
 
             if isinstance(value, ModelFile):
                 return value.name
+            elif isinstance(value, Enum):
+                return value.value
             elif isinstance(value, ImageRef):
                 tensor = await context.image_to_tensor(value)
                 return tensor.unsqueeze(0)
