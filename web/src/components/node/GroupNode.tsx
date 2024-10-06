@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import ThemeNodes from "../themes/ThemeNodes";
 
+import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   Node,
@@ -31,8 +31,9 @@ import { TOOLTIP_DELAY } from "../../config/constants";
 import useWorkflowRunner from "../../stores/WorkflowRunner";
 import { PlayArrow } from "@mui/icons-material";
 
-const MIN_WIDTH = 250;
-const MIN_HEIGHT = 250;
+// constants
+const MIN_WIDTH = 200;
+const MIN_HEIGHT = 200;
 
 const styles = (theme: any, minWidth: number, minHeight: number) =>
   css({
