@@ -1,15 +1,13 @@
-from diffusers import (
-    AudioLDM2Pipeline,  # type: ignore
-    AudioLDMPipeline,  # type: ignore
-    DiffusionPipeline,  # type: ignore
-    MusicLDMPipeline,  # type: ignore
-    StableAudioPipeline,  # type: ignore
-)
 import torch
 from nodetool.metadata.types import AudioRef, HFTextToAudio, HuggingFaceModel
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
 from nodetool.providers.huggingface.huggingface_node import HuggingfaceNode
 from nodetool.workflows.processing_context import ProcessingContext
+from diffusers.pipelines.audioldm2.pipeline_audioldm2 import AudioLDM2Pipeline
+from diffusers.pipelines.audioldm.pipeline_audioldm import AudioLDMPipeline
+from diffusers.pipelines.pipeline_utils import DiffusionPipeline
+from diffusers.pipelines.musicldm.pipeline_musicldm import MusicLDMPipeline
+from diffusers.pipelines.stable_audio.pipeline_stable_audio import StableAudioPipeline
 
 
 from pydantic import Field

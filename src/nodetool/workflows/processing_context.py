@@ -254,7 +254,7 @@ class ProcessingContext:
 
     def add_model(self, type: str, name: str, model: Any):
         """
-        Adds a model to the context.
+        Adds a model to the context, to be retrieved by name later.
 
         Args:
             type (str): The type of the model.

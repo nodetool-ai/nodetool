@@ -12,11 +12,15 @@ from nodetool.metadata.types import (
     VideoRef,
 )
 import torch
-from diffusers import AnimateDiffPipeline, DDIMScheduler, MotionAdapter  # type: ignore
-from diffusers import StableVideoDiffusionPipeline  # type: ignore
-from diffusers.utils import export_to_video  # type: ignore
+from diffusers.pipelines.animatediff.pipeline_animatediff import AnimateDiffPipeline
+from diffusers.schedulers.scheduling_ddim import DDIMScheduler
+from diffusers.models.unets.unet_motion_model import MotionAdapter
+from diffusers.pipelines.stable_video_diffusion.pipeline_stable_video_diffusion import (
+    StableVideoDiffusionPipeline,
+)
+from diffusers.utils.export_utils import export_to_video
 from .huggingface_pipeline import HuggingFacePipelineNode
-from nodetool.workflows.types import NodeProgress  # type: ignore
+from nodetool.workflows.types import NodeProgress
 
 
 class AnimateDiffNode(HuggingFacePipelineNode):

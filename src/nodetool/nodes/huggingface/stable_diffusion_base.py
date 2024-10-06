@@ -2,10 +2,11 @@ from enum import Enum
 import os
 from random import randint
 
-from transformers import Pipeline
-from diffusers import (
-    StableDiffusionImg2ImgPipeline,  # type: ignore
-    StableDiffusionLatentUpscalePipeline,  # type: ignore
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img import (
+    StableDiffusionImg2ImgPipeline,
+)
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_latent_upscale import (
+    StableDiffusionLatentUpscalePipeline,
 )
 from huggingface_hub import try_to_load_from_cache
 from pydantic import Field
@@ -25,21 +26,27 @@ from nodetool.metadata.types import (
     HFStableDiffusionXL,
     ImageRef,
 )
-from diffusers.schedulers import (
-    DPMSolverSDEScheduler,  # type: ignore
-    EulerDiscreteScheduler,  # type: ignore
-    LMSDiscreteScheduler,  # type: ignore
-    DDIMScheduler,  # type: ignore
-    DDPMScheduler,  # type: ignore
-    HeunDiscreteScheduler,  # type: ignore
-    DPMSolverMultistepScheduler,  # type: ignore
-    DEISMultistepScheduler,  # type: ignore
-    PNDMScheduler,  # type: ignore
-    EulerAncestralDiscreteScheduler,  # type: ignore
-    UniPCMultistepScheduler,  # type: ignore
-    KDPM2DiscreteScheduler,  # type: ignore
-    DPMSolverSinglestepScheduler,  # type: ignore
-    KDPM2AncestralDiscreteScheduler,  # type: ignore
+from diffusers.schedulers.scheduling_dpmsolver_sde import DPMSolverSDEScheduler
+from diffusers.schedulers.scheduling_euler_discrete import EulerDiscreteScheduler
+from diffusers.schedulers.scheduling_lms_discrete import LMSDiscreteScheduler
+from diffusers.schedulers.scheduling_ddim import DDIMScheduler
+from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+from diffusers.schedulers.scheduling_heun_discrete import HeunDiscreteScheduler
+from diffusers.schedulers.scheduling_dpmsolver_multistep import (
+    DPMSolverMultistepScheduler,
+)
+from diffusers.schedulers.scheduling_deis_multistep import DEISMultistepScheduler
+from diffusers.schedulers.scheduling_pndm import PNDMScheduler
+from diffusers.schedulers.scheduling_euler_ancestral_discrete import (
+    EulerAncestralDiscreteScheduler,
+)
+from diffusers.schedulers.scheduling_unipc_multistep import UniPCMultistepScheduler
+from diffusers.schedulers.scheduling_k_dpm_2_discrete import KDPM2DiscreteScheduler
+from diffusers.schedulers.scheduling_dpmsolver_singlestep import (
+    DPMSolverSinglestepScheduler,
+)
+from diffusers.schedulers.scheduling_k_dpm_2_ancestral_discrete import (
+    KDPM2AncestralDiscreteScheduler,
 )
 
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode

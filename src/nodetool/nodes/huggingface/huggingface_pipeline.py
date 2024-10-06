@@ -9,7 +9,6 @@ from typing import Any
 from nodetool.model_manager import ModelManager
 from huggingface_hub.file_download import try_to_load_from_cache
 from typing import Any, TypeVar
-from diffusers import DiffusionPipeline  # type: ignore
 
 T = TypeVar("T")
 

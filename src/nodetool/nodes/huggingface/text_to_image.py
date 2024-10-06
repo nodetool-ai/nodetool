@@ -12,7 +12,15 @@ from nodetool.workflows.types import NodeProgress
 
 
 import torch
-from diffusers import AutoPipelineForText2Image, DiffusionPipeline, PixArtAlphaPipeline, StableDiffusionPipeline, StableDiffusionXLPipeline  # type: ignore
+from diffusers.pipelines.auto_pipeline import AutoPipelineForText2Image
+from diffusers.pipelines.pipeline_utils import DiffusionPipeline
+from diffusers.pipelines.pixart_alpha.pipeline_pixart_alpha import PixArtAlphaPipeline
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion import (
+    StableDiffusionPipeline,
+)
+from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import (
+    StableDiffusionXLPipeline,
+)
 from pydantic import Field
 
 # class AuraFlow(BaseNode):

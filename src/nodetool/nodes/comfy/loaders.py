@@ -1,5 +1,8 @@
 from enum import Enum
+import comfy.sd
+from huggingface_hub import try_to_load_from_cache
 from pydantic import Field, validator
+import folder_paths
 from nodetool.metadata.types import (
     CLIP,
     GLIGEN,
@@ -11,6 +14,7 @@ from nodetool.metadata.types import (
     ControlNet,
     ControlNetFile,
     GLIGENFile,
+    HFStableDiffusion,
     LORAFile,
     UNet,
     UNetFile,
@@ -20,9 +24,15 @@ from nodetool.metadata.types import (
     unCLIPFile,
 )
 from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
+from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from pydantic import Field
 from nodetool.common.comfy_node import ComfyNode, MAX_RESOLUTION
+from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion import (
+    StableDiffusionPipeline,
+)
+import torch
 
 
 class CheckpointLoaderSimple(ComfyNode):
@@ -69,6 +79,46 @@ class CheckpointLoader(CheckpointLoaderSimple):
     """
 
     pass
+
+
+class HuggingFaceCheckpointLoader(ComfyNode):
+    model: HFStableDiffusion = Field(
+        default=HFStableDiffusion(),
+        description="The Stable Diffusion model to load.",
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"model": UNet, "clip": CLIP, "vae": VAE}
+
+    @classmethod
+    def get_title(cls):
+        return "Load Hugging Face Checkpoint"
+
+    async def process(self, context: ProcessingContext):
+        if self.model.repo_id == "":
+            raise ValueError("Model repository ID must be selected.")
+
+        assert self.model.path is not None, "Model path must be set."
+
+        ckpt_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        unet, clip, vae, _ = comfy.sd.load_checkpoint_guess_config(
+            ckpt_path,
+            output_vae=True,
+            output_clip=True,
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+        )
+
+        context.add_model(UNet().type, self.model.repo_id, unet)
+        context.add_model(CLIP().type, self.model.repo_id, clip)
+        context.add_model(VAE().type, self.model.repo_id, vae)
+
+        return {
+            "model": UNet(name=self.model.repo_id),
+            "clip": CLIP(name=self.model.repo_id),
+            "vae": VAE(name=self.model.repo_id),
+        }
 
 
 class unCLIPCheckpointLoader(ComfyNode):

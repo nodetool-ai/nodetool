@@ -278,11 +278,12 @@
       {
         "id": "16",
         "parent_id": null,
-        "type": "comfy.loaders.CheckpointLoaderSimple",
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
         "data": {
-          "ckpt_name": {
-            "type": "comfy.checkpoint_file",
-            "name": "Realistic_Vision_V5.safetensors"
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
           }
         },
         "ui_properties": {
