@@ -46,11 +46,12 @@ class Whisper(HuggingFacePipelineNode):
         TRANSLATE = "translate"
 
     class Timestamps(str, Enum):
+        NONE = "none"  # Added this line
         WORD = "word"
         SENTENCE = "sentence"
 
     class WhisperLanguage(str, Enum):
-        NONE = "none"
+        NONE = "auto_detect"
         ENGLISH = "english"
         CHINESE = "chinese"
         GERMAN = "german"
@@ -194,7 +195,7 @@ class Whisper(HuggingFacePipelineNode):
         ),
     )
     timestamps: Timestamps = Field(
-        default=Timestamps.SENTENCE,
+        default=Timestamps.NONE,
         title="Timestamps",
         description="The type of timestamps to return for the generated text.",
     )
@@ -284,11 +285,12 @@ class Whisper(HuggingFacePipelineNode):
 
         pipeline_kwargs = {
             "return_timestamps": (
+                False if self.timestamps == self.Timestamps.NONE else
                 True if self.timestamps == self.Timestamps.SENTENCE else "word"
             ),
             "generate_kwargs": {
                 "language": (
-                    None if self.language.value == "none" else self.language.value
+                    None if self.language.value == "auto_detect" else self.language.value
                 ),
             },
         }
@@ -301,7 +303,7 @@ class Whisper(HuggingFacePipelineNode):
         chunks = [
             AudioChunk(timestamp=chunk.get("timestamp"), text=chunk.get("text"))
             for chunk in result.get("chunks", [])
-        ]
+        ] if self.timestamps != self.Timestamps.NONE else []
 
         logger.info("Audio processing completed successfully.")
         return {
