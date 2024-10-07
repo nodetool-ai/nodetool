@@ -166,7 +166,7 @@ class Concat(BaseNode):
                 with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                     ffmpeg.concat(
                         ffmpeg.input(temp_a.name), ffmpeg.input(temp_b.name)
-                    ).output(output_temp.name).overwrite_output().run(quiet=True)
+                    ).output(output_temp.name).overwrite_output().run(quiet=False)
 
                     # Read the concatenated video and create a VideoRef
                     with open(output_temp.name, "rb") as f:
@@ -214,7 +214,7 @@ class Trim(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(trimmed, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the trimmed video and create a VideoRef
@@ -261,7 +261,7 @@ class VideoResizeNode(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(resized, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the resized video and create a VideoRef
@@ -306,7 +306,7 @@ class Rotate(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(rotated, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the rotated video and create a VideoRef
@@ -352,7 +352,7 @@ class SetSpeed(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(adjusted, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the speed-adjusted video and create a VideoRef
@@ -410,7 +410,7 @@ class Overlay(BaseNode):
             output = ffmpeg.overlay(main_input, scaled_overlay, x=self.x, y=self.y)
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
-                output.output(output_temp.name).overwrite_output().run(quiet=True)
+                output.output(output_temp.name).overwrite_output().run(quiet=False)
 
                 # Read the overlaid video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
@@ -464,7 +464,7 @@ class ColorBalance(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(adjusted, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the color-adjusted video and create a VideoRef
@@ -511,7 +511,7 @@ class Denoise(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(denoised, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the denoised video and create a VideoRef
@@ -566,7 +566,7 @@ class Stabilize(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(stabilized, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the stabilized video and create a VideoRef
@@ -627,7 +627,7 @@ class Sharpness(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(sharpened, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the sharpened video and create a VideoRef
@@ -674,7 +674,7 @@ class Blur(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(blurred, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the blurred video and create a VideoRef
@@ -721,7 +721,7 @@ class Saturation(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(saturated, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the saturation-adjusted video and create a VideoRef
@@ -790,7 +790,7 @@ class AddSubtitles(BaseNode):
 
                 with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                     ffmpeg.output(subtitled, output_temp.name).overwrite_output().run(
-                        quiet=True
+                        quiet=False
                     )
 
                     # Read the video with subtitles and create a VideoRef
@@ -830,7 +830,7 @@ class Reverse(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(reversed_video, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the reversed video and create a VideoRef
@@ -952,7 +952,7 @@ class Transition(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(transition, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the transitioned video and create a VideoRef
@@ -1021,7 +1021,7 @@ class AddAudio(BaseNode):
                 try:
                     ffmpeg.output(
                         video_input.video, audio, output_temp.name, format="mp4"
-                    ).overwrite_output().run(quiet=True)
+                    ).overwrite_output().run(quiet=False)
                 except ffmpeg.Error as e:
                     raise ValueError(f"Error processing video: {e.stderr[-256:]}")
 
@@ -1081,7 +1081,7 @@ class ChromaKey(BaseNode):
 
             with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
                 ffmpeg.output(keyed, output_temp.name).overwrite_output().run(
-                    quiet=True
+                    quiet=False
                 )
 
                 # Read the chroma keyed video and create a VideoRef
@@ -1089,39 +1089,46 @@ class ChromaKey(BaseNode):
                     return await context.video_from_io(f)
 
 
+import os
+import tempfile
+import ffmpeg
+
 class ExtractAudio(BaseNode):
-    """
-    Separate audio from a video file.
-    video, audio, split, extract
-
-    Use cases:
-    1. Extract audio for separate processing or replacement
-    2. Create standalone audio files for use in other applications
-    3. Remove audio from videos for creating montages or other effects
-    """
-
     video: VideoRef = Field(
         default=VideoRef(), description="The input video to separate."
     )
 
     async def process(self, context: ProcessingContext) -> AudioRef:
-        import ffmpeg
-
         if self.video.is_empty():
             raise ValueError("Input video must be connected.")
 
         video_file = await context.asset_to_io(self.video)
 
-        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp_input:
-            temp_input.write(video_file.read())
-            temp_input.flush()
+        # Create a temporary file for the input video
+        video_fd, temp_input_path = tempfile.mkstemp(suffix=".mp4")
+        try:
+            with os.fdopen(video_fd, "wb") as temp_input:
+                temp_input.write(video_file.read())
 
-            with tempfile.NamedTemporaryFile(suffix=".mp3") as temp_audio:
+            # Create a temporary file for the extracted audio
+            audio_fd, temp_audio_path = tempfile.mkstemp(suffix=".mp3")
+            os.close(audio_fd)  # Close immediately since ffmpeg will handle the file
+
+            try:
+                # Run ffmpeg command to extract the audio
                 (
-                    ffmpeg.input(temp_input.name)
-                    .output(temp_audio.name, acodec="libmp3lame", vn=None)
+                    ffmpeg.input(temp_input_path)
+                    .output(temp_audio_path, acodec="libmp3lame", vn=None)
                     .overwrite_output()
-                    .run(quiet=True)
+                    .run(quiet=False)
                 )
-                with open(temp_audio.name, "rb") as f:
-                    return await context.audio_from_io(f)
+
+                # Read the extracted audio and return it
+                with open(temp_audio_path, "rb") as temp_audio:
+                    return await context.audio_from_io(temp_audio)
+
+            finally:
+                os.remove(temp_audio_path)  # Clean up audio file
+
+        finally:
+            os.remove(temp_input_path)  # Clean up video file
