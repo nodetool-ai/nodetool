@@ -66,7 +66,7 @@ class CheckpointLoaderSimple(ComfyNode):
         return "Load Checkpoint"
 
     async def process(self, context: ProcessingContext):
-        if self.ckpt_name.name == "":
+        if self.ckpt_name.is_empty():
             raise Exception("Checkpoint name must be selected.")
 
         unet, clip, vae = await self.call_comfy_node(context)
@@ -109,7 +109,7 @@ class HuggingFaceCheckpointLoader(ComfyNode):
         return HF_STABLE_DIFFUSION_MODELS
 
     async def process(self, context: ProcessingContext):
-        if self.model.repo_id == "":
+        if self.model.is_empty():
             raise ValueError("Model repository ID must be selected.")
 
         assert self.model.path is not None, "Model path must be set."
@@ -159,7 +159,7 @@ class unCLIPCheckpointLoader(ComfyNode):
         return False
 
     async def process(self, context: ProcessingContext):
-        if self.ckpt_name.name == "":
+        if self.ckpt_name.is_empty():
             raise Exception("Checkpoint name must be selected.")
 
         unet, clip, vae, clip_vision = await self.call_comfy_node(context)
@@ -187,7 +187,7 @@ class CLIPVisionLoader(ComfyNode):
         return False
 
     async def process(self, context: ProcessingContext):
-        if self.clip_name.name == "":
+        if self.clip_name.is_empty():
             raise Exception("CLIP vision name must be selected.")
         (clip_vision,) = await self.call_comfy_node(context)
         return {"clip_vision": CLIPVision(name=self.clip_name.name, model=clip_vision)}
@@ -225,7 +225,7 @@ class HuggingFaceCLIPVisionLoader(ComfyNode):
         return {"clip_vision": CLIPVision}
 
     async def process(self, context: ProcessingContext):
-        if self.model.repo_id == "":
+        if self.model.is_empty():
             raise Exception("CLIP vision name must be selected.")
 
         assert self.model.path is not None, "Model must be single file"
@@ -257,7 +257,7 @@ class ControlNetLoader(ComfyNode):
         return False
 
     async def process(self, context: ProcessingContext):
-        if self.control_net_name.name == "":
+        if self.control_net_name.is_empty():
             raise Exception("ControlNet name must be selected.")
         (control_net,) = await self.call_comfy_node(context)
         return {
@@ -290,7 +290,7 @@ class HuggingFaceControlNetLoader(ComfyNode):
         return False
 
     async def process(self, context: ProcessingContext):
-        if self.model.repo_id == "":
+        if self.model.is_empty():
             raise Exception("ControlNet name must be selected.")
 
         assert self.model.path is not None, "Model must be single file"
@@ -321,7 +321,7 @@ class UpscaleModelLoader(ComfyNode):
         return False
 
     async def process(self, context: ProcessingContext):
-        if self.model_name.name == "":
+        if self.model_name.is_empty():
             raise Exception("Upscale model name must be selected.")
         (upscale_model,) = await self.call_comfy_node(context)
         return {
@@ -350,7 +350,7 @@ class GLIGENLoader(ComfyNode):
         return False
 
     async def process(self, context: ProcessingContext):
-        if self.gligen_name.name == "":
+        if self.gligen_name.is_empty():
             raise Exception("GLIGEN name must be selected.")
         (gligen,) = await self.call_comfy_node(context)
         return {"gligen": GLIGEN(name=self.gligen_name.name, model=gligen)}
@@ -387,7 +387,7 @@ class LoraLoader(ComfyNode):
         }
 
     async def process(self, context: ProcessingContext):
-        if self.lora_name.name == "":
+        if self.lora_name.is_empty():
             raise Exception("LoRA name must be selected.")
 
         assert self.model.model is not None, "Model must be connected."
