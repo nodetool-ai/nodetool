@@ -14,6 +14,7 @@ interface TextEditorModalProps {
   onChange: (value: string) => void;
   onClose: () => void;
   propertyName: string;
+  propertyDescription?: string;
 }
 
 const modalStyles = (theme: any) =>
@@ -39,7 +40,9 @@ const modalStyles = (theme: any) =>
       display: "flex",
       flexDirection: "column",
       position: "relative",
-      borderRight: "2px solid " + theme.palette.c_gray3
+      borderTop: ".7em solid " + theme.palette.c_black,
+      borderRight: ".7em solid " + theme.palette.c_black,
+      borderLeft: ".7em solid " + theme.palette.c_black
       // boxShadow: "2px 0 6px 0 rgba(0, 0, 0, 0.4)"
     },
     ".modal-header": {
@@ -55,22 +58,33 @@ const modalStyles = (theme: any) =>
       fontWeight: "normal",
       margin: 0
     },
+    ".description": {
+      padding: "1em 1em .5em 1.5em",
+      fontSize: theme.fontSizeTiny,
+      color: theme.palette.c_gray6,
+      fontFamily: theme.fontFamily2,
+      wordSpacing: "-0.2em",
+      lineHeight: "1.2",
+      backgroundColor: theme.palette.c_gray1
+    },
     ".modal-body": {
       flex: 1,
       display: "flex",
       flexDirection: "column",
-      padding: "1em"
+      padding: ".5em",
+      backgroundColor: theme.palette.c_gray1
     },
     ".modal-body textarea": {
       flex: 1,
       width: "100%",
       resize: "none",
+      padding: ".5em",
       border: "none",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.2",
-      color: theme.palette.c_gray6,
-      backgroundColor: theme.palette.c_gray1,
+      color: theme.palette.c_white,
+      backgroundColor: theme.palette.c_gray2,
       paddingBottom: "4em",
       outline: "none"
     },
@@ -106,7 +120,8 @@ export default function TextEditorModal({
   value,
   onChange,
   onClose,
-  propertyName
+  propertyName,
+  propertyDescription
 }: TextEditorModalProps) {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -168,6 +183,9 @@ export default function TextEditorModal({
               </Tooltip>
             </div>
           </div>
+          {propertyDescription && (
+            <div className="description">{propertyDescription}</div>
+          )}
           <div className="modal-body">
             <TextareaAutosize
               ref={textareaRef}

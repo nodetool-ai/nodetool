@@ -88,6 +88,7 @@ export default function StringProperty(props: PropertyProps) {
           onChange={props.onChange}
           onClose={toggleExpand}
           propertyName={props.property.name}
+          propertyDescription={props.property.description || ""}
         />
       )}
     </div>
