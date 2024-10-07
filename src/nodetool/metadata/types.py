@@ -583,14 +583,14 @@ def comfy_model_to_folder(type_name: str) -> str:
     folder_mapping = {
         "comfy.checkpoint_file": "checkpoints",
         "comfy.vae_file": "vae",
-        "comfy.clip_file": "clip",
-        "comfy.clip_vision_file": "clip_vision",
-        "comfy.control_net_file": "controlnet",
-        "comfy.ip_adapter_file": "ipadapter",
-        "comfy.gligen_file": "gligen",
+        "comfy.clip": "clip",
+        "comfy.clip_vision": "clip_vision",
+        "comfy.control_net": "controlnet",
+        "comfy.ip_adapter": "ipadapter",
+        "comfy.gligen": "gligen",
         "comfy.upscale_model": "upscale_models",
-        "comfy.lora_file": "loras",
-        "comfy.unet_file": "unet",
+        "comfy.lora": "loras",
+        "comfy.unet": "unet",
         "comfy.instant_id_file": "instantid",
     }
     return folder_mapping.get(type_name, type_name)
