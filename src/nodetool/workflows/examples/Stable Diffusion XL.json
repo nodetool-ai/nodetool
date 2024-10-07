@@ -185,8 +185,8 @@
         "type": "comfy.sampling.KSamplerAdvanced",
         "data": {
           "add_noise": "enable",
-          "noise_seed": 2275274373,
-          "seed_control_mode": "randomize",
+          "noise_seed": 0,
+          "seed_control_mode": "increment",
           "cfg": 8,
           "sampler_name": "euler",
           "scheduler": "normal",
@@ -208,8 +208,8 @@
         "type": "comfy.sampling.KSamplerAdvanced",
         "data": {
           "add_noise": "enable",
-          "noise_seed": 2275274373,
-          "seed_control_mode": "fixed",
+          "noise_seed": 0,
+          "seed_control_mode": "increment",
           "cfg": 8,
           "sampler_name": "euler",
           "scheduler": "normal",

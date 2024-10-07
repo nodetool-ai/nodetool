@@ -18,9 +18,7 @@ from nodetool.common.environment import Environment
 from nodetool.metadata.types import (
     HFControlNet,
     HFIPAdapter,
-    HFLoraSD,
     HFLoraSDConfig,
-    HFLoraSDXL,
     HFLoraSDXLConfig,
     HFStableDiffusion,
     HFStableDiffusionXL,
@@ -141,7 +139,7 @@ HF_STABLE_DIFFUSION_MODELS = [
     ),
     HFStableDiffusion(
         repo_id="Yntec/insaneRealistic_v2",
-        path="Yntec/insaneRealistic_v2",
+        path="insaneRealistic_v20.safetensors",
     ),
     HFStableDiffusion(
         repo_id="Yntec/CyberRealistic",

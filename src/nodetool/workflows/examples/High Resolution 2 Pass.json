@@ -155,8 +155,8 @@
         "parent_id": null,
         "type": "comfy.sampling.KSampler",
         "data": {
-          "seed": 1146442523,
-          "seed_control_mode": 1146442523,
+          "seed": 0,
+          "seed_control_mode": "increment",
           "steps": 12,
           "cfg": 8,
           "sampler_name": "dpmpp_sde",
@@ -248,8 +248,8 @@
         "parent_id": null,
         "type": "comfy.sampling.KSampler",
         "data": {
-          "seed": 1146442523,
-          "seed_control_mode": 1146442523,
+          "seed": 0,
+          "seed_control_mode": "increment",
           "steps": 14,
           "cfg": 8,
           "sampler_name": "dpmpp_2m",

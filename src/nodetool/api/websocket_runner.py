@@ -139,9 +139,14 @@ class WebSocketRunner:
                 log.debug("Executing pre-run hook")
                 self.pre_run_hook()
 
-            async for msg in run_workflow(
-                req, self.runner, self.context, use_thread=True
-            ):
+            context = ProcessingContext(
+                user_id=req.user_id,
+                auth_token=req.auth_token,
+                workflow_id=req.workflow_id,
+                endpoint_url=self.websocket.url,
+            )
+
+            async for msg in run_workflow(req, self.runner, context, use_thread=True):
                 try:
                     if self.mode == WebSocketMode.TEXT:
                         if msg.type == "job_update":

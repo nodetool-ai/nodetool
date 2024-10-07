@@ -7,7 +7,7 @@
   "tags": [
     "comfy"
   ],
-  "description": "Stable Diffusion with LoRA",
+  "description": "Generate an image with a LoRA",
   "thumbnail": "",
   "thumbnail_url": "/examples/lora.jpg",
   "graph": {
@@ -47,25 +47,14 @@
         "targetHandle": "samples"
       },
       {
-        "id": "8",
-        "source": "4",
-        "sourceHandle": "vae",
-        "target": "8",
-        "targetHandle": "vae"
-      },
-      {
-        "id": "2",
-        "source": "7",
-        "sourceHandle": "conditioning",
-        "target": "3",
-        "targetHandle": "negative"
-      },
-      {
-        "id": "1",
-        "source": "5",
-        "sourceHandle": "latent",
-        "target": "3",
-        "targetHandle": "latent_image"
+        "id": "5df8be92-7e23-45f2-b391-196924840e09",
+        "source": "12",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
       },
       {
         "id": "1fbd4b89-2916-4226-81ef-c3714ecf7c8a",
@@ -78,14 +67,25 @@
         }
       },
       {
-        "id": "5df8be92-7e23-45f2-b391-196924840e09",
-        "source": "12",
-        "sourceHandle": "clip",
-        "target": "6",
-        "targetHandle": "clip",
-        "ui_properties": {
-          "className": "comfy_clip"
-        }
+        "id": "8",
+        "source": "4",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae"
+      },
+      {
+        "id": "1",
+        "source": "5",
+        "sourceHandle": "latent",
+        "target": "3",
+        "targetHandle": "latent_image"
+      },
+      {
+        "id": "2",
+        "source": "7",
+        "sourceHandle": "conditioning",
+        "target": "3",
+        "targetHandle": "negative"
       },
       {
         "id": "3",
@@ -111,14 +111,13 @@
         "type": "comfy.sampling.KSampler",
         "data": {
           "seed": 2117469102,
-          "steps": 20,
+          "steps": 48,
           "cfg": 8,
           "sampler_name": "dpmpp_sde",
           "scheduler": "karras",
           "denoise": 1
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 550,
             "y": 147
@@ -133,12 +132,11 @@
         "data": {
           "model": {
             "type": "hf.stable_diffusion",
-            "repo_id": "Yntec/epiCDream",
-            "path": "epicdream_lullaby.safetensors"
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 9,
             "y": 272.25
@@ -151,12 +149,11 @@
         "id": "5",
         "type": "comfy.latent.EmptyLatentImage",
         "data": {
-          "width": 768,
+          "width": 1024,
           "height": 768,
           "batch_size": 1
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 344.5,
             "y": 388
@@ -169,10 +166,9 @@
         "id": "6",
         "type": "comfy.conditioning.CLIPTextEncode",
         "data": {
-          "text": "ghibli style, house in a beautiful landscape"
+          "text": "An enchanted forest at dusk, with towering ancient trees and glowing leaves in shades of emerald. Fireflies dance in the air, illuminating a moss-covered forest floor with bioluminescent mushrooms. A crystal-clear river winds through the scene, reflecting twilight colors. Hidden among the trees, an old stone temple overgrown with ivy stands quietly, while a deer with golden antlers drinks from the river, surrounded by magical energy."
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 311,
             "y": 60
@@ -188,7 +184,6 @@
           "text": "text, watermark"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 310,
             "y": 216
@@ -202,7 +197,6 @@
         "type": "comfy.latent.VAEDecode",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 679,
             "y": 263
@@ -236,7 +230,7 @@
           "lora": {
             "type": "hf.lora_sd",
             "repo_id": "danbrown/loras",
-            "path": "add_detail.safetensors"
+            "path": "arcane_style.safetensors"
           },
           "strength_model": 1,
           "strength_clip": 1

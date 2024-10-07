@@ -1,4 +1,5 @@
 from enum import Enum
+import random
 from nodetool.metadata.types import (
     ComfyData,
     ComfyModel,
@@ -93,6 +94,38 @@ class ComfyNode(BaseNode):
 
         comfy_node = node_class()
         return getattr(comfy_node, function_name)(**kwargs)
+
+    def properties_for_client(self):
+        properties = self.node_properties()
+        if "seed" in properties:
+            return {
+                "seed": properties["seed"],
+            }
+        if "noise_seed" in properties:
+            return {
+                "noise_seed": properties["noise_seed"],
+            }
+        return {}
+
+    async def pre_process(self, context: ProcessingContext):
+        from nodetool.nodes.comfy.sampling import SeedControlMode
+
+        properties = self.node_properties()
+        if "seed_control_mode" in properties:
+            if "seed" in properties:
+                seed_field = "seed"
+            elif "noise_seed" in properties:
+                seed_field = "noise_seed"
+            else:
+                return
+
+            seed_control_mode = properties["seed_control_mode"]
+            if seed_control_mode == SeedControlMode.RANDOMIZE:
+                self.assign_property(seed_field, random.randint(0, 0xFFFFFFFFFFFFFFFF))
+            elif seed_control_mode == SeedControlMode.INCREMENT:
+                self.assign_property(seed_field, properties[seed_field] + 1)
+            elif seed_control_mode == SeedControlMode.DECREMENT:
+                self.assign_property(seed_field, properties[seed_field] - 1)
 
     async def process(self, context: ProcessingContext):
         return await self.call_comfy_node(context)

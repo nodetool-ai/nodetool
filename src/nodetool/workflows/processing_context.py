@@ -4,7 +4,6 @@ import io
 import json
 import multiprocessing
 import queue
-import random
 import urllib.parse
 import uuid
 import httpx
@@ -15,6 +14,7 @@ import numpy as np
 import pandas as pd
 from pydub import AudioSegment
 import torch
+from starlette.datastructures import URL
 
 from huggingface_hub.file_download import try_to_load_from_cache
 from nodetool.metadata.type_metadata import TypeMetadata
@@ -115,6 +115,7 @@ class ProcessingContext:
         ] = None,
         http_client: httpx.AsyncClient | None = None,
         device: str | None = None,
+        endpoint_url: URL | None = None,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -125,6 +126,7 @@ class ProcessingContext:
         self.message_queue = message_queue if message_queue else asyncio.Queue()
         self.device = device
         self.variables: dict[str, Any] = variables if variables else {}
+        self.endpoint_url = endpoint_url
         self.http_client = (
             httpx.AsyncClient(follow_redirects=True, timeout=600)
             if http_client is None

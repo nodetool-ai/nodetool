@@ -13,25 +13,78 @@
   "graph": {
     "edges": [
       {
-        "id": "10",
-        "source": "6",
+        "id": "1515",
+        "source": "34",
+        "sourceHandle": "output",
+        "target": "35",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "95d44fdc-5bbe-4379-b44e-7b854bbd9f81",
+        "source": "38",
+        "sourceHandle": "clip",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "413e1365-ca88-4798-bad4-83d5d56eac35",
+        "source": "38",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
+        "id": "6",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples"
+      },
+      {
+        "id": "17",
+        "source": "7",
         "sourceHandle": "conditioning",
         "target": "3",
-        "targetHandle": "positive"
+        "targetHandle": "negative"
       },
       {
-        "id": "2",
-        "source": "29",
-        "sourceHandle": "clip",
-        "target": "7",
-        "targetHandle": "clip"
+        "id": "721",
+        "source": "8",
+        "sourceHandle": "image",
+        "target": "33",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        }
       },
       {
-        "id": "9",
-        "source": "29",
-        "sourceHandle": "model",
-        "target": "3",
-        "targetHandle": "model"
+        "id": "9b3f39bf-535a-4ecc-91ce-4c63c8180721",
+        "source": "20",
+        "sourceHandle": "image",
+        "target": "39",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "77ba0e21-3787-4bbd-8a07-9af44cb46b5d",
+        "source": "38",
+        "sourceHandle": "vae",
+        "target": "26",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
       },
       {
         "id": "720eb177-8f79-45e8-a19a-b8a1aed0f309",
@@ -44,13 +97,23 @@
         }
       },
       {
-        "id": "f5b03d6b-b98b-42db-8b9d-67e00c975a03",
-        "source": "36",
-        "sourceHandle": "output",
-        "target": "37",
-        "targetHandle": "segments",
+        "id": "12ffe745-bbb5-4b5d-a4a7-88c7f78c4783",
+        "source": "38",
+        "sourceHandle": "clip",
+        "target": "7",
+        "targetHandle": "clip",
         "ui_properties": {
-          "className": "list"
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "9df822c2-f8b1-4e2c-b4a1-59c16cfb6358",
+        "source": "39",
+        "sourceHandle": "output",
+        "target": "36",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
         }
       },
       {
@@ -64,11 +127,14 @@
         }
       },
       {
-        "id": "7",
-        "source": "29",
-        "sourceHandle": "vae",
-        "target": "8",
-        "targetHandle": "vae"
+        "id": "f5b03d6b-b98b-42db-8b9d-67e00c975a03",
+        "source": "36",
+        "sourceHandle": "output",
+        "target": "37",
+        "targetHandle": "segments",
+        "ui_properties": {
+          "className": "list"
+        }
       },
       {
         "id": "ad00fa5a-1a94-4785-8d2c-fe662d7e93f0",
@@ -81,52 +147,31 @@
         }
       },
       {
-        "id": "721",
-        "source": "8",
-        "sourceHandle": "image",
-        "target": "33",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "6",
-        "source": "3",
-        "sourceHandle": "latent",
-        "target": "8",
-        "targetHandle": "samples"
-      },
-      {
-        "id": "4",
-        "source": "29",
-        "sourceHandle": "vae",
-        "target": "26",
-        "targetHandle": "vae"
-      },
-      {
-        "id": "1515",
-        "source": "34",
+        "id": "c4c69e1d-1456-47de-8a7c-bc120d20ce04",
+        "source": "39",
         "sourceHandle": "output",
-        "target": "35",
-        "targetHandle": "value",
+        "target": "26",
+        "targetHandle": "pixels",
         "ui_properties": {
           "className": "image"
         }
       },
       {
-        "id": "17",
-        "source": "7",
+        "id": "91899002-05a6-45e4-b6c3-e8a01675a95d",
+        "source": "38",
+        "sourceHandle": "model",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "10",
+        "source": "6",
         "sourceHandle": "conditioning",
         "target": "3",
-        "targetHandle": "negative"
-      },
-      {
-        "id": "1",
-        "source": "29",
-        "sourceHandle": "clip",
-        "target": "6",
-        "targetHandle": "clip"
+        "targetHandle": "positive"
       },
       {
         "id": "cf1bed87-6747-40a8-a503-8fb7e13cf9a4",
@@ -137,23 +182,6 @@
         "ui_properties": {
           "className": "comfy_latent"
         }
-      },
-      {
-        "id": "3",
-        "source": "20",
-        "sourceHandle": "image",
-        "target": "26",
-        "targetHandle": "pixels"
-      },
-      {
-        "id": "da0a62d1-62f0-4643-9d31-7b0fc5620933",
-        "source": "20",
-        "sourceHandle": "image",
-        "target": "36",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
       }
     ],
     "nodes": [
@@ -161,13 +189,13 @@
         "id": "6",
         "type": "comfy.conditioning.CLIPTextEncode",
         "data": {
-          "text": "face of taylor swift"
+          "text": "painting of taylor swift, in the style of vermeer, natural skin"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1190.5,
-            "y": 396.25
+            "x": 1163,
+            "y": 276
           },
           "zIndex": 0,
           "selectable": true
@@ -177,13 +205,13 @@
         "id": "7",
         "type": "comfy.conditioning.CLIPTextEncode",
         "data": {
-          "text": "watermark, text\n"
+          "text": "watermark, text, photo\n"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1190.5,
-            "y": 234.25
+            "x": 1162,
+            "y": 417
           },
           "zIndex": 0,
           "selectable": true
@@ -193,13 +221,13 @@
         "id": "26",
         "type": "comfy.latent.VAEEncodeForInpaint",
         "data": {
-          "grow_mask_by": 6
+          "grow_mask_by": 0
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1190.5,
-            "y": 575
+            "x": 1169,
+            "y": 562
           },
           "zIndex": 0,
           "selectable": true
@@ -220,38 +248,19 @@
         }
       },
       {
-        "id": "29",
-        "type": "comfy.loaders.CheckpointLoaderSimple",
-        "data": {
-          "ckpt_name": {
-            "type": "comfy.checkpoint_file",
-            "name": "Realistic_Vision_V6.0_NV_B1_fp16.safetensors"
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 941.5,
-            "y": 123.5
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
         "id": "20",
         "type": "comfy.image.LoadImage",
         "data": {
           "image": {
-            "uri": "http://app.nodetool.ai/examples/inpainting_input.jpg",
+            "uri": "https://www.mauritshuis.nl/media/rgxggmkv/vermeer-meisje-met-de-parel-mh670-mauritshuis-den-haag.jpg?center=0.44178550792733645,0.47243107769423559&mode=crop&width=1200&rnd=133018598924500000&quality=70",
             "type": "image"
           }
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 92,
-            "y": 553.5
+            "x": -16,
+            "y": 394
           },
           "zIndex": 0,
           "selectable": true
@@ -261,11 +270,11 @@
         "id": "3",
         "type": "comfy.sampling.KSampler",
         "data": {
-          "seed": 3486928081,
-          "seed_control_mode": 3486928081,
-          "steps": 16,
+          "seed": 12,
+          "seed_control_mode": "increment",
+          "steps": 35,
           "cfg": 8,
-          "sampler_name": "dpmpp_sde",
+          "sampler_name": "heun",
           "scheduler": "normal",
           "denoise": 0.5
         },
@@ -288,8 +297,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 941.5,
-            "y": 530.5
+            "x": 916,
+            "y": 561
           },
           "zIndex": 0,
           "selectable": true
@@ -304,8 +313,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1660,
-            "y": 259
+            "x": 1664,
+            "y": 280
           },
           "zIndex": 0,
           "width": 243,
@@ -322,8 +331,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 704,
-            "y": 464.5
+            "x": 749,
+            "y": 465
           },
           "zIndex": 0,
           "selectable": true
@@ -351,7 +360,10 @@
         "id": "36",
         "type": "huggingface.image_segmentation.Segmentation",
         "data": {
-          "model": "mattmdjaga/segformer_b2_clothes"
+          "model": {
+            "type": "hf.image_segmentation",
+            "repo_id": "mattmdjaga/segformer_b2_clothes"
+          }
         },
         "ui_properties": {
           "selected": false,
@@ -372,8 +384,45 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 524,
-            "y": 464.5
+            "x": 563,
+            "y": 474
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "38",
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 854,
+            "y": 160
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
+      },
+      {
+        "id": "39",
+        "type": "nodetool.image.transform.Fit",
+        "data": {
+          "width": 768,
+          "height": 768
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 154,
+            "y": 508
           },
           "zIndex": 0,
           "selectable": true

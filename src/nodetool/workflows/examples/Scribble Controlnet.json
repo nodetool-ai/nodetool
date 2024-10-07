@@ -105,8 +105,8 @@
         "id": "3",
         "type": "comfy.sampling.KSampler",
         "data": {
-          "seed": 2731930758,
-          "seed_control_mode": 2731930758,
+          "seed": 0,
+          "seed_control_mode": "increment",
           "steps": 16,
           "cfg": 6,
           "sampler_name": "uni_pc",

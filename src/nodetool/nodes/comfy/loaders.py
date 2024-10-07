@@ -21,6 +21,7 @@ from nodetool.metadata.types import (
     HFControlNet,
     HFIPAdapter,
     HFLoraSD,
+    HFLoraSDXL,
     HFStableDiffusion,
     HFStableDiffusionXL,
     IPAdapter,
@@ -34,6 +35,7 @@ from nodetool.metadata.types import (
     unCLIPFile,
 )
 from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.huggingface.lora import HF_LORA_SD_MODELS, HF_LORA_SDXL_MODELS
 from nodetool.nodes.huggingface.stable_diffusion_base import (
     HF_IP_ADAPTER_MODELS,
     HF_IP_ADAPTER_XL_MODELS,
@@ -420,6 +422,10 @@ class HuggingFaceLoraLoader(ComfyNode):
     )
 
     @classmethod
+    def get_recommended_models(cls) -> list[HFLoraSD]:
+        return HF_LORA_SD_MODELS
+
+    @classmethod
     def get_title(cls):
         return "Load HuggingFace LoRA"
 
@@ -454,6 +460,21 @@ class HuggingFaceLoraLoader(ComfyNode):
             "model": UNet(name=self.model.name, model=model_lora),
             "clip": CLIP(name=self.clip.name, model=clip_lora),
         }
+
+
+class HuggingFaceLoraLoaderXL(HuggingFaceLoraLoader):
+    lora: HFLoraSDXL = Field(
+        default=HFLoraSDXL(),
+        description="The LoRA to load.",
+    )
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFLoraSDXL]:
+        return HF_LORA_SDXL_MODELS
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace LoRA XL"
 
 
 class LoraLoaderModelOnly(ComfyNode):
