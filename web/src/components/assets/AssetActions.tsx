@@ -64,6 +64,7 @@ const styles = (theme: any) =>
       padding: 0
     },
     ".asset-button-group.MuiButtonGroup-root button": {
+      color: theme.palette.c_gray5,
       minWidth: "20px",
       border: 0,
       margin: "0",
@@ -71,8 +72,11 @@ const styles = (theme: any) =>
     },
     ".asset-button-group .MuiButton-root:hover": {
       border: 0,
-      color: theme.palette.c_white,
+      color: theme.palette.c_hl1,
       backgroundColor: "transparent"
+    },
+    ".asset-button-group .MuiButton-root.disabled": {
+      color: theme.palette.c_gray2
     },
     // size slider
     ".asset-size-slider": {
@@ -87,7 +91,14 @@ const styles = (theme: any) =>
       height: "25px",
       margin: "0",
       padding: "0",
-      top: "0.2em"
+      top: "0.2em",
+      color: theme.palette.c_gray5
+    },
+    ".asset-size-slider .MuiSlider-root:hover": {
+      color: theme.palette.c_hl1
+    },
+    ".asset-size-slider .MuiSlider-root:hover .MuiSlider-thumb": {
+      backgroundColor: theme.palette.c_hl1
     },
     ".asset-size-slider .MuiSlider-track": {
       backgroundColor: "transparent",
@@ -104,6 +115,17 @@ const styles = (theme: any) =>
       color: theme.palette.c_white
     },
     ".sort-assets .MuiSelect-select": {
+      color: theme.palette.c_gray5,
+      border: "1px solid " + theme.palette.c_gray5,
+
+      borderRadius: ".25em",
+      padding: "0 .2em",
+      textOverflow: "clip",
+      backgroundColor: "transparent",
+      textAlign: "center"
+    },
+
+    ".sort-assets .MuiSelect-select:hover": {
       border: "1px solid " + theme.palette.c_hl1,
       borderRadius: ".25em",
       padding: "0 .2em",
@@ -111,6 +133,7 @@ const styles = (theme: any) =>
       backgroundColor: "transparent",
       textAlign: "center"
     },
+
     ".sort-assets .MuiSelect-icon": {
       display: "none",
       color: theme.palette.c_hl1,
