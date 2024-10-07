@@ -42,7 +42,7 @@ const styles = (theme: any) =>
       flexGrow: 1,
       flexShrink: 1,
       width: "100%",
-      maxHeight: "calc(-273px + 100vh)"
+      maxHeight: "calc(-170px + 100vh)"
     },
     ".audio-controls-container": {
       position: "absolute",
