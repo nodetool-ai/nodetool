@@ -1084,3 +1084,9 @@ class Message(BaseType):
             tool_calls=message.tool_calls,
             created_at=message.created_at.isoformat(),
         )
+
+
+class AudioChunk(BaseType):
+    type: Literal["audio_chunk"] = "audio_chunk"
+    timestamp: tuple[float, float]
+    text: str

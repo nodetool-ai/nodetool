@@ -743,7 +743,7 @@ class AddSubtitles(BaseNode):
     video: VideoRef = Field(
         default=VideoRef(), description="The input video to add subtitles to."
     )
-    subtitles: TextRef = Field(default="", description="SRT Subtitles.")
+    subtitles: TextRef | str = Field(default="", description="SRT Subtitles.")
     font_size: int = Field(
         default=24, description="Font size for the subtitles.", ge=8, le=72
     )
@@ -762,12 +762,22 @@ class AddSubtitles(BaseNode):
             raise ValueError("Input video must be connected.")
 
         video_file = await context.asset_to_io(self.video)
-        srt_file = await context.asset_to_io(self.subtitles)
+
+        if isinstance(self.subtitles, TextRef):
+            srt_file = await context.asset_to_io(self.subtitles)
+            srt_content = srt_file.read().decode("utf-8")
+        else:
+            srt_content = self.subtitles
 
         with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
-            with tempfile.NamedTemporaryFile(suffix=".srt") as temp_srt:
-                temp.write(video_file.read())
-                temp_srt.write(srt_file.read())
+            temp.write(video_file.read())
+            temp.flush()
+
+            with tempfile.NamedTemporaryFile(
+                suffix=".srt", mode="w+", encoding="utf-8"
+            ) as temp_srt:
+                temp_srt.write(srt_content)
+                temp_srt.flush()
 
                 input_stream = ffmpeg.input(temp.name)
 
@@ -1077,3 +1087,41 @@ class ChromaKey(BaseNode):
                 # Read the chroma keyed video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
                     return await context.video_from_io(f)
+
+
+class ExtractAudio(BaseNode):
+    """
+    Separate audio from a video file.
+    video, audio, split, extract
+
+    Use cases:
+    1. Extract audio for separate processing or replacement
+    2. Create standalone audio files for use in other applications
+    3. Remove audio from videos for creating montages or other effects
+    """
+
+    video: VideoRef = Field(
+        default=VideoRef(), description="The input video to separate."
+    )
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        import ffmpeg
+
+        if self.video.is_empty():
+            raise ValueError("Input video must be connected.")
+
+        video_file = await context.asset_to_io(self.video)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp_input:
+            temp_input.write(video_file.read())
+            temp_input.flush()
+
+            with tempfile.NamedTemporaryFile(suffix=".mp3") as temp_audio:
+                (
+                    ffmpeg.input(temp_input.name)
+                    .output(temp_audio.name, acodec="libmp3lame", vn=None)
+                    .overwrite_output()
+                    .run(quiet=True)
+                )
+                with open(temp_audio.name, "rb") as f:
+                    return await context.audio_from_io(f)

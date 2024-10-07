@@ -1,15 +1,18 @@
+import datetime
 import torch
 import logging
 from nodetool.metadata.types import (
     AudioRef,
+    AudioChunk,
     HFAutomaticSpeechRecognition,
     HuggingFaceModel,
 )
 from nodetool.nodes.huggingface.huggingface_pipeline import HuggingFacePipelineNode
+from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 
 from pydantic import Field
-from typing import  Optional, Tuple, ClassVar
+from typing import Optional, Tuple, ClassVar, List
 from transformers import (
     AutomaticSpeechRecognitionPipeline,
     AutoModelForSpeechSeq2Seq,
@@ -42,6 +45,125 @@ class Whisper(HuggingFacePipelineNode):
         TRANSCRIBE = "transcribe"
         TRANSLATE = "translate"
 
+    class Timestamps(str, Enum):
+        WORD = "word"
+        SENTENCE = "sentence"
+
+    class WhisperLanguage(str, Enum):
+        NONE = "none"
+        ENGLISH = "english"
+        CHINESE = "chinese"
+        GERMAN = "german"
+        SPANISH = "spanish"
+        RUSSIAN = "russian"
+        KOREAN = "korean"
+        FRENCH = "french"
+        JAPANESE = "japanese"
+        PORTUGUESE = "portuguese"
+        TURKISH = "turkish"
+        POLISH = "polish"
+        CATALAN = "catalan"
+        DUTCH = "dutch"
+        ARABIC = "arabic"
+        SWEDISH = "swedish"
+        ITALIAN = "italian"
+        INDONESIAN = "indonesian"
+        HINDI = "hindi"
+        FINNISH = "finnish"
+        VIETNAMESE = "vietnamese"
+        HEBREW = "hebrew"
+        UKRAINIAN = "ukrainian"
+        GREEK = "greek"
+        MALAY = "malay"
+        CZECH = "czech"
+        ROMANIAN = "romanian"
+        DANISH = "danish"
+        HUNGARIAN = "hungarian"
+        TAMIL = "tamil"
+        NORWEGIAN = "norwegian"
+        THAI = "thai"
+        URDU = "urdu"
+        CROATIAN = "croatian"
+        BULGARIAN = "bulgarian"
+        LITHUANIAN = "lithuanian"
+        LATIN = "latin"
+        MAORI = "maori"
+        MALAYALAM = "malayalam"
+        WELSH = "welsh"
+        SLOVAK = "slovak"
+        TELUGU = "telugu"
+        PERSIAN = "persian"
+        LATVIAN = "latvian"
+        BENGALI = "bengali"
+        SERBIAN = "serbian"
+        AZERBAIJANI = "azerbaijani"
+        SLOVENIAN = "slovenian"
+        KANNADA = "kannada"
+        ESTONIAN = "estonian"
+        MACEDONIAN = "macedonian"
+        BRETON = "breton"
+        BASQUE = "basque"
+        ICELANDIC = "icelandic"
+        ARMENIAN = "armenian"
+        NEPALI = "nepali"
+        MONGOLIAN = "mongolian"
+        BOSNIAN = "bosnian"
+        KAZAKH = "kazakh"
+        ALBANIAN = "albanian"
+        SWAHILI = "swahili"
+        GALICIAN = "galician"
+        MARATHI = "marathi"
+        PUNJABI = "punjabi"
+        SINHALA = "sinhala"
+        KHMER = "khmer"
+        SHONA = "shona"
+        YORUBA = "yoruba"
+        SOMALI = "somali"
+        AFRIKAANS = "afrikaans"
+        OCCITAN = "occitan"
+        GEORGIAN = "georgian"
+        BELARUSIAN = "belarusian"
+        TAJIK = "tajik"
+        SINDHI = "sindhi"
+        GUJARATI = "gujarati"
+        AMHARIC = "amharic"
+        YIDDISH = "yiddish"
+        LAO = "lao"
+        UZBEK = "uzbek"
+        FAROESE = "faroese"
+        HAITIAN_CREOLE = "haitian creole"
+        PASHTO = "pashto"
+        TURKMEN = "turkmen"
+        NYNORSK = "nynorsk"
+        MALTESE = "maltese"
+        SANSKRIT = "sanskrit"
+        LUXEMBOURGISH = "luxembourgish"
+        MYANMAR = "myanmar"
+        TIBETAN = "tibetan"
+        TAGALOG = "tagalog"
+        MALAGASY = "malagasy"
+        ASSAMESE = "assamese"
+        TATAR = "tatar"
+        HAWAIIAN = "hawaiian"
+        LINGALA = "lingala"
+        HAUSA = "hausa"
+        BASHKIR = "bashkir"
+        JAVANESE = "javanese"
+        SUNDANESE = "sundanese"
+        CANTONESE = "cantonese"
+        BURMESE = "burmese"
+        VALENCIAN = "valencian"
+        FLEMISH = "flemish"
+        HAITIAN = "haitian"
+        LETZEBURGESCH = "letzeburgesch"
+        PUSHTO = "pushto"
+        PANJABI = "panjabi"
+        MOLDAVIAN = "moldavian"
+        MOLDOVAN = "moldovan"
+        SINHALESE = "sinhalese"
+        CASTILIAN = "castilian"
+        MANDARIN = "mandarin"
+
     model: HFAutomaticSpeechRecognition = Field(
         default=HFAutomaticSpeechRecognition(),
         title="Model ID on Huggingface",
@@ -53,35 +175,29 @@ class Whisper(HuggingFacePipelineNode):
         description="The input audio to transcribe.",
     )
 
-    task: Optional[Task] = Field(
+    task: Task = Field(
         default=Task.TRANSCRIBE,
         title="Task",
         description="The task to perform: 'transcribe' for speech-to-text or 'translate' for speech translation.",
     )
-    language: Optional[str] = Field(
-        default=None,
+    language: WhisperLanguage = Field(
+        default=WhisperLanguage.NONE,
         title="Language",
         description="The language of the input audio. If not specified, the model will attempt to detect it automatically. example: spanish, italian, dutch, korean, german, french",
     )
     chunk_length_s: Optional[float] = Field(
-        default=None,
+        default=30,
         title="Chunk Length (seconds)",
         description=(
             "Length of each audio chunk in seconds for chunked long-form transcription. "
             "Applicable when transcribing audio longer than the model's receptive field (e.g., 30 seconds)."
         ),
     )
-    use_sequential: Optional[bool] = Field(
-        default=None,
-        title="Use Sequential Algorithm",
-        description=(
-            "Whether to use the sequential long-form algorithm instead of chunked. "
-            "Use `True` for higher accuracy on long audio files."
-        ),
+    timestamps: Timestamps = Field(
+        default=Timestamps.SENTENCE,
+        title="Timestamps",
+        description="The type of timestamps to return for the generated text.",
     )
-
-    RETURN_TYPES: ClassVar[Tuple[str,]] = ("TEXT",)
-    FUNCTION: ClassVar[str] = "process"
 
     _pipeline: AutomaticSpeechRecognitionPipeline | None = None
 
@@ -101,6 +217,13 @@ class Whisper(HuggingFacePipelineNode):
                 allow_patterns=["model.safetensors", "*.json", "*.txt"],
             ),
         ]
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "text": str,
+            "chunks": list[AudioChunk],
+        }
 
     def required_inputs(self):
         return ["audio"]
@@ -134,18 +257,19 @@ class Whisper(HuggingFacePipelineNode):
             model_id=model,
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
+            chunk_length_s=self.chunk_length_s,
             torch_dtype=torch_dtype,
             device=context.device,
-        )
+        )  # type: ignore
 
         logger.info("Whisper model initialized successfully.")
 
     async def move_to_device(self, device: str):
         assert self._pipeline
-        self._pipeline.model.to(device)
+        self._pipeline.model.to(device)  # type: ignore
         logger.info(f"Moved Whisper model to device: {device}")
 
-    async def process(self, context: ProcessingContext) -> str:
+    async def process(self, context: ProcessingContext):
         """
         Processes the input audio and returns the transcribed text.
 
@@ -154,33 +278,86 @@ class Whisper(HuggingFacePipelineNode):
         """
         assert self._pipeline
 
-        try:
-            logger.info("Starting audio processing...")
+        logger.info("Starting audio processing...")
 
-            samples, _, _ = await context.audio_to_numpy(self.audio, sample_rate=16_000)
+        samples, _, _ = await context.audio_to_numpy(self.audio, sample_rate=16_000)
 
-            pipeline_kwargs = {}
+        pipeline_kwargs = {
+            "return_timestamps": (
+                True if self.timestamps == self.Timestamps.SENTENCE else "word"
+            ),
+            "generate_kwargs": {
+                "language": (
+                    None if self.language.value == "none" else self.language.value
+                ),
+            },
+        }
 
-            if self.language:
-                pipeline_kwargs["language"] = self.language
+        result = self._pipeline(samples, **pipeline_kwargs)
 
-            if self.chunk_length_s is not None:
-                pipeline_kwargs["chunk_length_s"] = self.chunk_length_s
+        assert isinstance(result, dict)
 
-            if self.use_sequential is not None:
-                pipeline_kwargs["use_sequential"] = self.use_sequential
+        text = result.get("text", "")
+        chunks = [
+            AudioChunk(timestamp=chunk.get("timestamp"), text=chunk.get("text"))
+            for chunk in result.get("chunks", [])
+        ]
 
-            result = self._pipeline(samples, **pipeline_kwargs)
+        logger.info("Audio processing completed successfully.")
+        return {
+            "text": text,
+            "chunks": chunks,
+        }
 
-            if isinstance(result, list):
-                if not result:
-                    logger.warning("Pipeline returned an empty list.")
-                    return ""
-                result = result[0]
 
-            text = result.get("text", "")
-            logger.info("Audio processing completed successfully.")
-            return text  
-        except Exception as e:
-            logger.error(f"Error during audio processing: {e}")
-            return ""
+class ChunksToSRT(BaseNode):
+    """
+    Convert audio chunks to SRT (SubRip Subtitle) format
+    subtitle, srt, whisper, transcription
+
+    **Use Cases:**
+    - Generate subtitles for videos
+    - Create closed captions from audio transcriptions
+    - Convert speech-to-text output to a standardized subtitle format
+
+    **Features:**
+    - Converts Whisper audio chunks to SRT format
+    - Supports customizable time offset
+    - Generates properly formatted SRT file content
+    """
+
+    chunks: List[AudioChunk] = Field(
+        default=[],
+        title="Audio Chunks",
+        description="List of audio chunks from Whisper transcription",
+    )
+
+    time_offset: float = Field(
+        default=0.0,
+        title="Time Offset",
+        description="Time offset in seconds to apply to all timestamps",
+    )
+
+    def required_inputs(self):
+        return ["chunks"]
+
+    def _format_time(self, seconds: float) -> str:
+        time = datetime.timedelta(seconds=seconds)
+        return (datetime.datetime.min + time).strftime("%H:%M:%S,%f")[:-3]
+
+    async def process(self, context: ProcessingContext) -> str:
+        srt_lines = []
+        for index, chunk in enumerate(self.chunks, start=1):
+            start_time = chunk.timestamp[0] + self.time_offset
+            end_time = chunk.timestamp[1] + self.time_offset
+
+            srt_lines.extend(
+                [
+                    f"{index}",
+                    f"{self._format_time(start_time)} --> {self._format_time(end_time)}",
+                    f"{chunk.text.strip()}",
+                    "",
+                ]
+            )
+
+        return "\n".join(srt_lines)
