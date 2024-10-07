@@ -52,38 +52,57 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
       return data;
     }
   });
-  const loras = recommendedModels.filter((model) =>
-    model.type.startsWith("hf.lora_sd")
-  );
-  const loraPaths = loras?.map((lora) => ({
-    repo_id: lora.repo_id || "",
-    path: lora.path || ""
+  const singleFileModels = recommendedModels.filter((model) => model.path);
+  const filePaths = singleFileModels?.map((model) => ({
+    repo_id: model.repo_id || "",
+    path: model.path || ""
   }));
-
-  const { data: downloadedModels } = useQuery({
-    queryKey: ["loraModels"].concat(
-      loraPaths?.map((path) => path.repo_id + ":" + path.path)
+  const { data: fileInfos } = useQuery({
+    queryKey: ["fileInfos"].concat(
+      filePaths?.map((path) => path.repo_id + ":" + path.path)
     ),
-    queryFn: async () => await tryCacheFiles(loraPaths || []),
-    enabled: loraPaths && loraPaths.length > 0
+    queryFn: async () => {
+      const { data, error } = await client.POST(
+        "/api/models/huggingface/file_info",
+        {
+          body: filePaths
+        }
+      );
+      if (error) throw error;
+      return data;
+    },
+    enabled: filePaths && filePaths.length > 0
+  });
+
+  const { data: downloadedSingleFileModels } = useQuery({
+    queryKey: ["downloadedSingleFileModels"].concat(
+      singleFileModels?.map((path) => path.repo_id + ":" + path.path)
+    ),
+    queryFn: async () => await tryCacheFiles(filePaths || []),
+    enabled: filePaths && filePaths.length > 0
   });
 
   const modelsWithSize = useMemo(() => {
     const result = recommendedModels.map((model) => {
+      const singleFileModel = model.path
+        ? downloadedSingleFileModels?.find(
+            (m) => m.repo_id === model.repo_id && m.path === model.path
+          )
+        : null;
+      const singleFileModelSize = fileInfos?.find(
+        (m) => m.repo_id === model.repo_id && m.path === model.path
+      )?.size;
       const hfModel = hfModels?.find((m) => m.repo_id === model.repo_id);
-      const loraModel = downloadedModels?.find(
-        (path) => path.repo_id === model.repo_id && path.path === model.path
-      );
       const modelWithSize = {
         ...model,
-        size_on_disk: hfModel?.size_on_disk,
-        downloaded: loraModel?.downloaded,
+        size_on_disk: model.path ? singleFileModelSize : hfModel?.size_on_disk,
+        downloaded: singleFileModel?.downloaded,
         readme: hfModel?.readme ?? ""
       };
       return modelWithSize;
     });
     return result;
-  }, [recommendedModels, hfModels, downloadedModels]);
+  }, [recommendedModels, downloadedSingleFileModels, fileInfos, hfModels]);
 
   const handleViewModeChange = (
     event: React.MouseEvent<HTMLElement>,

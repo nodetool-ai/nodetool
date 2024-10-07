@@ -12,6 +12,7 @@ from nodetool.metadata.types import (
     comfy_model_to_folder,
 )
 from huggingface_hub import try_to_load_from_cache
+from huggingface_hub import HfFileSystem
 from nodetool.api.utils import current_user
 from nodetool.models.user import User
 from fastapi import APIRouter, Depends
@@ -147,6 +148,38 @@ async def get_system_stats(user: User = Depends(current_user)) -> SystemStats:
         vram_used_gb=round(vram_used, 2) if vram_used is not None else None,
         vram_percent=round(vram_percent, 2) if vram_percent is not None else None,
     )
+
+
+class HFFileInfo(BaseModel):
+    size: int
+    repo_id: str
+    path: str
+
+
+class HFFileRequest(BaseModel):
+    repo_id: str
+    path: str
+
+
+@router.post("/huggingface/file_info")
+async def get_huggingface_file_info(
+    requests: list[HFFileRequest],
+    user: User = Depends(current_user),
+) -> list[HFFileInfo]:
+    fs = HfFileSystem()
+    file_infos = []
+
+    for request in requests:
+        file_info = fs.info(f"{request.repo_id}/{request.path}")
+        file_infos.append(
+            HFFileInfo(
+                size=file_info["size"],
+                repo_id=request.repo_id,
+                path=request.path,
+            )
+        )
+
+    return file_infos
 
 
 @router.get("/{model_type}")

@@ -318,6 +318,10 @@ class HFUnconditionalImageGeneration(HuggingFaceModel):
     )
 
 
+class HFCLIPVision(HuggingFaceModel):
+    type: Literal["hf.clip_vision"] = "hf.clip_vision"
+
+
 class HFVideoClassification(HuggingFaceModel):
     type: Literal["hf.video_classification"] = "hf.video_classification"
 
@@ -601,6 +605,7 @@ comfy_model_types = set()
 
 class ComfyModel(BaseType):
     name: str = ""
+    model: Any = None
 
     @classmethod
     def __init_subclass__(cls):

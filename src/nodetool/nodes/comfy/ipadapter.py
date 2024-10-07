@@ -1,10 +1,14 @@
 from enum import Enum
 
+import comfy.utils
+
 from pydantic import Field, validator
+from huggingface_hub import try_to_load_from_cache
 
 from nodetool.metadata.types import (
     CLIPVision,
     Embeds,
+    HFIPAdapter,
     IPAdapter,
     IPAdapterFile,
     ImageRef,
@@ -12,6 +16,7 @@ from nodetool.metadata.types import (
     UNet,
 )
 from nodetool.common.comfy_node import ComfyNode
+from nodetool.nodes.huggingface.stable_diffusion_base import HF_IP_ADAPTER_MODELS
 from nodetool.workflows.processing_context import ProcessingContext
 
 
@@ -55,28 +60,6 @@ class PrepImageForClipVision(ComfyNode):
     @classmethod
     def return_type(cls):
         return {"image": ImageRef}
-
-
-class IPAdapterModelLoader(ComfyNode):
-    ipadapter_file: IPAdapterFile = Field(
-        default=IPAdapterFile(),
-        description="List of available IPAdapter model names.",
-    )
-
-    @classmethod
-    def return_type(cls):
-        return {"ipadapter": IPAdapter}
-
-    @classmethod
-    def is_cacheable(cls):
-        return False
-
-    async def initialize(self, context: ProcessingContext):
-        (ipadapter,) = await self.call_comfy_node(context)
-        context.add_model(IPAdapter().type, self.ipadapter_file.name, ipadapter)
-
-    async def process(self, context: ProcessingContext):
-        return {"ipadapter": IPAdapter(name=self.ipadapter_file.name)}
 
 
 class IPAdapterEncoder(ComfyNode):
@@ -159,8 +142,7 @@ class IPAdapterApply(ComfyNode):
     async def process(self, context: ProcessingContext):
         (unet,) = await self.call_comfy_node(context)
         name = self.model.name + "_" + self.ipadapter.name
-        context.add_model(UNet().type, name, unet)
-        return {"unet": UNet(name=name)}
+        return {"unet": UNet(name=name, model=unet)}
 
 
 class IPAdapterApplyEncoded(IPAdapterApply):

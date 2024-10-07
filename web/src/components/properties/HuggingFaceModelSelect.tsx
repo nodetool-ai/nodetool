@@ -74,9 +74,9 @@ export default function HuggingFaceModelSelect({
     if (!models || isLoading || isError) return [];
     return (models as HuggingFaceModel[]).map((model) => ({
       value: model.path ? `${model.repo_id}:${model.path}` : model.repo_id,
-      label: modelType.startsWith("hf.lora_sd") ? model.path : model.repo_id
+      label: model.path ? `${model.repo_id}:${model.path}` : model.repo_id
     }));
-  }, [models, isLoading, isError, modelType]);
+  }, [models, isLoading, isError]);
 
   const handleChange = useCallback(
     (e: SelectChangeEvent) => {

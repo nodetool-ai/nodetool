@@ -74,18 +74,13 @@ class ComfyNode(BaseNode):
                 tensor = await context.image_to_tensor(value)
                 return tensor.unsqueeze(0)
             elif prop.type.is_comfy_data_type():
-                if not isinstance(value, ComfyData):
-                    raise ValueError(f"not a comfy data type: {value}")
+                assert isinstance(value, ComfyData), "Expected comfy data type"
+                assert value.data is not None, f"Input {name} is not connected"
                 return value.data
             elif prop.type.is_comfy_model():
-                if isinstance(value, dict):
-                    raise ValueError(
-                        f"Expected model file for property {name}: {value}"
-                    )
-                model = context.get_model(prop.type.type, value.name)  # type: ignore
-                if model is None:
-                    raise ValueError("Model not loaded: ", prop.type.type, value.name)
-                return model
+                assert isinstance(value, ComfyModel), "Expected comfy model"
+                assert value.model is not None, f"Input {name} is not connected"
+                return value.model
             else:
                 return value
 

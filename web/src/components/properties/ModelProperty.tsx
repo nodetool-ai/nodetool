@@ -10,13 +10,15 @@ export default function ModelProperty(props: PropertyProps) {
 
   const renderModelSelect = () => {
     if (modelType.startsWith("comfy.")) {
-      return (
-        <ComfyModelSelect
-          modelType={modelType}
-          onChange={props.onChange}
-          value={props.value?.name || ""}
-        />
-      );
+      if (props.nodeType.startsWith("comfy.loaders.")) {
+        return (
+          <ComfyModelSelect
+            modelType={modelType}
+            onChange={props.onChange}
+            value={props.value?.name || ""}
+          />
+        );
+      }
     } else if (modelType === "llama_model") {
       return (
         <LlamaModelSelect

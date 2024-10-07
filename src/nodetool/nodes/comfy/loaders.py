@@ -1,6 +1,8 @@
 from enum import Enum
 import comfy.sd
 import comfy.controlnet
+import comfy.utils
+import comfy.clip_vision
 from huggingface_hub import try_to_load_from_cache
 from pydantic import Field, validator
 import folder_paths
@@ -15,9 +17,14 @@ from nodetool.metadata.types import (
     ControlNet,
     ControlNetFile,
     GLIGENFile,
+    HFCLIPVision,
     HFControlNet,
+    HFIPAdapter,
+    HFLoraSD,
     HFStableDiffusion,
     HFStableDiffusionXL,
+    IPAdapter,
+    IPAdapterFile,
     LORAFile,
     UNet,
     UNetFile,
@@ -28,6 +35,8 @@ from nodetool.metadata.types import (
 )
 from nodetool.common.comfy_node import ComfyNode
 from nodetool.nodes.huggingface.stable_diffusion_base import (
+    HF_IP_ADAPTER_MODELS,
+    HF_IP_ADAPTER_XL_MODELS,
     HF_STABLE_DIFFUSION_MODELS,
     HF_STABLE_DIFFUSION_XL_MODELS,
 )
@@ -60,14 +69,10 @@ class CheckpointLoaderSimple(ComfyNode):
 
         unet, clip, vae = await self.call_comfy_node(context)
 
-        context.add_model(UNet().type, self.ckpt_name.name, unet)
-        context.add_model(CLIP().type, self.ckpt_name.name, clip)
-        context.add_model(VAE().type, self.ckpt_name.name, vae)
-
         return {
-            "model": UNet(name=self.ckpt_name.name),
-            "clip": CLIP(name=self.ckpt_name.name),
-            "vae": VAE(name=self.ckpt_name.name),
+            "model": UNet(name=self.ckpt_name.name, model=unet),
+            "clip": CLIP(name=self.ckpt_name.name, model=clip),
+            "vae": VAE(name=self.ckpt_name.name, model=vae),
         }
 
     @classmethod
@@ -116,14 +121,10 @@ class HuggingFaceCheckpointLoader(ComfyNode):
             embedding_directory=folder_paths.get_folder_paths("embeddings"),
         )
 
-        context.add_model(UNet().type, self.model.repo_id, unet)
-        context.add_model(CLIP().type, self.model.repo_id, clip)
-        context.add_model(VAE().type, self.model.repo_id, vae)
-
         return {
-            "model": UNet(name=self.model.repo_id),
-            "clip": CLIP(name=self.model.repo_id),
-            "vae": VAE(name=self.model.repo_id),
+            "model": UNet(name=self.model.repo_id, model=unet),
+            "clip": CLIP(name=self.model.repo_id, model=clip),
+            "vae": VAE(name=self.model.repo_id, model=vae),
         }
 
 
@@ -161,16 +162,11 @@ class unCLIPCheckpointLoader(ComfyNode):
 
         unet, clip, vae, clip_vision = await self.call_comfy_node(context)
 
-        context.add_model(UNet().type, self.ckpt_name.name, unet)
-        context.add_model(CLIP().type, self.ckpt_name.name, clip)
-        context.add_model(VAE().type, self.ckpt_name.name, vae)
-        context.add_model(CLIPVision().type, self.ckpt_name.name, clip_vision)
-
         return {
-            "model": UNet(name=self.ckpt_name.name),
-            "clip": CLIP(name=self.ckpt_name.name),
-            "vae": VAE(name=self.ckpt_name.name),
-            "clip_vision": CLIPVision(name=self.ckpt_name.name),
+            "model": UNet(name=self.ckpt_name.name, model=unet),
+            "clip": CLIP(name=self.ckpt_name.name, model=clip),
+            "vae": VAE(name=self.ckpt_name.name, model=vae),
+            "clip_vision": CLIPVision(name=self.ckpt_name.name, model=clip_vision),
         }
 
 
@@ -192,8 +188,53 @@ class CLIPVisionLoader(ComfyNode):
         if self.clip_name.name == "":
             raise Exception("CLIP vision name must be selected.")
         (clip_vision,) = await self.call_comfy_node(context)
-        context.add_model(CLIPVision().type, self.clip_name.name, clip_vision)
-        return {"clip_vision": CLIPVision(name=self.clip_name.name)}
+        return {"clip_vision": CLIPVision(name=self.clip_name.name, model=clip_vision)}
+
+
+class HuggingFaceCLIPVisionLoader(ComfyNode):
+    model: HFCLIPVision = Field(
+        default=HFCLIPVision(),
+        description="The CLIP vision model to load.",
+    )
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HFCLIPVision]:
+        return [
+            HFCLIPVision(
+                repo_id="h94/IP-Adapter",
+                path="models/image_encoder/model.safetensors",
+            ),
+            HFCLIPVision(
+                repo_id="h94/IP-Adapter",
+                path="sdxl_models/image_encoder/model.safetensors",
+            ),
+        ]
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace CLIP Vision"
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
+
+    @classmethod
+    def return_type(cls):
+        return {"clip_vision": CLIPVision}
+
+    async def process(self, context: ProcessingContext):
+        if self.model.repo_id == "":
+            raise Exception("CLIP vision name must be selected.")
+
+        assert self.model.path is not None, "Model must be single file"
+
+        clip_vision_path = try_to_load_from_cache(self.model.repo_id, self.model.path)
+
+        clip_vision = comfy.clip_vision.load(clip_vision_path)
+
+        return {
+            "clip_vision": CLIPVision(name=self.model.repo_id, model=clip_vision),
+        }
 
 
 class ControlNetLoader(ComfyNode):
@@ -217,8 +258,11 @@ class ControlNetLoader(ComfyNode):
         if self.control_net_name.name == "":
             raise Exception("ControlNet name must be selected.")
         (control_net,) = await self.call_comfy_node(context)
-        context.add_model(ControlNet().type, self.control_net_name.name, control_net)
-        return {"control_net": ControlNet(name=self.control_net_name.name)}
+        return {
+            "control_net": ControlNet(
+                name=self.control_net_name.name, model=control_net
+            )
+        }
 
 
 class HuggingFaceControlNetLoader(ComfyNode):
@@ -253,8 +297,7 @@ class HuggingFaceControlNetLoader(ComfyNode):
 
         controlnet = comfy.controlnet.load_controlnet(controlnet_path)
 
-        context.add_model(ControlNet().type, self.model.repo_id, controlnet)
-        return {"control_net": ControlNet(name=self.model.repo_id)}
+        return {"control_net": ControlNet(name=self.model.repo_id, model=controlnet)}
 
 
 class UpscaleModelLoader(ComfyNode):
@@ -279,8 +322,11 @@ class UpscaleModelLoader(ComfyNode):
         if self.model_name.name == "":
             raise Exception("Upscale model name must be selected.")
         (upscale_model,) = await self.call_comfy_node(context)
-        context.add_model(UpscaleModel().type, self.model_name.name, upscale_model)
-        return {"upscale_model": UpscaleModel(name=self.model_name.name)}
+        return {
+            "upscale_model": UpscaleModel(
+                name=self.model_name.name, model=upscale_model
+            )
+        }
 
 
 class GLIGENLoader(ComfyNode):
@@ -305,8 +351,7 @@ class GLIGENLoader(ComfyNode):
         if self.gligen_name.name == "":
             raise Exception("GLIGEN name must be selected.")
         (gligen,) = await self.call_comfy_node(context)
-        context.add_model(GLIGEN().type, self.gligen_name.name, gligen)
-        return {"gligen": GLIGEN(name=self.gligen_name.name)}
+        return {"gligen": GLIGEN(name=self.gligen_name.name, model=gligen)}
 
 
 class LoraLoader(ComfyNode):
@@ -343,14 +388,71 @@ class LoraLoader(ComfyNode):
         if self.lora_name.name == "":
             raise Exception("LoRA name must be selected.")
 
+        assert self.model.model is not None, "Model must be connected."
+        assert self.clip.model is not None, "CLIP must be connected."
+
         unet, clip = await self.call_comfy_node(context)
 
-        context.add_model(UNet().type, self.lora_name.name, unet)
-        context.add_model(CLIP().type, self.lora_name.name, clip)
-
         return {
-            "model": UNet(name=self.lora_name.name),
-            "clip": CLIP(name=self.lora_name.name),
+            "model": UNet(name=self.lora_name.name, model=unet),
+            "clip": CLIP(name=self.lora_name.name, model=clip),
+        }
+
+
+class HuggingFaceLoraLoader(ComfyNode):
+    model: UNet = Field(default=UNet(), description="The model to apply LoRA to.")
+    clip: CLIP = Field(default=CLIP(), description="The CLIP model to apply LoRA to.")
+    lora: HFLoraSD = Field(
+        default=HFLoraSD(),
+        description="The LoRA to load.",
+    )
+    strength_model: float = Field(
+        default=1.0,
+        description="The strength of the LoRA to apply to the model.",
+        ge=-20.0,  # ge is 'greater than or equal to'
+        le=20.0,  # le is 'less than or equal to'
+    )
+    strength_clip: float = Field(
+        default=1.0,
+        description="The strength of the LoRA to apply to the CLIP.",
+        ge=-20.0,  # ge is 'greater than or equal to'
+        le=20.0,  # le is 'less than or equal to'
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace LoRA"
+
+    @classmethod
+    def return_type(cls):
+        return {
+            "model": UNet,
+            "clip": CLIP,
+        }
+
+    async def process(self, context: ProcessingContext):
+        if self.lora.repo_id == "":
+            raise Exception("LoRA name must be selected.")
+
+        assert self.lora.path is not None, "Model must be single file"
+
+        lora_path = try_to_load_from_cache(self.lora.repo_id, self.lora.path)
+
+        assert self.model.model is not None, "Model must be connected."
+        assert self.clip.model is not None, "CLIP must be connected."
+
+        lora = comfy.utils.load_torch_file(lora_path, safe_load=True)
+
+        model_lora, clip_lora = comfy.sd.load_lora_for_models(
+            self.model.model,
+            self.clip.model,
+            lora,
+            self.strength_model,
+            self.strength_clip,
+        )
+        return {
+            "model": UNet(name=self.model.name, model=model_lora),
+            "clip": CLIP(name=self.clip.name, model=clip_lora),
         }
 
 
@@ -378,12 +480,10 @@ class LoraLoaderModelOnly(ComfyNode):
         if self.lora_name.name == "":
             raise Exception("LoRA name must be selected.")
 
-        model = (await self.call_comfy_node(context))[0]
-
-        context.add_model(UNet().type, self.lora_name.name, model)
+        (model,) = await self.call_comfy_node(context)
 
         return {
-            "model": UNet(name=self.lora_name.name),
+            "model": UNet(name=self.lora_name.name, model=model),
         }
 
 
@@ -405,8 +505,7 @@ class VAELoader(ComfyNode):
             raise Exception("VAE name must be selected.")
 
         (vae,) = await self.call_comfy_node(context)
-        context.add_model(VAE().type, self.vae_name.name, vae)
-        return {"vae": VAE(name=self.vae_name.name)}
+        return {"vae": VAE(name=self.vae_name.name, model=vae)}
 
 
 class CLIPLoader(ComfyNode):
@@ -420,8 +519,7 @@ class CLIPLoader(ComfyNode):
             raise Exception("CLIP name must be selected")
 
         (clip,) = await self.call_comfy_node(context)
-        context.add_model(CLIP().type, self.clip_name.name, clip)
-        return {"clip": CLIP(name=self.clip_name.name)}
+        return {"clip": CLIP(name=self.clip_name.name, model=clip)}
 
     @classmethod
     def get_title(cls):
@@ -458,8 +556,7 @@ class DualCLIPLoader(ComfyNode):
 
         (clip,) = await self.call_comfy_node(context)
 
-        context.add_model(CLIP().type, self.clip_name1.name, clip)
-        return {"clip": CLIP(name=self.clip_name1.name)}
+        return {"clip": CLIP(name=self.clip_name1.name, model=clip)}
 
     @classmethod
     def get_title(cls):
@@ -491,9 +588,8 @@ class UNETLoader(ComfyNode):
             raise Exception("UNet name must be selected")
 
         (unet,) = await self.call_comfy_node(context)
-        context.add_model(UNet().type, self.unet_name.name, unet)
 
-        return {"unet": UNet(name=self.unet_name.name)}
+        return {"unet": UNet(name=self.unet_name.name, model=unet)}
 
     @classmethod
     def get_title(cls):
@@ -516,3 +612,60 @@ class ImageOnlyCheckpointLoader(ComfyNode):
     @classmethod
     def get_title(cls):
         return "Image Only Checkpoint Loader (img2vid model)"
+
+
+class IPAdapterModelLoader(ComfyNode):
+    ipadapter_file: IPAdapterFile = Field(
+        default=IPAdapterFile(),
+        description="List of available IPAdapter model names.",
+    )
+
+    @classmethod
+    def return_type(cls):
+        return {"ipadapter": IPAdapter}
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
+
+    @classmethod
+    def get_title(cls):
+        return "Load IPAdapter"
+
+    async def process(self, context: ProcessingContext):
+        (ipadapter,) = await self.call_comfy_node(context)
+        return {"ipadapter": IPAdapter(name=self.ipadapter_file.name, model=ipadapter)}
+
+
+class HuggingFaceIPAdapterLoader(ComfyNode):
+    ipadapter: HFIPAdapter = Field(
+        default=HFIPAdapter(), description="The IPAdapter to load."
+    )
+
+    @classmethod
+    def get_title(cls):
+        return "Load HuggingFace IPAdapter"
+
+    @classmethod
+    def is_cacheable(cls):
+        return False
+
+    @classmethod
+    def return_type(cls):
+        return {"ipadapter": IPAdapter}
+
+    @classmethod
+    def get_recommended_models(cls):
+        return HF_IP_ADAPTER_MODELS + HF_IP_ADAPTER_XL_MODELS
+
+    async def process(self, context: ProcessingContext):
+        assert self.ipadapter.is_set(), "IPAdapter must be set."
+        assert self.ipadapter.path is not None, "IPAdapter path must be set."
+
+        ckpt_path = try_to_load_from_cache(self.ipadapter.repo_id, self.ipadapter.path)
+
+        assert ckpt_path is not None, "IPAdapter path not found."
+
+        model = comfy.utils.load_torch_file(ckpt_path, safe_load=True)
+
+        return {"ipadapter": IPAdapter(name=self.ipadapter.path, model=model)}

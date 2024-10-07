@@ -113,7 +113,7 @@ const styles = (theme: any) =>
       margin: 0,
       padding: 0,
       fontFamily: theme.fontFamily2,
-      color: theme.palette.c_gray5,
+      color: theme.palette.c_gray3,
       fontSize: theme.fontSizeSmaller
     },
     ".text-model-type": {
@@ -211,11 +211,11 @@ const ModelCard: React.FC<ModelComponentProps> = React.memo(function ModelCard({
   });
 
   const downloaded = Boolean(
-    model.type && model.type.startsWith("hf.lora_sd")
+    model.type && model.path
       ? model.downloaded
       : model.type && model.type.startsWith("hf.")
       ? model.size_on_disk
-      : modelData
+      : modelData // ollama
   );
 
   const toggleTags = () => setTagsExpanded(!tagsExpanded);

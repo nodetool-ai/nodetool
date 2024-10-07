@@ -34,7 +34,7 @@ from nodetool.types.prediction import (
 )
 from nodetool.types.workflow import Workflow
 from nodetool.common.nodetool_api_client import NodetoolAPIClient, Response
-from nodetool.metadata.types import Message, Provider, Task
+from nodetool.metadata.types import ComfyModel, Message, Provider, Task
 from nodetool.workflows.graph import Graph
 from nodetool.workflows.types import (
     NodeProgress,
@@ -115,7 +115,6 @@ class ProcessingContext:
         ] = None,
         http_client: httpx.AsyncClient | None = None,
         device: str | None = None,
-        models: dict[str, dict[str, Any]] | None = None,
     ):
         self.user_id = user_id
         self.auth_token = auth_token
@@ -125,7 +124,6 @@ class ProcessingContext:
         self.processed_nodes = set()
         self.message_queue = message_queue if message_queue else asyncio.Queue()
         self.device = device
-        self.models = models if models else {}
         self.variables: dict[str, Any] = variables if variables else {}
         self.http_client = (
             httpx.AsyncClient(follow_redirects=True, timeout=600)
@@ -145,7 +143,6 @@ class ProcessingContext:
             device=self.device,
             variables=self.variables,
             http_client=self.http_client,
-            models=self.models,
         )
 
     @property
@@ -251,32 +248,6 @@ class ProcessingContext:
                 result = result.cpu().detach()
 
             Environment.get_node_cache().set(key, result, ttl)
-
-    def add_model(self, type: str, name: str, model: Any):
-        """
-        Adds a model to the context, to be retrieved by name later.
-
-        Args:
-            type (str): The type of the model.
-            name (str): The name of the model.
-            model (Any): The model to add.
-        """
-        if type not in self.models:
-            self.models[type] = {}
-        self.models[type][name] = model
-
-    def get_model(self, type: str, name: str) -> Any:
-        """
-        Gets a model from the context.
-
-        Args:
-            type (str): The type of the model.
-            name (str): The name of the model.
-
-        Returns:
-            Any: The model.
-        """
-        return self.models.get(type, {}).get(name, None)
 
     async def find_asset(self, asset_id: str):
         """

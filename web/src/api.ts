@@ -247,6 +247,10 @@ export interface paths {
     /** Get System Stats */
     get: operations["get_system_stats_api_models_system_stats_get"];
   };
+  "/api/models/huggingface/file_info": {
+    /** Get Huggingface File Info */
+    post: operations["get_huggingface_file_info_api_models_huggingface_file_info_post"];
+  };
   "/api/models/{model_type}": {
     /** Index */
     get: operations["index_api_models__model_type__get"];
@@ -603,6 +607,28 @@ export interface components {
       allow_patterns?: string[] | null;
       /** Ignore Patterns */
       ignore_patterns?: string[] | null;
+    };
+    /** HFFileInfo */
+    HFFileInfo: {
+      /** Size */
+      size: number;
+      /** Blob Id */
+      blob_id: string;
+      /** Lfs */
+      lfs?: Record<string, never> | null;
+      /** Last Modified */
+      last_modified: string;
+      /** Repo Id */
+      repo_id: string;
+      /** Path */
+      path: string;
+    };
+    /** HFFileRequest */
+    HFFileRequest: {
+      /** Repo Id */
+      repo_id: string;
+      /** Path */
+      path: string;
     };
     /** HFFillMask */
     HFFillMask: {
@@ -3955,6 +3981,36 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["SystemStats"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  /** Get Huggingface File Info */
+  get_huggingface_file_info_api_models_huggingface_file_info_post: {
+    parameters: {
+      header?: {
+        authorization?: string | null;
+      };
+      cookie?: {
+        auth_cookie?: string | null;
+      };
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HFFileRequest"][];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          "application/json": components["schemas"]["HFFileInfo"][];
         };
       };
       /** @description Validation Error */

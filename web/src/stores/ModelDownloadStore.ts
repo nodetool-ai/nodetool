@@ -39,7 +39,7 @@ interface ModelDownloadStore {
   updateDownload: (id: string, update: Partial<Download>) => void;
   removeDownload: (id: string) => void;
   startDownload: (
-    id: string,
+    repoId: string,
     modelType: string,
     path?: string | null,
     allowPatterns?: string[] | null,
@@ -85,7 +85,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.repo_id) {
-          get().updateDownload(data.repo_id, {
+          const id = data.path ? data.repo_id + "/" + data.path : data.repo_id;
+          get().updateDownload(id, {
             status: data.status,
             id: data.repo_id,
             downloadedBytes: data.downloaded_bytes,
@@ -167,7 +168,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }),
 
   startDownload: async (
-    id: string,
+    repoId: string,
     modelType: string,
     path?: string | null,
     allowPatterns?: string[] | null,
@@ -185,6 +186,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       allowPatterns = [path];
       ignorePatterns = [];
     }
+    const id = path ? repoId + "/" + path : repoId;
     const cancelTokenSource = axios.CancelToken.source();
     get().addDownload(id, { cancelTokenSource });
     if (modelType.startsWith("hf.")) {
@@ -193,7 +195,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       ws.send(
         JSON.stringify({
           command: "start_download",
-          repo_id: id,
+          repo_id: repoId,
+          path: path,
           allow_patterns: allowPatterns,
           ignore_patterns: ignorePatterns
         })
@@ -260,7 +263,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       get().updateDownload(id, { status: "cancelled" });
     } else {
       const ws = await get().connectWebSocket();
-      ws.send(JSON.stringify({ command: "cancel_download", repo_id: id }));
+      ws.send(JSON.stringify({ command: "cancel_download", id: id }));
+      get().updateDownload(id, { status: "cancelled" });
     }
   },
 

@@ -59,17 +59,30 @@ log = Environment.get_logger()
 
 class IPAdapter_SDXL_Model(str, Enum):
     NONE = ""
-    IP_ADAPTER = "ip-adapter_sdxl.safetensors"
-    IP_ADAPTER_PLUS = "ip-adapter-plus_sdxl_vit-h.safetensors"
+    IP_ADAPTER = "ip-adapter_sdxl.bin"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sdxl_vit-h.bin"
 
 
 class IPAdapter_SD15_Model(str, Enum):
     NONE = ""
-    IP_ADAPTER = "ip-adapter_sd15.safetensors"
-    IP_ADAPTER_LIGHT = "ip-adapter_sd15_light.safetensors"
-    IP_ADAPTER_PLUS = "ip-adapter-plus_sd15.bin"
-    IP_ADAPTER_PLUS_FACE = "ip-adapter-plus-face_sd15.safetensors"
-    IP_ADAPTER_FULL_FACE = "ip-adapter-full-face_sd15.safetensors"
+    IP_ADAPTER = "ip-adapter_sd15.bin"
+    IP_ADAPTER_LIGHT = "ip-adapter_sd15_light_v11.bin"
+    IP_ADAPTER_PLUS = "ip-adapter-plus_sd15_vit-G.bin"
+
+
+HF_IP_ADAPTER_MODELS = [
+    HFIPAdapter(repo_id="h94/IP-Adapter", path="models/ip-adapter_sd15.bin"),
+    HFIPAdapter(repo_id="h94/IP-Adapter", path="models/ip-adapter_sd15_light.bin"),
+    HFIPAdapter(repo_id="h94/IP-Adapter", path="models/ip-adapter_sd15_vit-G.bin"),
+]
+
+HF_IP_ADAPTER_XL_MODELS = [
+    HFIPAdapter(repo_id="h94/IP-Adapter", path="sdxl_models/ip-adapter_sdxl.bin"),
+    HFIPAdapter(repo_id="h94/IP-Adapter", path="sdxl_models/ip-adapter_sdxl_vit-h.bin"),
+    HFIPAdapter(
+        repo_id="h94/IP-Adapter", path="sdxl_models/ip-adapter-plus_sdxl_vit-h.bin"
+    ),
+]
 
 
 HF_STABLE_DIFFUSION_MODELS = [
@@ -482,25 +495,22 @@ class StableDiffusionBaseNode(HuggingFacePipelineNode):
 
     @classmethod
     def get_recommended_models(cls):
-        return HF_STABLE_DIFFUSION_MODELS + [
-            HFIPAdapter(
-                repo_id="h94/IP-Adapter",
-                allow_patterns=[
-                    "README.md",
-                    "models/*.safetensors",
-                ],
-            ),
-            HFStableDiffusion(
-                repo_id="stabilityai/sd-x2-latent-upscaler",
-                allow_patterns=[
-                    "README.md",
-                    "**/*.safetensors",
-                    "**/*.json",
-                    "**/*.txt",
-                    "*.json",
-                ],
-            ),
-        ]
+        return (
+            HF_IP_ADAPTER_MODELS
+            + HF_STABLE_DIFFUSION_MODELS
+            + [
+                HFStableDiffusion(
+                    repo_id="stabilityai/sd-x2-latent-upscaler",
+                    allow_patterns=[
+                        "README.md",
+                        "**/*.safetensors",
+                        "**/*.json",
+                        "**/*.txt",
+                        "*.json",
+                    ],
+                ),
+            ]
+        )
 
     @classmethod
     def is_visible(cls) -> bool:
@@ -777,15 +787,7 @@ class StableDiffusionXLBase(HuggingFacePipelineNode):
     @classmethod
     def get_recommended_models(cls):
         return (
-            [
-                HFIPAdapter(
-                    repo_id="h94/IP-Adapter",
-                    allow_patterns=[
-                        "README.md",
-                        "models/*.safetensors",
-                    ],
-                )
-            ]
+            HF_IP_ADAPTER_XL_MODELS
             + HF_STABLE_DIFFUSION_XL_MODELS
             + [
                 HFControlNet(

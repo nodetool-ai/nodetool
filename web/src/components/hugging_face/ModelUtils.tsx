@@ -178,7 +178,9 @@ export const renderModelSecondaryInfo = (
 ) => (
   <>
     {isHuggingFace && (
-      <Typography variant="body2">{modelData.cardData?.license}</Typography>
+      <Typography variant="body2" className="text-license">
+        {modelData.cardData?.license}
+      </Typography>
     )}
     {!isHuggingFace && (
       <Typography variant="body2">

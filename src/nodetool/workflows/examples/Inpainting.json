@@ -5,7 +5,7 @@
   "updated_at": "2024-08-11T23:04:38.968556",
   "name": "Inpainting a face",
   "tags": [
-    "comfy"
+    "image"
   ],
   "description": "Replace the face of an image with a new face",
   "thumbnail": "",
@@ -188,9 +188,13 @@
       },
       {
         "id": "42",
-        "type": "huggingface.image.StableDiffusionXLInpainting",
+        "type": "huggingface.image_to_image.StableDiffusionInpainting",
         "data": {
-          "model": "stabilityai/stable-diffusion-xl-base-1.0",
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          },
           "prompt": "Obama",
           "negative_prompt": "",
           "seed": -1,

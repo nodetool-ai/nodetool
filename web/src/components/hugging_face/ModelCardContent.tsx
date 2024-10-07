@@ -50,8 +50,8 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           <Typography
             variant="h3"
             style={{
-              color: ThemeNodetool.palette.c_gray3,
-              fontSize: "0.75em"
+              color: ThemeNodetool.palette.c_hl1,
+              fontSize: "0.85em"
             }}
           >
             {model.path}
