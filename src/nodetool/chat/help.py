@@ -216,6 +216,7 @@ def index_documentation(collection: chromadb.Collection):
     import nodetool.nodes.nodetool
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
+    import nodetool.nodes.kling
     import nodetool.nodes.luma
     import nodetool.nodes.ollama
 

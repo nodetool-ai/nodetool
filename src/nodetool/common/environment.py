@@ -778,3 +778,39 @@ class Environment(object):
                 return torch.device("cuda")
         except:
             return torch.device("cpu")
+
+    @classmethod
+    def get_kling_access_key(cls):
+        """
+        The Kling AI API access key.
+        """
+        return cls.get("KLING_ACCESS_KEY")
+
+    @classmethod
+    def get_kling_secret_key(cls):
+        """
+        The Kling AI API secret key.
+        """
+        return cls.get("KLING_SECRET_KEY")
+
+    @classmethod
+    def get_kling_api_url(cls):
+        """
+        The Kling AI API base URL.
+        """
+        return "https://api.klingai.com"
+
+    @classmethod
+    def get_kling_ai_client(cls):
+        """
+        Get the Kling AI API client.
+        """
+        from nodetool.nodes.kling.api import KlingAIAPI
+
+        if not hasattr(cls, "kling_ai_client"):
+            cls.kling_ai_client = KlingAIAPI(
+                access_key=cls.get_kling_access_key(),
+                secret_key=cls.get_kling_secret_key(),
+                base_url=cls.get_kling_api_url(),
+            )
+        return cls.kling_ai_client
