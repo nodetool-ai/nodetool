@@ -49,10 +49,10 @@ export function titleize(str: string) {
 // Define the keyframes outside of the component
 const gradientAnimationKeyframes = keyframes`
   from {
-    --gradient-angle: 0deg;
+    --gradient-angle: 90deg;
   }
   to {
-    --gradient-angle: 360deg;
+    --gradient-angle: 450deg;
   }
 `;
 

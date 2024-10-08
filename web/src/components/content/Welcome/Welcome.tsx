@@ -219,6 +219,13 @@ const welcomeStyles = (theme: any) =>
       backgroundColor: theme.palette.c_gray1,
       padding: "1.5em",
       borderRadius: "8px"
+    },
+    ul: {
+      paddingLeft: "1em"
+    },
+    "ul li, ol li": {
+      margin: 0,
+      listStyleType: "square"
     }
   });
 
@@ -569,22 +576,30 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                         }
                         secondary={
                           <Box sx={{ mt: 1 }}>
-                            <Typography variant="body2">
-                              • Download and run models locally for privacy and
-                              offline use.
-                            </Typography>
-                            <Typography variant="body2">
-                              • Look for the{" "}
-                              <span className="fake-button">
-                                Recommended Models
-                              </span>{" "}
-                              button on compatible nodes.
-                            </Typography>
-                            <Typography variant="body2">
-                              • Use the{" "}
-                              <span className="fake-button">Models</span> button
-                              in the top panel to manage all models.
-                            </Typography>
+                            <ul>
+                              <li>
+                                <Typography variant="body2">
+                                  Download and run models locally for privacy
+                                  and offline use.
+                                </Typography>
+                              </li>
+                              <li>
+                                <Typography variant="body2">
+                                  Look for the{" "}
+                                  <span className="fake-button">
+                                    Recommended Models
+                                  </span>{" "}
+                                  button on compatible nodes.
+                                </Typography>
+                              </li>
+                              <li>
+                                <Typography variant="body2">
+                                  Use the{" "}
+                                  <span className="fake-button">Models</span>{" "}
+                                  button in the top panel to manage all models.
+                                </Typography>
+                              </li>
+                            </ul>
                           </Box>
                         }
                       />
@@ -644,26 +659,27 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
                   <p>
                     We recommend the following models for you to run examples on
                     your own GPU.
-                    <ul>
-                      <li>
-                        <Typography variant="body1">
-                          <b>Realistc Vision V6</b> - A realistic image
-                          generation model.
-                        </Typography>
-                      </li>
-                      <li>
-                        <Typography variant="body1">
-                          <b>SD XL Latent Upscaler</b> - To enable high-quality
-                          image scaling.
-                        </Typography>
-                      </li>
-                      <li>
-                        <Typography variant="body1">
-                          <b>Qwen 2.5</b> - A multilingual large language model.
-                        </Typography>
-                      </li>
-                    </ul>
                   </p>
+                  <ul>
+                    <li>
+                      <Typography variant="body1">
+                        <b>Realistc Vision V6</b> - A realistic image generation
+                        model.
+                      </Typography>
+                    </li>
+                    <li>
+                      <Typography variant="body1">
+                        <b>SD XL Latent Upscaler</b> - To enable high-quality
+                        image scaling.
+                      </Typography>
+                    </li>
+                    <li>
+                      <Typography variant="body1">
+                        <b>Qwen 2.5</b> - A multilingual large language model.
+                      </Typography>
+                    </li>
+                  </ul>
+
                   <RecommendedModels
                     recommendedModels={recommendedModels}
                     initialViewMode="list"

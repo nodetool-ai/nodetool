@@ -52,10 +52,13 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
               <Typography variant="body2" component="span">
                 {modelData?.downloads?.toLocaleString() || "N/A"}
               </Typography>
-              <FavoriteIcon
-                fontSize="small"
-                sx={{ ml: 2, color: ThemeNodetool.palette.c_gray3 }}
-              />
+
+              <Tooltip title="Likes on HF">
+                <FavoriteIcon
+                  fontSize="small"
+                  sx={{ ml: 2, color: ThemeNodetool.palette.c_gray3 }}
+                />
+              </Tooltip>
               {modelData?.likes?.toLocaleString() || "N/A"}
             </Typography>
           </Box>

@@ -215,7 +215,9 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
               <Typography component="span" variant="body2">
                 {modelData.downloads?.toLocaleString() || "N/A"}
               </Typography>
-              <FavoriteIcon fontSize="small" />
+              <Tooltip title="Likes on HF">
+                <FavoriteIcon fontSize="small" />
+              </Tooltip>
               <Typography component="span" variant="body2">
                 {modelData.likes?.toLocaleString() || "N/A"}
               </Typography>
