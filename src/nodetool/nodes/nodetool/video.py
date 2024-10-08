@@ -733,6 +733,7 @@ import os
 import tempfile
 import ffmpeg
 import time
+import re
 
 class AddSubtitles(BaseNode):
     """
@@ -752,16 +753,36 @@ class AddSubtitles(BaseNode):
     font_size: int = Field(
         default=24, description="Font size for the subtitles.", ge=8, le=72
     )
-    font_color: str = Field(default="white", description="Color of the subtitle text.")
+    font_color: str = Field(
+        default="white", description="Color of the subtitle text. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#FF0000')."
+    )
     outline_color: str = Field(
-        default="black", description="Color of the text outline."
+        default="black", description="Color of the text outline. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#000000')."
     )
     outline_width: int = Field(
         default=2, description="Width of the text outline.", ge=0, le=4
     )
+    position: str = Field(
+        default="bottom", description="Position of the subtitles. Options: 'bottom', 'top', 'middle'."
+    )
 
     def normalize_path(self, path):
         return os.path.normpath(path).replace('\\', '/')
+
+    def color_to_hex(self, color):
+        color_map = {
+            'white': 'FFFFFF',
+            'black': '000000',
+            'gray': '808080',
+            'red': 'FF0000',
+            'yellow': 'FFFF00'
+        }
+        if color.lower() in color_map:
+            return color_map[color.lower()]
+        elif re.match(r'^#?[0-9A-Fa-f]{6}$', color):
+            return color.lstrip('#')
+        else:
+            raise ValueError(f"Invalid color: {color}. Use predefined colors or hex color code.")
 
     async def process(self, context: ProcessingContext) -> VideoRef:
         if self.video.is_empty():
@@ -795,12 +816,23 @@ class AddSubtitles(BaseNode):
             srt_path = self.normalize_path(temp_srt.name)
             output_path = self.normalize_path(temp_output.name)
 
+            font_color_hex = self.color_to_hex(self.font_color)
+            outline_color_hex = self.color_to_hex(self.outline_color)
+
+            # Set vertical position based on the 'position' field
+            if self.position == 'bottom':
+                vertical_position = '(h-th)'
+            elif self.position == 'top':
+                vertical_position = '0'
+            else:  # middle
+                vertical_position = '(h-th)/2'
+
             try:
                 (
                     ffmpeg
                     .input(input_path)
-                    .filter('subtitles', filename=srt_path, force_style=f'FontSize={self.font_size},PrimaryColour=&H{self.font_color},OutlineColour=&H{self.outline_color},Outline={self.outline_width}')
-                    .output(output_path)
+                    .filter('subtitles', filename=srt_path, force_style=f'FontSize={self.font_size},PrimaryColour=&H{font_color_hex},OutlineColour=&H{outline_color_hex},Outline={self.outline_width},BorderStyle=3,Alignment=2,MarginV=20,y={vertical_position}')
+                    .output(output_path, vcodec='libx264', acodec='aac', **{'map': '0:a'})
                     .overwrite_output()
                     .run(capture_stdout=True, capture_stderr=True)
                 )
