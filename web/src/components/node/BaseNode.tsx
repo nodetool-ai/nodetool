@@ -99,7 +99,7 @@ const styles = (theme: any, colors: string[]) =>
             )`,
         borderRadius: "inherit",
         zIndex: -20,
-        animation: `${gradientAnimationKeyframes} 6s ease-in-out infinite`,
+        animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
 
         transition: "opacity 0.5s ease-in-out"
       }
