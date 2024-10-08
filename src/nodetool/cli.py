@@ -111,12 +111,15 @@ async def run(workflow_file: str):
     """Run a workflow from a file."""
 
     # TODO: only import modules referenced in worflow
+    import nodetool.nodes.anthropic
     import nodetool.nodes.comfy
     import nodetool.nodes.huggingface
     import nodetool.nodes.nodetool
     import nodetool.nodes.openai
     import nodetool.nodes.replicate
+    import nodetool.nodes.ollama
     import nodetool.nodes.luma
+    import nodetool.nodes.kling
 
     from nodetool.workflows.run_workflow import run_workflow
     from nodetool.workflows.run_job_request import RunJobRequest

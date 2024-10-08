@@ -100,41 +100,11 @@
         }
       },
       {
-        "id": "6e94f4dc-e3b9-4644-be43-b0525f2f32b3",
-        "source": "18",
-        "sourceHandle": "conditioning",
-        "target": "35",
-        "targetHandle": "conditioning_2",
-        "ui_properties": {
-          "className": "comfy_conditioning"
-        }
-      },
-      {
         "id": "e8b8fdc3-770c-46d0-a85c-b440c7a064e6",
         "source": "34",
         "sourceHandle": "conditioning",
         "target": "35",
         "targetHandle": "conditioning_1",
-        "ui_properties": {
-          "className": "comfy_conditioning"
-        }
-      },
-      {
-        "id": "4414fa55-d6b0-42c7-ba89-db5177353095",
-        "source": "35",
-        "sourceHandle": "conditioning",
-        "target": "12",
-        "targetHandle": "conditioning_1",
-        "ui_properties": {
-          "className": "comfy_conditioning"
-        }
-      },
-      {
-        "id": "7d03573f-1063-4561-b817-dc8c487121f7",
-        "source": "2bef2ce3-ff4f-4132-80a8-194c968beba4",
-        "sourceHandle": "conditioning",
-        "target": "15",
-        "targetHandle": "conditioning",
         "ui_properties": {
           "className": "comfy_conditioning"
         }
@@ -170,26 +140,6 @@
         }
       },
       {
-        "id": "48a3a722-e76a-492c-965e-6e64335516d7",
-        "source": "ec870cc3-3802-4383-92fa-91eb37084665",
-        "sourceHandle": "clip",
-        "target": "44",
-        "targetHandle": "clip",
-        "ui_properties": {
-          "className": "comfy_clip"
-        }
-      },
-      {
-        "id": "6cc23950-e923-4e02-aa71-cb8cb40f810b",
-        "source": "ec870cc3-3802-4383-92fa-91eb37084665",
-        "sourceHandle": "model",
-        "target": "3",
-        "targetHandle": "model",
-        "ui_properties": {
-          "className": "comfy_unet"
-        }
-      },
-      {
         "id": "e2b6c511-90fa-443e-a920-24c396711edd",
         "source": "0ec3343e-6e50-4fbf-9616-2e0c35b6dcd1",
         "sourceHandle": "latent",
@@ -220,86 +170,6 @@
         }
       },
       {
-        "id": "14e23f50-2eed-469f-87ce-cfed69874cda",
-        "source": "e4acecef-4bce-495a-9f6e-ab1e1fbdcbf5",
-        "sourceHandle": "conditioning",
-        "target": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
-        "targetHandle": "negative",
-        "ui_properties": {
-          "className": "comfy_conditioning"
-        }
-      },
-      {
-        "id": "94500140-12e3-4d23-b38b-1d1dbd0cd414",
-        "source": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
-        "sourceHandle": "latent",
-        "target": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
-        "targetHandle": "samples",
-        "ui_properties": {
-          "className": "comfy_latent"
-        }
-      },
-      {
-        "id": "730033ae-e230-4efe-9114-d50b8202bdbd",
-        "source": "45374813-4c6d-494a-a304-0695d2fb41a4",
-        "sourceHandle": "clip",
-        "target": "e4acecef-4bce-495a-9f6e-ab1e1fbdcbf5",
-        "targetHandle": "clip",
-        "ui_properties": {
-          "className": "comfy_clip"
-        }
-      },
-      {
-        "id": "c5664cdc-3411-48f9-893f-0378ddc884e2",
-        "source": "5c5a3100-3747-417c-86f4-458e79a72163",
-        "sourceHandle": "clip",
-        "target": "45374813-4c6d-494a-a304-0695d2fb41a4",
-        "targetHandle": "clip",
-        "ui_properties": {
-          "className": "comfy_clip"
-        }
-      },
-      {
-        "id": "bea97ebd-d933-426f-98ed-40f7cc7cb6f0",
-        "source": "5c5a3100-3747-417c-86f4-458e79a72163",
-        "sourceHandle": "vae",
-        "target": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
-        "targetHandle": "vae",
-        "ui_properties": {
-          "className": "comfy_vae"
-        }
-      },
-      {
-        "id": "e7a4c15b-0a9a-47ae-909f-32edbbd75b1d",
-        "source": "3",
-        "sourceHandle": "latent",
-        "target": "0ec3343e-6e50-4fbf-9616-2e0c35b6dcd1",
-        "targetHandle": "samples",
-        "ui_properties": {
-          "className": "comfy_latent"
-        }
-      },
-      {
-        "id": "c0e5ae78-bb66-48ff-91e6-1eafba921717",
-        "source": "3",
-        "sourceHandle": "latent",
-        "target": "8",
-        "targetHandle": "samples",
-        "ui_properties": {
-          "className": "comfy_latent"
-        }
-      },
-      {
-        "id": "e9a73546-4921-4793-8641-a78aeb3e627a",
-        "source": "5c5a3100-3747-417c-86f4-458e79a72163",
-        "sourceHandle": "vae",
-        "target": "8",
-        "targetHandle": "vae",
-        "ui_properties": {
-          "className": "comfy_vae"
-        }
-      },
-      {
         "id": "94500141",
         "source": "8",
         "sourceHandle": "image",
@@ -317,26 +187,6 @@
         "targetHandle": "value",
         "ui_properties": {
           "className": "image"
-        }
-      },
-      {
-        "id": "13135858-70bc-4ec8-a780-099b04e2e4e8",
-        "source": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
-        "sourceHandle": "image",
-        "target": "1430452f-460a-4af1-8cb9-a0fd099f9613",
-        "targetHandle": "images",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "cae58274-68ec-4a23-ad98-666b438f2800",
-        "source": "5c5a3100-3747-417c-86f4-458e79a72163",
-        "sourceHandle": "model",
-        "target": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
-        "targetHandle": "model",
-        "ui_properties": {
-          "className": "comfy_unet"
         }
       },
       {
@@ -370,6 +220,46 @@
         }
       },
       {
+        "id": "6cc23950-e923-4e02-aa71-cb8cb40f810b",
+        "source": "ec870cc3-3802-4383-92fa-91eb37084665",
+        "sourceHandle": "model",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "48a3a722-e76a-492c-965e-6e64335516d7",
+        "source": "ec870cc3-3802-4383-92fa-91eb37084665",
+        "sourceHandle": "clip",
+        "target": "44",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "7d03573f-1063-4561-b817-dc8c487121f7",
+        "source": "2bef2ce3-ff4f-4132-80a8-194c968beba4",
+        "sourceHandle": "conditioning",
+        "target": "15",
+        "targetHandle": "conditioning",
+        "ui_properties": {
+          "className": "comfy_conditioning"
+        }
+      },
+      {
+        "id": "6e94f4dc-e3b9-4644-be43-b0525f2f32b3",
+        "source": "18",
+        "sourceHandle": "conditioning",
+        "target": "35",
+        "targetHandle": "conditioning_2",
+        "ui_properties": {
+          "className": "comfy_conditioning"
+        }
+      },
+      {
         "id": "6462c297-724f-42be-b748-f4afca6339de",
         "source": "10",
         "sourceHandle": "conditioning",
@@ -390,6 +280,116 @@
         }
       },
       {
+        "id": "4414fa55-d6b0-42c7-ba89-db5177353095",
+        "source": "35",
+        "sourceHandle": "conditioning",
+        "target": "12",
+        "targetHandle": "conditioning_1",
+        "ui_properties": {
+          "className": "comfy_conditioning"
+        }
+      },
+      {
+        "id": "c0e5ae78-bb66-48ff-91e6-1eafba921717",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "e7a4c15b-0a9a-47ae-909f-32edbbd75b1d",
+        "source": "3",
+        "sourceHandle": "latent",
+        "target": "0ec3343e-6e50-4fbf-9616-2e0c35b6dcd1",
+        "targetHandle": "samples",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "730033ae-e230-4efe-9114-d50b8202bdbd",
+        "source": "45374813-4c6d-494a-a304-0695d2fb41a4",
+        "sourceHandle": "clip",
+        "target": "e4acecef-4bce-495a-9f6e-ab1e1fbdcbf5",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "236b3830-9728-4e17-b9dc-0a7a0520dcb2",
+        "source": "45374818",
+        "sourceHandle": "vae",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
+        "id": "13135858-70bc-4ec8-a780-099b04e2e4e8",
+        "source": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
+        "sourceHandle": "image",
+        "target": "1430452f-460a-4af1-8cb9-a0fd099f9613",
+        "targetHandle": "images",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "14e23f50-2eed-469f-87ce-cfed69874cda",
+        "source": "e4acecef-4bce-495a-9f6e-ab1e1fbdcbf5",
+        "sourceHandle": "conditioning",
+        "target": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
+        "targetHandle": "negative",
+        "ui_properties": {
+          "className": "comfy_conditioning"
+        }
+      },
+      {
+        "id": "6ce6fc35-5520-4d2e-9418-689dd63498b2",
+        "source": "45374818",
+        "sourceHandle": "model",
+        "target": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
+        "targetHandle": "model",
+        "ui_properties": {
+          "className": "comfy_unet"
+        }
+      },
+      {
+        "id": "4c7a146a-a8e6-4a2d-8ce1-b649e8decf4c",
+        "source": "45374818",
+        "sourceHandle": "clip",
+        "target": "45374813-4c6d-494a-a304-0695d2fb41a4",
+        "targetHandle": "clip",
+        "ui_properties": {
+          "className": "comfy_clip"
+        }
+      },
+      {
+        "id": "94500140-12e3-4d23-b38b-1d1dbd0cd414",
+        "source": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
+        "sourceHandle": "latent",
+        "target": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
+        "targetHandle": "samples",
+        "ui_properties": {
+          "className": "comfy_latent"
+        }
+      },
+      {
+        "id": "600f66b0-bb53-458f-a483-de314468af42",
+        "source": "45374818",
+        "sourceHandle": "vae",
+        "target": "fc7ad1e7-98b9-41ec-aefc-e536910dd134",
+        "targetHandle": "vae",
+        "ui_properties": {
+          "className": "comfy_vae"
+        }
+      },
+      {
         "id": "fd391084-31e8-4c12-b795-4265bfc84365",
         "source": "b2c240f8-bd6b-4c9c-a299-09c0f33677a3",
         "sourceHandle": "conditioning",
@@ -405,7 +405,7 @@
         "id": "3",
         "type": "comfy.sampling.KSampler",
         "data": {
-          "seed": 0,
+          "seed": 1,
           "seed_control_mode": "increment",
           "steps": 13,
           "cfg": 8.5,
@@ -992,7 +992,7 @@
         "id": "5c530ec0-68fe-4b24-b91f-d51b61d073ab",
         "type": "comfy.sampling.KSampler",
         "data": {
-          "seed": 0,
+          "seed": 1,
           "seed_control_mode": "increment",
           "steps": 14,
           "cfg": 7,
@@ -1154,25 +1154,6 @@
         }
       },
       {
-        "id": "5c5a3100-3747-417c-86f4-458e79a72163",
-        "type": "comfy.loaders.CheckpointLoaderSimple",
-        "data": {
-          "ckpt_name": {
-            "type": "comfy.checkpoint_file",
-            "name": "Realistic_Vision_V6.safetensors"
-          }
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 2245,
-            "y": 734
-          },
-          "zIndex": 0,
-          "selectable": true
-        }
-      },
-      {
         "id": "45374815",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
@@ -1182,8 +1163,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2207,
-            "y": 674
+            "x": 2202,
+            "y": 672
           },
           "zIndex": 0,
           "width": 251,
@@ -1226,17 +1207,27 @@
           "height": 160,
           "selectable": true
         }
+      },
+      {
+        "id": "45374818",
+        "type": "comfy.loaders.HuggingFaceCheckpointLoader",
+        "data": {
+          "model": {
+            "type": "hf.stable_diffusion",
+            "repo_id": "SG161222/Realistic_Vision_V5.1_noVAE",
+            "path": "Realistic_Vision_V5.1_fp16-no-ema.safetensors"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2228,
+            "y": 709
+          },
+          "zIndex": 0,
+          "selectable": true
+        }
       }
     ]
-  },
-  "input_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {},
-    "required": []
   }
 }

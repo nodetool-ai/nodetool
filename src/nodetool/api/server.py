@@ -74,7 +74,7 @@ def create_app(
         return "OK"
 
     worker_url = Environment.get_worker_url()
-    
+
     if Environment.is_production():
         index_documentation(get_collection("docs"))
         index_examples(get_collection("examples"))
@@ -92,7 +92,6 @@ def create_app(
     else:
         # if we don't run the worker, we need to initialize nodes
         import nodetool.nodes.anthropic
-
         import nodetool.nodes.comfy
         import nodetool.nodes.huggingface
         import nodetool.nodes.nodetool
@@ -100,6 +99,7 @@ def create_app(
         import nodetool.nodes.replicate
         import nodetool.nodes.ollama
         import nodetool.nodes.luma
+        import nodetool.nodes.kling
 
         if Environment.get_comfy_folder():
             import comfy.cli_args
