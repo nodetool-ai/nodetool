@@ -46,7 +46,7 @@ class Whisper(HuggingFacePipelineNode):
         TRANSLATE = "translate"
 
     class Timestamps(str, Enum):
-        NONE = "none"  # Added this line
+        NONE = "none"
         WORD = "word"
         SENTENCE = "sentence"
 
@@ -184,7 +184,7 @@ class Whisper(HuggingFacePipelineNode):
     language: WhisperLanguage = Field(
         default=WhisperLanguage.NONE,
         title="Language",
-        description="The language of the input audio. If not specified, the model will attempt to detect it automatically. example: spanish, italian, dutch, korean, german, french",
+        description="The language of the input audio. If not specified, the model will attempt to detect it automatically.",
     )
     chunk_length_s: Optional[float] = Field(
         default=30,
