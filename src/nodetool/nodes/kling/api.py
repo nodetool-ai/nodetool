@@ -5,6 +5,10 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 from enum import Enum
 import asyncio
+import base64
+import json
+import hmac
+import hashlib
 
 
 class TaskStatus(str, Enum):
@@ -25,11 +29,29 @@ class BaseResponse(BaseModel):
     request_id: str
 
 
+class ImageResult(BaseModel):
+    index: int
+    url: str
+
+
+class VideoResult(BaseModel):
+    id: str
+    url: str
+    duration: str
+
+
+class TaskResult(BaseModel):
+    images: Optional[List[ImageResult]] = None
+    videos: Optional[List[VideoResult]] = None
+
+
 class TaskData(BaseModel):
     task_id: str
     task_status: TaskStatus
+    task_status_msg: Optional[str] = None
     created_at: int
     updated_at: int
+    task_result: Optional[TaskResult] = None
 
 
 class TaskResponse(BaseResponse):
@@ -70,34 +92,6 @@ class VirtualTryOnRequest(BaseRequest):
     cloth_image: Optional[str] = None
 
 
-class ImageResult(BaseModel):
-    index: int
-    url: str
-
-
-class VideoResult(BaseModel):
-    id: str
-    url: str
-    duration: str
-
-
-class TaskResult(BaseModel):
-    images: Optional[List[ImageResult]] = None
-    videos: Optional[List[VideoResult]] = None
-
-
-class CompletedTaskResponse(BaseResponse):
-    data: TaskData
-    task_result: TaskResult
-
-
-import base64
-import json
-import hmac
-import hashlib
-import time
-
-
 class KlingAIAPI:
     def __init__(
         self,
@@ -113,13 +107,26 @@ class KlingAIAPI:
     def _generate_token(self) -> str:
         payload = {
             "iss": self.access_key,
-            "exp": int(time.time())
-            + 1800,  # The valid time, in this example, represents the current time+1800s(30min)
-            "nbf": int(time.time())
-            - 5,  # The time when it starts to take effect, in this example, represents the current time minus 5s
+            "exp": int(time.time()) + 1800,
+            "nbf": int(time.time()) - 5,
         }
-        jwk = jwk_from_pem(self.secret_key.encode())
-        return JWT().encode(payload, jwk, alg="HS256")
+        header = {"alg": "HS256", "typ": "JWT"}
+
+        # Encode header and payload
+        header_encoded = base64.urlsafe_b64encode(json.dumps(header).encode()).rstrip(
+            b"="
+        )
+        payload_encoded = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(
+            b"="
+        )
+
+        # Create signature
+        message = f"{header_encoded.decode()}.{payload_encoded.decode()}"
+        signature = hmac.new(self.secret_key.encode(), message.encode(), hashlib.sha256)
+        signature_encoded = base64.urlsafe_b64encode(signature.digest()).rstrip(b"=")
+
+        # Combine all parts
+        return f"{message}.{signature_encoded.decode()}"
 
     async def _make_request(
         self, method: str, endpoint: str, data: Optional[Dict] = None
@@ -129,35 +136,34 @@ class KlingAIAPI:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self._generate_token()}",
         }
-        async with self.client as client:
-            response = await client.request(method, url, headers=headers, json=data)
-            response.raise_for_status()
-            return response.json()
+        response = await self.client.request(method, url, headers=headers, json=data)
+        response.raise_for_status()
+        return response.json()
 
-    async def _poll_task(self, task_id: str, get_task_func) -> CompletedTaskResponse:
+    async def _poll_task(self, task_id: str, get_task_func) -> TaskResponse:
         while True:
-            response = await get_task_func(task_id)
-            task_status = response["data"]["task_status"]
+            response: TaskResponse = await get_task_func(task_id)
+            task_status = response.data.task_status
             if task_status in [TaskStatus.SUCCEED, TaskStatus.FAILED]:
-                return CompletedTaskResponse(**response)
-            await asyncio.sleep(5)  # Wait for 5 seconds before polling again
+                return response
+            await asyncio.sleep(1)
 
     # Image Generation
     async def create_image_generation_task(
         self, request: ImageGenerationRequest
     ) -> TaskResponse:
         response = await self._make_request(
-            "POST", "/v1/images/generations", request.dict(exclude_none=True)
+            "POST", "/v1/images/generations", request.model_dump()
         )
         return TaskResponse(**response)
 
-    async def get_image_generation_task(self, task_id: str) -> CompletedTaskResponse:
+    async def get_image_generation_task(self, task_id: str) -> TaskResponse:
         response = await self._make_request("GET", f"/v1/images/generations/{task_id}")
-        return CompletedTaskResponse(**response)
+        return TaskResponse(**response)
 
     async def create_image_generation_task_and_wait(
         self, request: ImageGenerationRequest
-    ) -> CompletedTaskResponse:
+    ) -> TaskResponse:
         task = await self.create_image_generation_task(request)
         return await self._poll_task(task.data.task_id, self.get_image_generation_task)
 
@@ -166,17 +172,17 @@ class KlingAIAPI:
         self, request: VideoGenerationRequest
     ) -> TaskResponse:
         response = await self._make_request(
-            "POST", "/v1/videos/text2video", request.dict(exclude_none=True)
+            "POST", "/v1/videos/text2video", request.model_dump()
         )
         return TaskResponse(**response)
 
-    async def get_text_to_video_task(self, task_id: str) -> CompletedTaskResponse:
+    async def get_text_to_video_task(self, task_id: str) -> TaskResponse:
         response = await self._make_request("GET", f"/v1/videos/text2video/{task_id}")
-        return CompletedTaskResponse(**response)
+        return TaskResponse(**response)
 
     async def create_text_to_video_task_and_wait(
         self, request: VideoGenerationRequest
-    ) -> CompletedTaskResponse:
+    ) -> TaskResponse:
         task = await self.create_text_to_video_task(request)
         return await self._poll_task(task.data.task_id, self.get_text_to_video_task)
 
@@ -185,17 +191,17 @@ class KlingAIAPI:
         self, request: ImageToVideoRequest
     ) -> TaskResponse:
         response = await self._make_request(
-            "POST", "/v1/videos/image2video", request.dict(exclude_none=True)
+            "POST", "/v1/videos/image2video", request.model_dump()
         )
         return TaskResponse(**response)
 
-    async def get_image_to_video_task(self, task_id: str) -> CompletedTaskResponse:
+    async def get_image_to_video_task(self, task_id: str) -> TaskResponse:
         response = await self._make_request("GET", f"/v1/videos/image2video/{task_id}")
-        return CompletedTaskResponse(**response)
+        return TaskResponse(**response)
 
     async def create_image_to_video_task_and_wait(
         self, request: ImageToVideoRequest
-    ) -> CompletedTaskResponse:
+    ) -> TaskResponse:
         task = await self.create_image_to_video_task(request)
         return await self._poll_task(task.data.task_id, self.get_image_to_video_task)
 
@@ -204,19 +210,21 @@ class KlingAIAPI:
         self, request: VirtualTryOnRequest
     ) -> TaskResponse:
         response = await self._make_request(
-            "POST", "/v1/images/kolors-virtual-try-on", request.dict(exclude_none=True)
+            "POST",
+            "/v1/images/kolors-virtual-try-on",
+            request.model_dump(),
         )
         return TaskResponse(**response)
 
-    async def get_virtual_try_on_task(self, task_id: str) -> CompletedTaskResponse:
+    async def get_virtual_try_on_task(self, task_id: str) -> TaskResponse:
         response = await self._make_request(
             "GET", f"/v1/images/kolors-virtual-try-on/{task_id}"
         )
-        return CompletedTaskResponse(**response)
+        return TaskResponse(**response)
 
     async def create_virtual_try_on_task_and_wait(
         self, request: VirtualTryOnRequest
-    ) -> CompletedTaskResponse:
+    ) -> TaskResponse:
         task = await self.create_virtual_try_on_task(request)
         return await self._poll_task(task.data.task_id, self.get_virtual_try_on_task)
 

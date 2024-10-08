@@ -1,5 +1,10 @@
 import enum
 import os
+import tempfile
+import ffmpeg
+import time
+import re
+
 from typing import Any
 import PIL.ImageFilter
 import PIL.ImageOps
@@ -727,13 +732,6 @@ class Saturation(BaseNode):
                 # Read the saturation-adjusted video and create a VideoRef
                 with open(output_temp.name, "rb") as f:
                     return await context.video_from_io(f)
-
-
-import os
-import tempfile
-import ffmpeg
-import time
-import re
 
 class AddSubtitles(BaseNode):
     """
