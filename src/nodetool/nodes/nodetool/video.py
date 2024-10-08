@@ -729,6 +729,11 @@ class Saturation(BaseNode):
                     return await context.video_from_io(f)
 
 
+import os
+import tempfile
+import ffmpeg
+import time
+
 class AddSubtitles(BaseNode):
     """
     Add subtitles to a video.
@@ -755,9 +760,10 @@ class AddSubtitles(BaseNode):
         default=2, description="Width of the text outline.", ge=0, le=4
     )
 
-    async def process(self, context: ProcessingContext) -> VideoRef:
-        import ffmpeg
+    def normalize_path(self, path):
+        return os.path.normpath(path).replace('\\', '/')
 
+    async def process(self, context: ProcessingContext) -> VideoRef:
         if self.video.is_empty():
             raise ValueError("Input video must be connected.")
 
@@ -769,33 +775,62 @@ class AddSubtitles(BaseNode):
         else:
             srt_content = self.subtitles
 
-        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp:
-            temp.write(video_file.read())
-            temp.flush()
+        temp_input = None
+        temp_srt = None
+        temp_output = None
 
-            with tempfile.NamedTemporaryFile(
-                suffix=".srt", mode="w+", encoding="utf-8"
-            ) as temp_srt:
-                temp_srt.write(srt_content)
-                temp_srt.flush()
+        try:
+            temp_input = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+            temp_srt = tempfile.NamedTemporaryFile(suffix=".srt", delete=False)
+            temp_output = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+            
+            temp_input.write(video_file.read())
+            temp_srt.write(srt_content.encode('utf-8'))
+            
+            temp_input.close()
+            temp_srt.close()
+            temp_output.close()
 
-                input_stream = ffmpeg.input(temp.name)
+            input_path = self.normalize_path(temp_input.name)
+            srt_path = self.normalize_path(temp_srt.name)
+            output_path = self.normalize_path(temp_output.name)
 
-                # Add subtitles
-                subtitled = input_stream.filter(
-                    "subtitles",
-                    temp_srt.name,
-                    force_style=f"FontSize={self.font_size},PrimaryColour=&H{self.font_color},OutlineColour=&H{self.outline_color},Outline={self.outline_width}",
+            try:
+                (
+                    ffmpeg
+                    .input(input_path)
+                    .filter('subtitles', filename=srt_path, force_style=f'FontSize={self.font_size},PrimaryColour=&H{self.font_color},OutlineColour=&H{self.outline_color},Outline={self.outline_width}')
+                    .output(output_path)
+                    .overwrite_output()
+                    .run(capture_stdout=True, capture_stderr=True)
                 )
 
-                with tempfile.NamedTemporaryFile(suffix=".mp4") as output_temp:
-                    ffmpeg.output(subtitled, output_temp.name).overwrite_output().run(
-                        quiet=False
-                    )
+                with open(temp_output.name, "rb") as f:
+                    return await context.video_from_io(f)
 
-                    # Read the video with subtitles and create a VideoRef
-                    with open(output_temp.name, "rb") as f:
-                        return await context.video_from_io(f)
+            except ffmpeg.Error as e:
+                print(f"stdout: {e.stdout.decode('utf8')}")
+                print(f"stderr: {e.stderr.decode('utf8')}")
+                raise RuntimeError(f"ffmpeg error: {e.stderr.decode('utf8')}")
+
+        except Exception as e:
+            raise RuntimeError(f"Error processing video: {str(e)}") from e
+
+        finally:
+            # Ensure files are closed before attempting to delete
+            for temp_file in [temp_input, temp_srt, temp_output]:
+                if temp_file:
+                    temp_file.close()
+
+            # Attempt to delete files with retry
+            for temp_file in [temp_input, temp_srt, temp_output]:
+                if temp_file and os.path.exists(temp_file.name):
+                    for _ in range(5):  # Try up to 5 times
+                        try:
+                            os.unlink(temp_file.name)
+                            break
+                        except PermissionError:
+                            time.sleep(0.1)  # Wait a bit before retrying
 
 
 class Reverse(BaseNode):
@@ -1094,6 +1129,10 @@ import tempfile
 import ffmpeg
 
 class ExtractAudio(BaseNode):
+    """
+    Separate audio from a video file.
+    """
+    
     video: VideoRef = Field(
         default=VideoRef(), description="The input video to separate."
     )
@@ -1106,8 +1145,9 @@ class ExtractAudio(BaseNode):
 
         # Create a temporary file for the input video
         video_fd, temp_input_path = tempfile.mkstemp(suffix=".mp4")
+        os.close(video_fd)  # Close the file descriptor as we'll open it manually
         try:
-            with os.fdopen(video_fd, "wb") as temp_input:
+            with open(temp_input_path, "wb") as temp_input:
                 temp_input.write(video_file.read())
 
             # Create a temporary file for the extracted audio
@@ -1115,20 +1155,32 @@ class ExtractAudio(BaseNode):
             os.close(audio_fd)  # Close immediately since ffmpeg will handle the file
 
             try:
-                # Run ffmpeg command to extract the audio
+                # Extract the audio
                 (
-                    ffmpeg.input(temp_input_path)
-                    .output(temp_audio_path, acodec="libmp3lame", vn=None)
+                    ffmpeg
+                    .input(temp_input_path)
+                    .output(temp_audio_path, acodec="libmp3lame", map='0:a', format='mp3', loglevel='error')
                     .overwrite_output()
-                    .run(quiet=False)
+                    .run(quiet=True)
                 )
 
                 # Read the extracted audio and return it
                 with open(temp_audio_path, "rb") as temp_audio:
                     return await context.audio_from_io(temp_audio)
 
+            except ffmpeg.Error as e:
+                # Capture ffmpeg errors and output to stderr for debugging
+                error_message = e.stderr.decode('utf-8') if e.stderr else "Unknown ffmpeg error."
+                raise RuntimeError(f"ffmpeg error: {error_message}") from e
+
             finally:
-                os.remove(temp_audio_path)  # Clean up audio file
+                if os.path.exists(temp_audio_path):
+                    os.remove(temp_audio_path)  # Clean up audio file
+
+        except Exception as e:
+            raise RuntimeError(f"Error processing video file: {e}") from e
 
         finally:
-            os.remove(temp_input_path)  # Clean up video file
+            if os.path.exists(temp_input_path):
+                os.remove(temp_input_path) 
+
