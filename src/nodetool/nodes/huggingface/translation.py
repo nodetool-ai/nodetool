@@ -23,7 +23,8 @@ class Translation(HuggingFacePipelineNode):
     - Multilingual content creation
     - Cross-language communication
     - Localization of applications and websites
-    - International market research
+
+    Note: some models support more languages than others.
     """
 
     class LanguageCode(str, Enum):
