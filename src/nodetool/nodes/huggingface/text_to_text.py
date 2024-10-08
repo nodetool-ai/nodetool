@@ -9,13 +9,21 @@ from pydantic import Field
 class TextToText(HuggingFacePipelineNode):
     """
     Performs text-to-text generation tasks.
-    text, generation, translation, summarization, natural language processing
+    text, generation, translation, question-answering, summarization, nlp, natural-language-processing
 
     Use cases:
     - Text translation
     - Text summarization
     - Paraphrasing
     - Text style transfer
+
+    Usage:
+    Start with a command like Translate, Summarize, or Q (for question)
+    Follow with the text you want to translate, summarize, or answer a question about.
+    Examples:
+    - Translate to German: Hello
+    - Summarize: The quick brown fox jumps over the lazy dog.
+    - Q: Who ate the cookie? followed by the text of the cookie monster.
     """
 
     @classmethod
