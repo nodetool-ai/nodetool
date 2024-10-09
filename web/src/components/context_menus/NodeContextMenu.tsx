@@ -60,10 +60,17 @@ const NodeContextMenu: React.FC = () => {
   );
 
   const removeFromGroup = useCallback(() => {
-    if (node?.id) {
-      updateNode(node.id, { parentId: undefined });
+    if (node?.id && node.parentId) {
+      const parentNode = getNode(node.parentId);
+      if (parentNode) {
+        const newPosition = {
+          x: (parentNode.position.x || 0) + (node.position.x - 10 || 0),
+          y: (parentNode.position.y || 0) + (node.position.y - 10 || 0)
+        };
+        updateNode(node.id, { parentId: undefined, position: newPosition });
+      }
     }
-  }, [node?.id, updateNode]);
+  }, [node, getNode, updateNode]);
 
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
