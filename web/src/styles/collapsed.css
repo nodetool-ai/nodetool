@@ -5,6 +5,13 @@
   margin-bottom: 0;
   margin-top: 0;
 }
+.node-body.collapsed .node-header {
+  height: 1.7em;
+  min-height: unset;
+}
+.node-body.collapsed .node-title {
+  font-size: var(--font-size-small);
+}
 
 .node-body.collapsed .node-property label,
 .node-body.collapsed .inner-property p {
