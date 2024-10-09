@@ -4,6 +4,7 @@ from collections import deque
 from pydantic import BaseModel, Field
 from nodetool.types.graph import Edge
 from nodetool.workflows.base_node import (
+    GroupNode,
     InputNode,
     BaseNode,
     OutputNode,
@@ -128,8 +129,22 @@ class Graph(BaseModel):
         - Nodes are only included in the output if their parent_id matches the given parent_id.
         - If a cycle exists, some nodes may be omitted from the result.
         """
-        # Filter nodes based on parent_id
-        nodes = [node for node in self.nodes if node.parent_id == parent_id]
+        # handle special case for top level nodes
+        # child nodes of regular groups can be executed like top level nodes
+        if parent_id is None:
+            group_nodes = {
+                node.id for node in self.nodes if isinstance(node, GroupNode)
+            }
+            print(group_nodes)
+        else:
+            group_nodes = set()
+
+        # Filter nodes with given parent_id
+        nodes = [
+            node
+            for node in self.nodes
+            if node.parent_id == parent_id or node.parent_id in group_nodes
+        ]
         node_ids = {node.id for node in nodes}
 
         # Filter edges to only include those connected to the filtered nodes
