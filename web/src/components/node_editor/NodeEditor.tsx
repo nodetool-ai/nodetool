@@ -153,25 +153,12 @@ const NodeEditor: React.FC<unknown> = () => {
   /* UTILS */
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
   const alignNodes = useAlignNodes();
-  const selectedNodeIds = useSessionStateStore(
-    (state) => state.selectedNodeIds
-  );
-  const setSelectedNodes = useSessionStateStore(
-    (state) => state.setSelectedNodes
+  const selectedNodeIds = useNodeStore((state) =>
+    state.getSelectedNodes().map((node) => node.id)
   );
 
   const duplicateNodes = useDuplicateNodes();
   const addToGroup = useAddToGroup();
-
-  // UPDATE SELECTED NODES in SessionStateStore
-  useOnSelectionChange({
-    onChange: useCallback(
-      ({ nodes }) => {
-        setSelectedNodes(nodes as Node<NodeData>[]);
-      },
-      [setSelectedNodes]
-    )
-  });
 
   /* DUPLICATE SELECTION */
   const handleDuplicate = useCallback(() => {

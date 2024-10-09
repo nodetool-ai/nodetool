@@ -162,6 +162,7 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
   const nodeHovered = useNodeStore((state) =>
     state.hoveredNodes.includes(props.id)
   );
+  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
   const { spaceKeyPressed } = useKeyPressedStore((state) => ({
     spaceKeyPressed: state.isKeyPressed(" ")
   }));
@@ -247,14 +248,6 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
     },
     [props.data, props.id, updateNodeData]
   );
-
-  useEffect(() => {
-    if (spaceKeyPressed) {
-      updateNode(props.id, { selectable: true });
-    } else {
-      updateNode(props.id, { selectable: false });
-    }
-  }, [updateNode, props.id, spaceKeyPressed]);
 
   if (!metadata) {
     return <div>Loading...</div>;
