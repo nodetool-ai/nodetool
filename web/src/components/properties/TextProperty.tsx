@@ -23,7 +23,7 @@ const styles = (theme: any) =>
     ".button-expand": {
       position: "absolute",
       zIndex: 0,
-      top: "-11px",
+      top: "-6px",
       right: "0px",
       cursor: "pointer",
       width: "1em",
