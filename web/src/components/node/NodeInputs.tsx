@@ -9,6 +9,7 @@ export interface NodeInputsProps {
   id: string;
   layout?: string;
   nodeType: string;
+  isSelected: boolean;
   primaryField?: string;
   secondaryField?: string;
   properties: Property[];
@@ -24,6 +25,7 @@ export const NodeInputs = memo(function NodeInputs({
   data,
   edges,
   nodeType,
+  isSelected,
   onlyHandles,
   onlyFields,
   layout,
@@ -49,6 +51,7 @@ export const NodeInputs = memo(function NodeInputs({
             edges.find((edge) => edge.targetHandle === property.name) !==
             undefined
           }
+          isSelected={isSelected}
         />
       ))}
     </div>

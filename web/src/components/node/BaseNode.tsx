@@ -311,6 +311,7 @@ export default memo(
           renderedResult={renderedResult}
           isMinZoom={isMinZoom}
           firstOutput={firstOutput}
+          isSelected={props.selected || false}
         />
         <div className="node-resizer">
           <Tooltip

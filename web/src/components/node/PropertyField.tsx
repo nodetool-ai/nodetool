@@ -31,6 +31,7 @@ export type PropertyFieldProps = {
   onlyInput?: boolean;
   onlyHandle?: boolean;
   isInspector?: boolean;
+  isSelected: boolean;
 };
 
 /**
@@ -46,7 +47,8 @@ const PropertyField: React.FC<PropertyFieldProps> = memo(
     onlyInput,
     onlyHandle,
     isInspector,
-    edgeConnected
+    edgeConnected,
+    isSelected
   }) => {
     const controlKeyPressed = useKeyPressedStore((state) =>
       state.isKeyPressed("Control")
@@ -148,6 +150,7 @@ const PropertyField: React.FC<PropertyFieldProps> = memo(
             nodeType={nodeType}
             property={property}
             controlKeyPressed={controlKeyPressed}
+            isSelected={isSelected}
             isInspector={isInspector}
             hideInput={edgeConnected}
             hideLabel={false}
