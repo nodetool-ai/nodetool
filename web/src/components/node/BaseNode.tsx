@@ -273,7 +273,7 @@ export default memo(
       return null;
     }
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const [nodeHeight, setNodeHeight] = useState<number>(100); // Track the height dynamically
+    // const [nodeHeight, setNodeHeight] = useState<number>(100); // Track the height dynamically
 
     return (
       <Container
@@ -332,11 +332,11 @@ export default memo(
                   const [dirX, dirY] = params.direction;
                   return dirX !== 0 && dirY === 0;
                 }}
-                onResize={(event, params: ResizeParams) => {
-                  setNodeHeight((prevHeight) => prevHeight);
-                }}
+                // onResize={(event, params: ResizeParams) => {
+                //   setNodeHeight((prevHeight) => prevHeight);
+                // }}
                 minWidth={100}
-                maxWidth={300}
+                maxWidth={MAX_NODE_WIDTH}
               />
             </div>
           </Tooltip>
