@@ -16,6 +16,7 @@ import CopyAllIcon from "@mui/icons-material/CopyAll";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useNodeStore, NodeStore } from "../../stores/NodeStore";
@@ -41,7 +42,10 @@ const NodeContextMenu: React.FC = () => {
   );
   const { getNode } = useReactFlow();
   const deleteNode = useNodeStore((state: NodeStore) => state.deleteNode);
-  const updateNode = useNodeStore((state: NodeStore) => state.updateNodeData);
+  const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
+  const updateNodeData = useNodeStore(
+    (state: NodeStore) => state.updateNodeData
+  );
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData;
 
@@ -54,6 +58,12 @@ const NodeContextMenu: React.FC = () => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+
+  const removeFromGroup = useCallback(() => {
+    if (node?.id) {
+      updateNode(node.id, { parentId: undefined });
+    }
+  }, [node?.id, updateNode]);
 
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
@@ -80,35 +90,42 @@ const NodeContextMenu: React.FC = () => {
   ]);
 
   //copy
-  const handleCopyClicked = (
-    event: React.MouseEvent<HTMLElement>,
-    nodeId: string | null
-  ) => {
-    event.stopPropagation();
-    handleCopy(nodeId || "");
-  };
+  const handleCopyClicked = useCallback(
+    (event: React.MouseEvent<HTMLElement>, nodeId: string | null) => {
+      event.stopPropagation();
+      handleCopy(nodeId || "");
+    },
+    [handleCopy]
+  );
 
   //delete
-  const handleDelete = (event?: React.MouseEvent<HTMLElement>) => {
-    event?.preventDefault();
-    event?.stopPropagation();
-    const { nodeId } = useContextMenuStore.getState();
-    if (nodeId !== null) {
-      deleteNode(nodeId);
-      closeContextMenu();
-    }
-  };
+  const handleDelete = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      event?.preventDefault();
+      event?.stopPropagation();
+      const { nodeId } = useContextMenuStore.getState();
+      if (nodeId !== null) {
+        deleteNode(nodeId);
+        closeContextMenu();
+      }
+    },
+    [closeContextMenu, deleteNode]
+  );
 
   //collapse
-  const toggleCollapse = (val: boolean) => {
-    if (nodeId !== null) {
-      updateNode(nodeId, {
-        properties: { ...nodeData?.properties },
-        workflow_id: nodeData?.workflow_id || "",
-        collapsed: val
-      });
-    }
-  };
+  const toggleCollapse = useCallback(
+    (val: boolean) => {
+      if (nodeId !== null) {
+        updateNodeData(nodeId, {
+          properties: { ...nodeData?.properties },
+          workflow_id: nodeData?.workflow_id || "",
+          collapsed: val
+        });
+      }
+    },
+    [nodeData?.properties, nodeData?.workflow_id, nodeId, updateNodeData]
+  );
+
   const handleDuplicateNodes = useCallback(() => {
     const nodeIdsToDuplicate =
       nodeId !== null && getNode(nodeId) ? [nodeId] : [];
@@ -123,12 +140,12 @@ const NodeContextMenu: React.FC = () => {
     toggleCollapse(checked);
   };
 
-  const handleOpenDocumentation = () => {
+  const handleOpenDocumentation = useCallback(() => {
     openDocumentation(node?.type || "", {
       x: (menuPosition?.x ?? 0) + 100,
       y: menuPosition?.y ?? 0
     });
-  };
+  }, [menuPosition?.x, menuPosition?.y, node?.type, openDocumentation]);
 
   return (
     <Menu
@@ -151,6 +168,16 @@ const NodeContextMenu: React.FC = () => {
           NODE
         </Typography>
       </MenuItem>
+
+      {node?.parentId && (
+        <ContextMenuItem
+          onClick={removeFromGroup}
+          label="Remove from Group"
+          IconComponent={<GroupRemoveIcon />}
+          tooltip="Remove this node from the group"
+        />
+      )}
+
       <ContextMenuItem
         onClick={handleDuplicateNodes}
         label="Duplicate"
