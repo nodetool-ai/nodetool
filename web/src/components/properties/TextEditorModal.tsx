@@ -1,3 +1,4 @@
+// TextEditorModal.tsx
 /** @jsxImportSource @emotion/react */
 import { css, useTheme } from "@emotion/react";
 import ReactDOM from "react-dom";
@@ -8,13 +9,17 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { Tooltip } from "@mui/material";
+import ThemeNodes from "../themes/ThemeNodes";
+import CircularProgress from "@mui/material/CircularProgress";
 
 interface TextEditorModalProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
   onClose: () => void;
   propertyName: string;
   propertyDescription?: string;
+  readOnly?: boolean;
+  isLoading?: boolean;
 }
 
 const modalStyles = (theme: any) =>
@@ -121,18 +126,21 @@ export default function TextEditorModal({
   onChange,
   onClose,
   propertyName,
-  propertyDescription
+  propertyDescription,
+  readOnly = false,
+  isLoading = false
 }: TextEditorModalProps) {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const { writeClipboard } = useClipboard();
-  // Focus the textarea when the modal opens
+
+  // Focus the textarea when the modal opens, but only if not loading
   useEffect(() => {
-    if (textareaRef.current) {
+    if (textareaRef.current && !isLoading) {
       textareaRef.current.focus();
     }
-  }, []);
+  }, [isLoading]);
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === modalOverlayRef.current) {
@@ -152,7 +160,7 @@ export default function TextEditorModal({
   );
 
   const content = (
-    <div css={modalStyles(theme)}>
+    <div css={modalStyles(theme)} className={readOnly ? "read-only" : ""}>
       <div
         className="modal-overlay"
         role="presentation"
@@ -184,19 +192,42 @@ export default function TextEditorModal({
             </div>
           </div>
           {propertyDescription && (
-            <div className="description">{propertyDescription}</div>
+            <div
+              className="description"
+              style={{
+                color: readOnly
+                  ? ThemeNodes.palette.c_warning
+                  : ThemeNodes.palette.c_white
+              }}
+            >
+              {propertyDescription}
+            </div>
           )}
           <div className="modal-body">
-            <TextareaAutosize
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              style={{ flex: 1, width: "100%" }}
-            />
+            {isLoading ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "100%"
+                }}
+              >
+                <CircularProgress />
+              </div>
+            ) : (
+              <TextareaAutosize
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => onChange && onChange(e.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                style={{ flex: 1, width: "100%" }}
+                readOnly={readOnly}
+              />
+            )}
           </div>
           <div className="modal-footer"></div>
         </div>
