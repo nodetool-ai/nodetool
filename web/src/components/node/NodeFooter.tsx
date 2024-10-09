@@ -113,6 +113,7 @@ export const NodeFooter = memo<NodeFooterProps>(
     );
     const icon = datatype && (
       <IconForType
+        showTooltip={false}
         iconName={datatype.value}
         containerStyle={{
           borderRadius: "0 0 3px 0",

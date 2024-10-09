@@ -1,12 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
-import { colorForType } from "../../config/data_types";
+import { colorForType, datatypeByName } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
-import { Node, NodeProps, NodeResizer, useStore } from "@xyflow/react";
+import {
+  Node,
+  NodeProps,
+  NodeResizer,
+  ResizeParams,
+  useStore
+} from "@xyflow/react";
 import { isEqual } from "lodash";
-import { Container } from "@mui/material";
+import { Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useNodeStore } from "../../stores/NodeStore";
@@ -108,6 +114,9 @@ const styles = (theme: any, colors: string[]) =>
       "&::before": {
         opacity: 1
       }
+    },
+    ".react-flow__resize-control.handle.right": {
+      cursor: "ew-resize"
     }
   });
 
@@ -221,7 +230,10 @@ export default memo(
               type: "string"
             }
           };
-
+    const outputDatatype = useMemo(
+      () => datatypeByName(firstOutput.type.type),
+      [firstOutput.type.type]
+    );
     const nodeColors = useMemo(() => {
       const outputColors = [
         ...new Set(
@@ -260,6 +272,8 @@ export default memo(
     if (parentIsCollapsed) {
       return null;
     }
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [nodeHeight, setNodeHeight] = useState<number>(100); // Track the height dynamically
 
     return (
       <Container
@@ -304,11 +318,28 @@ export default memo(
           firstOutput={firstOutput}
         />
         <div className="node-resizer">
-          <NodeResizer
-            minWidth={100}
-            minHeight={100}
-            maxWidth={MAX_NODE_WIDTH}
-          />
+          <Tooltip
+            title={outputDatatype?.description || "test"}
+            // title={"test"}
+            placement="bottom-end"
+          >
+            <div className="resizer">
+              <NodeResizer
+                shouldResize={(
+                  event,
+                  params: ResizeParams & { direction: number[] }
+                ) => {
+                  const [dirX, dirY] = params.direction;
+                  return dirX !== 0 && dirY === 0;
+                }}
+                onResize={(event, params: ResizeParams) => {
+                  setNodeHeight((prevHeight) => prevHeight);
+                }}
+                minWidth={100}
+                maxWidth={300}
+              />
+            </div>
+          </Tooltip>
         </div>
       </Container>
     );

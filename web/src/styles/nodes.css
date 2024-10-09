@@ -5,6 +5,11 @@
  */
 
 /* General node */
+/* prevent resizing in y direction for BaseNode */
+.react-flow__nodes .react-flow__node:not([class*="Preview"]):not([class*="Loop"]):not([class*="Group"]) {
+  height: auto !important;
+}
+
 .react-flow__node {
   font-size: var(--font-size-small);
   width: auto;
