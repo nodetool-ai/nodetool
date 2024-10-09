@@ -3,7 +3,7 @@ import { Divider, Typography, MenuItem, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useNodeStore } from "../../stores/NodeStore";
+import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import useSessionStateStore from "../../stores/SessionStateStore";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
@@ -18,6 +18,7 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
+import { useReactFlow } from "@xyflow/react";
 
 interface SelectionContextMenuProps {
   top?: number;
@@ -28,12 +29,13 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { handleCopy } = useCopyPaste();
   const deleteNode = useNodeStore((state) => state.deleteNode);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
+  const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
+  const { getNode } = useReactFlow();
   const findNode = useNodeStore((state) => state.findNode);
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
   const addToGroup = useAddToGroup();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
-
   const selectedNodeIds = useSessionStateStore(
     (state) => state.selectedNodeIds
   );
@@ -103,6 +105,32 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     },
     [selectedNodeIds, alignNodes, findNode, updateNodeData]
   );
+
+  // remove from group
+  const removeFromGroup = useCallback(
+    (selectedNodeIds: string[]) => {
+      if (selectedNodeIds?.length) {
+        selectedNodeIds.forEach((id) => {
+          const node = findNode(id);
+          if (node && node.parentId) {
+            const parentNode = getNode(node.parentId);
+            if (parentNode) {
+              const newPosition = {
+                x: (parentNode.position.x || 0) + (node.position.x - 10 || 0),
+                y: (parentNode.position.y || 0) + (node.position.y - 10 || 0)
+              };
+              updateNode(node.id, {
+                parentId: undefined,
+                position: newPosition
+              });
+            }
+          }
+        });
+      }
+    },
+    [findNode, getNode, updateNode]
+  );
+
   if (!menuPosition) return null;
   return (
     <Menu
@@ -180,6 +208,20 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         label="Add To Group"
         IconComponent={<GroupWorkIcon />}
         tooltip={<span className="tooltip-1">Space+G</span>}
+        addButtonClassName={`action ${
+          selectedNodeIds.length < 1 ? "disabled" : ""
+        }`}
+      />
+      <ContextMenuItem
+        onClick={() => {
+          removeFromGroup(selectedNodeIds);
+        }}
+        label="Remove From Group"
+        IconComponent={<GroupWorkIcon />}
+        // tooltip={<span className="tooltip-1">Space+G</span>}
+        tooltip={
+          <span className="tooltip-1">Right Click Node or Selection</span>
+        }
         addButtonClassName={`action ${
           selectedNodeIds.length < 1 ? "disabled" : ""
         }`}
