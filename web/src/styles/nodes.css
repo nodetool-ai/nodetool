@@ -6,8 +6,9 @@
 
 /* General node */
 /* prevent resizing in y direction for BaseNode */
-.react-flow__nodes .react-flow__node:not([class*="Preview"]):not([class*="Loop"]):not([class*="Group"]) {
+.react-flow__nodes .react-flow__node:not([class*="Preview"]):not([class*="Loop"]):not([class*="Group"]):not([class*="Comment"]) {
   height: auto !important;
+  /* max-height: 500px; */
 }
 
 .react-flow__node {
@@ -15,8 +16,6 @@
   width: auto;
   cursor: default !important;
   padding: 0;
-  /* padding: 5px 0 0 0;
-  padding-bottom: 5px; */
   border-radius: 0.3em;
   background-color: var(--c_node_bg);
   transition: background-color 0.05s;
