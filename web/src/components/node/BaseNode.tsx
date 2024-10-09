@@ -38,9 +38,7 @@ const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
 
-/**
- * Split a camelCase string into a space separated string.
- */
+// Split a camelCase string into a space separated string.
 export function titleize(str: string) {
   const s = str.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
   return s.replace(/([a-z])([A-Z])/g, "$1 $2");
@@ -52,7 +50,6 @@ export function titleize(str: string) {
  * @param props
  */
 
-// Define the keyframes outside of the component
 const gradientAnimationKeyframes = keyframes`
   from {
     --gradient-angle: 90deg;
@@ -272,8 +269,6 @@ export default memo(
     if (parentIsCollapsed) {
       return null;
     }
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    // const [nodeHeight, setNodeHeight] = useState<number>(100); // Track the height dynamically
 
     return (
       <Container
@@ -320,7 +315,6 @@ export default memo(
         <div className="node-resizer">
           <Tooltip
             title={outputDatatype?.description || "test"}
-            // title={"test"}
             placement="bottom-end"
           >
             <div className="resizer">
@@ -332,9 +326,6 @@ export default memo(
                   const [dirX, dirY] = params.direction;
                   return dirX !== 0 && dirY === 0;
                 }}
-                // onResize={(event, params: ResizeParams) => {
-                //   setNodeHeight((prevHeight) => prevHeight);
-                // }}
                 minWidth={100}
                 maxWidth={MAX_NODE_WIDTH}
               />

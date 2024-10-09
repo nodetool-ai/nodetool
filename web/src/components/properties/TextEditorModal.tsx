@@ -1,6 +1,6 @@
-// TextEditorModal.tsx
 /** @jsxImportSource @emotion/react */
 import { css, useTheme } from "@emotion/react";
+
 import ReactDOM from "react-dom";
 import { useEffect, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
