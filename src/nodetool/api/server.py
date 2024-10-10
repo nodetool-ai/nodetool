@@ -75,9 +75,10 @@ def create_app(
 
     worker_url = Environment.get_worker_url()
 
-    if Environment.is_production():
-        index_documentation(get_collection("docs"))
-        index_examples(get_collection("examples"))
+    # TODO: run this in a subprocess
+    # if Environment.is_production():
+    #     index_documentation(get_collection("docs"))
+    #     index_examples(get_collection("examples"))
 
     if not Environment.is_production():
         app.add_websocket_route("/hf/download", hf_websocket_endpoint)

@@ -5,10 +5,11 @@
   "updated_at": "2024-10-06T19:16:15.913456",
   "name": "Upscaling",
   "description": "Upscale an image to a higher resolution using a RealESRGAN model.",
-  "tags": ["image"],
+  "tags": [
+    "image"
+  ],
   "thumbnail": "",
   "thumbnail_url": "/examples/lora.jpg",
-  "thumbnail_url": null,
   "graph": {
     "edges": [
       {

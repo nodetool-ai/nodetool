@@ -213,7 +213,7 @@
       },
       {
         "id": "10",
-        "type": "huggingface.audio.MusicGen",
+        "type": "huggingface.text_to_audio.MusicGen",
         "data": {
           "model": "facebook/musicgen-small",
           "max_new_tokens": 256
