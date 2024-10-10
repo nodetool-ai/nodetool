@@ -52,8 +52,11 @@ class Bark(HuggingFacePipelineNode):
 
     async def initialize(self, context: ProcessingContext):
         self._pipeline = await self.load_pipeline(
-            context, "text-to-speech", self.get_model_id(), device=context.device
-        )
+            context=context,
+            pipeline_task="text-to-speech",
+            model_id=self.get_model_id(),
+            device=context.device,
+        )  # type: ignore
 
     async def process(self, context: ProcessingContext) -> AudioRef:
         assert self._pipeline is not None, "Pipeline not initialized"

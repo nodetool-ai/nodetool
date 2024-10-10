@@ -6,20 +6,72 @@
   "name": "Image To Audio Story",
   "description": "Tell a story about an image",
   "thumbnail": "",
-  "tags": ["start", "multimodal"],
+  "tags": [
+    "start",
+    "multimodal"
+  ],
   "thumbnail_url": "https://i.imgur.com/VMFPYVR.jpeg",
   "graph": {
+    "edges": [
+      {
+        "id": "8326ca61-99bd-4e8c-bd89-7a0beacafd30",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "input",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "67119",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "e6a8f8b2-8f21-4b6d-8628-0dbee4cc36ad",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "67117e75-7172-4df7-b796-78efcd3d9d85",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "67118",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ],
     "nodes": [
       {
         "id": "1",
-        "parent_id": null,
         "type": "nodetool.constant.Image",
         "data": {
           "value": {
-            "type": "image",
-            "uri": "https://i.imgur.com/VMFPYVR.jpeg",
-            "asset_id": null,
-            "temp_id": null
+            "uri": "https://app.nodetool.ai/examples/porcelain_sculpture.jpg",
+            "type": "image"
           }
         },
         "ui_properties": {
@@ -34,18 +86,14 @@
       },
       {
         "id": "2",
-        "parent_id": null,
         "type": "ollama.text.Ollama",
         "data": {
-          "model": "",
+          "model": {
+            "type": "llama_model",
+            "repo_id": "qwen2:0.5b"
+          },
           "system": "You are a friendly assistant.",
           "prompt": "write a fictional short story about this image. the story should follow classical principles, short and witty, with a surprise at the end. written in the wild style of the 60s.",
-          "image": {
-            "type": "image",
-            "uri": "https://i.imgur.com/VMFPYVR.jpeg",
-            "asset_id": null,
-            "temp_id": null
-          },
           "max_tokens": 100,
           "temperature": 1,
           "top_k": 40,
@@ -63,17 +111,15 @@
       },
       {
         "id": "3",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": "",
           "name": ""
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 492,
-            "y": 86
+            "x": 490,
+            "y": 84
           },
           "zIndex": 0,
           "width": 306,
@@ -83,10 +129,12 @@
       },
       {
         "id": "4",
-        "parent_id": null,
-        "type": "huggingface.audio.TextToSpeech",
+        "type": "huggingface.text_to_speech.TextToSpeech",
         "data": {
-          "model": "",
+          "model": {
+            "type": "hf.text_to_speech",
+            "repo_id": "facebook/mms-tts-eng"
+          },
           "prompt": ""
         },
         "ui_properties": {
@@ -101,19 +149,11 @@
       },
       {
         "id": "5",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "value": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "temp_id": null
-          },
           "name": "audio_output_2024-07-06"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 648,
             "y": 254
@@ -126,7 +166,6 @@
       },
       {
         "id": "6",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "headline": "Image To Audio Story",
@@ -142,7 +181,6 @@
           ]
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 2,
             "y": -90
@@ -153,56 +191,6 @@
           "selectable": true
         }
       }
-    ],
-    "edges": [
-      {
-        "id": "67118",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "8326ca61-99bd-4e8c-bd89-7a0beacafd30",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "input",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "67117e75-7172-4df7-b796-78efcd3d9d85",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "image",
-        "ui_properties": {
-          "className": "image"
-        }
-      },
-      {
-        "id": "67119",
-        "source": "4",
-        "sourceHandle": "output",
-        "target": "5",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "audio"
-        }
-      }
     ]
-  },
-  "input_schema": {
-    "type": "object",
-    "properties": {}
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {}
   }
 }

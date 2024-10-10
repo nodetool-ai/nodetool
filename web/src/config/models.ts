@@ -37,18 +37,28 @@ export const llama_models: UnifiedModel[] = [
     type: "llama_model"
   },
   {
-    id: "qwen2:0.5b",
+    id: "qwen2.5:0.5b",
     name: "Qwen2 - 0.5B",
     type: "llama_model"
   },
   {
-    id: "qwen2:1.5b",
+    id: "qwen2.5:1.5b",
     name: "Qwen2 - 1.5B",
     type: "llama_model"
   },
   {
-    id: "qwen2:latest",
-    name: "Qwen2",
+    id: "qwen2.5:3b",
+    name: "Qwen2 - 3B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5:7b",
+    name: "Qwen2 - 7B",
+    type: "llama_model"
+  },
+  {
+    id: "qwen2.5:14b",
+    name: "Qwen2 - 14B",
     type: "llama_model"
   },
   {
