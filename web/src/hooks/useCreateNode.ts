@@ -31,8 +31,6 @@ export const useCreateNode = (
             y: menuPosition.y
           };
 
-      console.log(position);
-
       if (metadata.node_type === LOOP_NODE_TYPE) {
         createLoopNode(metadata, position);
       } else {

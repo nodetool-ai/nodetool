@@ -7,7 +7,6 @@ import {
   Background,
   BackgroundVariant,
   FitViewOptions,
-  useOnSelectionChange,
   ReactFlow,
   Connection,
   SelectionMode,
@@ -28,7 +27,6 @@ import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
 import { shallow } from "zustand/shallow";
 // components
 import CommandMenu from "../menus/CommandMenu";
@@ -72,7 +70,6 @@ import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 import { ErrorBoundary } from "@sentry/react";
-import { NodeData } from "../../stores/NodeData";
 import useModelStore from "../../stores/ModelStore";
 import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import GroupNode from "../node/GroupNode";

@@ -4,7 +4,6 @@ import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useNodeStore } from "../../stores/NodeStore";
-import useSessionStateStore from "../../stores/SessionStateStore";
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
@@ -35,13 +34,13 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const selectedNodeIds = useSessionStateStore(
-    (state) => state.selectedNodeIds
+  const selectedNodeIds = useNodeStore((state) =>
+    state.getSelectedNodes().map((node) => node.id)
   );
 
   // any has parent
   const anyHasParent = useMemo(() => {
-    return selectedNodeIds.some((id) => findNode(id)?.parentId);
+    return selectedNodeIds.some((id: string) => findNode(id)?.parentId);
   }, [selectedNodeIds, findNode]);
 
   //duplicate
