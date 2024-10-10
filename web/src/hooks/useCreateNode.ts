@@ -3,7 +3,7 @@ import { NodeMetadata } from "../stores/ApiTypes";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useNodeStore } from "../stores/NodeStore";
 import { useReactFlow } from "@xyflow/react";
-import { useCreateLoopNode } from "./createnodes/useCreateLoopNode";
+import { useCreateLoopNode } from "./nodes/useCreateLoopNode";
 
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined

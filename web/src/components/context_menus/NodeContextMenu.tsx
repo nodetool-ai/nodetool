@@ -30,6 +30,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { devLog } from "../../utils/DevLog";
 import { useMetadata } from "../../serverState/useMetadata";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 
 const NodeContextMenu: React.FC = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -48,7 +49,7 @@ const NodeContextMenu: React.FC = () => {
   );
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData;
-
+  const removeFromGroup = useRemoveFromGroup();
   const { data } = useMetadata();
   const metadata = node?.type ? data?.metadataByType[node?.type] : null;
   const { handleCopy } = useCopyPaste();
@@ -58,19 +59,6 @@ const NodeContextMenu: React.FC = () => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-
-  const removeFromGroup = useCallback(() => {
-    if (node?.id && node.parentId) {
-      const parentNode = getNode(node.parentId);
-      if (parentNode) {
-        const newPosition = {
-          x: (parentNode.position.x || 0) + (node.position.x - 10 || 0),
-          y: (parentNode.position.y || 0) + (node.position.y - 10 || 0)
-        };
-        updateNode(node.id, { parentId: undefined, position: newPosition });
-      }
-    }
-  }, [node, getNode, updateNode]);
 
   //copy metadata to clipboard
   const handleCopyMetadataToClipboard = useCallback(() => {
@@ -178,7 +166,7 @@ const NodeContextMenu: React.FC = () => {
 
       {node?.parentId && (
         <ContextMenuItem
-          onClick={removeFromGroup}
+          onClick={() => removeFromGroup([node.id])}
           label="Remove from Group"
           IconComponent={<GroupRemoveIcon />}
           tooltip="Remove this node from the group"

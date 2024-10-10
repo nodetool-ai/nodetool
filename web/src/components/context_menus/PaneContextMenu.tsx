@@ -17,7 +17,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNodeStore } from "../../stores/NodeStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useCallback } from "react";
-import { useCreateLoopNode } from "../../hooks/createnodes/useCreateLoopNode";
+import { useCreateLoopNode } from "../../hooks/nodes/useCreateLoopNode";
 import { useMetadata } from "../../serverState/useMetadata";
 
 interface PaneContextMenuProps {

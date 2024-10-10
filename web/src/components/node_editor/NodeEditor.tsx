@@ -77,7 +77,7 @@ import useModelStore from "../../stores/ModelStore";
 import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import GroupNode from "../node/GroupNode";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import { useAddToGroup } from "../../hooks/createnodes/useAddToGroup";
+import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
 
 declare global {
   interface Window {
