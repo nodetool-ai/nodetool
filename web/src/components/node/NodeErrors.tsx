@@ -47,12 +47,12 @@ export const errorStyles = (theme: any) =>
     }
   });
 
-export const NodeErrors: React.FC<{ id: string }> = ({ id }) => {
-  const nodeData = useNodeStore((state) => state.findNode(id)?.data);
+export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
+  id,
+  workflow_id
+}) => {
   const error = useErrorStore((state) =>
-    nodeData?.workflow_id !== undefined
-      ? state.getError(nodeData?.workflow_id, id)
-      : undefined
+    workflow_id !== undefined ? state.getError(workflow_id, id) : undefined
   );
   const { writeClipboard } = useClipboard();
 

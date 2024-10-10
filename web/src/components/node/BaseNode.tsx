@@ -4,13 +4,7 @@ import { colorForType, datatypeByName } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo, useCallback } from "react";
-import {
-  Node,
-  NodeProps,
-  NodeResizer,
-  ResizeParams,
-  useStore
-} from "@xyflow/react";
+import { Node, NodeProps, NodeResizer, ResizeParams } from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -21,7 +15,6 @@ import { NodeErrors } from "./NodeErrors";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import OutputRenderer from "./OutputRenderer";
-import { MIN_ZOOM } from "../../config/constants";
 import ModelRecommendations from "./ModelRecommendations";
 import { isProduction } from "../../stores/ApiClient";
 import ApiKeyValidation from "./ApiKeyValidation";
@@ -119,8 +112,8 @@ const styles = (theme: any, colors: string[]) =>
 
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Flow and zoom-related state
-  const currentZoom = useStore((state) => state.transform[2]);
-  const isMinZoom = currentZoom === MIN_ZOOM;
+  // const currentZoom = useStore((state) => state.transform[2]);
+  // const isMinZoom = currentZoom === MIN_ZOOM;
 
   // Metadata and loading state
   const {
@@ -281,20 +274,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : ThemeNodes.palette.c_node_bg
       }}
     >
-      <NodeHeader
-        id={props.id}
-        nodeTitle={node_title}
-        hasParent={hasParent}
-        isMinZoom={isMinZoom}
-      />
-      {!isMinZoom && (
-        <>
-          <NodeErrors id={props.id} />
-          <NodeStatus status={status} />
-          {!isProduction && <ModelRecommendations nodeType={props.type} />}
-          {!isProduction && <ApiKeyValidation nodeNamespace={node_namespace} />}
-        </>
-      )}
+      <NodeHeader id={props.id} nodeTitle={node_title} hasParent={hasParent} />
+      <NodeErrors id={props.id} workflow_id={workflowId} />
+      <NodeStatus status={status} />
+      {!isProduction && <ModelRecommendations nodeType={props.type} />}
+      {!isProduction && <ApiKeyValidation nodeNamespace={node_namespace} />}
       <NodeContent
         id={props.id}
         nodeType={props.type}
@@ -306,9 +290,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         status={status}
         workflowId={workflowId}
         renderedResult={renderedResult}
-        isMinZoom={isMinZoom}
         firstOutput={firstOutput}
-        isSelected={props.selected || false}
       />
       <div className="node-resizer">
         <Tooltip

@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+import ollama
 
 import chromadb
 
@@ -220,6 +221,8 @@ def index_documentation(collection: chromadb.Collection):
     import nodetool.nodes.luma
     import nodetool.nodes.ollama
 
+    print("Indexing documentation")
+
     ids = [c.get_node_type() for c in get_registered_node_classes()]
     docs = [c.get_description() for c in get_registered_node_classes()]
 
@@ -231,9 +234,13 @@ def index_examples(collection: chromadb.Collection):
     """
     Index the examples if they don't exist yet.
     """
+    print("Indexing examples")
+
     examples = load_examples()
     ids = [example.id for example in examples]
     docs = [example.model_dump_json() for example in examples]
+
+    print(sorted(ids))
 
     collection.add(ids, documents=docs)
     print("Indexed examples")
@@ -241,11 +248,15 @@ def index_examples(collection: chromadb.Collection):
 
 def get_doc_collection():
     collection = get_collection("docs")
+    if collection.count() == 0:
+        index_documentation(collection)
     return collection
 
 
 def get_example_collection():
     collection = get_collection("examples")
+    if collection.count() == 0:
+        index_examples(collection)
     return collection
 
 
@@ -263,9 +274,7 @@ def search_documentation(
         A tuple of the ids and documents that match the query.
     """
     res = get_doc_collection().query(query_texts=[query], n_results=n_results)
-    if len(res["ids"]) == 0:
-        return [], []
-    if res["documents"] is None:
+    if len(res["ids"]) == 0 or res["documents"] is None:
         return [], []
     return res["ids"][0], res["documents"][0]
 
@@ -282,9 +291,7 @@ def search_examples(query: str, n_results: int = 3):
         A tuple of the ids and documents that match the query.
     """
     res = get_example_collection().query(query_texts=[query], n_results=n_results)
-    if len(res["ids"]) == 0:
-        return [], []
-    if res["documents"] is None:
+    if len(res["ids"]) == 0 or res["documents"] is None:
         return [], []
     return res["ids"][0], res["documents"][0]
 
@@ -388,11 +395,6 @@ def system_prompt_for(
     examples: list[str],
     available_tutorials: list[str],
 ) -> str:
-    if "tutorial" in prompt:
-        tutorial_str = TUTORIALS
-    else:
-        tutorial_str = ""
-
     docs_str = "\n".join([f"{name}: {doc}" for name, doc in docs.items()])
     examples_str = "\n".join(examples)
     return f"""
@@ -706,43 +708,58 @@ async def create_help_answer(
     _, examples = search_examples(prompt)
 
     docs_dict = dict(zip(node_types, docs))
-
-    system_message = Message(
+    system_message = ollama.Message(
         role="system",
-        content=system_prompt_for(prompt, docs_dict, examples, available_tutorials),
+        content=system_prompt_for(
+            prompt, docs=docs_dict, examples=examples, available_tutorials=[]
+        ),
     )
-    tools: list[Tool] = []
-    classes = [
-        c for c in get_registered_node_classes() if c.get_node_type() in node_types
-    ]
-    model = FunctionModel(
-        provider=Provider.OpenAI,
-        name="gpt-4o-mini",
+    ollama_messages = [ollama.Message(role=m.role, content=m.content) for m in messages]  # type: ignore
+
+    client = Environment.get_ollama_client()
+
+    completion = await client.chat(
+        model="qwen2.5:1.5b", messages=[system_message] + ollama_messages
     )
-    tools.append(TutorialTool(available_tutorials))
+    message = completion["message"]
+    return [Message(role=message["role"], content=message["content"])]
 
-    for node_class in classes[:10]:
-        try:
-            if node_class.get_node_type().startswith("replicate"):
-                continue
-            tools.append(AddNodeTool(node_class))
-        except Exception as e:
-            log.error(f"Error creating node tool: {e}")
-            log.exception(e)
+    # system_message = Message(
+    #     role="system",
+    #     content=system_prompt_for(prompt, docs_dict, examples, available_tutorials),
+    # )
+    # tools: list[Tool] = []
+    # classes = [
+    #     c for c in get_registered_node_classes() if c.get_node_type() in node_types
+    # ]
+    # model = FunctionModel(
+    #     provider=Provider.OpenAI,
+    #     name="gpt-4o-mini",
+    # )
+    # tools.append(TutorialTool(available_tutorials))
 
-    context = ProcessingContext("", "notoken")
-    answer = await process_messages(
-        context=context,
-        messages=[system_message] + messages,
-        model=model,
-        node_id="",
-        tools=tools,
-    )
+    # for node_class in classes[:10]:
+    #     try:
+    #         if node_class.get_node_type().startswith("replicate"):
+    #             continue
+    #         tools.append(AddNodeTool(node_class))
+    #     except Exception as e:
+    #         log.error(f"Error creating node tool: {e}")
+    #         log.exception(e)
 
-    if answer.tool_calls:
-        answer.tool_calls = await process_tool_calls(context, answer.tool_calls, tools)
+    # context = ProcessingContext("", "notoken")
+    # answer = await process_messages(
+    #     context=context,
+    #     messages=[system_message] + messages,
+    #     model=model,
+    #     node_id="",
+    #     tools=tools,
+    # )
 
-    return [answer]
+    # if answer.tool_calls:
+    #     answer.tool_calls = await process_tool_calls(context, answer.tool_calls, tools)
+
+    # return [answer]
 
 
 if __name__ == "__main__":

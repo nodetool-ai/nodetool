@@ -6,10 +6,7 @@ from typing import Any, Sequence
 
 from pydantic import BaseModel
 from anthropic.types.message_param import MessageParam
-from anthropic.types.text_block import TextBlock
-from anthropic.types.tool_use_block import ToolUseBlock
 from nodetool.chat.tools import Tool
-from nodetool.common.environment import Environment
 from openai.types.chat import (
     ChatCompletionMessageParam,
     ChatCompletionToolMessageParam,
@@ -37,9 +34,7 @@ from nodetool.metadata.types import (
     MessageImageContent,
     MessageTextContent,
 )
-from nodetool.models.prediction import Prediction
 from nodetool.workflows.processing_context import ProcessingContext
-from nodetool.types.chat import MessageCreateRequest, TaskCreateRequest
 
 
 def json_schema_for_column(column: ColumnDef) -> dict:

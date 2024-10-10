@@ -25,9 +25,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     get().addMessages([message]);
     try {
       const response = await fetch(
-        "http://localhost:8000/api/messages/help",
+        // "http://localhost:8000/api/messages/help",
         // "http://dev.nodetool.ai:8000/api/messages/help",
-        // "https://api.nodetool.ai/api/messages/help",
+        "https://api.nodetool.ai/api/messages/help",
         {
           method: "POST",
           headers: {

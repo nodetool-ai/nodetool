@@ -4,6 +4,7 @@ import PropertyField from "./PropertyField";
 import { Edge } from "@xyflow/react";
 import { Property } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
+import { isEqual } from "lodash";
 
 export interface NodeInputsProps {
   id: string;
@@ -16,7 +17,7 @@ export interface NodeInputsProps {
   edges: Edge[];
 }
 
-export const NodeInputs = memo(function NodeInputs({
+export const NodeInputs: React.FC<NodeInputsProps> = ({
   id,
   properties,
   data,
@@ -25,7 +26,7 @@ export const NodeInputs = memo(function NodeInputs({
   onlyHandles,
   onlyFields,
   layout
-}: NodeInputsProps) {
+}) => {
   return (
     <div className="node-inputs">
       {properties.map((property, index) => (
@@ -47,4 +48,6 @@ export const NodeInputs = memo(function NodeInputs({
       ))}
     </div>
   );
-});
+};
+
+export default memo(NodeInputs, isEqual);

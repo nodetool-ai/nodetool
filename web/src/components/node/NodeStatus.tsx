@@ -1,5 +1,6 @@
-import React from "react";
+import React, { memo } from "react";
 import { Typography } from "@mui/material";
+import { isEqual } from "lodash";
 
 interface NodeStatusProps {
   status: string;
@@ -15,4 +16,4 @@ const NodeStatus: React.FC<NodeStatusProps> = ({ status }) => {
   );
 };
 
-export default React.memo(NodeStatus);
+export default memo(NodeStatus, isEqual);

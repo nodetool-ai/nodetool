@@ -14,7 +14,6 @@ export interface NodeHeaderProps {
   nodeTitle: string;
   hasParent?: boolean;
   showMenu?: boolean;
-  isMinZoom?: boolean;
 }
 
 export const loadingEffect = keyframes`
@@ -111,8 +110,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
   nodeTitle,
   hasParent,
-  showMenu = true,
-  isMinZoom
+  showMenu = true
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const { data } = useMetadata();
@@ -176,6 +174,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     },
     [id, openContextMenu]
   );
+
+  const isMinZoom = false;
 
   const headerClassName = useMemo(
     () => `node-header ${isMinZoom ? "min-zoom" : ""}`,
