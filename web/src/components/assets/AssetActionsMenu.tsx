@@ -10,6 +10,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useAssets from "../../serverState/useAssets";
 import FileUploadButton from "../buttons/FileUploadButton";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -74,4 +75,4 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize }) => {
   );
 };
 
-export default React.memo(AssetActionsMenu);
+export default React.memo(AssetActionsMenu, isEqual);

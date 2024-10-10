@@ -87,134 +87,133 @@ declare module "slate" {
   }
 }
 
-export default memo(
-  function CommentNode(props: NodeProps<Node<NodeData>>) {
-    const className = `comment-node ${
-      props.data.collapsed ? "collapsed " : ""
-    }${props.selected ? "selected" : ""}`.trim();
-    const updateNodeData = useNodeStore((state) => state.updateNodeData);
-    const [editor] = useState(() => withReact(createEditor()));
-    const [color, setColor] = useState(
-      props.data.properties.comment_color || ThemeNodes.palette.c_bg_comment
-    );
-    const [headline, setHeadline] = useState(
-      props.data.properties.headline || ""
-    );
-    const [value, setValue] = useState<Descendant[]>(() => {
-      return Array.isArray(props.data.properties.comment) &&
-        props.data.properties.comment.length > 0
-        ? props.data.properties.comment
-        : [{ type: "paragraph", children: [{ text: "" }] }];
-    });
-    const headerInputRef = useRef<HTMLInputElement>(null);
+const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  const className = `comment-node ${props.data.collapsed ? "collapsed " : ""}${
+    props.selected ? "selected" : ""
+  }`.trim();
+  const updateNodeData = useNodeStore((state) => state.updateNodeData);
+  const [editor] = useState(() => withReact(createEditor()));
+  const [color, setColor] = useState(
+    props.data.properties.comment_color || ThemeNodes.palette.c_bg_comment
+  );
+  const [headline, setHeadline] = useState(
+    props.data.properties.headline || ""
+  );
+  const [value, setValue] = useState<Descendant[]>(() => {
+    return Array.isArray(props.data.properties.comment) &&
+      props.data.properties.comment.length > 0
+      ? props.data.properties.comment
+      : [{ type: "paragraph", children: [{ text: "" }] }];
+  });
+  const headerInputRef = useRef<HTMLInputElement>(null);
 
-    const handleChange = useCallback(
-      (newValue: Descendant[]) => {
-        setValue(newValue);
-        debounce((newData) => {
-          updateNodeData(props.id, {
-            ...props.data,
-            properties: {
-              ...props.data.properties,
-              ...newData
-            }
-          });
-        }, 500)({
-          comment: newValue
+  const handleChange = useCallback(
+    (newValue: Descendant[]) => {
+      setValue(newValue);
+      debounce((newData) => {
+        updateNodeData(props.id, {
+          ...props.data,
+          properties: {
+            ...props.data.properties,
+            ...newData
+          }
         });
-      },
-      [props.data, props.id, updateNodeData]
-    );
-
-    const handleHeadlineChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newHeadline = event.target.value;
-        setHeadline(newHeadline);
-        debounce((newData) => {
-          updateNodeData(props.id, {
-            ...props.data,
-            properties: {
-              ...props.data.properties,
-              ...newData
-            }
-          });
-        }, 500)({
-          headline: newHeadline
-        });
-      },
-      [props.data, props.id, updateNodeData]
-    );
-
-    const handleClick = () => {
-      ReactEditor.focus(editor);
-    };
-
-    const handleHeaderClick = () => {
-      headerInputRef.current?.focus();
-      headerInputRef.current?.select();
-    };
-
-    const handleColorChange = (newColor: string) => {
-      setColor(newColor);
-      updateNodeData(props.id, {
-        ...props.data,
-        properties: {
-          ...props.data.properties,
-          comment_color: newColor
-        }
+      }, 500)({
+        comment: newValue
       });
-    };
+    },
+    [props.data, props.id, updateNodeData]
+  );
 
-    return (
-      <Container
-        style={{ backgroundColor: hexToRgba(color, 0.2) }}
-        className={className}
-        css={styles}
+  const handleHeadlineChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const newHeadline = event.target.value;
+      setHeadline(newHeadline);
+      debounce((newData) => {
+        updateNodeData(props.id, {
+          ...props.data,
+          properties: {
+            ...props.data.properties,
+            ...newData
+          }
+        });
+      }, 500)({
+        headline: newHeadline
+      });
+    },
+    [props.data, props.id, updateNodeData]
+  );
+
+  const handleClick = () => {
+    ReactEditor.focus(editor);
+  };
+
+  const handleHeaderClick = () => {
+    headerInputRef.current?.focus();
+    headerInputRef.current?.select();
+  };
+
+  const handleColorChange = (newColor: string) => {
+    setColor(newColor);
+    updateNodeData(props.id, {
+      ...props.data,
+      properties: {
+        ...props.data.properties,
+        comment_color: newColor
+      }
+    });
+  };
+
+  return (
+    <Container
+      style={{ backgroundColor: hexToRgba(color, 0.2) }}
+      className={className}
+      css={styles}
+    >
+      <NodeResizeControl
+        style={{ background: "transparent", border: "none" }}
+        minWidth={30}
+        minHeight={40}
       >
-        <NodeResizeControl
-          style={{ background: "transparent", border: "none" }}
-          minWidth={30}
-          minHeight={40}
-        >
-          <SouthEastIcon />
-        </NodeResizeControl>
-        <NodeColorSelector onColorChange={handleColorChange} />
-        <div
-          className="node-header"
-          onClick={handleHeaderClick}
+        <SouthEastIcon />
+      </NodeResizeControl>
+      <NodeColorSelector onColorChange={handleColorChange} />
+      <div
+        className="node-header"
+        onClick={handleHeaderClick}
+        style={{
+          backgroundColor: hexToRgba(color, 0.1),
+          padding: "1.25em .5em"
+        }}
+      >
+        <input
+          ref={headerInputRef}
+          spellCheck={false}
+          className="nodrag"
+          type="text"
+          value={headline}
+          onChange={handleHeadlineChange}
+          placeholder=""
           style={{
-            backgroundColor: hexToRgba(color, 0.1),
-            padding: "1.25em .5em"
+            backgroundColor: "transparent",
+            color: "black",
+            border: 0,
+            outline: "none",
+            width: "90%"
           }}
-        >
-          <input
-            ref={headerInputRef}
+        />
+      </div>
+      <div className="text-editor" onClick={handleClick}>
+        <Slate editor={editor} onChange={handleChange} initialValue={value}>
+          <Editable
+            placeholder="//"
             spellCheck={false}
-            className="nodrag"
-            type="text"
-            value={headline}
-            onChange={handleHeadlineChange}
-            placeholder=""
-            style={{
-              backgroundColor: "transparent",
-              color: "black",
-              border: 0,
-              outline: "none",
-              width: "90%"
-            }}
+            className="editable nodrag nowheel"
           />
-        </div>
-        <div className="text-editor" onClick={handleClick}>
-          <Slate editor={editor} onChange={handleChange} initialValue={value}>
-            <Editable
-              placeholder="//"
-              spellCheck={false}
-              className="editable nodrag nowheel"
-            />
-          </Slate>
-        </div>
-      </Container>
-    );
-  },
-  (prevProps, nextProps) => isEqual(prevProps, nextProps)
-);
+        </Slate>
+      </div>
+    </Container>
+  );
+};
+
+export default memo(CommentNode, isEqual);

@@ -9,9 +9,6 @@ export interface NodeInputsProps {
   id: string;
   layout?: string;
   nodeType: string;
-  isSelected: boolean;
-  primaryField?: string;
-  secondaryField?: string;
   properties: Property[];
   data: NodeData;
   onlyFields?: boolean;
@@ -25,12 +22,9 @@ export const NodeInputs = memo(function NodeInputs({
   data,
   edges,
   nodeType,
-  isSelected,
   onlyHandles,
   onlyFields,
-  layout,
-  primaryField,
-  secondaryField
+  layout
 }: NodeInputsProps) {
   return (
     <div className="node-inputs">
@@ -38,20 +32,17 @@ export const NodeInputs = memo(function NodeInputs({
         <PropertyField
           key={property.name + id}
           id={id}
-          data={data}
+          value={data.properties[property.name]}
           nodeType={nodeType}
           layout={layout}
           property={property}
           propertyIndex={index.toString()}
-          isPrimary={property.name === primaryField}
-          isSecondary={property.name === secondaryField}
           onlyInput={onlyFields}
           onlyHandle={onlyHandles}
           edgeConnected={
             edges.find((edge) => edge.targetHandle === property.name) !==
             undefined
           }
-          isSelected={isSelected}
         />
       ))}
     </div>

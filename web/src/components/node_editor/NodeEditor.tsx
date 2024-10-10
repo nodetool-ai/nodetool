@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, useState, useRef, useEffect, useMemo } from "react";
+import { useCallback, useState, useRef, useEffect, useMemo, memo } from "react";
 import {
   useStore,
   useReactFlow,
@@ -75,6 +75,7 @@ import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import GroupNode from "../node/GroupNode";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
+import { isEqual } from "lodash";
 
 declare global {
   interface Window {
@@ -530,7 +531,7 @@ const NodeEditor: React.FC<unknown> = () => {
                 onEdgesChange={onEdgesChange}
                 onEdgeMouseEnter={onEdgeMouseEnter}
                 onEdgeMouseLeave={onEdgeMouseLeave}
-                onEdgeContextMenu={onEdgeContextMenu}
+                // onEdgeContextMenu={onEdgeContextMenu}
                 connectionMode={ConnectionMode.Strict}
                 onConnect={triggerOnConnect}
                 onConnectStart={onConnectStart}
@@ -583,4 +584,4 @@ const NodeEditor: React.FC<unknown> = () => {
     </>
   );
 };
-export default NodeEditor;
+export default memo(NodeEditor, isEqual);

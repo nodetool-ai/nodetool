@@ -4,13 +4,14 @@ import NodeOutput from "./NodeOutput";
 import { Property } from "../../stores/ApiTypes";
 import { Typography } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
-export const NodeOutputs = memo(function NodeOutputs({
-  id,
-  outputs
-}: {
+import { isEqual } from "lodash";
+
+export interface NodeOutputsProps {
   id: string;
   outputs: Property[];
-}) {
+}
+
+export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
   return (
     <>
       {outputs.length > 1 ? (
@@ -44,4 +45,6 @@ export const NodeOutputs = memo(function NodeOutputs({
       )}
     </>
   );
-});
+};
+
+export default memo(NodeOutputs, isEqual);

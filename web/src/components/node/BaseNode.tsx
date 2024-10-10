@@ -117,224 +117,221 @@ const styles = (theme: any, colors: string[]) =>
     }
   });
 
-export default memo(
-  function BaseNode(props: NodeProps<Node<NodeData>>) {
-    // Flow and zoom-related state
-    const currentZoom = useStore((state) => state.transform[2]);
-    const isMinZoom = currentZoom === MIN_ZOOM;
+const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  // Flow and zoom-related state
+  const currentZoom = useStore((state) => state.transform[2]);
+  const isMinZoom = currentZoom === MIN_ZOOM;
 
-    // Metadata and loading state
-    const {
-      data: metadata,
-      isLoading: metadataLoading,
-      error: metadataError
-    } = useMetadata();
+  // Metadata and loading state
+  const {
+    data: metadata,
+    isLoading: metadataLoading,
+    error: metadataError
+  } = useMetadata();
 
-    // Node-specific data and relationships
-    const nodedata = useNodeStore(
-      useCallback((state) => state.findNode(props.id)?.data, [props.id])
-    );
-    const node = useNodeStore(
-      useCallback((state) => state.findNode(props.id), [props.id])
-    );
-    const hasParent = node?.parentId !== undefined;
-    const parentNode = useNodeStore(
-      useCallback(
-        (state) => (hasParent ? state.findNode(node?.parentId || "") : null),
-        [hasParent, node?.parentId]
-      )
-    );
-    const edges = useNodeStore(
-      useCallback((state) => state.getInputEdges(props.id), [props.id])
-    );
+  // Node-specific data and relationships
+  const nodedata = useNodeStore(
+    useCallback((state) => state.findNode(props.id)?.data, [props.id])
+  );
+  const node = useNodeStore(
+    useCallback((state) => state.findNode(props.id), [props.id])
+  );
+  const hasParent = node?.parentId !== undefined;
+  const parentNode = useNodeStore(
+    useCallback(
+      (state) => (hasParent ? state.findNode(node?.parentId || "") : null),
+      [hasParent, node?.parentId]
+    )
+  );
+  const edges = useNodeStore(
+    useCallback((state) => state.getInputEdges(props.id), [props.id])
+  );
 
-    // Workflow and status
-    const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
-    const status = useStatusStore((state) =>
-      state.getStatus(workflowId, props.id)
-    );
-    const isLoading =
-      status === "running" || status === "starting" || status === "booting";
+  // Workflow and status
+  const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
+  const status = useStatusStore((state) =>
+    state.getStatus(workflowId, props.id)
+  );
+  const isLoading =
+    status === "running" || status === "starting" || status === "booting";
 
-    // Node type flags
-    const isConstantNode = props.type.startsWith("nodetool.constant");
-    const isInputNode = props.type.startsWith("nodetool.input");
-    const isOutputNode =
-      props.type.startsWith("nodetool.output") ||
-      props.type === "comfy.image.SaveImage" ||
-      props.type === "comfy.image.PreviewImage";
+  // Node type flags
+  const isConstantNode = props.type.startsWith("nodetool.constant");
+  const isInputNode = props.type.startsWith("nodetool.input");
+  const isOutputNode =
+    props.type.startsWith("nodetool.output") ||
+    props.type === "comfy.image.SaveImage" ||
+    props.type === "comfy.image.PreviewImage";
 
-    // UI state
-    const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
+  // UI state
+  const [parentIsCollapsed, setParentIsCollapsed] = useState(false);
 
-    useEffect(() => {
-      // Set parentIsCollapsed state based on parent node
-      if (hasParent) {
-        setParentIsCollapsed(parentNode?.data.collapsed || false);
-      }
-    }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
+  useEffect(() => {
+    // Set parentIsCollapsed state based on parent node
+    if (hasParent) {
+      setParentIsCollapsed(parentNode?.data.collapsed || false);
+    }
+  }, [hasParent, node?.parentId, parentNode?.data.collapsed]);
 
-    const className = useMemo(
-      () =>
-        `node-body ${props.data.collapsed ? "collapsed" : ""}
+  const className = useMemo(
+    () =>
+      `node-body ${props.data.collapsed ? "collapsed" : ""}
       ${hasParent ? "has-parent" : ""}
       ${isInputNode ? " input-node" : ""} ${isOutputNode ? " output-node" : ""}
       ${props.data.dirty ? "dirty" : ""}
       ${isLoading ? " loading is-loading" : " loading "}`
-          .replace(/\s+/g, " ")
-          .trim(),
-      [
-        props.data.collapsed,
-        hasParent,
-        isInputNode,
-        isOutputNode,
-        props.data.dirty,
-        isLoading
-      ]
-    );
+        .replace(/\s+/g, " ")
+        .trim(),
+    [
+      props.data.collapsed,
+      hasParent,
+      isInputNode,
+      isOutputNode,
+      props.data.dirty,
+      isLoading
+    ]
+  );
 
-    // Results and rendering
-    const result = useResultsStore((state) =>
-      state.getResult(props.data.workflow_id, props.id)
-    );
-    const renderedResult = useMemo(() => {
-      if (result && typeof result === "object") {
-        return Object.entries(result).map(([key, value]) => (
-          <OutputRenderer key={key} value={value} />
-        ));
-      }
-    }, [result]);
-
-    // Node height calculation
-    const minHeight = useMemo(() => {
-      if (!metadata) return BASE_HEIGHT;
-      const outputCount =
-        metadata.metadataByType[props.type]?.outputs.length || 0;
-      return BASE_HEIGHT + outputCount * INCREMENT_PER_OUTPUT;
-    }, [metadata, props.type]);
-
-    // Node metadata and properties
-    const nodeMetadata = metadata?.metadataByType[props.type];
-    const node_title = titleize(nodeMetadata?.title || "");
-    const node_namespace = nodeMetadata?.namespace || "";
-    const node_outputs = nodeMetadata?.outputs || [];
-    const firstOutput =
-      node_outputs.length > 0
-        ? node_outputs[0]
-        : {
-            name: "output",
-            type: {
-              type: "string"
-            }
-          };
-    const outputDatatype = useMemo(
-      () => datatypeByName(firstOutput.type.type),
-      [firstOutput.type.type]
-    );
-    const nodeColors = useMemo(() => {
-      const outputColors = [
-        ...new Set(
-          nodeMetadata?.outputs?.map((output) =>
-            colorForType(output.type.type)
-          ) || []
-        )
-      ];
-      const inputColors = [
-        ...new Set(
-          nodeMetadata?.properties?.map((input) =>
-            colorForType(input.type.type)
-          ) || []
-        )
-      ];
-      const allColors = [...outputColors];
-      for (const color of inputColors) {
-        if (!allColors.includes(color)) {
-          allColors.push(color);
-        }
-      }
-      while (allColors.length < 5) {
-        allColors.push(allColors[allColors.length % allColors.length]);
-      }
-      return allColors.slice(0, 5);
-    }, [nodeMetadata]);
-
-    if (!nodeMetadata || metadataLoading || metadataError) {
-      return (
-        <Container className={className}>
-          <NodeHeader id={props.id} nodeTitle={node_title} />
-        </Container>
-      );
+  // Results and rendering
+  const result = useResultsStore((state) =>
+    state.getResult(props.data.workflow_id, props.id)
+  );
+  const renderedResult = useMemo(() => {
+    if (result && typeof result === "object") {
+      return Object.entries(result).map(([key, value]) => (
+        <OutputRenderer key={key} value={value} />
+      ));
     }
+  }, [result]);
 
-    if (parentIsCollapsed) {
-      return null;
+  // Node height calculation
+  const minHeight = useMemo(() => {
+    if (!metadata) return BASE_HEIGHT;
+    const outputCount =
+      metadata.metadataByType[props.type]?.outputs.length || 0;
+    return BASE_HEIGHT + outputCount * INCREMENT_PER_OUTPUT;
+  }, [metadata, props.type]);
+
+  // Node metadata and properties
+  const nodeMetadata = metadata?.metadataByType[props.type];
+  const node_title = titleize(nodeMetadata?.title || "");
+  const node_namespace = nodeMetadata?.namespace || "";
+  const node_outputs = nodeMetadata?.outputs || [];
+  const firstOutput =
+    node_outputs.length > 0
+      ? node_outputs[0]
+      : {
+          name: "output",
+          type: {
+            type: "string"
+          }
+        };
+  const outputDatatype = useMemo(
+    () => datatypeByName(firstOutput.type.type),
+    [firstOutput.type.type]
+  );
+  const nodeColors = useMemo(() => {
+    const outputColors = [
+      ...new Set(
+        nodeMetadata?.outputs?.map((output) =>
+          colorForType(output.type.type)
+        ) || []
+      )
+    ];
+    const inputColors = [
+      ...new Set(
+        nodeMetadata?.properties?.map((input) =>
+          colorForType(input.type.type)
+        ) || []
+      )
+    ];
+    const allColors = [...outputColors];
+    for (const color of inputColors) {
+      if (!allColors.includes(color)) {
+        allColors.push(color);
+      }
     }
+    while (allColors.length < 5) {
+      allColors.push(allColors[allColors.length % allColors.length]);
+    }
+    return allColors.slice(0, 5);
+  }, [nodeMetadata]);
 
+  if (!nodeMetadata || metadataLoading || metadataError) {
     return (
-      <Container
-        css={styles(ThemeNodes, nodeColors)}
-        className={className}
-        style={{
-          display: parentIsCollapsed ? "none" : "flex",
-          minHeight: `${minHeight}px`,
-          backgroundColor: hasParent
-            ? ThemeNodes.palette.c_node_bg_group
-            : ThemeNodes.palette.c_node_bg
-        }}
-      >
-        <NodeHeader
-          id={props.id}
-          nodeTitle={node_title}
-          hasParent={hasParent}
-          isMinZoom={isMinZoom}
-        />
-        {!isMinZoom && (
-          <>
-            <NodeErrors id={props.id} />
-            <NodeStatus status={status} />
-            {!isProduction && <ModelRecommendations nodeType={props.type} />}
-            {!isProduction && (
-              <ApiKeyValidation nodeNamespace={node_namespace} />
-            )}
-          </>
-        )}
-        <NodeContent
-          id={props.id}
-          nodeType={props.type}
-          nodeMetadata={nodeMetadata}
-          isConstantNode={isConstantNode}
-          isOutputNode={isOutputNode}
-          data={props.data}
-          edges={edges}
-          status={status}
-          workflowId={workflowId}
-          renderedResult={renderedResult}
-          isMinZoom={isMinZoom}
-          firstOutput={firstOutput}
-          isSelected={props.selected || false}
-        />
-        <div className="node-resizer">
-          <Tooltip
-            title={outputDatatype?.description || "test"}
-            placement="bottom-end"
-          >
-            <div className="resizer">
-              <NodeResizer
-                shouldResize={(
-                  event,
-                  params: ResizeParams & { direction: number[] }
-                ) => {
-                  const [dirX, dirY] = params.direction;
-                  return dirX !== 0 && dirY === 0;
-                }}
-                minWidth={100}
-                maxWidth={MAX_NODE_WIDTH}
-              />
-            </div>
-          </Tooltip>
-        </div>
+      <Container className={className}>
+        <NodeHeader id={props.id} nodeTitle={node_title} />
       </Container>
     );
-  },
-  (prevProps, nextProps) => isEqual(prevProps, nextProps)
-);
+  }
+
+  if (parentIsCollapsed) {
+    return null;
+  }
+
+  return (
+    <Container
+      css={styles(ThemeNodes, nodeColors)}
+      className={className}
+      style={{
+        display: parentIsCollapsed ? "none" : "flex",
+        minHeight: `${minHeight}px`,
+        backgroundColor: hasParent
+          ? ThemeNodes.palette.c_node_bg_group
+          : ThemeNodes.palette.c_node_bg
+      }}
+    >
+      <NodeHeader
+        id={props.id}
+        nodeTitle={node_title}
+        hasParent={hasParent}
+        isMinZoom={isMinZoom}
+      />
+      {!isMinZoom && (
+        <>
+          <NodeErrors id={props.id} />
+          <NodeStatus status={status} />
+          {!isProduction && <ModelRecommendations nodeType={props.type} />}
+          {!isProduction && <ApiKeyValidation nodeNamespace={node_namespace} />}
+        </>
+      )}
+      <NodeContent
+        id={props.id}
+        nodeType={props.type}
+        nodeMetadata={nodeMetadata}
+        isConstantNode={isConstantNode}
+        isOutputNode={isOutputNode}
+        data={props.data}
+        edges={edges}
+        status={status}
+        workflowId={workflowId}
+        renderedResult={renderedResult}
+        isMinZoom={isMinZoom}
+        firstOutput={firstOutput}
+        isSelected={props.selected || false}
+      />
+      <div className="node-resizer">
+        <Tooltip
+          title={outputDatatype?.description || "test"}
+          placement="bottom-end"
+        >
+          <div className="resizer">
+            <NodeResizer
+              shouldResize={(
+                event,
+                params: ResizeParams & { direction: number[] }
+              ) => {
+                const [dirX, dirY] = params.direction;
+                return dirX !== 0 && dirY === 0;
+              }}
+              minWidth={100}
+              maxWidth={MAX_NODE_WIDTH}
+            />
+          </div>
+        </Tooltip>
+      </div>
+    </Container>
+  );
+};
+
+export default memo(BaseNode, isEqual);

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { Tooltip } from "@mui/material";
 import Zoom from "@mui/material/Zoom";
@@ -16,6 +16,7 @@ import { OutputSlot } from "../../stores/ApiTypes";
 import { colorForType, textColorForType } from "../../config/data_types";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { isEqual } from "lodash";
 
 export type NodeOutputProps = {
   id: string;
@@ -29,7 +30,7 @@ const tooltipStyles = css({
   }
 });
 
-const NodeOutput = React.memo(({ id, output }: NodeOutputProps) => {
+const NodeOutput: React.FC<NodeOutputProps> = ({ id, output }) => {
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
     (state) => state.connectDirection
@@ -107,8 +108,6 @@ const NodeOutput = React.memo(({ id, output }: NodeOutputProps) => {
       />
     </Tooltip>
   );
-});
+};
 
-NodeOutput.displayName = "NodeOutput";
-
-export default NodeOutput;
+export default memo(NodeOutput, isEqual);

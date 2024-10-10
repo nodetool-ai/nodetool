@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, createElement, useMemo } from "react";
-import { NodeData } from "../../stores/NodeData";
+import React, { useCallback, createElement, useMemo, memo } from "react";
 import { Property } from "../../stores/ApiTypes";
 import { useNodeStore } from "../../stores/NodeStore";
 import PropertyLabel from "./PropertyLabel";
@@ -28,6 +27,7 @@ import DataframeProperty from "../properties/DataframeProperty";
 import DictProperty from "../properties/DictProperty";
 import RecordTypeProperty from "../properties/RecordTypeProperty";
 import ModelProperty from "../properties/ModelProperty";
+import { isEqual } from "lodash";
 
 export type PropertyProps = {
   property: Property;
@@ -36,7 +36,6 @@ export type PropertyProps = {
   hideLabel?: boolean;
   propertyIndex: string;
   isInspector?: boolean;
-  isSelected: boolean;
   onChange: (value: any) => void;
 };
 
@@ -178,112 +177,99 @@ function componentFor(
 export type PropertyInputProps = {
   id: string;
   nodeType: string;
-  data: NodeData;
+  value: any;
   property: Property;
   propertyIndex?: string;
   controlKeyPressed?: boolean;
   isInspector?: boolean;
-  isSelected: boolean;
   hideInput: boolean;
   hideLabel: boolean;
 };
 
-const PropertyInput: React.FC<PropertyInputProps> = React.memo(
-  ({
-    id,
-    nodeType,
-    data,
-    property,
-    propertyIndex,
-    controlKeyPressed,
-    isSelected,
-    hideInput
-  }: PropertyInputProps) => {
-    const updateNodeProperties = useNodeStore(
-      (state) => state.updateNodeProperties
-    );
-    const value = data.properties ? data.properties[property.name] : undefined;
-    const onChange = useCallback(
-      (value: any) => {
-        updateNodeProperties(id, { [property.name]: value });
-      },
-      [id, property.name, updateNodeProperties]
-    );
+const PropertyInput: React.FC<PropertyInputProps> = ({
+  id,
+  nodeType,
+  value,
+  property,
+  propertyIndex,
+  controlKeyPressed,
+  hideInput
+}: PropertyInputProps) => {
+  const updateNodeProperties = useNodeStore(
+    (state) => state.updateNodeProperties
+  );
+  const onChange = useCallback(
+    (value: any) => {
+      updateNodeProperties(id, { [property.name]: value });
+    },
+    [id, property.name, updateNodeProperties]
+  );
 
-    const propertyProps = useMemo(
-      () => ({
-        property: property,
-        value: value,
-        propertyIndex: propertyIndex || "",
-        nodeType: nodeType,
-        onChange: onChange,
-        isSelected: isSelected
-      }),
-      [property, value, propertyIndex, nodeType, onChange, isSelected]
-    );
+  const propertyProps = {
+    property: property,
+    value: value,
+    propertyIndex: propertyIndex || "",
+    nodeType: nodeType,
+    onChange: onChange
+  };
 
-    // Property Context Menu
-    const openContextMenu = useContextMenuStore(
-      (state) => state.openContextMenu
-    );
-    const handlePropertyContextMenu = useCallback(
-      (event: React.MouseEvent<HTMLDivElement>, prop: Property) => {
-        event.preventDefault();
-        event.stopPropagation();
-        openContextMenu(
-          "property-context-menu",
-          id,
-          event.clientX,
-          event.clientY,
-          "node-property"
-        );
-      },
-      [id, openContextMenu]
-    );
-
-    // Reset property to default value
-    const onContextMenu = useCallback(
-      (event: React.MouseEvent<HTMLDivElement>) => {
-        event.preventDefault();
-        if (controlKeyPressed) {
-          onChange(property.default);
-        } else {
-          handlePropertyContextMenu(event, property);
-        }
-      },
-      [controlKeyPressed, onChange, property, handlePropertyContextMenu]
-    );
-
-    if (hideInput) {
-      return (
-        <PropertyLabel
-          name={property.name}
-          description={property.description}
-          id={id}
-        />
+  // Property Context Menu
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const handlePropertyContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>, prop: Property) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openContextMenu(
+        "property-context-menu",
+        id,
+        event.clientX,
+        event.clientY,
+        "node-property"
       );
-    }
+    },
+    [id, openContextMenu]
+  );
 
-    const className =
-      value === property.default ? "value-default" : "value-changed";
+  // Reset property to default value
+  const onContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      if (controlKeyPressed) {
+        onChange(property.default);
+      } else {
+        handlePropertyContextMenu(event, property);
+      }
+    },
+    [controlKeyPressed, onChange, property, handlePropertyContextMenu]
+  );
 
-    const componentType = componentFor(property);
-
-    let inputField = null;
-    if (componentType) {
-      inputField = createElement(componentType, propertyProps);
-    } else {
-      inputField = <div>Unsupported property type</div>;
-    }
-
+  if (hideInput) {
     return (
-      <div className={className} onContextMenu={onContextMenu}>
-        {inputField}
-      </div>
+      <PropertyLabel
+        name={property.name}
+        description={property.description}
+        id={id}
+      />
     );
   }
-);
 
-PropertyInput.displayName = "PropertyInput";
+  const className =
+    value === property.default ? "value-default" : "value-changed";
 
-export default PropertyInput;
+  const componentType = componentFor(property);
+
+  let inputField = null;
+  if (componentType) {
+    inputField = createElement(componentType, propertyProps);
+  } else {
+    inputField = <div>Unsupported property type</div>;
+  }
+
+  return (
+    <div className={className} onContextMenu={onContextMenu}>
+      {inputField}
+    </div>
+  );
+};
+
+export default memo(PropertyInput, isEqual);

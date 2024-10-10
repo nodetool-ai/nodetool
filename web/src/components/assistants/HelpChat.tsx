@@ -1,14 +1,7 @@
 import React, { useCallback, useEffect } from "react";
 import ChatView from "./ChatView";
 import { useChatStore } from "../../stores/ChatStore";
-import {
-  Box,
-  List,
-  ListItem,
-  ListItemText,
-  Typography,
-  Button
-} from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useTutorialStore } from "../../stores/TutorialStore";
 import { useNodeStore } from "../../stores/NodeStore";

@@ -35,7 +35,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
   nodeMetadata,
   isConstantNode,
   isOutputNode,
-  isSelected,
   data,
   edges,
   status,
@@ -55,7 +54,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         onlyFields={isConstantNode}
         onlyHandles={false}
         edges={edges}
-        isSelected={isSelected}
       />
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
       {renderedResult}

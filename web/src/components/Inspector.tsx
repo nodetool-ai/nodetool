@@ -1,14 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useState } from "react";
-import useSessionStateStore from "../stores/SessionStateStore";
+import React from "react";
 import { useMetadataOrNull } from "../serverState/useMetadata";
 import PropertyField from "./node/PropertyField";
-import { Node } from "@xyflow/react";
 import { Button, Tooltip, Typography } from "@mui/material";
-import ThemeNodetool from "./themes/ThemeNodetool";
 import { useNodeStore } from "../stores/NodeStore";
-import { NodeMetadata } from "../stores/ApiTypes";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 
 const styles = (theme: any) =>

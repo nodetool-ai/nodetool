@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import useLogsStore from "../../stores/LogStore";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { isEqual } from "lodash";
 
 type NodeLogsProps = {
   id: string;
@@ -68,10 +69,7 @@ const styles = (theme: any) =>
     }
   });
 
-export const NodeLogs = memo(function NodeLogs({
-  id,
-  workflowId
-}: NodeLogsProps) {
+export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   const logsRef = useRef<HTMLDivElement>(null);
   const logs = useLogsStore((state) => state.getLogs(workflowId, id));
 
@@ -101,4 +99,6 @@ export const NodeLogs = memo(function NodeLogs({
       )}
     </>
   );
-});
+};
+
+export default memo(NodeLogs, isEqual);

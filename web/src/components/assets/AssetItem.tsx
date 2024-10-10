@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { ButtonGroup, Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
@@ -11,6 +11,7 @@ import DeleteButton from "../buttons/DeleteButton";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -223,7 +224,7 @@ export type AssetItemProps = {
   onDoubleClick?: (asset: Asset) => void;
 };
 
-const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
+const AssetItem: React.FC<AssetItemProps> = (props) => {
   const {
     asset,
     draggable = true,
@@ -406,8 +407,6 @@ const AssetItem: React.FC<AssetItemProps> = React.memo((props) => {
       )}
     </div>
   );
-});
+};
 
-AssetItem.displayName = "AssetItem";
-
-export default AssetItem;
+export default memo(AssetItem, isEqual);

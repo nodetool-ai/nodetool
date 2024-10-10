@@ -1,17 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useState, useEffect, useRef, memo } from "react";
-import {
-  Grid,
-  TextField,
-  Select,
-  MenuItem,
-  InputLabel,
-  Button
-} from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { Grid, InputLabel } from "@mui/material";
 import { devWarn } from "../../utils/DevLog";
 import { ColumnDef } from "../../stores/ApiTypes";
+import { isEqual } from "lodash";
+import Column from "./Column";
 
 const styles = (theme: any) =>
   css({
@@ -129,81 +123,7 @@ interface ColumnsManagerProps {
   ) => void;
 }
 
-const Column = memo(
-  ({
-    index,
-    field,
-    inputRef,
-    handleNameChange,
-    handleDataTypeChange,
-    handleDescriptionChange,
-    removeColumn,
-    validDataTypes
-  }: {
-    index: number;
-    field: ColumnDef;
-    inputRef: (el: HTMLInputElement | null) => void;
-    handleNameChange: (index: number, newName: string) => void;
-    handleDataTypeChange: (index: number, newType: string) => void;
-    handleDescriptionChange: (index: number, newDescription: string) => void;
-    removeColumn: (index: number) => void;
-    validDataTypes: string[];
-  }) => (
-    <div className="column" key={index}>
-      <div className="item-name">
-        <TextField
-          inputRef={inputRef}
-          className="textfield"
-          margin="dense"
-          value={field.name}
-          onChange={(e) => handleNameChange(index, e.target.value)}
-        />
-      </div>
-      <div className="item-description">
-        <TextField
-          className="textfield"
-          margin="dense"
-          value={field.description}
-          onChange={(e) => handleDescriptionChange(index, e.target.value)}
-        />
-      </div>
-
-      <div className="item-datatype">
-        <Select
-          labelId={`${field}-${index}-type`}
-          value={field.data_type}
-          onChange={(e) => handleDataTypeChange(index, e.target.value)}
-          variant="standard"
-          className="mui-select nodrag"
-          disableUnderline={true}
-          MenuProps={{
-            anchorOrigin: {
-              vertical: "bottom",
-              horizontal: "left"
-            },
-            transformOrigin: {
-              vertical: "top",
-              horizontal: "left"
-            }
-          }}
-        >
-          {validDataTypes.map((type) => (
-            <MenuItem key={type} value={type}>
-              {type}
-            </MenuItem>
-          ))}
-        </Select>
-
-        <Button className="delete" onClick={() => removeColumn(index)}>
-          <CloseIcon />
-        </Button>
-      </div>
-    </div>
-  )
-);
-Column.displayName = "Column";
-
-const ColumnsManager = ({
+const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   columns,
   allData,
   onChange
@@ -300,7 +220,9 @@ const ColumnsManager = ({
           key={index}
           index={index}
           field={field}
-          inputRef={(el) => (inputRefs.current[index] = el)}
+          inputRef={(el: HTMLInputElement | null) =>
+            (inputRefs.current[index] = el)
+          }
           handleNameChange={handleNameChange}
           handleDataTypeChange={handleDataTypeChange}
           handleDescriptionChange={handleDescriptionChange}
@@ -312,4 +234,4 @@ const ColumnsManager = ({
   );
 };
 
-export default ColumnsManager;
+export default memo(ColumnsManager, isEqual);

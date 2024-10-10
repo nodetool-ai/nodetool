@@ -5,6 +5,7 @@ import { useClipboard } from "../../hooks/browser/useClipboard";
 import { Button } from "@mui/material";
 import useErrorStore from "../../stores/ErrorStore";
 import { useNodeStore } from "../../stores/NodeStore";
+import { isEqual } from "lodash";
 
 export const errorStyles = (theme: any) =>
   css({
@@ -46,7 +47,7 @@ export const errorStyles = (theme: any) =>
     }
   });
 
-export const NodeErrors = memo(function NodeErrors({ id }: { id: string }) {
+export const NodeErrors: React.FC<{ id: string }> = ({ id }) => {
   const nodeData = useNodeStore((state) => state.findNode(id)?.data);
   const error = useErrorStore((state) =>
     nodeData?.workflow_id !== undefined
@@ -70,4 +71,6 @@ export const NodeErrors = memo(function NodeErrors({ id }: { id: string }) {
       <div className="error-text">{error}</div>
     </div>
   );
-});
+};
+
+export default memo(NodeErrors, isEqual);

@@ -23,7 +23,7 @@ import { NodeStore, useNodeStore } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import { debounce } from "lodash";
+import { debounce, isEqual } from "lodash";
 import { NodeColorSelector } from "./NodeColorSelector";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Button, CircularProgress, Tooltip } from "@mui/material";
@@ -146,11 +146,10 @@ const styles = (theme: any, minWidth: number, minHeight: number) =>
     }
   });
 
-const GroupNode = (props: NodeProps<Node<NodeData>>) => {
+const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { data: metadata } = useMetadata();
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
-  const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
 
@@ -162,7 +161,6 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
   const nodeHovered = useNodeStore((state) =>
     state.hoveredNodes.includes(props.id)
   );
-  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
   const { spaceKeyPressed } = useKeyPressedStore((state) => ({
     spaceKeyPressed: state.isKeyPressed(" ")
   }));
@@ -353,4 +351,4 @@ const GroupNode = (props: NodeProps<Node<NodeData>>) => {
   );
 };
 
-export default memo(GroupNode);
+export default memo(GroupNode, isEqual);

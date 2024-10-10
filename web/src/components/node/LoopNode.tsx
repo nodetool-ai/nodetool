@@ -32,6 +32,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "./BaseNode";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -130,7 +131,7 @@ const styles = (theme: any) =>
     }
   });
 
-const LoopNode = (props: NodeProps<Node<NodeData>>) => {
+const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { data: metadata } = useMetadata();
   const nodeRef = useRef<HTMLDivElement>(null);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
@@ -301,4 +302,4 @@ const LoopNode = (props: NodeProps<Node<NodeData>>) => {
   );
 };
 
-export default memo(LoopNode);
+export default memo(LoopNode, isEqual);

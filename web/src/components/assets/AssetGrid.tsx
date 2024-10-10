@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useEffect, useRef, useMemo } from "react";
+import React, { useCallback, useEffect, useRef, useMemo, memo } from "react";
 import useResizeObserver from "@react-hook/resize-observer";
 import { Box, Divider, Typography } from "@mui/material";
 
@@ -26,6 +26,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -138,234 +139,229 @@ interface AssetGridProps {
   sortedAssets?: Asset[];
 }
 
-const AssetGrid: React.FC<AssetGridProps> = React.memo(
-  ({ maxItemSize = 100, itemSpacing = 5, isHorizontal, sortedAssets }) => {
-    const { error } = useAssets();
-    const openAsset = useAssetGridStore((state) => state.openAsset);
-    const currentFolder = useAssetGridStore((state) => state.currentFolder);
-    const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
-    const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
+const AssetGrid: React.FC<AssetGridProps> = ({
+  maxItemSize = 100,
+  itemSpacing = 5,
+  isHorizontal,
+  sortedAssets
+}) => {
+  const { error } = useAssets();
+  const openAsset = useAssetGridStore((state) => state.openAsset);
+  const currentFolder = useAssetGridStore((state) => state.currentFolder);
+  const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
+  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
 
-    const selectedAssetIds = useAssetGridStore(
-      (state) => state.selectedAssetIds
-    );
-    const selectedFolderId = useAssetGridStore(
-      (state) => state.selectedFolderId
-    );
-    const setSelectedAssetIds = useAssetGridStore(
-      (state) => state.setSelectedAssetIds
-    );
-    const setRenameDialogOpen = useAssetGridStore(
-      (state) => state.setRenameDialogOpen
-    );
-    const currentAudioAsset = useAssetGridStore(
-      (state) => state.currentAudioAsset
-    );
-    const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
-    const openMenuType = useContextMenuStore((state) => state.openMenuType);
-    const handleDoubleClick = useCallback(
-      (asset: Asset) => {
-        setOpenAsset(asset);
-      },
-      [setOpenAsset]
-    );
+  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
+  const selectedFolderId = useAssetGridStore((state) => state.selectedFolderId);
+  const setSelectedAssetIds = useAssetGridStore(
+    (state) => state.setSelectedAssetIds
+  );
+  const setRenameDialogOpen = useAssetGridStore(
+    (state) => state.setRenameDialogOpen
+  );
+  const currentAudioAsset = useAssetGridStore(
+    (state) => state.currentAudioAsset
+  );
+  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
+  const openMenuType = useContextMenuStore((state) => state.openMenuType);
+  const handleDoubleClick = useCallback(
+    (asset: Asset) => {
+      setOpenAsset(asset);
+    },
+    [setOpenAsset]
+  );
 
-    const { user } = useAuth();
+  const { user } = useAuth();
 
-    const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore((state) => ({
-      F2KeyPressed: state.isKeyPressed("F2"),
-      spaceKeyPressed: state.isKeyPressed(" ")
-    }));
+  const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore((state) => ({
+    F2KeyPressed: state.isKeyPressed("F2"),
+    spaceKeyPressed: state.isKeyPressed(" ")
+  }));
 
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [containerWidth, setContainerWidth] = React.useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = React.useState(0);
 
-    useResizeObserver(containerRef, (entry) => {
-      setContainerWidth(entry.contentRect.width);
-    });
+  useResizeObserver(containerRef, (entry) => {
+    setContainerWidth(entry.contentRect.width);
+  });
 
-    const { uploadAsset, isUploading } = useAssetUpload();
+  const { uploadAsset, isUploading } = useAssetUpload();
 
-    const handleClickOutside = useCallback(
-      (e: MouseEvent) => {
-        const clickedElement = e.target as HTMLElement;
-        if (
-          !clickedElement.classList.contains("selected-asset-info") &&
-          (clickedElement.classList.contains("content-type-header") ||
-            clickedElement.classList.contains("selected-info") ||
-            clickedElement.classList.contains("infinite-scroll-component") ||
-            clickedElement.classList.contains("asset-grid-flex") ||
-            clickedElement.classList.contains("divider") ||
-            clickedElement.classList.contains("current-folder") ||
-            clickedElement.classList.contains("asset-info") ||
-            clickedElement.classList.contains("asset-grid-container") ||
-            clickedElement.classList.contains("MuiTabs-flexContainer"))
-        ) {
-          if (selectedAssetIds.length > 0) {
-            setSelectedAssetIds([]);
-          }
+  const handleClickOutside = useCallback(
+    (e: MouseEvent) => {
+      const clickedElement = e.target as HTMLElement;
+      if (
+        !clickedElement.classList.contains("selected-asset-info") &&
+        (clickedElement.classList.contains("content-type-header") ||
+          clickedElement.classList.contains("selected-info") ||
+          clickedElement.classList.contains("infinite-scroll-component") ||
+          clickedElement.classList.contains("asset-grid-flex") ||
+          clickedElement.classList.contains("divider") ||
+          clickedElement.classList.contains("current-folder") ||
+          clickedElement.classList.contains("asset-info") ||
+          clickedElement.classList.contains("asset-grid-container") ||
+          clickedElement.classList.contains("MuiTabs-flexContainer"))
+      ) {
+        if (selectedAssetIds.length > 0) {
+          setSelectedAssetIds([]);
         }
-      },
-      [selectedAssetIds, setSelectedAssetIds]
-    );
-
-    useEffect(() => {
-      window.addEventListener("click", handleClickOutside);
-      return () => {
-        window.removeEventListener("click", handleClickOutside);
-      };
-    }, [handleClickOutside]);
-
-    useEffect(() => {
-      if (F2KeyPressed && selectedAssetIds.length > 0) {
-        setRenameDialogOpen(true);
       }
-    }, [F2KeyPressed, selectedAssetIds, setRenameDialogOpen]);
+    },
+    [selectedAssetIds, setSelectedAssetIds]
+  );
 
-    const uploadFiles = useCallback(
-      (files: File[]) => {
-        const workflow = useNodeStore.getState().workflow;
-        files.forEach((file: File) => {
-          uploadAsset({
-            file: file,
-            workflow_id: workflow.id,
-            parent_id: currentFolderId || undefined
-          });
-        });
-      },
-      [currentFolderId, uploadAsset]
-    );
+  useEffect(() => {
+    window.addEventListener("click", handleClickOutside);
+    return () => {
+      window.removeEventListener("click", handleClickOutside);
+    };
+  }, [handleClickOutside]);
 
-    const { navigateToFolderId } = useAssets();
-
-    const memoizedContent = useMemo(
-      () => (
-        <Box css={styles} className="asset-grid-container" ref={containerRef}>
-          {error && (
-            <Typography sx={{ color: "red" }}>{error.message}</Typography>
-          )}
-          {openAsset && (
-            <AssetViewer
-              asset={openAsset}
-              sortedAssets={sortedAssets}
-              open={openAsset !== null}
-              onClose={() => setOpenAsset(null)}
-            />
-          )}
-          {containerWidth > 200 && (
-            <AssetActionsMenu maxItemSize={maxItemSize} />
-          )}
-          {containerWidth > 300 && (
-            <>
-              <Typography className="current-folder">
-                <span className="folder-slash">/</span>
-                {currentFolder && `${currentFolder.name}`}
-              </Typography>
-              <div className="selected-asset-info">
-                <Typography variant="body1" className="selected-info">
-                  {selectedAssetIds.length > 0 && (
-                    <>
-                      {selectedAssetIds.length}{" "}
-                      {selectedAssetIds.length === 1 ? "item " : "items "}
-                      selected
-                    </>
-                  )}
-                </Typography>
-                {selectedAssetIds.length === 1 && (
-                  <Typography variant="body2" className="asset-info">
-                    <span style={{ color: "white", fontSize: "small" }}>
-                      {selectedAssets[0]?.name}{" "}
-                    </span>
-                    <br />
-                    {selectedAssets[0]?.content_type}
-                    <br />
-                  </Typography>
-                )}
-              </div>
-            </>
-          )}
-          <Dropzone onDrop={uploadFiles}>
-            <div
-              style={{
-                height: "100%",
-                display: "flex",
-                flexDirection: isHorizontal ? "row" : "column"
-              }}
-            >
-              {containerWidth > 200 && (
-                <div
-                  className="folder-list-container"
-                  style={{ flexShrink: 0, position: "relative" }}
-                >
-                  <FolderList isHorizontal={isHorizontal} />
-                </div>
-              )}
-              <div style={{ flexGrow: 1, minHeight: 0, overflow: "auto" }}>
-                <AssetGridContent
-                  itemSpacing={itemSpacing}
-                  onDoubleClick={handleDoubleClick}
-                />
-              </div>
-            </div>
-          </Dropzone>
-          <Divider />
-          {currentAudioAsset && (
-            <AudioPlayer
-              fontSize="small"
-              alwaysShowControls={true}
-              source={currentAudioAsset?.get_url || ""}
-              filename={currentAudioAsset?.name}
-              height={30}
-              waveformHeight={30}
-              barHeight={1.0}
-              minimapHeight={20}
-              minimapBarHeight={1.0}
-              waveColor="#ddd"
-              progressColor="#666"
-              minPxPerSec={1}
-              playOnLoad={spaceKeyPressed}
-            />
-          )}
-          {openMenuType === "asset-item-context-menu" && (
-            <AssetItemContextMenu />
-          )}
-          <AssetDeleteConfirmation assets={selectedAssetIds} />
-          <AssetRenameConfirmation assets={selectedAssetIds} />
-          <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
-          {isUploading && <AssetUploadOverlay />}
-        </Box>
-      ),
-      [
-        error,
-        openAsset,
-        sortedAssets,
-        containerWidth,
-        maxItemSize,
-        currentFolder,
-        selectedAssetIds,
-        selectedAssets,
-        uploadFiles,
-        isHorizontal,
-        itemSpacing,
-        handleDoubleClick,
-        currentAudioAsset,
-        spaceKeyPressed,
-        openMenuType,
-        isUploading,
-        setOpenAsset
-      ]
-    );
-
-    if (selectedFolderId === null) {
-      if (user) {
-        navigateToFolderId(user?.id);
-      } else {
-        console.error("User is not logged in");
-      }
+  useEffect(() => {
+    if (F2KeyPressed && selectedAssetIds.length > 0) {
+      setRenameDialogOpen(true);
     }
+  }, [F2KeyPressed, selectedAssetIds, setRenameDialogOpen]);
 
-    return memoizedContent;
+  const uploadFiles = useCallback(
+    (files: File[]) => {
+      const workflow = useNodeStore.getState().workflow;
+      files.forEach((file: File) => {
+        uploadAsset({
+          file: file,
+          workflow_id: workflow.id,
+          parent_id: currentFolderId || undefined
+        });
+      });
+    },
+    [currentFolderId, uploadAsset]
+  );
+
+  const { navigateToFolderId } = useAssets();
+
+  const memoizedContent = useMemo(
+    () => (
+      <Box css={styles} className="asset-grid-container" ref={containerRef}>
+        {error && (
+          <Typography sx={{ color: "red" }}>{error.message}</Typography>
+        )}
+        {openAsset && (
+          <AssetViewer
+            asset={openAsset}
+            sortedAssets={sortedAssets}
+            open={openAsset !== null}
+            onClose={() => setOpenAsset(null)}
+          />
+        )}
+        {containerWidth > 200 && <AssetActionsMenu maxItemSize={maxItemSize} />}
+        {containerWidth > 300 && (
+          <>
+            <Typography className="current-folder">
+              <span className="folder-slash">/</span>
+              {currentFolder && `${currentFolder.name}`}
+            </Typography>
+            <div className="selected-asset-info">
+              <Typography variant="body1" className="selected-info">
+                {selectedAssetIds.length > 0 && (
+                  <>
+                    {selectedAssetIds.length}{" "}
+                    {selectedAssetIds.length === 1 ? "item " : "items "}
+                    selected
+                  </>
+                )}
+              </Typography>
+              {selectedAssetIds.length === 1 && (
+                <Typography variant="body2" className="asset-info">
+                  <span style={{ color: "white", fontSize: "small" }}>
+                    {selectedAssets[0]?.name}{" "}
+                  </span>
+                  <br />
+                  {selectedAssets[0]?.content_type}
+                  <br />
+                </Typography>
+              )}
+            </div>
+          </>
+        )}
+        <Dropzone onDrop={uploadFiles}>
+          <div
+            style={{
+              height: "100%",
+              display: "flex",
+              flexDirection: isHorizontal ? "row" : "column"
+            }}
+          >
+            {containerWidth > 200 && (
+              <div
+                className="folder-list-container"
+                style={{ flexShrink: 0, position: "relative" }}
+              >
+                <FolderList isHorizontal={isHorizontal} />
+              </div>
+            )}
+            <div style={{ flexGrow: 1, minHeight: 0, overflow: "auto" }}>
+              <AssetGridContent
+                itemSpacing={itemSpacing}
+                onDoubleClick={handleDoubleClick}
+              />
+            </div>
+          </div>
+        </Dropzone>
+        <Divider />
+        {currentAudioAsset && (
+          <AudioPlayer
+            fontSize="small"
+            alwaysShowControls={true}
+            source={currentAudioAsset?.get_url || ""}
+            filename={currentAudioAsset?.name}
+            height={30}
+            waveformHeight={30}
+            barHeight={1.0}
+            minimapHeight={20}
+            minimapBarHeight={1.0}
+            waveColor="#ddd"
+            progressColor="#666"
+            minPxPerSec={1}
+            playOnLoad={spaceKeyPressed}
+          />
+        )}
+        {openMenuType === "asset-item-context-menu" && <AssetItemContextMenu />}
+        <AssetDeleteConfirmation assets={selectedAssetIds} />
+        <AssetRenameConfirmation assets={selectedAssetIds} />
+        <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
+        {isUploading && <AssetUploadOverlay />}
+      </Box>
+    ),
+    [
+      error,
+      openAsset,
+      sortedAssets,
+      containerWidth,
+      maxItemSize,
+      currentFolder,
+      selectedAssetIds,
+      selectedAssets,
+      uploadFiles,
+      isHorizontal,
+      itemSpacing,
+      handleDoubleClick,
+      currentAudioAsset,
+      spaceKeyPressed,
+      openMenuType,
+      isUploading,
+      setOpenAsset
+    ]
+  );
+
+  if (selectedFolderId === null) {
+    if (user) {
+      navigateToFolderId(user?.id);
+    } else {
+      console.error("User is not logged in");
+    }
   }
-);
-AssetGrid.displayName = "AssetGrid";
-export default AssetGrid;
+
+  return memoizedContent;
+};
+
+export default memo(AssetGrid, isEqual);
