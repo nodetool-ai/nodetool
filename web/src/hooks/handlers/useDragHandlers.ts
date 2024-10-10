@@ -6,7 +6,6 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Node } from "@xyflow/react";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { NodeData } from "../../stores/NodeData";
-import useSessionStateStore from "../../stores/SessionStateStore";
 
 export default function useDragHandlers(resumeHistoryAndSave: () => void) {
   const createNode = useNodeStore((state) => state.createNode);
@@ -23,10 +22,6 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
   const history: HistoryManager = useTemporalStore((state) => state);
   const hoveredNodes = useNodeStore((state) => state.hoveredNodes);
   const findNode = useNodeStore((state) => state.findNode);
-
-  const setSelectedNodes = useSessionStateStore(
-    (state) => state.setSelectedNodes
-  );
 
   const createCommentNode = useCallback(
     (width: number, height: number) => {
@@ -155,11 +150,6 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
 
   /* SELECTION END */
   const onSelectionEnd = useCallback(() => {
-    const selectedNodes = reactFlow
-      .getNodes()
-      .filter((n) => n.selected) as Node<NodeData>[];
-    setSelectedNodes(selectedNodes);
-
     if (CKeyPressed) {
       const mousePos = getMousePosition();
       const projectedEndPos = reactFlow.screenToFlowPosition({
@@ -170,7 +160,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
       const height = Math.abs(projectedEndPos.y - startPos.y);
       createCommentNode(width, height);
     }
-  }, [createCommentNode, startPos, reactFlow, CKeyPressed, setSelectedNodes]);
+  }, [createCommentNode, startPos, reactFlow, CKeyPressed]);
 
   // enables pan on drag. accepts boolean or array of mouse buttons
   let panOnDrag: number[] = [0];

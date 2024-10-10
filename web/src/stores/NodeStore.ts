@@ -168,6 +168,8 @@ export interface NodeStore {
   getInputEdges: (nodeId: string) => Edge[];
   getOutputEdges: (nodeId: string) => Edge[];
   getSelection: () => NodeSelection;
+  getSelectedNodes: () => Node<NodeData>[];
+  setSelectedNodes: (nodes: Node<NodeData>[]) => void;
   setEdgeUpdateSuccessful: (value: boolean) => void;
   onNodesChange: OnNodesChange<Node<NodeData>>;
   onEdgesChange: OnEdgesChange;
@@ -737,6 +739,29 @@ export const useNodeStore = create<NodeStore>()(
           nodes: nodes,
           edges: edges
         };
+      },
+
+      /**
+       * Get the selected nodes.
+       *
+       * @returns The selected nodes.
+       */
+      getSelectedNodes: () => {
+        return get().nodes.filter((node) => node.selected);
+      },
+
+      /**
+       * Set the selected nodes.
+       *
+       * @param nodes The nodes to set as selected.
+       */
+      setSelectedNodes: (nodes: Node<NodeData>[]) => {
+        set({
+          nodes: get().nodes.map((node) => ({
+            ...node,
+            selected: nodes.includes(node)
+          }))
+        });
       },
 
       /**

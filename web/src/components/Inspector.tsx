@@ -132,7 +132,7 @@ const styles = (theme: any) =>
   });
 
 const Inspector: React.FC = () => {
-  const selectedNodes = useSessionStateStore((state) => state.selectedNodes);
+  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
   const getNode = useNodeStore((state) => state.findNode);
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);

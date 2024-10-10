@@ -17,7 +17,7 @@ export const useCopyPaste = () => {
   }));
 
   const { readClipboard, writeClipboard } = useClipboard();
-  const selectedNodes = useSessionStateStore.getState().selectedNodes;
+  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
 
   const handleCopy = async (nodeId?: string) => {
     const focusedElement = document.activeElement as HTMLElement;

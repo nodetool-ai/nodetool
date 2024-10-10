@@ -36,6 +36,7 @@ export type PropertyProps = {
   hideLabel?: boolean;
   propertyIndex: string;
   isInspector?: boolean;
+  isSelected: boolean;
   onChange: (value: any) => void;
 };
 
@@ -182,6 +183,7 @@ export type PropertyInputProps = {
   propertyIndex?: string;
   controlKeyPressed?: boolean;
   isInspector?: boolean;
+  isSelected: boolean;
   hideInput: boolean;
   hideLabel: boolean;
 };
@@ -194,6 +196,7 @@ const PropertyInput: React.FC<PropertyInputProps> = React.memo(
     property,
     propertyIndex,
     controlKeyPressed,
+    isSelected,
     hideInput
   }: PropertyInputProps) => {
     const updateNodeProperties = useNodeStore(
@@ -213,9 +216,10 @@ const PropertyInput: React.FC<PropertyInputProps> = React.memo(
         value: value,
         propertyIndex: propertyIndex || "",
         nodeType: nodeType,
-        onChange: onChange
+        onChange: onChange,
+        isSelected: isSelected
       }),
-      [property, value, propertyIndex, nodeType, onChange]
+      [property, value, propertyIndex, nodeType, onChange, isSelected]
     );
 
     // Property Context Menu
