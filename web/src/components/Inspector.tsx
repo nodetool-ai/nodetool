@@ -165,7 +165,7 @@ const Inspector: React.FC = () => {
           <PropertyField
             key={`inspector-${property.name}-${selectedNodeId}`}
             id={selectedNodeId}
-            data={selectedNode.data}
+            value={selectedNode.data}
             property={property}
             propertyIndex={index.toString()}
             onlyInput={true}
