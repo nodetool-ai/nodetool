@@ -6,7 +6,10 @@
 
 /* General node */
 /* prevent resizing in y direction for BaseNode */
-.react-flow__nodes .react-flow__node:not([class*="Preview"]):not([class*="Loop"]):not([class*="Group"]):not([class*="Comment"]) {
+.react-flow__nodes
+  .react-flow__node:not([class*="Preview"]):not([class*="Loop"]):not(
+    [class*="Group"]
+  ):not([class*="Comment"]) {
   height: auto !important;
   /* max-height: 500px; */
 }
@@ -123,3 +126,194 @@
   font-size: 2.5em;
 }
 
+.number-input {
+  cursor: ew-resize !important;
+}
+
+.number-input label {
+  cursor: ew-resize !important;
+}
+
+.number-input .slider-value {
+  position: relative;
+  width: auto;
+  top: -1px;
+  left: 0;
+}
+
+.number-input .slider-value .name {
+  position: relative;
+  text-transform: uppercase;
+  display: block;
+  top: 1px;
+  width: 100%;
+  max-width: 200px;
+  min-height: 15px;
+  word-spacing: -0.3em;
+  margin-right: 45px;
+  white-space: normal;
+  padding-bottom: 3px;
+  line-height: 0.86em;
+}
+
+.number-input .slider-value .value {
+  position: absolute;
+  max-width: 80px;
+  height: 1em;
+  top: 2px;
+  right: 0px;
+  line-height: 1em;
+  background-color: transparent;
+  padding: 0px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.number-input .edit-value {
+  position: absolute;
+  width: auto;
+  min-width: 40px;
+  height: 10px;
+  top: -0.2em;
+  right: 0;
+  z-index: 10;
+  overflow: hidden;
+  resize: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.number-input .edit-value input {
+  position: absolute;
+  width: auto;
+  height: 10px;
+  top: 1px;
+  right: -1em;
+  margin: 0;
+  padding: 0 1em 0 0.2em;
+  text-align: right;
+  max-width: 100px;
+}
+
+.number-input .edit-value input::selection {
+  background-color: var(--c-hl1);
+}
+
+.number-input .MuiSlider-root .MuiSlider-thumb {
+  opacity: 0;
+}
+
+.number-input:hover .MuiSlider-root .MuiSlider-thumb {
+  opacity: 1;
+}
+
+.number-input .MuiSlider-root .MuiSlider-track {
+  background-color: transparent;
+  transition: background-color 0.2s 0.2s;
+}
+
+.number-input .MuiSlider-root:hover .MuiSlider-track,
+.number-input .MuiSlider-root:active .MuiSlider-track,
+.number-input .MuiSlider-root:focus .MuiSlider-track {
+  background-color: #8eaca733;
+  transition: background-color 0.2s 0s;
+}
+
+.number-input .range-container {
+  transition: opacity 0.2s;
+  position: absolute;
+  bottom: 0.4em;
+  width: calc(100% - 20px);
+  height: 2px;
+  border-radius: 2px;
+  font-size: 0.5em;
+  overflow: hidden;
+}
+
+.number-input .range-indicator {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  min-width: 1px;
+}
+
+@keyframes gradientAnimation {
+  from {
+    --gradient-angle: 90deg;
+  }
+  to {
+    --gradient-angle: 450deg;
+  }
+}
+
+.base-node {
+  /* Resizer styles */
+}
+
+.base-node .node-resizer .react-flow__resize-control.top.line,
+.base-node .node-resizer .react-flow__resize-control.bottom.line {
+  display: none;
+}
+
+.base-node .node-resizer .react-flow__resize-control.handle {
+  opacity: 0;
+}
+
+.base-node .node-resizer .react-flow__resize-control.line {
+  opacity: 0;
+  border-width: 1px;
+  border-color: var(--c-gray2);
+  transition: all 0.15s ease-in-out;
+}
+
+.base-node .node-resizer .react-flow__resize-control.line:hover {
+  opacity: 1;
+}
+
+/* Loading styles */
+.base-node.loading {
+  position: relative;
+  --glow-offset: -4px;
+}
+
+.base-node.loading::before {
+  opacity: 0;
+  content: "";
+  position: absolute;
+  top: var(--glow-offset);
+  left: var(--glow-offset);
+  right: var(--glow-offset);
+  bottom: var(--glow-offset);
+  background: conic-gradient(
+    from var(--gradient-angle),
+    var(--color-1),
+    var(--color-2),
+    var(--color-3),
+    var(--color-4),
+    var(--color-5),
+    var(--color-1)
+  );
+  border-radius: inherit;
+  z-index: -20;
+  animation: gradientAnimation 5s ease-in-out infinite;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.base-node.loading.is-loading::before {
+  opacity: 1;
+}
+
+/* Resize handle styles */
+.base-node .react-flow__resize-control.handle.right {
+  cursor: ew-resize;
+}
+
+/* Handle styles */
+.base-node .react-flow__handle {
+  opacity: 0.5;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.base-node:hover .react-flow__handle {
+  opacity: 1;
+}

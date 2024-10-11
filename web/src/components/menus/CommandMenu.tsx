@@ -12,6 +12,8 @@ import { useMetadata } from "../../serverState/useMetadata";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { isEqual } from "lodash";
+import React from "react";
 
 // does not work with object syntax
 const styles = (theme: any) => css`
@@ -160,13 +162,13 @@ type CommandMenuProps = {
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
 };
 
-const CommandMenu = memo(function CommandMenu({
+const CommandMenu: React.FC<CommandMenuProps> = ({
   open,
   setOpen,
   undo,
   redo,
   reactFlowWrapper
-}: CommandMenuProps) {
+}) => {
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
   const newWorkflow = useNodeStore((state) => state.newWorkflow);
   const runWorkflow = useWorkflowRunnner((state) => state.run);
@@ -174,24 +176,28 @@ const CommandMenu = memo(function CommandMenu({
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const workflowJSON = useNodeStore((state) => state.workflowJSON);
   const workflow = useNodeStore((state) => state.workflow);
-  const input = useRef<HTMLInputElement>(null);
-  const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
-  const alignNodes = useAlignNodes();
-  const { data } = useMetadata();
-  const { width: reactFlowWidth, height: reactFlowHeight } =
-    reactFlowWrapper.current?.getBoundingClientRect() ?? {
-      width: 800,
-      height: 600
-    };
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
+  const { width: reactFlowWidth, height: reactFlowHeight } = useMemo(
+    () =>
+      reactFlowWrapper.current?.getBoundingClientRect() ?? {
+        width: 800,
+        height: 600
+      },
+    [reactFlowWrapper]
+  );
+
   const handleCreateNode = useCreateNode({
     x: reactFlowWidth / 2,
     y: reactFlowHeight / 2
   });
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  // const runSelected = useWorkflowRunnner((state) => state.runSelected);
-  // const { handleCopy, handlePaste } = useCopyPaste();
+
+  const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
+  const alignNodes = useAlignNodes();
+  const { data } = useMetadata();
+  const input = useRef<HTMLInputElement>(null);
   const { writeClipboard } = useClipboard();
 
   useEffect(() => {
@@ -232,7 +238,7 @@ const CommandMenu = memo(function CommandMenu({
     link.download = `${workflow.name}.json`;
     link.href = url;
     link.click();
-  }, [workflowJSON, workflow.name]);
+  }, [workflow.name, workflowJSON]);
 
   const copyWorkflow = useCallback(() => {
     writeClipboard(JSON.stringify(workflow), true, true);
@@ -329,6 +335,6 @@ const CommandMenu = memo(function CommandMenu({
       </Command>
     </Dialog>
   );
-});
+};
 
-export default CommandMenu;
+export default React.memo(CommandMenu, isEqual);
