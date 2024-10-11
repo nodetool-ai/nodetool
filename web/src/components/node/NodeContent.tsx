@@ -18,12 +18,6 @@ interface NodeContentProps {
   status: string;
   workflowId: string;
   renderedResult: React.ReactNode;
-  firstOutput: {
-    name: string;
-    type: {
-      type: string;
-    };
-  };
 }
 
 const NodeContent: React.FC<NodeContentProps> = ({
@@ -35,8 +29,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
   data,
   status,
   workflowId,
-  renderedResult,
-  firstOutput
+  renderedResult
 }) => {
   return (
     <>
