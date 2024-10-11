@@ -76,6 +76,7 @@ import GroupNode from "../node/GroupNode";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
 import { isEqual } from "lodash";
+import ThemeNodes from "../themes/ThemeNodes";
 
 declare global {
   interface Window {
@@ -481,6 +482,7 @@ const NodeEditor: React.FC<unknown> = () => {
                   style={{
                     display: "flex",
                     justifyContent: "center",
+                    flexDirection: "column",
                     alignItems: "center",
                     height: "100%"
                   }}
@@ -527,11 +529,10 @@ const NodeEditor: React.FC<unknown> = () => {
                 onSelectionEnd={onSelectionEnd}
                 onSelectionContextMenu={handleSelectionContextMenu}
                 selectionMode={settings.selectionMode as SelectionMode}
-                // edgeTypes={edgeTypes}
                 onEdgesChange={onEdgesChange}
                 onEdgeMouseEnter={onEdgeMouseEnter}
                 onEdgeMouseLeave={onEdgeMouseLeave}
-                // onEdgeContextMenu={onEdgeContextMenu}
+                onEdgeContextMenu={onEdgeContextMenu}
                 connectionMode={ConnectionMode.Strict}
                 onConnect={triggerOnConnect}
                 onConnectStart={onConnectStart}
@@ -544,12 +545,13 @@ const NodeEditor: React.FC<unknown> = () => {
                 onNodeDragStop={onNodeDragStop}
                 onNodeContextMenu={handleNodeContextMenu}
                 onPaneContextMenu={handlePaneContextMenu}
-                // onNodeClick={onNodeClick}
                 onNodeDoubleClick={onNodeDoubleClick}
                 onMoveStart={handleOnMoveStart}
                 onDoubleClick={handleDoubleClick}
                 proOptions={proOptions}
                 onInit={handleOnInit}
+                // edgeTypes={edgeTypes}
+                // onNodeClick={onNodeClick}
                 deleteKeyCode={["Delete", "Backspace"]}
               >
                 <Background
@@ -557,9 +559,11 @@ const NodeEditor: React.FC<unknown> = () => {
                   gap={100}
                   offset={0.15}
                   size={8}
-                  color="#555"
+                  color={ThemeNodes.palette.c_editor_grid_color}
                   lineWidth={1}
-                  style={{ backgroundColor: "rgb(110, 110, 100)" }}
+                  style={{
+                    backgroundColor: ThemeNodes.palette.c_editor_bg_color
+                  }}
                   variant={BackgroundVariant.Cross}
                 />
                 {reactFlowInstance && <AxisMarker />}
