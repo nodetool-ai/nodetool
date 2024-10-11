@@ -7,152 +7,12 @@ import { Dialog } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
-import { css } from "@emotion/react";
 import { useMetadata } from "../../serverState/useMetadata";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { isEqual } from "lodash";
 import React from "react";
-
-// does not work with object syntax
-const styles = (theme: any) => css`
-  .MuiDialog-paper {
-    max-width: 800px;
-    width: 40vw;
-    background: transparent;
-    box-shadow: none;
-  }
-  .command-menu {
-    width: 100%;
-    min-height: 400px;
-  }
-
-  [cmdk-dialog] {
-    z-index: 9999;
-  }
-
-  [cmdk-root] {
-    width: 100%;
-    border-radius: 12px;
-    overflow: hidden;
-    padding: 8px;
-    color: ${theme.palette.c_gray1};
-    font-family: ${theme.fontFamily1};
-    box-shadow: 0 20px 68px rgba(0, 0, 0, 0.55);
-    border: 1px solid ${theme.palette.c_gray8};
-    background: rgba(18, 18, 18, 0.8);
-    backdrop-filter: blur(10px);
-  }
-
-  [cmdk-input] {
-    font-family: ${theme.fontFamily1};
-    width: calc(100% - 32px);
-    margin: 16px;
-    padding: 12px 16px;
-    font-size: 20px;
-    border: none;
-    outline: none;
-    background: rgba(255, 255, 255, 0.06);
-    color: ${theme.palette.c_white};
-    border-radius: 8px;
-    transition: all 0.2s ease;
-  }
-
-  [cmdk-input]:hover,
-  [cmdk-input]:focus {
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 0 2px ${theme.palette.c_hl1};
-  }
-
-  [cmdk-input]::placeholder {
-    color: ${theme.palette.c_gray9};
-  }
-
-  [cmdk-item] {
-    position: relative;
-    content-visibility: auto;
-    cursor: pointer;
-    height: 40px;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 16px;
-    color: ${theme.palette.c_gray6};
-    user-select: none;
-    will-change: background, color;
-    transition: all 150ms ease;
-    border-radius: 8px;
-    margin: 0 8px;
-  }
-
-  [cmdk-item][data-selected="true"] {
-    background: rgba(255, 255, 255, 0.1);
-    color: ${theme.palette.c_white};
-  }
-
-  [cmdk-item][data-selected="true"]:after {
-    content: "";
-    position: absolute;
-    left: 0;
-    width: 3px;
-    height: 20px;
-    background: ${theme.palette.c_hl1};
-    border-radius: 0 3px 3px 0;
-    transition: all 150ms ease;
-  }
-
-  [cmdk-item]:active {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  [cmdk-item] svg {
-    width: 18px;
-    height: 18px;
-    color: ${theme.palette.c_gray5};
-  }
-
-  [cmdk-list] {
-    height: 330px;
-    max-height: 400px;
-    overflow: auto;
-    overscroll-behavior: contain;
-    transition: 100ms ease;
-    transition-property: height;
-    scrollbar-width: thin;
-    scrollbar-color: ${theme.palette.c_gray6} transparent;
-  }
-
-  [cmdk-list]::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  [cmdk-list]::-webkit-scrollbar-thumb {
-    background-color: ${theme.palette.c_gray6};
-    border-radius: 3px;
-  }
-
-  [cmdk-group-heading] {
-    user-select: none;
-    font-size: 12px;
-    font-weight: 600;
-    margin: 16px 16px 8px;
-    color: ${theme.palette.c_gray3};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  [cmdk-empty] {
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 64px;
-    white-space: pre-wrap;
-    color: ${theme.palette.c_gray6};
-  }
-`;
 
 type CommandMenuProps = {
   open: boolean;
@@ -258,7 +118,11 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   );
 
   return (
-    <Dialog css={styles} open={open} onClose={() => setOpen(false)}>
+    <Dialog
+      open={open}
+      onClose={() => setOpen(false)}
+      className="command-menu-dialog"
+    >
       <Command label="Command Menu" className="command-menu">
         <CommandInput ref={input} />
         <Command.List>
