@@ -2,53 +2,53 @@
 
 /* Buttons */
 button {
-    background-color: var(--button-bg-color);
-    color: white;
-    padding: 10px 15px;
-    margin: .5em 0;
-    border: none;
-    border-radius: 2px;
-    cursor: pointer;
-    transition: color 0.2s ease;
+  background-color: var(--button-bg-color);
+  color: white;
+  padding: 10px 15px;
+  margin: 0.5em 0;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: color 0.2s ease;
 }
 
 button:hover {
-    color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
+  background-color: #555;
+  cursor: not-allowed;
 }
 
 /* Run Workflow Button */
 #runWorkflowBtn {
-    width: calc(30% - 1.2rem);
+  width: calc(30% - 1.2rem);
 
-    height: 2.5em;
-    padding: 0;
-    text-transform: uppercase;
-    font-size: 1.2em;
+  height: 2.5em;
+  padding: 0;
+  text-transform: uppercase;
+  font-size: 1.2em;
 }
 
 #runWorkflowBtn:hover {
-    background-color: var(--primary-color);
-    color: var(--bg-color);
+  background-color: var(--primary-color);
+  color: var(--bg-color);
 }
 
 #runWorkflowBtn:disabled {
-    background-color: var(--button-bg-color);
-    color: var(--text-color);
+  background-color: var(--button-bg-color);
+  color: var(--text-color);
 }
 
 /* Toggle Logs Button */
 #toggleLogsBtn {
-    position: absolute;
-    top: 1em;
-    width: 10em;
-    text-transform: uppercase;
-    align-self: flex-end;
-    padding: 1em;
+  position: absolute;
+  top: 1em;
+  width: 10em;
+  text-transform: uppercase;
+  align-self: flex-end;
+  padding: 1em;
 }
 
 /* Forms */
@@ -56,101 +56,101 @@ input[type="text"],
 input[type="number"],
 textarea,
 select {
-    width: calc(100% - 1em);
-    padding: .5em;
-    margin: .5em 0;
-    border: 1px solid var(--border-color);
-    border-radius: 2px;
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    font-size: 1em;
-    line-height: 1.5;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: textfield;
+  width: calc(100% - 1em);
+  padding: 0.5em;
+  margin: 0.5em 0;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  font-size: 1em;
+  line-height: 1.5;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
 }
 
 /* Range input */
 input[type="range"] {
-    width: 100%;
-    height: 10px;
-    background: var(--input-bg);
-    outline: none;
-    border-radius: 5px;
-    margin: 10px 0;
-    appearance: none;
-    -webkit-appearance: none;
+  width: 100%;
+  height: 10px;
+  background: var(--input-bg);
+  outline: none;
+  border-radius: 5px;
+  margin: 10px 0;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 input[type="range"]::-webkit-slider-thumb {
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--primary-color);
-    cursor: pointer;
-    border-radius: 50%;
-    appearance: none;
-    -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--primary-color);
+  cursor: pointer;
+  border-radius: 50%;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 input[type="range"]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: var(--primary-color);
-    cursor: pointer;
-    border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  background: var(--primary-color);
+  cursor: pointer;
+  border-radius: 50%;
 }
 input[type="number"] {
-    width: 20%;
-    max-width: 100px;
-    min-width: 50px;
+  width: 20%;
+  max-width: 100px;
+  min-width: 50px;
 }
 .slider-wrapper {
-    position: relative;
-    display: block;
-    flex-grow: 1;
+  position: relative;
+  display: block;
+  flex-grow: 1;
 }
-.range-min, .range-max {
-    position: absolute;
-    top: 1.8em;
-    left: 0;
-    bottom: 0;
-    font-size: .75em;
-    color: var(--text-gray-color);
+.range-min,
+.range-max {
+  position: absolute;
+  top: 1.8em;
+  left: 0;
+  bottom: 0;
+  font-size: 0.75em;
+  color: var(--text-gray-color);
 }
 .range-max {
-    right: 0;
-    left: unset;    
+  right: 0;
+  left: unset;
 }
 
 /* Progress bar */
 .progress-bar {
-    width: 200px;
-    height: 20px;
-    background-color: var(--secondary-color);
-    border-radius: 10px;
-    overflow: hidden;
+  width: 200px;
+  height: 20px;
+  background-color: var(--secondary-color);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .progress-bar-fill {
-    height: 100%;
-    background-color: var(--primary-color);
-    transition: width 0.3s ease-in-out;
+  height: 100%;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease-in-out;
 }
 
 #progressText {
-    font-size: 14px;
-    color: var(--text-color);
+  font-size: 14px;
+  color: var(--text-color);
 }
 
 /* Output fields */
 .output-field {
-    margin-bottom: 1em;
-    background-color: var(--secondary-color);
-    padding: .5em;
-    border-radius: 5px;
+  margin-bottom: 1em;
+  background-color: var(--secondary-color);
+  padding: 0.5em;
+  border-radius: 5px;
 }
-
 
 /* Placeholders */
 .image-placeholder,
@@ -160,178 +160,180 @@ input[type="number"] {
 .array-placeholder,
 .object-placeholder,
 .unknown-placeholder {
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    margin: .25em 0;
-    padding: .5em 1em;
-    word-break: normal;
-    border-radius: 3px;
-    min-height: 50px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    position: relative;
-    font-size: 1em;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  margin: 0.25em 0;
+  padding: 0.5em 1em;
+  word-break: normal;
+  border-radius: 3px;
+  min-height: 50px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  position: relative;
+  font-size: 1em;
 }
 .image-placeholder {
-    background-color: transparent;
-    border: 1px solid var(--border-color);
+  background-color: transparent;
+  border: 1px solid var(--border-color);
 }
 
 .image-placeholder {
-    border: 4px dashed var(--border-color);
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23777" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 48px;
-    color: transparent;
+  border: 4px dashed var(--border-color);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23777" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 48px;
+  color: transparent;
 }
 
 .image-placeholder::after {
-    position: absolute;
-    bottom: 10px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    color: var(--text-color);
-    font-style: italic;
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--text-color);
+  font-style: italic;
 }
 
 .string-placeholder,
 .number-placeholder,
 .boolean-placeholder {
-    font-family: monospace;
-    white-space: pre-wrap;
-    word-break: normal;
-    text-align: left;
-    padding: 20px 10px 10px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: normal;
+  text-align: left;
+  padding: 20px 10px 10px;
 }
 
 .string-placeholder::before,
 .number-placeholder::before,
 .boolean-placeholder::before {
-    content: 'ABC';
-    position: absolute;
-    top: 5px;
-    left: 10px;
-    font-size: 0.8em;
-    color: var(--primary-color);
+  content: "ABC";
+  position: absolute;
+  top: 5px;
+  left: 10px;
+  font-size: 0.8em;
+  color: var(--primary-color);
 }
 
 .number-placeholder::before {
-    content: '123';
+  content: "123";
 }
 
 .boolean-placeholder::before {
-    content: 'T/F';
+  content: "T/F";
 }
 
 .array-placeholder,
 .object-placeholder {
-    font-family: monospace;
-    white-space: pre-wrap;
-    word-break: break-all;
-    text-align: left;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  text-align: left;
 }
 
 .output-field img {
-    max-width: 100%;
-    height: auto;
+  max-width: 100%;
+  height: auto;
 }
 
 /* Warning message */
 .warning-message {
-    background: var(--warning-color);
-    border-radius: .1em;
-    color: black;
-    font-weight: bold;
-    margin: 1.5em 0 0;
-    padding: .25em;
-    padding-left: .5em;
-    text-align: center;
-    box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    position: relative;
-    cursor: help;
+  background: var(--warning-color);
+  border-radius: 0.1em;
+  color: black;
+  font-weight: bold;
+  margin: 1.5em 0 0;
+  padding: 0.25em;
+  padding-left: 0.5em;
+  text-align: center;
+  box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  position: relative;
+  cursor: help;
 }
 
 /* Tooltip */
 .custom-tooltip {
-    position: absolute;
-    visibility: hidden;
-    opacity: 0;
-    left: 0;
-    padding: .5em;
-    padding-right: 2em;
-    bottom: 125%;
-    width: auto;
-    background-color: #555;
-    color: #fff;
-    text-align: left;
-    border-radius: .5em .5em 0 0;
-    border: 1px solid var(--border-color);
-    z-index: 1;
-    font-weight: normal;
-    transition: opacity 0.3s;
+  position: absolute;
+  visibility: hidden;
+  opacity: 0;
+  left: 0;
+  padding: 0.5em;
+  padding-right: 2em;
+  bottom: 125%;
+  width: auto;
+  background-color: #555;
+  color: #fff;
+  text-align: left;
+  border-radius: 0.5em 0.5em 0 0;
+  border: 1px solid var(--border-color);
+  z-index: 1;
+  font-weight: normal;
+  transition: opacity 0.3s;
 }
 
 .custom-tooltip ul {
-    list-style-type: square;
+  list-style-type: square;
 }
 
 .custom-tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #555 transparent transparent transparent;
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
 }
 
 /* Workflow List */
 #workflowList {
-    max-height: 200px;
-    overflow-y: auto;
-    border-radius: 4px;
-    margin-top: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 4px;
+  margin-top: 10px;
 }
 
 /* Workflow item styles */
 .workflow-item {
-    padding: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .workflow-item:hover {
-    background-color: var(--secondary-color);
+  background-color: var(--secondary-color);
 }
 
 .workflow-item.selected {
-    background-color: var(--bg-color);
-    color: var(--primary-color);
+  background-color: var(--bg-color);
+  color: var(--primary-color);
 }
 
 /* Form elements */
-form, #output, #wsMessages {
-    background-color: var(--secondary-color);
-    padding: 1em;
-    border-radius: 2px;
-    margin-bottom: 20px;
-    border: 1px solid var(--border-color);
+form,
+#output,
+#wsMessages {
+  background-color: var(--secondary-color);
+  padding: 1em;
+  border-radius: 2px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
 }
 
 label {
-    display: block;
-    margin-bottom: -.25em;
-    font-weight: normal;
+  display: block;
+  margin-bottom: -0.25em;
+  font-weight: normal;
 }
 
 textarea {
-    resize: vertical;
-    min-height: 60px;
+  resize: vertical;
+  min-height: 60px;
 }
 
 .audio-placeholder,
@@ -343,4 +345,32 @@ textarea {
 
 .video-placeholder {
   max-height: 300px;
+}
+
+.namespaces .list-item {
+  padding: 0.2em 0.8em;
+  border-left: 1px solid #444;
+  transition: all 0.25s;
+}
+
+.namespaces .list-item p {
+  font-size: var(--font-size-small);
+  font-family: "Inter";
+}
+
+.namespaces .list-item.Mui-selected {
+  background-color: var(--c-hl1);
+  color: var(--c-black);
+}
+
+.namespaces .list-item.Mui-selected p {
+  font-weight: 600;
+}
+
+.namespaces .sublist {
+  padding-left: 1em;
+}
+
+.namespaces p {
+  font-family: "Inter";
 }
