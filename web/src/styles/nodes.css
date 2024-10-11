@@ -104,8 +104,22 @@
 }
 
 /* ZOOM-RELATED STYLES */
-
 .react-flow.zoomed-out .react-flow__node {
   background-color: var(--c_gray1);
   min-width: 100px;
 }
+
+.react-flow.zoomed-out .node-property,
+.react-flow.zoomed-out .multi-outputs,
+.react-flow.zoomed-out .node-title,
+.react-flow.zoomed-out .node-header span,
+.react-flow.zoomed-out .node-header .menu-button,
+.react-flow.zoomed-out .node-footer,
+.react-flow.zoomed-out .model-button {
+  opacity: 0;
+}
+
+.react-flow.zoomed-out .comment-node input {
+  font-size: 2.5em;
+}
+
