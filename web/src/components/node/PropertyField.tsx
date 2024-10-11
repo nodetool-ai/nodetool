@@ -24,7 +24,6 @@ export type PropertyFieldProps = {
   layout?: string;
   property: Property;
   propertyIndex: string;
-  edgeConnected: boolean;
   onlyInput?: boolean;
   onlyHandle?: boolean;
   isInspector?: boolean;
@@ -41,8 +40,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   property,
   onlyInput,
   onlyHandle,
-  isInspector,
-  edgeConnected
+  isInspector
 }) => {
   const controlKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Control")
@@ -139,7 +137,8 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           property={property}
           controlKeyPressed={controlKeyPressed}
           isInspector={isInspector}
-          hideInput={edgeConnected}
+          hideInput={false}
+          // hideInput={edgeConnected}
           hideLabel={false}
         />
       ) : (

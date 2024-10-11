@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
 import PropertyField from "./PropertyField";
-import { Edge } from "@xyflow/react";
 import { Property } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import { isEqual } from "lodash";
@@ -14,14 +13,12 @@ export interface NodeInputsProps {
   data: NodeData;
   onlyFields?: boolean;
   onlyHandles?: boolean;
-  edges: Edge[];
 }
 
 export const NodeInputs: React.FC<NodeInputsProps> = ({
   id,
   properties,
   data,
-  edges,
   nodeType,
   onlyHandles,
   onlyFields,
@@ -40,10 +37,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           propertyIndex={index.toString()}
           onlyInput={onlyFields}
           onlyHandle={onlyHandles}
-          edgeConnected={
-            edges.find((edge) => edge.targetHandle === property.name) !==
-            undefined
-          }
         />
       ))}
     </div>

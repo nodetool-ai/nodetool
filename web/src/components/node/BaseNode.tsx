@@ -114,23 +114,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   } = useMetadata();
 
   // Node-specific data and relationships
-  const nodedata = useNodeStore(
-    useCallback((state) => state.findNode(props.id)?.data, [props.id])
-  );
-  const node = useNodeStore(
-    useCallback((state) => state.findNode(props.id), [props.id])
-  );
-
+  const nodedata = useNodeStore((state) => state.findNode(props.id)?.data);
+  const node = useNodeStore((state) => state.findNode(props.id));
   const hasParent = node?.parentId !== undefined;
-  const parentNode = useNodeStore(
-    useCallback(
-      (state) => (hasParent ? state.findNode(node?.parentId || "") : null),
-      [hasParent, node?.parentId]
-    )
+  const parentNode = useNodeStore((state) =>
+    hasParent ? state.findNode(node?.parentId || "") : null
   );
-  const edges = useMemo(() => {
-    return useNodeStore.getState().getInputEdges(props.id);
-  }, [props.id]);
 
   // Workflow and status
   const workflowId = useMemo(() => nodedata?.workflow_id || "", [nodedata]);
@@ -287,7 +276,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         isConstantNode={isConstantNode}
         isOutputNode={isOutputNode}
         data={props.data}
-        edges={edges}
         status={status}
         workflowId={workflowId}
         renderedResult={renderedResult}

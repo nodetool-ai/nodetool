@@ -7,7 +7,6 @@ import { NodeLogs } from "./NodeLogs";
 import { NodeFooter } from "./NodeFooter";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
-import { Edge } from "@xyflow/react";
 
 interface NodeContentProps {
   id: string;
@@ -16,7 +15,6 @@ interface NodeContentProps {
   isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
-  edges: Edge[];
   status: string;
   workflowId: string;
   renderedResult: React.ReactNode;
@@ -35,7 +33,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
   isConstantNode,
   isOutputNode,
   data,
-  edges,
   status,
   workflowId,
   renderedResult,
@@ -51,7 +48,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         data={data}
         onlyFields={isConstantNode}
         onlyHandles={false}
-        edges={edges}
       />
       {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
       {renderedResult}
