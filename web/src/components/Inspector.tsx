@@ -172,9 +172,6 @@ const Inspector: React.FC = () => {
             isInspector={true}
             nodeType="inspector"
             layout=""
-            edgeConnected={getInputEdges(selectedNodeId).some(
-              (edge) => edge.targetHandle === property.name
-            )}
           />
         ))}
       </div>
