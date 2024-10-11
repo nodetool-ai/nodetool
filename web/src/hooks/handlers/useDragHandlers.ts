@@ -82,12 +82,11 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
                 y: node.position.y - parentNode.position.y
               },
               parentId: parentId,
-              // parentNode: parentId,
               expandParent: true
             });
           }, 0);
         }
-        if (node.parentId) {
+        if (node.parentId && !spaceKeyPressed) {
           // already in loop
           updateNode(node.id, {
             expandParent: true
@@ -103,7 +102,6 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
               y: node.position.y + (lastParentNode?.position.y || 0)
             },
             parentId: undefined,
-            // parentNode: undefined,
             expandParent: false
           });
           setLastParentNode(undefined);
@@ -115,9 +113,11 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
       resumeHistoryAndSave,
       hoveredNodes,
       findNode,
-      lastParentNode,
       setHoveredNodes,
-      updateNode
+      spaceKeyPressed,
+      updateNode,
+      lastParentNode?.position.x,
+      lastParentNode?.position.y
     ]
   );
 
@@ -176,6 +176,7 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
 
   const onNodeDrag = useCallback(
     (event: MouseEvent, node: Node) => {
+      const parentNode = findNode(node.parentId || "");
       const intersections = reactFlow
         .getIntersectingNodes(node)
         .filter(
@@ -190,9 +191,13 @@ export default function useDragHandlers(resumeHistoryAndSave: () => void) {
         setLastParentNode(lastParent);
       }
       if (spaceKeyPressed) {
-        if (node.expandParent) {
+        if (node.expandParent || node.parentId) {
           updateNode(node.id, {
             expandParent: false,
+            position: {
+              x: node.position.x + (parentNode?.position.x || 0),
+              y: node.position.y + (parentNode?.position.y || 0)
+            },
             parentId: undefined
           });
         }
