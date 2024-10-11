@@ -11,15 +11,8 @@ export default function ImageProperty(props: PropertyProps) {
 
   const { asset, uri } = useAsset({ image: props.value });
 
-  const styles = (theme: any) =>
-    css({
-      ".property-label": {
-        marginBottom: "5px"
-      }
-    });
-
   return (
-    <div className="image-property" css={styles}>
+    <div className="image-property">
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}

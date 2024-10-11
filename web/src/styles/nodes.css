@@ -125,6 +125,11 @@
 .react-flow.zoomed-out .comment-node input {
   font-size: 2.5em;
 }
+
+.image-property .property-label {
+  margin-bottom: 5px;
+}
+
 .string-property__textarea {
   outline: none;
   background-color: var(--c-gray1);
