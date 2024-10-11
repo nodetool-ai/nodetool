@@ -15,15 +15,15 @@ export interface NodeHeaderProps {
   hasParent?: boolean;
   showMenu?: boolean;
 }
-
-export const loadingEffect = keyframes`
-   0% {
-     background-position: 100% 0;
-   }
-   100% {
-     background-position: -100% 0;
-   }
- `;
+const tooltipStyle = css({
+  '[role~="tooltip"][data-microtip-position|="top"]::after': {
+    fontSize: "1.1em",
+    maxWidth: "250px",
+    padding: "1em",
+    textAlign: "left",
+    transform: "translate3d(-90%, -5px, 0)"
+  }
+});
 
 export const headerStyle = (theme: any, hasParent: boolean) =>
   css({
@@ -42,15 +42,6 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       scale: 0.8,
       opacity: 1
     },
-    "&.min-zoom": {
-      padding: "0",
-      height: "100%",
-      flexGrow: 1,
-      display: "flex",
-      alignItems: "center",
-      color: theme.palette.c_gray6,
-      backgroundColor: theme.palette.c_gray1
-    },
     "&:hover": {
       transition: "opacity 0.15s",
       color: theme.palette.c_gray6
@@ -66,18 +57,6 @@ export const headerStyle = (theme: any, hasParent: boolean) =>
       fontFeatureSettings: '"smcp"',
       margin: 0,
       padding: "0.5em 0.5em 0.5em .6em"
-    },
-    "&.min-zoom .node-title": {
-      width: "100%",
-      fontSize: "2.75em",
-      fontWeight: "300",
-      padding: ".1em 0 0 .1em",
-      fontFamily: theme.fontFamily2,
-      wordSpacing: "-2px",
-      textTransform: "uppercase"
-    },
-    "&.min-zoom .node-title:hover": {
-      opacity: 0.9
     },
     ".big": {
       flex: 1,
@@ -115,7 +94,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const { data } = useMetadata();
   const findNode = useNodeStore((state) => state.findNode);
-  const currentZoom = useStore((state) => state.transform[2]);
 
   const node = useMemo(() => findNode(id), [findNode, id]);
   const metadata = useMemo(
@@ -125,22 +103,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const description = useMemo(
     () => metadata?.description.split("\n")[0] || "",
     [metadata]
-  );
-
-  useEffect(() => {}, [currentZoom]);
-
-  const tooltipStyle = useMemo(
-    () =>
-      css({
-        '[role~="tooltip"][data-microtip-position|="top"]::after': {
-          fontSize: currentZoom < 1.5 ? "1.1em" : ".7em",
-          maxWidth: "250px",
-          padding: "1em",
-          textAlign: "left",
-          transform: "translate3d(-90%, -5px, 0)"
-        }
-      }),
-    [currentZoom]
   );
 
   const tooltipAttributes = useMemo(
