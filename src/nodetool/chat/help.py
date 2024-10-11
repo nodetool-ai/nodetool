@@ -408,13 +408,6 @@ Key Features:
 - Visual data flow design
 - Simplifies complex AI model usage
 
-Core Functions:
-1. Workflow Management
-2. Node Operations
-3. Model Management
-4. Asset Management
-5. Advanced Features (undo, redo, save)s
-
 Workflow Management:
 - Click Workflows in the top panel to browse and manage projects
 - Edit the current workflow in the workflow tab
@@ -423,20 +416,9 @@ Workflow Management:
 - Run workflows with the Play Button in the bottom panel to see results. Note that some processes may take time to complete.
 
 Open the Node Menu in three ways:
-Double-click the canvas
-Press CTRL+Space
-Click the Nodes Button (circle icon) ik the top panel
-
-Inside the Node Menu, read the description to learn how to browse and create nodes.
-
-Try to hover or right-click on elements for more options:
-
-- Buttons
-- Parameters
-- Node Header
-- Canvas
-- Node Selections
-- Assets
+- Double-click the canvas
+- Press CTRL+Space
+- Click the Nodes Button (circle icon) ik the top panel
 
 Asset Management:
 - Drag assets (from FileExplorer / Finder) onto the Asset tab on the right to import them
@@ -719,7 +701,9 @@ async def create_help_answer(
     client = Environment.get_ollama_client()
 
     completion = await client.chat(
-        model="qwen2.5:1.5b", messages=[system_message] + ollama_messages
+        model="qwen2.5:0.5b",
+        messages=[system_message] + ollama_messages,
+        options={"num_ctx": 4096},
     )
     message = completion["message"]
     return [Message(role=message["role"], content=message["content"])]

@@ -31,7 +31,11 @@ class DataGenerator(BaseNode):
     model: LlamaModel = Field(
         default=LlamaModel(), description="The Llama model to use."
     )
-
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        description="The context window size to use for the model.",
+    )
     prompt: str = Field(
         default="",
         description="The user prompt",
@@ -118,6 +122,7 @@ class DataGenerator(BaseNode):
                     "keep_alive": self.keep_alive,
                     "stream": False,
                     "format": "json",
+                    "num_ctx": self.context_window,
                 },
             },
         )

@@ -36,6 +36,11 @@ class Ollama(BaseNode):
         default="You are an assistant.",
         description="System prompt to send to the model.",
     )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        description="The context window size to use for the model.",
+    )
     image: ImageRef = Field(
         default=ImageRef(),
         title="Image",
@@ -91,6 +96,7 @@ class Ollama(BaseNode):
                     "top_k": self.top_k,
                     "top_p": self.top_p,
                     "keep_alive": self.keep_alive,
+                    "num_ctx": self.context_window,
                 },
             },
         )
@@ -116,6 +122,11 @@ class OllamaChat(BaseNode):
     system_prompt: str = Field(
         default="You are an assistant.",
         description="System prompt to send to the model.",
+    )
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        description="The context window size to use for the model.",
     )
     messages: list[Message] = Field(
         default=[], description="History of messages to send to the model."
@@ -191,6 +202,7 @@ class OllamaChat(BaseNode):
                     "top_k": self.top_k,
                     "top_p": self.top_p,
                     "keep_alive": self.keep_alive,
+                    "num_ctx": self.context_window,
                 },
             },
         )
@@ -213,6 +225,11 @@ class Embedding(BaseNode):
 
     input: str | TextRef = Field(title="Input", default="")
     model: LlamaModel = Field(title="Model", default=LlamaModel())
+    context_window: int = Field(
+        default=4096,
+        ge=1,
+        description="The context window size to use for the model.",
+    )
     chunk_size: int = Field(
         title="Chunk Size",
         default=4096,
@@ -235,7 +252,7 @@ class Embedding(BaseNode):
                 node_id=self._id,
                 provider=Provider.Ollama,
                 model=self.model.repo_id,
-                params={"prompt": chunk},
+                params={"prompt": chunk, "options": {"num_ctx": self.context_window}},
             )
             embeddings.append(res["embedding"])
 
