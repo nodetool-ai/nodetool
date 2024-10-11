@@ -1,10 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { IconForType, datatypeByName } from "../../config/data_types";
 import { Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import { memo, useMemo, useCallback } from "react";
+import { memo, useCallback } from "react";
 import ThemeNodes from "../themes/ThemeNodes";
 import { isEqual } from "lodash";
 
@@ -36,7 +35,6 @@ PrettyNamespace.displayName = "PrettyNamespace";
 
 export interface NodeFooterProps {
   nodeNamespace: string;
-  type: string;
   metadata: NodeMetadata;
 }
 export const footerStyles = (theme: any) =>
@@ -82,10 +80,8 @@ export const footerStyles = (theme: any) =>
 
 export const NodeFooter: React.FC<NodeFooterProps> = ({
   nodeNamespace,
-  type,
   metadata
 }) => {
-  const datatype = useMemo(() => datatypeByName(type), [type]);
   const {
     openNodeMenu,
     setHighlightedNamespaces,
@@ -113,35 +109,6 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
     setHighlightedNamespaces
   ]);
 
-  const icon = useMemo(
-    () =>
-      datatype && (
-        <IconForType
-          showTooltip={false}
-          iconName={datatype.value}
-          containerStyle={{
-            borderRadius: "0 0 3px 0",
-            marginLeft: "0.1em",
-            marginTop: "0"
-          }}
-          bgStyle={{
-            backgroundColor: datatype.color,
-            margin: "0",
-            padding: "1px",
-            borderRadius: "0 0 3px 0",
-            boxShadow: "inset 1px 1px 2px #00000044",
-            width: "12px",
-            height: "12px"
-          }}
-          svgProps={{
-            width: "9px",
-            height: "9px"
-          }}
-        />
-      ),
-    [datatype]
-  );
-
   return (
     <div className="node-footer" css={footerStyles}>
       <Tooltip title="Click to show in NodeMenu" placement="bottom-start">
@@ -153,7 +120,6 @@ export const NodeFooter: React.FC<NodeFooterProps> = ({
           <PrettyNamespace namespace={nodeNamespace} />
         </Button>
       </Tooltip>
-      <div className="icon">{icon}</div>
     </div>
   );
 };

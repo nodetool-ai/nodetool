@@ -189,26 +189,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Node metadata and properties
   const nodeMetadata = metadata?.metadataByType[props.type];
   const node_namespace = nodeMetadata?.namespace || "";
-  const node_outputs = nodeMetadata?.outputs || [];
-  const firstOutput =
-    node_outputs.length > 0
-      ? node_outputs[0]
-      : {
-          name: "output",
-          type: {
-            type: "string"
-          }
-        };
-
   const titleizedType = useMemo(
     () => (nodeMetadata?.title ? titleizeString(nodeMetadata.title) : ""),
     [nodeMetadata?.title]
   );
 
-  const outputDatatype = useMemo(
-    () => datatypeByName(firstOutput.type.type),
-    [firstOutput.type.type]
-  );
   const nodeColors = useMemo(() => {
     const outputColors = [
       ...new Set(
@@ -279,27 +264,21 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         status={status}
         workflowId={workflowId}
         renderedResult={renderedResult}
-        firstOutput={firstOutput}
       />
       <div className="node-resizer">
-        <Tooltip
-          title={outputDatatype?.description || "test"}
-          placement="bottom-end"
-        >
-          <div className="resizer">
-            <NodeResizer
-              shouldResize={(
-                event,
-                params: ResizeParams & { direction: number[] }
-              ) => {
-                const [dirX, dirY] = params.direction;
-                return dirX !== 0 && dirY === 0;
-              }}
-              minWidth={100}
-              maxWidth={MAX_NODE_WIDTH}
-            />
-          </div>
-        </Tooltip>
+        <div className="resizer">
+          <NodeResizer
+            shouldResize={(
+              event,
+              params: ResizeParams & { direction: number[] }
+            ) => {
+              const [dirX, dirY] = params.direction;
+              return dirX !== 0 && dirY === 0;
+            }}
+            minWidth={100}
+            maxWidth={MAX_NODE_WIDTH}
+          />
+        </div>
       </div>
     </Container>
   );
