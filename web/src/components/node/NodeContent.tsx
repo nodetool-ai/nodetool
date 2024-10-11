@@ -60,7 +60,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
           <NodeLogs id={id} workflowId={workflowId} />
           <NodeFooter
             nodeNamespace={nodeMetadata.namespace}
-            type={firstOutput.type.type}
             metadata={nodeMetadata}
           />
         </>
