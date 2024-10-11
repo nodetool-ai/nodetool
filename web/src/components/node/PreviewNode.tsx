@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import { useCallback, useEffect, useState } from "react";
-import { NodeProps, NodeResizeControl, useStore } from "@xyflow/react";
+import { NodeProps, NodeResizeControl } from "@xyflow/react";
 import { Container, Typography } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import SouthEastIcon from "@mui/icons-material/SouthEast";
@@ -12,7 +12,6 @@ import OutputRenderer from "./OutputRenderer";
 import useResultsStore from "../../stores/ResultsStore";
 import { Position, Handle } from "@xyflow/react";
 import { tableStyles } from "../../styles/TableStyles";
-import { MIN_ZOOM } from "../../config/constants";
 import ThemeNodes from "../themes/ThemeNodes";
 import { useNodeStore } from "../../stores/NodeStore";
 import { Button, Tooltip } from "@mui/material";
@@ -101,10 +100,6 @@ const styles = (theme: any) =>
           width: "100%",
           height: "100%"
         }
-        // "&.download": {
-        //   width: "15px",
-        //   height: "15px"
-        // }
       },
       ".description": {
         position: "absolute",
@@ -138,8 +133,6 @@ interface PreviewNodeProps extends NodeProps {
 }
 
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
-  const currentZoom = useStore((state) => state.transform[2]);
-  const isMinZoom = currentZoom === MIN_ZOOM;
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -277,35 +270,30 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         position={Position.Left}
         isConnectable={true}
       />
-      {!isMinZoom && (
-        <>
-          <NodeResizeControl
-            style={{ background: "red", border: "none" }}
-            minWidth={150}
-            minHeight={150}
-            maxWidth={1000}
-            maxHeight={1000}
-          >
-            <SouthEastIcon />
-          </NodeResizeControl>
-          <NodeHeader id={props.id} nodeTitle="Preview" hasParent={hasParent} />
-          <div className="actions">
-            <Tooltip title="Download">
-              <Button
-                onClick={handleDownload}
-                className="action-button download"
-              >
-                <FileDownloadIcon />
-              </Button>
-            </Tooltip>
-            <Tooltip title="Add to Assets">
-              <Button onClick={handleAddToAssets} className="action-button">
-                <AddIcon />
-              </Button>
-            </Tooltip>
-          </div>
-        </>
-      )}
+      <>
+        <NodeResizeControl
+          style={{ background: "red", border: "none" }}
+          minWidth={150}
+          minHeight={150}
+          maxWidth={1000}
+          maxHeight={1000}
+        >
+          <SouthEastIcon />
+        </NodeResizeControl>
+        <NodeHeader id={props.id} nodeTitle="Preview" hasParent={hasParent} />
+        <div className="actions">
+          <Tooltip title="Download">
+            <Button onClick={handleDownload} className="action-button download">
+              <FileDownloadIcon />
+            </Button>
+          </Tooltip>
+          <Tooltip title="Add to Assets">
+            <Button onClick={handleAddToAssets} className="action-button">
+              <AddIcon />
+            </Button>
+          </Tooltip>
+        </div>
+      </>
 
       {!result?.output && (
         <Typography className="description">Preview any output</Typography>
