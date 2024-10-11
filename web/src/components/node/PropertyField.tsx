@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
-import { Handle, Position, useStore } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import { Tooltip, Zoom } from "@mui/material";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Property } from "../../stores/ApiTypes";
@@ -13,7 +13,6 @@ import {
 } from "./BaseNode";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { colorForType, textColorForType } from "../../config/data_types";
-import { MIN_ZOOM } from "../../config/constants";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
@@ -49,13 +48,9 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     state.isKeyPressed("Control")
   );
   const { connectType, connectDirection, connectNodeId } = useConnectionStore();
-  // const currentZoom = useStore((state) => state.transform[2]);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  // const isMinZoom = currentZoom === MIN_ZOOM;
   const showHandle = onlyHandle || !onlyInput;
   const showInput = onlyInput || !onlyHandle;
-
-  console.log("PropertyField", id, value, nodeType, propertyIndex, property);
 
   const classConnectable = useMemo(() => {
     return connectType !== null &&

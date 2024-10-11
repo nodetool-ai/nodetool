@@ -17,13 +17,13 @@ export interface NodeHeaderProps {
 }
 
 export const loadingEffect = keyframes`
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
-  }
-`;
+   0% {
+     background-position: 100% 0;
+   }
+   100% {
+     background-position: -100% 0;
+   }
+ `;
 
 export const headerStyle = (theme: any, hasParent: boolean) =>
   css({
@@ -175,12 +175,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     [id, openContextMenu]
   );
 
-  const isMinZoom = false;
-
-  const headerClassName = useMemo(
-    () => `node-header ${isMinZoom ? "min-zoom" : ""}`,
-    [isMinZoom]
-  );
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const handleHeaderClick = useCallback(() => {
     updateNode(id, { selected: true });
@@ -188,11 +182,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   return (
     <div
-      className={headerClassName}
+      className="node-header"
       css={memoizedHeaderStyle}
       onClick={handleHeaderClick}
     >
-      {showMenu && !isMinZoom && (
+      {showMenu && (
         <>
           <span className="node-title">{nodeTitle}</span>
           <div className="menu-button" css={tooltipStyle}>

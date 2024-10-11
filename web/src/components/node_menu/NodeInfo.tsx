@@ -3,12 +3,12 @@ import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import { Typography, Divider, Tooltip } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import { titleize } from "../node/BaseNode";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { titleizeString } from "../../utils/titleizeString";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
@@ -181,7 +181,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({ nodeMetadata }) => {
   return (
     <div css={nodeInfoStyles}>
       <Typography className="node-title">
-        {titleize(nodeMetadata.title)}
+        {titleizeString(nodeMetadata.title)}
       </Typography>
       {replicateStatus !== "unknown" && (
         <Typography className={`replicate-status ${replicateStatus}`}>
