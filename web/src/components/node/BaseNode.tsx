@@ -102,6 +102,13 @@ const styles = (theme: any, colors: string[]) =>
     },
     ".react-flow__resize-control.handle.right": {
       cursor: "ew-resize"
+    },
+    ".react-flow__handle": {
+      opacity: 0.3,
+      transition: "opacity 0.3s ease-in-out"
+    },
+    "&:hover .react-flow__handle": {
+      opacity: 1
     }
   });
 
