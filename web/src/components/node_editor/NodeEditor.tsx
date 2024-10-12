@@ -44,7 +44,6 @@ import AxisMarker from "./AxisMarker";
 import LoopNode from "../node/LoopNode";
 //utils
 import { getMousePosition } from "../../utils/MousePosition";
-import { useHotkeys } from "react-hotkeys-hook";
 //css
 import { generateCSS } from "../themes/GenerateCSS";
 import "../../styles/base.css";
@@ -73,7 +72,7 @@ import { ErrorBoundary } from "@sentry/react";
 import useModelStore from "../../stores/ModelStore";
 import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import GroupNode from "../node/GroupNode";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
 import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -275,54 +274,67 @@ const NodeEditor: React.FC<unknown> = () => {
   );
 
   // ON MOVE START | DRAG PANE
-  const handleOnMoveStart = () => {
+  const handleOnMoveStart = useCallback(() => {
     // This also triggers on click, which will mess up the state of isMenuOpen
-    // closeNodeMenu();
-  };
-  // ON NODES CHANGE
-  const handleNodesChange = (changes: any) => {
-    onNodesChange(changes);
     closeNodeMenu();
-  };
+  }, [closeNodeMenu]);
+
+  // ON NODES CHANGE
+  const handleNodesChange = useCallback(
+    (changes: any) => {
+      onNodesChange(changes);
+      closeNodeMenu();
+    },
+    [onNodesChange, closeNodeMenu]
+  );
 
   /* KEY LISTENER */
-  const { spaceKeyPressed } = useKeyPressedStore((state) => ({
-    spaceKeyPressed: state.isKeyPressed(" ")
-  }));
-  // align
-  useHotkeys("Space+a", () => {
+  // const { spaceKeyPressed } = useKeyPressedStore((state) => ({
+  //   spaceKeyPressed: state.isKeyPressed(" ")
+  // }));
+
+  useCombo(["Space", "a"], () => {
     alignNodes({ arrangeSpacing: true });
   });
-  useHotkeys("a", () => {
-    if (!spaceKeyPressed) {
-      alignNodes({ arrangeSpacing: false });
-    }
-  });
-  useHotkeys("Meta+a", () => alignNodes({ arrangeSpacing: true }));
-  // copy paste
-  useHotkeys("Control+c", () => handleCopy());
-  useHotkeys("Control+v", () => handlePaste());
-  useHotkeys("Control+x", () => handleCut());
-  useHotkeys("Meta+c", () => handleCopy()); // for mac
-  useHotkeys("Meta+v", () => handlePaste()); // for mac
-  useHotkeys("Meta+x", () => handleCut()); // for mac
-  // duplicate
-  useHotkeys("Space+d", handleDuplicate);
-  // group
-  useHotkeys("Space+g", () => {
-    addToGroup({ selectedNodeIds });
-  });
-  // history
-  useHotkeys("Control+z", () => nodeHistory.undo());
-  useHotkeys("Control+Shift+z", () => nodeHistory.redo());
-  useHotkeys("Meta+z", () => nodeHistory.undo());
-  useHotkeys("Meta+Shift+z", () => nodeHistory.redo());
-  // cmd menu
-  useHotkeys("Alt+k", () => setOpenCommandMenu(true));
-  useHotkeys("Meta+k", () => setOpenCommandMenu(true));
-  // node menu
-  useHotkeys("Control+Space", () =>
-    openNodeMenu(getMousePosition().x, getMousePosition().y)
+
+  useCombo(["Meta", "a"], () => alignNodes({ arrangeSpacing: true }));
+
+  useCombo(["Control", "c"], handleCopy);
+  useCombo(["Control", "v"], handlePaste);
+  useCombo(["Control", "x"], handleCut);
+  useCombo(["Meta", "c"], handleCopy); // for mac
+  useCombo(["Meta", "v"], handlePaste); // for mac
+  useCombo(["Meta", "x"], handleCut); // for mac
+
+  useCombo(["Space", "d"], handleDuplicate);
+
+  useCombo(
+    ["Space", "g"],
+    useCallback(() => {
+      addToGroup({ selectedNodeIds });
+    }, [addToGroup, selectedNodeIds])
+  );
+
+  useCombo(["Control", "z"], nodeHistory.undo);
+  useCombo(["Control", "Shift", "z"], nodeHistory.redo);
+  useCombo(["Meta", "z"], nodeHistory.undo);
+  useCombo(["Meta", "Shift", "z"], nodeHistory.redo);
+
+  useCombo(
+    ["Alt", "k"],
+    useCallback(() => setOpenCommandMenu(true), [setOpenCommandMenu])
+  );
+  useCombo(
+    ["Meta", "k"],
+    useCallback(() => setOpenCommandMenu(true), [setOpenCommandMenu])
+  );
+
+  useCombo(
+    ["Control", " "],
+    useCallback(
+      () => openNodeMenu(getMousePosition().x, getMousePosition().y),
+      [openNodeMenu]
+    )
   );
 
   const setExplicitSave = useNodeStore(

@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import { useMetadata } from "../serverState/useMetadata";
 
 /**
@@ -51,6 +52,24 @@ const sortNamespaceChildren = (tree: NamespaceTree): NamespaceTree => {
 
 const useNamespaceTree = (): NamespaceTree => {
   const { data, error, isLoading } = useMetadata();
+  const uniqueNamespaces: string[] = useMemo(
+    () =>
+      data?.metadata
+        .map((node) => node.namespace)
+        .filter(
+          (value, index, self) => index === self.findIndex((t) => t === value)
+        ) ?? [],
+    [data]
+  );
+
+  const makeNamespaceTree = useMemo(() => {
+    const ret: NamespaceTree = {};
+    uniqueNamespaces.forEach((namespace) => {
+      _createNamespaceTree(namespace.split("."), ret);
+    });
+    return sortNamespaceChildren(ret);
+  }, [uniqueNamespaces]);
+
   if (error) {
     throw error;
   }
@@ -58,18 +77,7 @@ const useNamespaceTree = (): NamespaceTree => {
     return {};
   }
 
-  const uniqueNamespaces: string[] = data.metadata
-    .map((node) => node.namespace)
-    .filter(
-      (value, index, self) => index === self.findIndex((t) => t === value)
-    );
-
-  const ret: NamespaceTree = {};
-  uniqueNamespaces.forEach((namespace) => {
-    _createNamespaceTree(namespace.split("."), ret);
-  });
-
-  return sortNamespaceChildren(ret);
+  return makeNamespaceTree;
 };
 
 export default useNamespaceTree;

@@ -7,10 +7,10 @@ import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import "../../styles/panel.css";
-import { useHotkeys } from "react-hotkeys-hook";
 import HelpChat from "../assistants/HelpChat";
 import WorkflowChat from "../assistants/WorkflowChat";
 import { useNodeStore } from "../../stores/NodeStore";
+import { useCombo } from "../../stores/KeyPressedStore";
 
 const styles = (theme: any) =>
   css({
@@ -45,16 +45,19 @@ function PanelLeft() {
 
   const workflowId = useNodeStore((state) => state.workflow.id);
 
-  useHotkeys("1", () => {
-    if (
-      document.activeElement &&
-      document.activeElement.tagName.toLowerCase() !== "input" &&
-      document.activeElement.tagName.toLowerCase() !== "div" &&
-      document.activeElement.tagName.toLowerCase() !== "textarea"
-    ) {
-      handlePanelToggle();
-    }
-  });
+  useCombo(
+    ["1"],
+    useCallback(() => {
+      if (
+        document.activeElement &&
+        document.activeElement.tagName.toLowerCase() !== "input" &&
+        document.activeElement.tagName.toLowerCase() !== "div" &&
+        document.activeElement.tagName.toLowerCase() !== "textarea"
+      ) {
+        handlePanelToggle();
+      }
+    }, [handlePanelToggle])
+  );
 
   const handleTabChange = useCallback(
     (event: React.SyntheticEvent, newValue: number) => {

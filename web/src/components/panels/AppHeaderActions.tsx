@@ -17,7 +17,6 @@ import { TOOLTIP_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCallback, useEffect } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { Workflow } from "../../stores/ApiTypes";
@@ -26,6 +25,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
+import { useCombo } from "../../stores/KeyPressedStore";
 
 const actionsStyles = (
   theme: any,
@@ -168,11 +168,21 @@ export default function AppHeaderActions() {
     navigate(`/editor/${workflow.id}`);
   }, [createNewWorkflow, navigate]);
 
-  useHotkeys("Alt+s", () => saveWorkflow().then(onWorkflowSaved));
-  useHotkeys("Meta+s", () => saveWorkflow().then(onWorkflowSaved), {
-    preventDefault: true
-  });
-  useHotkeys("Ctrl+Space", () => openNodeMenu(400, 200));
+  useCombo(
+    ["Alt+s"],
+    useCallback(
+      () => saveWorkflow().then(onWorkflowSaved),
+      [saveWorkflow, onWorkflowSaved]
+    )
+  );
+  useCombo(
+    ["Meta+s"],
+    useCallback(
+      () => saveWorkflow().then(onWorkflowSaved),
+      [saveWorkflow, onWorkflowSaved]
+    )
+  );
+  useCombo(["Ctrl+Space"], () => openNodeMenu(400, 200));
 
   useGlobalHotkeys(runWorkflow);
 

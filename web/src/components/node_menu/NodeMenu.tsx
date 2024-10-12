@@ -29,8 +29,8 @@ import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import { useMetadata } from "../../serverState/useMetadata";
-import { useHotkeys } from "react-hotkeys-hook";
 import SearchInput from "../search/SearchInput";
+import { useCombo } from "../../stores/KeyPressedStore";
 
 type NodeMenuProps = {
   focusSearchInput?: boolean;
@@ -54,7 +54,6 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     searchTerm,
     setSearchTerm,
     setMetadata,
-    setSelectedPath,
     showNamespaceTree,
     toggleNamespaceTree
   } = useNodeMenuStore((state) => ({
@@ -78,9 +77,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     toggleNamespaceTree: state.toggleNamespaceTree
   }));
 
-  useHotkeys("Escape", () => {
-    closeNodeMenu();
-  });
+  useCombo(["Escape"], closeNodeMenu);
 
   // SET SELECTED TYPE FILTER
   // dropping a handle from left or right side of a node
@@ -264,7 +261,6 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               onPressEscape={closeNodeMenu}
-              setSelectedPath={setSelectedPath}
             />
             {/* <Tooltip
               title="Clear namespace selection"

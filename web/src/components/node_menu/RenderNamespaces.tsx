@@ -18,7 +18,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   currentPath = [],
   handleNamespaceClick
 }) => {
-  const { highlightedNamespaces, selectedPath, searchResults, searchTerm } =
+  const { highlightedNamespaces, selectedPath, searchResults } =
     useNodeMenuStore((state) => ({
       highlightedNamespaces: state.highlightedNamespaces,
       selectedPath: state.selectedPath,
@@ -71,42 +71,15 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
     [handleNamespaceClick]
   );
 
-  const namespaceStyles = (theme: any) =>
-    css({
-      ".list-item": {
-        padding: "0.2em 0.8em",
-        borderLeft: "1px solid #444",
-        transition: "all 0.25s",
-        p: {
-          fontSize: theme.fontSizeSmall,
-          fontFamily: "Inter"
-        }
-      },
-      ".list-item.Mui-selected": {
-        backgroundColor: theme.palette.c_hl1,
-        color: theme.palette.c_black
-      },
-      ".list-item.Mui-selected p": {
-        fontWeight: 600
-      },
-      ".sublist": {
-        paddingLeft: "1em"
-      },
-      p: {
-        fontFamily: "Inter"
-      }
-    });
-
   return (
-    <div className="namespaces" css={namespaceStyles}>
+    <div className="namespaces">
       {memoizedTree.map(
         ({
           namespace,
           newPath,
           expandedState,
           namespaceStyle,
-          hasChildren,
-          searchResultCount
+          hasChildren
         }) => (
           <NamespaceItem
             key={newPath.join(".")}
@@ -118,8 +91,6 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
             tree={tree}
             selectedPath={selectedPath}
             handleNamespaceClick={memoizedHandleClick}
-            searchResultCount={searchResultCount}
-            searchTerm={searchTerm}
           />
         )
       )}

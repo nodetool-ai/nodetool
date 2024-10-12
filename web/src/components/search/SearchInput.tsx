@@ -80,7 +80,6 @@ interface SearchInputProps {
   debounceTime?: number;
   maxWidth?: string;
   searchTerm?: string;
-  setSelectedPath?: (path: string[]) => void;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -91,8 +90,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   placeholder = "Search...",
   maxWidth = "unset",
   debounceTime = 300,
-  searchTerm: externalSearchTerm = "",
-  setSelectedPath = (path: string[]) => {}
+  searchTerm: externalSearchTerm = ""
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
