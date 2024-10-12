@@ -43,7 +43,6 @@ const NodeContextMenu: React.FC = () => {
   );
   const { getNode } = useReactFlow();
   const deleteNode = useNodeStore((state: NodeStore) => state.deleteNode);
-  const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const updateNodeData = useNodeStore(
     (state: NodeStore) => state.updateNodeData
   );

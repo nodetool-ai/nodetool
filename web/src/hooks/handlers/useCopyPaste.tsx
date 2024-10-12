@@ -50,7 +50,13 @@ export const useCopyPaste = () => {
       nodes: nodesToCopy,
       edges: connectedEdges
     });
-    await writeClipboard(serializedData);
+
+    try {
+      await writeClipboard(serializedData);
+    } catch (error) {
+      console.warn("Clipboard write failed, using localStorage fallback");
+      localStorage.setItem("copiedNodesData", serializedData);
+    }
 
     return { nodesToCopy, connectedEdges };
   };
@@ -74,9 +80,25 @@ export const useCopyPaste = () => {
   };
 
   const handlePaste = async () => {
-    await readClipboard();
-    const { clipboardData, isClipboardValid } = useSessionStateStore.getState();
-    if (!isClipboardValid || clipboardData === null) {
+    let clipboardData: string | null = null;
+
+    try {
+      await readClipboard();
+      const { clipboardData: data, isClipboardValid } =
+        useSessionStateStore.getState();
+      if (isClipboardValid && data !== null) {
+        clipboardData = data;
+      }
+    } catch (error) {
+      console.warn("Clipboard read failed, using localStorage fallback");
+    }
+
+    if (!clipboardData) {
+      clipboardData = localStorage.getItem("copiedNodesData");
+    }
+
+    if (!clipboardData) {
+      console.warn("No valid data found in clipboard or localStorage");
       return;
     }
 
@@ -84,7 +106,7 @@ export const useCopyPaste = () => {
     try {
       parsedData = JSON.parse(clipboardData);
     } catch (parseError) {
-      devWarn("Failed to parse clipboard data:", parseError);
+      devWarn("Failed to parse clipboard/localStorage data:", parseError);
       return;
     }
 
