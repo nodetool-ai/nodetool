@@ -69,10 +69,8 @@ import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 import { ErrorBoundary } from "@sentry/react";
-import useModelStore from "../../stores/ModelStore";
-import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import GroupNode from "../node/GroupNode";
-import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { useCombo } from "../../stores/KeyPressedStore";
 import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
 import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -83,6 +81,26 @@ declare global {
   }
 }
 
+// Custom hook for logging render triggers
+const useRenderLogger = (dependencies: Record<string, any>) => {
+  const prevDeps = useRef(dependencies);
+
+  return useMemo(() => {
+    const changedDeps = Object.entries(dependencies).filter(
+      ([key, value]) => prevDeps.current[key] !== value
+    );
+
+    if (changedDeps.length > 0) {
+      console.log(
+        "Render triggered by:",
+        changedDeps.map(([key]) => key).join(", ")
+      );
+    }
+
+    prevDeps.current = dependencies;
+  }, [dependencies]);
+};
+
 const NodeEditor: React.FC<unknown> = () => {
   const {
     nodes,
@@ -92,18 +110,15 @@ const NodeEditor: React.FC<unknown> = () => {
     onEdgesChange,
     onEdgeUpdate,
     updateNodeData
-  } = useNodeStore(
-    (state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      onConnect: state.onConnect,
-      onNodesChange: state.onNodesChange,
-      onEdgesChange: state.onEdgesChange,
-      onEdgeUpdate: state.onEdgeUpdate,
-      updateNodeData: state.updateNodeData
-    }),
-    shallow
-  );
+  } = useNodeStore((state) => ({
+    nodes: state.nodes,
+    edges: state.edges,
+    onConnect: state.onConnect,
+    onNodesChange: state.onNodesChange,
+    onEdgesChange: state.onEdgesChange,
+    onEdgeUpdate: state.onEdgeUpdate,
+    updateNodeData: state.updateNodeData
+  }));
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
     useConnectionHandlers();
@@ -151,19 +166,17 @@ const NodeEditor: React.FC<unknown> = () => {
   /* UTILS */
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
   const alignNodes = useAlignNodes();
-  const selectedNodeIds = useNodeStore((state) =>
-    state.getSelectedNodes().map((node) => node.id)
-  );
-
+  const getSelectedNodeIds = useNodeStore((state) => state.getSelectedNodeIds);
   const duplicateNodes = useDuplicateNodes();
   const addToGroup = useAddToGroup();
 
   /* DUPLICATE SELECTION */
   const handleDuplicate = useCallback(() => {
+    const selectedNodeIds = getSelectedNodeIds();
     if (selectedNodeIds.length) {
       duplicateNodes(selectedNodeIds);
     }
-  }, [selectedNodeIds, duplicateNodes]);
+  }, [getSelectedNodeIds, duplicateNodes]);
 
   /* SETTINGS */
   const settings = useSettingsStore((state) => state.settings);
@@ -311,8 +324,11 @@ const NodeEditor: React.FC<unknown> = () => {
   useCombo(
     ["Space", "g"],
     useCallback(() => {
-      addToGroup({ selectedNodeIds });
-    }, [addToGroup, selectedNodeIds])
+      const selectedNodeIds = getSelectedNodeIds();
+      if (selectedNodeIds.length) {
+        addToGroup({ selectedNodeIds });
+      }
+    }, [addToGroup, getSelectedNodeIds])
   );
 
   useCombo(["Control", "z"], nodeHistory.undo);
@@ -424,27 +440,50 @@ const NodeEditor: React.FC<unknown> = () => {
     }
   }, [fitScreen, shouldFitToScreen]);
 
-  const workflowModels = useNodeStore((state) => state.getModels());
-  const loadHuggingFaceModels = useModelStore(
-    (state) => state.loadHuggingFaceModels
-  );
   // INIT
   const handleOnInit = useCallback(() => {
     setTimeout(() => {
       fitScreen();
     }, 10);
-    loadHuggingFaceModels().then((models) => {
-      const files = workflowModels
-        .filter((model) => model.path && model.repo_id)
-        .map((model) => ({
-          repo_id: model.repo_id as string,
-          path: model.path as string
-        }));
-      tryCacheFiles(files).then((files) => {
-        console.log("cached", files);
-      });
-    });
-  }, [fitScreen, loadHuggingFaceModels, workflowModels]);
+    // const loadHuggingFaceModels = useModelStore(
+    //   (state) => state.loadHuggingFaceModels
+    // );
+    // loadHuggingFaceModels().then((models) => {
+    //   const files = workflowModels
+    //     .filter((model) => model.path && model.repo_id)
+    //     .map((model) => ({
+    //       repo_id: model.repo_id as string,
+    //       path: model.path as string
+    //     }));
+    //   tryCacheFiles(files).then((files) => {
+    //     console.log("cached", files);
+    //   });
+    // });
+  }, [fitScreen]);
+
+  // Use the custom hook to log render triggers
+  useRenderLogger({
+    nodes,
+    edges,
+    onConnect,
+    onNodesChange,
+    onEdgesChange,
+    onEdgeUpdate,
+    updateNodeData,
+    connecting,
+    metadata,
+    nodeTypes,
+    isUploading,
+    shouldFitToScreen,
+    settings,
+    isMenuOpen,
+    selectedNodeType,
+    documentationPosition,
+    showDocumentation,
+    openMenuType,
+    currentZoom
+    // Add other dependencies you want to track
+  });
 
   // LOADING OVERLAY
   if (showLoading) {

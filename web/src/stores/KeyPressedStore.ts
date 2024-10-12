@@ -18,7 +18,7 @@ const executeComboCallbacks = (
   pressedKeys: Set<string>,
   event: KeyboardEvent | undefined
 ) => {
-  console.log("pressedKeys", pressedKeys);
+  // console.log("pressedKeys", pressedKeys);
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   comboCallbacks.forEach((callback, combo) => {
     if (pressedKeysString.includes(combo)) {
