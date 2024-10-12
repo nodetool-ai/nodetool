@@ -120,6 +120,7 @@
 .react-flow.zoomed-out .node-footer,
 .react-flow.zoomed-out .model-button {
   opacity: 0;
+  pointer-events: none;
 }
 
 .react-flow.zoomed-out .comment-node input {

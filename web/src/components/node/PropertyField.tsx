@@ -16,7 +16,6 @@ import { colorForType, textColorForType } from "../../config/data_types";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { isEqual } from "lodash";
-import { useRenderLogger } from "../../hooks/useRenderLogger";
 
 export type PropertyFieldProps = {
   id: string;
