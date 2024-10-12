@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 // mui
 import {
@@ -31,6 +31,92 @@ import useNamespaceTree from "../../hooks/useNamespaceTree";
 import { useMetadata } from "../../serverState/useMetadata";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
+
+const treeStyles = (theme: any) =>
+  css({
+    "&": {
+      display: "flex",
+      flexDirection: "column",
+      height: "auto",
+      maxHeight: "70vh",
+      minHeight: "65vh",
+      top: 0,
+      left: 0,
+      position: "absolute",
+      overflow: "hidden",
+      zIndex: 1300,
+      border: `2px solid ${theme.palette.c_gray1}`,
+      borderRadius: ".6em",
+      outline: `2px solid ${theme.palette.c_gray4}`
+    },
+    ".draggable-header": {
+      borderRadius: "8px 8px 0 0",
+      backgroundColor: theme.palette.c_gray2,
+      width: "100%",
+      minHeight: "30px",
+      cursor: "grab",
+      userSelect: "none"
+    },
+    ".draggable-header:hover": {
+      opacity: 0.95
+    },
+    ".node-menu-container": {
+      backgroundColor: theme.palette.c_gray1,
+      borderRadius: "0 0 8px 8px",
+      padding: ".5em 0px 1em .5em",
+      width: "100%",
+      maxHeight: "77vh",
+      flexGrow: 1,
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+    },
+    ".search-toolbar": {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: "0.5em",
+      minHeight: "40px",
+      flexGrow: 0,
+      overflow: "hidden",
+      width: "100%",
+      margin: 0,
+      padding: ".5em 1em 0",
+      ".search-input-container": {
+        minWidth: "240px"
+      }
+    },
+    ".toggle-tree": {
+      minWidth: "30px",
+      height: "25px",
+      margin: "0 0 0 -.5em",
+      backgroundColor: theme.palette.c_gray1
+    },
+    ".close-button": {
+      position: "absolute",
+      top: "-2px",
+      right: "5px",
+      zIndex: 150,
+      color: ThemeNodetool.palette.c_gray4
+    },
+    ".clear-namespace": {
+      backgroundColor: theme.palette.c_gray2,
+      color: theme.palette.c_gray4,
+      margin: "0 0 0 .5em",
+      padding: "0",
+      border: "0",
+      borderRadius: 0,
+      boxShadow: "0 0",
+      cursor: "pointer"
+    },
+    ".clear-namespace:hover": {
+      backgroundColor: theme.palette.c_gray6
+    },
+    ".clear-namespace.disabled": {
+      color: theme.palette.c_gray2,
+      backgroundColor: theme.palette.c_gray1,
+      cursor: "default",
+      border: `1px solid ${theme.palette.c_gray2}`
+    }
+  });
 
 type NodeMenuProps = {
   focusSearchInput?: boolean;
@@ -104,91 +190,10 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
     }
   }, [metadata, setMetadata]);
 
-  const treeStyles = (theme: any) =>
-    css({
-      "&": {
-        display: "flex",
-        flexDirection: "column",
-        height: "auto",
-        maxHeight: "70vh",
-        minHeight: "65vh",
-        top: 0,
-        left: 0,
-        position: "absolute",
-        overflow: "hidden",
-        zIndex: 1300,
-        border: `2px solid ${theme.palette.c_gray1}`,
-        borderRadius: ".6em",
-        outline: `2px solid ${theme.palette.c_gray4}`
-      },
-      ".draggable-header": {
-        borderRadius: "8px 8px 0 0",
-        backgroundColor: theme.palette.c_gray2,
-        width: "100%",
-        minHeight: "30px",
-        cursor: "grab",
-        userSelect: "none"
-      },
-      ".draggable-header:hover": {
-        opacity: 0.95
-      },
-      ".node-menu-container": {
-        backgroundColor: theme.palette.c_gray1,
-        borderRadius: "0 0 8px 8px",
-        padding: ".5em 0px 1em .5em",
-        width: "100%",
-        maxHeight: "77vh",
-        flexGrow: 1,
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
-      },
-      ".search-toolbar": {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: "0.5em",
-        minHeight: "40px",
-        flexGrow: 0,
-        overflow: "hidden",
-        width: "100%",
-        margin: 0,
-        padding: ".5em 1em 0",
-        ".search-input-container": {
-          minWidth: "240px"
-        }
-      },
-      ".toggle-tree": {
-        minWidth: "30px",
-        height: "25px",
-        margin: "0 0 0 -.5em",
-        backgroundColor: theme.palette.c_gray1
-      },
-      ".close-button": {
-        position: "absolute",
-        top: "-2px",
-        right: "5px",
-        zIndex: 150,
-        color: ThemeNodetool.palette.c_gray4
-      },
-      ".clear-namespace": {
-        backgroundColor: theme.palette.c_gray2,
-        color: theme.palette.c_gray4,
-        margin: "0 0 0 .5em",
-        padding: "0",
-        border: "0",
-        borderRadius: 0,
-        boxShadow: "0 0",
-        cursor: "pointer"
-      },
-      ".clear-namespace:hover": {
-        backgroundColor: theme.palette.c_gray6
-      },
-      ".clear-namespace.disabled": {
-        color: theme.palette.c_gray2,
-        backgroundColor: theme.palette.c_gray1,
-        cursor: "default",
-        border: `1px solid ${theme.palette.c_gray2}`
-      }
-    });
+  const memoizedStyles = useMemo(
+    () => treeStyles(ThemeNodetool),
+    [ThemeNodetool]
+  );
 
   return isMenuOpen ? (
     <Draggable
@@ -205,7 +210,7 @@ export default function NodeMenu({ focusSearchInput = false }: NodeMenuProps) {
       <Box
         sx={{ maxWidth: menuWidth, maxHeight: menuHeight }}
         className="floating-node-menu"
-        css={treeStyles}
+        css={memoizedStyles}
         ref={nodeRef}
       >
         <div className="draggable-header">

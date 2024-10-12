@@ -14,6 +14,7 @@ import {
 } from "../node/BaseNode";
 import NodeInfo from "./NodeInfo";
 import { isEqual } from "lodash";
+import ThemeNodetool from "../themes/ThemeNodetool";
 
 type NamespaceTree = Record<
   string,
@@ -262,9 +263,10 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     () => hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />,
     [hoveredNode]
   );
+  const memoizedStyles = useMemo(() => namespaceStyles(ThemeNodetool), []);
 
   return (
-    <div css={namespaceStyles}>
+    <div css={memoizedStyles}>
       <Box className="header">
         <Tooltip
           title={
