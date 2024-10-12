@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import reportWebVitals from "./reportWebVitals";
-import { ReactFlowProvider } from "@xyflow/react";
+import { ReactFlowProvider, useStore } from "@xyflow/react";
 
 import {
   LoaderFunctionArgs,
@@ -50,6 +50,7 @@ import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import ModelsManager from "./components/hugging_face/ModelsManager";
 import useModelStore from "./stores/ModelStore";
 import NodeDocumentation from "./components/content/Help/NodeDocumentation";
+import { MAX_ZOOM, MIN_ZOOM } from "./config/constants";
 
 initSentry();
 
@@ -78,6 +79,14 @@ const NavigateToStart = () => {
     return <Navigate to={"/login"} replace={true} />;
   }
   return <div>Error!</div>;
+};
+
+const NodeEditorWrapper = () => {
+  const currentZoom = useStore((state) => state.transform[2]);
+  // const isMaxZoom = currentZoom === MAX_ZOOM;
+  const isMinZoom = currentZoom === MIN_ZOOM;
+
+  return <NodeEditor isMinZoom={isMinZoom} />;
 };
 
 function getRoutes() {
@@ -163,7 +172,7 @@ function getRoutes() {
             {/* <AppFooter /> */}
           </ThemeProvider>
           <ThemeProvider theme={ThemeNodes}>
-            <NodeEditor />
+            <NodeEditorWrapper />
           </ThemeProvider>
           <ThemeProvider theme={ThemeNodetool}>
             <CssBaseline />
@@ -182,9 +191,6 @@ function getRoutes() {
             <CssBaseline />
             <AppHeader />
             <OpenOrCreateDialog />
-          </ThemeProvider>
-          <ThemeProvider theme={ThemeNodes}>
-            <NodeEditor />
           </ThemeProvider>
         </ProtectedRoute>
       )

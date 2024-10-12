@@ -40,6 +40,24 @@ const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
 
+const resizer = (
+  <div className="node-resizer">
+    <div className="resizer">
+      <NodeResizer
+        shouldResize={(
+          event,
+          params: ResizeParams & { direction: number[] }
+        ) => {
+          const [dirX, dirY] = params.direction;
+          return dirX !== 0 && dirY === 0;
+        }}
+        minWidth={100}
+        maxWidth={MAX_NODE_WIDTH}
+      />
+    </div>
+  </div>
+);
+
 /**
  * BaseNode renders a single node in the workflow
  *
@@ -238,27 +256,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const memoizedStyles = useMemo(() => styles(nodeColors), [nodeColors]);
 
-  const resizer = useMemo(
-    () => (
-      <div className="node-resizer">
-        <div className="resizer">
-          <NodeResizer
-            shouldResize={(
-              event,
-              params: ResizeParams & { direction: number[] }
-            ) => {
-              const [dirX, dirY] = params.direction;
-              return dirX !== 0 && dirY === 0;
-            }}
-            minWidth={100}
-            maxWidth={MAX_NODE_WIDTH}
-          />
-        </div>
-      </div>
-    ),
-    []
-  );
-
   useRenderLogger(nodeMetadata?.title || "", {
     nodeMetadata,
     metadataLoading,
@@ -305,9 +302,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : ThemeNodes.palette.c_node_bg
       }}
     >
-      <NodeToolbar>
-        <NodeToolButtons nodeId={props.id} />
-      </NodeToolbar>
+      {node?.selected && (
+        <NodeToolbar>
+          <NodeToolButtons nodeId={props.id} />
+        </NodeToolbar>
+      )}
       <NodeHeader
         id={props.id}
         nodeTitle={titleizedType}
@@ -328,7 +327,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflowId}
         renderedResult={renderedResult}
       />
-      {resizer}
+      {node?.selected && resizer}
     </Container>
   );
 };
