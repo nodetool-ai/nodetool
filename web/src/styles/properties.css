@@ -146,3 +146,33 @@
   outline: 0 none;
   border: 0;
 }
+
+/* select */
+ .node-property select::-ms-expand {
+  display: none;
+}
+.node-property select {
+  /* appearance: none; */
+  position: relative;
+  color: var(--c_gray6);
+  background-color: var(--c_gray1);
+  border-radius: 0.25em;
+  border: none;
+  padding: 0 1em 0 0;
+  margin: 0;
+  width: 100%;
+  cursor: inherit;
+  line-height: inherit;
+  outline: none;
+  font-size: var(--font-size-smaller);
+  padding: 0.2em 0.1em;
+}
+.node-property select option {
+  font-size: var(--font-size-bigger);
+}
+.node-property select option:checked,
+.node-property select option:active {
+  
+  color: var(--c_black);
+  background-color: var(--c_hl1);
+}

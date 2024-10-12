@@ -34,19 +34,21 @@ const EnumProperty: React.FC<PropertyProps> = ({
         description={property.description}
         id={id}
       />
-      <select
-        id={id}
-        name={property.name}
-        value={value || ""}
-        onChange={handleChange}
-        className="nodrag"
-      >
-        {values?.map((value) => (
-          <option key={value} value={value}>
-            {value}
-          </option>
-        ))}
-      </select>
+      <div className="select-wrapper">
+        <select
+          id={id}
+          name={property.name}
+          value={value || ""}
+          onChange={handleChange}
+          className="nodrag"
+        >
+          {values?.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 };
