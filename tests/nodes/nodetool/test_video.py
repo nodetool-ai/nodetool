@@ -1,6 +1,7 @@
 import tempfile
 import numpy as np
 import pytest
+import PIL.Image
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.metadata.types import (
     TextRef,
@@ -69,6 +70,18 @@ dummy_audio = AudioRef(data=buffer.getvalue())
 
 dummy_video = VideoRef(data=create_video_bytes())
 
+# Create a dummy ImageRef for testing
+buffer = BytesIO()
+PIL.Image.new("RGB", (100, 100), color="red").save(buffer, format="PNG")
+dummy_image = ImageRef(data=buffer.getvalue())
+
+
+@pytest.mark.asyncio
+async def test_create_video(context: ProcessingContext):
+    frames = [dummy_image for _ in range(10)]
+    result = await CreateVideo(frames=frames, fps=24).process(context)
+    assert isinstance(result, VideoRef)
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
@@ -76,7 +89,6 @@ dummy_video = VideoRef(data=create_video_bytes())
     [
         (ExtractFrames(video=dummy_video, start=0, end=10), list),
         (Fps(video=dummy_video), float),
-        (CreateVideo(frames=[], fps=30), VideoRef),
         (Concat(video_a=dummy_video, video_b=dummy_video), VideoRef),
         (Trim(video=dummy_video, start_time=0, end_time=10), VideoRef),
         (VideoResizeNode(video=dummy_video, width=640, height=480), VideoRef),

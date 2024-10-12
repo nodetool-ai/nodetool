@@ -191,7 +191,7 @@ class StandardNode(BaseNode):
 
 def test_topological_sort_with_group_nodes(graph: Graph):
     # Setup nodes including group nodes and standard nodes
-    parent = GroupNode(id="1")  # Group node
+    parent = Loop(id="1")  # Group node
     child1 = StandardNode(id="2", parent_id="1")  # Child of group node
     child2 = StandardNode(id="3", parent_id="1")  # Another child of group node
     independent = StandardNode(id="4")  # A node not belonging to any group

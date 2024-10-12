@@ -124,16 +124,41 @@ class CreateVideo(BaseNode):
     fps: float = Field(default=30, description="The FPS of the output video.")
 
     async def process(self, context: ProcessingContext) -> VideoRef:
-        import imageio.v3 as iio
+        if not self.frames:
+            raise ValueError("No frames provided to create video.")
 
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as temp:
-            out = iio.imopen(temp.name, "w", plugin="pyav")
-            out.init_video_stream("vp9", fps=self.fps)
-            for img_ref in self.frames:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Save all frames as images in the temporary directory
+            frame_paths = []
+            for i, img_ref in enumerate(self.frames):
                 img = await context.image_to_pil(img_ref)
-                out.write_frame(np.array(img))
-            out.close()
-            return await context.video_from_io(open(temp.name, "rb"))
+                frame_path = os.path.join(temp_dir, f"frame_{i:05d}.png")
+                img.save(frame_path)
+                frame_paths.append(frame_path)
+
+            # Create a temporary file for the output video
+            with tempfile.NamedTemporaryFile(suffix=".mp4") as temp_output:
+                try:
+                    # Use FFmpeg to create video from frames
+                    (
+                        ffmpeg.input(
+                            os.path.join(temp_dir, "frame_%05d.png"), framerate=self.fps
+                        )
+                        .output(temp_output.name, vcodec="libx264", pix_fmt="yuv420p")
+                        .overwrite_output()
+                        .run(capture_stdout=True, capture_stderr=True)
+                    )
+
+                    # Read the created video and return as VideoRef
+                    with open(temp_output.name, "rb") as f:
+                        return await context.video_from_io(f)
+
+                except ffmpeg.Error as e:
+                    print(f"FFmpeg stdout:\n{e.stdout.decode('utf8')}")
+                    print(f"FFmpeg stderr:\n{e.stderr.decode('utf8')}")
+                    raise RuntimeError(
+                        f"Error creating video: {e.stderr.decode('utf8')}"
+                    )
 
 
 class Concat(BaseNode):
@@ -733,6 +758,7 @@ class Saturation(BaseNode):
                 with open(output_temp.name, "rb") as f:
                     return await context.video_from_io(f)
 
+
 class AddSubtitles(BaseNode):
     """
     Add subtitles to a video.
@@ -752,35 +778,40 @@ class AddSubtitles(BaseNode):
         default=24, description="Font size for the subtitles.", ge=8, le=72
     )
     font_color: str = Field(
-        default="white", description="Color of the subtitle text. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#FF0000')."
+        default="white",
+        description="Color of the subtitle text. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#FF0000').",
     )
     outline_color: str = Field(
-        default="black", description="Color of the text outline. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#000000')."
+        default="black",
+        description="Color of the text outline. Use predefined colors (white, black, gray, red, yellow) or hex color code (e.g., '#000000').",
     )
     outline_width: int = Field(
         default=2, description="Width of the text outline.", ge=0, le=4
     )
     position: str = Field(
-        default="bottom", description="Position of the subtitles. Options: 'bottom', 'top', 'middle'."
+        default="bottom",
+        description="Position of the subtitles. Options: 'bottom', 'top', 'middle'.",
     )
 
     def normalize_path(self, path):
-        return os.path.normpath(path).replace('\\', '/')
+        return os.path.normpath(path).replace("\\", "/")
 
     def color_to_hex(self, color):
         color_map = {
-            'white': 'FFFFFF',
-            'black': '000000',
-            'gray': '808080',
-            'red': 'FF0000',
-            'yellow': 'FFFF00'
+            "white": "FFFFFF",
+            "black": "000000",
+            "gray": "808080",
+            "red": "FF0000",
+            "yellow": "FFFF00",
         }
         if color.lower() in color_map:
             return color_map[color.lower()]
-        elif re.match(r'^#?[0-9A-Fa-f]{6}$', color):
-            return color.lstrip('#')
+        elif re.match(r"^#?[0-9A-Fa-f]{6}$", color):
+            return color.lstrip("#")
         else:
-            raise ValueError(f"Invalid color: {color}. Use predefined colors or hex color code.")
+            raise ValueError(
+                f"Invalid color: {color}. Use predefined colors or hex color code."
+            )
 
     async def process(self, context: ProcessingContext) -> VideoRef:
         if self.video.is_empty():
@@ -802,10 +833,10 @@ class AddSubtitles(BaseNode):
             temp_input = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
             temp_srt = tempfile.NamedTemporaryFile(suffix=".srt", delete=False)
             temp_output = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
-            
+
             temp_input.write(video_file.read())
-            temp_srt.write(srt_content.encode('utf-8'))
-            
+            temp_srt.write(srt_content.encode("utf-8"))
+
             temp_input.close()
             temp_srt.close()
             temp_output.close()
@@ -818,19 +849,24 @@ class AddSubtitles(BaseNode):
             outline_color_hex = self.color_to_hex(self.outline_color)
 
             # Set vertical position based on the 'position' field
-            if self.position == 'bottom':
-                vertical_position = '(h-th)'
-            elif self.position == 'top':
-                vertical_position = '0'
+            if self.position == "bottom":
+                vertical_position = "(h-th)"
+            elif self.position == "top":
+                vertical_position = "0"
             else:  # middle
-                vertical_position = '(h-th)/2'
+                vertical_position = "(h-th)/2"
 
             try:
                 (
-                    ffmpeg
-                    .input(input_path)
-                    .filter('subtitles', filename=srt_path, force_style=f'FontSize={self.font_size},PrimaryColour=&H{font_color_hex},OutlineColour=&H{outline_color_hex},Outline={self.outline_width},BorderStyle=3,Alignment=2,MarginV=20,y={vertical_position}')
-                    .output(output_path, vcodec='libx264', acodec='aac', **{'map': '0:a'})
+                    ffmpeg.input(input_path)
+                    .filter(
+                        "subtitles",
+                        filename=srt_path,
+                        force_style=f"FontSize={self.font_size},PrimaryColour=&H{font_color_hex},OutlineColour=&H{outline_color_hex},Outline={self.outline_width},BorderStyle=3,Alignment=2,MarginV=20,y={vertical_position}",
+                    )
+                    .output(
+                        output_path, vcodec="libx264", acodec="aac", **{"map": "0:a"}
+                    )
                     .overwrite_output()
                     .run(capture_stdout=True, capture_stderr=True)
                 )
@@ -1158,11 +1194,12 @@ import os
 import tempfile
 import ffmpeg
 
+
 class ExtractAudio(BaseNode):
     """
     Separate audio from a video file.
     """
-    
+
     video: VideoRef = Field(
         default=VideoRef(), description="The input video to separate."
     )
@@ -1187,9 +1224,14 @@ class ExtractAudio(BaseNode):
             try:
                 # Extract the audio
                 (
-                    ffmpeg
-                    .input(temp_input_path)
-                    .output(temp_audio_path, acodec="libmp3lame", map='0:a', format='mp3', loglevel='error')
+                    ffmpeg.input(temp_input_path)
+                    .output(
+                        temp_audio_path,
+                        acodec="libmp3lame",
+                        map="0:a",
+                        format="mp3",
+                        loglevel="error",
+                    )
                     .overwrite_output()
                     .run(quiet=True)
                 )
@@ -1200,7 +1242,9 @@ class ExtractAudio(BaseNode):
 
             except ffmpeg.Error as e:
                 # Capture ffmpeg errors and output to stderr for debugging
-                error_message = e.stderr.decode('utf-8') if e.stderr else "Unknown ffmpeg error."
+                error_message = (
+                    e.stderr.decode("utf-8") if e.stderr else "Unknown ffmpeg error."
+                )
                 raise RuntimeError(f"ffmpeg error: {error_message}") from e
 
             finally:
@@ -1212,5 +1256,4 @@ class ExtractAudio(BaseNode):
 
         finally:
             if os.path.exists(temp_input_path):
-                os.remove(temp_input_path) 
-
+                os.remove(temp_input_path)
