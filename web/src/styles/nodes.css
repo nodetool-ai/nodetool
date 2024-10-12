@@ -356,13 +356,6 @@
 .base-node:hover .react-flow__handle {
   opacity: 1;
 }
-
-.command-menu-dialog.MuiDialog-paper {
-  max-width: 800px;
-  width: 40vw;
-  background: transparent;
-  box-shadow: none;
-}
 .command-menu {
   width: 100%;
   min-height: 400px;
