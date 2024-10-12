@@ -3,7 +3,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import ThemeNodetool from "../themes/ThemeNodetool";
 import { IconForType } from "../../config/data_types";
-import { ListItemButton, ListItemText, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { InfoOutlined } from "@mui/icons-material";
 import { isEqual } from "lodash";
 
@@ -83,23 +83,28 @@ const NodeItem: React.FC<NodeItemProps> = ({
           height: "15px"
         }}
       />
-      <ListItemButton className="node-button" onClick={onClick}>
-        <ListItemText
-          primary={
-            <Typography fontSize="small">
-              {searchTerm ? (
-                <span
-                  dangerouslySetInnerHTML={{
-                    __html: highlightNodeTitle(node.title)
-                  }}
-                />
-              ) : (
-                node.title
-              )}
-            </Typography>
-          }
-        />
-      </ListItemButton>
+      <div
+        className="node-button"
+        onClick={onClick}
+        style={{
+          cursor: "pointer",
+          padding: "8px 16px",
+          display: "flex",
+          alignItems: "center"
+        }}
+      >
+        <Typography fontSize="small">
+          {searchTerm ? (
+            <span
+              dangerouslySetInnerHTML={{
+                __html: highlightNodeTitle(node.title)
+              }}
+            />
+          ) : (
+            node.title
+          )}
+        </Typography>
+      </div>
       <span
         style={infoStyle}
         onMouseEnter={handleInfoMouseEnter}

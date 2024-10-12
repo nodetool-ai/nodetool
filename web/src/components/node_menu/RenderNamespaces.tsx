@@ -1,8 +1,4 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
-import React, { useMemo, useCallback } from "react";
-import ThemeNodes from "../themes/ThemeNodes";
+import React, { useMemo } from "react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NamespaceItem from "./NamespaceItem";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
@@ -10,13 +6,11 @@ import { NamespaceTree } from "../../hooks/useNamespaceTree";
 interface RenderNamespacesProps {
   tree: NamespaceTree;
   currentPath?: string[];
-  handleNamespaceClick: (newPath: string[]) => void;
 }
 
 const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   tree,
-  currentPath = [],
-  handleNamespaceClick
+  currentPath = []
 }) => {
   const { highlightedNamespaces, selectedPath, searchResults } =
     useNodeMenuStore((state) => ({
@@ -35,40 +29,27 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
           currentPath.length > 0
             ? selectedPath.includes(currentPath[currentPath.length - 1])
             : true;
-        const newPath = [...currentPath, namespace];
+        const isSelected = selectedPath.join(".") === currentFullPath;
+        const path = [...currentPath, namespace];
         const hasChildren = Object.keys(tree[namespace].children).length > 0;
-        const expandedState = isExpanded ? "expanded" : "collapsed";
 
         // Count search results for this namespace and its children
         const searchResultCount = searchResults.filter((result) =>
           result.namespace.startsWith(currentFullPath)
         ).length;
 
-        const namespaceStyle =
-          isHighlighted && searchResultCount > 0
-            ? { borderLeft: `2px solid ${ThemeNodes.palette.c_hl1}` }
-            : {};
-
         return {
+          path,
           namespace,
           currentFullPath,
           isHighlighted: isHighlighted && searchResultCount > 0,
           isExpanded,
-          newPath,
+          isSelected,
           hasChildren,
-          expandedState,
-          namespaceStyle,
           searchResultCount
         };
       }),
     [tree, currentPath, highlightedNamespaces, selectedPath, searchResults]
-  );
-
-  const memoizedHandleClick = useCallback(
-    (newPath: string[]) => {
-      handleNamespaceClick(newPath);
-    },
-    [handleNamespaceClick]
   );
 
   return (
@@ -76,21 +57,21 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
       {memoizedTree.map(
         ({
           namespace,
-          newPath,
-          expandedState,
-          namespaceStyle,
+          path,
+          isExpanded,
+          isSelected,
+          isHighlighted,
           hasChildren
         }) => (
           <NamespaceItem
-            key={newPath.join(".")}
+            key={path.join(".")}
+            path={path}
             namespace={namespace}
-            newPath={newPath}
-            expandedState={expandedState}
-            namespaceStyle={namespaceStyle}
+            isExpanded={isExpanded}
+            isSelected={isSelected}
+            isHighlighted={isHighlighted}
             hasChildren={hasChildren}
             tree={tree}
-            selectedPath={selectedPath}
-            handleNamespaceClick={memoizedHandleClick}
           />
         )
       )}

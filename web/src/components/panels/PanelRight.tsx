@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import { IconButton, Box, Tooltip, Drawer, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
@@ -11,6 +11,7 @@ import Inspector from "../Inspector";
 // hooks
 import WorkflowForm from "../workflows/WorkflowForm";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -32,7 +33,7 @@ const styles = (theme: any) =>
     }
   });
 
-function PanelRight() {
+const PanelRight: React.FC = () => {
   const {
     ref: panelRef,
     size: panelSize,
@@ -129,6 +130,6 @@ function PanelRight() {
       </Drawer>
     </div>
   );
-}
+};
 
-export default PanelRight;
+export default memo(PanelRight, isEqual);

@@ -85,7 +85,7 @@ const namespaceStyles = (theme: any) =>
     ".explanation": {
       overflowY: "scroll",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmall,
       margin: "0",
       padding: "0 2em 2em 0"
     },
@@ -93,16 +93,13 @@ const namespaceStyles = (theme: any) =>
       color: theme.palette.c_hl1,
       marginBottom: "0.3em"
     },
-    ".explanation p": {
-      fontSize: theme.fontSizeNormal
-    },
     ".explanation ul": {
       listStyleType: "square",
       paddingInlineStart: "1em",
       margin: 0,
       "& li": {
         fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeNormal,
+        fontSize: theme.fontSizeSmall,
         margin: "0.25em 0",
         padding: "0"
       }
@@ -162,26 +159,45 @@ const namespaceStyles = (theme: any) =>
     ".node-info:hover": {
       color: theme.palette.c_hl1
     },
+    ".node-info": {
+      cursor: "pointer",
+      marginLeft: "auto",
+      display: "flex",
+      alignItems: "center"
+    },
     ".namespaces .list-item": {
-      padding: "0.2em 0.8em",
-      borderLeft: `1px solid ${theme.palette.c_gray4}`,
-      transition: "all 0.25s"
+      cursor: "pointer",
+      padding: "8px 16px",
+      backgroundColor: "transparent",
+      borderLeft: `3px solid ${theme.palette.c_gray2}`,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmaller,
+      transition: "all 0.3s ease-in-out",
+      maxHeight: "40px",
+      overflow: "hidden"
     },
-    ".namespaces .list-item p": {
-      fontFamily: "Inter"
+    ".namespaces .list-item:hover": {
+      backgroundColor: theme.palette.c_gray2
     },
-    ".namespaces .list-item.Mui-selected": {
+    ".namespaces .list-item.expanded": {
+      maxHeight: "40px",
+      opacity: 1
+    },
+    ".namespaces .list-item.collapsed": {
+      maxHeight: "0",
+      opacity: 0,
+      padding: "0 16px"
+    },
+    ".namespaces .list-item.selected": {
       backgroundColor: theme.palette.c_hl1,
       color: theme.palette.c_black
     },
-    ".namespaces .list-item.Mui-selected p": {
-      fontWeight: 600
+    ".namespaces .list-item.highlighted": {
+      borderLeft: `2px solid ${theme.palette.c_hl1}`
     },
+    ".namespaces .list-item p": {},
     ".namespaces .sublist": {
       paddingLeft: "1em"
-    },
-    ".namespaces p": {
-      fontFamily: theme.fontFamily1
     }
   });
 
@@ -193,33 +209,17 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     searchTerm,
     highlightedNamespaces,
     selectedPath,
-    setSelectedPath,
     searchResults,
     hoveredNode,
-    setHoveredNode,
     showNamespaceTree
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     highlightedNamespaces: state.highlightedNamespaces,
     selectedPath: state.selectedPath,
-    setSelectedPath: state.setSelectedPath,
     searchResults: state.searchResults,
     hoveredNode: state.hoveredNode,
-    setHoveredNode: state.setHoveredNode,
     showNamespaceTree: state.showNamespaceTree
   }));
-
-  const handleNamespaceClick = useCallback(
-    (namespacePath: string[]) => {
-      setHoveredNode(null);
-      setSelectedPath(
-        selectedPath.join(".") === namespacePath.join(".")
-          ? selectedPath.slice(0, -1)
-          : namespacePath
-      );
-    },
-    [setHoveredNode, setSelectedPath, selectedPath]
-  );
 
   const selectedPathString = useMemo(
     () => selectedPath.join("."),
@@ -249,13 +249,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   }, [metadata, selectedPathString, searchTerm]);
 
   const renderNamespaces = useMemo(
-    () => (
-      <RenderNamespaces
-        tree={namespaceTree}
-        handleNamespaceClick={handleNamespaceClick}
-      />
-    ),
-    [namespaceTree, handleNamespaceClick]
+    () => <RenderNamespaces tree={namespaceTree} />,
+    [namespaceTree]
   );
 
   const renderNodes = useMemo(
@@ -346,9 +341,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
                 <li>Drag nodes on canvas</li>
               </ul>
             </div>
-            <List className="node-info">
-              <Typography className="node-title"></Typography>
-            </List>
           </div>
         )}
       </Box>

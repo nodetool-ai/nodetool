@@ -51,6 +51,7 @@ import { Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../components/node/BaseNode";
 import ThemeNodetool from "../components/themes/ThemeNodetool";
 import { memo } from "react";
+import { isEqual } from "lodash";
 // import comfy_taesd from "../icons/comfy.taesd.svg?react";
 // import comfy_clip from "../icons/comfy.clip.svg?react";
 // import comfy_clip_vision from "../icons/comfy.clip_vision.svg?react";
@@ -665,7 +666,8 @@ export const IconForType = memo(function IconForType({
       </Tooltip>
     </div>
   );
-});
+},
+isEqual);
 
 export function colorForType(type: string): string {
   const foundType = DATA_TYPES.find((dt) => dt.value === type);

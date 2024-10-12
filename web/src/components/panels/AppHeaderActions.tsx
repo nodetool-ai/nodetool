@@ -16,7 +16,7 @@ import StopIcon from "@mui/icons-material/Stop";
 import { TOOLTIP_DELAY } from "../../config/constants";
 import { css } from "@emotion/react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { Workflow } from "../../stores/ApiTypes";
@@ -26,6 +26,7 @@ import ThemeNodetool from "../themes/ThemeNodetool";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { isEqual } from "lodash";
 
 const actionsStyles = (
   theme: any,
@@ -132,7 +133,7 @@ const useGlobalHotkeys = (callback: () => void) => {
   }, [handleKeyDown]);
 };
 
-export default function AppHeaderActions() {
+const AppHeaderActions: React.FC = () => {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const autoLayout = useNodeStore((state) => state.autoLayout);
   const saveWorkflow = useNodeStore((state) => state.saveWorkflow);
@@ -349,4 +350,6 @@ export default function AppHeaderActions() {
       )}
     </>
   );
-}
+};
+
+export default memo(AppHeaderActions, isEqual);

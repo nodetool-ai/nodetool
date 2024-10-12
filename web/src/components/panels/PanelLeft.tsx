@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import { Drawer, IconButton, Tooltip, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
@@ -11,6 +11,7 @@ import HelpChat from "../assistants/HelpChat";
 import WorkflowChat from "../assistants/WorkflowChat";
 import { useNodeStore } from "../../stores/NodeStore";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -32,7 +33,7 @@ const styles = (theme: any) =>
     }
   });
 
-function PanelLeft() {
+const PanelLeft: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
 
   const {
@@ -124,6 +125,6 @@ function PanelLeft() {
       </Drawer>
     </div>
   );
-}
+};
 
-export default PanelLeft;
+export default memo(PanelLeft, isEqual);

@@ -1,9 +1,9 @@
-import React, { memo } from "react";
-import { motion } from "framer-motion";
-import { ListItemButton, ListItemText, Typography, Box } from "@mui/material";
+import React, { memo, useCallback, useMemo } from "react";
+import { Box } from "@mui/material";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 import RenderNamespaces from "./RenderNamespaces";
 import { isEqual } from "lodash";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 
 function toPascalCase(input: string): string {
   return input.split("_").reduce((result, word, index) => {
@@ -15,90 +15,58 @@ function toPascalCase(input: string): string {
 }
 interface NamespaceItemProps {
   namespace: string;
-  newPath: string[];
-  expandedState: string;
-  namespaceStyle: React.CSSProperties;
+  path: string[];
+  isExpanded: boolean;
+  isSelected: boolean;
+  isHighlighted: boolean;
   hasChildren: boolean;
   tree: NamespaceTree;
-  selectedPath: string[];
-  handleNamespaceClick: (newPath: string[]) => void;
 }
-
-const listVariants = {
-  expanded: {
-    p: {
-      fontFamily: "Inter"
-    },
-    maxHeight: "200vh",
-    opacity: 1,
-    transition: {
-      when: "beforeChildren",
-      staggerChildren: 0.1,
-      ease: "easeIn",
-      duration: 0
-    }
-  },
-  collapsed: {
-    p: {
-      fontFamily: "Inter"
-    },
-    maxHeight: 0,
-    opacity: 0,
-    transition: {
-      when: "afterChildren",
-      ease: "easeOut",
-      duration: 0
-    }
-  }
-};
 
 const NamespaceItem: React.FC<NamespaceItemProps> = ({
   namespace,
-  newPath,
-  expandedState,
-  namespaceStyle,
+  path,
+  isExpanded,
   hasChildren,
   tree,
-  selectedPath,
-  handleNamespaceClick
+  isSelected,
+  isHighlighted
 }) => {
+  const { setHoveredNode, selectedPath, setSelectedPath } = useNodeMenuStore(
+    (state) => ({
+      setHoveredNode: state.setHoveredNode,
+      selectedPath: state.selectedPath,
+      setSelectedPath: state.setSelectedPath
+    })
+  );
+  const handleNamespaceClick = useCallback(() => {
+    setHoveredNode(null);
+    if (isSelected) {
+      setSelectedPath(path.slice(0, -1));
+    } else {
+      setSelectedPath(path);
+    }
+  }, [setHoveredNode, setSelectedPath, path, isSelected]);
+
   return (
-    <motion.div
-      initial="collapsed"
-      animate={expandedState}
-      variants={listVariants}
-    >
-      <ListItemButton
-        style={namespaceStyle}
-        className={`list-item ${expandedState}`}
-        selected={selectedPath.join(".") === newPath.join(".")}
-        onClick={() => handleNamespaceClick(newPath)}
+    <div>
+      <div
+        className={`list-item ${isExpanded ? "expanded" : "collapsed"} ${
+          isSelected ? "selected" : ""
+        } ${isHighlighted ? "highlighted" : ""}`}
+        onMouseDown={handleNamespaceClick}
       >
-        <ListItemText
-          primary={
-            <Box
-              className="namespace-item"
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Typography fontSize="small" className="namespace-item-name">
-                {toPascalCase(namespace)}
-              </Typography>
-            </Box>
-          }
-        />
-      </ListItemButton>
-      {hasChildren && (
-        <Box className="sublist">
+        <div className="namespace-item">{toPascalCase(namespace)}</div>
+      </div>
+      {hasChildren && isExpanded && (
+        <div className="sublist">
           <RenderNamespaces
             tree={tree[namespace].children}
-            currentPath={newPath}
-            handleNamespaceClick={handleNamespaceClick}
+            currentPath={path}
           />
-        </Box>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 };
 
