@@ -29,6 +29,7 @@ import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import { titleizeString } from "../../utils/titleizeString";
 import NodeToolButtons from "./NodeToolButtons";
+import { useRenderLogger } from "../../hooks/useRenderLogger";
 
 // Tooltip timing constants
 export const TOOLTIP_ENTER_DELAY = 650;
@@ -55,7 +56,7 @@ const gradientAnimationKeyframes = keyframes`
   }
 `;
 
-const styles = (theme: any, colors: string[]) =>
+const styles = (colors: string[]) =>
   css({
     // resizer
     ".node-resizer .react-flow__resize-control.top.line, .node-resizer .react-flow__resize-control.bottom.line":
@@ -68,7 +69,7 @@ const styles = (theme: any, colors: string[]) =>
     ".node-resizer .react-flow__resize-control.line": {
       opacity: 0,
       borderWidth: "1px",
-      borderColor: theme.palette.c_gray2,
+      borderColor: ThemeNodes.palette.c_gray2,
       transition: "all 0.15s ease-in-out"
     },
     ".node-resizer .react-flow__resize-control.line:hover": {
@@ -236,6 +237,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return allColors.slice(0, 5);
   }, [nodeMetadata]);
 
+  const memoizedStyles = useMemo(() => styles(nodeColors), [nodeColors]);
+
   const resizer = useMemo(
     () => (
       <div className="node-resizer">
@@ -256,6 +259,29 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     ),
     []
   );
+
+  useRenderLogger(nodeMetadata?.title || "", {
+    nodeMetadata,
+    metadataLoading,
+    metadataError,
+    parentIsCollapsed,
+    className,
+    props,
+    titleizedType,
+    hasParent,
+    ThemeNodes,
+    nodeColors,
+    minHeight,
+    workflowId,
+    status,
+    isProduction,
+    node_namespace,
+    isConstantNode,
+    isOutputNode,
+    renderedResult,
+    resizer
+  });
+
   if (!nodeMetadata || metadataLoading || metadataError) {
     return (
       <Container className={className}>
@@ -270,7 +296,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      css={styles(ThemeNodes, nodeColors)}
+      css={memoizedStyles}
       className={className}
       style={{
         display: parentIsCollapsed ? "none" : "flex",

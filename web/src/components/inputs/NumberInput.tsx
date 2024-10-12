@@ -3,17 +3,11 @@ import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { TextField } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
+import RangeIndicator from "./RangeIndicator";
 
 const DRAG_THRESHOLD = 5;
 const PIXELS_PER_STEP = 10;
 const SHIFT_PIXELS_PER_STEP = 20;
-const SLIDER_HEIGHT_DRAGGING = "3px";
-const SLIDER_HEIGHT = "1px";
-const SLIDER_OPACITY = 0.2;
-const SLIDER_COLOR = ThemeNodes.palette.c_gray3;
-const SLIDER_COLOR_DRAGGING = ThemeNodes.palette.c_hl1;
-const SLIDER_BG_COLOR = "transparent";
-const SLIDER_BG_COLOR_DRAGGING = ThemeNodes.palette.c_gray2;
 
 interface InputProps {
   name: string;
@@ -225,34 +219,6 @@ const DisplayValue: React.FC<{
   </div>
 );
 
-const RangeIndicator: React.FC<{
-  value: number;
-  min: number;
-  max: number;
-  isDragging: boolean;
-  isEditable: boolean;
-}> = ({ value, min, max, isDragging, isEditable }) => (
-  <div
-    className="range-container"
-    style={{
-      opacity: isDragging || isEditable ? 1 : SLIDER_OPACITY,
-      backgroundColor:
-        isDragging || isEditable ? SLIDER_BG_COLOR_DRAGGING : SLIDER_BG_COLOR
-    }}
-  >
-    <div
-      className="range-indicator"
-      style={{
-        backgroundColor:
-          isDragging || isEditable ? SLIDER_COLOR_DRAGGING : SLIDER_COLOR,
-        width: `${((value - min) / (max - min)) * 100}%`,
-        height:
-          isDragging || isEditable ? SLIDER_HEIGHT_DRAGGING : SLIDER_HEIGHT
-      }}
-    />
-  </div>
-);
-
 const NumberInput: React.FC<InputProps> = (props) => {
   const [state, setState] = useState<NumberInputState>({
     isDefault: false,
@@ -271,18 +237,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
     props,
     state,
     setState
-  );
-  const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
-
-  // Memoized calculations
-  const baseStep = useMemo(
-    () =>
-      calculateStep(
-        props.min ?? 0,
-        props.max ?? 4096,
-        props.inputType || "float"
-      ),
-    [props.min, props.max, props.inputType, calculateStep]
   );
 
   useCombo(
@@ -305,77 +259,92 @@ const NumberInput: React.FC<InputProps> = (props) => {
     }
   }, [props.value, state.isEditable]);
 
-  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target.value;
-    const normalizedInput = input.replace(/,/g, ".");
-    const regex = props.inputType === "float" ? /[^0-9.-]/g : /[^0-9-]/g;
-    const cleanedInput = normalizedInput.replace(regex, "");
-    setState((prevState) => ({ ...prevState, localValue: cleanedInput }));
-  };
+  const handleValueChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const input = e.target.value;
+      const normalizedInput = input.replace(/,/g, ".");
+      const regex = props.inputType === "float" ? /[^0-9.-]/g : /[^0-9-]/g;
+      const cleanedInput = normalizedInput.replace(regex, "");
+      setState((prevState) => ({ ...prevState, localValue: cleanedInput }));
+    },
+    [props.inputType]
+  );
 
-  const handleInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
-    event.target.select();
-  };
+  const handleInputFocus = useCallback(
+    (event: React.FocusEvent<HTMLInputElement>) => {
+      event.target.select();
+    },
+    []
+  );
 
-  const handleBlur = (shouldSave: boolean) => {
-    let finalValue: number;
+  const handleBlur = useCallback(
+    (shouldSave: boolean) => {
+      let finalValue: number;
 
-    if (shouldSave) {
-      if (props.inputType === "float") {
-        finalValue = parseFloat(state.localValue);
+      if (shouldSave) {
+        if (props.inputType === "float") {
+          finalValue = parseFloat(state.localValue);
+        } else {
+          finalValue = Math.round(Number(state.localValue));
+        }
+
+        if (isNaN(finalValue)) {
+          finalValue = props.min ?? 0;
+        }
+        finalValue = Math.max(
+          props.min ?? 0,
+          Math.min(props.max ?? 4096, finalValue)
+        );
+
+        setState((prevState) => ({
+          ...prevState,
+          isDefault: finalValue === props.value,
+          localValue: finalValue.toString()
+        }));
+
+        props.onChange(null, finalValue);
       } else {
-        finalValue = Math.round(Number(state.localValue));
+        setState((prevState) => ({
+          ...prevState,
+          localValue: (props.value ?? 0).toString()
+        }));
       }
 
-      if (isNaN(finalValue)) {
-        finalValue = props.min ?? 0;
-      }
-      finalValue = Math.max(
-        props.min ?? 0,
-        Math.min(props.max ?? 4096, finalValue)
-      );
-
-      setState((prevState) => ({
-        ...prevState,
-        isDefault: finalValue === props.value,
-        localValue: finalValue.toString()
-      }));
-
-      props.onChange(null, finalValue);
-    } else {
-      setState((prevState) => ({
-        ...prevState,
-        localValue: (props.value ?? 0).toString()
-      }));
-    }
-
-    setState((prevState) => ({ ...prevState, isEditable: false }));
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.button === 0) {
-      setState((prevState) => ({
-        ...prevState,
-        dragStartX: e.clientX,
-        isDragging: true,
-        hasExceededDragThreshold: false,
-        dragInitialValue: props.value
-      }));
-    } else {
       setState((prevState) => ({ ...prevState, isEditable: false }));
-    }
-  };
+    },
+    [props, state.localValue]
+  );
 
-  const handleClick = (e: React.MouseEvent) => {
-    if (!state.hasExceededDragThreshold) {
-      e.preventDefault();
-      setState((prevState) => ({
-        ...prevState,
-        originalValue: Number(prevState.localValue),
-        isEditable: true
-      }));
-    }
-  };
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.button === 0) {
+        setState((prevState) => ({
+          ...prevState,
+          dragStartX: e.clientX,
+          isDragging: true,
+          hasExceededDragThreshold: false,
+          dragInitialValue: props.value
+        }));
+      } else {
+        setState((prevState) => ({ ...prevState, isEditable: false }));
+      }
+    },
+    [props.value]
+  );
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!state.hasExceededDragThreshold) {
+        e.preventDefault();
+        setState((prevState) => ({
+          ...prevState,
+          originalValue: Number(prevState.localValue),
+          isEditable: true
+        }));
+      }
+    },
+    [state.hasExceededDragThreshold]
+  );
 
   useEffect(() => {
     if (state.isDragging) {

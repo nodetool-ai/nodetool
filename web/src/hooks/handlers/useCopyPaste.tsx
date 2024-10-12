@@ -10,18 +10,13 @@ import { useCallback } from "react";
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
-  const { nodes, edges, setEdges, setNodes } = useNodeStore((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    setEdges: state.setEdges,
-    setNodes: state.setNodes
-  }));
-
   const { readClipboard, writeClipboard } = useClipboard();
-  const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
 
   const handleCopy = useCallback(
     async (nodeId?: string) => {
+      const nodes = useNodeStore.getState().nodes;
+      const edges = useNodeStore.getState().edges;
+      const selectedNodes = useNodeStore.getState().getSelectedNodes();
       const focusedElement = document.activeElement as HTMLElement;
       if (
         (focusedElement.classList.contains("MuiInput-input") &&
@@ -62,11 +57,15 @@ export const useCopyPaste = () => {
 
       return { nodesToCopy, connectedEdges };
     },
-    [edges, nodes, selectedNodes, writeClipboard]
+    [writeClipboard]
   );
 
   const handleCut = useCallback(
     async (nodeId?: string) => {
+      const nodes = useNodeStore.getState().nodes;
+      const edges = useNodeStore.getState().edges;
+      const setNodes = useNodeStore.getState().setNodes;
+      const setEdges = useNodeStore.getState().setEdges;
       const { nodesToCopy, connectedEdges } = await handleCopy(nodeId);
 
       if (nodesToCopy.length === 0) {
@@ -83,11 +82,15 @@ export const useCopyPaste = () => {
       );
       setEdges(filteredEdges);
     },
-    [edges, handleCopy, nodes, setEdges, setNodes]
+    [handleCopy]
   );
 
   const handlePaste = useCallback(async () => {
     let clipboardData: string | null = null;
+    const nodes = useNodeStore.getState().nodes;
+    const edges = useNodeStore.getState().edges;
+    const setNodes = useNodeStore.getState().setNodes;
+    const setEdges = useNodeStore.getState().setEdges;
 
     try {
       await readClipboard();
@@ -221,15 +224,7 @@ export const useCopyPaste = () => {
         console.warn("Failed to clear clipboard data:", error);
       }
     }
-  }, [
-    edges,
-    nodes,
-    reactFlow,
-    readClipboard,
-    setEdges,
-    setNodes,
-    writeClipboard
-  ]);
+  }, [reactFlow, readClipboard, writeClipboard]);
 
   return { handleCopy, handlePaste, handleCut };
 };

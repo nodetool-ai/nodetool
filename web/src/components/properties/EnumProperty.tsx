@@ -1,57 +1,54 @@
-import React, { useMemo } from 'react';
-import { Select, FormControl } from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
+import React, { memo, useMemo, useCallback } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
+import { isEqual } from "lodash";
 
-const EnumProperty: React.FC<PropertyProps> = React.memo((props) => {
-  const id = useMemo(() => `enum-${props.property.name}-${props.propertyIndex}`, [props.property.name, props.propertyIndex]);
+const EnumProperty: React.FC<PropertyProps> = ({
+  property,
+  propertyIndex,
+  value,
+  onChange
+}) => {
+  const id = useMemo(
+    () => `enum-${property.name}-${propertyIndex}`,
+    [property.name, propertyIndex]
+  );
 
   const values = useMemo(() => {
-    return props.property.type.type === "enum"
-      ? props.property.type.values
-      : props.property.type.type_args?.[0].values;
-  }, [props.property.type]);
+    return property.type.type === "enum"
+      ? property.type.values
+      : property.type.type_args?.[0].values;
+  }, [property.type]);
+
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      onChange(event.target.value);
+    },
+    [onChange]
+  );
 
   return (
-    <>
-      <FormControl>
-        <PropertyLabel
-          name={props.property.name}
-          description={props.property.description}
-          id={id}
-        />
-        <Select
-          id={id}
-          labelId={id}
-          name={props.property.name}
-          value={props.value}
-          variant="standard"
-          onChange={(e) => props.onChange(e.target.value)}
-          className="mui-select nodrag"
-          disableUnderline={true}
-          MenuProps={{
-            anchorOrigin: {
-              vertical: "bottom",
-              horizontal: "left"
-            },
-            transformOrigin: {
-              vertical: "top",
-              horizontal: "left"
-            }
-          }}
-        >
-          {values?.map((value) => (
-            <MenuItem key={value} value={value}>
-              {value}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    </>
+    <div className="enum-property">
+      <PropertyLabel
+        name={property.name}
+        description={property.description}
+        id={id}
+      />
+      <select
+        id={id}
+        name={property.name}
+        value={value || ""}
+        onChange={handleChange}
+        className="nodrag"
+      >
+        {values?.map((value) => (
+          <option key={value} value={value}>
+            {value}
+          </option>
+        ))}
+      </select>
+    </div>
   );
-});
+};
 
-EnumProperty.displayName = "EnumProperty";
-
-export default EnumProperty;
+export default memo(EnumProperty, isEqual);

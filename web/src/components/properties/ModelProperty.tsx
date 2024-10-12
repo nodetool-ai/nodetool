@@ -39,13 +39,13 @@ export default function ModelProperty(props: PropertyProps) {
   };
 
   return (
-    <>
+    <div className="model-property">
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
         id={id}
       />
       {renderModelSelect()}
-    </>
+    </div>
   );
 }
