@@ -9,6 +9,7 @@ import {
   NodeProps,
   NodeResizer,
   NodeToolbar,
+  Position,
   ResizeParams
 } from "@xyflow/react";
 import { isEqual } from "lodash";
@@ -279,7 +280,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : ThemeNodes.palette.c_node_bg
       }}
     >
-      <NodeToolbar>
+      <NodeToolbar offset={0}>
         <NodeToolButtons nodeId={props.id} />
       </NodeToolbar>
       <NodeHeader
