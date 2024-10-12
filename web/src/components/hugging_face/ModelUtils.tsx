@@ -6,6 +6,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { client, isProduction } from "../../stores/ApiClient";
 import ModelIcon from "../../icons/model.svg";
 import DownloadIcon from "@mui/icons-material/Download";
+import { useQuery } from "@tanstack/react-query";
+import { fetchModelInfo } from "../../utils/huggingFaceUtils";
 
 export type OllamaModel = {
   name: string;
@@ -183,8 +185,16 @@ export const renderModelSecondaryInfo = (
       </Typography>
     )}
     {!isHuggingFace && (
+      <Typography variant="body2" className="text-license">
+        {modelData.model_info?.["general.license"]}
+      </Typography>
+    )}
+    {!isHuggingFace && (
       <Typography variant="body2">
-        {modelData.details?.parent_model} - {modelData.details?.format}
+        {modelData.details?.family} - {modelData.details?.format}
+        {modelData.details?.parameter_size && (
+          <> - {modelData.details?.parameter_size}</>
+        )}
       </Typography>
     )}
   </>
@@ -252,4 +262,36 @@ export const sortModelTypes = (types: string[]) => {
       return a.localeCompare(b);
     })
   ];
+};
+
+export const useModelInfo = (model: UnifiedModel) => {
+  const isHuggingFace = model.type.startsWith("hf.");
+  const isOllama = model.type.toLowerCase().includes("llama_model");
+  const query = useQuery({
+    queryKey: ["modelInfo", model.id],
+    queryFn: () => {
+      if (isHuggingFace) {
+        return fetchModelInfo(model.id);
+      } else if (isOllama) {
+        return fetchOllamaModelInfo(model.id);
+      }
+      return null;
+    },
+    staleTime: Infinity,
+    gcTime: 1000 * 60
+  });
+
+  return {
+    isLoading: query.isLoading,
+    modelData: query.data as any,
+    isHuggingFace,
+    isOllama,
+    downloaded: Boolean(
+      model.type && model.path
+        ? model.downloaded
+        : model.type && model.type.startsWith("hf.")
+        ? model.size_on_disk
+        : query.data // ollama
+    )
+  };
 };

@@ -15,19 +15,17 @@ import {
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
-import { useQuery } from "@tanstack/react-query";
 import {
   ModelComponentProps,
   formatId,
   modelSize,
   renderModelSecondaryInfo,
   renderModelActions,
-  fetchOllamaModelInfo,
   HuggingFaceLink,
   OllamaLink
 } from "./ModelUtils";
-import { fetchModelInfo } from "../../utils/huggingFaceUtils";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { useModelInfo } from "./ModelUtils";
 
 const styles = (theme: any) =>
   css({
@@ -106,23 +104,8 @@ const ModelListItem: React.FC<ModelComponentProps> = ({
   handleDelete,
   compactView = false
 }) => {
-  const isHuggingFace = model.type.startsWith("hf.");
-  const isOllama = model.type.toLowerCase().includes("llama_model");
-  const downloaded = !!(model.size_on_disk && model.size_on_disk > 0);
-
-  const { data: modelData, isLoading } = useQuery({
-    queryKey: ["modelInfo", model.id],
-    queryFn: () => {
-      if (isHuggingFace) {
-        return fetchModelInfo(model.id);
-      } else if (isOllama) {
-        return fetchOllamaModelInfo(model.id);
-      }
-      return null;
-    },
-    staleTime: Infinity,
-    gcTime: 1000 * 60
-  });
+  const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
+    useModelInfo(model);
 
   if (isLoading) {
     return (
