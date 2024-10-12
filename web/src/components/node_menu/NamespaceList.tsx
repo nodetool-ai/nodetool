@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Box, List, Tooltip, Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import RenderNamespaces from "./RenderNamespaces";
@@ -13,6 +13,7 @@ import {
   TOOLTIP_LEAVE_DELAY
 } from "../node/BaseNode";
 import NodeInfo from "./NodeInfo";
+import { isEqual } from "lodash";
 
 type NamespaceTree = Record<
   string,
@@ -143,7 +144,7 @@ const namespaceStyles = (theme: any) =>
       ".node-button": {
         padding: ".1em .5em",
         "& .MuiTypography-root": {
-          fontSize: theme.fontSizeSmall
+          fontSize: theme.fontSizeSmaller
         }
       }
     },
@@ -151,188 +152,208 @@ const namespaceStyles = (theme: any) =>
       color: theme.palette.c_hl1
     },
     ".namespace-text": {
-      color: theme.palette.c_gray6,
+      color: theme.palette.c_gray4,
       fontWeight: "normal",
-      borderBottom: `1px solid ${theme.palette.c_gray3}`,
-      borderTop: `1px solid ${theme.palette.c_gray3}`,
+      borderBottom: `1px solid ${theme.palette.c_gray2}`,
+      borderTop: `1px solid ${theme.palette.c_gray2}`,
       padding: ".25em 0",
       margin: "1em 0 .5em"
     },
     ".node-info:hover": {
       color: theme.palette.c_hl1
+    },
+    ".namespaces .list-item": {
+      padding: "0.2em 0.8em",
+      borderLeft: `1px solid ${theme.palette.c_gray4}`,
+      transition: "all 0.25s"
+    },
+    ".namespaces .list-item p": {
+      fontFamily: "Inter"
+    },
+    ".namespaces .list-item.Mui-selected": {
+      backgroundColor: theme.palette.c_hl1,
+      color: theme.palette.c_black
+    },
+    ".namespaces .list-item.Mui-selected p": {
+      fontWeight: 600
+    },
+    ".namespaces .sublist": {
+      paddingLeft: "1em"
+    },
+    ".namespaces p": {
+      fontFamily: theme.fontFamily1
     }
   });
 
-const NamespaceList: React.FC<NamespaceListProps> = React.memo(
-  ({ namespaceTree, metadata }) => {
-    const {
-      searchTerm,
-      highlightedNamespaces,
-      selectedPath,
-      setSelectedPath,
-      searchResults,
-      hoveredNode,
-      setHoveredNode,
-      showNamespaceTree
-    } = useNodeMenuStore((state) => ({
-      searchTerm: state.searchTerm,
-      highlightedNamespaces: state.highlightedNamespaces,
-      selectedPath: state.selectedPath,
-      setSelectedPath: state.setSelectedPath,
-      searchResults: state.searchResults,
-      hoveredNode: state.hoveredNode,
-      setHoveredNode: state.setHoveredNode,
-      showNamespaceTree: state.showNamespaceTree
-    }));
+const NamespaceList: React.FC<NamespaceListProps> = ({
+  namespaceTree,
+  metadata
+}) => {
+  const {
+    searchTerm,
+    highlightedNamespaces,
+    selectedPath,
+    setSelectedPath,
+    searchResults,
+    hoveredNode,
+    setHoveredNode,
+    showNamespaceTree
+  } = useNodeMenuStore((state) => ({
+    searchTerm: state.searchTerm,
+    highlightedNamespaces: state.highlightedNamespaces,
+    selectedPath: state.selectedPath,
+    setSelectedPath: state.setSelectedPath,
+    searchResults: state.searchResults,
+    hoveredNode: state.hoveredNode,
+    setHoveredNode: state.setHoveredNode,
+    showNamespaceTree: state.showNamespaceTree
+  }));
 
-    const handleNamespaceClick = useCallback(
-      (namespacePath: string[]) => {
-        setHoveredNode(null);
-        setSelectedPath(
-          selectedPath.join(".") === namespacePath.join(".")
-            ? selectedPath.slice(0, -1)
-            : namespacePath
+  const handleNamespaceClick = useCallback(
+    (namespacePath: string[]) => {
+      setHoveredNode(null);
+      setSelectedPath(
+        selectedPath.join(".") === namespacePath.join(".")
+          ? selectedPath.slice(0, -1)
+          : namespacePath
+      );
+    },
+    [setHoveredNode, setSelectedPath, selectedPath]
+  );
+
+  const selectedPathString = useMemo(
+    () => selectedPath.join("."),
+    [selectedPath]
+  );
+
+  const currentNodes = useMemo(() => {
+    if (!metadata) return [];
+
+    return metadata
+      .filter((node) => {
+        const startsWithPath = node.namespace.startsWith(
+          selectedPathString + "."
         );
-      },
-      [setHoveredNode, setSelectedPath, selectedPath]
-    );
+        return (
+          (selectedPathString === "" && searchTerm !== "") ||
+          node.namespace === selectedPathString ||
+          startsWithPath
+        );
+      })
+      .sort((a, b) => {
+        const namespaceComparison = a.namespace.localeCompare(b.namespace);
+        return namespaceComparison !== 0
+          ? namespaceComparison
+          : a.title.localeCompare(b.title);
+      });
+  }, [metadata, selectedPathString, searchTerm]);
 
-    const selectedPathString = useMemo(
-      () => selectedPath.join("."),
-      [selectedPath]
-    );
+  const renderNamespaces = useMemo(
+    () => (
+      <RenderNamespaces
+        tree={namespaceTree}
+        handleNamespaceClick={handleNamespaceClick}
+      />
+    ),
+    [namespaceTree, handleNamespaceClick]
+  );
 
-    const currentNodes = useMemo(() => {
-      if (!metadata) return [];
+  const renderNodes = useMemo(
+    () => <RenderNodes nodes={currentNodes} />,
+    [currentNodes]
+  );
 
-      return metadata
-        .filter((node) => {
-          const startsWithPath = node.namespace.startsWith(
-            selectedPathString + "."
-          );
-          return (
-            (selectedPathString === "" && searchTerm !== "") ||
-            node.namespace === selectedPathString ||
-            startsWithPath
-          );
-        })
-        .sort((a, b) => {
-          const namespaceComparison = a.namespace.localeCompare(b.namespace);
-          return namespaceComparison !== 0
-            ? namespaceComparison
-            : a.title.localeCompare(b.title);
-        });
-    }, [metadata, selectedPathString, searchTerm]);
+  const renderNodeInfo = useMemo(
+    () => hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />,
+    [hoveredNode]
+  );
 
-    const renderNamespaces = useMemo(
-      () => (
-        <RenderNamespaces
-          tree={namespaceTree}
-          handleNamespaceClick={handleNamespaceClick}
-        />
-      ),
-      [namespaceTree, handleNamespaceClick]
-    );
+  return (
+    <div css={namespaceStyles}>
+      <Box className="header">
+        <Tooltip
+          title={
+            <span
+              style={{
+                color: "#eee",
+                fontSize: "1.25em"
+              }}
+            >
+              showing the amount of nodes found: <br />
+              [in selected namespace | total search results]
+            </span>
+          }
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          leaveDelay={TOOLTIP_LEAVE_DELAY}
+          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          placement="bottom"
+        >
+          <Typography className="result-info">
+            <span>
+              [{currentNodes?.length} | {searchResults.length}]
+            </span>
+          </Typography>
+        </Tooltip>
+      </Box>
 
-    const renderNodes = useMemo(
-      () => <RenderNodes nodes={currentNodes} />,
-      [currentNodes]
-    );
+      <Box className="list-box">
+        <List
+          className="namespace-list"
+          sx={{ display: showNamespaceTree ? "block" : "none" }}
+        >
+          {renderNamespaces}
+        </List>
+        {currentNodes && currentNodes.length > 0 ? (
+          <>
+            <List className="node-list">{renderNodes}</List>
+            {renderNodeInfo}
+          </>
+        ) : searchTerm.length > 0 && highlightedNamespaces.length > 0 ? (
+          <div className="no-selection">
+            <p>
+              Nothing found in this namespace for
+              <strong className="highlighted-text">
+                {" "}
+                &quot;{searchTerm}&quot;
+              </strong>
+            </p>
+            <ul className="no-results">
+              <li>
+                click on <span className="highlighted">highlighted </span>
+                namespaces to find results.
+              </li>
+              <li>just start typing to enter a new search term</li>
+            </ul>
+          </div>
+        ) : (
+          <div className="no-selection">
+            <div className="explanation">
+              <Typography variant="h5" style={{ marginTop: 0 }}>
+                Browse Nodes
+              </Typography>
+              <ul>
+                <li>Click on the namespaces to the left</li>
+              </ul>
 
-    const renderNodeInfo = useMemo(
-      () => hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />,
-      [hoveredNode]
-    );
+              <Typography variant="h5">Search Nodes</Typography>
+              <ul>
+                <li>Type in the search bar to search for nodes.</li>
+              </ul>
 
-    return (
-      <div css={namespaceStyles}>
-        <Box className="header">
-          <Tooltip
-            title={
-              <span
-                style={{
-                  color: "#eee",
-                  fontSize: "1.25em"
-                }}
-              >
-                showing the amount of nodes found: <br />
-                [in selected namespace | total search results]
-              </span>
-            }
-            enterDelay={TOOLTIP_ENTER_DELAY}
-            leaveDelay={TOOLTIP_LEAVE_DELAY}
-            enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-            placement="bottom"
-          >
-            <Typography className="result-info">
-              <span>
-                [{currentNodes?.length} | {searchResults.length}]
-              </span>
-            </Typography>
-          </Tooltip>
-        </Box>
-
-        <Box className="list-box">
-          <List
-            className="namespace-list"
-            sx={{ display: showNamespaceTree ? "block" : "none" }}
-          >
-            {renderNamespaces}
-          </List>
-          {currentNodes && currentNodes.length > 0 ? (
-            <>
-              <List className="node-list">{renderNodes}</List>
-              {renderNodeInfo}
-            </>
-          ) : searchTerm.length > 0 && highlightedNamespaces.length > 0 ? (
-            <div className="no-selection">
-              <p>
-                Nothing found in this namespace for
-                <strong className="highlighted-text">
-                  {" "}
-                  &quot;{searchTerm}&quot;
-                </strong>
-              </p>
-              <ul className="no-results">
-                <li>
-                  click on <span className="highlighted">highlighted </span>
-                  namespaces to find results.
-                </li>
-                <li>just start typing to enter a new search term</li>
+              <Typography variant="h5">Create Nodes</Typography>
+              <ul>
+                <li>Click on a node</li>
+                <li>Drag nodes on canvas</li>
               </ul>
             </div>
-          ) : (
-            <div className="no-selection">
-              <div className="explanation">
-                <Typography variant="h5" style={{ marginTop: 0 }}>
-                  Browse Nodes
-                </Typography>
-                <ul>
-                  <li>Click on the namespaces to the left</li>
-                </ul>
+            <List className="node-info">
+              <Typography className="node-title"></Typography>
+            </List>
+          </div>
+        )}
+      </Box>
+    </div>
+  );
+};
 
-                <Typography variant="h5">Search Nodes</Typography>
-                <ul>
-                  <li>Type in the search bar to search for nodes.</li>
-                </ul>
-
-                <Typography variant="h5">Create Nodes</Typography>
-                <ul>
-                  <li>Click on a node</li>
-                  <li>Drag nodes on canvas</li>
-                </ul>
-              </div>
-              <List className="node-info">
-                <Typography className="node-title"></Typography>
-              </List>
-            </div>
-          )}
-        </Box>
-      </div>
-    );
-  }
-);
-
-NamespaceList.displayName = "NamespaceList";
-
-export default NamespaceList;
+export default memo(NamespaceList, isEqual);

@@ -58,7 +58,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           </Typography>
         )}
 
-        {isOllama && !modelData && (
+        {isOllama && !downloaded && (
           <Typography
             variant="h5"
             style={{ color: ThemeNodetool.palette.c_gray4 }}

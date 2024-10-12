@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import { IconButton, Box, Tooltip, Drawer, Tabs, Tab } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
@@ -9,8 +9,8 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import Inspector from "../Inspector";
 // hooks
-import { useHotkeys } from "react-hotkeys-hook";
 import WorkflowForm from "../workflows/WorkflowForm";
+import { useCombo } from "../../stores/KeyPressedStore";
 
 const styles = (theme: any) =>
   css({
@@ -41,16 +41,19 @@ function PanelRight() {
     handlePanelToggle
   } = useResizePanel("right");
 
-  useHotkeys("2", () => {
-    if (
-      document.activeElement &&
-      document.activeElement.tagName.toLowerCase() !== "input" &&
-      document.activeElement.tagName.toLowerCase() !== "div" &&
-      document.activeElement.tagName.toLowerCase() !== "textarea"
-    ) {
-      handlePanelToggle();
-    }
-  });
+  useCombo(
+    ["2"],
+    useCallback(() => {
+      if (
+        document.activeElement &&
+        document.activeElement.tagName.toLowerCase() !== "input" &&
+        document.activeElement.tagName.toLowerCase() !== "div" &&
+        document.activeElement.tagName.toLowerCase() !== "textarea"
+      ) {
+        handlePanelToggle();
+      }
+    }, [handlePanelToggle])
+  );
 
   const [tabIndex, setTabIndex] = useState(0);
 

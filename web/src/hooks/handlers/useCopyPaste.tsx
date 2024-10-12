@@ -6,6 +6,7 @@ import { devWarn } from "../../utils/DevLog";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboard } from "../browser/useClipboard";
 import { NodeData } from "../../stores/NodeData";
+import { useCallback } from "react";
 
 export const useCopyPaste = () => {
   const reactFlow = useReactFlow();
@@ -19,64 +20,92 @@ export const useCopyPaste = () => {
   const { readClipboard, writeClipboard } = useClipboard();
   const selectedNodes = useNodeStore((state) => state.getSelectedNodes());
 
-  const handleCopy = async (nodeId?: string) => {
-    const focusedElement = document.activeElement as HTMLElement;
-    if (
-      (focusedElement.classList.contains("MuiInput-input") &&
-        !focusedElement.classList.contains("action")) ||
-      focusedElement.tagName === "TEXTAREA"
-    ) {
-      return { nodesToCopy: [], connectedEdges: [] };
+  const handleCopy = useCallback(
+    async (nodeId?: string) => {
+      const focusedElement = document.activeElement as HTMLElement;
+      if (
+        (focusedElement.classList.contains("MuiInput-input") &&
+          !focusedElement.classList.contains("action")) ||
+        focusedElement.tagName === "TEXTAREA"
+      ) {
+        return { nodesToCopy: [], connectedEdges: [] };
+      }
+
+      let nodesToCopy: Node[];
+      if (nodeId && nodeId !== "") {
+        // Find the node with the given nodeId
+        const node = nodes.find((node: any) => node.id === nodeId);
+        nodesToCopy = node ? [node] : [];
+      } else {
+        nodesToCopy = selectedNodes;
+      }
+      if (nodesToCopy.length === 0) {
+        return { nodesToCopy: [], connectedEdges: [] };
+      }
+      const nodesToCopyIds = nodesToCopy.map((node) => node.id);
+      const connectedEdges = edges.filter(
+        (edge) =>
+          nodesToCopyIds.includes(edge.source) ||
+          nodesToCopyIds.includes(edge.target)
+      );
+      const serializedData = JSON.stringify({
+        nodes: nodesToCopy,
+        edges: connectedEdges
+      });
+
+      try {
+        await writeClipboard(serializedData);
+      } catch (error) {
+        console.warn("Clipboard write failed, using localStorage fallback");
+        localStorage.setItem("copiedNodesData", serializedData);
+      }
+
+      return { nodesToCopy, connectedEdges };
+    },
+    [edges, nodes, selectedNodes, writeClipboard]
+  );
+
+  const handleCut = useCallback(
+    async (nodeId?: string) => {
+      const { nodesToCopy, connectedEdges } = await handleCopy(nodeId);
+
+      if (nodesToCopy.length === 0) {
+        return;
+      }
+
+      const filteredNodes = nodes.filter(
+        (node) => !nodesToCopy.some((n) => n.id === node.id)
+      );
+      setNodes(filteredNodes);
+
+      const filteredEdges = edges.filter(
+        (edge) => !connectedEdges.some((e) => e.id === edge.id)
+      );
+      setEdges(filteredEdges);
+    },
+    [edges, handleCopy, nodes, setEdges, setNodes]
+  );
+
+  const handlePaste = useCallback(async () => {
+    let clipboardData: string | null = null;
+
+    try {
+      await readClipboard();
+      const { clipboardData: data, isClipboardValid } =
+        useSessionStateStore.getState();
+      if (isClipboardValid && data !== null) {
+        clipboardData = data;
+      }
+    } catch (error) {
+      console.warn("Clipboard read failed, using localStorage fallback");
     }
 
-    let nodesToCopy: Node[];
-    if (nodeId && nodeId !== "") {
-      // Find the node with the given nodeId
-      const node = nodes.find((node: any) => node.id === nodeId);
-      nodesToCopy = node ? [node] : [];
-    } else {
-      nodesToCopy = selectedNodes;
-    }
-    if (nodesToCopy.length === 0) {
-      return { nodesToCopy: [], connectedEdges: [] };
-    }
-    const nodesToCopyIds = nodesToCopy.map((node) => node.id);
-    const connectedEdges = edges.filter(
-      (edge) =>
-        nodesToCopyIds.includes(edge.source) ||
-        nodesToCopyIds.includes(edge.target)
-    );
-    const serializedData = JSON.stringify({
-      nodes: nodesToCopy,
-      edges: connectedEdges
-    });
-    await writeClipboard(serializedData);
-
-    return { nodesToCopy, connectedEdges };
-  };
-
-  const handleCut = async (nodeId?: string) => {
-    const { nodesToCopy, connectedEdges } = await handleCopy(nodeId);
-
-    if (nodesToCopy.length === 0) {
-      return;
+    if (!clipboardData) {
+      clipboardData = localStorage.getItem("copiedNodesData");
     }
 
-    const filteredNodes = nodes.filter(
-      (node) => !nodesToCopy.some((n) => n.id === node.id)
-    );
-    setNodes(filteredNodes);
-
-    const filteredEdges = edges.filter(
-      (edge) => !connectedEdges.some((e) => e.id === edge.id)
-    );
-    setEdges(filteredEdges);
-  };
-
-  const handlePaste = async () => {
-    await readClipboard();
-    const { clipboardData, isClipboardValid } = useSessionStateStore.getState();
-    if (!isClipboardValid || clipboardData === null) {
+    if (!clipboardData) {
+      console.warn("No valid data found in clipboard or localStorage");
       return;
     }
 
@@ -84,7 +113,7 @@ export const useCopyPaste = () => {
     try {
       parsedData = JSON.parse(clipboardData);
     } catch (parseError) {
-      devWarn("Failed to parse clipboard data:", parseError);
+      devWarn("Failed to parse clipboard/localStorage data:", parseError);
       return;
     }
 
@@ -182,8 +211,25 @@ export const useCopyPaste = () => {
       // Update state
       setNodes([...nodes, ...newNodes]);
       setEdges([...edges, ...newEdges]);
+
+      // Clear clipboard data after successful paste
+      try {
+        await writeClipboard("");
+        useSessionStateStore.getState().setClipboardData(null);
+        localStorage.removeItem("copiedNodesData");
+      } catch (error) {
+        console.warn("Failed to clear clipboard data:", error);
+      }
     }
-  };
+  }, [
+    edges,
+    nodes,
+    reactFlow,
+    readClipboard,
+    setEdges,
+    setNodes,
+    writeClipboard
+  ]);
 
   return { handleCopy, handlePaste, handleCut };
 };

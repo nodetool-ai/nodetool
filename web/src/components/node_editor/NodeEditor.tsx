@@ -44,7 +44,6 @@ import AxisMarker from "./AxisMarker";
 import LoopNode from "../node/LoopNode";
 //utils
 import { getMousePosition } from "../../utils/MousePosition";
-import { useHotkeys } from "react-hotkeys-hook";
 //css
 import { generateCSS } from "../themes/GenerateCSS";
 import "../../styles/base.css";
@@ -70,11 +69,11 @@ import { MAX_ZOOM, MIN_ZOOM } from "../../config/constants";
 import HuggingFaceDownloadDialog from "../hugging_face/HuggingFaceDownloadDialog";
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
 import { ErrorBoundary } from "@sentry/react";
-import useModelStore from "../../stores/ModelStore";
-import { tryCacheFiles } from "../../serverState/tryCacheFiles";
 import GroupNode from "../node/GroupNode";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
+import { useCombo } from "../../stores/KeyPressedStore";
+import { useAddToGroup } from "../../hooks/nodes/useAddToGroup";
 import { isEqual } from "lodash";
 import ThemeNodes from "../themes/ThemeNodes";
 
@@ -83,6 +82,26 @@ declare global {
     __beforeUnloadListenerAdded?: boolean;
   }
 }
+
+// Custom hook for logging render triggers
+const useRenderLogger = (dependencies: Record<string, any>) => {
+  const prevDeps = useRef(dependencies);
+
+  return useMemo(() => {
+    const changedDeps = Object.entries(dependencies).filter(
+      ([key, value]) => prevDeps.current[key] !== value
+    );
+
+    if (changedDeps.length > 0) {
+      console.log(
+        "Render triggered by:",
+        changedDeps.map(([key]) => key).join(", ")
+      );
+    }
+
+    prevDeps.current = dependencies;
+  }, [dependencies]);
+};
 
 const NodeEditor: React.FC<unknown> = () => {
   const {
@@ -93,18 +112,15 @@ const NodeEditor: React.FC<unknown> = () => {
     onEdgesChange,
     onEdgeUpdate,
     updateNodeData
-  } = useNodeStore(
-    (state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      onConnect: state.onConnect,
-      onNodesChange: state.onNodesChange,
-      onEdgesChange: state.onEdgesChange,
-      onEdgeUpdate: state.onEdgeUpdate,
-      updateNodeData: state.updateNodeData
-    }),
-    shallow
-  );
+  } = useNodeStore((state) => ({
+    nodes: state.nodes,
+    edges: state.edges,
+    onConnect: state.onConnect,
+    onNodesChange: state.onNodesChange,
+    onEdgesChange: state.onEdgesChange,
+    onEdgeUpdate: state.onEdgeUpdate,
+    updateNodeData: state.updateNodeData
+  }));
 
   const { handleOnConnect, onConnectStart, onConnectEnd } =
     useConnectionHandlers();
@@ -152,19 +168,17 @@ const NodeEditor: React.FC<unknown> = () => {
   /* UTILS */
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
   const alignNodes = useAlignNodes();
-  const selectedNodeIds = useNodeStore((state) =>
-    state.getSelectedNodes().map((node) => node.id)
-  );
-
+  const getSelectedNodeIds = useNodeStore((state) => state.getSelectedNodeIds);
   const duplicateNodes = useDuplicateNodes();
   const surroundWithGroup = useSurroundWithGroup();
 
   /* DUPLICATE SELECTION */
   const handleDuplicate = useCallback(() => {
+    const selectedNodeIds = getSelectedNodeIds();
     if (selectedNodeIds.length) {
       duplicateNodes(selectedNodeIds);
     }
-  }, [selectedNodeIds, duplicateNodes]);
+  }, [getSelectedNodeIds, duplicateNodes]);
 
   /* SETTINGS */
   const settings = useSettingsStore((state) => state.settings);
@@ -275,54 +289,70 @@ const NodeEditor: React.FC<unknown> = () => {
   );
 
   // ON MOVE START | DRAG PANE
-  const handleOnMoveStart = () => {
+  const handleOnMoveStart = useCallback(() => {
     // This also triggers on click, which will mess up the state of isMenuOpen
-    // closeNodeMenu();
-  };
-  // ON NODES CHANGE
-  const handleNodesChange = (changes: any) => {
-    onNodesChange(changes);
     closeNodeMenu();
-  };
+  }, [closeNodeMenu]);
+
+  // ON NODES CHANGE
+  const handleNodesChange = useCallback(
+    (changes: any) => {
+      onNodesChange(changes);
+      closeNodeMenu();
+    },
+    [onNodesChange, closeNodeMenu]
+  );
 
   /* KEY LISTENER */
-  const { spaceKeyPressed } = useKeyPressedStore((state) => ({
-    spaceKeyPressed: state.isKeyPressed(" ")
-  }));
-  // align
-  useHotkeys("Space+a", () => {
+  // const { spaceKeyPressed } = useKeyPressedStore((state) => ({
+  //   spaceKeyPressed: state.isKeyPressed(" ")
+  // }));
+
+  useCombo(["Space", "a"], () => {
     alignNodes({ arrangeSpacing: true });
   });
-  useHotkeys("a", () => {
-    if (!spaceKeyPressed) {
-      alignNodes({ arrangeSpacing: false });
-    }
-  });
-  useHotkeys("Meta+a", () => alignNodes({ arrangeSpacing: true }));
-  // copy paste
-  useHotkeys("Control+c", () => handleCopy());
-  useHotkeys("Control+v", () => handlePaste());
-  useHotkeys("Control+x", () => handleCut());
-  useHotkeys("Meta+c", () => handleCopy()); // for mac
-  useHotkeys("Meta+v", () => handlePaste()); // for mac
-  useHotkeys("Meta+x", () => handleCut()); // for mac
-  // duplicate
-  useHotkeys("Space+d", handleDuplicate);
-  // group
-  useHotkeys("Space+g", () => {
-    surroundWithGroup({ selectedNodeIds });
-  });
-  // history
-  useHotkeys("Control+z", () => nodeHistory.undo());
-  useHotkeys("Control+Shift+z", () => nodeHistory.redo());
-  useHotkeys("Meta+z", () => nodeHistory.undo());
-  useHotkeys("Meta+Shift+z", () => nodeHistory.redo());
-  // cmd menu
-  useHotkeys("Alt+k", () => setOpenCommandMenu(true));
-  useHotkeys("Meta+k", () => setOpenCommandMenu(true));
-  // node menu
-  useHotkeys("Control+Space", () =>
-    openNodeMenu(getMousePosition().x, getMousePosition().y)
+
+  useCombo(["Meta", "a"], () => alignNodes({ arrangeSpacing: true }));
+
+  useCombo(["Control", "c"], handleCopy);
+  useCombo(["Control", "v"], handlePaste);
+  useCombo(["Control", "x"], handleCut);
+  useCombo(["Meta", "c"], handleCopy); // for mac
+  useCombo(["Meta", "v"], handlePaste); // for mac
+  useCombo(["Meta", "x"], handleCut); // for mac
+
+  useCombo(["Space", "d"], handleDuplicate);
+
+  useCombo(
+    ["Space", "g"],
+    useCallback(() => {
+      const selectedNodeIds = getSelectedNodeIds();
+      if (selectedNodeIds.length) {
+        surroundWithGroup({ selectedNodeIds });
+      }
+    }, [surroundWithGroup, getSelectedNodeIds])
+  );
+
+  useCombo(["Control", "z"], nodeHistory.undo);
+  useCombo(["Control", "Shift", "z"], nodeHistory.redo);
+  useCombo(["Meta", "z"], nodeHistory.undo);
+  useCombo(["Meta", "Shift", "z"], nodeHistory.redo);
+
+  useCombo(
+    ["Alt", "k"],
+    useCallback(() => setOpenCommandMenu(true), [setOpenCommandMenu])
+  );
+  useCombo(
+    ["Meta", "k"],
+    useCallback(() => setOpenCommandMenu(true), [setOpenCommandMenu])
+  );
+
+  useCombo(
+    ["Control", " "],
+    useCallback(
+      () => openNodeMenu(getMousePosition().x, getMousePosition().y),
+      [openNodeMenu]
+    )
   );
 
   const setExplicitSave = useNodeStore(
@@ -413,27 +443,50 @@ const NodeEditor: React.FC<unknown> = () => {
     }
   }, [fitScreen, shouldFitToScreen]);
 
-  const workflowModels = useNodeStore((state) => state.getModels());
-  const loadHuggingFaceModels = useModelStore(
-    (state) => state.loadHuggingFaceModels
-  );
   // INIT
   const handleOnInit = useCallback(() => {
     setTimeout(() => {
       fitScreen();
     }, 10);
-    loadHuggingFaceModels().then((models) => {
-      const files = workflowModels
-        .filter((model) => model.path && model.repo_id)
-        .map((model) => ({
-          repo_id: model.repo_id as string,
-          path: model.path as string
-        }));
-      tryCacheFiles(files).then((files) => {
-        console.log("cached", files);
-      });
-    });
-  }, [fitScreen, loadHuggingFaceModels, workflowModels]);
+    // const loadHuggingFaceModels = useModelStore(
+    //   (state) => state.loadHuggingFaceModels
+    // );
+    // loadHuggingFaceModels().then((models) => {
+    //   const files = workflowModels
+    //     .filter((model) => model.path && model.repo_id)
+    //     .map((model) => ({
+    //       repo_id: model.repo_id as string,
+    //       path: model.path as string
+    //     }));
+    //   tryCacheFiles(files).then((files) => {
+    //     console.log("cached", files);
+    //   });
+    // });
+  }, [fitScreen]);
+
+  // Use the custom hook to log render triggers
+  useRenderLogger({
+    nodes,
+    edges,
+    onConnect,
+    onNodesChange,
+    onEdgesChange,
+    onEdgeUpdate,
+    updateNodeData,
+    connecting,
+    metadata,
+    nodeTypes,
+    isUploading,
+    shouldFitToScreen,
+    settings,
+    isMenuOpen,
+    selectedNodeType,
+    documentationPosition,
+    showDocumentation,
+    openMenuType,
+    currentZoom
+    // Add other dependencies you want to track
+  });
 
   // LOADING OVERLAY
   if (showLoading) {

@@ -259,10 +259,10 @@ const recommendedModels: UnifiedModel[] = [
     allow_patterns: ["**/*.json", "**/*.txt", "**/*.json"]
   },
   {
-    id: "Qwen 2.5 - 0.5B",
-    name: "qwen2.5:0.5b",
+    id: "qwen2.5:0.5b",
+    name: "Qwen 2.5 - 0.5B",
     type: "llama_model",
-    repo_id: "qwen2:0.5b"
+    repo_id: "qwen2.5:0.5b"
   },
   {
     id: "openai/whisper-large-v3",
@@ -295,7 +295,7 @@ const Welcome = ({ handleClose }: { handleClose: () => void }) => {
   }));
   const { downloads } = useModelDownloadStore();
   const { settings, updateSettings } = useSettingsStore();
-  const { settings: remoteSettings, secrets } = useRemoteSettingsStore();
+  const { secrets } = useRemoteSettingsStore();
 
   const hasSetupKeys = useMemo(() => {
     return !!(

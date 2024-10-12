@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { devError, devLog } from "../../utils/DevLog";
+import { devLog } from "../../utils/DevLog";
 import useSessionStateStore from "../../stores/SessionStateStore";
 
 export const useClipboard = () => {
@@ -49,14 +49,9 @@ export const useClipboard = () => {
       data = clipboardData;
     } else {
       if (document.hasFocus()) {
-        try {
-          if (navigator.clipboard) {
-            data = await navigator.clipboard.readText();
-            devLog("Clipboard read successfully.");
-          }
-        } catch (error) {
-          devError("Error reading clipboard:", error);
-          return { data: null, isValid: false };
+        if (navigator.clipboard) {
+          data = await navigator.clipboard.readText();
+          devLog("Clipboard read successfully.");
         }
       }
     }
@@ -84,11 +79,7 @@ export const useClipboard = () => {
         setClipboardData(outputData);
       }
       setClipboardData(outputData);
-      try {
-        await navigator.clipboard.writeText(outputData);
-      } catch (error) {
-        devLog("Error writing to clipboard:", error);
-      }
+      await navigator.clipboard.writeText(outputData);
     }
   };
 

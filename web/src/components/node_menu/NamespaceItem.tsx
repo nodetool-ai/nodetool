@@ -1,9 +1,9 @@
-import React from "react";
+import React, { memo } from "react";
 import { motion } from "framer-motion";
 import { ListItemButton, ListItemText, Typography, Box } from "@mui/material";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 import RenderNamespaces from "./RenderNamespaces";
-import ThemeNodes from "../themes/ThemeNodes";
+import { isEqual } from "lodash";
 
 function toPascalCase(input: string): string {
   return input.split("_").reduce((result, word, index) => {
@@ -22,8 +22,6 @@ interface NamespaceItemProps {
   tree: NamespaceTree;
   selectedPath: string[];
   handleNamespaceClick: (newPath: string[]) => void;
-  searchResultCount: number;
-  searchTerm: string;
 }
 
 const listVariants = {
@@ -62,9 +60,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   hasChildren,
   tree,
   selectedPath,
-  handleNamespaceClick,
-  searchResultCount,
-  searchTerm
+  handleNamespaceClick
 }) => {
   return (
     <motion.div
@@ -89,15 +85,6 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
               <Typography fontSize="small" className="namespace-item-name">
                 {toPascalCase(namespace)}
               </Typography>
-              {searchTerm && searchResultCount > 0 && (
-                <Typography
-                  fontSize="small"
-                  className="namespace-item-count"
-                  color={ThemeNodes.palette.c_gray3}
-                >
-                  {searchResultCount}
-                </Typography>
-              )}
             </Box>
           }
         />
@@ -115,4 +102,4 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   );
 };
 
-export default React.memo(NamespaceItem);
+export default memo(NamespaceItem, isEqual);

@@ -564,47 +564,6 @@ Boolean: Simple true/false values. Ideal for yes/no questions or toggle settings
 Dataframe: Structured data in rows and columns. Great for analyzing or manipulating large datasets.
 Dictionary: Collection of key-value pairs. Useful for storing related data with unique identifiers.
 Enumeration: Predefined set of named options. Used for creating dropdown menus or limited choice selections.
-File: Uploaded files
-Float: Numbers with decimal points.
-Folder: Refers to a folder from the asset library
-Image: Image data
-Integer: Whole numbers
-List: An ordered collection of items, allowing duplicates
-String: A sequence of characters, representing textual data
-Tensor: Multi-dimensional arrays
-Text: Used for longer blocks of textual data, distinct from simple strings
-Union: Represents a value that could be one of several types
-Model: Machine learning model
-Thread: LLM Message Thread
-Thread Message: A single message within an LLM Thread
-Comfy Embeddings: Vectors that map text to a continuous space, used in Stable Diffusion
-Comfy Mask: Image masks, used to specify regions of interest or to filter out unwanted areas of an image
-Comfy Sigmas: Used for Comfy Advanced KSampler
-Comfy Model: A convolutional neural network architecture for image segmentation and denoising
-Comfy Image: A tensor representation of an image, used in Stable Diffusion
-Comfy CLIP: Model used for CLIP Text Encode
-Comfy Conditioning: In ComfyUI, conditionings guide diffusion models based on initial text prompts
-Comfy Sampler: Sampler to denoise latent images
-Comfy Control Net: Guiding models for Stable Diffusion
-Comfy Variational Autoencoder: Variational Autoencoder for Stable Diffusion
-Comfy Latent: Intermediate representations of images in a compact, encoded form, used in Stable Diffusion
-Comfy CLIP Vision: The visual processing component of the CLIP model, used in Stable Diffusion to interpret and manipulate images in alignment with textual data
-Comfy CLIP Vision Output: The output from the CLIP model's vision component, used in Stable Diffusion to align generated images with textual descriptions
-Comfy GLIGEN: Regional prompts for Stable Diffusion
-Comfy IP Adapter: Multimodal image generation similar to ControlNet, but with a different architecture and training process
-Comfy Insight Face: 2D and 3D face analysis, including recognition, detection, and alignment
-Comfy Style Model: A model that applies a style to an image, used in Stable Diffusion
-TAESD: Tiny Autoencoder for Stable Diffusion previews, a lightweight alternative to VAE
-LlamaModel: Represents a Llama model with various attributes
-Task: Represents a task with various attributes like id, status, and result
-RankingResult: Represents a ranking result with score and text
-ImageSegmentationResult: Represents an image segmentation result with label and mask
-BoundingBox: Represents a bounding box with coordinates
-ObjectDetectionResult: Represents an object detection result with label, score, and bounding box
-Dataset: Represents a dataset with features and targets
-OutputSlot: Represents an output slot that can be connected to an input slot
-Message: Abstract representation of a chat message
-
 Settings Menu:
 users can open the settings menu by clicking on the gear icon in the top right corner of the screen.
 The settings menu allows users to customize their Nodetool experience by adjusting various parameters.

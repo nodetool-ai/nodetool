@@ -23,7 +23,7 @@ import { Asset } from "../../stores/ApiTypes";
 //utils
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import useAssets from "../../serverState/useAssets";
-import { useHotkeys } from "react-hotkeys-hook";
+import { useCombo } from "../../stores/KeyPressedStore";
 
 const containerStyles = css({
   width: "100%",
@@ -296,19 +296,31 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [handleChangeAsset, currentIndex, assetsToUse]
   );
 
-  useHotkeys("Escape", handleClose);
-  useHotkeys("left", () => {
-    changeAsset("left", false);
-  });
-  useHotkeys("right", () => {
-    changeAsset("right", false);
-  });
-  useHotkeys("ctrl+left", () => {
-    changeAsset("left", true);
-  });
-  useHotkeys("ctrl+right", () => {
-    changeAsset("right", true);
-  });
+  useCombo(["Escape"], handleClose);
+  useCombo(
+    ["left"],
+    useCallback(() => {
+      changeAsset("left", false);
+    }, [changeAsset])
+  );
+  useCombo(
+    ["right"],
+    useCallback(() => {
+      changeAsset("right", false);
+    }, [changeAsset])
+  );
+  useCombo(
+    ["ctrl+left"],
+    useCallback(() => {
+      changeAsset("left", true);
+    }, [changeAsset])
+  );
+  useCombo(
+    ["ctrl+right"],
+    useCallback(() => {
+      changeAsset("right", true);
+    }, [changeAsset])
+  );
 
   const renderAsset = () => {
     const type = currentAsset?.content_type || contentType || "";

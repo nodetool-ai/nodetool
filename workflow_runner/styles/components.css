@@ -346,31 +346,3 @@ textarea {
 .video-placeholder {
   max-height: 300px;
 }
-
-.namespaces .list-item {
-  padding: 0.2em 0.8em;
-  border-left: 1px solid #444;
-  transition: all 0.25s;
-}
-
-.namespaces .list-item p {
-  font-size: var(--font-size-small);
-  font-family: "Inter";
-}
-
-.namespaces .list-item.Mui-selected {
-  background-color: var(--c-hl1);
-  color: var(--c-black);
-}
-
-.namespaces .list-item.Mui-selected p {
-  font-weight: 600;
-}
-
-.namespaces .sublist {
-  padding-left: 1em;
-}
-
-.namespaces p {
-  font-family: "Inter";
-}

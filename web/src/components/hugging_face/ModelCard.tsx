@@ -2,12 +2,11 @@
 import { css } from "@emotion/react";
 import React, { useState } from "react";
 import { Card, CardContent, CircularProgress } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
-import { ModelComponentProps, fetchOllamaModelInfo } from "./ModelUtils";
-import { fetchModelInfo } from "../../utils/huggingFaceUtils";
+import { ModelComponentProps, useModelInfo } from "./ModelUtils";
 import ModelCardContent from "./ModelCardContent";
 import ModelCardActions from "./ModelCardActions";
 import ThemeNodetool from "../themes/ThemeNodetool";
+import { isEqual } from "lodash";
 
 const styles = (theme: any) =>
   css({
@@ -110,7 +109,7 @@ const styles = (theme: any) =>
       fontSize: theme.fontSizeSmaller
     },
     ".text-license": {
-      margin: 0,
+      margin: "0 0 .5em 0",
       padding: 0,
       fontFamily: theme.fontFamily2,
       color: theme.palette.c_gray3,
@@ -183,40 +182,15 @@ const styles = (theme: any) =>
     }
   });
 
-const ModelCard: React.FC<ModelComponentProps> = React.memo(function ModelCard({
+const ModelCard: React.FC<ModelComponentProps> = ({
   model,
   onDownload,
   handleDelete
-}) {
+}) => {
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [readmeDialogOpen, setReadmeDialogOpen] = useState(false);
-
-  const isHuggingFace = Boolean(model.type && model.type.startsWith("hf."));
-  const isOllama = Boolean(
-    model.type && model.type.toLowerCase().includes("llama_model")
-  );
-  const { data: modelData, isLoading } = useQuery({
-    queryKey: ["modelInfo", model.id],
-    queryFn: () => {
-      if (isHuggingFace) {
-        return fetchModelInfo(model.repo_id || "");
-      } else if (isOllama) {
-        return fetchOllamaModelInfo(model.id);
-      }
-      return null;
-    },
-    staleTime: Infinity,
-    gcTime: 1000 * 60,
-    refetchOnWindowFocus: false
-  });
-
-  const downloaded = Boolean(
-    model.type && model.path
-      ? model.downloaded
-      : model.type && model.type.startsWith("hf.")
-      ? model.size_on_disk
-      : modelData // ollama
-  );
+  const { modelData, isLoading, downloaded, isHuggingFace, isOllama } =
+    useModelInfo(model);
 
   const toggleTags = () => setTagsExpanded(!tagsExpanded);
 
@@ -259,6 +233,6 @@ const ModelCard: React.FC<ModelComponentProps> = React.memo(function ModelCard({
       />
     </Card>
   );
-});
+};
 
-export default ModelCard;
+export default React.memo(ModelCard, isEqual);

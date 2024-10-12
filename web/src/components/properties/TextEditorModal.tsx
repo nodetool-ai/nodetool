@@ -4,13 +4,13 @@ import { css, useTheme } from "@emotion/react";
 import ReactDOM from "react-dom";
 import { useEffect, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
-import { useHotkeys } from "react-hotkeys-hook";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
 import { Tooltip } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
 import CircularProgress from "@mui/material/CircularProgress";
+import { useCombo } from "../../stores/KeyPressedStore";
 
 interface TextEditorModalProps {
   value: string;
@@ -148,16 +148,7 @@ export default function TextEditorModal({
     }
   };
 
-  useHotkeys(
-    "Escape",
-    (event) => {
-      event.preventDefault();
-      onClose();
-    },
-    {
-      enableOnFormTags: true
-    }
-  );
+  useCombo(["escape"], onClose);
 
   const content = (
     <div css={modalStyles(theme)} className={readOnly ? "read-only" : ""}>

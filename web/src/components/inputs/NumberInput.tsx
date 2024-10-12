@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
+import { useCombo, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { TextField } from "@mui/material";
 import ThemeNodes from "../themes/ThemeNodes";
@@ -286,13 +285,16 @@ const NumberInput: React.FC<InputProps> = (props) => {
     [props.min, props.max, props.inputType, calculateStep]
   );
 
-  useHotkeys("Escape", () => {
-    setState((prevState) => ({
-      ...prevState,
-      localValue: (props.value ?? 0).toString(),
-      isEditable: false
-    }));
-  });
+  useCombo(
+    ["Escape"],
+    useCallback(() => {
+      setState((prevState) => ({
+        ...prevState,
+        localValue: (props.value ?? 0).toString(),
+        isEditable: false
+      }));
+    }, [props.value])
+  );
 
   useEffect(() => {
     if (!state.isEditable) {

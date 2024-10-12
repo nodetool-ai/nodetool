@@ -18,7 +18,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
   currentPath = [],
   handleNamespaceClick
 }) => {
-  const { highlightedNamespaces, selectedPath, searchResults, searchTerm } =
+  const { highlightedNamespaces, selectedPath, searchResults } =
     useNodeMenuStore((state) => ({
       highlightedNamespaces: state.highlightedNamespaces,
       selectedPath: state.selectedPath,
@@ -79,8 +79,7 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
           newPath,
           expandedState,
           namespaceStyle,
-          hasChildren,
-          searchResultCount
+          hasChildren
         }) => (
           <NamespaceItem
             key={newPath.join(".")}
@@ -92,8 +91,6 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
             tree={tree}
             selectedPath={selectedPath}
             handleNamespaceClick={memoizedHandleClick}
-            searchResultCount={searchResultCount}
-            searchTerm={searchTerm}
           />
         )
       )}

@@ -4,7 +4,13 @@ import { colorForType } from "../../config/data_types";
 
 import ThemeNodes from "../themes/ThemeNodes";
 import { memo, useEffect, useState, useMemo } from "react";
-import { Node, NodeProps, NodeResizer, ResizeParams } from "@xyflow/react";
+import {
+  Node,
+  NodeProps,
+  NodeResizer,
+  NodeToolbar,
+  ResizeParams
+} from "@xyflow/react";
 import { isEqual } from "lodash";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
@@ -21,6 +27,7 @@ import ApiKeyValidation from "./ApiKeyValidation";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import { titleizeString } from "../../utils/titleizeString";
+import NodeToolButtons from "./NodeToolButtons";
 
 // Tooltip timing constants
 export const TOOLTIP_ENTER_DELAY = 650;
@@ -252,6 +259,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           : ThemeNodes.palette.c_node_bg
       }}
     >
+      <NodeToolbar>
+        <NodeToolButtons nodeId={props.id} />
+      </NodeToolbar>
       <NodeHeader
         id={props.id}
         nodeTitle={titleizedType}

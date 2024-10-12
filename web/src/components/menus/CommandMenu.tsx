@@ -3,7 +3,7 @@ import { Command, CommandInput } from "cmdk";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
 import { useNodeStore } from "../../stores/NodeStore";
-import { Dialog } from "@mui/material";
+import { css, Dialog, Theme } from "@mui/material";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import useWorkflowRunnner from "../../stores/WorkflowRunner";
@@ -21,6 +21,16 @@ type CommandMenuProps = {
   redo: (steps?: number | undefined) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
 };
+
+const styles = (theme: any) =>
+  css({
+    ".MuiDialog-paper": {
+      maxWidth: "800px",
+      width: "40vw",
+      background: "transparent",
+      boxShadow: "none"
+    }
+  });
 
 const CommandMenu: React.FC<CommandMenuProps> = ({
   open,
@@ -122,6 +132,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       open={open}
       onClose={() => setOpen(false)}
       className="command-menu-dialog"
+      css={styles}
     >
       <Command label="Command Menu" className="command-menu">
         <CommandInput ref={input} />

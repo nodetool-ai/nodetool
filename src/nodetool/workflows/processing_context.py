@@ -128,7 +128,7 @@ class ProcessingContext:
         self.variables: dict[str, Any] = variables if variables else {}
         self.endpoint_url = endpoint_url
         self.http_client = (
-            httpx.AsyncClient(follow_redirects=True, timeout=600)
+            httpx.AsyncClient(follow_redirects=True, timeout=600, verify=False)
             if http_client is None
             else http_client
         )

@@ -261,7 +261,7 @@
           "scheduler": "HeunDiscreteScheduler",
           "loras": [],
           "lora_scale": 0.5,
-          "ip_adapter_model": "ip-adapter_sd15.safetensors",
+          "ip_adapter_model": "ip-adapter_sd15.bing",
           "ip_adapter_scale": 0.5,
           "hires": false,
           "enable_tiling": true,

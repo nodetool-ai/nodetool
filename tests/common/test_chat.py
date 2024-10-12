@@ -17,7 +17,6 @@ from nodetool.models.user import User
 from nodetool.workflows.base_node import BaseNode
 from nodetool.workflows.processing_context import ProcessingContext
 from nodetool.models.thread import Thread
-from nodetool.chat.chat import Environment
 
 # load all nodes
 import nodetool.nodes.nodetool
