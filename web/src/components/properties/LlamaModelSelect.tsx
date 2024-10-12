@@ -1,6 +1,4 @@
 import { useMemo, useCallback } from "react";
-import { Select, SelectChangeEvent } from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
 import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { LlamaModel } from "../../stores/ApiTypes";
@@ -35,7 +33,7 @@ export default function LlamaModelSelect({
   }, [models, isLoading, isError]);
 
   const handleChange = useCallback(
-    (e: SelectChangeEvent) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       onChange({
         type: "llama_model",
         repo_id: e.target.value
@@ -47,46 +45,37 @@ export default function LlamaModelSelect({
   const isValueMissing = value && !values.some((v) => v.value === value);
 
   return (
-    <Select
+    <select
       value={isValueMissing ? "" : value || ""}
       onChange={handleChange}
-      variant="standard"
-      className="mui-select nodrag"
-      disableUnderline={true}
+      className="nodrag"
     >
-      <MenuItem value="" key="select-model">
-        Select a model
-      </MenuItem>
+      <option value="">Select a model</option>
       {isLoading && (
-        <MenuItem value="" key="loading">
+        <option value="" disabled>
           Loading models...
-        </MenuItem>
+        </option>
       )}
       {isError && (
-        <MenuItem value="" key="error">
+        <option value="" disabled>
           Error loading models
-        </MenuItem>
+        </option>
       )}
       {isSuccess && values.length === 0 && (
-        <MenuItem value="" key="no-models">
+        <option value="" disabled>
           No models found. Click RECOMMENDED MODELS above to find models.
-        </MenuItem>
+        </option>
       )}
       {isValueMissing && (
-        <MenuItem
-          value=""
-          disabled
-          style={{ color: "red" }}
-          key="missing-model"
-        >
+        <option value="" disabled style={{ color: "red" }}>
           {value} (missing)
-        </MenuItem>
+        </option>
       )}
-      {values?.map(({ value: modelValue, label }, index) => (
-        <MenuItem key={`model-${modelValue}`} value={modelValue}>
+      {values?.map(({ value: modelValue, label }) => (
+        <option key={`model-${modelValue}`} value={modelValue}>
           {label}
-        </MenuItem>
+        </option>
       ))}
-    </Select>
+    </select>
   );
 }

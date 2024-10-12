@@ -1,6 +1,4 @@
 import { useMemo, useCallback } from "react";
-import { Select, SelectChangeEvent } from "@mui/material";
-import MenuItem from "@mui/material/MenuItem";
 import useModelStore from "../../stores/ModelStore";
 import { useQuery } from "@tanstack/react-query";
 import { ModelFile } from "../../stores/ApiTypes";
@@ -37,7 +35,7 @@ export default function ComfyModelSelect({
   }, [models, isLoading, isError]);
 
   const handleChange = useCallback(
-    (e: SelectChangeEvent) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       onChange({
         type: modelType,
         name: e.target.value
@@ -49,30 +47,28 @@ export default function ComfyModelSelect({
   const isValueMissing = value && !values.some((v) => v.value === value);
 
   return (
-    <Select
+    <select
       value={isValueMissing ? "" : value}
       onChange={handleChange}
-      variant="standard"
-      className="mui-select nodrag"
-      disableUnderline={true}
+      className="nodrag"
     >
-      {isLoading && <MenuItem value="">Loading models...</MenuItem>}
-      {isError && <MenuItem value="">Error loading models</MenuItem>}
+      {isLoading && <option value="">Loading models...</option>}
+      {isError && <option value="">Error loading models</option>}
       {isSuccess && values.length === 0 && (
-        <MenuItem value="">
+        <option value="">
           No models found. Place models in the models folder.
-        </MenuItem>
+        </option>
       )}
       {isValueMissing && (
-        <MenuItem value="" disabled style={{ color: "red" }}>
+        <option value="" disabled style={{ color: "red" }}>
           {value} (missing)
-        </MenuItem>
+        </option>
       )}
       {values?.map(({ value, label }) => (
-        <MenuItem key={value} value={value}>
+        <option key={value} value={value}>
           {label}
-        </MenuItem>
+        </option>
       ))}
-    </Select>
+    </select>
   );
 }

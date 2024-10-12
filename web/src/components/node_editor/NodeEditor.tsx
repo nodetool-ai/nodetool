@@ -301,7 +301,9 @@ const NodeEditor: React.FC<unknown> = () => {
   useCombo(["Meta", "v"], handlePaste); // for mac
   useCombo(["Meta", "x"], handleCut); // for mac
 
-  useCombo(["Space", "d"], handleDuplicate);
+  useCombo(["Meta", "d"], handleDuplicate);
+  useCombo(["Alt", "d"], handleDuplicate);
+  useCombo(["Control", "d"], handleDuplicate);
 
   useCombo(
     ["Space", "g"],
@@ -446,24 +448,43 @@ const NodeEditor: React.FC<unknown> = () => {
 
   // Use the custom hook to log render triggers
   useRenderLogger("NodeEditor", {
+    nodes,
     edges,
     onConnect,
     onNodesChange,
     onEdgesChange,
     onEdgeUpdate,
     updateNodeData,
+    handleOnConnect,
+    onConnectStart,
+    onConnectEnd,
     connecting,
     metadata,
     nodeTypes,
     isUploading,
+    nodeHistory,
     shouldFitToScreen,
+    setShouldFitToScreen,
     settings,
     isMenuOpen,
     selectedNodeType,
     documentationPosition,
     showDocumentation,
     openMenuType,
-    isMinZoom
+    isMinZoom,
+    openCommandMenu,
+    setOpenCommandMenu,
+    handleCopy,
+    handlePaste,
+    handleCut,
+    handleDuplicate,
+    surroundWithGroup,
+    getSelectedNodeIds,
+    openNodeMenu,
+    closeNodeMenu,
+    closeDocumentation,
+    fitScreen,
+    currentZoom
   });
 
   // LOADING OVERLAY

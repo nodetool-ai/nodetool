@@ -130,25 +130,30 @@
   margin-bottom: 5px;
 }
 
-.string-property__textarea {
+.string-property input {
   outline: none;
-  background-color: var(--c-gray1);
-  border: none;
-  border-radius: 0;
+  margin: 3px 0;
+  padding: 3px 6px;
+  color: var(--c_white);
+  background-color: var(--c_gray1);
+  border: 1px solid var(--c-gray2);
+  border-radius: 3px;
   font-family: var(--font-family-1);
   font-size: var(--font-size-smaller);
-  line-height: 1.1;
+  line-height: 1.5em;
+  width: 100%;
 }
 
-.string-property__container {
+.string-property .container {
   position: relative;
+  width: 100%;
 }
 
-.string-property__expand-button {
+.string-property .expand-button {
   position: absolute;
   z-index: 0;
-  top: -11px;
-  right: 0px;
+  top: 5px;
+  right: 5px;
   cursor: pointer;
   width: 1em;
   height: 1em;
@@ -160,9 +165,32 @@
   font-weight: bold;
 }
 
-.string-property__expand-button:hover {
+.string-property .expand-button:hover {
   color: var(--c-hl1);
   background-color: var(--c-gray2);
+}
+
+.model-property select {
+  margin: 3px 0;
+  padding: 3px 6px;
+  width: 100%;
+  background-color: var(--c_gray1);
+  color: var(--c_white);
+  border: 1px solid var(--c-gray2);
+  border-radius: 3px;
+  font-family: var(--font-family-1);
+  font-size: var(--font-size-small);
+}
+.enum-property select {
+  width: 100%;
+  margin: 3px 0;
+  padding: 3px 3px;
+  background-color: var(--c_gray1);
+  color: var(--c_white);
+  border: 1px solid var(--c-gray2);
+  border-radius: 3px;
+  font-family: var(--font-family-1);
+  font-size: var(--font-size-small);
 }
 
 .number-input {

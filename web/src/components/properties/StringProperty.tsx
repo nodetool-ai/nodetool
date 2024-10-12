@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import PropertyLabel from "../node/PropertyLabel";
-import TextareaAutosize from "react-textarea-autosize";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import { TOOLTIP_ENTER_DELAY } from "../node/BaseNode";
@@ -20,7 +19,7 @@ export default function StringProperty({
   }, []);
 
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange(e.target.value);
     },
     [onChange]
@@ -33,13 +32,12 @@ export default function StringProperty({
         description={property.description}
         id={id}
       />
-      <div className="string-property__container">
-        <TextareaAutosize
+      <div className="container">
+        <input
+          type="text"
           id={id}
           name={property.name}
-          minRows={1}
-          maxRows={4}
-          className="string-property__textarea nodrag nowheel"
+          className="nodrag"
           value={value || ""}
           onChange={handleChange}
           autoComplete="off"
@@ -48,10 +46,7 @@ export default function StringProperty({
           spellCheck="false"
         />
         <Tooltip title="Open Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <button
-            className="string-property__expand-button"
-            onClick={toggleExpand}
-          >
+          <button className="expand-button" onClick={toggleExpand}>
             {isExpanded ? "↙" : "↗"}
           </button>
         </Tooltip>
