@@ -152,7 +152,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const headerInputRef = useRef<HTMLInputElement>(null);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-
+  const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
   const isWorkflowRunning = useWorkflowRunner(
     (state) => state.state === "running"
   );
@@ -246,6 +246,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     },
     [props.data, props.id, updateNodeData]
   );
+
+  useEffect(() => {
+    // Selectable group nodes when spacekey is pressed
+    // (enables the use of the selection rectangle inside group nodes)
+    if (spaceKeyPressed) {
+      updateNode(props.id, { selectable: true });
+    } else {
+      updateNode(props.id, { selectable: false });
+    }
+  }, [updateNode, props.id, spaceKeyPressed]);
 
   if (!metadata) {
     return <div>Loading...</div>;

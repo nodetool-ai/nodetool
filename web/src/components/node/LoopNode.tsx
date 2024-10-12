@@ -135,12 +135,9 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { data: metadata } = useMetadata();
   const nodeRef = useRef<HTMLDivElement>(null);
   const updateNode = useNodeStore((state: NodeStore) => state.updateNode);
-  const { controlKeyPressed, shiftKeyPressed, spaceKeyPressed } =
-    useKeyPressedStore((state) => ({
-      controlKeyPressed: state.isKeyPressed("Control"),
-      shiftKeyPressed: state.isKeyPressed("Shift"),
-      spaceKeyPressed: state.isKeyPressed(" ")
-    }));
+  const { spaceKeyPressed } = useKeyPressedStore((state) => ({
+    spaceKeyPressed: state.isKeyPressed(" ")
+  }));
   const getInputEdges = useNodeStore((state) => state.getInputEdges);
   const updateNodeData = useNodeStore((state) => state.updateNodeData);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
@@ -224,13 +221,8 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     } else {
       updateNode(props.id, { selectable: false });
     }
-  }, [
-    controlKeyPressed,
-    shiftKeyPressed,
-    updateNode,
-    props.id,
-    spaceKeyPressed
-  ]);
+  }, [updateNode, props.id, spaceKeyPressed]);
+
   if (!metadata) {
     return <div>Loading...</div>;
   }
@@ -259,7 +251,6 @@ const LoopNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodeType={props.type}
           data={props.data}
           onlyHandles={true}
-          edges={edges}
         />
         <Tooltip
           title="Loop nodes expect a List or Dataframe of any type. Use the GroupInput node inside the loop to use those items one by one."
