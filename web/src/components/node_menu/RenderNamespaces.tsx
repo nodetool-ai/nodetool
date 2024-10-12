@@ -71,8 +71,34 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
     [handleNamespaceClick]
   );
 
+  const namespaceStyles = (theme: any) =>
+    css({
+      ".list-item": {
+        padding: "0.2em 0.8em",
+        borderLeft: "1px solid #444",
+        transition: "all 0.25s",
+        p: {
+          fontSize: theme.fontSizeSmall,
+          fontFamily: "Inter"
+        }
+      },
+      ".list-item.Mui-selected": {
+        backgroundColor: theme.palette.c_hl1,
+        color: theme.palette.c_black
+      },
+      ".list-item.Mui-selected p": {
+        fontWeight: 600
+      },
+      ".sublist": {
+        paddingLeft: "1em"
+      },
+      p: {
+        fontFamily: "Inter"
+      }
+    });
+
   return (
-    <div className="namespaces">
+    <div className="namespaces" css={namespaceStyles}>
       {memoizedTree.map(
         ({
           namespace,
