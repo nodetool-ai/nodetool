@@ -15,8 +15,8 @@ export const useRemoveFromGroup = () => {
             const parentNode = getNode(node.parentId);
             if (parentNode) {
               const newPosition = {
-                x: (parentNode.position.x || 0) + (node.position.x - 10 || 0),
-                y: (parentNode.position.y || 0) + (node.position.y - 10 || 0)
+                x: (parentNode.position.x || 0) + (node.position.x - 5 || 0),
+                y: (parentNode.position.y || 0) + (node.position.y - 5 || 0)
               };
               updateNode(node.id, {
                 parentId: undefined,
