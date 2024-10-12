@@ -153,7 +153,14 @@ export const autoLayout = (
 ): Node<NodeData>[] => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: "LR" });
+  dagreGraph.setGraph({
+    rankdir: "LR",
+    align: "UL",
+    ranker: "tight-tree",
+    ranksep: 50,
+    marginx: 0,
+    marginy: 0
+  });
 
   const originalPositions: NodePositions = nodes.reduce(
     (acc: NodePositions, node) => {
@@ -166,8 +173,10 @@ export const autoLayout = (
   nodes.forEach((node) => {
     if (node.type === "comment") return;
     dagreGraph.setNode(node.id, {
-      width: node.measured?.width,
-      height: node.measured?.height
+      x: node.position.x,
+      y: node.position.y,
+      width: node.measured?.width ? node.measured.width * 1.2 : 100,
+      height: node.measured?.height ? node.measured.height : 100
     });
   });
 
@@ -202,8 +211,8 @@ export const autoLayout = (
     if (node.parentId) return node;
     const dnode = dagreGraph.node(node.id);
     const position = {
-      x: dnode.x - minX + originalTopLeft.x - 50,
-      y: dnode.y - minY + originalTopLeft.y - 50
+      x: dnode.x - minX + originalTopLeft.x - 100,
+      y: dnode.y - minY + originalTopLeft.y - 120
     };
     return {
       ...node,
